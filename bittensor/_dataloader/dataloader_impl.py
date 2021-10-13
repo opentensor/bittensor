@@ -1,4 +1,4 @@
-""" Implementation for the dataloader and GenesisTextDataloader class, which handles dataloading from ipfs
+""" Implementation for the dataloader and GenesisTextDataset class, which handles dataloading from ipfs
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -35,7 +35,7 @@ import bittensor
 logger = logger.opt(colors=True)
 
 
-class Dataloader():
+class Dataset():
     """ Implementation for the dataloader class, which handles dataloading from ipfs
     """
     def __init__(self):
@@ -107,7 +107,7 @@ class Dataloader():
         params = (('arg', dir_hash),)
         session.params.update(params)
 
-        response = Dataloader.requests_retry_session(session=session).get(self.dag_get)
+        response = Dataset.requests_retry_session(session=session).get(self.dag_get)
 
         return response
 
@@ -119,7 +119,7 @@ class Dataloader():
         """ Returns the next batch from the dataset.
         """
 
-class GenesisTextDataloader( Dataloader ):
+class GenesisTextDataset( Dataset ):
     """ One kind of dataloader that caters for the data from ipfs 
     """
     def __init__(
@@ -225,7 +225,7 @@ class GenesisTextDataloader( Dataloader ):
         session = requests.Session()
         params = (('arg', file_hash),)
         session.params.update(params)
-        response = Dataloader.requests_retry_session(session=session).post(self.file_cat)
+        response = Dataset.requests_retry_session(session=session).post(self.file_cat)
 
         return response
 

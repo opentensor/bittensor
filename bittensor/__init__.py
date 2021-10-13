@@ -98,7 +98,7 @@ from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
-from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
+from bittensor._dataloader.dataloader_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 

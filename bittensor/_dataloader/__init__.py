@@ -1,4 +1,4 @@
-""" Create and init the GenesisTextDataloader class, which handles dataloading from ipfs
+""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs
 """
 
 # The MIT License (MIT)
@@ -26,7 +26,7 @@ import bittensor
 from . import dataloader_impl
 
 class dataloader:
-    """ Create and init the GenesisTextDataloader class, which handles dataloading from ipfs
+    """ Create and init the GenesisTextDataset class, which handles dataloading from ipfs
     """
     def __new__(
             cls,
@@ -48,7 +48,7 @@ class dataloader:
         config.dataloader.dataset_name = dataset_name if dataset_name != None else config.dataloader.dataset_name
         config.dataloader.save_dataset = save_dataset if save_dataset != None else config.dataloader.save_dataset
         dataloader.check_config( config )
-        return dataloader_impl.GenesisTextDataloader(
+        return dataloader_impl.GenesisTextDataset(
             block_size = config.dataloader.block_size,
             batch_size = config.dataloader.batch_size,
             max_corpus_size = config.dataloader.max_corpus_size,
