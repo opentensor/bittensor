@@ -185,7 +185,7 @@ def main( config ):
 
         while True:
             # --- Run 
-            dataset = iter(dataset.dataset(epoch_length=config.server.blocks_per_epoch))
+            dataset = iter(dataset.dataloader(epoch_length=config.server.blocks_per_epoch))
             current_block = subtensor.get_current_block()
             end_block = current_block + 10
             interation = 0

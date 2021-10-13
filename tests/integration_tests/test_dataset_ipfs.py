@@ -8,9 +8,10 @@ def test_text_dataset():
         batch_size = batch_size, 
         block_size = block_size
     )
-    dataset = dataset.dataset(epoch_length)
+    
+    dataloader = dataset.dataloader(epoch_length)
 
-    assert len(dataset) == epoch_length
-    assert len(dataset) != len(dataset)
+    assert len(dataloader) == epoch_length
+    assert len(dataloader) != len(dataset)
     assert len(dataset[0]) == block_size
-    assert len(dataset.dataset) == batch_size * epoch_length
+    assert len(dataloader.dataset) == batch_size * epoch_length
