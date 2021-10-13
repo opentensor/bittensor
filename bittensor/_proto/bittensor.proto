@@ -86,9 +86,6 @@ message TensorMessage {
 
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	bool requires_grad = 8;
-
-	// Uid: uid of the sender
-	int32 uid = 9;
 }
 
 // Return codes from Backward and Forward call.
