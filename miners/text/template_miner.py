@@ -339,6 +339,7 @@ class Miner:
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
         parser.add_argument('--miner.sync_block_time', type=int, help='How often the sync the miner with metagraph, in terms of block time', default=15)
 
+        parser.add_argument('--miner.restart', type=bool, help='If True, train the miner from the beginning', default=False)
         bittensor.add_args( parser )
         Nucleus.add_args( parser ) 
         bittensor.prioritythreadpool.add_args( parser )
@@ -404,7 +405,10 @@ class Miner:
             self.logs.best_epoch_loss = math.inf
             self.ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item()) 
 
-            # ---- reloads previous run ----
+            # ---- reloads previous run if not restart ----
+            if self.config.miner.restart:
+                self.save()
+
             try:
                 self.reload()
                 self.neuron.axon.check()
