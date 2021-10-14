@@ -23,7 +23,7 @@ from typing import Tuple, List
 import torch
 from loguru import logger
 import concurrent
-
+import traceback
 import bittensor
 
 logger = logger.opt(colors=True)
@@ -106,9 +106,14 @@ class ReceptorPool ( torch.nn.Module ):
                 forward_codes.append( result[1] )
                 forward_times.append( result[2] )
         except concurrent.futures._base.TimeoutError:
-            forward_outputs= [torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+            forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             forward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
             forward_times= [15] * len(endpoints)
+        except Exception as e:
+            forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+            forward_codes= [bittensor.proto.ReturnCode.UnknownException] * len(endpoints) 
+            forward_times= [15] * len(endpoints)
+            logger.exception('Exception encountered: {}'.format(e))
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
