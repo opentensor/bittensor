@@ -22,6 +22,7 @@ Example:
 
 """
 import argparse
+import traceback
 from bittensor._metagraph.metagraph_impl import Metagraph
 from logging import Logger, raiseExceptions
 from loguru import logger; logger = logger.opt(colors=True)
@@ -91,7 +92,7 @@ def main( config ):
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
-            print('Error found {}'.format(repr(e)))
+            logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     # Define our backward function.
     def backward_text (pubkey:str, inputs_x, grads_dy ):
@@ -137,7 +138,7 @@ def main( config ):
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
-            print('Error found {}'.format(repr(e)))
+            logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     def blacklist(pubkey:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
@@ -164,6 +165,10 @@ def main( config ):
 
     if not os.path.exists(full_path):
         os.makedirs(full_path)
+
+    # load our old model
+    if config.server.restart != True:
+        gp_server.load(full_path)
 
     # --- Init Wandb.
     bittensor.wandb(
@@ -231,9 +236,14 @@ def main( config ):
 
             # wandb syncing and update metagraph
             metagraph.sync().save()
+            chain_weights =torch.zeros(metagraph.n)
+            chain_weights[uid] = 1 
             wandb.log( wandb_data )
             logger.info(wandb_data)
-            
+
+            # save the model
+            gp_server.save(full_path)
+
             # --- setting weights
             try: 
                 did_set = subtensor.timeout_set_weights(
@@ -250,7 +260,8 @@ def main( config ):
         # --- User ended session ----
         axon.stop()
     except Exception as e:
-        print(e)
+        # --- Unknown error ----
+        logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
 
 if __name__ == "__main__":
     main( server.config() )

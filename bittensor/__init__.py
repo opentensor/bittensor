@@ -188,7 +188,8 @@ class Neuron():
         self.wallet.create()
         try:
             self.metagraph.load().sync().save()
-        except:
+        except Exception as e:
+            logging.error('Error in loading metagraph: {}'.format(e))
             self.metagraph.sync().save()
         self.axon.start().subscribe (
             use_upnpc = self.config.neuron.use_upnpc, 
