@@ -21,7 +21,7 @@ pytest>=6.1.2
 pyyaml
 rich
 requests>=2.25.0
-scalecodec
+scalecodec<2,>=1.0.3
 termcolor
 torch>=1.6.0
 transformers>=4.5.0
