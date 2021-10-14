@@ -40,7 +40,6 @@ custom_type_registry = {
                     ["last_update", "u64"],
                     ["stake", "u64"],
                     ["trust", "u64"],
-                    ["priority", "u64"],
                     ["rank", "u64"],
                     ["consensus", "u64"],
                     ["incentive", "u64"],
