@@ -121,7 +121,7 @@ import bittensor
 import torch
 
 graph = bittensor.metagraph().sync()
-dataset = bittensor.dataloader()
+dataset = bittensor.dataset()
 chain_weights = torch.ones( [graph.n.item()], dtype = torch.float32 )
 
 for batch in dataset.dataloader( 10 ):
