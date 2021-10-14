@@ -33,7 +33,7 @@ jobs:
     - name: Run Unit Tests
       run: pytest ./tests/unit_tests --cov=./tests/ --cov-append 
     - name: Run Integration Tests
-      run: pytest ./tests/integration_tests
+      run: pytest ./tests/integration_tests --cov=./ --cov-append 
     - name: Run Miners
       run: python tests/miners/text/test_gpt2_exodus.py --cov=./tests/ --cov-append 
     - name: Run dataset tests
