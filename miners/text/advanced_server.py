@@ -162,6 +162,7 @@ def main( config ):
             if pubkey in timecheck[request_type].keys():
                 prev_time = timecheck[request_type][pubkey]
                 print(current_time,prev_time)
+                print(config.server.blacklist.time)
                 if current_time - prev_time >= timedelta(seconds=config.server.blacklist.time):
                     timecheck[request_type][pubkey] = current_time
                     return False
