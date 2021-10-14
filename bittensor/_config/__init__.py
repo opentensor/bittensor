@@ -48,7 +48,6 @@ class config:
 
         except Exception as e:
             config_file_path = None
-            logger.info('No Config File Loaded')
             
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
