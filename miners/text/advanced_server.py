@@ -69,7 +69,7 @@ def main( config ):
         momentum = config.server.momentum,
     )
     threadpool = bittensor.prioritythreadpool(config=config)
-    timecheck = {}
+    timecheck = {'forward':{}, 'backward':{}}
     # Define our forward function.
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
@@ -148,23 +148,24 @@ def main( config ):
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
-            if metagraph.S[uid].item() < config.server.blacklist:
+            if metagraph.S[uid].item() < config.server.blacklist.stake:
                 return True
             else:
                 return False
 
         # Check for time
+        request_type = meta[1].value
         def time_check():
             current_time = datetime.now()
-            if pubkey in timecheck.keys():
-                prev_time = timecheck[pubkey]
-                if current_time - prev_time >= timedelta(seconds=config.server.request_time):
-                    timecheck[pubkey] = current_time
+            if pubkey in timecheck[request_type].keys():
+                prev_time = timecheck[request_type][pubkey]
+                if current_time - prev_time >= timedelta(seconds=config.server.blacklist.time):
+                    timecheck[request_type][pubkey] = current_time
                     return False
                 else:
                     return True
             else:
-                timecheck[pubkey] = current_time
+                timecheck[request_type][pubkey] = current_time
                 return False
 
         # Black list or not

@@ -218,9 +218,9 @@ class server(torch.nn.Module):
         parser.add_argument('--server.backward_timeout', type=int, help='Number of seconds to wait for backward axon request', default=20)
         parser.add_argument('--server.forward_timeout', type=int, help='Number of seconds to wait for forward axon request', default=10)
         parser.add_argument('--server.restart', action='store_true', help='if the model should restart', default=False)
-        parser.add_argument('--server.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+        parser.add_argument('--server.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
         parser.add_argument('--server.blocks_per_epoch', type=int, help='Blocks per epoch', default=30)
-        parser.add_argument('--server.request_time', type=int, help='how often a peer can query you (seconds) ', default=10)
+        parser.add_argument('--server.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=10)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
