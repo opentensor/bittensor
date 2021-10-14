@@ -280,6 +280,12 @@ class Metagraph( torch.nn.Module ):
                 self._endpoint_objs.append( obj )
             return self._endpoint_objs
 
+    def hotkey_to_uid(self, hotkey) -> int:
+        if hotkey in bittensor.neuron.metagraph.hotkeys:
+            return bittensor.neuron.metagraph.hotkeys.index(hotkey) 
+        else:
+            return -1
+
     def load( self, network:str = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 

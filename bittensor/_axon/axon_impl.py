@@ -558,8 +558,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.qps_failed.update(1)
             self.stats.qps_failed_per_pubkey[request.hotkey].update(1)
 
-        self.to_wandb(request.hotkey)
-
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
         """
@@ -676,18 +674,19 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
         return self
 
-    def to_wandb(self, pubkey):
-        pubkey_str = pubkey[-5:]
-        bittensor.logging.success(prefix = 'AXON TO WANDB', sufix = '<red>AXON TO WANDB</red>')
-
+    def to_wandb(self):
         wandb_data = {
             'axon_qps': self.stats.qps,
             'axon_qps_failed' : self.stats.qps_failed,
             'axon_total_in_bytes' : self.stats.total_in_bytes,
             'axon_total_out_bytes' : self.stats.total_out_bytes,
-            f'axon_in_bytes {pubkey_str}' : self.stats.in_bytes_per_pubkey[pubkey] ,
-            f'axon_out_bytes {pubkey_str}' : self.stats.out_bytes_per_pubkey[pubkey],
-            f'axon_qps {pubkey_str}': self.stats.qps_per_pubkey[pubkey],
-            f'axon_qps_failed {pubkey_str}' : self.stats.qps_failed_per_pubkey[pubkey] ,
         }
-        wandb.log(wandb_data)
+
+        for pubkey in self.stats.in_bytes_per_pubkey.keys():
+            uid_str = str(bittensor.neuron.metagraph.hotkeys.index(pubkey)).zfill(3)
+            wandb_data[f'axon_in_bytes {uid_str}'] = self.stats.in_bytes_per_pubkey[pubkey]
+            wandb_data[f'axon_out_bytes {uid_str}'] = self.stats.out_bytes_per_pubkey[pubkey]
+            wandb_data[f'axon_qps {uid_str}'] = self.stats.qps_per_pubkey[pubkey]
+            wandb_data[f'axon_qps_failed {uid_str}'] = self.stats.qps_failed_per_pubkey[pubkey]
+            
+        return wandb_data 

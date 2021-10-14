@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from types import SimpleNamespace
 from typing import Tuple, List, Union, Optional
 
 import torch
@@ -71,6 +72,11 @@ class Dendrite( torch.autograd.Function ):
         self.config = config
         self.wallet = wallet
         self.receptor_pool = receptor_pool
+        self.stats = SimpleNamespace(
+            quested_peers_count = torch.zeros(0),
+            responded_peers_count = torch.zeros(0),
+            peers_respond_time = torch.zeros(0),
+        )
 
     def __str__(self):
         return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
@@ -325,6 +331,7 @@ class Dendrite( torch.autograd.Function ):
             responses = responses[0]
 
         # Return.
+        self.update_stat(endpoints, responses, codes, times)
         return responses, codes, times
 
     def forward_tensor(
@@ -418,8 +425,8 @@ class Dendrite( torch.autograd.Function ):
             responses = responses[0]
 
         # Return.
+        self.update_stat(endpoints, responses, codes, times)
         return responses, codes, times
-
 
     def forward_text(
             self,
@@ -583,4 +590,44 @@ class Dendrite( torch.autograd.Function ):
         )
 
         # Return.
+        self.update_stat(endpoints, responses, codes, times)
         return responses, codes, times
+
+    def update_stat(self, endpoints, responses, return_ops, query_times):
+
+        uids = torch.tensor([bittensor.endpoint.from_tensor(e).uid for e in endpoints])
+
+        chain_growth = bittensor.neuron.metagraph.n.item() - self.stats.quested_peers_count.shape[0]
+
+        # --- update the size of stat if needed 
+        if chain_growth > 0:
+            zero_fill = torch.zeros(chain_growth)
+            self.stats.quested_peers_count = torch.cat((self.stats.quested_peers_count, zero_fill))
+            self.stats.responded_peers_count = torch.cat((self.stats.responded_peers_count, zero_fill))
+            self.stats.peers_respond_time = torch.cat((self.stats.peers_respond_time, zero_fill))
+        
+        success_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
+        quested_peers = responded_peers = respond_time = torch.zeros(bittensor.neuron.metagraph.n.item())
+
+        quested_peers[uids] = 1
+        responded_peers[uids[success_uids]] = 1
+        respond_time[uids] = query_times
+        
+        self.stats.quested_peers_count += quested_peers
+        self.stats.responded_peers_count += responded_peers
+        self.stats.peers_respond_time += respond_time
+
+    def to_wandb(self):
+        respond_rate = self.stats.responded_peers_count / self.stats.quested_peers_count
+        avg_respond_time = self.stats.peers_respond_time / self.stats.responded_peers_count
+
+        wandb_info = {}
+        
+        for uid in range(len(self.stats.quested_peers_count)):
+            uid_str = str(uid).zfill(3)
+            wandb_info[f'dend_quested uid: {uid_str}']= self.stats.quested_peers_count[uid]
+            wandb_info[f'dend_responded uid: {uid_str}']= self.stats.responded_peers_count[uid]
+            wandb_info[f'dend_respond_rate uid: {uid_str}']= respond_rate[uid]
+            wandb_info[f'dend_respond_time uid: {uid_str}']= avg_respond_time[uid]
+
+        return wandb_info
