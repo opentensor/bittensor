@@ -79,7 +79,7 @@ from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
-from bittensor._dataloader import dataloader as dataloader
+from bittensor._dataset import dataset as dataset
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
@@ -98,7 +98,7 @@ from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
-from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
+from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
@@ -116,7 +116,7 @@ def add_args( parser: argparse.ArgumentParser ):
     wallet.add_args( parser )
     subtensor.add_args( parser )
     metagraph.add_args( parser )
-    dataloader.add_args( parser )
+    dataset.add_args( parser )
     dendrite.add_args( parser )
     axon.add_args( parser )
     wandb.add_args( parser )
@@ -126,7 +126,7 @@ def check_config( config ):
     wallet.check_config( config )
     subtensor.check_config( config )
     metagraph.check_config( config )
-    dataloader.check_config( config )
+    dataset.check_config( config )
     dendrite.check_config( config )
     axon.check_config( config )
 
