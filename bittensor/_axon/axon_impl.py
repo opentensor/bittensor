@@ -25,6 +25,7 @@ from typing import List, Tuple, Callable
 import torch
 import grpc
 from loguru import logger
+import wandb
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -67,11 +68,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.modality = modality if modality != None else self.find_modality()
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
             in_bytes_per_pubkey = {},
             out_bytes_per_pubkey = {},
             qps_per_pubkey = {},
+            qps_failed_per_pubkey = {},
         )
 
         self.external_ip = None
@@ -101,6 +104,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (bittensor.proto.TensorMessage): 
                     proto response carring the nucleus forward output or None under failure.
         """
+        bittensor.logging.success(prefix = 'AXON FORWARD', sufix = '<red>AXON FORWARD</red>')
+        self.to_wandb(request.hotkey)
         tensor, code, _, message = self._forward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
@@ -529,7 +534,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def update_stats_for_request(self, request, response):
         """ Save the in_bytes and out_bytes from request and respond to self.stats 
         """
+        bittensor.logging.success(prefix = 'AXON UPDATE STATS', sufix = '<red>AXON UPDATE STATS</red>')
         self.stats.qps.update(1)
+
         in_bytes = sys.getsizeof(request)
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
@@ -540,10 +547,18 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.in_bytes_per_pubkey[request.hotkey].update(in_bytes)
             self.stats.out_bytes_per_pubkey[request.hotkey].update(out_bytes)
             self.stats.qps_per_pubkey[request.hotkey].update(1)
+
         else:
             self.stats.in_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
             self.stats.out_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
             self.stats.qps_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(1, 0.01)
+            self.stats.qps_failed_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
+        
+        if response.return_code != bittensor.proto.ReturnCode.Success:
+            self.stats.qps_failed.update(1)
+            self.stats.qps_failed_per_pubkey[request.hotkey].update(1)
+
+        self.to_wandb(request.hotkey)
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
@@ -660,3 +675,19 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if backward != None:
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
         return self
+
+    def to_wandb(self, pubkey):
+        pubkey_str = pubkey[-5:]
+        bittensor.logging.success(prefix = 'AXON TO WANDB', sufix = '<red>AXON TO WANDB</red>')
+
+        wandb_data = {
+            'axon_qps': self.stats.qps,
+            'axon_qps_failed' : self.stats.qps_failed,
+            'axon_total_in_bytes' : self.stats.total_in_bytes,
+            'axon_total_out_bytes' : self.stats.total_out_bytes,
+            f'axon_in_bytes {pubkey_str}' : self.stats.in_bytes_per_pubkey[pubkey] ,
+            f'axon_out_bytes {pubkey_str}' : self.stats.out_bytes_per_pubkey[pubkey],
+            f'axon_qps {pubkey_str}': self.stats.qps_per_pubkey[pubkey],
+            f'axon_qps_failed {pubkey_str}' : self.stats.qps_failed_per_pubkey[pubkey] ,
+        }
+        wandb.log(wandb_data)
