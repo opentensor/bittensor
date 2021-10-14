@@ -36,6 +36,7 @@ from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils import clip_grad_norm_
 from torch.nn.utils.rnn import pad_sequence
 import concurrent
+from datetime import datetime,timedelta
 from threading import Thread, Lock
 from nuclei.server import server
 import sys
@@ -68,7 +69,7 @@ def main( config ):
         momentum = config.server.momentum,
     )
     threadpool = bittensor.prioritythreadpool(config=config)
-
+    timecheck = {}
     # Define our forward function.
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
@@ -140,15 +141,38 @@ def main( config ):
         except Exception as e:
             logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
-    def blacklist(pubkey:str) -> bool:
+    def blacklist(pubkey:str, meta:tuple) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
-        uid =metagraph.hotkeys.index(pubkey)
-        if metagraph.S[uid].item() < config.server.blacklist:
+        # Check for stake
+        def stake_check():
+            uid =metagraph.hotkeys.index(pubkey)
+            if metagraph.S[uid].item() < config.server.blacklist:
+                return True
+            else:
+                return False
+
+        # Check for time
+        def time_check():
+            current_time = datetime.now()
+            if pubkey in timecheck.keys:
+                prev_time = timecheck[pubkey]
+                if current_time - prev_time >= timedelta(seconds=config.server.request_time):
+                    timecheck[pubkey] = current_time
+                    return False
+                else:
+                    return True
+            else:
+                timecheck[pubkey] = current_time
+                return False
+
+        # Black list or not
+        if stake_check() or time_check():
             return True
-        else:
+        else: 
             return False
+            
 
     # Create our axon server
     axon = bittensor.axon (

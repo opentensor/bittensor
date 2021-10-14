@@ -669,7 +669,7 @@ class Miner:
 
         progress_bar.set_infos( info )
 
-    def blacklist(self,pubkey:str) -> bool:
+    def blacklist(self,pubkey:str, meta:tuple) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
