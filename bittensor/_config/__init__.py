@@ -66,18 +66,21 @@ class config:
         # Splits params on dot syntax i.e neuron.axon_port
         for arg_key, arg_val in params.__dict__.items():
             split_keys = arg_key.split('.')
-            
             if len(split_keys) == 1:
                 _config[arg_key] = arg_val
             else:
                 if hasattr(_config, split_keys[0]):
                     section = getattr(_config, split_keys[0])
-                
                     if not hasattr(section, split_keys[1]):
                         head = _config
                         for key in split_keys[:-1]:
                             if key not in _config:
                                 head[key] = config_impl.Config()
+                            head = head[key] 
+                        head[split_keys[-1]] = arg_val
+                    else:
+                        head = _config
+                        for key in split_keys[:-1]:
                             head = head[key] 
                         head[split_keys[-1]] = arg_val
                 else:
