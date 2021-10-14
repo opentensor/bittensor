@@ -439,26 +439,26 @@ class Miner:
                         # --- Iterate over batches until the end of the block.
                         current_block = self.neuron.subtensor.get_current_block()
                         while block >= current_block:
-
+                            
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
                             output = self.nucleus.remote_forward (
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
-
+                            
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                             total_epoch_loss += output.local_target_loss.item()
                             scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
-
+                            
                             # ---- Apply and zero accumulated gradients.
                             self.optimizer.step() 
                             self.optimizer.zero_grad()
                             current_block = self.neuron.subtensor.get_current_block()
-
+                            
                             # ---- Aggrigate outputs and losses 
                             total_epoch_loss += output.local_target_loss.item()
                             total_local_target_epoch_loss += output.local_target_loss.item()
@@ -692,7 +692,7 @@ class Miner:
     def log( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = bittensor.neuron.metagraph.hotkeys.index(bittensor.neuron.wallet.hotkey.ss58_address)
+        self_uid = bittensor.neuron.wallet.uid
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
