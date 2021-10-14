@@ -48,7 +48,6 @@ class config:
 
         except Exception as e:
             config_file_path = None
-            logger.info('No Config File Loaded')
             
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
@@ -101,5 +100,5 @@ class config:
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
-        bittensor.dataloader.add_args( parser )
+        bittensor.dataset.add_args( parser )
         return bittensor.config( parser )

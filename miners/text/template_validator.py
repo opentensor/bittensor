@@ -35,6 +35,7 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from loguru import logger; logger = logger.opt(colors=True)
 
 def config ():
     parser = argparse.ArgumentParser()    
@@ -63,8 +64,7 @@ def config ():
     bittensor.dendrite.add_args( parser )
     bittensor.subtensor.add_args( parser )
     bittensor.logging.add_args( parser )
-    bittensor.dataloader.add_args( parser )
-    
+    bittensor.dataset.add_args( parser )
     return bittensor.config( parser )
 
 def main( config ):
@@ -101,7 +101,7 @@ def main( config ):
     dendrite = bittensor.dendrite ( config = config )
 
     # Load genesis dataset.
-    dataset = bittensor.dataloader ( config = config )
+    dataset = bittensor.dataset ( config = config )
 
     # Build Device.
     device = torch.device ( device = config.miner.device )
@@ -159,7 +159,7 @@ def main( config ):
             )
 
             # ---- Join based on weights ----
-            joining_uids = torch.where( return_ops == bittensor.proto.ReturnCode.Success)[0]
+            joining_uids = torch.where(return_ops== bittensor.proto.ReturnCode.Success)[0]
             joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
             output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( device )
             for index, joining_weight in enumerate( joining_weights ): 
@@ -216,10 +216,10 @@ def main( config ):
 
     # Optionally resume.
     if config.miner.resume:
-        try: 
+        try:
             validator.load_state_dict( torch.load("{}/validator.torch".format( save_path ))['validator'], strict=False )
-        except: 
-            pass
+        except Exception as e:
+            logger.error('Error reloading model: {} '.format(e))
     torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( save_path ))
 
     # --- Run Forever.

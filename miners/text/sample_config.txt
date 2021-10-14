@@ -4,12 +4,13 @@ axon.max_workers: 10
 axon.maximum_concurrent_rpcs: 400
 axon.port: 8091
 
-dataloader.batch_size: 10
-dataloader.block_size: 20
-dataloader.max_corpus_size: 1000000.0
-dataloader.num_workers: 0
-dataloader.data_dir: ~/.bittensor/dataset/
-dataloader.dataset: train
+dataset.batch_size: 10
+dataset.block_size: 20
+dataset.max_corpus_size: 1000000.0
+dataset.num_workers: 0
+dataset.data_dir: ~/.bittensor/dataset/
+dataset.dataset_name: train
+dataset.save_dataset: False
 
 dendrite.max_active_receptors: 500
 dendrite.max_worker_threads: 150
