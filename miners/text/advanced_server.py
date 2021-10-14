@@ -156,7 +156,7 @@ def main( config ):
         # Check for time
         def time_check():
             current_time = datetime.now()
-            if pubkey in timecheck.keys:
+            if pubkey in timecheck.keys():
                 prev_time = timecheck[pubkey]
                 if current_time - prev_time >= timedelta(seconds=config.server.request_time):
                     timecheck[pubkey] = current_time
