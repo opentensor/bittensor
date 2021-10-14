@@ -337,7 +337,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                     return False
             else:
                 return True
-
+                
+    @logger.catch
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
