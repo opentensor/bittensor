@@ -100,5 +100,5 @@ class config:
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
-        bittensor.dataloader.add_args( parser )
+        bittensor.dataset.add_args( parser )
         return bittensor.config( parser )
