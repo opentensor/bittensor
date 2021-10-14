@@ -69,7 +69,7 @@ def main( config ):
         momentum = config.server.momentum,
     )
     threadpool = bittensor.prioritythreadpool(config=config)
-    
+
     timecheck = {'forward':{}, 'backwards':{}}
     # Define our forward function.
     def forward_text (pubkey, inputs_x ):
@@ -156,10 +156,12 @@ def main( config ):
 
         # Check for time
         request_type = meta[1].value
+        print(request_type)
         def time_check():
             current_time = datetime.now()
             if pubkey in timecheck[request_type].keys():
                 prev_time = timecheck[request_type][pubkey]
+                print(current_time,prev_time)
                 if current_time - prev_time >= timedelta(seconds=config.server.blacklist.time):
                     timecheck[request_type][pubkey] = current_time
                     return False
