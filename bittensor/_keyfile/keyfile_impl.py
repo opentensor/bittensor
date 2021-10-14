@@ -53,7 +53,8 @@ def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
         'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
         'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
     }
-    return json.dumps( json_data ).encode()
+    data = json.dumps( json_data ).encode()
+    return data
 
 def deserialize_keypair_from_keyfile_data( keyfile_data:bytes ) -> 'bittensor.Keypair':
     """ Deserializes Keypair object from passed keyfile data.
@@ -67,20 +68,23 @@ def deserialize_keypair_from_keyfile_data( keyfile_data:bytes ) -> 'bittensor.Ke
             KeyFileError:
                 Raised if the passed bytest cannot construct a keypair object.
     """
+    # Decode from json.
+    keyfile_data = keyfile_data.decode()
     try:
-        keyfile_dict = json.loads( keyfile_data.decode() )
-    except json.decoder.JSONDecodeError:
-        # This is a legacy coldkey pub.
-        string_value = str(keyfile_data.decode())
+        keyfile_dict = dict(json.loads( keyfile_data ))
+    except:
+        string_value = str(keyfile_data)
         if string_value[:2] == "0x":
             string_value = ss58_encode( string_value )
-        keyfile_dict = {
-            'accountId': None,
-            'publicKey': None,
-            'secretPhrase': None,
-            'secretSeed': None,
-            'ss58Address': string_value
-        }
+            keyfile_dict = {
+                'accountId': None,
+                'publicKey': None,
+                'secretPhrase': None,
+                'secretSeed': None,
+                'ss58Address': string_value
+            }
+        else:
+            raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( string_value ))
 
     if "secretSeed" in keyfile_dict and keyfile_dict['secretSeed'] != None:
         return Keypair.create_from_seed(keyfile_dict['secretSeed'])
@@ -253,6 +257,18 @@ class Keyfile( object ):
         return self.get_keypair()
 
     @property
+    def data( self ) -> bytes:
+        """ Returns keyfile data under path.
+            Returns:
+                keyfile_data (bytes):   
+                    Keyfile data stored under path.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, or writable.
+        """
+        return self._read_keyfile_data_from_file()
+
+    @property
     def keyfile_data( self ) -> bytes:
         """ Returns keyfile data under path.
             Returns:
@@ -279,9 +295,7 @@ class Keyfile( object ):
                 KeyFileError:
                     Raised if the file does not exists, is not readable, or writable.
         """
-        directory = os.path.dirname( self.path )
-        if not os.path.exists( directory ):
-            os.makedirs( directory ) 
+        self.make_dirs()
         keyfile_data = serialized_keypair_to_keyfile_data( keypair )
         if encrypt:
             keyfile_data = encrypt_keyfile_data( keyfile_data, password )
@@ -304,6 +318,13 @@ class Keyfile( object ):
         if keyfile_data_is_encrypted( keyfile_data ):
             keyfile_data = decrypt_keyfile_data( keyfile_data, password)
         return deserialize_keypair_from_keyfile_data( keyfile_data )
+
+    def make_dirs( self ):
+        """ Makes directories for path.
+        """
+        directory = os.path.dirname( self.path )
+        if not os.path.exists( directory ):
+            os.makedirs( directory ) 
 
     def exists_on_device( self ) -> bool:
         """ Returns true if the file exists on the device.
@@ -370,6 +391,8 @@ class Keyfile( object ):
             raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
         keyfile_data = self._read_keyfile_data_from_file()
         if not keyfile_data_is_encrypted( keyfile_data ):
+            as_keypair = deserialize_keypair_from_keyfile_data( keyfile_data )
+            keyfile_data = serialized_keypair_to_keyfile_data( as_keypair )
             keyfile_data = encrypt_keyfile_data( keyfile_data, password )
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )
 
@@ -392,6 +415,8 @@ class Keyfile( object ):
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
             keyfile_data = decrypt_keyfile_data( keyfile_data, password )
+        as_keypair = deserialize_keypair_from_keyfile_data( keyfile_data )
+        keyfile_data = serialized_keypair_to_keyfile_data( as_keypair )
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )
 
     def _read_keyfile_data_from_file ( self ) -> bytes:
