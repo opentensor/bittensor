@@ -33,6 +33,7 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from loguru import logger; logger = logger.opt(colors=True)
 
 def config ():
     parser = argparse.ArgumentParser()    
@@ -128,15 +129,15 @@ def main( config ):
             )
 
             # ---- Join based on weights ----
-            joining_uids = torch.where(return_ops==0)[0]
-            joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
+            joining_uids = torch.where(return_ops== bittensor.proto.ReturnCode.Success)[0]
+            joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
             output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( device )
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( device ) * joining_weight
 
             # ---- Punish peers with non-successful return ops ----
             with torch.no_grad():
-                self.chain_weights[topk_uids[(return_ops != 0)]] -= config.nucleus.punishment
+                self.chain_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -= config.nucleus.punishment
                 self.chain_weights[ self.chain_weights < -1 ] = -1 # lower bound for chain weights 
 
             return output
@@ -160,8 +161,8 @@ def main( config ):
     if config.miner.resume:
         try:
             validator.load_state_dict( torch.load("{}/validator.torch".format( run.dir ))['validator'], strict=False )
-        except:
-            pass
+        except Exception as e:
+            logger.error('Error reloading model: {} '.format(e))
     torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( run.dir ))
 
     # --- Run Forever.
