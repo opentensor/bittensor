@@ -30,7 +30,7 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 
-RAOPERTAO = 18446744073709551615
+RAOPERTAO = 1000000000
 U64MAX = 18446744073709551615
 
 class Metagraph( torch.nn.Module ):
@@ -433,6 +433,9 @@ class Metagraph( torch.nn.Module ):
         tbonds = torch.tensor( bonds, dtype=torch.int64 )
         tweights = torch.tensor( weights, dtype=torch.float32 )
         tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
+
+        # Normalize bond ownership.
+        tbonds = torch.nn.functional.normalize( tbonds.float(), p=1, dim=0, eps=1e-12 ) * 0.5 + torch.eye( tn ) * 0.5
 
         # Set params.
         self.n = torch.nn.Parameter( tn, requires_grad=False )
