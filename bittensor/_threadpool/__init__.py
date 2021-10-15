@@ -57,7 +57,7 @@ class prioritythreadpool:
         """
         try:
             parser.add_argument('--threadpool.max_workers', type = int, help='''maximum number of threads in thread pool''', default = bittensor.defaults.threadpool.max_workers)
-            parser.add_argument('--threadpool.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.threadpool.max_size)
+            parser.add_argument('--threadpool.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.threadpool.maxsize)
             
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -69,7 +69,7 @@ class prioritythreadpool:
         """
         defaults.threadpool = bittensor.Config()
         defaults.threadpool.max_workers = os.getenv('BT_THREADPOOL_MAX_WORKERS') if os.getenv('BT_THREADPOOL_MAX_WORKERS') != None else 10
-        defaults.threadpool.maxsize = os.getenv('BT_THREADPOOL_MAX_SIZE') if os.getenv('BT_THREADPOOL_MAX_SIZE') != None else -1
+        defaults.threadpool.maxsize = os.getenv('BT_THREADPOOL_MAXSIZE') if os.getenv('BT_THREADPOOL_MAXSIZE') != None else -1
     
     @classmethod   
     def config(cls) -> 'bittensor.Config':
