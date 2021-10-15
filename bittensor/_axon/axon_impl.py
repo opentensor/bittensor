@@ -685,10 +685,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         # ---- Axon stats per pubkey for wandb 
         for pubkey in self.stats.in_bytes_per_pubkey.keys():
-            uid_str = str(bittensor.neuron.metagraph.hotkeys.index(pubkey)).zfill(3)
-            wandb_data[f'axon_in_bytes {uid_str}'] = self.stats.in_bytes_per_pubkey[pubkey].value
-            wandb_data[f'axon_out_bytes {uid_str}'] = self.stats.out_bytes_per_pubkey[pubkey].value
-            wandb_data[f'axon_qps {uid_str}'] = self.stats.qps_per_pubkey[pubkey].value
-            wandb_data[f'axon_qps_failed {uid_str}'] = self.stats.qps_failed_per_pubkey[pubkey].value
+            wandb_data[f'axon_in_bytes\n{pubkey}'] = self.stats.in_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_out_bytes\n{pubkey}'] = self.stats.out_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps\n{pubkey}'] = self.stats.qps_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps_failed\n{pubkey}'] = self.stats.qps_failed_per_pubkey[pubkey].value
             
         return wandb_data 

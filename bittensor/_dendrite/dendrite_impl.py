@@ -26,6 +26,7 @@ from loguru import logger
 
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
+import bittensor.utils.stats as stat_utils
 
 logger = logger.opt(colors=True)
 
@@ -76,9 +77,9 @@ class Dendrite( torch.autograd.Function ):
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
         self.stats = SimpleNamespace(
-            quested_peers_count = torch.zeros(0),
-            responded_peers_count = torch.zeros(0),
-            peers_respond_time = torch.zeros(0),
+            requested_peers_count = {},
+            responded_peers_count = {},
+            peers_respond_time = {}
         )
 
     def __str__(self):
@@ -593,31 +594,34 @@ class Dendrite( torch.autograd.Function ):
         )
 
         # Return.
-        self.update_stat(endpoints, responses, codes, times)
+        self.update_stat(formatted_endpoints, responses, codes, times)
         return responses, codes, times
 
     def update_stat(self, endpoints, responses, return_ops, query_times):
-        """ Update dendrite stat according to the response we get from peers
-        Updates were saved to self.stats 
+        r""" Update dendrite stat according to the response we get from peers.
+        Updates were saved to self.stats.
         """
-        # --- uids that we have sent request to
-        uids = torch.tensor([bittensor.endpoint.from_tensor(e).uid for e in endpoints])
+        # ---- uids that we have sent request to.
+        uids = torch.tensor([e.uid for e in endpoints])
 
-        # --- update the size of stat if the chain size increased
-        chain_growth = max(0, max(uids) - self.stats.quested_peers_count.shape[0] + 1)
-        if chain_growth > 0:
-            zero_fill = torch.zeros(chain_growth)
-            self.stats.quested_peers_count = torch.cat((self.stats.quested_peers_count, zero_fill))
-            self.stats.responded_peers_count = torch.cat((self.stats.responded_peers_count, zero_fill))
-            self.stats.peers_respond_time = torch.cat((self.stats.peers_respond_time, zero_fill))
-        
-        # --- uids that gave us successful respond
+        # ---- uids that gave us successful respond.
         success_ids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
         
+        # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
+        for uid, time in (uids, query_times):
+            if not uid in self.stats.requested_peers_count.keys():
+                self.stats.requested_peers_count[uid].update(1)
+                self.stats.peers_respond_time[uid].update(time)
+
+            else:
+                self.stats.requested_peer_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
+                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
+                self.stats.peers_respond_time[uid] = stat_utils.timed_rolling_avg(time, 0.01)
+
+        
         # --- Aggregating result to stats 
-        self.stats.quested_peers_count[uids] += 1
-        self.stats.responded_peers_count[uids[success_ids]] += 1
-        self.stats.peers_respond_time[uids] += query_times
+        for uid in uids[success_ids]:
+            self.stats.responded_peers_count[uids[success_ids]].update(1)
 
     def to_wandb(self):
         """ Return a dictionary of axon stat for wandb logging
