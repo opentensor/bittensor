@@ -16,10 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import os
-from munch import Munch
 from typing import Callable
-from bittensor import _threadpool
 
 # Bittensor code and protocol version.
 __version__ = '1.5.0'
