@@ -19,6 +19,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import os
 import copy
 from munch import Munch
 
@@ -72,17 +73,29 @@ class dataset:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--dataset.batch_size', default=10, type=int, help='Batch size.')
-            parser.add_argument('--dataset.block_size', default=20, type=int, help='Number of text items to pull for each example..')
-            parser.add_argument('--dataset.max_corpus_size', default=1e+6, type=int, help='Maximum amount of data to download from IPFS into memory for training.')
-            parser.add_argument('--dataset.num_workers', default=0, type=int, help='Number of workers for data loader.')
-            parser.add_argument('--dataset.dataset_name', default='train', type=str, help='Which datasets to use (train/test/validation)).')
-            parser.add_argument('--dataset.data_dir', default='~/.bittensor/data/', type=str, help='Where to save and load the data.')
-            parser.add_argument('--dataset.save_dataset', default=False, type=bool, help='Save the downloaded dataset or not.')
+            parser.add_argument('--dataset.batch_size', type=int, help='Batch size.', default = bittensor.defaults.dataset.batch_size)
+            parser.add_argument('--dataset.block_size', type=int, help='Number of text items to pull for each example..', default = bittensor.defaults.dataset.block_size)
+            parser.add_argument('--dataset.max_corpus_size',  type=int, help='Maximum amount of data to download from IPFS into memory for training.', default = bittensor.defaults.dataset.max_corpus_size)
+            parser.add_argument('--dataset.num_workers',  type=int, help='Number of workers for data loader.', default = bittensor.defaults.dataset.num_workers)
+            parser.add_argument('--dataset.dataset_name', type=str, help='Which datasets to use (train/test/validation)).', default = bittensor.defaults.dataset.dataset_name)
+            parser.add_argument('--dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
+            parser.add_argument('--dataset.save_dataset', type=bool, help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
 
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.dataset = bittensor.Config()
+        defaults.dataset.batch_size = os.getenv('BT_DATASET_BATCH_SIZE') if os.getenv('BT_DATASET_BATCH_SIZE') != None else 10
+        defaults.dataset.block_size = os.getenv('BT_DATASET_BLOCK_SIZE') if os.getenv('BT_DATASET_BLOCK_SIZE') != None else 20
+        defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else 1e+4
+        defaults.dataset.num_workers = os.getenv('BT_DATASET_NUM_WORKERS') if os.getenv('BT_DATASET_NUM_WORKERS') != None else 0
+        defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'train'
+        defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else '~/.bittensor/data/'
+        defaults.dataset.save_dataset = os.getenv('BT_DATASET_SAVE_DATASET') if os.getenv('BT_DATASET_SAVE_DATASET') != None else False
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
