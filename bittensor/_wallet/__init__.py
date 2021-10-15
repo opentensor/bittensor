@@ -19,6 +19,7 @@
 
 import argparse
 import copy
+import os
 
 import bittensor
 from . import wallet_impl
@@ -77,13 +78,23 @@ class wallet:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--wallet.name',required=False, default='default', help='''The name of the wallet to unlock for running bittensor''')
-            parser.add_argument('--wallet.hotkey', required=False, default='default', help='''The name of wallet's hotkey.''')
-            parser.add_argument('--wallet.path',required=False, default='~/.bittensor/wallets/', help='''The path to your bittensor wallets''')
-            parser.add_argument('--wallet.email',required=False, default=None, help='''The email used to register your hotkey.''')
+            parser.add_argument('--wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor''')
+            parser.add_argument('--wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
+            parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
+            parser.add_argument('--wallet.email',required=False, default=bittensor.defaults.wallet.email, help='''The email used to register your hotkey.''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.wallet = bittensor.Config()
+        defaults.wallet.name = os.getenv('BT_WALLET_NAME') if os.getenv('BT_WALLET_NAME') != None else 'default'
+        defaults.wallet.hotkey = os.getenv('BT_WALLET_HOTKEY') if os.getenv('BT_WALLET_HOTKEY') != None else 'default'
+        defaults.wallet.path = os.getenv('BT_WALLET_PATH') if os.getenv('BT_WALLET_PATH') != None else '~/.bittensor/wallets/'
+        defaults.wallet.email = os.getenv('BT_WALLET_EMAIL') if os.getenv('BT_WALLET_EMAIL') != None else None
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
