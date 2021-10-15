@@ -126,7 +126,7 @@ def main( config ):
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
 
         try:
-            future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority).result(timeout= gp_server.config.server.forward_timeout)
+            future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
@@ -225,16 +225,6 @@ def main( config ):
             if interation != 0:
                 with mutex:
                     logger.info('Backpropagation Started')
-                    if gp_server.outputs_cache != None:
-                        torch.autograd.backward (
-                            tensors = [ gp_server.outputs_cache ],
-                            grad_tensors = [ gp_server.gradients_cache ],
-                            retain_graph=True
-                        )
-
-                    gp_server.outputs_cache = None
-                    gp_server.gradients_cache = None
-
                     losses.backward()
                     clip_grad_norm_(gp_server.parameters(), 1.0)
                     optimizer.step()
