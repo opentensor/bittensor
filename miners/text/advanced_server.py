@@ -113,25 +113,14 @@ def main( config ):
         def call(input,grad,mutex):
             with mutex:
                 outputs_y = gp_server.encode_forward( input )
-                if gp_server.outputs_cache == None:
-                    gp_server.outputs_cache = outputs_y
-                    gp_server.gradients_cache = grad
-                else:
-                    
-                    gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
-                    gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
-                    print(gp_server.gradients_cache.size())
+                with torch.autograd.set_detect_anomaly(True):
+                    torch.autograd.backward (
+                        tensors = [ outputs_y ],
+                        grad_tensors = [ grad ],
+                        retain_graph=True
+                    )
 
-                if gp_server.outputs_cache.size(0) >= 30:
-                    with torch.autograd.set_detect_anomaly(True):
-                        torch.autograd.backward (
-                            tensors = [ gp_server.outputs_cache ],
-                            grad_tensors = [ gp_server.gradients_cache ],
-                            retain_graph=True
-                        )
-                    gp_server.outputs_cache = None
-                    gp_server.gradients_cache = None  
-                    logger.info('Backwards axon gradient applied')
+                logger.info('Backwards axon gradient applied')
                     
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
