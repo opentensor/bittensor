@@ -312,10 +312,7 @@ class Miner:
             remote_target_epoch_loss = math.inf,
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
-            ema_scores = torch.ones(0)
         )
-        # ---- Decay factor for fisher ema score 
-        self.fisher_ema_decay = 0.995
 
     @staticmethod
     def config() -> 'bittensor.Config':
@@ -371,19 +368,8 @@ class Miner:
         bittensor.neuron.metagraph.load().sync().save()
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.peer_weights.shape[0]
         self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
-        self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
 
-    def scores ( self, loss ):
-        """Computes salience scores for each peer in the network w.r.t the loss. 
-        We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
-        """
-        peer_weights_d1 = torch.autograd.grad(loss, self.nucleus.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-        if peer_weights_d1 == None: return torch.ones_like( self.nucleus.peer_weights ) * (1 / self.neuron.metagraph.n.item()) # None if no grad w.r.t the chain weights.
-        peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.nucleus.peer_weights, retain_graph=True, allow_unused=True )[0]
-        validator_scores =  peer_weights_d2 * (self.nucleus.peer_weights**2)/2  
-        return validator_scores
-    
     def run( self ):
         r""" Miner main loop.
         """
@@ -399,7 +385,6 @@ class Miner:
 
             # ---- Init run state ----
             self.epoch = 0            
-            self.stats.ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item())
 
             # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
@@ -447,7 +432,6 @@ class Miner:
                             
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-                            scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
                             
@@ -462,7 +446,6 @@ class Miner:
                             total_remote_target_epoch_loss += output.remote_target_loss.item()
                             total_local_epoch_acc += output.local_accuracy
                             self.stats.epoch_data_size += inputs.nelement()
-                            self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
                             batches_count += 1
 
                         # ---- Sync with metagraph if the current block >= last synced block + sync block time 
@@ -673,17 +656,18 @@ class Miner:
         r""" Sets the fisher ema score to peers.
         """
         try:
-            k = min(self.config.miner.n_topk_peer_weights, bittensor.neuron.metagraph.n.item())
-            topk_scores, topk_uids = torch.topk( self.stats.ema_scores, k = k )
+            real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() )
+            topk_weights, topk_uids = torch.topk( self.nucleus.chain_weights.detach(), k = real_topk )
+            normalized_topk_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
             did_set = bittensor.neuron.subtensor.timeout_set_weights(
                 timeout=10,
                 uids = topk_uids,
-                weights = topk_scores,
+                weights = normalized_topk_weights,
                 wait_for_inclusion = True,
                 wallet = bittensor.neuron.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
+                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(self.nucleus.chain_weights.tolist()))
             else:
                 logger.warning('Failed to set weights on chain.')
 
@@ -737,7 +721,6 @@ class Miner:
                 uid_str = str(uid).zfill(3)
                 wandb_info[f'peers_norm_weight uid: {uid_str}']= normalized_peer_weights[uid]
                 wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.peer_weights[uid]
-                wandb_info[f'fisher_ema uid: {uid_str}'] = self.stats.ema_scores[uid]
 
             wandb_info_axon = bittensor.neuron.axon.to_wandb()
             wandb_info_dend = bittensor.neuron.dendrite.to_wandb()
