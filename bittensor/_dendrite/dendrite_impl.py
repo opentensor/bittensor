@@ -608,13 +608,13 @@ class Dendrite( torch.autograd.Function ):
         success_ids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
         
         # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
-        for uid, time in (uids, query_times):
-            if not uid in self.stats.requested_peers_count.keys():
+        for uid, time in zip(uids, query_times):
+            if uid in self.stats.requested_peers_count.keys():
                 self.stats.requested_peers_count[uid].update(1)
                 self.stats.peers_respond_time[uid].update(time)
 
             else:
-                self.stats.requested_peer_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
+                self.stats.requested_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
                 self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
                 self.stats.peers_respond_time[uid] = stat_utils.timed_rolling_avg(time, 0.01)
 
@@ -626,15 +626,15 @@ class Dendrite( torch.autograd.Function ):
     def to_wandb(self):
         """ Return a dictionary of axon stat for wandb logging
         """
-        respond_rate = self.stats.responded_peers_count / self.stats.quested_peers_count
+        respond_rate = self.stats.responded_peers_count / self.stats.requested_peers_count
         avg_respond_time = self.stats.peers_respond_time / self.stats.responded_peers_count
 
         wandb_info = {}
         
         # ---- Dendrite stats per pubkey for wandb 
-        for uid in range(len(self.stats.quested_peers_count)):
+        for uid in range(len(self.stats.requested_peers_count)):
             uid_str = str(uid).zfill(3)
-            wandb_info[f'dend_quested uid: {uid_str}']= self.stats.quested_peers_count[uid]
+            wandb_info[f'dend_quested uid: {uid_str}']= self.stats.requested_peers_count[uid]
             wandb_info[f'dend_responded uid: {uid_str}']= self.stats.responded_peers_count[uid]
             wandb_info[f'dend_respond_rate uid: {uid_str}']= respond_rate[uid]
             wandb_info[f'dend_respond_time uid: {uid_str}']= avg_respond_time[uid]

@@ -313,7 +313,6 @@ class Miner:
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
             ema_scores = torch.ones(0)
-            # ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item()),
         )
         # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
@@ -399,8 +398,8 @@ class Miner:
                 )
 
             # ---- Init run state ----
-            self.epoch = 0
-
+            self.epoch = 0            
+            self.stats.ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item())
 
             # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
@@ -414,7 +413,7 @@ class Miner:
                 self.save()
                 self.reload()
                 self.neuron.axon.check()
-
+            
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:
                 try:
