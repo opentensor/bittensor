@@ -120,8 +120,8 @@ def main( config ):
 
         def forward ( self, inputs ):
             # Apply model.
-            query_hidden = self.query( inputs.to( device ) )
-            encoded_hidden = self.encoder( query_hidden )
+            remote_hidden = self.remote( inputs.to( device ) )
+            encoded_hidden = self.encoder( remote_hidden )
             decoded_targets = self.decoder ( encoded_hidden )
 
             # Compute loss.
@@ -130,17 +130,7 @@ def main( config ):
             self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             return self.loss, decoded_targets
 
-        def scores ( self ):
-            """Computes salience scores for each peer in the network w.r.t the loss. 
-            We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
-            """
-            peer_weights_d1 = torch.autograd.grad(self.loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-            if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / metagraph.n.item()) # None if no grad w.r.t the chain weights.
-            peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
-            validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
-            return validator_scores
-
-        def query ( self, inputs ):
+        def remote ( self, inputs ):
 
             # ---- Get active peers and their weights ---- 
             active_uids = torch.where(metagraph.active > 0)[0]
@@ -210,8 +200,6 @@ def main( config ):
     epoch = 0
     global_step = 0
     best_loss = math.inf
-    ema_score_decay = 0.995
-    ema_scores = torch.ones_like( validator.peer_weights ) * (1 / metagraph.n.item()) 
 
     while True:
     
@@ -219,7 +207,6 @@ def main( config ):
         metagraph.sync().save()
         chain_growth = metagraph.n.item() - torch.numel( validator.peer_weights )
         validator.peer_weights = torch.nn.Parameter(torch.cat( [validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
-        ema_scores = torch.nn.Parameter(torch.cat( [ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
 
         # --- Run epoch.
         start_block = subtensor.get_current_block() + 1
@@ -228,7 +215,6 @@ def main( config ):
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
 
         # --- Reset the epoch logs
-        total_epoch_score = torch.zeros(metagraph.n.item())
         total_epoch_loss = 0
         batch_count = 0
         
@@ -237,18 +223,18 @@ def main( config ):
             # --- Training step.
             while block >= subtensor.get_current_block():
                 loss, _ = validator( next( dataset ) )
-                val_score = validator.scores()
-                scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.miner.clip_gradients)
                 optimizer.step()
                 optimizer.zero_grad() 
                 global_step += 1
                 batch_count += 1
-                total_epoch_score += scores
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
 
+            # Take topk chain weights.
+            real_topk = min( config.miner.n_topk_peer_weights, metagraph.n.item() ) 
+            topk_weights, topk_uids = torch.topk( F.softmax( validator.peer_weights ), k = real_topk )
+            final_weights = torch.nn.functional.normalize( topk_weights - torch.min( topk_weights ), p = 1, dim = 0)
 
             # --- Step logs.
             info = { 
@@ -263,31 +249,28 @@ def main( config ):
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green')
             }
             
-            for uid_i, score_i in enumerate(scores.tolist()):
-                if score_i != 0:
-                    color =  'green' if score_i - ema_scores[ uid_i ] > 0 else 'red'
-                    info[ 'fi_' + str(uid_i) ] = colored('{:.4f}'.format( score_i ), color)
-                    
-                    weight_wo_norm = validator.peer_weights[uid_i]
-                    info[ 'pw_' + str(uid_i) ] = colored('{:.4f}'.format( weight_wo_norm ), color)
-            
-            
+            for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
+                if (validator.peer_weights.grad != None) and (validator.peer_weights.grad[ uid_j ] < 0):
+                    color = 'green'
+                else:
+                    color = 'red'
+                if weight > 0.001: 
+                    info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), color)
+
             progress.set_infos( info )
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
         subtensor.set_weights (
             uids = topk_uids,
-            weights = topk_scores,
-            wallet = wallet,
+            weights = final_weights,
             wait_for_inclusion = False,
+            wallet = wallet,
         )    
 
         # --- Log.
         metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
-        epoch_score = total_epoch_score / batch_count
         
         wandb_data = {
             'stake': metagraph.S[ uid ].item(),
@@ -299,8 +282,6 @@ def main( config ):
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
-            wandb_data[ f'fisher_ema uid: {uid_str}' ] = ema_scores[uid_j]
-            wandb_data[ f'fisher_epoch_score uid: {uid_str}' ] = epoch_score[uid_j]
             wandb_data[ f'peer_norm_weight uid:{uid_str}' ] = norm_weights[uid_j]
             wandb_data[ f'peer_wo_norm_weight uid:{uid_str}' ] = validator.peer_weights[uid_j]
         
