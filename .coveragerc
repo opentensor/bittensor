@@ -1,2 +1,4 @@
 [run]
-omit = "*/nuclei/*"
+omit = 
+  "*/nuclei/*"
+  "*/routers/*"
