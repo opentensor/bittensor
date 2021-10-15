@@ -89,7 +89,7 @@ class Nucleus(nn.Module):
         self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
         self.loss_fct = nn.CrossEntropyLoss()
-        self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
+        self.chain_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
         self.noise_offset = 0.0000001
         self.init_weights()
 
@@ -207,7 +207,7 @@ class Nucleus(nn.Module):
         return output
 
     def remote(self, inputs: torch.int64 ) -> torch.float32:
-        """ Forwards the inputs through the network, selects the topk peers based on self.peer_weights.
+        """ Forwards the inputs through the network, selects the topk peers based on self.chain_weights.
         Args:
             inputs (:obj:`torch.int64` of shape :obj:`(batch_size, sequence_len)`, `required`):
                 Batch_size length list of text sentences.
@@ -218,12 +218,12 @@ class Nucleus(nn.Module):
 
         # ---- Get active peers and their weights ---- 
         active_uids = torch.where(bittensor.neuron.metagraph.active > 0)[0]
-        active_peer_weights = self.peer_weights[active_uids]
+        active_chain_weights = self.chain_weights[active_uids]
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, bittensor.neuron.metagraph.n.item(), len(active_uids))
-        noise = torch.normal( 0, torch.std(active_peer_weights).item()+self.noise_offset, size=( active_peer_weights.size())).to( self.config.miner.device )
-        topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
+        noise = torch.normal( 0, torch.std(active_chain_weights).item()+self.noise_offset, size=( active_chain_weights.size())).to( self.config.miner.device )
+        topk_weights, topk_idx = torch.topk(active_chain_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
 
         # ---- Filter endpoints ----
@@ -244,8 +244,8 @@ class Nucleus(nn.Module):
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
-            self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
-            self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
+            self.chain_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
+            self.chain_weights[self.chain_weights < -1] = -1 #lower bound for chain weights
         
         return output
 
@@ -273,9 +273,9 @@ class Miner:
         ).to( self.device )
 
         # Torch optimizer.
-        # the peer_weights layer has it own learning weight, other layers follow the default
+        # the chain_weights layer has it own learning weight, other layers follow the default
         self.optimizer = torch.optim.SGD(
-            [ {'params': self.nucleus.peer_weights, 'lr': self.config.miner.learning_rate_chain} ],
+            [ {'params': self.nucleus.chain_weights, 'lr': self.config.miner.learning_rate_chain} ],
             lr = self.config.miner.learning_rate,
             momentum = self.config.miner.momentum,
         )
@@ -332,7 +332,7 @@ class Miner:
         parser.add_argument('--miner.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
-        parser.add_argument('--miner.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
+        parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--miner.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
@@ -362,12 +362,12 @@ class Miner:
         """ Miner sync with metagraph and update chain weight
         """
         # ---- Set weights on chain ----
-        self.set_peer_weights()
+        self.set_chain_weights()
 
         # ---- Sync with metagraph ----
         bittensor.neuron.metagraph.load().sync().save()
-        chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.peer_weights.shape[0]
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
+        chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
 
     def run( self ):
@@ -601,11 +601,11 @@ class Miner:
         self.stats.local_target_epoch_loss = state_dict['epoch_loss']
         self.stats.global_step = state_dict['global_step']
         if 'network' in state_dict.keys() and bittensor.neuron.subtensor.network == state_dict['network']: # checks if you are loading into the same network
-            chain_growth = bittensor.neuron.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0]
+            chain_growth = bittensor.neuron.metagraph.n.item() - state_dict['nucleus_state']['chain_weights'].shape[0]
             #updates the shape of nucleus chain weights
-            self.nucleus.peer_weights = nn.Parameter(
+            self.nucleus.chain_weights = nn.Parameter(
                 torch.ones(
-                    list(state_dict['nucleus_state']['peer_weights'].shape),
+                    list(state_dict['nucleus_state']['chain_weights'].shape),
                     requires_grad=True
                 )
             )
@@ -614,7 +614,7 @@ class Miner:
             raise Exception('Network does not match saved state')
 
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer
@@ -628,7 +628,7 @@ class Miner:
 
         else:
             self.optimizer = torch.optim.SGD(
-                [ {'params': self.nucleus.peer_weights, 'lr': state_dict['optimizer_state']['param_groups'][0]['lr'] }],
+                [ {'params': self.nucleus.chain_weights, 'lr': state_dict['optimizer_state']['param_groups'][0]['lr'] }],
                 lr = state_dict['optimizer_state']['param_groups'][1]['lr'],
                 momentum = state_dict['optimizer_state']['param_groups'][1]['momentum'],
             )
@@ -652,7 +652,7 @@ class Miner:
         except Exception as e:
             logger.exception('Failed to save model with error:{}', e)
 
-    def set_peer_weights( self ):
+    def set_chain_weights( self ):
         r""" Sets the fisher ema score to peers.
         """
         try:
@@ -682,7 +682,7 @@ class Miner:
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
         incentive = bittensor.neuron.metagraph.I[ self_uid ].item()     
-        normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach())
+        normalized_chain_weights =  F.softmax (self.nucleus.chain_weights.detach())
 
         # ---- Progress bar log
         info = {
@@ -717,10 +717,10 @@ class Miner:
                 'data_size': self.stats.epoch_data_size,
                 }
             # ---- Miner summary per peer
-            for uid in range(len(normalized_peer_weights)):
+            for uid in range(len(normalized_chain_weights)):
                 uid_str = str(uid).zfill(3)
-                wandb_info[f'peers_norm_weight uid: {uid_str}']= normalized_peer_weights[uid]
-                wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.peer_weights[uid]
+                wandb_info[f'peers_norm_weight uid: {uid_str}']= normalized_chain_weights[uid]
+                wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.chain_weights[uid]
 
             wandb_info_axon = bittensor.neuron.axon.to_wandb()
             wandb_info_dend = bittensor.neuron.dendrite.to_wandb()
