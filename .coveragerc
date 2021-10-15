@@ -1,4 +1,5 @@
 [run]
 omit = 
-  "*/nuclei/*"
-  "*/routers/*"
+  "./nuclei/*"
+  "./routers/*"
+  "./setup.py"
