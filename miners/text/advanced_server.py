@@ -117,8 +117,10 @@ def main( config ):
                     gp_server.outputs_cache = outputs_y
                     gp_server.gradients_cache = grad
                 else:
+                    
                     gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
                     gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
+                    print(gp_server.gradients_cache.size())
 
                 if gp_server.outputs_cache.size(0) >= 30:
                     with torch.autograd.set_detect_anomaly(True):
@@ -133,10 +135,9 @@ def main( config ):
                     
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
-        
 
         try:
-            future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
+            future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority).result(timeout= gp_server.config.server.forward_timeout)
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
