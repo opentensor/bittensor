@@ -281,8 +281,11 @@ class Metagraph( torch.nn.Module ):
             return self._endpoint_objs
 
     def hotkey_to_uid(self, hotkey) -> int:
-        if hotkey in bittensor.neuron.metagraph.hotkeys:
-            return bittensor.neuron.metagraph.hotkeys.index(hotkey) 
+        """ Fetch uid according to hotkey, return -1 if hotkey does not exist 
+        """ 
+
+        if hotkey in self.hotkeys:
+            return self.hotkeys.index(hotkey) 
         else:
             return -1
 

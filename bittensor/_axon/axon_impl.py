@@ -25,7 +25,6 @@ from typing import List, Tuple, Callable
 import torch
 import grpc
 from loguru import logger
-import wandb
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -104,8 +103,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (bittensor.proto.TensorMessage): 
                     proto response carring the nucleus forward output or None under failure.
         """
-        bittensor.logging.success(prefix = 'AXON FORWARD', sufix = '<red>AXON FORWARD</red>')
-        self.to_wandb(request.hotkey)
         tensor, code, _, message = self._forward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
@@ -536,9 +533,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def update_stats_for_request(self, request, response):
         """ Save the in_bytes and out_bytes from request and respond to self.stats 
         """
-        bittensor.logging.success(prefix = 'AXON UPDATE STATS', sufix = '<red>AXON UPDATE STATS</red>')
         self.stats.qps.update(1)
-
         in_bytes = sys.getsizeof(request)
         out_bytes = sys.getsizeof(response)
         self.stats.total_in_bytes.update(in_bytes)
@@ -555,7 +550,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.out_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
             self.stats.qps_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(1, 0.01)
             self.stats.qps_failed_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
-        
+
+        # ---- Adding failed responses to stat  
         if response.return_code != bittensor.proto.ReturnCode.Success:
             self.stats.qps_failed.update(1)
             self.stats.qps_failed_per_pubkey[request.hotkey].update(1)
@@ -677,18 +673,22 @@ class Axon( bittensor.grpc.BittensorServicer ):
         return self
 
     def to_wandb(self):
+        """ Return a dictionary of axon stat for wandb logging
+        """
+        # ---- Axon summary for wandb
         wandb_data = {
-            'axon_qps': self.stats.qps,
-            'axon_qps_failed' : self.stats.qps_failed,
-            'axon_total_in_bytes' : self.stats.total_in_bytes,
-            'axon_total_out_bytes' : self.stats.total_out_bytes,
+            'axon_qps': self.stats.qps.value,
+            'axon_qps_failed' : self.stats.qps_failed.value,
+            'axon_total_in_bytes' : self.stats.total_in_bytes.value,
+            'axon_total_out_bytes' : self.stats.total_out_bytes.value,
         }
 
+        # ---- Axon stats per pubkey for wandb 
         for pubkey in self.stats.in_bytes_per_pubkey.keys():
             uid_str = str(bittensor.neuron.metagraph.hotkeys.index(pubkey)).zfill(3)
-            wandb_data[f'axon_in_bytes {uid_str}'] = self.stats.in_bytes_per_pubkey[pubkey]
-            wandb_data[f'axon_out_bytes {uid_str}'] = self.stats.out_bytes_per_pubkey[pubkey]
-            wandb_data[f'axon_qps {uid_str}'] = self.stats.qps_per_pubkey[pubkey]
-            wandb_data[f'axon_qps_failed {uid_str}'] = self.stats.qps_failed_per_pubkey[pubkey]
+            wandb_data[f'axon_in_bytes {uid_str}'] = self.stats.in_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_out_bytes {uid_str}'] = self.stats.out_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps {uid_str}'] = self.stats.qps_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps_failed {uid_str}'] = self.stats.qps_failed_per_pubkey[pubkey].value
             
         return wandb_data 
