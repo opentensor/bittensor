@@ -17,7 +17,9 @@
 
 import argparse
 import os
+from munch import Munch
 from typing import Callable
+from bittensor import _threadpool
 
 # Bittensor code and protocol version.
 __version__ = '1.5.0'
@@ -104,6 +106,7 @@ from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolEx
 
 import bittensor.utils.networking as net
 from bittensor.utils.networking import get_external_ip as external_ip
+
 
 # Singluar Neuron instance useful for creating simple miners.
 neuron = None
@@ -226,3 +229,14 @@ def init(
         blacklist = blacklist
     )
     return neuron
+
+# DEFAULTS
+defaults = Config()
+subtensor.add_defaults( defaults )
+dendrite.add_defaults( defaults )
+axon.add_defaults( defaults )
+wallet.add_defaults( defaults )
+prioritythreadpool.add_defaults( defaults )
+dataloader.add_defaults( defaults )
+wandb.add_defaults( defaults )
+logging.add_defaults( defaults )
