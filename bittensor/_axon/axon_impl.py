@@ -673,7 +673,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
         return self
 
     def to_wandb(self):
-        """ Return a dictionary of axon stat for wandb logging
+        r""" Return a dictionary of axon stat for wandb logging
+            
+            Return:
+                wandb_info (:obj:`Dict`)
         """
         # ---- Axon summary for wandb
         wandb_data = {

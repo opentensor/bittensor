@@ -335,7 +335,7 @@ class Dendrite( torch.autograd.Function ):
             responses = responses[0]
 
         # Return.
-        self.update_stat(endpoints, responses, codes, times)
+        self.update_stat(endpoints, codes, times)
         return responses, codes, times
 
     def forward_tensor(
@@ -594,12 +594,21 @@ class Dendrite( torch.autograd.Function ):
         )
 
         # Return.
-        self.update_stat(formatted_endpoints, responses, codes, times)
+        self.update_stat(formatted_endpoints, codes, times)
         return responses, codes, times
 
-    def update_stat(self, endpoints, responses, return_ops, query_times):
+    def update_stat(self, endpoints, return_ops, query_times):
         r""" Update dendrite stat according to the response we get from peers.
         Updates were saved to self.stats.
+            Args:
+                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    The set of endpoints that dendrite sent request to.
+
+                return_ops (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                    Dendrite call return ops.
+
+                query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                    Times per call.
         """
         # ---- uids that we have sent request to.
         uids = torch.tensor([e.uid for e in endpoints])
@@ -627,11 +636,13 @@ class Dendrite( torch.autograd.Function ):
                 self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
     def to_wandb(self):
-        """ Return a dictionary of axon stat for wandb logging
+        r""" Return a dictionary of axon stat for wandb logging
+            
+            Return:
+                wandb_info (:obj:`Dict`)
         """
-
         wandb_info = {}
-        
+
         # ---- Dendrite stats per pubkey for wandb 
         for uid in self.stats.requested_peers_count.keys():
             respond_rate = self.stats.responded_peers_count[uid].value / self.stats.requested_peers_count[uid].value
