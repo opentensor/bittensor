@@ -97,6 +97,7 @@ def main( config ):
             logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     # Define our backward function.
+    @logger.catch
     def backward_text (pubkey:str, inputs_x, grads_dy ):
         r"""Backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.
