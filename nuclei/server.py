@@ -228,6 +228,6 @@ class server(torch.nn.Module):
         bittensor.logging.add_args( parser )
         bittensor.wandb.add_args(parser)
         bittensor.prioritythreadpool.add_args( parser )
-        bittensor.dataloader.add_args( parser )
+        bittensor.dataset.add_args( parser )
         return bittensor.config( parser )
     

@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import os
 import copy
 import inspect
 from concurrent import futures
@@ -126,20 +127,30 @@ class axon:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--axon.port',default=8091, type=int, 
-                    help='''The port this axon endpoint is served on. i.e. 8091''')
-            parser.add_argument('--axon.ip', default='[::]', type=str, 
-                help='''The local ip this axon binds to. ie. [::]''')
-            parser.add_argument('--axon.max_workers',default=10, type=int, 
+            parser.add_argument('--axon.port', type=int, 
+                    help='''The port this axon endpoint is served on. i.e. 8091''', default = bittensor.defaults.axon.port)
+            parser.add_argument('--axon.ip', type=str, 
+                help='''The local ip this axon binds to. ie. [::]''', default = bittensor.defaults.axon.ip)
+            parser.add_argument('--axon.max_workers', type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
-                        The grpc server distributes new worker threads to service requests up to this number.''')
-            parser.add_argument('--axon.maximum_concurrent_rpcs', default=400, type=int, 
-                help='''Maximum number of allowed active connections''')   
+                        The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
+            parser.add_argument('--axon.maximum_concurrent_rpcs', type=int, 
+                help='''Maximum number of allowed active connections''',  default = bittensor.defaults.axon.maximum_concurrent_rpcs)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
 
         bittensor.wallet.add_args( parser )
+
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.axon = bittensor.Config()
+        defaults.axon.port = os.getenv('BT_AXON_PORT') if os.getenv('BT_AXON_PORT') != None else 8091
+        defaults.axon.ip = os.getenv('BT_AXON_IP') if os.getenv('BT_AXON_IP') != None else '[::]'
+        defaults.axon.max_workers = os.getenv('BT_AXON_MAX_WORERS') if os.getenv('BT_AXON_MAX_WORERS') != None else 10
+        defaults.axon.maximum_concurrent_rpcs = os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') if os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') != None else 400
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):

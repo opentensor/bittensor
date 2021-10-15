@@ -119,13 +119,23 @@ class logging:
         """ Accept specific arguments fro parser
         """
         try:
-            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
-            parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
-            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)
-            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners')
+            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default = bittensor.defaults.logging.debug )
+            parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default = bittensor.defaults.logging.trace )
+            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default = bittensor.defaults.logging.record_log )
+            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default = bittensor.defaults.logging.logging_dir )
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.logging = bittensor.Config()
+        defaults.logging.debug = os.getenv('BT_LOGGING_DEBUG') if os.getenv('BT_LOGGING_DEBUG') != None else False
+        defaults.logging.trace = os.getenv('BT_LOGGING_TRACE') if os.getenv('BT_LOGGING_DEBUG') != None else False
+        defaults.logging.record_log = os.getenv('BT_LOGGING_RECORD_LOG') if os.getenv('BT_LOGGING_RECORD_LOG') != None else False
+        defaults.logging.logging_dir = os.getenv('BT_LOGGING_LOGGING_DIR') if os.getenv('BT_LOGGING_LOGGING_DIR') != None else '~/.bittensor/miners'
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):

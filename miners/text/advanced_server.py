@@ -176,7 +176,7 @@ def main( config ):
             ) 
 
     # Training Data
-    dataload = bittensor.dataloader(config=config)
+    dataset = bittensor.dataset(config=config)
     full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.server.name ))
     bittensor.logging( config = config,logging_dir = full_path)
 
@@ -207,14 +207,14 @@ def main( config ):
 
         while True:
             # --- Run 
-            dataloader = iter(dataload.dataloader(epoch_length=config.server.blocks_per_epoch))
+            dataset = iter(dataset.dataloader(epoch_length=config.server.blocks_per_epoch))
             current_block = subtensor.get_current_block()
             end_block = current_block + 10
             interation = 0
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
-                    loss, _ = gp_server( next( dataloader ) )
+                    loss, _ = gp_server( next( dataset ) )
                     if interation > 0 : 
                         losses += loss
                     else:
