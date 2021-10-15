@@ -433,7 +433,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             # --- normalization of gradients ---
             try: 
                 print(grads_dy.sum())
-                grads_dy = F.normalize(grads_dy, p=2.0, dim = [1,2])
+                grads_dy = F.normalize(grads_dy, p=1.0, dim = [1,2])
                 print(grads_dy.sum())
             except Exception as e:
                 code = bittensor.proto.ReturnCode.UnknownException
