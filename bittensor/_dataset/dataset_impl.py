@@ -1,4 +1,4 @@
-""" Implementation for the dataloader and GenesisTextDataloader class, which handles dataloading from ipfs
+""" Implementation for the dataset and GenesisTextDataset class, which handles dataloading from ipfs
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -35,8 +35,8 @@ import bittensor
 logger = logger.opt(colors=True)
 
 
-class Dataloader():
-    """ Implementation for the dataloader class, which handles dataloading from ipfs
+class Dataset():
+    """ Implementation for the dataset class, which handles dataloading from ipfs
     """
     def __init__(self):
         # IPFS hash of the genesis dataset
@@ -46,10 +46,11 @@ class Dataloader():
         self.wikitext_text_dataset_hash = 'QmRjFNn3XpYMycVzTE4YcVcxk45vNZcTAjKmtEqPLKwAWd'
         self.email_text_dataset_hash = 'QmWnqorfUGg3Cm4dLt8crcceTfa4LsTas5JXzR6w6SJgEK'
         self.book_corpus_text_dataset_hash = 'QmXtmQEYcUse3bNkFDiLAVBRzRWtLfVMiJUZntUD88tekw'
+        
         self.test_text_dataset_hash = 'QmRhWSMPQzTiWcdGYy8vpRMxSxCAKDJBaXvmum4fjkF7cJ'
         self.validation_text_dataset_hash = 'QmQnE8wBmxKgNteFkZ1RAdZFit16iSeHwX6zSpYfwFmAuG'
 
-        self.text_dataset_hashes = [
+        self.train_dataset_hashes = [
             self.genesis_text_dataset_hash, 
             self.wikitext_text_dataset_hash, 
         ]
@@ -106,20 +107,20 @@ class Dataloader():
         params = (('arg', dir_hash),)
         session.params.update(params)
 
-        response = Dataloader.requests_retry_session(session=session).get(self.dag_get)
+        response = Dataset.requests_retry_session(session=session).get(self.dag_get)
 
         return response
 
     def __len__(self):
-        """ Returns length of the dataset that the dataloader is processing
+        """ Returns length of the dataset that the dataset is processing
         """
 
     def __getitem__(self, idx):
         """ Returns the next batch from the dataset.
         """
 
-class GenesisTextDataloader( Dataloader ):
-    """ One kind of dataloader that caters for the data from ipfs 
+class GenesisTextDataset( Dataset ):
+    """ One kind of dataset that caters for the data from ipfs 
     """
     def __init__(
         self,
@@ -127,8 +128,9 @@ class GenesisTextDataloader( Dataloader ):
         batch_size,
         max_corpus_size,
         num_workers,
-        dataset,
-        data_dir
+        dataset_name,
+        data_dir,
+        save_dataset
     ):
         super().__init__()
         self.block_size = block_size
@@ -136,8 +138,9 @@ class GenesisTextDataloader( Dataloader ):
         self.max_corpus_size = max_corpus_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
-        self.dataset = dataset
+        self.dataset_name = dataset_name
         self.data_dir = data_dir
+        self.save_dataset = save_dataset
         self.__infinite_dataset_iterator = None
 
         # Retrieve a random slice of the genesis dataset
@@ -202,12 +205,13 @@ class GenesisTextDataloader( Dataloader ):
                 logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
                 
                 # Saving text
-                try:
-                    with open(full_path, mode = 'w+') as f:
-                        f.write(text)
-                        logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
-                except Exception:
-                    logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                if self.save_dataset:
+                    try:
+                        with open(full_path, mode = 'w+') as f:
+                            f.write(text)
+                            logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
+                    except Exception:
+                        logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
         return text
 
@@ -221,7 +225,7 @@ class GenesisTextDataloader( Dataloader ):
         session = requests.Session()
         params = (('arg', file_hash),)
         session.params.update(params)
-        response = Dataloader.requests_retry_session(session=session).post(self.file_cat)
+        response = Dataset.requests_retry_session(session=session).post(self.file_cat)
 
         return response
 
@@ -235,19 +239,19 @@ class GenesisTextDataloader( Dataloader ):
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
             # Retrieves the directory for the given dataset
-            if self.dataset == 'train':
+            if self.dataset_name == 'train':
                 directory_links = []
-                for dataset_hash in self.text_dataset_hashes: 
+                for dataset_hash in self.train_dataset_hashes: 
                     dir_links = self.get_directory_links(dataset_hash)
                     if dir_links:
                         directory_links.extend(dir_links)
                 if len(directory_links) == 0:
                     directory_links = None
 
-            elif self.dataset == 'test':
+            elif self.dataset_name == 'test':
                 directory_links = self.get_directory_links(self.test_text_dataset_hash)
 
-            elif self.dataset == 'validation':
+            elif self.dataset_name == 'validation':
                 directory_links = self.get_directory_links(self.validation_text_dataset_hash)['links']
 
             data_corpus = []
@@ -345,7 +349,6 @@ class GenesisTextDataloader( Dataloader ):
                             batch_size=self.batch_size,
                             num_workers=self.num_workers,
                             drop_last=True)
-
 
     def __next__(self):
         """Returns the next element from the dataset. 
