@@ -621,22 +621,25 @@ class Dendrite( torch.autograd.Function ):
         
         # --- Aggregating result to stats 
         for uid in uids[success_ids]:
-            self.stats.responded_peers_count[uids[success_ids]].update(1)
+            if uid in self.stats.requested_peers_count.keys():
+                self.stats.responded_peers_count[uid].update(1)
+            else:
+                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
     def to_wandb(self):
         """ Return a dictionary of axon stat for wandb logging
         """
-        respond_rate = self.stats.responded_peers_count / self.stats.requested_peers_count
-        avg_respond_time = self.stats.peers_respond_time / self.stats.responded_peers_count
 
         wandb_info = {}
         
         # ---- Dendrite stats per pubkey for wandb 
-        for uid in range(len(self.stats.requested_peers_count)):
+        for uid in self.stats.requested_peers_count.keys():
+            respond_rate = self.stats.responded_peers_count[uid] / self.stats.requested_peers_count[uid]
+           
             uid_str = str(uid).zfill(3)
             wandb_info[f'dend_quested uid: {uid_str}']= self.stats.requested_peers_count[uid]
             wandb_info[f'dend_responded uid: {uid_str}']= self.stats.responded_peers_count[uid]
-            wandb_info[f'dend_respond_rate uid: {uid_str}']= respond_rate[uid]
-            wandb_info[f'dend_respond_time uid: {uid_str}']= avg_respond_time[uid]
+            wandb_info[f'dend_respond_time uid: {uid_str}']= self.stats.peers_respond_time[uid]
+            wandb_info[f'dend_respond_rate uid: {uid_str}']= respond_rate
 
         return wandb_info
