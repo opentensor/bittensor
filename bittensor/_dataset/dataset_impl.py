@@ -28,13 +28,11 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import requests
 
-
 from loguru import logger
 import bittensor
-import ConfigParser
+import configparser
 
 logger = logger.opt(colors=True)
-
 
 class Dataset():
     """ Implementation for the dataset class, which handles dataloading from ipfs
@@ -43,23 +41,16 @@ class Dataset():
         # IPFS hash of the genesis dataset
         # TODO (shibshib): Find a proper way to set this as config instead of hardcoding it.
         # More dataset hashes can be added as we add directories for other modalities.
-        # self.genesis_text_dataset_hash = 'QmXwfPoh2QFYqC6cYcW8kzyd9ruFfhnUi2kVBkdhawjUzj'
-        # self.wikitext_text_dataset_hash = 'QmRjFNn3XpYMycVzTE4YcVcxk45vNZcTAjKmtEqPLKwAWd'
-        # self.email_text_dataset_hash = 'QmWnqorfUGg3Cm4dLt8crcceTfa4LsTas5JXzR6w6SJgEK'
-        # self.book_corpus_text_dataset_hash = 'QmXtmQEYcUse3bNkFDiLAVBRzRWtLfVMiJUZntUD88tekw'
-        
-        # self.test_text_dataset_hash = 'QmRhWSMPQzTiWcdGYy8vpRMxSxCAKDJBaXvmum4fjkF7cJ'
-        # self.validation_text_dataset_hash = 'QmQnE8wBmxKgNteFkZ1RAdZFit16iSeHwX6zSpYfwFmAuG'
-        self.config = ConfigParser.ConfigParser()
+        self.config = configparser.ConfigParser()
         self.config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.ini'))
 
-        self.genesis_text_dataset_hash = self.config["genesis_text_dataset_hash"]
-        self.wikitext_text_dataset_hash = self.config["wikitext_text_dataset_hash"]
-        self.email_text_dataset_hash = self.config["email_text_dataset_hash"]
-        self.book_corpus_text_dataset_hash = self.config["book_corpus_text_dataset_hash"]
+        self.genesis_text_dataset_hash = self.config["genesis_dataset"]["genesis_text_dataset_hash"]
+        self.wikitext_text_dataset_hash = self.config["genesis_dataset"]["wikitext_text_dataset_hash"]
+        self.email_text_dataset_hash = self.config["genesis_dataset"]["email_text_dataset_hash"]
+        self.book_corpus_text_dataset_hash = self.config["genesis_dataset"]["book_corpus_text_dataset_hash"]
         
-        self.test_text_dataset_hash = self.config["test_text_dataset_hash"]
-        self.validation_text_dataset_hash = self.config["validation_text_dataset_hash"]
+        self.test_text_dataset_hash = self.config["genesis_dataset"]["test_text_dataset_hash"]
+        self.validation_text_dataset_hash = self.config["genesis_dataset"]["validation_text_dataset_hash"]
 
         self.train_dataset_hashes = [
             self.genesis_text_dataset_hash, 
