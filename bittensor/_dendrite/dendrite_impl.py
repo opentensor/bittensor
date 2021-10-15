@@ -604,7 +604,7 @@ class Dendrite( torch.autograd.Function ):
         uids = torch.tensor([bittensor.endpoint.from_tensor(e).uid for e in endpoints])
 
         # --- update the size of stat if the chain size increased
-        chain_growth = bittensor.neuron.metagraph.n.item() - self.stats.quested_peers_count.shape[0]
+        chain_growth = max(0, max(uids) - self.stats.quested_peers_count.shape[0] + 1)
         if chain_growth > 0:
             zero_fill = torch.zeros(chain_growth)
             self.stats.quested_peers_count = torch.cat((self.stats.quested_peers_count, zero_fill))

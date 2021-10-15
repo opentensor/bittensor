@@ -303,7 +303,17 @@ class Miner:
         # ---- Init of when was the block that we sync to 
         self.last_sync_block = 0
         # ---- Store all the stats
-        self.stats = SimpleNamespace()
+        self.stats = SimpleNamespace(
+            global_step = 0,
+            epoch_data_size = 0,
+            epoch_sync_count = 0,
+            local_target_epoch_loss = math.inf,
+            distillation_epoch_loss = math.inf,
+            remote_target_epoch_loss = math.inf,
+            local_epoch_acc = 0,
+            best_epoch_loss = math.inf,
+            ema_scores = torch.ones(self.neuron.metagraph.n.item()) * (1 / self.neuron.metagraph.n.item()),
+        )
         # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
 
@@ -389,10 +399,7 @@ class Miner:
 
             # ---- Init run state ----
             self.epoch = 0
-            self.stats.global_step = 0
-            self.stats.epoch_loss = math.inf/2
-            self.stats.best_epoch_loss = math.inf
-            self.stats.ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item()) 
+
 
             # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
@@ -413,7 +420,7 @@ class Miner:
 
                     # --- Init epoch stat----
                     self.stats.epoch_data_size = 0
-                    self.stats.sync_count = 0
+                    self.stats.epoch_sync_count = 0
                     total_local_target_epoch_loss = 0
                     total_distillation_epoch_loss = 0
                     total_remote_target_epoch_loss = 0
@@ -464,7 +471,7 @@ class Miner:
                         if block_diff >= self.config.miner.sync_block_time:
                             self.sync(current_block)                                                                                                                
                             self.last_sync_block = current_block
-                            self.stats.sync_count += 1
+                            self.stats.epoch_sync_count += 1
                             
                         # ---- Update the epoch loss if it is the last iteration within epoch
                         if block+1 == end_block :
@@ -722,7 +729,7 @@ class Miner:
                 'distillation_epoch_loss': self.stats.distillation_epoch_loss,
                 'local_target_epoch_loss': self.stats.local_target_epoch_loss,
                 'local_epoch_acc': self.stats.local_epoch_acc,
-                'num_sync_metagraph': self.stats.sync_count,
+                'num_sync_metagraph': self.stats.epoch_sync_count,
                 'data_size': self.stats.epoch_data_size,
                 }
             # ---- Miner summary per peer

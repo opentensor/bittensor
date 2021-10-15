@@ -116,7 +116,6 @@ def main( config ):
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
             self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
-            self.logs = SimpleNamespace()
             self.noise_offset = 0.0000001
 
         def forward ( self, inputs ):
@@ -132,8 +131,9 @@ def main( config ):
             return self.loss, decoded_targets
 
         def scores ( self ):
-            # Computes salience scores for each peer in the network w.r.t the loss. 
-            # We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
+            """Computes salience scores for each peer in the network w.r.t the loss. 
+            We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
+            """
             peer_weights_d1 = torch.autograd.grad(self.loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
             if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / metagraph.n.item()) # None if no grad w.r.t the chain weights.
             peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
@@ -169,22 +169,6 @@ def main( config ):
             with torch.no_grad():
                 self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -= config.nucleus.punishment
                 self.peer_weights[ self.peer_weights < -1 ] = -1 # lower bound for chain weights 
-
-            quested_peers = torch.zeros(metagraph.n.item())
-            quested_peers[topk_uids] = 1
-            
-            responded_peers = torch.zeros(metagraph.n.item())
-            responded_peers[topk_uids[joining_uids]] = 1
-            
-            if len(quested_peers) > len(self.logs.quested_peers_count):
-                fill = torch.zeros(len(quested_peers) - len(self.logs.quested_peers_count))
-                self.logs.quested_peers_count = torch.cat((self.logs.quested_peers_count, fill))
-                self.logs.responded_peers_count = torch.cat((self.logs.responded_peers_count, fill))
-                self.logs.peers_respond_time = torch.cat((self.logs.peers_respond_time, fill))
-
-            self.logs.quested_peers_count += quested_peers
-            self.logs.responded_peers_count += responded_peers
-            self.logs.peers_respond_time[topk_uids] += query_times
 
             return output
 
@@ -244,9 +228,6 @@ def main( config ):
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
 
         # --- Reset the epoch logs
-        validator.logs.quested_peers_count = torch.zeros(0)
-        validator.logs.responded_peers_count = torch.zeros(0)
-        validator.logs.peers_respond_time = torch.zeros(0)
         total_epoch_score = torch.zeros(metagraph.n.item())
         total_epoch_loss = 0
         batch_count = 0
@@ -309,27 +290,22 @@ def main( config ):
         epoch_score = total_epoch_score / batch_count
         
         wandb_data = {
-            'Stake': metagraph.S[ uid ].item(),
-            'Dividends': metagraph.D[ uid ].item(),
-            'Epoch_loss': epoch_loss
+            'stake': metagraph.S[ uid ].item(),
+            'dividends': metagraph.D[ uid ].item(),
+            'epoch_loss': epoch_loss
         } 
 
         norm_weights = F.softmax( validator.peer_weights.detach() )
-        respond_rate = validator.logs.responded_peers_count / validator.logs.quested_peers_count
-        respond_time = validator.logs.peers_respond_time / validator.logs.responded_peers_count
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
-            wandb_data[ f'Fisher ema uid: {uid_str}' ] = ema_scores[uid_j]
-            wandb_data[ f'Fisher epoch score uid: {uid_str}' ] = epoch_score[uid_j]
-            wandb_data[ f'Peer weight (norm) uid:{uid_str}' ] = norm_weights[uid_j]
-            wandb_data[ f'Peer weight (w/o norm) uid:{uid_str}' ] = validator.peer_weights[uid_j]
-            wandb_data[ f'Quested uid: {uid_str}' ]= validator.logs.quested_peers_count[uid_j]
-            wandb_data[ f'Responded uid: {uid_str}' ]= validator.logs.responded_peers_count[uid_j]
-            wandb_data[ f'Respond rate uid: {uid_str}' ]= respond_rate[uid_j]
-            wandb_data[ f'Respond time uid: {uid_str}' ]= respond_time[uid_j]
-
-        wandb.log( wandb_data )
+            wandb_data[ f'fisher_ema uid: {uid_str}' ] = ema_scores[uid_j]
+            wandb_data[ f'fisher_epoch_score uid: {uid_str}' ] = epoch_score[uid_j]
+            wandb_data[ f'peer_norm_weight uid:{uid_str}' ] = norm_weights[uid_j]
+            wandb_data[ f'peer_wo_norm_weight uid:{uid_str}' ] = validator.peer_weights[uid_j]
+        
+        wandb_data_dend = dendrite.to_wandb()
+        wandb.log( {**wandb_data, **wandb_data_dend} )
         
         # --- Save.
         if best_loss > epoch_loss : 
