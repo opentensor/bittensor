@@ -312,7 +312,8 @@ class Miner:
             remote_target_epoch_loss = math.inf,
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
-            ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item()),
+            ema_scores = torch.ones(0)
+            # ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item()),
         )
         # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
