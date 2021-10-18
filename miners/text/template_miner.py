@@ -31,6 +31,7 @@ import os
 import sys
 import yaml
 import wandb
+import concurrent
 
 from termcolor import colored
 from typing import List
@@ -234,15 +235,15 @@ class Nucleus(nn.Module):
         )
 
         # ---- Join based on weights ----
-        joining_uids= torch.where(return_ops==0)[0]
-        joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
+        joining_uids= torch.where(return_ops== bittensor.proto.ReturnCode.Success)[0]
+        joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ):
             output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
-            self.chain_weights[topk_uids[(return_ops != 0)]] -=  self.config.nucleus.punishment
+            self.chain_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
             self.chain_weights[self.chain_weights < -1] = -1 #lower bound for chain weights
         # ---- Return response -----
         return output
@@ -261,7 +262,7 @@ class Miner:
         )
 
         # Dataset of text.
-        self.dataset = bittensor.dataloader (
+        self.dataset = bittensor.dataset (
             config = self.config
         )
 
@@ -344,11 +345,10 @@ class Miner:
             if self.config.neuron.use_wandb:
                 bittensor.wandb(
                     config = self.config,
-                    cold_pubkey = self.neuron.wallet.ss58_address,
+                    cold_pubkey = self.neuron.wallet.coldkey.ss58_address,
                     hot_pubkey = self.neuron.wallet.hotkey.ss58_address,
                     root_dir = self.neuron.root_dir
                 )
-
 
             # ---- Init run state ----
             self.epoch = 0
@@ -360,7 +360,8 @@ class Miner:
             try:
                 self.reload()
                 self.neuron.axon.check()
-            except:
+            except Exception as e:
+                logger.error("Error when trying to reload model: {}".format(e))
                 self.save()
                 self.reload()
                 self.neuron.axon.check()
@@ -422,7 +423,6 @@ class Miner:
 
                 except Exception as e:
                     # --- Unknown error ----
-                    print (e)
                     logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
                     if self.config.miner.restart_on_failure == True:
                         logger.info('Restarting from last saved state.')
@@ -455,7 +455,12 @@ class Miner:
 
         priority = self.neuron.metagraph.S[ self.neuron.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
         future = self.thread_pool.submit( call, inputs = inputs_x, priority = priority )
-        return future.result(timeout = self.config.miner.timeout)
+        try:
+            return future.result(timeout = self.config.miner.timeout)
+        except concurrent.futures.TimeoutError :
+            raise TimeoutError('TimeOutError')
+        except Exception as e:
+            logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     # ---- Axon Backward call ----
     def backward_text ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
@@ -489,7 +494,12 @@ class Miner:
                     return inputs_x.grad if inputs_x.grad != None else None                    
 
             priority = self.neuron.metagraph.S[ self.neuron.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
-            self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
+            try:
+                self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
+            except concurrent.futures.TimeoutError :
+                raise TimeoutError('TimeOutError')
+            except Exception as e:
+                logger.error('Error found: {}'.format(e))
 
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.
@@ -526,7 +536,8 @@ class Miner:
         try:
             bittensor.neuron.metagraph.load().sync().save()
 
-        except:
+        except Exception as e:
+            logger.error('Error in loading metagraph: {}'.format(e))
             bittensor.neuron.metagraph.sync().save()
 
         # ---- Load training state.

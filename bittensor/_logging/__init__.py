@@ -23,29 +23,13 @@ import sys
 import argparse
 import copy
 
-import rollbar
 from loguru import logger
 
 import bittensor
 
 logger = logger.opt(colors=True)
 
-# Handler which sends messages to a rollbar server.
-class RollbarHandler:
-    """ Handles error report 
-    """
-    def write(self, message):
-        """ Report the message with rollbar
-        """
-        record = message.record
-        if record['level'].name == "WARNING":
-            rollbar.report_message(message, 'warning')
-        elif record['level'].name == "ERROR":
-            rollbar.report_message(message, 'error')
-        else:
-            pass
-
- # Remove default sink.
+# Remove default sink.
 try:
     logger.remove( 0 )
 except Exception:
@@ -59,7 +43,6 @@ class logging:
     __trace_on__:bool = False
     __std_sink__:int = None
     __file_sink__:int = None
-    __rollbar_sink__:int = None
 
     def __new__(
             cls,
@@ -89,8 +72,6 @@ class logging:
         # Optionally Remove other sinks.
         if cls.__std_sink__ != None:
             logger.remove( cls.__std_sink__ )
-        if cls.__rollbar_sink__ != None:
-            logger.remove( cls.__rollbar_sink__ )
         if cls.__file_sink__ != None:
             logger.remove( cls.__file_sink__ )
 
@@ -104,23 +85,6 @@ class logging:
             diagnose = True,
             format = cls.log_formatter
         )
-
-        # Add filtered rollbar handler.
-        rollbar_token = os.environ.get("ROLLBAR_TOKEN", False)
-        rollbar_env = "production"
-        rollbar_handler = RollbarHandler()
-        if rollbar_token:
-            # Rollbar is enabled.
-            logger.info("Error reporting enabled using {}:{}", rollbar_token, rollbar_env)
-            rollbar.init(rollbar_token, rollbar_env)
-            cls.__rollbar_sink__ = logger.add (
-                sink = rollbar_handler,
-                level = 'WARNING',
-                colorize = True,
-                enqueue = True,
-                backtrace = True,
-                diagnose = True,
-            )
 
         cls.set_debug(config.logging.debug)
         cls.set_trace(config.logging.trace)
@@ -155,13 +119,23 @@ class logging:
         """ Accept specific arguments fro parser
         """
         try:
-            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default=False)
-            parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default=False)
-            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default=False)
-            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default='~/.bittensor/miners')
+            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default = bittensor.defaults.logging.debug )
+            parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default = bittensor.defaults.logging.trace )
+            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default = bittensor.defaults.logging.record_log )
+            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default = bittensor.defaults.logging.logging_dir )
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.logging = bittensor.Config()
+        defaults.logging.debug = os.getenv('BT_LOGGING_DEBUG') if os.getenv('BT_LOGGING_DEBUG') != None else False
+        defaults.logging.trace = os.getenv('BT_LOGGING_TRACE') if os.getenv('BT_LOGGING_DEBUG') != None else False
+        defaults.logging.record_log = os.getenv('BT_LOGGING_RECORD_LOG') if os.getenv('BT_LOGGING_RECORD_LOG') != None else False
+        defaults.logging.logging_dir = os.getenv('BT_LOGGING_LOGGING_DIR') if os.getenv('BT_LOGGING_LOGGING_DIR') != None else '~/.bittensor/miners'
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -200,7 +174,7 @@ class logging:
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return False
+            return record["level"].name != "DEBUG"
 
     @classmethod
     def log_save_filter(cls, record ):

@@ -45,9 +45,10 @@ class config:
         # 1. Optionall load defaults if the --config is set.
         try:
             config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
-            
-        except:
+
+        except Exception as e:
             config_file_path = None
+            
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
             try:
@@ -99,34 +100,5 @@ class config:
         bittensor.axon.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
-        bittensor.dataloader.add_args( parser )
+        bittensor.dataset.add_args( parser )
         return bittensor.config( parser )
-
-    @staticmethod
-    def load_from_relative_path(path: str)  -> 'bittensor.Config':
-        r""" Loads and returns a Munched config object from a relative path.
-
-            Args:
-                path (str, `required`): 
-                    Path to config.yaml file. full_path = cwd() + path
-    
-            Returns:
-                config  (:obj:`bittensor.Config` `required`):
-                    bittensor.Config object with values from config under path.
-        """
-        # Load yaml items from relative path.
-        path_items = config_impl.Config()
-        if path != None:
-            path = os.getcwd() + '/' + path
-            if not os.path.isfile(path):
-                logger.error('CONFIG: cannot find passed configuration file at {}', path)
-                raise FileNotFoundError('Cannot find a configuration file at', path)
-            with open(path, 'r') as f:
-                try:
-                    path_items = yaml.safe_load(f)
-                    path_items = munch.munchify(path_items)
-                    path_items = config_impl.Config( path_items )
-                except yaml.YAMLError as yaml_error:
-                    logger.error('CONFIG: cannot parse passed configuration file at {}', path)
-                    raise config.InvalidConfigFile from yaml_error
-        return path_items

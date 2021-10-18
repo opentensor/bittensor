@@ -33,6 +33,7 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from loguru import logger; logger = logger.opt(colors=True)
 
 def config ():
     parser = argparse.ArgumentParser()    
@@ -55,7 +56,7 @@ def config ():
     bittensor.dendrite.add_args( parser )
     bittensor.subtensor.add_args( parser )
     bittensor.logging.add_args( parser )
-    bittensor.dataloader.add_args( parser )
+    bittensor.dataset.add_args( parser )
     return bittensor.config( parser )
 
 def main( config ):
@@ -88,7 +89,7 @@ def main( config ):
     dendrite = bittensor.dendrite ( config = config )
 
     # Load genesis dataset.
-    dataset = bittensor.dataloader ( config = config )
+    dataset = bittensor.dataset ( config = config )
 
     # Build Device.
     device = torch.device ( device = config.miner.device )
@@ -128,15 +129,15 @@ def main( config ):
             )
 
             # ---- Join based on weights ----
-            joining_uids = torch.where(return_ops==0)[0]
-            joining_weights = F.softmax( topk_weights[(return_ops == 0)], dim = 0 )
+            joining_uids = torch.where(return_ops== bittensor.proto.ReturnCode.Success)[0]
+            joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
             output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( device )
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( device ) * joining_weight
 
             # ---- Punish peers with non-successful return ops ----
             with torch.no_grad():
-                self.chain_weights[topk_uids[(return_ops != 0)]] -= config.nucleus.punishment
+                self.chain_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -= config.nucleus.punishment
                 self.chain_weights[ self.chain_weights < -1 ] = -1 # lower bound for chain weights 
 
             return output
@@ -148,7 +149,7 @@ def main( config ):
     run = wandb.init (
         config = config, 
         name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-        project = wallet.coldkeypub[:8],
+        project = wallet.coldkeypub.ss58_address[:8],
         group = wallet.hotkey.ss58_address[:8],
         dir = os.path.expanduser('~/.bittensor/'),
         resume = config.miner.resume,
@@ -160,8 +161,8 @@ def main( config ):
     if config.miner.resume:
         try:
             validator.load_state_dict( torch.load("{}/validator.torch".format( run.dir ))['validator'], strict=False )
-        except:
-            pass
+        except Exception as e:
+            logger.error('Error reloading model: {} '.format(e))
     torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( run.dir ))
 
     # --- Run Forever.
@@ -213,8 +214,14 @@ def main( config ):
                 'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
                 'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green') 
             }
+            
             for weight, uid_j in list(zip(final_weights.tolist(), topk_uids.tolist())):
-                if weight > 0.001: info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), 'green' if validator.chain_weights.grad[ uid_j ] < 0 else 'red')
+                if (validator.chain_weights.grad != None) and (validator.chain_weights.grad[ uid_j ] < 0):
+                    color = 'green'
+                else:
+                    color = 'red'
+                if weight > 0.001: 
+                    info[ str(uid_j) ] = colored('{:.4f}'.format( weight ), color)
             progress.set_infos( info )
             
         # ---  Set mechanism weights.

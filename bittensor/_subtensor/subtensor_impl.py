@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import random
 import torch
+from tqdm import tqdm
 from multiprocessing import Process
 
 from typing import List, Tuple, Dict, Union
@@ -80,33 +81,6 @@ class Subtensor:
                 return None
             else:
                 return self.chain_endpoint
-
-        # Else defaults to networks.
-        # TODO(const): this should probably make a DNS lookup.
-        if self.network == "akatsuki":
-            akatsuki_available = [item for item in bittensor.__akatsuki_entrypoints__ if item not in blacklist ]
-            if len(akatsuki_available) == 0:
-                return None
-            return random.choice (akatsuki_available)
-
-        elif self.network == "kusanagi":
-            kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
-            if len(kusanagi_available) == 0:
-                return None
-            return random.choice( kusanagi_available )
-
-        elif self.network == "local":
-            local_available = [item for item in bittensor.__local_entrypoints__ if item not in blacklist ]
-            if len(local_available) == 0:
-                return None
-            return random.choice( local_available )
-            
-        else:
-            kusanagi_available = [item for item in bittensor.__kusanagi_entrypoints__ if item not in blacklist ]
-            if len(kusanagi_available) == 0:
-                return None
-            return random.choice( kusanagi_available )
-
 
     def connect( self, timeout: int = 10, failure = True ) -> bool:
         attempted_endpoints = []
@@ -364,7 +338,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                     return False
             else:
                 return True
-
+                
+    @logger.catch
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
@@ -450,15 +425,15 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
         with self.substrate as substrate:
-            result = substrate.iterate_map (
+            result = substrate.query_map(
                 module='System',
                 storage_function='Account',
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             return_dict = {}
             for r in result:
-                balance = bittensor.Balance( int( r[1]['data']['free'] ) )
-                return_dict[r[0]] = balance
+                bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
+                return_dict[r[0].value] = bal
             return return_dict
 
     def neurons(self, block: int = None) -> List[SimpleNamespace]: 
@@ -468,19 +443,22 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of neuron objects.
         """
         with self.substrate as substrate:
-            neurons = substrate.query_map (
+            page_results = substrate.query_map (
                 module='SubtensorModule',
                 storage_function='Neurons',
+                page_size = 100,
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             result = []
-            for n in neurons:
-                n = SimpleNamespace( **dict(n[1].value) )
-                if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
-                    n.is_null = True
-                else:
-                    n.is_null = False
-                result.append( n )
+            for page in tqdm( page_results ):
+                for n in page:
+                    if type(n.value) != int:
+                        n = SimpleNamespace( **dict(n.value) )
+                        if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
+                            n.is_null = True
+                        else:
+                            n.is_null = False
+                        result.append( n )
             return result
 
     def neuron_for_uid( self, uid: int, ss58_hotkey: str, block: int = None ) -> Union[ dict, None ]: 
@@ -523,7 +501,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid = int(result.value)
             if uid == 0:
                 neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
-                print (neuron)
                 if neuron.is_null:
                     return -1
                 else:

@@ -17,7 +17,9 @@
 
 import argparse
 import os
+from munch import Munch
 from typing import Callable
+from bittensor import _threadpool
 
 # Bittensor code and protocol version.
 __version__ = '1.5.0'
@@ -35,13 +37,16 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
-# Hardcoded entry point nodes. 
-__kusanagi_entrypoints__ = [
-    "test.kusanagi.bittensor.com:9944" 
-]
-
 __akatsuki_entrypoints__ = [
     "main.akatsuki.bittensor.com:9944"
+]
+
+__kusanagi_entrypoints__ = [
+    "test.kusanagi.bittensor.com:9944"
+]
+
+__nobunaga_entrypoints__ = [
+    'staging.nobunaga.opentensor.ai:9944'
 ]
 
 __local_entrypoints__ = [
@@ -49,7 +54,7 @@ __local_entrypoints__ = [
 ]
 
 __registration_servers__ = [
-    '127.0.0.1:5000'
+    'registration.opentensor.ai:5000'
 ]
 
 # ---- Config ----
@@ -67,6 +72,7 @@ from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
+from bittensor._keyfile import keyfile as keyfile
 from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
@@ -75,16 +81,18 @@ from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
-from bittensor._dataloader import dataloader as dataloader
+from bittensor._dataset import dataset as dataset
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
+from substrateinterface import Keypair as Keypair
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._config.config_impl import Config as Config
 from bittensor._wallet.wallet_impl import Wallet as Wallet
+from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
 from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._executor.executor_impl import Executor as Executor
@@ -92,12 +100,13 @@ from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
-from bittensor._dataloader.dataloader_impl import Dataloader as Dataloader
+from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 import bittensor.utils.networking as net
 from bittensor.utils.networking import get_external_ip as external_ip
+
 
 # Singluar Neuron instance useful for creating simple miners.
 neuron = None
@@ -110,7 +119,7 @@ def add_args( parser: argparse.ArgumentParser ):
     wallet.add_args( parser )
     subtensor.add_args( parser )
     metagraph.add_args( parser )
-    dataloader.add_args( parser )
+    dataset.add_args( parser )
     dendrite.add_args( parser )
     axon.add_args( parser )
     wandb.add_args( parser )
@@ -120,7 +129,7 @@ def check_config( config ):
     wallet.check_config( config )
     subtensor.check_config( config )
     metagraph.check_config( config )
-    dataloader.check_config( config )
+    dataset.check_config( config )
     dendrite.check_config( config )
     axon.check_config( config )
 
@@ -182,7 +191,8 @@ class Neuron():
         self.wallet.create()
         try:
             self.metagraph.load().sync().save()
-        except:
+        except Exception as e:
+            logging.error('Error in loading metagraph: {}'.format(e))
             self.metagraph.sync().save()
         self.axon.start().subscribe (
             use_upnpc = self.config.neuron.use_upnpc, 
@@ -219,3 +229,14 @@ def init(
         blacklist = blacklist
     )
     return neuron
+
+# DEFAULTS
+defaults = Config()
+subtensor.add_defaults( defaults )
+dendrite.add_defaults( defaults )
+axon.add_defaults( defaults )
+wallet.add_defaults( defaults )
+prioritythreadpool.add_defaults( defaults )
+dataset.add_defaults( defaults )
+wandb.add_defaults( defaults )
+logging.add_defaults( defaults )

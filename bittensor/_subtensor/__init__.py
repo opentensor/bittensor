@@ -15,13 +15,47 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import argparse
+import os
+
+from munch import Munch
 import bittensor
 import copy
 from substrateinterface import SubstrateInterface
 
 from . import subtensor_impl
 
-custom_type_registry = {
+with_priority = {
+        "runtime_id": 2,
+        "types": {
+            "Balance": "u64",
+            "NeuronMetadataOf": {
+                "type": "struct",
+                "type_mapping": [
+                    ["version", "u32"],
+                    ["ip", "u128"], 
+                    ["port", "u16"], 
+                    ["ip_type", "u8"], 
+                    ["uid", "u32"], 
+                    ["modality", "u8"], 
+                    ["hotkey", "AccountId"], 
+                    ["coldkey", "AccountId"], 
+                    ["active", "u32"],
+                    ["last_update", "u64"],
+                    ["priority", "u64"],
+                    ["stake", "u64"],
+                    ["trust", "u64"],
+                    ["rank", "u64"],
+                    ["consensus", "u64"],
+                    ["incentive", "u64"],
+                    ["inflation", "u64"],
+                    ["dividends", "u64"],
+                    ["bonds", "Vec<(u32, u64)>"],
+                    ["weights", "Vec<(u32, u32)>"]
+                ]
+            }
+        }
+    }
+without_priority = {
         "runtime_id": 2,
         "types": {
             "Balance": "u64",
@@ -39,8 +73,8 @@ custom_type_registry = {
                     ["active", "u32"],
                     ["last_update", "u64"],
                     ["stake", "u64"],
-                    ["rank", "u64"],
                     ["trust", "u64"],
+                    ["rank", "u64"],
                     ["consensus", "u64"],
                     ["incentive", "u64"],
                     ["inflation", "u64"],
@@ -51,6 +85,7 @@ custom_type_registry = {
             }
         }
     }
+
 
 class subtensor:
     """
@@ -84,11 +119,15 @@ class subtensor:
         else:
             config.subtensor.network = network if network != None else config.subtensor.network
             config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
+        if config.subtensor.network == 'nobunaga':
+            type_registry = with_priority
+        else:
+            type_registry = without_priority
 
         substrate = SubstrateInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
-            type_registry = custom_type_registry,
+            type_registry = type_registry,
             url = "ws://{}".format(config.subtensor.chain_endpoint),
             use_remote_preset=True
         )
@@ -108,19 +147,27 @@ class subtensor:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
         try:
-            parser.add_argument('--subtensor.network', default='akatsuki', type=str, 
+            parser.add_argument('--subtensor.network', default = bittensor.defaults.subtensor.network, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- kusanagi (testing network)
                                         -- akatsuki (main network)
                                     If this option is set it overloads subtensor.chain_endpoint with 
                                     an entry point node from that network.
                                     ''')
-            parser.add_argument('--subtensor.chain_endpoint', default=None, type=str, 
+            parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.network, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+
+    @classmethod
+    def add_defaults(cls, defaults ):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.subtensor = bittensor.Config()
+        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'akatsuki'
+        defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
@@ -137,7 +184,8 @@ class subtensor:
         elif network == "local":
             # Kusanagi testnet
             return bittensor.__local_entrypoints__[0]
-
+        elif network == "nobunaga": 
+            return bittensor.__nobunaga_entrypoints__[0]
         else:
             return bittensor.__local_entrypoints__[0]
             

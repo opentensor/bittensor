@@ -57,9 +57,9 @@ class wandb:
         else:
             pass
         os.environ["WANDB_NAME"] = config.wandb.name 
-        os.environ["WANDB_PROJECT"] = config.wandb.project if config.wandb.project != 'default' else cold_pubkey
+        os.environ["WANDB_PROJECT"] = config.wandb.project if config.wandb.project != 'default' else str(cold_pubkey)[:8]
         os.environ["WANDB_TAGS"] = config.wandb.tags 
-        os.environ["WANDB_RUN_GROUP"] = config.wandb.run_group if config.wandb.run_group != 'default' else hot_pubkey
+        os.environ["WANDB_RUN_GROUP"] = config.wandb.run_group if config.wandb.run_group != 'default' else str(hot_pubkey)[:8]
         os.environ["WANDB_DIR"] = config.wandb.directory if config.wandb.directory != 'default' else root_dir
 
         wb.init(config = config, config_exclude_keys = ['neuron'])
@@ -70,16 +70,28 @@ class wandb:
         """
         try:
             parser.add_argument('--neuron.api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default='default')
-            parser.add_argument('--wandb.name', type=str, help='''Optionally pass wandb run name for use_wandb''', default='default')
-            parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default='default')
-            parser.add_argument('--wandb.tags', type=str, help='''Optionally pass wandb tags for use_wandb''', default='default')
-            parser.add_argument('--wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default='default')
-            parser.add_argument('--wandb.directory', type = str, help='''Optionally pass wandb directory for use_wandb''', default='default')
-            parser.add_argument('--wandb.offline', type = bool, help='''Optionally pass wandb offline option for use_wandb''', default=False)
+            parser.add_argument('--wandb.name', type=str, help='''Optionally pass wandb run name for use_wandb''', default = bittensor.defaults.wandb.name)
+            parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default = bittensor.defaults.wandb.project)
+            parser.add_argument('--wandb.tags', type=str, help='''Optionally pass wandb tags for use_wandb''', default = bittensor.defaults.wandb.tags)
+            parser.add_argument('--wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default = bittensor.defaults.wandb.run_group)
+            parser.add_argument('--wandb.directory', type = str, help='''Optionally pass wandb directory for use_wandb''', default = bittensor.defaults.wandb.directory)
+            parser.add_argument('--wandb.offline', type = bool, help='''Optionally pass wandb offline option for use_wandb''', default = bittensor.defaults.wandb.offline)
             
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.wandb = bittensor.Config()
+        defaults.wandb.name = os.getenv('BT_WANDB_NAME') if os.getenv('BT_WANDB_NAME') != None else 'default'
+        defaults.wandb.project = os.getenv('BT_WANDB_PROJECT') if os.getenv('BT_WANDB_PROJECT') != None else 'default'
+        defaults.wandb.tags = os.getenv('BT_WANDB_TAGS') if os.getenv('BT_WANDB_TAGS') != None else 'default'
+        defaults.wandb.run_group = os.getenv('BT_WANDB_RUN_GROUP') if os.getenv('BT_WANDB_RUN_GROUP') != None else 'default'
+        defaults.wandb.directory = os.getenv('BT_WANDB_DIRECTORY') if os.getenv('BT_WANDB_DIRECTORY') != None else 'default'
+        defaults.wandb.offline = os.getenv('BT_WANDB_OFFLINE') if os.getenv('BT_WANDB_OFFLINE') != None else False
     
     @classmethod   
     def config(cls) -> 'bittensor.Config':
