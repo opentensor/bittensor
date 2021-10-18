@@ -609,7 +609,7 @@ class Miner:
         # check if the optimizer has previously stored separate param for the chain_weight 
         if len(state_dict['optimizer_state']['param_groups']) == 1:
             self.optimizer = torch.optim.SGD(
-                [ {"params": self.nucleus.parameters()}],
+                [{"params": self.nucleus.parameters()}],
                 lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
                 momentum = state_dict['optimizer_state']['param_groups'][0]['momentum'],
             )
@@ -641,7 +641,7 @@ class Miner:
             logger.exception('Failed to save model with error:{}', e)
 
     def set_chain_weights( self ):
-        r""" Sets the fisher ema score to peers.
+        r""" Sets the chain weights.
         """
         try:
             real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() )
