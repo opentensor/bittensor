@@ -60,6 +60,8 @@ def config ():
     return bittensor.config( parser )
 
 def main( config ):
+    config.to_defaults()
+
     print (config)
 
     # Init bittensor logging.

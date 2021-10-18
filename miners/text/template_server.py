@@ -30,6 +30,8 @@ import datetime
 from nuclei.server import server
 
 def main( config ):
+    config.to_defaults()
+
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config)
 
