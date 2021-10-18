@@ -44,6 +44,7 @@ import torch.nn.functional as F
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 def main( config ):
+    config.to_defaults()
 
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config)
