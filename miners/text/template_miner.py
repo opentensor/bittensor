@@ -247,6 +247,7 @@ class Nucleus(nn.Module):
             self.chain_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
             self.chain_weights[self.chain_weights < -1] = -1 #lower bound for chain weights
         
+        # ---- Return response -----
         return output
 
 class Miner:
@@ -337,7 +338,6 @@ class Miner:
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--miner.sync_block_time', type=int, help='How often the sync the miner with metagraph, in terms of block time', default=15)
         parser.add_argument('--miner.restart', type=bool, help='If True, train the miner from the beginning', default=False)
         
         bittensor.add_args( parser )
@@ -549,6 +549,7 @@ class Miner:
         """
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.stats.local_target_epoch_loss:
+            self.stats.best_epoch_loss = self.stats.local_target_epoch_loss
             self.save()
         bittensor.neuron.metagraph.load().sync().save()
 
@@ -686,6 +687,17 @@ class Miner:
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
         }
+        # ---- Miner summary per peer for progress bar
+        for uid in bittensor.neuron.metagraph.uids.tolist():
+            if normalized_chain_weights[uid].item() > 0:
+                if self.nucleus.chain_weights.grad != None:
+                    weight_diff = -self.nucleus.chain_weights.grad[uid].item()
+                else:
+                    weight_diff = 0
+
+                color = ('green' if weight_diff > 0 else ('white' if weight_diff == 0 else 'red'))
+                info[str(uid)] = colored('{:.4f}'.format(normalized_chain_weights[uid]), color)
+
         progress_bar.set_infos( info )
 
         # ---- wandb log if it is the end of epoch 
@@ -703,8 +715,9 @@ class Miner:
                 'num_sync_metagraph': self.stats.epoch_sync_count,
                 'data_size': self.stats.epoch_data_size,
                 }
-            # ---- Miner summary per peer
-            for uid in range(len(normalized_chain_weights)):
+
+            # ---- Miner summary per peer for wandb
+            for uid in bittensor.neuron.metagraph.uids.tolist():
                 uid_str = str(uid).zfill(3)
                 wandb_info[f'peers_norm_weight uid: {uid_str}']= normalized_chain_weights[uid]
                 wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.chain_weights[uid]

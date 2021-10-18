@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import argparse
+import os
 import copy
 
 import bittensor
@@ -96,16 +97,25 @@ class dendrite:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--dendrite.max_worker_threads', type=int, help='''Max number of concurrent threads used for sending RPC requests.''', default=150)
-            parser.add_argument('--dendrite.max_active_receptors', type=int, help='''Max number of concurrently active receptors / tcp-connections''',  default=500)
-            parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default=10)
-            parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default=True)
+            parser.add_argument('--dendrite.max_worker_threads', type=int, help='''Max number of concurrent threads used for sending RPC requests.''', default = bittensor.defaults.dendrite.max_worker_threads)
+            parser.add_argument('--dendrite.max_active_receptors', type=int, help='''Max number of concurrently active receptors / tcp-connections''',  default = bittensor.defaults.dendrite.max_active_receptors) 
+            parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default = bittensor.defaults.dendrite.timeout)
+            parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
             parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
         bittensor.wallet.add_args( parser )
 
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.dendrite = bittensor.Config()
+        defaults.dendrite.max_worker_threads = os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') if os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') != None else 150
+        defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_THREADS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_THREADS') != None else 500
+        defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else 10
+        defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
 
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):

@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import random
 import torch
+from tqdm import tqdm
 from multiprocessing import Process
 
 from typing import List, Tuple, Dict, Union
@@ -442,19 +443,22 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of neuron objects.
         """
         with self.substrate as substrate:
-            neurons = substrate.query_map (
+            page_results = substrate.query_map (
                 module='SubtensorModule',
                 storage_function='Neurons',
+                page_size = 100,
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             result = []
-            for n in neurons:
-                n = SimpleNamespace( **dict(n[1].value) )
-                if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
-                    n.is_null = True
-                else:
-                    n.is_null = False
-                result.append( n )
+            for page in tqdm( page_results ):
+                for n in page:
+                    if type(n.value) != int:
+                        n = SimpleNamespace( **dict(n.value) )
+                        if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
+                            n.is_null = True
+                        else:
+                            n.is_null = False
+                        result.append( n )
             return result
 
     def neuron_for_uid( self, uid: int, ss58_hotkey: str, block: int = None ) -> Union[ dict, None ]: 
