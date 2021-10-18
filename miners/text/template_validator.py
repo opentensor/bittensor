@@ -66,13 +66,13 @@ def main( config ):
     bittensor.logging ( config = config )
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet ( config = config ).create_if_non_existent()
+    wallet = bittensor.wallet ( config = config ).create_if_non_existent().register()
 
     # Connect to the chain.
     subtensor = bittensor.subtensor ( config = config )
 
     # Subscribe validator.
-    subtensor.subscribe (
+    subtensor.serve (
         wallet = wallet,
         ip = bittensor.external_ip(),
         port = 8080,

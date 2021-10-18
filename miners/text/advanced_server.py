@@ -49,7 +49,7 @@ def main( config ):
     subtensor = bittensor.subtensor(config = config)
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet( config = config ).create()
+    wallet = bittensor.wallet( config = config ).create().register()
 
     # Load/Sync/Save our metagraph.
     metagraph = bittensor.metagraph ( 
@@ -73,7 +73,7 @@ def main( config ):
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
             Args:
-                pubkey ( str, `required`):
+                pubkey ( str, `required`):ax
                     The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
@@ -186,7 +186,7 @@ def main( config ):
     # -- Main Training loop --
     try:
         # --  subscribe axon to the network.
-        axon.start().subscribe()
+        axon.start().serve(subtensor=subtensor)
 
         while True:
             # --- Run 

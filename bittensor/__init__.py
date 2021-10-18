@@ -159,7 +159,7 @@ class Neuron():
         )
         self.wallet = wallet(
             config = self.config
-        )
+        ).create().register()
         self.dendrite = dendrite(
             config = self.config,
             wallet = self.wallet
@@ -191,7 +191,7 @@ class Neuron():
         except Exception as e:
             logging.error('Error in loading metagraph: {}'.format(e))
             self.metagraph.sync().save()
-        self.axon.start().subscribe (
+        self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
             subtensor = self.subtensor
         )
