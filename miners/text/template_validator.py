@@ -44,7 +44,6 @@ def config ():
     parser.add_argument('--miner.resume', action='store_true', help='resume previous trial.', default=False)
     parser.add_argument('--miner.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
     parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
-    parser.add_argument('--miner.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
     parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
     parser.add_argument('--miner.blocks_per_epoch', type=int, help='Blocks per epoch', default=30)
     parser.add_argument('--miner.n_topk_chain_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
@@ -165,17 +164,6 @@ def main( config ):
     # Create validator model.
     validator = Validator( config = config ).to( device )
     
-    optimizer = torch.optim.SGD(
-        [ {'params': validator.chain_weights, 'lr': config.miner.learning_rate_chain} ],
-        lr = config.miner.learning_rate,
-        momentum = config.miner.momentum,
-    )
-
-    scheduler= torch.optim.lr_scheduler.StepLR(optimizer,
-        step_size= 1.0,
-        gamma=0.95
-    )
-
     # Create wandb for telemetry.
     wandb.init (
         config = config, 
@@ -208,6 +196,11 @@ def main( config ):
         chain_growth = metagraph.n.item() - torch.numel( validator.chain_weights )
         validator.chain_weights = torch.nn.Parameter(torch.cat( [validator.chain_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
 
+        optimizer = torch.optim.SGD(
+            [ {"params": validator.parameters()} ],
+            lr = config.miner.learning_rate,
+            momentum = config.miner.momentum,
+        )
         # --- Run epoch.
         start_block = subtensor.get_current_block() + 1
         end_block = start_block + config.miner.blocks_per_epoch
