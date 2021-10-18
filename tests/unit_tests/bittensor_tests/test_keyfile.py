@@ -2,6 +2,7 @@ import bittensor
 from unittest.mock import MagicMock
 import os
 import shutil
+import unittest.mock as mock
 
 # Init dirs.
 if os.path.exists('/tmp/pytest'):
@@ -47,4 +48,16 @@ def test_legacy_coldkey():
     assert keyfile.get_keypair().ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
     assert keyfile.get_keypair().public_key == "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
 
+def test_validate_password():
+    from bittensor._keyfile.keyfile_impl import validate_password
+    assert validate_password(None) == False
+    assert validate_password('passw0rd') == False
+    assert validate_password('123456789') == False
+    with mock.patch('getpass.getpass',return_value='biTTensor'):
+        assert validate_password('biTTensor') == True
+    with mock.patch('getpass.getpass',return_value='biTTenso'):
+        assert validate_password('biTTensor') == False
+
+# def test_decrypt_keyfile_data():
+    # keyfile_data_is_encrypted_legacy
 test_legacy_coldkey()
