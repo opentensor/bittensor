@@ -73,7 +73,7 @@ def main( config ):
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
             Args:
-                pubkey ( str, `required`):ax
+                pubkey ( str, `required`):
                     The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
@@ -185,7 +185,7 @@ def main( config ):
 
     # -- Main Training loop --
     try:
-        # --  subscribe axon to the network.
+        # --  serve axon to the network.
         axon.start().serve(subtensor=subtensor)
 
         while True:
