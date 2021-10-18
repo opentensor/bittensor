@@ -398,7 +398,7 @@ class Metagraph( torch.nn.Module ):
             consensus[n.uid] = n.consensus / float(U64MAX)
             incentive[n.uid] = n.incentive / float(U64MAX)
             dividends[n.uid] = n.dividends / float(U64MAX)
-            emission[n.uid] = n.incentive / float(RAOPERTAO)
+            emission[n.uid] = n.emission / float(RAOPERTAO)
             last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
                 version = int(n.version),
