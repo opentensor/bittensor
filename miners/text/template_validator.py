@@ -171,11 +171,6 @@ def main( config ):
         momentum = config.miner.momentum,
     )
 
-    scheduler= torch.optim.lr_scheduler.StepLR(optimizer,
-        step_size= 1.0,
-        gamma=0.95
-    )
-
     # Create wandb for telemetry.
     wandb.init (
         config = config, 

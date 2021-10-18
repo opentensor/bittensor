@@ -429,7 +429,7 @@ class Dendrite( torch.autograd.Function ):
             responses = responses[0]
 
         # Return.
-        self.update_stat(endpoints, responses, codes, times)
+        self.update_stat(endpoints, codes, times)
         return responses, codes, times
 
     def forward_text(
