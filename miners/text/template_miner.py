@@ -336,8 +336,7 @@ class Miner:
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--miner.restart', type=bool, help='If True, train the miner from the beginning', default=False)
-        
+
         bittensor.add_args( parser )
         Nucleus.add_args( parser ) 
         bittensor.prioritythreadpool.add_args( parser )
@@ -372,10 +371,7 @@ class Miner:
             # ---- Init run state ----
             self.epoch = 0            
 
-            # ---- reloads previous run if not restart ----
-            if self.config.miner.restart:
-                self.save()
-
+            # ---- reloads previous run ----
             try:
                 self.reload()
                 self.neuron.axon.check()
