@@ -547,6 +547,7 @@ class Miner:
         """
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.stats.local_target_epoch_loss:
+            self.stats.best_epoch_loss = self.stats.local_target_epoch_loss
             self.save()
         bittensor.neuron.metagraph.load().sync().save()
 
