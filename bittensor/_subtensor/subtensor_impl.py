@@ -47,6 +47,7 @@ class Subtensor:
                     substrate websocket client.
                 network (default='akatsuki', type=str)
                     The subtensor network flag. The likely choices are:
+                            -- nobunaga (staging network)
                             -- kusanagi (test network)
                             -- akatsuki (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
