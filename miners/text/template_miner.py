@@ -543,7 +543,6 @@ class Miner:
         """
         last_saved = self.get_saved_state()
         if last_saved == None or last_saved['epoch_loss'] >= self.stats.local_target_epoch_loss:
-            self.stats.best_epoch_loss = self.stats.local_target_epoch_loss
             self.save()
         bittensor.neuron.metagraph.load().sync().save()
 
@@ -625,7 +624,7 @@ class Miner:
             logger.exception('Failed to save model with error:{}', e)
 
     def set_chain_weights( self ):
-        r""" Sets the chain weights.
+        r""" Sets the fisher ema score to peers.
         """
         try:
             real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() )
