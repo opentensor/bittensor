@@ -552,7 +552,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( 
+    def serve( 
             self, 
             use_upnpc: bool = False, 
             subtensor: 'bittensor.Subtensor' = None,
@@ -600,14 +600,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.wallet.create()
 
         # ---- Subscribe to chain ----
-        subscribe_success = subtensor.subscribe(
+        serve_success = subtensor.serve(
                 wallet = self.wallet,
                 ip = self.external_ip,
                 port = self.external_port,
                 modality = self.modality,
                 wait_for_finalization = True,
         )
-        if not subscribe_success:
+        if not serve_success:
             raise RuntimeError('Failed to subscribe neuron.')
 
         return self
