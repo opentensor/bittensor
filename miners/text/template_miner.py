@@ -655,7 +655,7 @@ class Miner:
             logger.exception('Failed to save model with error:{}', e)
 
     def set_chain_weights( self ):
-        r""" Sets the fisher ema score to peers.
+        r""" Sets the chain weights.
         """
         try:
             real_topk = min( self.config.miner.n_topk_chain_weights , bittensor.neuron.metagraph.n.item() )
