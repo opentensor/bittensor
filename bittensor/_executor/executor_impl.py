@@ -164,7 +164,12 @@ class Executor:
         console.print(table)
 
     def unstake_all ( self ):
-        r""" Unstaked from all hotkeys associated with this wallet's coldkey.
+        r""" Unstaked from all hotkeys associated with this wallet's coldkey. 
+            Args:
+                None
+            
+            Return:
+                None
         """
         self.subtensor.connect()
         self.metagraph.load()
@@ -194,6 +199,14 @@ class Executor:
 
     def unstake( self, amount_tao: int, uid: int ):
         r""" Unstaked token of amount to from uid.
+            Args:
+                amount_tao (int):
+                    ampunt of tao to be staked
+                uid (int):
+                    uid of the hotkey 
+            
+            Return:
+                None
         """
         self.subtensor.connect()
         self.metagraph.load()
@@ -238,6 +251,14 @@ class Executor:
 
     def stake( self, amount_tao: int, uid: int ):
         r""" Stakes token of amount to hotkey uid.
+            Args:
+                amount_tao (int):
+                    ampunt of tao to be staked
+                uid (int):
+                    uid of the hotkey 
+            
+            Return:
+                None
         """
         self.subtensor.connect()
         self.metagraph.load()
@@ -280,8 +301,14 @@ class Executor:
             logger.critical("Stake transaction failed")
 
     def transfer( self, amount_tao: int, destination: str):
-        r""" Transfers token of amount to dest.
-            
+        r""" Transfers token of amount to destination.
+            Args:
+                amount_tao (int):
+                    ampunt of tao to be transfered
+                destination (str):
+                    destination public key address of reciever. 
+            Return:
+                None
         """
         self.subtensor.connect()
         transfer_balance = Balance.from_float( amount_tao )
