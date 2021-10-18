@@ -95,6 +95,29 @@ def test_unstake_all_fail():
     executor.subtensor.unstake = MagicMock(return_value = False) 
     executor.unstake_all()
 
+def test_unstake():
+    wallet.create_new_coldkey(use_password=False, overwrite = True)
+    wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.subtensor.unstake = MagicMock(return_value = True) 
+    executor.unstake( amount_tao = 10, uid = 0)
+
+def test_unstake_fail():
+    wallet.create_new_coldkey(use_password=False, overwrite = True)
+    wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.subtensor.unstake = MagicMock(return_value = False) 
+    executor.unstake( amount_tao = 10, uid = 0)
+
+def test_stake():
+    wallet.create_new_coldkey(use_password=False, overwrite = True)
+    wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.subtensor.unstake = MagicMock(return_value = True) 
+    executor.stake( amount_tao = 10, uid = 0)
+
+def test_stake_fail():
+    wallet.create_new_coldkey(use_password=False, overwrite = True)
+    wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.subtensor.unstake = MagicMock(return_value = False) 
+    executor.stake( amount_tao = 10, uid = 0)
 
 # -- cli ---
 
