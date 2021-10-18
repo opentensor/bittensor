@@ -155,7 +155,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
         if not neuron.is_null and neuron.ip == ip and neuron.port == port:
-            logger.success( "Already subscribed".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
+            logger.success( "Already served".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
