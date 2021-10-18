@@ -195,15 +195,15 @@ def main( config ):
         root_dir = full_path
     )
 
-    # --- creating our chain weights
-    chain_weights =torch.zeros(metagraph.n)
-    uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-    chain_weights[uid] = 1 
-
     # -- Main Training loop --
     try:
         # --  subscribe axon to the network.
         axon.start().subscribe()
+
+        # --- creating our chain weights
+        chain_weights =torch.zeros(metagraph.n)
+        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+        chain_weights[uid] = 1 
 
         while True:
             # --- Run 
