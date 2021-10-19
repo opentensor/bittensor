@@ -3,6 +3,7 @@ import os,sys
 import torch
 from unittest.mock import MagicMock
 import unittest.mock as mock
+import pytest
 
 from bittensor.utils.balance import Balance
 
@@ -117,35 +118,27 @@ def test_unstake():
     executor.metagraph.load = MagicMock(return_value = True)
     executor.metagraph.sync = MagicMock(return_value = True)
     executor.metagraph.save = MagicMock(return_value = True)
-    executor.subtensor.unstake = MagicMock(return_value = True)
     uid = executor.metagraph._endpoint_objs[-1].uid
     executor.metagraph.S[ uid ] = 20
+    
+    # successful unstake
+    executor.subtensor.unstake = MagicMock(return_value = True)
     executor.unstake( amount_tao = 10, uid = uid)
 
-def test_unstake_fail():
-    wallet.create_new_coldkey(use_password=False, overwrite = True)
-    wallet.create_new_hotkey(use_password=False, overwrite = True)
-    executor.metagraph.sync()
-    test_endpoint_obj = bittensor.endpoint.from_dict(
-        {
-            'version' : executor.metagraph._endpoint_objs[0].version,
-            'uid' : executor.metagraph._endpoint_objs[-1].uid,
-            'hotkey' : wallet.hotkey.ss58_address,
-            'port' : executor.metagraph._endpoint_objs[0].port,
-            'ip' : executor.metagraph._endpoint_objs[0].ip,
-            'ip_type' : executor.metagraph._endpoint_objs[0].ip_type,
-            'modality' : executor.metagraph._endpoint_objs[0].modality,
-            'coldkey' : wallet.coldkeypub.ss58_address,
-        }
-    )
-    executor.metagraph._endpoint_objs[-1] =  test_endpoint_obj
-    executor.metagraph.endpoints[-1] = torch.tensor(test_endpoint_obj.to_tensor().tolist())
-    executor.metagraph.load = MagicMock(return_value = True)
-    executor.metagraph.sync = MagicMock(return_value = True)
-    executor.metagraph.save = MagicMock(return_value = True)
-    executor.subtensor.unstake = MagicMock(return_value = False)
-    uid = executor.metagraph._endpoint_objs[-1].uid
-    executor.metagraph.S[ uid ] = 20
+    # staking with not enough tao
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        executor.unstake( amount_tao = 30, uid = uid)
+    
+    assert pytest_wrapped_e.type == SystemExit
+
+    # staking with wrong uid
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        executor.unstake( amount_tao = 10, uid = uid-1)
+    
+    assert pytest_wrapped_e.type == SystemExit
+
+    # failing at subtensor add_stake
+    executor.subtensor.add_stake = MagicMock(return_value = False)
     executor.unstake( amount_tao = 10, uid = uid)
 
 def test_stake():
@@ -169,37 +162,43 @@ def test_stake():
     executor.metagraph.load = MagicMock(return_value = True)
     executor.metagraph.sync = MagicMock(return_value = True)
     executor.metagraph.save = MagicMock(return_value = True)
-    executor.subtensor.add_stake = MagicMock(return_value = True)
     executor.subtensor.get_balance = MagicMock(return_value = Balance.from_float(20)) 
     uid = executor.metagraph._endpoint_objs[-1].uid
+    
+    # successful staking
+    executor.subtensor.add_stake = MagicMock(return_value = True)
     executor.stake( amount_tao = 10, uid = uid)
 
-def test_stake_fail():
+    # staking with not enough tao
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        executor.stake( amount_tao = 30, uid = uid)
+    
+    assert pytest_wrapped_e.type == SystemExit
+
+    # staking with wrong uid
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        executor.stake( amount_tao = 20, uid = uid-1)
+    
+    assert pytest_wrapped_e.type == SystemExit
+
+    # failing at subtensor add_stake
+    executor.subtensor.add_stake = MagicMock(return_value = False)
+    executor.stake( amount_tao = 10, uid = uid)
+
+
+def test_transfer():
     wallet.create_new_coldkey(use_password=False, overwrite = True)
     wallet.create_new_hotkey(use_password=False, overwrite = True)
-    executor.metagraph.sync()
-    test_endpoint_obj = bittensor.endpoint.from_dict(
-        {
-            'version' : executor.metagraph._endpoint_objs[0].version,
-            'uid' : executor.metagraph._endpoint_objs[-1].uid,
-            'hotkey' : wallet.hotkey.ss58_address,
-            'port' : executor.metagraph._endpoint_objs[0].port,
-            'ip' : executor.metagraph._endpoint_objs[0].ip,
-            'ip_type' : executor.metagraph._endpoint_objs[0].ip_type,
-            'modality' : executor.metagraph._endpoint_objs[0].modality,
-            'coldkey' : wallet.coldkeypub.ss58_address,
-        }
-    )
-    executor.metagraph._endpoint_objs[-1] =  test_endpoint_obj
-    executor.metagraph.endpoints[-1] = torch.tensor(test_endpoint_obj.to_tensor().tolist())
-    executor.metagraph.load = MagicMock(return_value = True)
-    executor.metagraph.sync = MagicMock(return_value = True)
-    executor.metagraph.save = MagicMock(return_value = True)
-    executor.subtensor.add_stake = MagicMock(return_value = False)
-    uid = executor.metagraph._endpoint_objs[-1].uid
+    executor.subtensor.transfer = MagicMock(return_value = True)
     executor.subtensor.get_balance = MagicMock(return_value = Balance.from_float(20)) 
-    executor.stake( amount_tao = 10, uid = uid)
+    executor.transfer( amount_tao = 10, destination = "")
 
+def test_transfer_fail():
+    wallet.create_new_coldkey(use_password=False, overwrite = True)
+    wallet.create_new_hotkey(use_password=False, overwrite = True)
+    executor.subtensor.transfer = MagicMock(return_value = False)
+    executor.subtensor.get_balance = MagicMock(return_value = Balance.from_float(20)) 
+    executor.transfer( amount_tao = 10, destination = "")
 # -- cli ---
 
 def test_create_cli_overview():
