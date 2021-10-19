@@ -431,16 +431,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 call_time = clock.time() - start_time
                 bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
                 return None, code, call_time, message
-            
-            # --- normalization of gradients ---
-            try: 
-                grads_dy = grads_dy/max([grads_dy.sum(),1])
-            except Exception as e:
-                code = bittensor.proto.ReturnCode.UnknownException
-                message =  "Error in normalizing the gradients with error {}".format(str(e))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
-                return None, code, call_time, message
 
         if modality_x == bittensor.proto.Modality.IMAGE:
             if len(inputs_x.shape) != 5:

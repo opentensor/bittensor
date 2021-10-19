@@ -71,6 +71,8 @@ def main( config ):
     threadpool = bittensor.prioritythreadpool(config=config)
 
     timecheck = {}
+    samples = 0 
+
     # Define our forward function.
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
@@ -120,14 +122,18 @@ def main( config ):
                         grad_tensors = [ grad ],
                         retain_graph=True
                     )
-
                 logger.info('Backwards axon gradient applied')
                     
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
 
+        # -- normalized grads -- 
+        grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
+        samples += inputs_x.size(0)
+
         try:
             future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
+            
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
