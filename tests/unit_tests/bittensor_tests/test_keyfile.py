@@ -58,6 +58,23 @@ def test_validate_password():
     with mock.patch('getpass.getpass',return_value='biTTenso'):
         assert validate_password('biTTensor') == False
 
-# def test_decrypt_keyfile_data():
-    # keyfile_data_is_encrypted_legacy
+def test_decrypt_keyfile_data_legacy():
+    import base64
+    from bittensor._keyfile.keyfile_impl import decrypt_keyfile_data
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.fernet import Fernet
+    from cryptography.hazmat.primitives import hashes
+    __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
+    
+    def __generate_key(password):
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
+        key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+        return key
+
+    key = __generate_key('fakepasssword238947239')
+    cipher_suite = Fernet(key)
+    cipher_suite.encrypt('encrypt me!')
+
+    decrypt_keyfile_data( keyfile_data: bytes, password: str = None)
+
 test_legacy_coldkey()
