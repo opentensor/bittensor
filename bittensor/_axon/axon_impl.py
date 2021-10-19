@@ -434,7 +434,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             
             # --- normalization of gradients ---
             try: 
-                grads_dy = grads_dy/grads_dy.sum()
+                grads_dy = grads_dy/max([grads_dy.sum(),1])
             except Exception as e:
                 code = bittensor.proto.ReturnCode.UnknownException
                 message =  "Error in normalizing the gradients with error {}".format(str(e))
