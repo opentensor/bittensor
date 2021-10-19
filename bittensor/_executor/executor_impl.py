@@ -230,7 +230,7 @@ class Executor:
         endpoint =  bittensor.endpoint.from_tensor( endpoint )
 
         unstaking_balance = Balance.from_float( amount_tao )
-        stake = self.subtensor.get_stake_for_uid(endpoint.uid)
+        stake = Balance.from_float(self.metagraph.S[ endpoint.uid ])
         if unstaking_balance > stake:
             logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, stake, unstaking_balance))
             sys.exit()
