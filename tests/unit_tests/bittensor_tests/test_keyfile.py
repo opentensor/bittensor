@@ -71,10 +71,12 @@ def test_decrypt_keyfile_data_legacy():
         key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
         return key
 
-    key = __generate_key('fakepasssword238947239')
+    pw = 'fakepasssword238947239'
+    data = 'encrypt me!'
+    key = __generate_key(pw)
     cipher_suite = Fernet(key)
-    cipher_suite.encrypt('encrypt me!')
+    encrypted_data = cipher_suite.encrypt('encrypt me!')
 
-    decrypt_keyfile_data( keyfile_data: bytes, password: str = None)
+    decrypt_keyfile_data( encrypted_data, pw)
 
 test_legacy_coldkey()
