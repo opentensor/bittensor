@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from types import SimpleNamespace
 from typing import Tuple, List, Union, Optional
 
 import torch
@@ -25,6 +26,7 @@ from loguru import logger
 
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
+import bittensor.utils.stats as stat_utils
 
 logger = logger.opt(colors=True)
 
@@ -71,6 +73,14 @@ class Dendrite( torch.autograd.Function ):
         self.config = config
         self.wallet = wallet
         self.receptor_pool = receptor_pool
+
+        # ---- Dendrite stats
+        # num of time we have sent request to a peer, received successful respond, and the respond time
+        self.stats = SimpleNamespace(
+            requested_peers_count = {},
+            responded_peers_count = {},
+            peers_respond_time = {}
+        )
 
     def __str__(self):
         return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
@@ -325,6 +335,7 @@ class Dendrite( torch.autograd.Function ):
             responses = responses[0]
 
         # Return.
+        self.update_stat(endpoints, codes, times)
         return responses, codes, times
 
     def forward_tensor(
@@ -418,8 +429,8 @@ class Dendrite( torch.autograd.Function ):
             responses = responses[0]
 
         # Return.
+        self.update_stat(endpoints, codes, times)
         return responses, codes, times
-
 
     def forward_text(
             self,
@@ -583,4 +594,63 @@ class Dendrite( torch.autograd.Function ):
         )
 
         # Return.
+        self.update_stat(formatted_endpoints, codes, times)
         return responses, codes, times
+
+    def update_stat(self, endpoints, return_ops, query_times):
+        r""" Update dendrite stat according to the response we get from peers.
+        Updates were saved to self.stats.
+            Args:
+                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    The set of endpoints that dendrite sent request to.
+
+                return_ops (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                    Dendrite call return ops.
+
+                query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                    Times per call.
+        """
+        # ---- uids that we have sent request to.
+        uids = torch.tensor([e.uid for e in endpoints])
+
+        # ---- uids that gave us successful respond.
+        success_ids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
+        
+        # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
+        for uid, time in zip(uids, query_times):
+            if uid in self.stats.requested_peers_count.keys():
+                self.stats.requested_peers_count[uid].update(1)
+                self.stats.peers_respond_time[uid].update(time)
+
+            else:
+                self.stats.requested_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
+                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
+                self.stats.peers_respond_time[uid] = stat_utils.timed_rolling_avg(time, 0.01)
+
+        
+        # --- Aggregating result to stats 
+        for uid in uids[success_ids]:
+            if uid in self.stats.requested_peers_count.keys():
+                self.stats.responded_peers_count[uid].update(1)
+            else:
+                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
+
+    def to_wandb(self):
+        r""" Return a dictionary of axon stat for wandb logging
+            
+            Return:
+                wandb_info (:obj:`Dict`)
+        """
+        wandb_info = {}
+
+        # ---- Dendrite stats per pubkey for wandb 
+        for uid in self.stats.requested_peers_count.keys():
+            respond_rate = self.stats.responded_peers_count[uid].value / self.stats.requested_peers_count[uid].value
+           
+            uid_str = str(uid).zfill(3)
+            wandb_info[f'dend_quested uid: {uid_str}']= self.stats.requested_peers_count[uid].value
+            wandb_info[f'dend_responded uid: {uid_str}']= self.stats.responded_peers_count[uid].value
+            wandb_info[f'dend_respond_time uid: {uid_str}']= self.stats.peers_respond_time[uid].value
+            wandb_info[f'dend_respond_rate uid: {uid_str}']= respond_rate
+
+        return wandb_info

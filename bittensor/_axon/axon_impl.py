@@ -67,11 +67,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.modality = modality if modality != None else self.find_modality()
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
             in_bytes_per_pubkey = {},
             out_bytes_per_pubkey = {},
             qps_per_pubkey = {},
+            qps_failed_per_pubkey = {},
         )
 
         self.external_ip = None
@@ -108,6 +110,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
+            requires_grad = True,
         )
         # ---- Update stats for this request.
         self.update_stats_for_request( request, response )
@@ -136,6 +139,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return_code = code,
             message = message,
             tensors = [tensor] if tensor is not None else [],
+            requires_grad = True,
         )
         self.update_stats_for_request( request, response )
         return response
@@ -266,7 +270,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.EmptyRequest
                 message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
                 return None, code, call_time, message
 
             # ---- Check deserialization ----
@@ -279,7 +283,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.RequestDeserializationException
                 message = "Request deserialization exception: {}".format(str(e))
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
                 return None, code, call_time, message
 
             # ---- Check shape and modality ----
@@ -287,14 +291,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 message = "Forward request batch dim exception with batch_size = {} ".format(list(torch_inputs.shape)[0])
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                 return None, code, call_time, message
 
             if list(torch_inputs.shape)[1] < 1:
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 message = "Forward request sequence dim exception with sequence_dim = {} ".format(list(torch_inputs.shape)[1])
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                 return None, code, call_time, message
 
             if modality == bittensor.proto.Modality.TEXT:
@@ -302,7 +306,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     code = bittensor.proto.ReturnCode.RequestShapeException
                     message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(list(torch_inputs.shape)))
                     call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                    bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                     return None, code, call_time, message
           
             if modality == bittensor.proto.Modality.IMAGE:
@@ -310,7 +314,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     code = bittensor.proto.ReturnCode.RequestShapeException
                     message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(list(torch_inputs.shape)))
                     call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                    bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                     return None, code, call_time, message
 
             if modality == bittensor.proto.Modality.TENSOR:
@@ -318,14 +322,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     code = bittensor.proto.ReturnCode.RequestShapeException
                     message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(list(torch_inputs.shape)))
                     call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                    bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                     return None, code, call_time, message
 
         except Exception as e:
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'exception in preprocessing forward call with error: {}'.format(e)
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
             return None, code, call_time, message
 
         # Post process.
@@ -335,7 +339,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             code = bittensor.proto.ReturnCode.Success
             message = None
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
             outputs, code, message = self._call_forward( 
                 public_key = request.hotkey, 
                 inputs_x = torch_inputs, 
@@ -343,7 +347,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             )
             if code != bittensor.proto.ReturnCode.Success:
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                 return None, code, call_time, message
 
             # ---- Catch empty ----
@@ -351,7 +355,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.EmptyResponse
                 message = None
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                 return None, code, call_time, message
 
             # ---- Serialize response ----
@@ -362,19 +366,19 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.ResponseDeserializationException
                 message = e
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
                 return None, code, call_time, message
 
         except Exception as e:
             code = bittensor.proto.ReturnCode.UnknownException
             message = 'exception in processing forward call: {}'.format(e)
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
             return None, code, call_time, message
 
         # ---- Return successful response ----
         call_time = clock.time() - start_time
-        bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(list(torch_inputs.shape)), outputs=outputs_serialized.shape, message=None )
+        bittensor.logging.rpc_log( axon=True, forward=True, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(list(torch_inputs.shape)), outputs=outputs_serialized.shape, message=None  )
         return outputs_serialized, code, call_time, message
  
     def _backward(self, request):
@@ -403,7 +407,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             code = bittensor.proto.ReturnCode.InvalidRequest
             message = "During backward: There are {} tensors in the request, expected 2.".format(len(request.tensors))
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey = request.hotkey, inputs=None, outputs=None, message = message )
+            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey = request.hotkey, inputs=None, outputs=None, message = message  )
             return None, code, call_time, message
 
         # ---- Deserialize request ---
@@ -415,7 +419,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             code = bittensor.proto.ReturnCode.RequestDeserializationException
             message = "Request serialization exception with error: {}".format(str(e))
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
             return None, code, call_time, message
 
         # ---- Check shapes ----
@@ -424,7 +428,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(inputs_x.shape))
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
                 return None, code, call_time, message
             
         if modality_x == bittensor.proto.Modality.IMAGE:
@@ -432,7 +436,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 message =  "Forward image input shape exception for len(shape) = {}  must have rank 5".format(len(inputs_x.shape))
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
                 return None, code, call_time, message
 
         if modality_x == bittensor.proto.Modality.TENSOR:
@@ -440,26 +444,26 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.RequestShapeException
                 message = "Forward message tensor input shape exception len(shape) = {} must have rank 3".format(len(inputs_x.shape))
                 call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
                 return None, code, call_time, message
 
         if len(grads_dy.shape) != 3:
             code = bittensor.proto.ReturnCode.RequestShapeException
             message = "Passed gradients must have rank 3 but got {}".format(len(grads_dy.shape))
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
             return None, code, call_time, message
 
         if grads_dy.shape[0] != inputs_x.shape[0] or grads_dy.shape[1] != inputs_x.shape[1]:
             code = bittensor.proto.ReturnCode.RequestShapeException
             message = "Passed gradients must same first and second dimension as passed inputs got shapes {} and {}".format(grads_dy.shape, inputs_x.shape)
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
             return None, code, call_time, message
  
         # ---- Make nucleus backward call. ----
         call_time = clock.time() - start_time
-        bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None )
+        bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=None  )
         outputs, code, message = self._call_backward( 
             public_key = request.hotkey, 
             inputs_x = inputs_x, 
@@ -468,7 +472,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         )
         if code != bittensor.proto.ReturnCode.Success:
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
             return None, code, call_time, message
 
         # ---- Catch empty ----
@@ -476,7 +480,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             code = bittensor.proto.ReturnCode.EmptyResponse
             message = None
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
             return None, code, call_time, message
 
         # ---- Deserialize response ----
@@ -487,12 +491,12 @@ class Axon( bittensor.grpc.BittensorServicer ):
             code = bittensor.proto.ReturnCode.ResponseSerializationException
             message = "Backward request serialization failed with error {} and inputs {}".format(e, outputs)
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
+            bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
             return None, code, call_time, message
 
         # ---- Finaly return ----
         call_time = clock.time() - start_time
-        bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs_serialized.shape), message=None )
+        bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs_serialized.shape), message=None  )
         return outputs_serialized, code, call_time, message
 
     def attach( self, servicer:object, modality:int):
@@ -540,10 +544,17 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.in_bytes_per_pubkey[request.hotkey].update(in_bytes)
             self.stats.out_bytes_per_pubkey[request.hotkey].update(out_bytes)
             self.stats.qps_per_pubkey[request.hotkey].update(1)
+
         else:
             self.stats.in_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
             self.stats.out_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
             self.stats.qps_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(1, 0.01)
+            self.stats.qps_failed_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
+
+        # ---- Adding failed responses to stat  
+        if response.return_code != bittensor.proto.ReturnCode.Success:
+            self.stats.qps_failed.update(1)
+            self.stats.qps_failed_per_pubkey[request.hotkey].update(1)
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
@@ -660,3 +671,26 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if backward != None:
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
         return self
+
+    def to_wandb(self):
+        r""" Return a dictionary of axon stat for wandb logging
+            
+            Return:
+                wandb_info (:obj:`Dict`)
+        """
+        # ---- Axon summary for wandb
+        wandb_data = {
+            'axon_qps': self.stats.qps.value,
+            'axon_qps_failed' : self.stats.qps_failed.value,
+            'axon_total_in_bytes' : self.stats.total_in_bytes.value,
+            'axon_total_out_bytes' : self.stats.total_out_bytes.value,
+        }
+
+        # ---- Axon stats per pubkey for wandb 
+        for pubkey in self.stats.in_bytes_per_pubkey.keys():
+            wandb_data[f'axon_in_bytes\n{pubkey}'] = self.stats.in_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_out_bytes\n{pubkey}'] = self.stats.out_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps\n{pubkey}'] = self.stats.qps_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps_failed\n{pubkey}'] = self.stats.qps_failed_per_pubkey[pubkey].value
+            
+        return wandb_data 

@@ -4,17 +4,18 @@ axon.max_workers: 10
 axon.maximum_concurrent_rpcs: 400
 axon.port: 8091
 
-dataloader.batch_size: 10
-dataloader.block_size: 20
-dataloader.max_corpus_size: 50000000.0
-dataloader.num_workers: 0
-dataloader.data_dir: ~/.bittensor/dataset/
-dataloader.dataset: train
+dataset.batch_size: 10
+dataset.block_size: 20
+dataset.max_corpus_size: 1000000.0
+dataset.num_workers: 0
+dataset.data_dir: ~/.bittensor/dataset/
+dataset.dataset_name: train
+dataset.save_dataset: False
 
 dendrite.max_active_receptors: 500
 dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
-dendrite.timeout: 5
+dendrite.timeout: 10
 
 logging.debug: false
 logging.logging_dir: ~/.bittensor/miners/
@@ -27,7 +28,7 @@ miner.batch_size_train: 2
 miner.device: cpu
 miner.epoch_length: 100
 miner.n_epochs: 500
-miner.reload: false
+miner.restart: false
 miner.restart_on_failure: false
 miner.weight_decay: 0.25
 miner.accumulate_remote_gradients: false
@@ -43,6 +44,7 @@ nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
 nucleus.topk: 30
+nucleus.punishment: 0
 
 subtensor.chain_endpoint: null
 subtensor.network: akatsuki
