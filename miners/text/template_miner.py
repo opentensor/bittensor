@@ -338,6 +338,7 @@ class Miner:
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+        parser.add_argument('--miner.sync_block_time', type=int, help='How often the sync the miner with metagraph, in terms of block time', default=15)
         parser.add_argument('--miner.restart', type=bool, help='If True, train the miner from the beginning', default=False)
         
         bittensor.add_args( parser )
@@ -357,6 +358,18 @@ class Miner:
         config.miner.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
+
+    def sync (self, current_block ):
+        """ Miner sync with metagraph and update chain weight
+        """
+        # ---- Set weights on chain ----
+        self.set_chain_weights()
+
+        # ---- Sync with metagraph ----
+        bittensor.neuron.metagraph.load().sync().save()
+        chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
+        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
+        bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
 
     def run( self ):
         r""" Miner main loop.
@@ -436,6 +449,14 @@ class Miner:
                             self.stats.epoch_data_size += inputs.nelement()
                             batches_count += 1
 
+                        # ---- Sync with metagraph if the current block >= last synced block + sync block time 
+                        current_block = self.neuron.subtensor.get_current_block()
+                        block_diff = current_block - self.last_sync_block
+                        if block_diff >= self.config.miner.sync_block_time:
+                            self.sync(current_block)                                                                                                                
+                            self.last_sync_block = current_block
+                            self.stats.epoch_sync_count += 1
+                            
                         # ---- Update the epoch loss if it is the last iteration within epoch
                         if block+1 == end_block :
                             self.stats.local_target_epoch_loss = total_local_target_epoch_loss / batches_count
@@ -453,9 +474,6 @@ class Miner:
 
                     # ---- Update params ----
                     self.epoch += 1
-
-                    # ---- Set weights on chain ----
-                    self.set_chain_weights()
 
                     # ---- Checkpoint state ----
                     self.checkpoint()
@@ -551,10 +569,6 @@ class Miner:
         if last_saved == None or last_saved['epoch_loss'] >= self.stats.local_target_epoch_loss:
             self.stats.best_epoch_loss = self.stats.local_target_epoch_loss
             self.save()
-        bittensor.neuron.metagraph.load().sync().save()
-
-        chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.chain_weights.shape[0]
-        self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
 
         # Checks if epochs managed to diverage
         if not math.isfinite(self.stats.local_target_epoch_loss):
