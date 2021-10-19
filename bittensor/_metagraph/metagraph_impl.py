@@ -30,7 +30,7 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 
-RAOPERTAO = 18446744073709551615
+RAOPERTAO = 1000000000
 U64MAX = 18446744073709551615
 
 class Metagraph( torch.nn.Module ):
@@ -280,6 +280,21 @@ class Metagraph( torch.nn.Module ):
                 self._endpoint_objs.append( obj )
             return self._endpoint_objs
 
+    def hotkey_to_uid( self, hotkey:str ) -> int:
+        r""" Fetch uid according to hotkey. 
+            Args: 
+                hotkey: (`str`, required):
+                    Hotkey to fetch the uid for.
+            
+            Return:
+                uid: (`int`):
+                    The uid for specified hotkey, -1 if hotkey does not exist.
+        """ 
+        if hotkey in self.hotkeys:
+            return self.hotkeys.index(hotkey) 
+        else:
+            return -1
+
     def load( self, network:str = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 
@@ -433,6 +448,9 @@ class Metagraph( torch.nn.Module ):
         tbonds = torch.tensor( bonds, dtype=torch.int64 )
         tweights = torch.tensor( weights, dtype=torch.float32 )
         tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
+
+        # Normalize bond ownership.
+        tbonds = torch.nn.functional.normalize( tbonds.float(), p=1, dim=0, eps=1e-12 ) * 0.5 + torch.eye( tn ) * 0.5
 
         # Set params.
         self.n = torch.nn.Parameter( tn, requires_grad=False )

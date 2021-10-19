@@ -40,7 +40,14 @@ At Bittensor, we are creating an open, decentralized, peer-to-peer network that 
 https://app.gitbook.com/@opentensor/s/bittensor/
 
 ## 2. Install
+Two ways to install Bittensor. 
 
+1. Through installer (recommended):
+```
+$ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
+```
+
+2. Through pip (Advanced):
 ```bash
 $ pip3 install bittensor
 ```
@@ -114,7 +121,7 @@ import bittensor
 import torch
 
 graph = bittensor.metagraph().sync()
-dataset = bittensor.dataloader()
+dataset = bittensor.dataset()
 chain_weights = torch.ones( [graph.n.item()], dtype = torch.float32 )
 
 for batch in dataset.dataloader( 10 ):
