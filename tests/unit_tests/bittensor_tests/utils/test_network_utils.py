@@ -2,6 +2,7 @@ from bittensor import utils
 import unittest.mock as mock
 from unittest.mock import MagicMock
 import os 
+import requests
 
 def test_int_to_ip_zero():
     assert utils.networking.int_to_ip(0) == "0.0.0.0"
@@ -70,9 +71,16 @@ def test_get_external_ip_os_request_broken():
             return 1
     def mock_call():
         return fake()
+
+    class fake_s():
+        def text(self):
+            return 1
+    def mock_call_two():
+        return fake_s()
         
     with mock.patch.object(os, 'popen', new=mock_call):
-        assert utils.networking.get_external_ip()
+        with mock.patch.object(requests, 'get', new=mock_call_two):
+            assert utils.networking.get_external_ip()
 
 if __name__ == "__main__":
     test_int_to_ip_zero()

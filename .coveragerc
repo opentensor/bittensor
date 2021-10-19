@@ -4,3 +4,4 @@ omit =
   ./routers/*
   ./setup.py
   ./tests/*
+  ./miners/*
