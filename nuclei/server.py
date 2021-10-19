@@ -204,7 +204,7 @@ class server(torch.nn.Module):
     @staticmethod
     def config ():
         parser = argparse.ArgumentParser()
-        parser.add_argument('--server.learning_rate', type=float, help='Training initial learning rate.', default=0.1)
+        parser.add_argument('--server.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
         parser.add_argument('--server.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--server.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--server.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
