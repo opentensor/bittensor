@@ -23,7 +23,7 @@ rich
 requests>=2.25.0
 scalecodec>=1.0.3
 termcolor
-torch>=1.6.0
+torch>=1.6.0,<=1.8.1
 transformers>=4.5.0
 numpy
 wheel
