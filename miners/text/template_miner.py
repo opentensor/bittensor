@@ -274,8 +274,9 @@ class Miner:
         ).to( self.device )
 
         # Torch optimizer.
+        # the chain_weights layer has it own learning weight, other layers follow the default
         self.optimizer = torch.optim.SGD(
-            [ {"params": self.nucleus.parameters()}],
+            [ {'params': self.nucleus.chain_weights, 'lr': self.config.miner.learning_rate_chain} ],
             lr = self.config.miner.learning_rate,
             momentum = self.config.miner.momentum,
         )
@@ -322,6 +323,7 @@ class Miner:
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--miner.learning_rate', type=float, help='Training initial learning rate.', default=1)
+        parser.add_argument('--miner.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--miner.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
         parser.add_argument('--miner.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
@@ -336,7 +338,8 @@ class Miner:
         parser.add_argument('--miner.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--miner.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-
+        parser.add_argument('--miner.restart', type=bool, help='If True, train the miner from the beginning', default=False)
+        
         bittensor.add_args( parser )
         Nucleus.add_args( parser ) 
         bittensor.prioritythreadpool.add_args( parser )
@@ -371,7 +374,10 @@ class Miner:
             # ---- Init run state ----
             self.epoch = 0            
 
-            # ---- reloads previous run ----
+            # ---- reloads previous run if not restart ----
+            if self.config.miner.restart:
+                self.save()
+
             try:
                 self.reload()
                 self.neuron.axon.check()
@@ -599,12 +605,22 @@ class Miner:
         self.nucleus.chain_weights = nn.Parameter(torch.cat([self.nucleus.chain_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
         self.nucleus.to( self.device ) # Load nucleus
 
-        # --- Load optimizer.
-        self.optimizer = torch.optim.SGD(
-            [{"params": self.nucleus.parameters()}],
-            lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
-            weight_decay = state_dict['optimizer_state']['param_groups'][0]['weight_decay'],
-        )
+        # --- Load optimizer
+        # check if the optimizer has previously stored separate param for the chain_weight 
+        if len(state_dict['optimizer_state']['param_groups']) == 1:
+            self.optimizer = torch.optim.SGD(
+                [{"params": self.nucleus.parameters()}],
+                lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
+                momentum = state_dict['optimizer_state']['param_groups'][0]['momentum'],
+            )
+
+        else:
+            self.optimizer = torch.optim.SGD(
+                [ {'params': self.nucleus.chain_weights, 'lr': state_dict['optimizer_state']['param_groups'][0]['lr'] }],
+                lr = state_dict['optimizer_state']['param_groups'][1]['lr'],
+                momentum = state_dict['optimizer_state']['param_groups'][1]['momentum'],
+            )
+        
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ))
 
     def save( self ):
