@@ -106,7 +106,7 @@ class Executor:
                 _, code, times = self.dendrite.forward_text( endpoints = [endpoint], inputs = [torch.zeros((1,1), dtype=torch.int64)] )
                 end_time = time.time()
                 code_to_string = code_utils.code_to_string(code.item())
-                code_color = code_utils.code_to_color(code.item()) 
+                code_color = code_utils.code_to_loguru_color(code.item()) 
                 code_str =  '[' + str(code_color) + ']' + code_to_string 
                 query_time = '[' + str(code_color) + ']' + "" + '{:.3}'.format(end_time - start_time) + "s"
 

@@ -1,4 +1,7 @@
 from bittensor import utils
+import unittest.mock as mock
+from unittest.mock import MagicMock
+import os 
 
 def test_int_to_ip_zero():
     assert utils.networking.int_to_ip(0) == "0.0.0.0"
@@ -49,6 +52,27 @@ def test_int_to_ip6_underflow():
 
 def test_get_external_ip():
     assert utils.networking.get_external_ip()
+
+def test_get_external_ip_os_broken():
+    class fake():
+        def readline(self):
+            return 1
+    def mock_call():
+        return fake()
+        
+    with mock.patch.object(os, 'popen', new=mock_call):
+        assert utils.networking.get_external_ip()
+
+
+def test_get_external_ip_os_request_broken():
+    class fake():
+        def readline(self):
+            return 1
+    def mock_call():
+        return fake()
+        
+    with mock.patch.object(os, 'popen', new=mock_call):
+        assert utils.networking.get_external_ip()
 
 if __name__ == "__main__":
     test_int_to_ip_zero()

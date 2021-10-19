@@ -74,56 +74,6 @@ def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
     else:
         return 'UnknownCode'
 
-def code_to_color( code: bittensor.proto.ReturnCode ) -> str:
-    """ Return code -> color
-    """
-    if code == 0: 
-        return 'bold green'
-    elif code == 1:
-        return 'dim yellow'
-    elif code == 2:
-        return 'dim yellow'
-    elif code == 3:
-        return 'underline red'
-    elif code == 4:
-        return 'red'
-    elif code == 5:
-        return 'black'
-    elif code == 6:
-        return 'red'
-    elif code == 7:
-        return 'red'
-    elif code == 8:
-        return 'red'
-    elif code == 9:
-        return 'red'
-    elif code == 10:
-        return 'red'
-    elif code == 11:
-        return 'red'
-    elif code == 12:
-        return 'red'
-    elif code == 13:
-        return 'red'
-    elif code == 14:
-        return 'red'
-    elif code == 15:
-        return 'red'
-    elif code == 16:
-        return 'yellow'
-    elif code == 17:
-        return 'yellow'
-    elif code == 18:
-        return 'red'
-    elif code == 19:
-        return 'red'
-    elif code == 20:
-        return 'red'
-    elif code == 21:
-        return 'red'
-    else:
-        return 'red'
-
 def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
     """ Return code -> loguru color
     """
