@@ -4,6 +4,8 @@ import os
 import shutil
 import signal
 
+from bittensor.utils.balance import Balance
+subtensor = bittensor.subtensor()
 
 def init_wallet():
     if os.path.exists('/tmp/pytest'):
@@ -121,14 +123,56 @@ def test_wallet_prop():
     assert the_wallet.stake is not None
     assert the_wallet.balance is not None
     
+    the_wallet.is_registered = MagicMock(return_value = False)
+    assert the_wallet.neuron == None
+    assert the_wallet.uid == -1
+    assert the_wallet.stake == Balance(0)
+
 def test_wallet_register_wo_email():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     the_wallet.register()
 
 def test_wallet_register():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
-    the_wallet.email = 'pytest@gmail.com'
+    the_wallet._email = 'pytest@gmail.com'
     signal.signal(signal.SIGALRM, lambda x : x )
     signal.alarm(5)
+    the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.register()
 
+def test_wallet_add_stake():
+    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
+    subtensor.add_stake = MagicMock(return_value = True)
+    the_wallet.is_registered = MagicMock(return_value = True)
+    the_wallet.add_stake(subtensor = subtensor)
+    
+    # when not registered
+    the_wallet.is_registered = MagicMock(return_value = False)
+    the_wallet.add_stake(subtensor = subtensor)
+
+def test_wallet_remove_stake():
+    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
+    subtensor.unstake = MagicMock(return_value = True)
+    the_wallet.is_registered = MagicMock(return_value = True)
+    the_wallet.remove_stake(subtensor = subtensor)
+    
+    #when not registered
+    the_wallet.is_registered = MagicMock(return_value = False)
+    the_wallet.remove_stake(subtensor = subtensor)
+
+def test_wallet_transfer():
+    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
+    subtensor.transfer = MagicMock(return_value = True)
+    
+    # when registered
+    the_wallet.is_registered = MagicMock(return_value = True)
+    the_wallet.get_balance = MagicMock(return_value = Balance(20))
+    the_wallet.transfer(amount = 10, subtensor = subtensor, dest = "")
+    
+    # when not enough tao
+    the_wallet.get_balance = MagicMock(return_value = Balance(5))
+    the_wallet.transfer(amount = 10, subtensor = subtensor, dest = "")
+    
+    # when not registered
+    the_wallet.is_registered = MagicMock(return_value = False)
+    the_wallet.remove_stake(subtensor = subtensor)
