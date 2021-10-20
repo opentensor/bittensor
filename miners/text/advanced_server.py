@@ -212,7 +212,7 @@ def main( config ):
 
         while True:
             # --- Run 
-            dataloader = iter(dataset.dataloader(epoch_length=config.server.blocks_per_epoch))
+            dataloader = iter(dataset.dataloader(epoch_length=100))
             current_block = subtensor.get_current_block()
             end_block = current_block + config.server.blocks_per_epoch
             interation = 0
