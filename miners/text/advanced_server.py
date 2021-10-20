@@ -229,9 +229,9 @@ def main( config ):
             
             #Custom learning rate
             if gp_server.backward_gradients > 0:
-                optimizer.param_groups['lr'] =  1/(gp_server.backward_gradients + 10)
+                optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)
             else:
-                optimizer.param_groups['lr'] =  0.1
+                optimizer.param_groups[0]['lr'] =  0.1
             gp_server.backward_gradients = 0
 
             # --- Update parameters
