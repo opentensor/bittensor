@@ -142,7 +142,7 @@ def main( config ):
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
-        
+
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
@@ -214,7 +214,7 @@ def main( config ):
             # --- Run 
             dataloader = iter(dataset.dataloader(epoch_length=config.server.blocks_per_epoch))
             current_block = subtensor.get_current_block()
-            end_block = current_block + 10
+            end_block = current_block + config.server.blocks_per_epoch
             interation = 0
             # --- Training step.
             while end_block >= current_block:
