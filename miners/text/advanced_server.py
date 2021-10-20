@@ -120,24 +120,28 @@ def main( config ):
                         grad_tensors = [ grad ],
                         retain_graph=True
                     )
-
                 logger.info('Backwards axon gradient applied')
                     
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
 
+        # -- normalized grads -- 
+        grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
+        gp_server.backward_gradients += inputs_x.size(0)
+
         try:
             future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
+            
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
             logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
-    def blacklist(pubkey:str, meta:tuple) -> bool:
+    def blacklist(pubkey:str, request_type:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
-        request_type = meta[1].value
+
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
@@ -207,9 +211,9 @@ def main( config ):
 
         while True:
             # --- Run 
-            dataloader = iter(dataset.dataloader(epoch_length=config.server.blocks_per_epoch))
+            dataloader = iter(dataset.dataloader(epoch_length=100))
             current_block = subtensor.get_current_block()
-            end_block = current_block + 10
+            end_block = current_block + config.server.blocks_per_epoch
             interation = 0
             # --- Training step.
             while end_block >= current_block:
@@ -221,6 +225,13 @@ def main( config ):
                         losses = loss
                     interation += 1
                     current_block = subtensor.get_current_block()
+            
+            #Custom learning rate
+            if gp_server.backward_gradients > 0:
+                optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)
+            else:
+                optimizer.param_groups[0]['lr'] =  0.1
+            gp_server.backward_gradients = 0
 
             # --- Update parameters
             if interation != 0:
@@ -228,6 +239,7 @@ def main( config ):
                     logger.info('Backpropagation Started')
                     losses.backward()
                     clip_grad_norm_(gp_server.parameters(), 1.0)
+                    
                     optimizer.step()
                     optimizer.zero_grad()
                     logger.info('Backpropagation Successful: Model updated')
