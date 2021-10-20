@@ -116,12 +116,6 @@ def test_endpoint_fails_checks():
     )
     assert test_endpoint.check_format() == False
 
-def test_endpoint_to_tensor():
-    tensor_endpoint = endpoint.to_tensor()
-    assert list(tensor_endpoint.shape) == [250]
-    converted_endpoint = bittensor.endpoint.from_tensor( tensor_endpoint )
-    assert converted_endpoint == endpoint
-    assert converted_endpoint.check_format() == True
 
 def test_endpoint_to_tensor():
     tensor_endpoint = endpoint.to_tensor()

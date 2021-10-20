@@ -63,30 +63,21 @@ class config:
         params = parser.parse_known_args()[0]
         _config = config_impl.Config()
 
-        # Splits params on dot syntax i.e neuron.axon_port
+        # Splits params on dot syntax i.e neuron.axon_port            
         for arg_key, arg_val in params.__dict__.items():
             split_keys = arg_key.split('.')
-            
-            if len(split_keys) == 1:
-                _config[arg_key] = arg_val
-            else:
-                if hasattr(_config, split_keys[0]):
-                    section = getattr(_config, split_keys[0])
-                
-                    if not hasattr(section, split_keys[1]):
-                        head = _config
-                        for key in split_keys[:-1]:
-                            if key not in _config:
-                                head[key] = config_impl.Config()
-                            head = head[key] 
-                        head[split_keys[-1]] = arg_val
+            head = _config
+            keys = split_keys
+            while len(keys) > 1:
+                if hasattr(head, keys[0]):
+                    head = getattr(head, keys[0])  
+                    keys = keys[1:]   
                 else:
-                    head = _config
-                    for key in split_keys[:-1]:
-                        if key not in _config:
-                            head[key] = config_impl.Config()
-                        head = head[key] 
-                    head[split_keys[-1]] = arg_val
+                    head[keys[0]] = config_impl.Config()
+                    head = head[keys[0]] 
+                    keys = keys[1:]
+            if len(keys) == 1:
+                head[keys[0]] = arg_val
 
         return _config
 
