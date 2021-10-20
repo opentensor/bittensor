@@ -611,7 +611,7 @@ class Dendrite( torch.autograd.Function ):
                     Times per call.
         """
         # ---- uids that we have sent request to.
-        uids = torch.tensor([e.uid for e in endpoints])
+        uids = [e.uid for e in endpoints]
 
         # ---- uids that gave us successful respond.
         success_ids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
@@ -627,7 +627,6 @@ class Dendrite( torch.autograd.Function ):
                 self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
                 self.stats.peers_respond_time[uid] = stat_utils.timed_rolling_avg(time, 0.01)
 
-        
         # --- Aggregating result to stats 
         for uid in uids[success_ids]:
             if uid in self.stats.requested_peers_count.keys():
