@@ -71,7 +71,10 @@ def main( config ):
 
     print (config)
     
+    # Init saving path for models 
     save_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.miner.name ))
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
     # Init bittensor logging.
     bittensor.logging ( config = config )
