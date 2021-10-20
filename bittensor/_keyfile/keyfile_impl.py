@@ -449,7 +449,7 @@ class Keyfile( object ):
         """
         # Check overwrite.
         if self.exists_on_device() and not overwrite:
-            if self._may_overwrite():
+            if not self._may_overwrite():
                 raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
         with open(self.path, "wb") as keyfile:
             keyfile.write( keyfile_data )
