@@ -462,8 +462,13 @@ class Miner:
                             total_remote_target_epoch_loss += output.remote_target_loss.item()
                             total_local_epoch_acc += output.local_accuracy
                             self.stats.epoch_data_size += inputs.nelement()
-                            self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
                             batches_count += 1
+                            
+                            # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
+                            chain_growth = scores.shape[0] - self.stats.ema_scores.shape[0]
+                            if chain_growth > 0:
+                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=True)]))
+                            self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
 
                         # ---- Sync with metagraph if the current block >= last synced block + sync block time 
                         current_block = self.neuron.subtensor.get_current_block()
@@ -719,8 +724,8 @@ class Miner:
         # ---- Miner summary per peer for progress bar
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if normalized_peer_weights[uid].item() > 0:
-                if self.nucleus.chain_weights.grad != None:
-                    weight_diff = -self.nucleus.chain_weights.grad[uid].item()
+                if self.nucleus.peer_weights.grad != None:
+                    weight_diff = -self.nucleus.peer_weights.grad[uid].item()
                 else:
                     weight_diff = 0
 
@@ -761,7 +766,7 @@ class Miner:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
 
-    def blacklist(self,pubkey:str) -> bool:
+    def blacklist(self,pubkey:str, meta:tuple) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
