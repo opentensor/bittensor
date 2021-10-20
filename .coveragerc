@@ -3,3 +3,4 @@ omit =
    ./nuclei/*
   ./routers/*
   ./setup.py
+  ./tests/*
