@@ -165,11 +165,6 @@ class Executor:
 
     def unstake_all ( self ):
         r""" Unstaked from all hotkeys associated with this wallet's coldkey. 
-            Args:
-                None
-            
-            Return:
-                None
         """
         self.subtensor.connect()
         self.metagraph.load()
@@ -201,10 +196,9 @@ class Executor:
         r""" Unstaked token of amount to from uid.
             Args:
                 amount_tao (int):
-                    ampunt of tao to be staked
+                    Amount of tao to be staked.
                 uid (int):
-                    uid of the hotkey 
-            
+                    uid of the hotkey. 
             Return:
                 None
         """
@@ -304,9 +298,9 @@ class Executor:
         r""" Transfers token of amount to destination.
             Args:
                 amount_tao (int):
-                    ampunt of tao to be transfered
+                    Amount of tao to be transfered.
                 destination (str):
-                    destination public key address of reciever. 
+                    Destination public key address of reciever. 
             Return:
                 None
         """

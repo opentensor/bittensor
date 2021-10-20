@@ -10,6 +10,7 @@ if os.path.exists('/tmp/pytest'):
 
 def test_create():
     keyfile = bittensor.keyfile (path = '/tmp/pytest/keyfile' )
+    
     alice = bittensor.Keypair.create_from_uri ('/Alice')
     keyfile.set_keypair(alice, encrypt=True, overwrite=True, password = 'thisisafakepassword')
     assert keyfile.is_readable()
@@ -19,20 +20,26 @@ def test_create():
     assert not keyfile.is_encrypted()
     keyfile.encrypt( password = 'thisisafakepassword' )
     assert keyfile.is_encrypted()
+    str(keyfile)
     keyfile.decrypt( password = 'thisisafakepassword' )
     assert not keyfile.is_encrypted()
-    keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == alice.ss58_address
-    keyfile.get_keypair( password = 'thisisafakepassword' ).mnemonic == alice.mnemonic
-    keyfile.get_keypair( password = 'thisisafakepassword' ).seed_hex == alice.seed_hex
-    keyfile.get_keypair( password = 'thisisafakepassword' ).private_key == alice.private_key
-    keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == alice.public_key
+    str(keyfile)
+
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == alice.ss58_address
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).mnemonic == alice.mnemonic
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).seed_hex == alice.seed_hex
+    # assert keyfile.get_keypair( password = 'thisisafakepassword' ).private_key == alice.private_key
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == alice.public_key
+    
     bob = bittensor.Keypair.create_from_uri ('/Bob')
     keyfile.set_keypair(bob, encrypt=True, overwrite=True, password = 'thisisafakepassword')
-    keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == bob.ss58_address
-    keyfile.get_keypair( password = 'thisisafakepassword' ).mnemonic == bob.mnemonic
-    keyfile.get_keypair( password = 'thisisafakepassword' ).seed_hex == bob.seed_hex
-    keyfile.get_keypair( password = 'thisisafakepassword' ).private_key == bob.private_key
-    keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == bob.public_key
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == bob.ss58_address
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).mnemonic == bob.mnemonic
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).seed_hex == bob.seed_hex
+    # assert keyfile.get_keypair( password = 'thisisafakepassword' ).private_key == bob.private_key
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == bob.public_key
+    
+    repr(keyfile)
 
 def test_legacy_coldkey():
     keyfile = bittensor.keyfile (path = '/tmp/pytest/coldlegacy_keyfile' )
@@ -64,6 +71,8 @@ def test_decrypt_keyfile_data_legacy():
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
     from cryptography.fernet import Fernet
     from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.backends import default_backend
+
     __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
     
     def __generate_key(password):
@@ -72,11 +81,16 @@ def test_decrypt_keyfile_data_legacy():
         return key
 
     pw = 'fakepasssword238947239'
-    data = 'encrypt me!'
+    data = b'encrypt me!'
     key = __generate_key(pw)
     cipher_suite = Fernet(key)
-    encrypted_data = cipher_suite.encrypt('encrypt me!')
+    encrypted_data = cipher_suite.encrypt(data)
 
-    decrypt_keyfile_data( encrypted_data, pw)
+    decrypted_data = decrypt_keyfile_data( encrypted_data, pw)
+    assert decrypted_data == data
 
-test_legacy_coldkey()
+def test_ask_password():
+    from bittensor._keyfile.keyfile_impl import ask_password_to_encrypt
+
+    with mock.patch('getpass.getpass', side_effect = ['pass', 'password', 'asdury3294y', 'asdury3294y']):
+        assert ask_password_to_encrypt() == 'asdury3294y'
