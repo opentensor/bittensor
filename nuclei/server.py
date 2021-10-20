@@ -89,6 +89,8 @@ class server(torch.nn.Module):
         if self.checking and pretrained == True:
             self.check()
         
+        # -- keeps track of gradients applied
+        self.backward_gradients = 0 
         
     def forward(self, inputs,tokenizer=None):
         """

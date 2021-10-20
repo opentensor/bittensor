@@ -71,7 +71,6 @@ def main( config ):
     threadpool = bittensor.prioritythreadpool(config=config)
 
     timecheck = {}
-    samples = 0 
 
     # Define our forward function.
     def forward_text (pubkey, inputs_x ):
@@ -129,7 +128,7 @@ def main( config ):
 
         # -- normalized grads -- 
         grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
-        samples += inputs_x.size(0)
+        gp_server.backward_gradients += inputs_x.size(0)
 
         try:
             future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
@@ -227,6 +226,13 @@ def main( config ):
                         losses = loss
                     interation += 1
                     current_block = subtensor.get_current_block()
+            
+            #Custom learning rate
+            if gp_server.backward_gradients > 0:
+                optimizer.param_groups['lr'] =  1/(gp_server.backward_gradients + 10)
+            else:
+                optimizer.param_groups['lr'] =  0.1
+            gp_server.backward_gradients = 0
 
             # --- Update parameters
             if interation != 0:
@@ -234,6 +240,7 @@ def main( config ):
                     logger.info('Backpropagation Started')
                     losses.backward()
                     clip_grad_norm_(gp_server.parameters(), 1.0)
+                    
                     optimizer.step()
                     optimizer.zero_grad()
                     logger.info('Backpropagation Successful: Model updated')
