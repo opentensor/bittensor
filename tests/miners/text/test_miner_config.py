@@ -18,21 +18,17 @@ def test_run_template_config():
     class block():
         def __init__(self):
             self.i = 0
-        def block(self):
-            if self.i < 10:
-                self.i += 1
-                return 100
-            else:
-                self.i += 1
-                return 101
+        def blocks(self):
+            self.i += 1
+            return self.i
 
-    block = block()
+    block_check = block()
 
     PATH = '/tests/miners/text/test_config.yml'
     sys.argv = [sys.argv[0], '--config', PATH]
     config = Miner.config()
     assert config['miner']['n_epochs'] == 1
-    assert config['miner']['epoch_length'] == 2
+    assert config['miner']['epoch_length'] == 1
 
     config.wallet.path = '/tmp/pytest'
     config.wallet.name = 'pytest'
@@ -44,7 +40,7 @@ def test_run_template_config():
     )
     with mock.patch.object(Miner,'forward_text',new=test_forward):
         miner = Miner( config = config )
-        with mock.patch.object(miner.neuron.subtensor, 'get_current_block', new=block.block):
+        with mock.patch.object(miner.neuron.subtensor, 'get_current_block', new=block_check.blocks):
 
             miner = Miner( config = config )
             miner.neuron.wallet = wallet.create(coldkey_use_password = False)

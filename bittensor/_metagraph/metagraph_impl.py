@@ -287,6 +287,21 @@ class Metagraph( torch.nn.Module ):
                 self._endpoint_objs.append( obj )
             return self._endpoint_objs
 
+    def hotkey_to_uid( self, hotkey:str ) -> int:
+        r""" Fetch uid according to hotkey. 
+            Args: 
+                hotkey: (`str`, required):
+                    Hotkey to fetch the uid for.
+            
+            Return:
+                uid: (`int`):
+                    The uid for specified hotkey, -1 if hotkey does not exist.
+        """ 
+        if hotkey in self.hotkeys:
+            return self.hotkeys.index(hotkey) 
+        else:
+            return -1
+
     def load( self, network:str = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 

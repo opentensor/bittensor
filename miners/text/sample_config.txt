@@ -15,7 +15,7 @@ dataset.save_dataset: False
 dendrite.max_active_receptors: 500
 dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
-dendrite.timeout: 5
+dendrite.timeout: 10
 
 logging.debug: false
 logging.logging_dir: ~/.bittensor/miners/
@@ -23,17 +23,19 @@ logging.record_log: false
 logging.trace: false
 
 miner.learning_rate: 1
+miner.learning_rate_chain: 1
 miner.name: template_miner
 miner.batch_size_train: 2
 miner.device: cpu
 miner.epoch_length: 100
 miner.n_epochs: 500
-miner.reload: false
+miner.restart: false
 miner.restart_on_failure: false
 miner.weight_decay: 0.25
 miner.accumulate_remote_gradients: false
 miner.clip_gradients: 1.0
 miner.compute_remote_gradients: false
+miner.sync_block_time: 15
 
 neuron.use_upnpc: false
 neuron.use_wandb: false
@@ -44,6 +46,7 @@ nucleus.nhid: 200
 nucleus.nhead: 2
 nucleus.nlayers: 2
 nucleus.topk: 30
+nucleus.punishment: 0
 
 subtensor.chain_endpoint: null
 subtensor.network: akatsuki

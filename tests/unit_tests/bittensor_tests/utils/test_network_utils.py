@@ -1,4 +1,10 @@
 from bittensor import utils
+import unittest.mock as mock
+from unittest.mock import MagicMock
+import os 
+import requests
+import urllib
+import pytest
 
 def test_int_to_ip_zero():
     assert utils.networking.int_to_ip(0) == "0.0.0.0"
@@ -50,13 +56,58 @@ def test_int_to_ip6_underflow():
 def test_get_external_ip():
     assert utils.networking.get_external_ip()
 
+def test_get_external_ip_os_broken():
+    class fake():
+        def readline(self):
+            return 1
+    def mock_call():
+        return fake()
+        
+    with mock.patch.object(os, 'popen', new=mock_call):
+        assert utils.networking.get_external_ip()
+
+
+def test_get_external_ip_os_request_broken():
+    class fake():
+        def readline(self):
+            return 1
+    def mock_call():
+        return fake()
+
+    class fake_s():
+        def text(self):
+            return 1
+    def mock_call_two():
+        return fake_s()
+        
+    with mock.patch.object(os, 'popen', new=mock_call):
+        with mock.patch.object(requests, 'get', new=mock_call_two):
+            assert utils.networking.get_external_ip()
+
+
+def test_get_external_ip_os_request_urllib_broken():
+    class fake():
+        def readline(self):
+            return 1
+    def mock_call():
+        return fake()
+
+    class fake_s():
+        def text(self):
+            return 1
+    def mock_call_two():
+        return fake_s()
+
+    class fake_a():
+        def urlopen(self):
+            return 1
+
+
+    with mock.patch.object(os, 'popen', new=mock_call):
+        with mock.patch.object(requests, 'get', new=mock_call_two):
+            urllib.request= MagicMock(return_value = fake_a()) 
+            with pytest.raises(Exception):
+                assert utils.networking.get_external_ip()
+
 if __name__ == "__main__":
-    test_int_to_ip_zero()
-    test_int_to_ip_range()
-    test_int_to_ip4_max()
-    test_int_to_ip6_zero()
-    test_int_to_ip6_range()
-    test_int_to_ip6_max()
-    test_int_to_ip6_overflow()
-    test_int_to_ip6_underflow()
     test_get_external_ip()

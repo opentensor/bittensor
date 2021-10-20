@@ -1,3 +1,3 @@
 #Sample Config File
-miner.epoch_length: 2
+miner.epoch_length: 1
 miner.n_epochs: 1

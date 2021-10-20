@@ -25,6 +25,7 @@ from typing import List, Tuple, Callable
 import torch
 import grpc
 from loguru import logger
+import torch.nn.functional as F
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -67,11 +68,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.modality = modality if modality != None else self.find_modality()
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
             total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
             in_bytes_per_pubkey = {},
             out_bytes_per_pubkey = {},
             qps_per_pubkey = {},
+            qps_failed_per_pubkey = {},
         )
 
         self.external_ip = None
@@ -419,7 +422,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             call_time = clock.time() - start_time
             bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
             return None, code, call_time, message
-
+        
         # ---- Check shapes ----
         if modality_x == bittensor.proto.Modality.TEXT:
             if len(inputs_x.shape) != 2:
@@ -428,7 +431,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 call_time = clock.time() - start_time
                 bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message  )
                 return None, code, call_time, message
-            
+
         if modality_x == bittensor.proto.Modality.IMAGE:
             if len(inputs_x.shape) != 5:
                 code = bittensor.proto.ReturnCode.RequestShapeException
@@ -542,10 +545,17 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.in_bytes_per_pubkey[request.hotkey].update(in_bytes)
             self.stats.out_bytes_per_pubkey[request.hotkey].update(out_bytes)
             self.stats.qps_per_pubkey[request.hotkey].update(1)
+
         else:
             self.stats.in_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
             self.stats.out_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
             self.stats.qps_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(1, 0.01)
+            self.stats.qps_failed_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
+
+        # ---- Adding failed responses to stat  
+        if response.return_code != bittensor.proto.ReturnCode.Success:
+            self.stats.qps_failed.update(1)
+            self.stats.qps_failed_per_pubkey[request.hotkey].update(1)
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
@@ -662,3 +672,26 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if backward != None:
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
         return self
+
+    def to_wandb(self):
+        r""" Return a dictionary of axon stat for wandb logging
+            
+            Return:
+                wandb_info (:obj:`Dict`)
+        """
+        # ---- Axon summary for wandb
+        wandb_data = {
+            'axon_qps': self.stats.qps.value,
+            'axon_qps_failed' : self.stats.qps_failed.value,
+            'axon_total_in_bytes' : self.stats.total_in_bytes.value,
+            'axon_total_out_bytes' : self.stats.total_out_bytes.value,
+        }
+
+        # ---- Axon stats per pubkey for wandb 
+        for pubkey in self.stats.in_bytes_per_pubkey.keys():
+            wandb_data[f'axon_in_bytes\n{pubkey}'] = self.stats.in_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_out_bytes\n{pubkey}'] = self.stats.out_bytes_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps\n{pubkey}'] = self.stats.qps_per_pubkey[pubkey].value
+            wandb_data[f'axon_qps_failed\n{pubkey}'] = self.stats.qps_failed_per_pubkey[pubkey].value
+            
+        return wandb_data 
