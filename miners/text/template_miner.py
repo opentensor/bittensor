@@ -766,7 +766,7 @@ class Miner:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
 
-    def blacklist(self,pubkey:str) -> bool:
+    def blacklist(self,pubkey:str, meta:tuple) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
