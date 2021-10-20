@@ -616,10 +616,6 @@ def test_grpc_backward_fails():
 
     axon.stop()
 
-# --- test subscription -- 
-
-
-
 def is_port_in_use(port):
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
