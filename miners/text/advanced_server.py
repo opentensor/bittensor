@@ -138,11 +138,11 @@ def main( config ):
         except Exception as e:
             logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
-    def blacklist(pubkey:str, meta:tuple) -> bool:
+    def blacklist(pubkey:str, request_type:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
-        request_type = meta[1].value
+        
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
