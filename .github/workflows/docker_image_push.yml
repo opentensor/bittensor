@@ -35,7 +35,7 @@ jobs:
     - name: Run Integration Tests
       run: pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc        
     - name: Run Miners
-      run: python tests/miners/text/test_gpt2_exodus.py --cov=. --cov-append --cov-config .coveragerc        
+      run: pytest tests/miners/text --cov=. --cov-append --cov-config .coveragerc        
     - name: Run dataset tests
       run: pytest ./tests/integration_tests/test_dataset_ipfs.py --cov=. --cov-append --cov-config .coveragerc        
     - name: Code Coverage
