@@ -142,34 +142,6 @@ def test_dendrite_backward_multiple():
     assert x2.grad.tolist() == y2.tolist()
     assert x3.grad.tolist() == y3.tolist()
 
-# def test_multiprocessing_forward():
-#     dendrite = bittensor.dendrite()
-#     dendrite.receptor_pool.forward = MagicMock(return_value = [torch.tensor([]), [0]]) 
-#     dendrite.receptor_pool.backward = MagicMock(return_value = [torch.tensor([]), [0]]) 
-#     endpoint = bittensor.endpoint(
-#         uid = 0,
-#         hotkey = '',
-#         ip = '0.0.0.0', 
-#         ip_type = 4, 
-#         port = 8080, 
-#         modality = 0, 
-#         coldkey = ''
-#     )
-#     def call_forwad_multiple_times( object ):
-#         for _ in range(5):
-#             x = torch.rand(3, 3, bittensor.__network_dim__)
-#             y = torch.zeros([3, 3, bittensor.__network_dim__])
-#             dendrite.receptor_pool.forward = MagicMock(return_value = [ [y, y, y] , [0, 0, 0]]) 
-#             tensors, codes, times = dendrite.forward_tensor( endpoints = [ endpoint, endpoint, endpoint], inputs = [x, x, x] )
-
-
-#     p1 = multiprocessing.Process(target=call_forwad_multiple_times, args=(dendrite,))
-#     p2 = multiprocessing.Process(target=call_forwad_multiple_times, args=(dendrite,))
-#     p1.start()
-#     p2.start()
-#     p1.join()
-#     p2.join()
-
 
 if __name__  == "__main__":
     test_dendrite_backward_multiple()
