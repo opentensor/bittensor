@@ -448,7 +448,7 @@ class Miner:
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss # + output.distillation_loss + output.remote_target_loss
                             # scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
-                            scores = torch.zeros(bittensor.neuron.metagraph.n.item()) 
+                            scores = torch.zeros(bittensor.neuron.metagraph.n.item()).to(self.device)
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
                             
