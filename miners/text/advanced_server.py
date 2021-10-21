@@ -85,8 +85,7 @@ def main( config ):
         return gp_server.encode_forward( inputs_x )
 
     # Define our backward function.
-    @logger.catch
-    def backward_text (pubkey:str, inputs_x, grads_dy ):
+    def backward_text (inputs_x, grads_dy ):
         r"""Backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.
 
