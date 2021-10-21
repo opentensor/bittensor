@@ -68,8 +68,7 @@ def main( config ):
         lr = config.server.learning_rate,
         momentum = config.server.momentum,
     )
-    threadpool = bittensor.prioritythreadpool(config=config)
-
+    
     timecheck = {}
     # Define our forward function.
     def forward_text ( inputs_x ):
@@ -112,8 +111,7 @@ def main( config ):
         gp_server.backward_gradients += inputs_x.size(0)
        
     def priority(pubkey:str, request_type:str, inputs_x) -> float:
-        r"""Backwards function that is called when the axon recieves a backwards request from other peers.
-            Updates the server parameters with gradients through the chain.
+        r"""Calculates the priority on requests based on stake and size of input
 
             Args:
                 pubkey ( str, `required`):
