@@ -440,14 +440,15 @@ class Miner:
                             
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
-                            output = self.nucleus.remote_forward (
+                            output = self.nucleus.local_forward (
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
                             
                             # ---- Backward pass ----
-                            output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-                            scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
+                            output.loss = output.local_target_loss # + output.distillation_loss + output.remote_target_loss
+                            # scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
+                            scores = 0
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
                             
@@ -458,8 +459,8 @@ class Miner:
                             
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
-                            total_distillation_epoch_loss += output.distillation_loss.item()
-                            total_remote_target_epoch_loss += output.remote_target_loss.item()
+                            # total_distillation_epoch_loss += output.distillation_loss.item()
+                            # total_remote_target_epoch_loss += output.remote_target_loss.item()
                             total_local_epoch_acc += output.local_accuracy
                             self.stats.epoch_data_size += inputs.nelement()
                             batches_count += 1
@@ -714,8 +715,8 @@ class Miner:
             'Epoch': colored('{}'.format(self.epoch+1), 'green'),
             'Best': colored('{:.4f}'.format(self.stats.best_epoch_loss), 'red'),            
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
-            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            # 'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            # 'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(bittensor.neuron.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
