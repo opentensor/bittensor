@@ -308,7 +308,7 @@ class Miner:
             remote_target_epoch_loss = math.inf,
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
-            ema_scores = torch.ones(0)
+            ema_scores = torch.ones(0).to(self.device)
         )
         # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
@@ -366,8 +366,8 @@ class Miner:
         # ---- Sync with metagraph ----
         bittensor.neuron.metagraph.load().sync().save()
         chain_growth = bittensor.neuron.metagraph.n.item()- self.nucleus.peer_weights.shape[0]
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
-        self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)]))
+        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
+        self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True).to(self.device)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
 
     def scores ( self, loss ):
@@ -395,7 +395,7 @@ class Miner:
 
             # ---- Init run state ----
             self.epoch = 0            
-            self.stats.ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()) * (1 / bittensor.neuron.metagraph.n.item())
+            self.stats.ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()).to(self.device) * (1 / bittensor.neuron.metagraph.n.item())
 
             # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
@@ -616,14 +616,14 @@ class Miner:
                 torch.ones(
                     list(state_dict['nucleus_state']['peer_weights'].shape),
                     requires_grad=True
-                )
+                ).to(self.device)
             )
         else:
             logger.exception('Incorrect Network setting between miner input and saved state. Please use the same network')
             raise Exception('Network does not match saved state')
 
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True)]))
+        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer
@@ -664,6 +664,7 @@ class Miner:
     def set_peer_weights( self ):
         r""" Sets the fisher ema score to peers.
         """
+
         try:
             k = min(self.config.miner.n_topk_peer_weights, bittensor.neuron.metagraph.n.item())
             topk_scores, topk_uids = torch.topk( self.stats.ema_scores, k = k )
