@@ -91,11 +91,13 @@ def test_unstake_all():
     executor.subtensor.unstake = MagicMock(return_value = True) 
     executor.unstake_all()
 
-def test_unstake_all_fail():
-    wallet.create_new_coldkey(use_password=False, overwrite = True)
-    wallet.create_new_hotkey(use_password=False, overwrite = True)
     executor.subtensor.unstake = MagicMock(return_value = False) 
     executor.unstake_all()
+    
+    # through cli
+    sys.argv = [sys.argv[0], 'unstake', '--all']
+    cli = bittensor.cli(executor = executor)
+    cli.run()
 
 def test_unstake():
     wallet.create_new_coldkey(use_password=False, overwrite = True)
@@ -140,6 +142,11 @@ def test_unstake():
     # failing at subtensor add_stake
     executor.subtensor.add_stake = MagicMock(return_value = False)
     executor.unstake( amount_tao = 10, uid = uid)
+    
+    # through cli
+    sys.argv = [sys.argv[0], 'unstake', '--uid', str(uid), '--amount', '10']
+    cli = bittensor.cli(executor = executor)
+    cli.run()
 
 def test_stake():
     wallet.create_new_coldkey(use_password=False, overwrite = True)
@@ -184,6 +191,11 @@ def test_stake():
     # failing at subtensor add_stake
     executor.subtensor.add_stake = MagicMock(return_value = False)
     executor.stake( amount_tao = 10, uid = uid)
+    
+    # through cli
+    sys.argv = [sys.argv[0], 'stake', '--uid', str(uid), '--amount', '10']
+    cli = bittensor.cli(executor = executor)
+    cli.run()
 
 
 def test_transfer():
@@ -193,12 +205,14 @@ def test_transfer():
     executor.subtensor.get_balance = MagicMock(return_value = Balance.from_float(20)) 
     executor.transfer( amount_tao = 10, destination = "")
 
-def test_transfer_fail():
-    wallet.create_new_coldkey(use_password=False, overwrite = True)
-    wallet.create_new_hotkey(use_password=False, overwrite = True)
     executor.subtensor.transfer = MagicMock(return_value = False)
-    executor.subtensor.get_balance = MagicMock(return_value = Balance.from_float(20)) 
     executor.transfer( amount_tao = 10, destination = "")
+
+    # through cli
+    sys.argv = [sys.argv[0], 'transfer', '--dest', '', '--amount', '10']
+    cli = bittensor.cli(executor = executor)
+    cli.run()
+
 # -- cli ---
 
 def test_create_cli_overview():
@@ -207,6 +221,8 @@ def test_create_cli_overview():
     bal = Balance.from_float(200)
     executor.subtensor.get_balance = MagicMock(return_value = bal) 
     cli.run()
+
+
 
 def test_create_cli_regen_coldkey():
     mnemonic = ["cabin", "thing", "arch", "canvas", "game", "park", "motion", "snack", "advice", "arch", "parade", "climb"]
