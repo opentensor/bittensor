@@ -57,13 +57,13 @@ def main( config ):
         momentum = config.server.momentum,
     )
 
-    def forward_text (pubkey, inputs_x ):
+    def forward_text ( inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
         """ 
         return model.encode_forward( inputs_x )
 
 
-    def backward_text ( pubkey:str, inputs_x, grads_dy ):
+    def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.             
         """

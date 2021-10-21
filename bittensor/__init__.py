@@ -152,6 +152,7 @@ class Neuron():
             forward_tensor: 'Callable' = None,
             backward_tensor: 'Callable' = None,
             blacklist: 'Callable' = None,
+            priority: 'Callable' = None,
         ):
         if config == None: config = default_config()
         self.config = config
@@ -184,6 +185,7 @@ class Neuron():
             forward_tensor = forward_tensor,
             backward_tensor = backward_tensor,
             blacklist = blacklist,
+            priority = priority,
         )
 
     def __enter__(self):
@@ -214,6 +216,7 @@ def init(
         forward_tensor: 'Callable' = None,
         backward_tensor: 'Callable' = None,
         blacklist: 'Callable' = None,
+        priority: 'Callable' = None,
     ) -> Neuron:
 
     global neuron
@@ -226,7 +229,8 @@ def init(
         backward_image = backward_image,
         forward_tensor = forward_tensor,
         backward_tensor = backward_tensor,
-        blacklist = blacklist
+        blacklist = blacklist,
+        priority = priority 
     )
     return neuron
 
