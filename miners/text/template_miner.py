@@ -292,7 +292,8 @@ class Miner:
             root_dir = self.config.miner.full_path,
             forward_text = self.forward_text,
             backward_text = self.backward_text,
-            blacklist = self.blacklist
+            blacklist = self.blacklist,
+            priority = self.priority,
         ) 
 
         # ---- Init of when was the block that we sync to 
