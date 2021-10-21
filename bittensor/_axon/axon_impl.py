@@ -26,6 +26,7 @@ import torch
 import grpc
 from loguru import logger
 import torch.nn.functional as F
+import concurrent
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -43,7 +44,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
         server: 'grpc._Server',
         forwards: List  = [],
         backwards: List = [],
-        modality: int = None
+        priority:  'Callable' = None,
+        priority_threadpool: 'bittensor.prioritythreadpool' = None,
+        forward_timeout: int = None,
+        backward_timeout: int = None,
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -58,6 +62,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     list of functions which is called on forward requests.
                 backward (:obj:list of `callable`, `optional`):
                     list of functions which is called on backward requests.
+                priority (:obj:`callable`, `optional`):
+                    function to assign priority on requests.
+                priority_threadpool (:obj:`bittensor.prioritythreadpool`, `optional`):
+                    bittensor priority_threadpool.                
         """
         self.ip = ip
         self.port = port
@@ -65,7 +73,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.server = server
         self.forward_callback = forwards
         self.backward_callback = backwards
-        self.modality = modality if modality != None else self.find_modality()
+        self.forward_timeout = forward_timeout
+        self.backward_timeout = backward_timeout
+        self.modality = self.find_modality()
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -81,6 +91,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.external_port = None
         self.started = None
         
+        # -- Priority 
+        self.priority = priority 
+        self.priority_threadpool= priority_threadpool
 
     def __str__(self) -> str:
         return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
@@ -177,7 +190,20 @@ class Axon( bittensor.grpc.BittensorServicer ):
         
         # Make forward call.
         try:
-            response_tensor = self.forward_callback[modality](pubkey = public_key, inputs_x= inputs_x)
+            if self.priority != None:
+                priority = self.priority(public_key, request_type = 'forward')
+                future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
+
+                try:
+                    response_tensor = future.result(timeout= self.forward_timeout)
+                except concurrent.futures.TimeoutError :
+                    raise TimeoutError('TimeOutError')
+                except Exception as e:
+                    logger.error('Error found: {}, with message {}'.format(repr(e), e))
+
+            else:
+                response_tensor = self.forward_callback[modality]( inputs_x= inputs_x)
+
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -224,7 +250,17 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return None, bittensor.proto.ReturnCode.NotImplemented, message
 
         if modality == bittensor.proto.Modality.TEXT:
-            self.backward_callback[modality]( public_key, inputs_x, grads_dy)
+            if self.priority != None:
+                priority = self.priority(public_key, request_type = 'backward')
+                try:
+                    future = self.priority_threadpool.submit(self.backward_callback[modality],inputs_x=inputs_x,grads_dy=grads_dy,priority=priority)
+                except concurrent.futures.TimeoutError :
+                    raise TimeoutError('TimeOutError')
+                except Exception as e:
+                    logger.error('Error found: {}, with message {}'.format(repr(e), e))
+            else:
+                self.backward_callback[modality](inputs_x, grads_dy)
+
             response_tensor = torch.ones(inputs_x.size())
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
