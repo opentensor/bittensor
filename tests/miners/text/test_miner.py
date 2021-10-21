@@ -18,18 +18,15 @@ def test_run_template():
     class block():
         def __init__(self):
             self.i = 0
-        def block(self):
-            if self.i < 10:
-                self.i += 1
-                return 100
-            else:
-                self.i += 1
-                return 101
+        def blocks(self):
+            self.i += 1
+            return self.i
 
-    block = block()
+    block_check = block()
+
     config = Miner.config()
     config.miner.n_epochs = 1
-    config.miner.epoch_length = 2
+    config.miner.epoch_length = 1
     config.wallet.path = '/tmp/pytest'
     config.wallet.name = 'pytest'
     config.wallet.hotkey = 'pytest'
@@ -45,7 +42,7 @@ def test_run_template():
         miner = Miner( config = config )
         miner.neuron.wallet = wallet.create(coldkey_use_password = False)
         
-        with mock.patch.object(miner.neuron.subtensor, 'get_current_block', new=block.block):
+        with mock.patch.object(miner.neuron.subtensor, 'get_current_block', new=block_check.blocks):
             bittensor.neuron.subtensor.connect = MagicMock(return_value = True)  
             bittensor.neuron.subtensor.is_connected = MagicMock(return_value = True)      
             bittensor.neuron.subtensor.subscribe = MagicMock(return_value = True)  

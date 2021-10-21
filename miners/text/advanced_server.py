@@ -71,7 +71,6 @@ def main( config ):
     threadpool = bittensor.prioritythreadpool(config=config)
 
     timecheck = {}
-
     # Define our forward function.
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
