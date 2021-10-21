@@ -52,8 +52,10 @@ class axon:
             ip: str = None,
             max_workers: int = None, 
             maximum_concurrent_rpcs: int = None,
-            modality: int = None,
             blacklist: 'Callable' = None,
+            priority: 'Callable' = None,
+            forward_timeout: int = None,
+            backward_timeout: int = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -61,10 +63,18 @@ class axon:
                     bittensor.axon.config()
                 wallet (:obj:`bittensor.Wallet`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                forward (:obj:`callable`, `optional`):
-                    function which is called on forward requests.
-                backward (:obj:`callable`, `optional`):
-                    function which is called on backward requests.
+                forward_text (:obj:`callable`, `optional`):
+                    function which is called on forward text requests.
+                backward_text (:obj:`callable`, `optional`):
+                    function which is called on backward text requests.
+                forward_image (:obj:`callable`, `optional`):
+                    function which is called on forward image requests.
+                backward_image (:obj:`callable`, `optional`):
+                    function which is called on backward image requests.
+                forward_tensor (:obj:`callable`, `optional`):
+                    function which is called on forward tensor requests.
+                backward_tensor (:obj:`callable`, `optional`):
+                    function which is called on backward tensor requests.
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for processing server queries.
                 server (:obj:`grpc._Server`, `required`):
@@ -77,7 +87,16 @@ class axon:
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
                     Maximum allowed concurrently processed RPCs.
-        """              
+                blacklist (:obj:`callable`, `optional`):
+                    function to blacklist requests.
+                priority (:obj:`callable`, `optional`):
+                    function to assign priority on requests.
+                forward_timeout (:type:`int`, `optional`):
+                    timeout on the forward requests. 
+                backward_timeout (:type:`int`, `optional`):
+                    timeout on the backward requests.              
+        """   
+
         if config == None: 
             config = axon.config()
         config = copy.deepcopy(config)
@@ -85,6 +104,8 @@ class axon:
         config.axon.ip = ip if ip != None else config.axon.ip
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
+        config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
+        config.axon.backward_timeout = backward_timeout if backward_timeout != None else config.axon.backward_timeout
         axon.check_config( config )
         if wallet == None:
             wallet = bittensor.wallet( config = config )
@@ -99,6 +120,10 @@ class axon:
         forwards = [forward_text, forward_image, forward_tensor]
         backwards = [backward_text, backward_image, backward_tensor]
 
+        if priority != None:
+            priority_threadpool = bittensor.prioritythreadpool(config=config)
+
+
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
             server = server,
@@ -106,7 +131,10 @@ class axon:
             port = config.axon.port,
             forwards = forwards,
             backwards = backwards,
-            modality = modality,
+            priority = priority,
+            priority_threadpool = priority_threadpool,
+            forward_timeout = forward_timeout,
+            backward_timeout = backward_timeout
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
@@ -136,11 +164,16 @@ class axon:
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
             parser.add_argument('--axon.maximum_concurrent_rpcs', type=int, 
                 help='''Maximum number of allowed active connections''',  default = bittensor.defaults.axon.maximum_concurrent_rpcs)
+            parser.add_argument('--axon.backward_timeout', type=int,
+                help='Number of seconds to wait for backward axon request', default=20)
+            parser.add_argument('--axon.forward_timeout', type=int,
+                help='Number of seconds to wait for forward axon request', default=10)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
 
         bittensor.wallet.add_args( parser )
+        bittensor.prioritythreadpool.add_args( parser )
 
     @classmethod   
     def add_defaults(cls, defaults):
