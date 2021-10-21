@@ -15,5 +15,3 @@ elif [ $LOCAL = $BASE ]; then
 else
     echo "Diverged"
 fi
-
-python3  ~/.bittensor/bittensor/miners/text/template_miner.py
