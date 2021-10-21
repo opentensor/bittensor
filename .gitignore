@@ -197,3 +197,4 @@ yarn-error.log*
 # Replicate library
 **/.replicate
 replicate.yaml
+**/run.sh

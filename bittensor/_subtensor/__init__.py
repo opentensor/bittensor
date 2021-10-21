@@ -135,7 +135,7 @@ class subtensor:
         return subtensor_impl.Subtensor( 
             substrate = substrate,
             network = config.subtensor.network,
-            chain_endpoint = config.subtensor.chain_endpoint,
+            chain_endpoint = config.subtensor.chain_endpoint
         )
 
     @staticmethod   
