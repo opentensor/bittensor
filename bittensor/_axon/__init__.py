@@ -24,6 +24,7 @@ import inspect
 from concurrent import futures
 from datetime import datetime,timedelta
 from typing import List, Callable
+from bittensor._threadpool import prioritythreadpool
 
 import torch
 import grpc
@@ -122,6 +123,8 @@ class axon:
 
         if priority != None:
             priority_threadpool = bittensor.prioritythreadpool(config=config)
+        else: 
+            priority_threadpool = None
 
 
         axon_instance = axon_impl.Axon( 
