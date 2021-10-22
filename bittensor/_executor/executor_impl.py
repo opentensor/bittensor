@@ -98,8 +98,9 @@ class Executor:
         total_success = 0
         total_time = 0.0
         logger.info('\nRunning queries ...')
-        for end in tqdm(owned_endpoints):
-            endpoint =  bittensor.endpoint.from_tensor( end )
+        
+        for ep in tqdm(owned_endpoints):
+            endpoint =  bittensor.endpoint.from_tensor( ep )
             # Make query and get response.
             if self.wallet.hotkey_file.exists_on_device():
                 start_time = time.time()
@@ -162,9 +163,8 @@ class Executor:
         console = Console()
         console.print(table)
 
-
     def unstake_all ( self ):
-        r""" Unstaked from all hotkeys associated with this wallet's coldkey.
+        r""" Unstaked from all hotkeys associated with this wallet's coldkey. 
         """
         self.subtensor.connect()
         self.metagraph.load()
@@ -177,7 +177,8 @@ class Executor:
             if cold == self.wallet.coldkeypub.ss58_address :
                 owned_endpoints.append( endpoints[uid] )
 
-        for endpoint in owned_endpoints:
+        for ep in owned_endpoints:
+            endpoint =  bittensor.endpoint.from_tensor( ep )
             stake = self.metagraph.S[ endpoint.uid ].item()
             result = self.subtensor.unstake( 
                 wallet = self.wallet, 
@@ -193,6 +194,13 @@ class Executor:
 
     def unstake( self, amount_tao: int, uid: int ):
         r""" Unstaked token of amount to from uid.
+            Args:
+                amount_tao (int):
+                    Amount of tao to be staked.
+                uid (int):
+                    uid of the hotkey. 
+            Return:
+                None
         """
         self.subtensor.connect()
         self.metagraph.load()
@@ -208,13 +216,15 @@ class Executor:
                     sys.exit()
                 else:
                     endpoint = endpoints[neuron_uid]
+
         if endpoint == None:
             logger.critical("No Neuron with uid: {} associated with coldkey.pub: {}".format( uid, self.wallet.coldkey.ss58_address))
             sys.exit()
 
+        endpoint =  bittensor.endpoint.from_tensor( endpoint )
 
         unstaking_balance = Balance.from_float( amount_tao )
-        stake = self.subtensor.get_stake_for_uid(endpoint.uid)
+        stake = Balance.from_float(self.metagraph.S[ endpoint.uid ])
         if unstaking_balance > stake:
             logger.critical("Neuron with uid: {} does not have enough stake ({}) to be able to unstake {}".format( uid, stake, unstaking_balance))
             sys.exit()
@@ -235,6 +245,14 @@ class Executor:
 
     def stake( self, amount_tao: int, uid: int ):
         r""" Stakes token of amount to hotkey uid.
+            Args:
+                amount_tao (int):
+                    ampunt of tao to be staked
+                uid (int):
+                    uid of the hotkey 
+            
+            Return:
+                None
         """
         self.subtensor.connect()
         self.metagraph.load()
@@ -260,6 +278,8 @@ class Executor:
             sys.exit()
 
 
+        endpoint =  bittensor.endpoint.from_tensor( endpoint )
+
         logger.info("Adding stake of \u03C4{} from coldkey {} to hotkey {}".format( staking_balance.tao, self.wallet.coldkey.ss58_address, endpoint.hotkey))
         logger.info("Waiting for finalization...")
         result = self.subtensor.add_stake ( 
@@ -275,8 +295,14 @@ class Executor:
             logger.critical("Stake transaction failed")
 
     def transfer( self, amount_tao: int, destination: str):
-        r""" Transfers token of amount to dest.
-            
+        r""" Transfers token of amount to destination.
+            Args:
+                amount_tao (int):
+                    Amount of tao to be transfered.
+                destination (str):
+                    Destination public key address of reciever. 
+            Return:
+                None
         """
         self.subtensor.connect()
         transfer_balance = Balance.from_float( amount_tao )
