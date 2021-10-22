@@ -510,6 +510,7 @@ def test_axon_receptor_connection_forward_works():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     axon.stop()
+    axon.__del__()
 
 
 def test_axon_receptor_connection_forward_unauthenticated():
@@ -544,6 +545,7 @@ def test_axon_receptor_connection_forward_unauthenticated():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Unauthenticated
     axon.stop()
+    axon.__del__()
 
 def test_axon_receptor_connection_backward_works():
     def backward( inputs_x:torch.FloatTensor, grads):
@@ -576,6 +578,7 @@ def test_axon_receptor_connection_backward_works():
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     axon.stop()
+    axon.__del__()
 
 def test_axon_receptor_connection_backward_unauthenticated():
     def backward( inputs_x:torch.FloatTensor, grads):
@@ -609,6 +612,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
     out, ops, time  = receptor.backward( x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Unauthenticated
     axon.stop()
+    axon.__del__()
 
 ## --unimplemented error 
 
@@ -643,6 +647,7 @@ def test_axon_receptor_connection_forward_unimplemented():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
     assert ops == bittensor.proto.ReturnCode.NotImplemented
     axon.stop()
+    axon.__del__()
 
 
 def test_axon_receptor_connection_backward_unimplemented():
@@ -676,6 +681,7 @@ def test_axon_receptor_connection_backward_unimplemented():
     out, ops, time  = receptor.backward( x,grads, bittensor.proto.Modality.TEXT, timeout=1)
     assert ops == bittensor.proto.ReturnCode.NotImplemented
     axon.stop()
+    axon.__del__()
 
 ## -- timeout error
 
@@ -713,6 +719,7 @@ def test_axon_receptor_connection_forward_timeout():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Timeout
     axon.stop()
+    axon.__del__()
 
 def test_axon_receptor_connection_backward_timeout():
     def backward( inputs_x:torch.FloatTensor, grads):
@@ -748,6 +755,7 @@ def test_axon_receptor_connection_backward_timeout():
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Timeout
     axon.stop()
+    axon.__del__()
 
 if __name__ == "__main__":
     test_axon_receptor_connection_backward_timeout()
