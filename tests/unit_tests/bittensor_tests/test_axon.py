@@ -507,6 +507,7 @@ def test_grpc_forward_works():
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
+    axon.__del__()
 
 def test_grpc_forward_priority_works():
     def forward( inputs_x:torch.FloatTensor):
@@ -548,6 +549,7 @@ def test_grpc_forward_priority_works():
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
+    axon.__del__()
 
 def test_grpc_backward_works():
     def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
@@ -586,48 +588,7 @@ def test_grpc_backward_works():
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
-
-def test_grpc_backward_works_priority():
-    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
-        return torch.zeros( [1, 1, 1])
-
-    def priority(pubkey:str, request_type:str, inputs_x):
-        return 100
-
-    axon = bittensor.axon (
-        port = 8080,
-        ip = '127.0.0.1',
-        wallet = wallet,
-        priority = priority,
-    )
-    axon.attach_backward_callback( backward , modality = bittensor.proto.Modality.TEXT)
-    axon.start()
-
-    channel = grpc.insecure_channel(
-            '127.0.0.1:8080',
-            options=[('grpc.max_send_message_length', -1),
-                     ('grpc.max_receive_message_length', -1)])
-    stub = bittensor.grpc.BittensorStub( channel )
-
-    inputs_raw = torch.randint(0,1,(3, 3))
-    grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
-    request = bittensor.proto.TensorMessage(
-        version = bittensor.__version_as_int__,
-        hotkey = '1092310312914',
-        tensors = [inputs_serialized, grads_serialized]
-    )
-    response = stub.Backward(request,
-                             metadata = (
-                                    ('rpc-auth-header','Bittensor'),
-                                    ('bittensor-signature',sign(axon.wallet)),
-                                    ('bittensor-version',str(bittensor.__version_as_int__)),
-                                    ))
-    outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
-    assert outputs.tolist()[0][0] == 1.0
-    axon.stop()
+    axon.__del__()
 
 def test_grpc_forward_fails():
     def forward( inputs_x:torch.FloatTensor):
@@ -661,6 +622,7 @@ def test_grpc_forward_fails():
         assert grpc_code == grpc.StatusCode.UNAUTHENTICATED
 
     axon.stop()
+    axon.__del__()
 
 def test_grpc_backward_fails():
     def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
@@ -698,6 +660,7 @@ def test_grpc_backward_fails():
         assert grpc_code == grpc.StatusCode.UNAUTHENTICATED
 
     axon.stop()
+    axon.__del__()
 
 def is_port_in_use(port):
     import socket
