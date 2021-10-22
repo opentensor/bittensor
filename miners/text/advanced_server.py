@@ -128,7 +128,11 @@ def main( config ):
 
     def blacklist(pubkey:str, request_type:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
-        Currently, this is not turned on.
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                request_type ( str, `required`):
+                    the request type ('forward' or 'backward').
         """
 
         # Check for stake
