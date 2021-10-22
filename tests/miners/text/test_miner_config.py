@@ -11,8 +11,8 @@ from miners.text.template_miner import Miner
 def test_run_template_config():
 
     magic = MagicMock(return_value = 1)
-    def test_forward(cls,pubkey,inputs_x):
-        return magic(pubkey,inputs_x)
+    def test_forward(cls,inputs_x):
+        return magic(inputs_x)
 
     # mimic the get block function
     class block():
@@ -52,7 +52,6 @@ def test_run_template_config():
             miner.run()
 
             assert magic.call_count == 1
-            assert isinstance(magic.call_args[0][0],str)
             assert torch.is_tensor(magic.call_args[0][1])
 
 if __name__ == "__main__":
