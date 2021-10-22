@@ -472,6 +472,52 @@ def test_backward_response_exception():
     response, code, call_time, message = axon._backward( request )
     assert code == bittensor.proto.ReturnCode.UnknownException
 
+# -- axon priority:
+
+def test_forward_tensor_success_priority():
+    
+    def priority(pubkey:str, request_type:str, inputs_x):
+        return 100
+
+    axon = bittensor.axon(wallet = wallet, priority= priority)
+
+    def forward( inputs_x: torch.FloatTensor):
+        return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    axon.attach_forward_callback( forward, modality=2)
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized]
+    )
+    response, code, call_time, message = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.Success
+
+def test_backward_response_success_text_priority():
+        
+    def priority(pubkey:str, request_type:str, inputs_x):
+        return 100
+
+    axon = bittensor.axon(wallet = wallet, priority= priority)
+
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
+        return torch.zeros( [1, 1])
+    axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TEXT )
+    inputs_raw = torch.ones((1, 1))
+    grads_raw = torch.zeros((1, 1, bittensor.__network_dim__))
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey = axon.wallet.hotkey.ss58_address,
+        tensors=[ inputs_serialized, grads_serialized]
+    )
+    response, code, call_time, message = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.Success
+
+
 def test_grpc_forward_works():
     def forward( inputs_x:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
@@ -509,47 +555,6 @@ def test_grpc_forward_works():
     axon.stop()
     axon.__del__()
 
-def test_grpc_forward_priority_works():
-    def forward( inputs_x:torch.FloatTensor):
-        return torch.zeros( [1, 1, 1])
-
-    def priority(pubkey:str, request_type:str, inputs_x):
-        return 100
-
-    axon = bittensor.axon (
-        port = 8080,
-        ip = '127.0.0.1',
-        wallet = wallet,
-        priority = priority
-    )
-    axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
-    axon.start()
-
-    channel = grpc.insecure_channel(
-            '127.0.0.1:8080',
-            options=[('grpc.max_send_message_length', -1),
-                     ('grpc.max_receive_message_length', -1)])
-    stub = bittensor.grpc.BittensorStub( channel )
-
-    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    request = bittensor.proto.TensorMessage(
-        version = bittensor.__version_as_int__,
-        hotkey = '1092310312914',
-        tensors = [inputs_serialized]
-    )
-    response = stub.Forward(request,
-                            metadata = (
-                                        ('rpc-auth-header','Bittensor'),
-                                        ('bittensor-signature',sign(axon.wallet)),
-                                        ('bittensor-version',str(bittensor.__version_as_int__)),
-                                        ))
-
-    outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
-    assert outputs.tolist() == [[[0]]]
-    axon.stop()
-    axon.__del__()
 
 def test_grpc_backward_works():
     def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
