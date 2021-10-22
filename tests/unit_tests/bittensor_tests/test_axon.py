@@ -362,7 +362,6 @@ def test_backward_response_serialization_error():
         tensors=[ inputs_serialized, grads_serialized]
     )
     response, code, call_time, message = axon._backward( request )
-    print(message)
     assert code == bittensor.proto.ReturnCode.ResponseSerializationException
 
 def test_backward_response_empty_error():
