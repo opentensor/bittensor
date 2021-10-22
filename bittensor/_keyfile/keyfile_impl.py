@@ -430,7 +430,7 @@ class Keyfile( object ):
         """
         if not self.exists_on_device():
             raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
-        if not self.exists_on_device():
+        if not self.is_readable():
             raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
         with open( self.path , 'rb') as file:
             data = file.read()
@@ -449,7 +449,7 @@ class Keyfile( object ):
         """
         # Check overwrite.
         if self.exists_on_device() and not overwrite:
-            if self._may_overwrite():
+            if not self._may_overwrite():
                 raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
         with open(self.path, "wb") as keyfile:
             keyfile.write( keyfile_data )
