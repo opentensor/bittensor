@@ -248,7 +248,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         if self.backward_callback[modality] == None:
             message = "Backward callback is not yet subscribed on this axon."
             return None, bittensor.proto.ReturnCode.NotImplemented, message
-
         if modality == bittensor.proto.Modality.TEXT:
             if self.priority != None:
                 priority = self.priority(public_key,inputs_x=inputs_x, request_type = 'backward')
@@ -268,7 +267,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             
         # Make backward call.
         try:
-            response_tensor = self.backward_callback[modality]( public_key, inputs_x, grads_dy)
+            response_tensor = self.backward_callback[modality]( inputs_x, grads_dy)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
