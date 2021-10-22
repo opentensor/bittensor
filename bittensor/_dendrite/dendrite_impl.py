@@ -647,7 +647,7 @@ class Dendrite( torch.autograd.Function ):
         for uid in self.stats.requested_peers_count.keys():
             respond_rate = self.stats.responded_peers_count[uid].value / self.stats.requested_peers_count[uid].value
            
-            uid_str = str(uid).zfill(3)
+            uid_str = str(uid.item()).zfill(3)
             wandb_info[f'dend_quested uid: {uid_str}']= self.stats.requested_peers_count[uid].value
             wandb_info[f'dend_responded uid: {uid_str}']= self.stats.responded_peers_count[uid].value
             wandb_info[f'dend_respond_time uid: {uid_str}']= self.stats.peers_respond_time[uid].value

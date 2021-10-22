@@ -303,7 +303,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         if self.blacklist == None:
             pass
         #TODO: Turn on blacklisting
-        elif self.blacklist(pubkey):
+        elif self.blacklist(pubkey,meta[3].value):
             raise Exception('Black listed')
         else:
             pass

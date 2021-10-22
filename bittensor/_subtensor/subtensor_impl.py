@@ -17,9 +17,9 @@
 import random
 import torch
 from tqdm import tqdm
-from multiprocessing import Process
 
 from typing import List, Tuple, Dict, Union
+from threading import Thread
 
 import bittensor
 import bittensor.utils.networking as net
@@ -339,7 +339,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             else:
                 return True
                 
-    @logger.catch
+#    @logger.catch
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
@@ -599,17 +599,17 @@ To run a local node (See: docs/running_a_validator.md) \n
             success (bool):
                 flag is true if extrinsic was finalized or included in the block.
         """
-        set_weights = Process(target= self.set_weights, kwargs={
-                                                            'uids':uids,
-                                                            'weights': weights,
-                                                            'wait_for_inclusion': wait_for_inclusion,
-                                                            'wallet' : wallet,
-                                                            })
+        
+        set_weights = Thread(target= self.set_weights, kwargs={
+                                                           'uids':uids,
+                                                           'weights': weights,
+                                                           'wait_for_inclusion': wait_for_inclusion,
+                                                           'wallet' : wallet,
+                                                           })
         set_weights.start()
         set_weights.join(timeout=timeout)
-        set_weights.terminate()
 
-        if set_weights.exitcode == 0:
+        if not set_weights.is_alive():
             return True
         
         raise Exception('Timeout')

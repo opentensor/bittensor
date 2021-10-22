@@ -36,6 +36,7 @@ from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils import clip_grad_norm_
 from torch.nn.utils.rnn import pad_sequence
 import concurrent
+from datetime import datetime,timedelta
 from threading import Thread, Lock
 from nuclei.server import server
 import sys
@@ -69,6 +70,7 @@ def main( config ):
     )
     threadpool = bittensor.prioritythreadpool(config=config)
 
+    timecheck = {}
     # Define our forward function.
     def forward_text (pubkey, inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
@@ -95,6 +97,7 @@ def main( config ):
             logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
     # Define our backward function.
+    @logger.catch
     def backward_text (pubkey:str, inputs_x, grads_dy ):
         r"""Backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.
@@ -111,44 +114,62 @@ def main( config ):
         def call(input,grad,mutex):
             with mutex:
                 outputs_y = gp_server.encode_forward( input )
-                if gp_server.outputs_cache == None:
-                    gp_server.outputs_cache = outputs_y
-                    gp_server.gradients_cache = grad
-                else:
-                    gp_server.outputs_cache = torch.cat((gp_server.outputs_cache, outputs_y),0)
-                    gp_server.gradients_cache = torch.cat((gp_server.gradients_cache, grad),0)
-
-                if gp_server.outputs_cache.size(0) >= 30:
-                    with torch.autograd.set_detect_anomaly(True):
-                        torch.autograd.backward (
-                            tensors = [ gp_server.outputs_cache ],
-                            grad_tensors = [ gp_server.gradients_cache ],
-                            retain_graph=True
-                        )
-                    gp_server.outputs_cache = None
-                    gp_server.gradients_cache = None  
-                    logger.info('Backwards axon gradient applied')
+                with torch.autograd.set_detect_anomaly(True):
+                    torch.autograd.backward (
+                        tensors = [ outputs_y ],
+                        grad_tensors = [ grad ],
+                        retain_graph=True
+                    )
+                logger.info('Backwards axon gradient applied')
                     
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
-        
+
+        # -- normalized grads -- 
+        grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
+        gp_server.backward_gradients += inputs_x.size(0)
 
         try:
             future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
+            
         except concurrent.futures.TimeoutError :
             raise TimeoutError('TimeOutError')
         except Exception as e:
             logger.error('Error found: {}, with message {}'.format(repr(e), e))
 
-    def blacklist(pubkey:str) -> bool:
+    def blacklist(pubkey:str, request_type:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
         Currently, this is not turned on.
         """
-        uid =metagraph.hotkeys.index(pubkey)
-        if metagraph.S[uid].item() < config.server.blacklist:
+
+        # Check for stake
+        def stake_check():
+            uid =metagraph.hotkeys.index(pubkey)
+            if metagraph.S[uid].item() < config.server.blacklist.stake:
+                return True
+            else:
+                return False
+
+        # Check for time
+        def time_check():
+            current_time = datetime.now()
+            if pubkey in timecheck.keys():
+                prev_time = timecheck[pubkey]
+                if current_time - prev_time >= timedelta(seconds=config.server.blacklist.time):
+                    timecheck[pubkey] = current_time
+                    return False
+                else:
+                    return True
+            else:
+                timecheck[pubkey] = current_time
+                return False
+
+        # Black list or not
+        if stake_check() or time_check():
             return True
-        else:
+        else: 
             return False
+            
 
     # Create our axon server
     axon = bittensor.axon (
@@ -178,49 +199,47 @@ def main( config ):
         root_dir = full_path
     )
 
-    # --- creating our chain weights
-    chain_weights =torch.zeros(metagraph.n)
-    uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-    chain_weights[uid] = 1 
-
     # -- Main Training loop --
     try:
         # --  subscribe axon to the network.
         axon.start().subscribe()
 
+        # --- creating our chain weights
+        chain_weights =torch.zeros(metagraph.n)
+        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+        chain_weights[uid] = 1 
+
         while True:
             # --- Run 
-            dataset = iter(dataset.dataloader(epoch_length=config.server.blocks_per_epoch))
+            dataloader = iter(dataset.dataloader(epoch_length=100))
             current_block = subtensor.get_current_block()
-            end_block = current_block + 10
+            end_block = current_block + config.server.blocks_per_epoch
             interation = 0
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
-                    loss, _ = gp_server( next( dataset ) )
+                    loss, _ = gp_server( next( dataloader ) )
                     if interation > 0 : 
                         losses += loss
                     else:
                         losses = loss
                     interation += 1
                     current_block = subtensor.get_current_block()
+            
+            #Custom learning rate
+            if gp_server.backward_gradients > 0:
+                optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)
+            else:
+                optimizer.param_groups[0]['lr'] =  0.1
+            gp_server.backward_gradients = 0
 
             # --- Update parameters
             if interation != 0:
                 with mutex:
                     logger.info('Backpropagation Started')
-                    if gp_server.outputs_cache != None:
-                        torch.autograd.backward (
-                            tensors = [ gp_server.outputs_cache ],
-                            grad_tensors = [ gp_server.gradients_cache ],
-                            retain_graph=True
-                        )
-
-                    gp_server.outputs_cache = None
-                    gp_server.gradients_cache = None
-
                     losses.backward()
                     clip_grad_norm_(gp_server.parameters(), 1.0)
+                    
                     optimizer.step()
                     optimizer.zero_grad()
                     logger.info('Backpropagation Successful: Model updated')
