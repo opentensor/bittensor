@@ -50,7 +50,7 @@ def test_run_template():
             miner.run()
 
             assert magic.call_count == 1
-            assert torch.is_tensor(magic.call_args[0][1])
+            assert torch.is_tensor(magic.call_args[0][0])
 
 if __name__ == "__main__":
     test_run_template()
