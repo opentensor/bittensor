@@ -37,6 +37,8 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 6
 
+__networks__ = ['akatsuki', 'kusanagi', 'nobunaga']
+
 __akatsuki_entrypoints__ = [
     "main.akatsuki.bittensor.com:9944"
 ]
@@ -76,7 +78,6 @@ from bittensor._keyfile import keyfile as keyfile
 from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
-from bittensor._executor import executor as executor
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
@@ -95,7 +96,6 @@ from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
 from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
-from bittensor._executor.executor_impl import Executor as Executor
 from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor

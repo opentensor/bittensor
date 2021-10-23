@@ -19,14 +19,14 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 # DEALINGS IN THE SOFTWARE.
 
 import sys
-
 import argparse
-from loguru import logger
-
 import bittensor
+from rich.prompt import Prompt
+from rich.prompt import Confirm
+from rich.console import Console
+from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
-
-logger = logger.opt(colors=True)
+console = Console()
 
 class cli:
     """
@@ -35,26 +35,16 @@ class cli:
     def __new__(
             cls, 
             config: 'bittensor.Config' = None,
-            executor: 'bittensor.executor.Executor' = None
         ) -> 'bittensor.CLI':
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.cli.config()
-                executor (:obj:`bittensor.executor.executor`, `optional`):
-                    bittensor executor object, used to execute cli options.
         """
         if config == None: 
             config = cli.config()
         cli.check_config( config )
-        
-        if executor == None:
-            executor = bittensor.executor( config = config )
-
-        return cli_impl.CLI( 
-            config = config,
-            executor = executor 
-        )
+        return cli_impl.CLI( config = config)
 
     @staticmethod   
     def config() -> 'bittensor.config':
@@ -68,47 +58,42 @@ class cli:
             'overview', 
             help='''Show account overview.'''
         )
-        bittensor.executor.add_args( overview_parser )
+        bittensor.wallet.add_args( overview_parser )
+        bittensor.subtensor.add_args( overview_parser )
+
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
         )
-        bittensor.executor.add_args( transfer_parser )
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
         )
-        bittensor.executor.add_args( unstake_parser )
         stake_parser = cmd_parsers.add_parser(
             'stake', 
             help='''Stake to your hotkey accounts.'''
         )
-        bittensor.executor.add_args( stake_parser )
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed mnemonic'''
         )
-        bittensor.executor.add_args( regen_coldkey_parser )
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
         )
-        bittensor.executor.add_args( regen_hotkey_parser )
         new_coldkey_parser = cmd_parsers.add_parser(
             'new_coldkey', 
             help='''Creates a new hotkey (for running a miner) under the specified path. '''
         )
-        bittensor.executor.add_args( new_coldkey_parser )
         new_hotkey_parser = cmd_parsers.add_parser(
             'new_hotkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. '''
         )
-        bittensor.executor.add_args( new_hotkey_parser )
          
         # Fill arguments for the regen coldkey command.
         regen_coldkey_parser.add_argument(
             "--mnemonic", 
-            required=True, 
+            required=False, 
             nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...'
         )
@@ -125,11 +110,13 @@ class cli:
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.''',
         )
+        bittensor.wallet.add_args( regen_coldkey_parser )
+
 
         # Fill arguments for the regen hotkey command.
         regen_hotkey_parser.add_argument(
             "--mnemonic", 
-            required=True, 
+            required=False, 
             nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...'
         )
@@ -138,7 +125,7 @@ class cli:
             dest='use_password', 
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
-            default=True
+            default=False
         )
         regen_hotkey_parser.add_argument(
             '--no_password', 
@@ -146,6 +133,7 @@ class cli:
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
+        bittensor.wallet.add_args( regen_hotkey_parser )
 
 
         # Fill arguments for the new coldkey command.
@@ -169,6 +157,8 @@ class cli:
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
+        bittensor.wallet.add_args( new_coldkey_parser )
+
 
         # Fill arguments for the new hotkey command.
         new_hotkey_parser.add_argument(
@@ -191,6 +181,7 @@ class cli:
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
+        bittensor.wallet.add_args( new_hotkey_parser )
 
 
         # Fill arguments for unstake command. 
@@ -211,34 +202,47 @@ class cli:
             type=float, 
             required=False
         )
+        bittensor.wallet.add_args( unstake_parser )
+        bittensor.subtensor.add_args( unstake_parser )
+
 
         # Fill arguments for stake command.
+        stake_parser.add_argument(
+            '--all', 
+            dest="stake_all", 
+            action='store_true'
+        )
         stake_parser.add_argument(
             '--uid', 
             dest="uid", 
             type=int, 
-            required=True
+            required=False
         )
         stake_parser.add_argument(
             '--amount', 
             dest="amount", 
             type=float, 
-            required=True
+            required=False
         )
+        bittensor.wallet.add_args( stake_parser )
+        bittensor.subtensor.add_args( stake_parser )
+
 
         # Fill arguments for transfer
         transfer_parser.add_argument(
             '--dest', 
             dest="dest", 
             type=str, 
-            required=True
+            required=False
         )
         transfer_parser.add_argument(
             '--amount', 
             dest="amount", 
             type=float, 
-            required=True
+            required=False
         )
+        bittensor.wallet.add_args( transfer_parser )
+        bittensor.subtensor.add_args( transfer_parser )
 
         # Hack to print formatted help
         if len(sys.argv) == 1:
@@ -252,22 +256,169 @@ class cli:
         """ Check if the essential condig exist under different command
         """
         if config.command == "transfer":
-            if not config.dest:
-                logger.critical("The --dest argument is required for this command")
-            if not config.amount:
-                logger.critical("The --amount argument is required for this command")
-                sys.exit()
+            cli.check_transfer_config( config )
         elif config.command == "unstake":
-            if not config.unstake_all:
-                if config.uid is None:
-                    logger.critical("The --uid argument is required for this command")
-                if not config.amount:
-                    logger.critical("The --amount argument is required for this command")
-                    sys.exit()
+            cli.check_unstake_config( config )
         elif config.command == "stake":
-            if config.uid is None:
-                logger.critical("The --uid argument is required for this command")
-            if config.amount is None:
-                logger.critical("The --amount argument is required for this command")
+            cli.check_stake_config( config )
+        elif config.command == "overview":
+            cli.check_overview_config( config )
+        elif config.command == "new_coldkey":
+            cli.check_new_coldkey_config( config )
+        elif config.command == "new_hotkey":
+            cli.check_new_hotkey_config( config )
+        elif config.command == "regen_coldkey":
+            cli.check_regen_coldkey_config( config )
+        elif config.command == "regen_hotkey":
+            cli.check_regen_hotkey_config( config )
+
+    def check_transfer_config( config: 'bittensor.Config'):
+        if config.subtensor.network == bittensor.defaults.subtensor.network:
+            if not Confirm.ask("Use network: [bold]'{}'[/bold]?".format(config.subtensor.network)):
+                config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+
+        # Get destination.
+        if not config.dest:
+            dest = Prompt.ask("Enter destination public key: (ss58 or ed2519)")
+            if len(dest) == 48:
+                try:
+                    ss58_decode(dest)
+                    config.dest = str(dest)
+                except ValueError:
+                    console.print(":cross_mark:[red] Invalid public key format[/red] [bold white]{}[/bold white]".format(dest))
+                    sys.exit()
+            elif len(dest) == 66 or len(dest) == 64:
+                try:
+                    ss58_encode(dest)
+                    config.dest = str(dest)
+                except ValueError:
+                    console.print(":cross_mark:[red] Invalid ss58 address format[/red] [bold white]{}[/bold white]".format(dest))
+                    sys.exit()
+            else:
+                console.print(":cross_mark:[red] Invalid address format[/red] [bold white]{}[/bold white]".format(dest))
                 sys.exit()
+                    
+        # Get amount.
+        if not config.amount:
+            amount = Prompt.ask("Enter Tao amount to transfer")
+            try:
+                config.amount = float(amount)
+            except ValueError:
+                console.print(":cross_mark:[red] Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                sys.exit()
+
+    def check_unstake_config( config: 'bittensor.Config' ):
+        if config.subtensor.network == bittensor.defaults.subtensor.network:
+            if not Confirm.ask("Use network: [bold]'{}'[/bold]?".format(config.subtensor.network)):
+                config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+
+        # Get destination.
+        if config.uid == None:
+            uid = Prompt.ask("Enter uid to unstake from")
+            try:
+                config.uid = int(uid)     
+            except ValueError:
+                console.print(":cross_mark:[red] Invalid uid[/red] [bold white]{}[/bold white]".format(uid))
+                sys.exit()
+                    
+        # Get amount.
+        if not config.amount and not config.unstake_all:
+            if not Confirm.ask("Unstake all Tao from uid: [bold]'{}'[/bold]?".format(config.uid)):
+                amount = Prompt.ask("Enter Tao amount to unstake")
+                try:
+                    config.amount = float(amount)
+                except ValueError:
+                    console.print(":cross_mark:[red] Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    sys.exit()
+            else:
+                config.unstake_all = True
+
+
+    def check_stake_config( config: 'bittensor.Config' ):
+        if config.subtensor.network == bittensor.defaults.subtensor.network:
+            if not Confirm.ask("Use network: [bold]'{}'[/bold]?".format(config.subtensor.network)):
+                config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == bittensor.defaults.wallet.name:
+            if not Confirm.ask("Use wallet: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+
+        # Get destination.
+        if config.uid == None:
+            uid = Prompt.ask("Enter uid to stake to")
+            try:
+                config.uid = int(uid)     
+            except ValueError:
+                console.print(":cross_mark:[red] Invalid uid[/red] [bold white]{}[/bold white]".format(uid))
+                sys.exit()
+                    
+        # Get amount.
+        if not config.amount and not config.stake_all:
+            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.name)):
+                amount = Prompt.ask("Enter Tao amount to stake")
+                try:
+                    config.amount = float(amount)
+                except ValueError:
+                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    sys.exit()
+            else:
+                config.stake_all = True
+
+    def check_overview_config( config: 'bittensor.Config' ):
+        if config.subtensor.network == bittensor.defaults.subtensor.network:
+            if not Confirm.ask("Use network: [bold]'{}'[/bold]?".format(config.subtensor.network)):
+                config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+
+    def check_new_coldkey_config( config: 'bittensor.Config' ):
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet name: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+
+    def check_new_hotkey_config( config: 'bittensor.Config' ):
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet name: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+        if config.wallet.hotkey == 'default':
+            if not Confirm.ask("Use wallet hotkey: [bold]'default'[/bold]?"):
+                hotkey = Prompt.ask("Enter hotkey name")
+                config.wallet.hotkey = str(hotkey)
+
+    def check_regen_hotkey_config( config: 'bittensor.Config' ):
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet name: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+        if config.wallet.hotkey == 'default':
+            if not Confirm.ask("Use wallet hotkey: [bold]'default'[/bold]?"):
+                hotkey = Prompt.ask("Enter hotkey name")
+                config.wallet.hotkey = str(hotkey)
+        if config.mnemonic == None:
+            config.mnemonic = Prompt.ask("Enter mnemonic")
+
+    def check_regen_coldkey_config( config: 'bittensor.Config' ):
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet name: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+        if config.mnemonic == None:
+            config.mnemonic = Prompt.ask("Enter mnemonic")
+                
                 
