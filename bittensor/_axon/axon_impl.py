@@ -607,8 +607,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
             raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
 
         # ---- Setup Wallet. ----
-        self.wallet.create()
-
+        if not self.wallet.coldkeypub_file.exists_on_device() or not self.wallet.hotkey_file.exists_on_device():
+            self.wallet.create()
+            
         # ---- Subscribe to chain ----
         subscribe_success = subtensor.subscribe(
                 wallet = self.wallet,
