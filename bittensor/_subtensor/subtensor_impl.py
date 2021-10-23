@@ -461,7 +461,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                         result.append( n )
             return result
 
-    def neuron_for_uid( self, uid: int, ss58_hotkey: str, block: int = None ) -> Union[ dict, None ]: 
+    def neuron_for_uid( self, uid: int, ss58_hotkey: str = None, block: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
