@@ -24,7 +24,7 @@ from substrateinterface import SubstrateInterface
 
 from . import subtensor_impl
 
-with_priority = {
+nobunaga = {
         "runtime_id": 2,
         "types": {
             "Balance": "u64",
@@ -47,7 +47,7 @@ with_priority = {
                     ["rank", "u64"],
                     ["consensus", "u64"],
                     ["incentive", "u64"],
-                    ["inflation", "u64"],
+                    ["emission", "u64"],
                     ["dividends", "u64"],
                     ["bonds", "Vec<(u32, u64)>"],
                     ["weights", "Vec<(u32, u32)>"]
@@ -55,7 +55,7 @@ with_priority = {
             }
         }
     }
-without_priority = {
+akatsuki = {
         "runtime_id": 2,
         "types": {
             "Balance": "u64",
@@ -120,9 +120,9 @@ class subtensor:
             config.subtensor.network = network if network != None else config.subtensor.network
             config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
         if config.subtensor.network == 'nobunaga':
-            type_registry = with_priority
+            type_registry = nobunaga
         else:
-            type_registry = without_priority
+            type_registry = akatsuki
 
         substrate = SubstrateInterface(
             address_type = 42,
