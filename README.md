@@ -108,7 +108,7 @@ axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
     backward_text = backward_text
-).start().subscribe()
+).start().serve()
 ```
 
 ### 3.3. Validator 
@@ -192,7 +192,7 @@ $ python ~/.bittensor/bittensor/miners/text/template_server.py --help
 
 ###  4.5. Subscription to the network
 
-The subscription to the bittensor network is done using the axon. We must first create a bittensor wallet and a bittensor axon to subscribe.
+The subscription to the bittensor network is done using the axon. We must first create a bittensor wallet and a bittensor axon to serve.
 
 ```python
 import bittensor
@@ -202,7 +202,7 @@ axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
     backward_text = backward_text
-).start().subscribe()
+).start().serve()
 ```
 
 ### 4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes
@@ -294,7 +294,7 @@ wallet = bittensor.wallet().create()
 axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
-).start().subscribe()
+).start().serve()
 ```
 
 ---

@@ -30,6 +30,8 @@ import datetime
 from nuclei.server import server
 
 def main( config ):
+    config.to_defaults()
+
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config)
 
@@ -37,7 +39,7 @@ def main( config ):
     bittensor.logging( config = config )
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet( config = config ).create()
+    wallet = bittensor.wallet( config = config ).create().register()
 
     # Load/Sync/Save our metagraph.
     metagraph = bittensor.metagraph ( 
@@ -47,7 +49,7 @@ def main( config ):
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    model = server(config=config,model_name='bert-base-uncased',pretrained=True)
+    model = server(config=config,model_name='bert-base-uncased',pretrained=False)
 
 
     # Create our optimizer.
@@ -82,7 +84,7 @@ def main( config ):
         wallet = wallet,
         forward_text = forward_text,
         backward_text = backward_text,
-    ).start().subscribe()
+    ).start().serve(subtensor=subtensor)
 
     # --- Init Wandb.
     with wandb.init (

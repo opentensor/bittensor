@@ -151,7 +151,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             inputs_x: torch.Tensor, 
             modality: bittensor.proto.Modality
         ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Calls the forward callback subscribed by the nucleus.
+        r""" Calls the forward callback served by the nucleus.
             
             Args:
                 public_key (str, `required`): 
@@ -562,7 +562,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( 
+    def serve( 
             self, 
             use_upnpc: bool = False, 
             subtensor: 'bittensor.Subtensor' = None,
@@ -573,12 +573,12 @@ class Axon( bittensor.grpc.BittensorServicer ):
         r""" Subscribes this Axon servicing endpoint to the passed network using it's wallet.
             Args:
                 use_upnpc (:type:bool, `optional`): 
-                    If true, subscribes the axon attempts port forward through your router before 
+                    If true, serves the axon attempts port forward through your router before 
                     subscribing.
                 modality (:type:bool, `optional`): 
                     Which network modality are we subscribing to. Defaults to 0 for TEXT.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
-                    Chain connection through which to subscribe.
+                    Chain connection through which to serve.
                 network (default='akatsuki', type=str)
                     If subtensor is not set, uses this network flag to create the subtensor connection.
                 chain_endpoint (default=None, type=str)
@@ -611,15 +611,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.wallet.create()
             
         # ---- Subscribe to chain ----
-        subscribe_success = subtensor.subscribe(
+        serve_success = subtensor.serve(
                 wallet = self.wallet,
                 ip = self.external_ip,
                 port = self.external_port,
                 modality = self.modality,
                 wait_for_finalization = True,
         )
-        if not subscribe_success:
-            raise RuntimeError('Failed to subscribe neuron.')
+        if not serve_success:
+            raise RuntimeError('Failed to serve neuron.')
 
         return self
 

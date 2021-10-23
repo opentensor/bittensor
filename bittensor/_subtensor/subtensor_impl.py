@@ -122,7 +122,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 else:
                     return False
 
-    def subscribe(
+    def serve(
             self, 
             wallet: 'bittensor.wallet',
             ip: str, 
@@ -155,7 +155,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
         if not neuron.is_null and neuron.ip == ip and neuron.port == port:
-            logger.success( "Already subscribed".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
+            logger.success( "Already served".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -174,7 +174,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule',
-                call_function='subscribe',
+                call_function='serve_axon',
                 call_params=params
             )
             # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.

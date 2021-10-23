@@ -45,12 +45,13 @@ import torch.nn.functional as F
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 def main( config ):
+    config.to_defaults()
 
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config)
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet( config = config ).create()
+    wallet = bittensor.wallet( config = config ).create().register()
 
     # Load/Sync/Save our metagraph.
     metagraph = bittensor.metagraph ( 
@@ -201,8 +202,8 @@ def main( config ):
 
     # -- Main Training loop --
     try:
-        # --  subscribe axon to the network.
-        axon.start().subscribe()
+        # --  serve axon to the network.
+        axon.start().serve(subtensor=subtensor)
 
         # --- creating our chain weights
         chain_weights =torch.zeros(metagraph.n)
