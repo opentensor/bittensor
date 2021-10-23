@@ -116,8 +116,6 @@ def test_wallet_register_wo_email():
 def test_wallet_register():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     the_wallet._email = 'pytest@gmail.com'
-    signal.signal(signal.SIGALRM, lambda x : x )
-    signal.alarm(5)
     the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.register()
 
