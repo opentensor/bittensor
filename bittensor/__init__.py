@@ -188,7 +188,7 @@ class Neuron():
 
     def __enter__(self):
         # ---- Setup Wallet. ----
-        if not self.wallet.coldkey_file.exists_on_device() or self.wallet.hotkey_file.exists_on_device():
+        if not self.wallet.coldkeypub_file.exists_on_device() or self.wallet.hotkey_file.exists_on_device():
             self.wallet.create()
         try:
             self.metagraph.load().sync().save()
