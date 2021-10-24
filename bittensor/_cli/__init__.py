@@ -22,11 +22,11 @@ import os
 import sys
 import argparse
 
-from termcolor import colored
+import importlib
+from pathlib import Path
 import bittensor
 from rich.prompt import Prompt
 from rich.prompt import Confirm
-from rich.console import Console
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
 console = bittensor.__console__
@@ -563,10 +563,8 @@ class cli:
     def check_run_config( config: 'bittensor.Config' ):
 
         # Copy accross keys.
-        import importlib
-        from pathlib import Path
-
         file_path = Path(str(Path(__file__).resolve()) + "/../../../miners/text/template_miner.py").resolve()
+        print(file_path)
         miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(file_path)).load_module()
         miner_config = miner.Miner.config()
         for k in miner_config.keys():
