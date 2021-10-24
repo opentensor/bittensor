@@ -166,70 +166,6 @@ mac_install_bittensor() {
     deactivate
 }
 
-setup_wallet_and_miner() {
-    echo ""
-    echo ""
-    while true
-    do
-      read -r -p "Do you wish to create a Bittensor wallet? [Y/n] " input
-    
-      case $input in
-          [yY][eE][sS]|[yY])
-        echo ""
-        
-        wallet_name="default"
-        hotkey_name="default"
-
-        ohai "Creating new wallet. "
-        echo ""
-        echo ""
-        ohai ">>> REMEMBER TO SAVE THE MNEMONICS <<<"
-        wait_for_user 
-
-        echo ""
-        echo ""
-        ohai "Creating wallet coldkey..."
-        bittensor-cli new_coldkey --wallet.name $wallet_name
-        exit_on_error $? 
-
-        echo ""
-        echo ""
-        ohai "Creating wallet hotkey..."
-        bittensor-cli new_hotkey --wallet.name $wallet_name --wallet.hotkey $hotkey_name
-        RESULT=$?
-
-        if [ $RESULT -eq 0 ]; then
-          echo ""
-          ohai "Wallet hotkey created successfully"
-          echo "python3  ~/.bittensor/bittensor/miners/text/template_miner.py" >> ~/.bittensor/bittensor/scripts/run.sh
-          
-          # Make run.sh executable
-          chmod +x ~/.bittensor/bittensor/scripts/run.sh
-
-          # Create alias for quick run
-          OS="$(uname)"
-          if [[ "$OS" == "Linux" ]]; then
-            echo "alias run_bittensor=\"/bin/bash -c ~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bashrc
-          elif [[ "$OS" == "Darwin" ]]; then
-            echo "alias run_bittensor=\"/bin/bash -c ~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bash_profile
-          else
-            abort "Bittensor is only supported on macOS and Linux"
-          fi
-        fi
-      break
-      ;;
-          [nN][oO]|[nN])
-      echo "No"
-      break
-              ;;
-          *)
-      echo "Invalid input..."
-      ;;
-      esac
-    done
-}
-
-
 # Do install.
 OS="$(uname)"
 if [[ "$OS" == "Linux" ]]; then
@@ -273,7 +209,6 @@ if [[ "$OS" == "Linux" ]]; then
     echo "######################################################################"
     echo ""
     echo ""
-    setup_wallet_and_miner
 
 elif [[ "$OS" == "Darwin" ]]; then
     echo """
@@ -297,11 +232,11 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "bittensor"
 
     wait_for_user
-    mac_install_brew
-    mac_install_cmake
-    mac_install_python
-    mac_update_pip
-    mac_install_bittensor
+    #mac_install_brew
+    #mac_install_cmake
+    #mac_install_python
+    #mac_update_pip
+    #mac_install_bittensor
     echo ""
     echo ""
     echo "######################################################################"
@@ -309,8 +244,6 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "##                      BITTENSOR SETUP                             ##"
     echo "##                                                                  ##"
     echo "######################################################################"
-    setup_wallet_and_miner
-
 else
   abort "Bittensor is only supported on macOS and Linux"
 fi
@@ -322,18 +255,33 @@ fi
 
 echo ""
 echo ""
-ohai "Installation successful!"
+ohai "Installation successful"
 echo ""
-ohai "If you simply intend to mine, then restart your machine and call \"run_bittensor\"."
-ohai "If you are a power user, you can just run the Python mining script directly: python3  ~/.bittensor/bittensor/miners/text/template_miner.py."
-ohai "If you wish to build your own Bittensor model, refer to documentation. The template_miner serves as a launching point to do this."
+echo "- To run the base miner: "
+echo "    $ btcli run"
 echo ""
-ohai "Follow-up:"
-echo ""
-echo "- Check your tao balance: "
-echo "    $ bittensor-cli overview --wallet.name <your wallet name> --wallet.hotkey <your hotkey name> --subtensor.network akatsuki"
+echo "- Or write your own: "
+echo "    see: ~/.bittensor/bittensor/miners/text/template_miner.py."
 echo ""
 ohai "Extras:"
+echo ""
+echo "- Check your tao balance: "
+echo "    $ btcli overview"
+echo ""
+echo "- Stake to your miners:"
+echo "    $ btcli stake"
+echo "    $ btcli unstake"
+echo ""
+echo "- Create/list/register wallets"
+echo "    $ btcli list"
+echo "    $ btcli new_coldkey"
+echo "    $ btcli register"
+echo ""
+echo "- Use the Python API"
+echo "    $ python3"
+echo "    >> import bittensor"
+echo ""
+ohai "Resources:"
 echo ""
 echo "- Read the docs: "
 echo "    ${tty_underline}https://app.gitbook.com/@opentensor/s/bittensor/${tty_reset}"
