@@ -472,15 +472,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (dict(NeuronMetadata)):
                 neuron object associated with uid or None if it does not exist.
         """
-        with self.substrate as substrate:
-            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
-            neuron = SimpleNamespace( **neuron )
-            neuron.ip = net.int_to_ip(neuron.ip)
-            if neuron.hotkey != ss58_hotkey:
-                neuron.is_null = True
-            else:
-                neuron.is_null = False
-            return neuron
+        # Make the call.
+        with bittensor.__console__.status(":satellite: Neuron for uid {}...".format(uid)):
+            with self.substrate as substrate:
+                neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
+        # Process the call.
+        neuron = SimpleNamespace( **neuron )
+        neuron.ip = net.int_to_ip(neuron.ip)
+        if neuron.hotkey != ss58_hotkey:
+            neuron.is_null = True
+        else:
+            neuron.is_null = False
+        return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
         r""" Returns true if the passed hotkey is registered on the chain.
@@ -491,22 +494,25 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid ( int ):
                 UID of passed hotkey or -1 if it is non-existent.
         """
-        with self.substrate as substrate:
-            result = substrate.query (
-                module='SubtensorModule',
-                storage_function='Hotkeys',
-                params = [ ss58_hotkey ],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            uid = int(result.value)
-            if uid == 0:
-                neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
-                if neuron.is_null:
-                    return -1
-                else:
-                    return uid
+        # Make the call.
+        with bittensor.__console__.status(":satellite: Looking up {}...".format(ss58_hotkey)):
+            with self.substrate as substrate:
+                result = substrate.query (
+                    module='SubtensorModule',
+                    storage_function='Hotkeys',
+                    params = [ ss58_hotkey ],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        # Process the result.
+        uid = int(result.value)
+        if uid == 0:
+            neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
+            if neuron.is_null:
+                return -1
             else:
-                return True
+                return uid
+        else:
+            return True
 
     def is_hotkey_registered( self, ss58_hotkey: str, block: int = None) -> bool:
         r""" Returns true if the passed hotkey is registered on the chain.
