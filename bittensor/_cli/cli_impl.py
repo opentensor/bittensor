@@ -133,10 +133,10 @@ class CLI:
         subtensor = bittensor.subtensor( config = self.config )
 
         if not wallet.hotkey_file.exists_on_device():
-            console.print(":cross_mark:[red]Wallet must have a hotkey available.[/red] ")
+            console.print(":cross_mark: [red]Wallet must have a hotkey available.[/red] ")
             sys.exit()
         if not wallet.coldkey_file.exists_on_device():
-            console.print(":cross_mark:[red]Wallet must have a coldkey pub available.[/red] ")
+            console.print(":cross_mark: [red]Wallet must have a coldkey pub available.[/red] ")
             sys.exit()
 
         wallet.hotkey
@@ -144,7 +144,7 @@ class CLI:
 
         # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
         if wallet.is_registered( subtensor = subtensor ):
-            console.print(":white_heavy_check_mark:[green]Already registered[/green]")
+            console.print(":white_heavy_check_mark: [green]Already registered[/green]")
             return
         
         # Ask before moving on.
@@ -171,13 +171,13 @@ class CLI:
             response = json.loads(bytes.decode(response.content)) 
 
         if response['status'] != 0:
-            console.print(":cross_mark:[red]Failed[/red] for reason: {}".format( response['response'] ))
+            console.print(":cross_mark: [red]Failed[/red] for reason: {}".format( response['response'] ))
             sys.exit()
 
         with console.status(":closed_mailbox_with_raised_flag: Waiting for confirmation from email: {}".format(self.config.email)):
             while True:
                 if wallet.is_registered( subtensor = subtensor ):
-                    console.print(":white_heavy_check_mark:[green]Registered hotkey[/green]: {}".format( wallet.hotkey.ss58_address ))
+                    console.print(":white_heavy_check_mark: [green]Registered hotkey[/green]: {}".format( wallet.hotkey.ss58_address ))
                     break
                 time.sleep(2)
 
@@ -197,12 +197,12 @@ class CLI:
         with console.status(":satellite: Checking Balance..."):
             account_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
         if account_balance < transfer_balance:
-            console.print(":cross_mark:[red]Not enough balance[/red]:[green]{}[/green] to transfer:[blue]{}[/blue]".format( account_balance, transfer_balance ))
+            console.print(":cross_mark: [red]Not enough balance[/red]:[green]{}[/green] to transfer:[blue]{}[/blue]".format( account_balance, transfer_balance ))
             sys.exit()
 
         # Ask before moving on.
         if not self.config.no_prompt:
-            if not Confirm.ask("Do you want to transfer:[green]{}[/green] from:[blue]{}:{}[/blue] to:[green]{}[/green]?".format( transfer_balance, self.config.wallet.name, wallet.coldkey.ss58_address, self.config.dest ) ):
+            if not Confirm.ask("Do you want to transfer: [green]{}[/green] from:[blue]{}:{}[/blue] to:[green]{}[/green]?".format( transfer_balance, self.config.wallet.name, wallet.coldkey.ss58_address, self.config.dest ) ):
                 sys.exit()
 
         with console.status(":satellite: Transferring..."):
@@ -219,14 +219,14 @@ class CLI:
                 response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = False, wait_for_finalization = True )
                 response.process_events()
                 if response.is_success:
-                    console.print(":white_heavy_check_mark:[green]Finalized[/green]")
+                    console.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 else:
-                    console.print(":cross_mark:[red]Failed[/red]: error:{}".format(response.error_message))
+                    console.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 
         if response.is_success:
             with console.status(":satellite: Checking Balance..."):
                 new_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
-                console.print("Balance:[blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
+                console.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
 
     def unstake( self ):
         r""" Unstaked token of amount from uid.
@@ -242,7 +242,7 @@ class CLI:
             old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
             neuron = subtensor.neuron_for_uid( uid = self.config.uid, ss58_hotkey = wallet.hotkey.ss58_address)
         if neuron.is_null:
-            console.print(":cross_mark:[red]Uid does not exist or is not associated with hotkey:{}[/red]".format(wallet.hotkey.ss58_address))
+            console.print(":cross_mark: [red]Uid does not exist or is not associated with hotkey:{}[/red]".format(wallet.hotkey.ss58_address))
             sys.exit()
 
         if self.config.unstake_all:
@@ -251,7 +251,7 @@ class CLI:
             unstaking_balance = bittensor.Balance.from_float( self.config.amount )
         stake_on_uid = bittensor.Balance.from_rao( neuron.stake )
         if unstaking_balance > stake_on_uid:
-            console.print(":cross_mark:[red]Not enough stake[/red]:[green]{}[/green] to unstake:[blue]{}[/blue] from uid:[/white]{}[/white]".format(stake_on_uid, unstaking_balance, self.config.uid))
+            console.print(":cross_mark: [red]Not enough stake[/red]:[green]{}[/green] to unstake:[blue]{}[/blue] from uid:[/white]{}[/white]".format(stake_on_uid, unstaking_balance, self.config.uid))
         
         # Ask before moving on.
         if not self.config.no_prompt:
@@ -271,16 +271,16 @@ class CLI:
                 extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
                 response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = False, wait_for_finalization = True )
                 if response.is_success:
-                    console.print(":white_heavy_check_mark:[green]Finalized[/green]")
+                    console.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 else:
-                    console.print(":cross_mark:[red]Failed[/red]: error:{}".format(response.error_message))
+                    console.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 
         if response.is_success:
             with console.status(":satellite: Checking Balance on: ([white]{}[/white] ...".format(self.config.subtensor.network)):
                 new_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
                 new_stake = bittensor.Balance.from_rao( subtensor.neuron_for_uid( uid = self.config.uid, ss58_hotkey = wallet.hotkey.ss58_address).stake)
-                console.print("Balance:[blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
-                console.print("Stake:[blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
+                console.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
+                console.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
 
 
     def stake( self ):
@@ -297,7 +297,7 @@ class CLI:
             old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
             old_neuron = subtensor.neuron_for_uid( uid = self.config.uid, ss58_hotkey = wallet.hotkey.ss58_address)
         if old_neuron.is_null:
-            console.print(":cross_mark:[red]Uid does not exist or is not associated with hotkey:{}[/red]".format(wallet.hotkey.ss58_address))
+            console.print(":cross_mark: [red]Uid does not exist or is not associated with hotkey:{}[/red]".format(wallet.hotkey.ss58_address))
             sys.exit()
 
         if self.config.stake_all:
@@ -306,7 +306,7 @@ class CLI:
         else:
             staking_balance = bittensor.Balance.from_float( self.config.amount )
         if staking_balance > old_balance:
-            console.print(":cross_mark:[red]Not enough stake[/red]:[green]{}[/green] to stake:[blue]{}[/blue] from account:[/white]{}[/white]".format(old_balance, staking_balance, wallet.coldkey.ss58_address))
+            console.print(":cross_mark: [red]Not enough stake[/red]:[green]{}[/green] to stake:[blue]{}[/blue] from account:[/white]{}[/white]".format(old_balance, staking_balance, wallet.coldkey.ss58_address))
         
         # Ask before moving on.
         if not self.config.no_prompt: 
@@ -326,17 +326,17 @@ class CLI:
                 extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
                 response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = False, wait_for_finalization = True )
                 if response.is_success:
-                    console.print(":white_heavy_check_mark:[green]Finalized[/green]")
+                    console.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 else:
-                    console.print(":cross_mark:[red]Failed[/red]: error:{}".format(response.error_message))
+                    console.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 
         if response.is_success:
             with console.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(self.config.subtensor.network)):
                 new_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
                 old_stake = bittensor.Balance.from_rao( old_neuron.stake )
                 new_stake = bittensor.Balance.from_rao( subtensor.neuron_for_uid( uid = self.config.uid, ss58_hotkey = wallet.hotkey.ss58_address).stake)
-                console.print("Balance:[blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
-                console.print("Stake:[blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
+                console.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
+                console.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
 
     def list(self):
         r""" Lists wallets.
