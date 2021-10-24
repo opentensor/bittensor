@@ -473,9 +473,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron object associated with uid or None if it does not exist.
         """
         # Make the call.
-        with bittensor.__console__.status(":satellite: Neuron for uid {}...".format(uid)):
-            with self.substrate as substrate:
-                neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
+        with self.substrate as substrate:
+            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
         # Process the call.
         neuron = SimpleNamespace( **neuron )
         neuron.ip = net.int_to_ip(neuron.ip)
@@ -495,14 +494,13 @@ To run a local node (See: docs/running_a_validator.md) \n
                 UID of passed hotkey or -1 if it is non-existent.
         """
         # Make the call.
-        with bittensor.__console__.status(":satellite: Looking up {}...".format(ss58_hotkey)):
-            with self.substrate as substrate:
-                result = substrate.query (
-                    module='SubtensorModule',
-                    storage_function='Hotkeys',
-                    params = [ ss58_hotkey ],
-                    block_hash = None if block == None else substrate.get_block_hash( block )
-                )
+        with self.substrate as substrate:
+            result = substrate.query (
+                module='SubtensorModule',
+                storage_function='Hotkeys',
+                params = [ ss58_hotkey ],
+                block_hash = None if block == None else substrate.get_block_hash( block )
+            )
         # Process the result.
         uid = int(result.value)
         if uid == 0:
