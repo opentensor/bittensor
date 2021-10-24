@@ -137,12 +137,38 @@ bittensor.subtensor().set_weights (
 ```
 ## 4. Features
 
-### 4.1. Creating a bittensor wallet 
+### 4.1. CLI
 
-
+Creating a new wallet.
 ```bash
-$ bittensor-cli new_coldkey --wallet.name <WALLET NAME>
-$ bittensor-cli new_hotkey --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ btcli new_coldkey
+$ btcli new_hotkey
+```
+
+Listing your wallet.s
+```bash
+$ btcli list
+```
+
+Registering a wallet
+```bash
+$ btcli register --email <your email>
+```
+
+Checking balances
+```bash
+$ btcli overview
+```
+
+Transfering funds
+```bash
+$ btcli transfer
+```
+
+Staking/Unstaking from a hotkey
+```bash
+$ btcli stake
+$ btcli unstake
 ```
 
 ### 4.2. Selecting the network to join 
