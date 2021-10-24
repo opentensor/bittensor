@@ -148,9 +148,10 @@ class CLI:
             return
         
         # Ask before moving on.
-        do_register = Confirm.ask("Do you want to register: [green]{}[/green] to: [blue]{}[/blue]?".format( wallet.__str__(), subtensor.network ) )
-        if not do_register:
-            return
+        if not self.config.no_prompt:
+            do_register = Confirm.ask("Do you want to register: [green]{}[/green] to: [blue]{}[/blue]?".format( wallet.__str__(), subtensor.network ) )
+            if not do_register:
+                return
 
         if 'email' not in self.config or self.config.email == None:
             email_name = Prompt.ask("Enter registration email")
@@ -200,9 +201,9 @@ class CLI:
             sys.exit()
 
         # Ask before moving on.
-        do_transfer = Confirm.ask("Do you want to transfer:[green]{}[/green] from:[blue]{}:{}[/blue] to:[green]{}[/green]?".format( transfer_balance, self.config.wallet.name, wallet.coldkey.ss58_address, self.config.dest ) )
-        if not do_transfer:
-            sys.exit()
+        if not self.config.no_prompt:
+            if not Confirm.ask("Do you want to transfer:[green]{}[/green] from:[blue]{}:{}[/blue] to:[green]{}[/green]?".format( transfer_balance, self.config.wallet.name, wallet.coldkey.ss58_address, self.config.dest ) ):
+                sys.exit()
 
         with console.status(":satellite: Transferring..."):
             with subtensor.substrate as substrate:
@@ -253,9 +254,9 @@ class CLI:
             console.print(":cross_mark:[red]Not enough stake[/red]:[green]{}[/green] to unstake:[blue]{}[/blue] from uid:[/white]{}[/white]".format(stake_on_uid, unstaking_balance, self.config.uid))
         
         # Ask before moving on.
-        do_unstake = Confirm.ask("Do you want to unstake:[green ]{}[/green ] from uid:[blue ]{}[/blue ]?".format( unstaking_balance, self.config.uid) )
-        if not do_unstake:
-            sys.exit()
+        if not self.config.no_prompt:
+            if not Confirm.ask("Do you want to unstake:[green ]{}[/green ] from uid:[blue ]{}[/blue ]?".format( unstaking_balance, self.config.uid) ):
+                sys.exit()
 
         with console.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
             with subtensor.substrate as substrate:
@@ -308,9 +309,9 @@ class CLI:
             console.print(":cross_mark:[red]Not enough stake[/red]:[green]{}[/green] to stake:[blue]{}[/blue] from account:[/white]{}[/white]".format(old_balance, staking_balance, wallet.coldkey.ss58_address))
         
         # Ask before moving on.
-        do_stake = Confirm.ask("Do you want to stake:[green ]{}[/green ] to uid:[blue ]{}[/blue ]?".format( staking_balance, self.config.uid) )
-        if not do_stake:
-            sys.exit()
+        if not self.config.no_prompt: 
+            if not Confirm.ask("Do you want to stake:[green ]{}[/green ] to uid:[blue ]{}[/blue ]?".format( staking_balance, self.config.uid) ):
+                sys.exit()
 
         with console.status(":satellite: Staking to: [white]{}[/white] ...".format(self.config.subtensor.network)):
             with subtensor.substrate as substrate:
