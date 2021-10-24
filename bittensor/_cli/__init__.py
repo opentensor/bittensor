@@ -518,7 +518,7 @@ class cli:
             if not Confirm.ask("Use wallet hotkey: [bold]'default'[/bold]?"):
                 hotkey = Prompt.ask("Enter hotkey name")
                 config.wallet.hotkey = str(hotkey)
-                
+
         if config.wallet.email == None:
             if config.email == None:
                 email_name = Prompt.ask("Enter registration email")
@@ -564,7 +564,10 @@ class cli:
 
         # Copy accross keys.
         import importlib
-        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(config.path)).load_module()
+        from pathlib import Path
+
+        file_path = Path(str(Path(__file__).resolve()) + "/../../../miners/text/template_miner.py").resolve()
+        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(file_path)).load_module()
         miner_config = miner.Miner.config()
         for k in miner_config.keys():
             config[k] = miner_config[k]
