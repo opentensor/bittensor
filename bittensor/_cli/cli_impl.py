@@ -174,7 +174,7 @@ class CLI:
             console.print(":cross_mark:[red]Failed[/red] for reason: {}".format( response['response'] ))
             sys.exit()
 
-        with console.status(":clock: Waiting for confirmation from email: {}".format(self.config.email)):
+        with console.status(":closed_mailbox_with_raised_flag: Waiting for confirmation from email: {}".format(self.config.email)):
             while True:
                 if wallet.is_registered( subtensor = subtensor ):
                     console.print(":white_heavy_check_mark:[green]Registered hotkey[/green]: {}".format( wallet.hotkey.ss58_address ))
