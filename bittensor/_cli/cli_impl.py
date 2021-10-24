@@ -17,16 +17,15 @@
 
 import bittensor
 
+import os
 import sys
 import time
-import torch
-from bittensor._dendrite import dendrite
-import bittensor.utils.codes as code_utils
+import json
+import requests
+from rich.tree import Tree
+from rich import print
 from tqdm import tqdm
-from rich.align import Align
-from rich.console import Console
 from rich.table import Table
-from rich.console import Console
 from rich.prompt import Confirm
 
 class CLI:
@@ -46,12 +45,16 @@ class CLI:
         """
         if self.config.command == "transfer":
             self.transfer ()
+        elif self.config.command == "register":
+            self.register()
         elif self.config.command == "unstake":
             self.unstake()
         elif self.config.command == "stake":
             self.stake()
         elif self.config.command == "overview":
             self.overview()
+        elif self.config.command == "list":
+            self.list()
         elif self.config.command == "new_coldkey":
             self.create_new_coldkey()
         elif self.config.command == "new_hotkey":
@@ -85,10 +88,62 @@ class CLI:
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
 
+    def register( self ):
+        r""" Register 
+        """
+        console = bittensor.__console__
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+
+        if not wallet.hotkey_file.exists_on_device():
+            console.print(":cross_mark:[red]Wallet must have a hotkey available.[/red] ")
+            sys.exit()
+        if not wallet.coldkey_file.exists_on_device():
+            console.print(":cross_mark:[red]Wallet must have a coldkey pub available.[/red] ")
+            sys.exit()
+
+        wallet.hotkey
+        wallet.coldkeypub
+
+        # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
+        if wallet.is_registered( subtensor = subtensor ):
+            console.print(":white_heavy_check_mark:[green]Already registered[/green]")
+            sys.exit()
+        
+        # Ask before moving on.
+        do_register = Confirm.ask("Do you want to register: [green]{}[/green] to: [blue]{}[/blue]?".format( wallet.__str__(), subtensor.network ) )
+        if not do_register:
+            sys.exit()
+
+        # Get registration url endpoint from constants or args.
+        server_url = bittensor.__registration_servers__[0] 
+
+        # Create a request signature.
+        request_signature = wallet.hotkey.sign( str(self.config.wallet.email) + str(wallet.hotkey.ss58_address) + str(wallet.coldkeypub.ss58_address) + str(subtensor.network) )
+        
+        # Make registration request.
+        headers = {'Content-type': 'application/json'}
+        url = 'http://' + server_url + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( self.config.wallet.email, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, request_signature, subtensor.network)
+        with console.status(":satellite: Registering..."):
+            response = requests.post(url, headers=headers)
+            response = json.loads(bytes.decode(response.content)) 
+
+        if response['status'] != 0:
+            console.print(":cross_mark:[red]Failed[/red] for reason: {}".format( response['response'] ))
+            sys.exit()
+
+        with console.status(":clock: Waiting for confirmation from email: {}".format(self.config.wallet.email)):
+            while True:
+                if wallet.is_registered( subtensor = subtensor ):
+                    console.print(":white_heavy_check_mark:[green]Registered hotkey[/green]: {}".format( wallet.hotkey.ss58_address ))
+                    break
+                time.sleep(2)
+
+
     def transfer( self ):
         r""" Transfers token of amount to destination.
         """
-        console = Console()
+        console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
 
@@ -134,7 +189,7 @@ class CLI:
     def unstake( self ):
         r""" Unstaked token of amount from uid.
         """
-        console = Console()
+        console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
 
@@ -189,7 +244,7 @@ class CLI:
     def stake( self ):
         r""" Staked token of amount to uid.
         """
-        console = Console()
+        console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
 
@@ -241,11 +296,27 @@ class CLI:
                 console.print("Balance:[blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 console.print("Stake:[blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
 
+    def list(self):
+        r""" Lists wallets.
+        """
+        wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        root = Tree("Wallets")
+        for w_name in wallets:
+            wallet_tree = root.add("[bold white]{}".format(w_name))
+            hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
+            try:
+                hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
+                if len( hotkeys ) > 1:
+                    for h_name in hotkeys[2]:
+                        wallet_tree.add("[bold grey]{}".format(h_name))
+            except:
+                pass
+        print(root)
 
     def overview(self):
         r""" Prints an overview for the wallet's colkey.
         """
-        console = Console()
+        console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )

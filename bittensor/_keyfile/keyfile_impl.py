@@ -183,7 +183,7 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
                 Ansible encrypted data.
     """
     password = ask_password_to_encrypt() if password == None else password
-    console = Console();             
+    console = bittensor.__console__;             
     with console.status(":locked_with_key: Encrypting key..."):
         vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
@@ -205,7 +205,7 @@ def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
     password = getpass.getpass("Enter password to unlock key: ") if password == None else password
     try:
         password = getpass.getpass("Enter password to unlock key: ") if password == None else password
-        console = Console();             
+        console = bittensor.__console__;             
         with console.status(":key: Decrypting key..."):
             # Ansible decrypt.
             if keyfile_data_is_encrypted_ansible( keyfile_data ):

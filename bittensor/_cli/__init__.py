@@ -26,7 +26,7 @@ from rich.prompt import Confirm
 from rich.console import Console
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
-console = Console()
+console = bittensor.__console__
 
 class cli:
     """
@@ -60,10 +60,20 @@ class cli:
         )
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
+        
+        list_parser = cmd_parsers.add_parser(
+            'list', 
+            help='''List wallets'''
+        )
+        bittensor.wallet.add_args( list_parser )
 
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
+        )
+        register_parser = cmd_parsers.add_parser(
+            'register', 
+            help='''Register a wallet to a network.'''
         )
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
@@ -244,6 +254,17 @@ class cli:
         bittensor.wallet.add_args( transfer_parser )
         bittensor.subtensor.add_args( transfer_parser )
 
+
+        # Fill arguments for transfer
+        register_parser.add_argument(
+            '--email', 
+            dest="email", 
+            type=str, 
+            required=False
+        )
+        bittensor.wallet.add_args( register_parser )
+        bittensor.subtensor.add_args( register_parser )
+
         # Hack to print formatted help
         if len(sys.argv) == 1:
             parser.print_help()
@@ -257,6 +278,8 @@ class cli:
         """
         if config.command == "transfer":
             cli.check_transfer_config( config )
+        elif config.command == "register":
+            cli.check_register_config( config )
         elif config.command == "unstake":
             cli.check_unstake_config( config )
         elif config.command == "stake":
@@ -384,6 +407,23 @@ class cli:
             if not Confirm.ask("Use wallet: [bold]'default'[/bold]?"):
                 wallet_name = Prompt.ask("Enter wallet name")
                 config.wallet.name = str(wallet_name)
+
+    def check_register_config( config: 'bittensor.Config' ):
+        if config.subtensor.network == bittensor.defaults.subtensor.network:
+            if not Confirm.ask("Use network: [bold]'{}'[/bold]?".format(config.subtensor.network)):
+                config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+
+        if config.wallet.email == None:
+            if config.email == None:
+                email_name = Prompt.ask("Enter registration email")
+                config.wallet.email = str(email_name)
+            else:
+                config.wallet.email = config.email
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.name == 'default':
