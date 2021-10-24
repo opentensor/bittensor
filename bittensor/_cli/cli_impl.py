@@ -341,7 +341,6 @@ class CLI:
     def list(self):
         r""" Lists wallets.
         """
-        print ('here')
         wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
         root = Tree("Wallets")
         for w_name in wallets:

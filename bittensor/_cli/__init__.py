@@ -61,6 +61,13 @@ class cli:
             'overview', 
             help='''Show account overview.'''
         )
+        overview_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
@@ -68,9 +75,23 @@ class cli:
             'run', 
             help='''Run the miner.'''
         )
+        run_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
         list_parser = cmd_parsers.add_parser(
             'list', 
             help='''List wallets'''
+        )
+        list_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
         )
         bittensor.wallet.add_args( list_parser )
 
@@ -335,13 +356,6 @@ class cli:
             default=os.path.expanduser('~/Workspace/bittensor/miners/text/template_miner.py'),
             type=str, 
             required=False
-        )
-        run_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
-            help='''Set protect the generated bittensor key with a password.''',
-            default=False,
         )
         
 
