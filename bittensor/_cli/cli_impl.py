@@ -22,11 +22,13 @@ import sys
 import time
 import json
 import requests
+import importlib
 from rich.tree import Tree
 from rich import print
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Confirm
+from rich.prompt import Prompt
 
 class CLI:
     """
@@ -43,7 +45,9 @@ class CLI:
     def run ( self ):
         """ Execute the command from config 
         """
-        if self.config.command == "transfer":
+        if self.config.command == "run":
+            self.run_miner ()
+        elif self.config.command == "transfer":
             self.transfer ()
         elif self.config.command == "register":
             self.register()
@@ -88,6 +92,39 @@ class CLI:
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
 
+    def run_miner ( self ):
+
+        # Check coldkey.
+        wallet = bittensor.wallet( config = self.config )
+        if not wallet.coldkeypub_file.exists_on_device():
+            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
+                wallet.create_new_coldkey()
+            else:
+                sys.exit()
+
+        # Check hotkey.
+        if not wallet.hotkey_file.exists_on_device():
+            if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
+                wallet.create_new_hotkey()
+            else:
+                sys.exit()
+
+        if wallet.hotkey_file.is_encrypted():
+            bittensor.__console__.print("Decrypting hotkey ... ")
+        wallet.hotkey
+
+        if wallet.coldkeypub_file.is_encrypted():
+            bittensor.__console__.print("Decrypting coldkeypub ... ")
+        wallet.coldkeypub
+
+        # Check registration
+        self.register()
+
+        # Run miner.
+        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(self.config.path)).load_module()
+        miner.Miner( config = self.config ).run()
+        bittensor.__console__.clear()
+
     def register( self ):
         r""" Register 
         """
@@ -108,22 +145,26 @@ class CLI:
         # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
         if wallet.is_registered( subtensor = subtensor ):
             console.print(":white_heavy_check_mark:[green]Already registered[/green]")
-            sys.exit()
+            return
         
         # Ask before moving on.
         do_register = Confirm.ask("Do you want to register: [green]{}[/green] to: [blue]{}[/blue]?".format( wallet.__str__(), subtensor.network ) )
         if not do_register:
-            sys.exit()
+            return
+
+        if 'email' not in self.config or self.config.email == None:
+            email_name = Prompt.ask("Enter registration email")
+            self.config.email = str(email_name)
 
         # Get registration url endpoint from constants or args.
         server_url = bittensor.__registration_servers__[0] 
 
         # Create a request signature.
-        request_signature = wallet.hotkey.sign( str(self.config.wallet.email) + str(wallet.hotkey.ss58_address) + str(wallet.coldkeypub.ss58_address) + str(subtensor.network) )
+        request_signature = wallet.hotkey.sign( str(self.config.email) + str(wallet.hotkey.ss58_address) + str(wallet.coldkeypub.ss58_address) + str(subtensor.network) )
         
         # Make registration request.
         headers = {'Content-type': 'application/json'}
-        url = 'http://' + server_url + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( self.config.wallet.email, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, request_signature, subtensor.network)
+        url = 'http://' + server_url + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( self.config.email, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, request_signature, subtensor.network)
         with console.status(":satellite: Registering..."):
             response = requests.post(url, headers=headers)
             response = json.loads(bytes.decode(response.content)) 
@@ -132,7 +173,7 @@ class CLI:
             console.print(":cross_mark:[red]Failed[/red] for reason: {}".format( response['response'] ))
             sys.exit()
 
-        with console.status(":clock: Waiting for confirmation from email: {}".format(self.config.wallet.email)):
+        with console.status(":clock: Waiting for confirmation from email: {}".format(self.config.email)):
             while True:
                 if wallet.is_registered( subtensor = subtensor ):
                     console.print(":white_heavy_check_mark:[green]Registered hotkey[/green]: {}".format( wallet.hotkey.ss58_address ))
@@ -299,6 +340,7 @@ class CLI:
     def list(self):
         r""" Lists wallets.
         """
+        print ('here')
         wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
         root = Tree("Wallets")
         for w_name in wallets:
@@ -341,15 +383,15 @@ class CLI:
         total_dividends = 0.0
         total_emission = 0.0      
         for ep in tqdm(owned_endpoints):
-            uid = metagraph.coldkeys.index(wallet.coldkeypub.ss58_address)
-            active = metagraph.active[uid ].item()
-            stake = metagraph.S[uid ].item()
-            rank = metagraph.R[uid ].item()
-            trust = metagraph.T[uid ].item()
-            consensus = metagraph.C[uid ].item()
-            incentive = metagraph.I[uid ].item()
-            dividends = metagraph.I[uid ].item()
-            emission = metagraph.I[uid ].item()
+            uid = ep.uid
+            active = metagraph.active[ uid ].item()
+            stake = metagraph.S[ uid ].item()
+            rank = metagraph.R[ uid ].item()
+            trust = metagraph.T[ uid ].item()
+            consensus = metagraph.C[ uid ].item()
+            incentive = metagraph.I[ uid ].item()
+            dividends = metagraph.D[ uid ].item()
+            emission = metagraph.E[ uid ].item() / 1000000000
             last_update = int(metagraph.block - metagraph.last_update[uid ])
             row = [
                 str(ep.uid), 

@@ -18,8 +18,11 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import sys
 import argparse
+
+from termcolor import colored
 import bittensor
 from rich.prompt import Prompt
 from rich.prompt import Confirm
@@ -61,6 +64,10 @@ class cli:
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
+        run_parser = cmd_parsers.add_parser(
+            'run', 
+            help='''Run the miner.'''
+        )
         list_parser = cmd_parsers.add_parser(
             'list', 
             help='''List wallets'''
@@ -265,6 +272,15 @@ class cli:
         bittensor.wallet.add_args( register_parser )
         bittensor.subtensor.add_args( register_parser )
 
+        # Fill run parser.
+        run_parser.add_argument(
+            '--path', 
+            dest="path", 
+            default=os.path.expanduser('~/Workspace/bittensor/miners/text/template_miner.py'),
+            type=str, 
+            required=False
+        )
+
         # Hack to print formatted help
         if len(sys.argv) == 1:
             parser.print_help()
@@ -276,7 +292,9 @@ class cli:
     def check_config (config: 'bittensor.Config'):
         """ Check if the essential condig exist under different command
         """
-        if config.command == "transfer":
+        if config.command == "run":
+            cli.check_run_config( config )
+        elif config.command == "transfer":
             cli.check_transfer_config( config )
         elif config.command == "register":
             cli.check_register_config( config )
@@ -421,9 +439,7 @@ class cli:
         if config.wallet.email == None:
             if config.email == None:
                 email_name = Prompt.ask("Enter registration email")
-                config.wallet.email = str(email_name)
-            else:
-                config.wallet.email = config.email
+                config.email = str(email_name)
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.name == 'default':
@@ -460,5 +476,34 @@ class cli:
                 config.wallet.name = str(wallet_name)
         if config.mnemonic == None:
             config.mnemonic = Prompt.ask("Enter mnemonic")
+
+    def check_run_config( config: 'bittensor.Config' ):
+
+        # Copy accross keys.
+        import importlib
+        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(config.path)).load_module()
+        miner_config = miner.Miner.config()
+        for k in miner_config.keys():
+            config[k] = miner_config[k]
+
+        # Check network.
+        if config.subtensor.network == bittensor.defaults.subtensor.network:
+            if not Confirm.ask("Run miner on network: [bold]'{}'[/bold]?".format(config.subtensor.network)):
+                config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        # Check wallet.
+        if config.wallet.name == 'default':
+            if not Confirm.ask("Use wallet name: [bold]'default'[/bold]?"):
+                wallet_name = Prompt.ask("Enter wallet name")
+                config.wallet.name = str(wallet_name)
+
+        # Check hotkey.
+        if config.wallet.hotkey == 'default':
+            if not Confirm.ask("Use wallet hotkey: [bold]'default'[/bold]?"):
+                hotkey = Prompt.ask("Enter hotkey name")
+                config.hotkey = str(hotkey)
+
+
+
                 
                 
