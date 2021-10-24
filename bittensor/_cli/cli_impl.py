@@ -23,6 +23,7 @@ import time
 import json
 import requests
 import importlib
+from pathlib import Path
 from rich.tree import Tree
 from rich import print
 from tqdm import tqdm
@@ -121,7 +122,8 @@ class CLI:
         self.register()
 
         # Run miner.
-        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(self.config.path)).load_module()
+        file_path = Path(str(Path(__file__).resolve()) + "/../../../miners/text/template_miner.py").resolve()
+        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(file_path)).load_module()
         miner.Miner( config = self.config ).run()
         bittensor.__console__.clear()
 
