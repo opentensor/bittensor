@@ -610,7 +610,7 @@ class Miner:
         r""" Returns a saved state dict or none.
         """
         try:
-            return torch.load("{}/model.torch".format( self.config.miner.full_path ))
+            return torch.load("{}/model.torch".format( self.config.miner.full_path, map_location = self.device ))
         except Exception as e:
             logger.warning('No saved model found with error: {}', e)
             logger.info('Initalizing with new model')
@@ -733,9 +733,9 @@ class Miner:
             'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
         }
         
-        logger.info(f'next(self.nucleus.parameters()) {next(self.nucleus.parameters()).is_cuda}')
-        logger.info(f'self.nucleus.peer_weights {self.nucleus.peer_weights.is_cuda}')
-        logger.info(f'self.stats.ema_scores {self.stats.ema_scores.is_cuda}')
+        logger.info(f'next(self.nucleus.parameters()) {next(self.nucleus.parameters()).device}')
+        logger.info(f'self.nucleus.peer_weights {self.nucleus.peer_weights.device}')
+        logger.info(f'self.stats.ema_scores {self.stats.ema_scores.device}')
         logger.info("")
         logger.info('')
         logger.info('')
