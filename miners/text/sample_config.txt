@@ -4,7 +4,7 @@ axon.max_workers: 10
 axon.maximum_concurrent_rpcs: 400
 axon.port: 8091
 
-dataset.batch_size: 100
+dataset.batch_size: 10
 dataset.block_size: 200
 dataset.max_corpus_size: 1000000.0
 dataset.num_workers: 0
@@ -26,7 +26,7 @@ miner.learning_rate: 1
 miner.learning_rate_chain: 1
 miner.name: template_miner
 miner.batch_size_train: 2
-miner.device: cuda
+miner.device: cpu
 miner.epoch_length: 7
 miner.n_epochs: 500
 miner.restart: false
