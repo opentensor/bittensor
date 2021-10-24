@@ -355,6 +355,7 @@ class Miner:
         """
         assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
+
         bittensor.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.miner.name ))
         config.miner.full_path = os.path.expanduser(full_path)
@@ -699,7 +700,7 @@ class Miner:
                 wallet = bittensor.neuron.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
+                bittensor.logging.success(prefix=f'Set {k} weights, top 5 weights:', sufix='{}'.format(list(zip(topk_scores[:5], topk_uids[:5]))))
             else:
                 logger.warning('Failed to set weights on chain.')
 
@@ -731,7 +732,28 @@ class Miner:
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
         }
-
+        
+        logger.info(f'next(self.nucleus.parameters()) {next(self.nucleus.parameters()).is_cuda}')
+        logger.info(f'self.nucleus.peer_weights {self.nucleus.peer_weights.is_cuda}')
+        logger.info(f'self.stats.ema_scores {self.stats.ema_scores.is_cuda}')
+        logger.info("")
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
+        logger.info('')
         # ---- Miner summary per peer for progress bar
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if normalized_peer_weights[uid].item() > 0:
@@ -775,7 +797,6 @@ class Miner:
 
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
-
 
     def blacklist(self,pubkey:str, meta:tuple) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
