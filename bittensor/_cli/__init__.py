@@ -514,6 +514,11 @@ class cli:
                 wallet_name = Prompt.ask("Enter wallet name")
                 config.wallet.name = str(wallet_name)
 
+        if config.wallet.hotkey == 'default' and not config.no_prompt:
+            if not Confirm.ask("Use wallet hotkey: [bold]'default'[/bold]?"):
+                hotkey = Prompt.ask("Enter hotkey name")
+                config.wallet.hotkey = str(hotkey)
+                
         if config.wallet.email == None:
             if config.email == None:
                 email_name = Prompt.ask("Enter registration email")
