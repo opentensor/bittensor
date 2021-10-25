@@ -668,7 +668,7 @@ class Miner:
 
         try:
             k = min(self.config.miner.n_topk_peer_weights, bittensor.neuron.metagraph.n.item())
-            topk_scores, topk_uids = torch.topk( self.stats.ema_scores, k = k )
+            topk_scores, topk_uids = torch.topk( self.stats.ema_scores.detach(), k = k )
             did_set = bittensor.neuron.subtensor.timeout_set_weights(
                 timeout=10,
                 uids = topk_uids,
@@ -677,7 +677,7 @@ class Miner:
                 wallet = bittensor.neuron.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
+                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores.item(), topk_uids.item()))))
             else:
                 logger.warning('Failed to set weights on chain.')
 

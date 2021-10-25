@@ -125,11 +125,19 @@ def test_wallet_add_stake():
     the_wallet.is_registered = MagicMock(return_value = True)
     the_wallet.add_stake(subtensor = subtensor)
 
+    # when not registered
+    the_wallet.is_registered = MagicMock(return_value = False)
+    the_wallet.add_stake(subtensor = subtensor)
+
 def test_wallet_remove_stake():
     subtensor = bittensor.subtensor()
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.unstake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
+    the_wallet.remove_stake(subtensor = subtensor)
+    
+    #when not registered
+    the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.remove_stake(subtensor = subtensor)
 
 def test_wallet_transfer():

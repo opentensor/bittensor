@@ -5,7 +5,7 @@ import bittensor
 from unittest.mock import MagicMock
 import unittest.mock as mock
 
-logger = bittensor.logging()
+bittensor.logging()
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',
