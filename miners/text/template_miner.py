@@ -29,12 +29,9 @@ import torch
 import traceback
 import os
 import sys
-import yaml
 import wandb
-import concurrent
 
 from termcolor import colored
-from typing import List
 from qqdm import qqdm, format_str
 from loguru import logger; logger = logger.opt(colors=True)
 from types import SimpleNamespace
@@ -43,7 +40,6 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
-from substrateinterface.utils.ss58 import ss58_encode
 
 # Globals 
 global_dendrite = None
