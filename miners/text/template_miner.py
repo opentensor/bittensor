@@ -644,7 +644,7 @@ class Miner:
             logger.exception('Incorrect Network setting between miner input and saved state. Please use the same network')
             raise Exception('Network does not match saved state')
 
-        self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
+        self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False, map_location=self.device )
         self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
         self.nucleus.to( self.device ) # Load nucleus
 
