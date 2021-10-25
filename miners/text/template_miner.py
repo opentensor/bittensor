@@ -439,14 +439,14 @@ class Miner:
                             
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
-                            output = self.nucleus.local_forward (
+                            output = self.nucleus.remote_forward (
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
 
                             # ---- Backward pass ----
-                            output.loss = output.local_target_loss # + output.distillation_loss + output.remote_target_loss
-                            # scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
+                            output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+                            scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
                             scores = torch.zeros(bittensor.neuron.metagraph.n.item()).to(self.device)
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
@@ -458,8 +458,8 @@ class Miner:
 
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
-                            # total_distillation_epoch_loss += output.distillation_loss.item()
-                            # total_remote_target_epoch_loss += output.remote_target_loss.item()
+                            total_distillation_epoch_loss += output.distillation_loss.item()
+                            total_remote_target_epoch_loss += output.remote_target_loss.item()
                             total_local_epoch_acc += output.local_accuracy
                             self.stats.epoch_data_size += inputs.nelement()
                             batches_count += 1
@@ -572,7 +572,7 @@ class Miner:
                         tensors = [outputs_y],
                         grad_tensors = [grad]
                     )
-                    return inputs_x.grad if inputs_x.grad != None else None                                                                                                                                                                         
+                    return inputs_x.grad if inputs_x.grad != None else None                                                                                                                                                     
 
             priority = self.neuron.metagraph.S[ self.neuron.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
             try:
@@ -654,7 +654,7 @@ class Miner:
                 lr = state_dict['optimizer_state']['param_groups'][1]['lr'],
                 momentum = state_dict['optimizer_state']['param_groups'][1]['momentum'],
             )
-
+        
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ))
 
     def save( self ):
@@ -713,8 +713,8 @@ class Miner:
             'Epoch': colored('{}'.format(self.epoch+1), 'green'),
             'Best': colored('{:.4f}'.format(self.stats.best_epoch_loss), 'red'),            
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            # 'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
-            # 'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
             'nPeers': colored(bittensor.neuron.metagraph.n.item(), 'red'),
             'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
             'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
@@ -759,7 +759,7 @@ class Miner:
 
             wandb_info_axon = bittensor.neuron.axon.to_wandb()
             wandb_info_dend = bittensor.neuron.dendrite.to_wandb()
-                
+            
             try:
                 wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend})
 
