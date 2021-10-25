@@ -461,7 +461,7 @@ class Miner:
 
                             # ---- Apply and zero accumulated gradients.
                             self.optimizer.step()
-                            prof.step()
+                            #prof.step()
                             self.optimizer.zero_grad()
                             current_block = self.neuron.subtensor.get_current_block()
 
