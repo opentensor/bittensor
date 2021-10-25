@@ -735,6 +735,7 @@ class Miner:
         logger.info(f'self.nucleus.peer_weights {self.nucleus.peer_weights.device}')
         logger.info(f'self.stats.ema_scores {self.stats.ema_scores.device}')
         logger.info(f'bittensor.neurons.metagraph {next(bittensor.neuron.metagraph.parameters()).device}')
+        logger.info(f'next(dataset) {next(self.dataset).device}')
         logger.info("")
         logger.info('')
         logger.info('')
