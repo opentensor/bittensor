@@ -46,7 +46,7 @@ nucleus.topk: 30
 nucleus.punishment: 0
 
 subtensor.chain_endpoint: null
-subtensor.network: akatsuki
+subtensor.network: nobunaga
 
 wallet.hotkey: default
 wallet.name: default
