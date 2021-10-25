@@ -542,14 +542,12 @@ class Miner:
                         break
 
     # ---- Axon Forward call ----
-    def forward_text ( self, pubkey:str, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
+    def forward_text ( self, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
             The arguments reflect an RPC request from another miner in the network, the response tensor
             should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 
             Args:
-                pubkey ( str, `required`):
-                    The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
 
@@ -557,31 +555,18 @@ class Miner:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        def call(inputs):
-            inputs_x = inputs.to( self.device )
-            output = self.nucleus.local_forward (
-                inputs = inputs_x
-            )
-            return output.local_hidden
-
-        priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
-        future = self.thread_pool.submit( call, inputs = inputs_x, priority = priority )
-        try:
-            return future.result(timeout = self.config.miner.timeout)
-        except concurrent.futures.TimeoutError :
-            raise TimeoutError('TimeOutError')
-        except Exception as e:
-            logger.error('Error found: {}, with message {}'.format(repr(e), e))
+        output = self.nucleus.local_forward (
+            inputs = inputs_x.to( self.device )
+        )
+        return output.local_hidden
 
     # ---- Axon Backward call ----
-    def backward_text ( self, pubkey:str, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
+    def backward_text ( self, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: Processes backward messages from the wire.
             Arguments reflect an RPC backward request from another miner in the network, the response tensor
             should be the gradients of the miner's nucleus w.r.t to the inputs_x and the passed output grads_dy.
 
             Args:
-                pubkey ( str, `required`):
-                    The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs from previous forward call.
                 grads_dy ( :obj:`torch.Tensor`, `required`):
@@ -592,25 +577,30 @@ class Miner:
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
         """
         if self.config.miner.accumulate_remote_gradients:
-            def call(input,grad):
-                with torch.enable_grad():
-                    # ---- Set up inputs for gradient computations.
-                    outputs_y = self.nucleus.local_forward( inputs = input ).local_context.to( self.device )
-                    # ---- The backward call will accumulate gradients on our parameters.
-                
-                    torch.autograd.backward (
-                        tensors = [outputs_y],
-                        grad_tensors = [grad]
-                    )
-                    return inputs_x.grad if inputs_x.grad != None else None                    
+            with torch.enable_grad():
+                # ---- Set up inputs for gradient computations.
+                outputs_y = self.nucleus.local_forward( inputs = inputs_x.to( self.device ) ).local_context.to( self.device )
+                # ---- The backward call will accumulate gradients on our parameters.
+            
+                torch.autograd.backward (
+                    tensors = [outputs_y],
+                    grad_tensors = [grads_dy.to( self.device )]
+                )
+                return inputs_x.grad if inputs_x.grad != None else None 
+    
+    def priority(self, pubkey:str, request_type:str, inputs_x) -> float:
+        r"""Calculates the priority on requests based on stake and size of input
 
-            priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
-            try:
-                self.thread_pool.submit(call, input=inputs_x.to( self.device ), grad=grads_dy.to( self.device ), priority=priority)
-            except concurrent.futures.TimeoutError :
-                raise TimeoutError('TimeOutError')
-            except Exception as e:
-                logger.error('Error found: {}'.format(e))
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                request_type ( str, `required`):
+                    the request type ('forward' or 'backward').
+        """        
+        priority = self.neuron.metagraph.S[ self.neuron.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
+        return priority
 
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.

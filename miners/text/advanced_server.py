@@ -69,15 +69,12 @@ def main( config ):
         lr = config.server.learning_rate,
         momentum = config.server.momentum,
     )
-    threadpool = bittensor.prioritythreadpool(config=config)
-
+    
     timecheck = {}
     # Define our forward function.
-    def forward_text (pubkey, inputs_x ):
+    def forward_text ( inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
             Args:
-                pubkey ( str, `required`):
-                    The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
 
@@ -85,62 +82,58 @@ def main( config ):
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-        def call(inputs):
-            return gp_server.encode_forward( inputs )
-        uid = metagraph.hotkeys.index(pubkey)
-        priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
-        future = threadpool.submit(call,inputs=inputs_x.to(gp_server.device),priority=priority)
-        try:
-            return future.result(timeout= gp_server.config.server.forward_timeout)
-        except concurrent.futures.TimeoutError :
-            raise TimeoutError('TimeOutError')
-        except Exception as e:
-            logger.error('Error found: {}, with message {}'.format(repr(e), e))
+        return gp_server.encode_forward( inputs_x )
 
     # Define our backward function.
-    @logger.catch
-    def backward_text (pubkey:str, inputs_x, grads_dy ):
+    def backward_text (inputs_x, grads_dy ):
         r"""Backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.
 
             Args:
-                pubkey ( str, `required`):
-                    The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs from previous forward call.
                 grads_dy ( :obj:`torch.Tensor`, `required`):
                     torch grads of forward output.
                     
         """
-        def call(input,grad,mutex):
-            with mutex:
-                outputs_y = gp_server.encode_forward( input )
-                with torch.autograd.set_detect_anomaly(True):
-                    torch.autograd.backward (
-                        tensors = [ outputs_y ],
-                        grad_tensors = [ grad ],
-                        retain_graph=True
-                    )
-                logger.info('Backwards axon gradient applied')
-                    
+        # -- normalized grads -- 
+        grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
+        
+        with mutex:
+            outputs_y = gp_server.encode_forward( inputs_x )
+            with torch.autograd.set_detect_anomaly(True):
+                torch.autograd.backward (
+                    tensors = [ outputs_y ],
+                    grad_tensors = [ grads_dy ],
+                    retain_graph=True
+                )
+            logger.info('Backwards axon gradient applied')
+
+        gp_server.backward_gradients += inputs_x.size(0)
+       
+    def priority(pubkey:str, request_type:str, inputs_x) -> float:
+        r"""Calculates the priority on requests based on stake and size of input
+
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                request_type ( str, `required`):
+                    the request type ('forward' or 'backward').
+        """        
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
 
-        # -- normalized grads -- 
-        grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
-        gp_server.backward_gradients += inputs_x.size(0)
-
-        try:
-            future = threadpool.submit(call, input=inputs_x.to( gp_server.device ), grad=grads_dy.to( gp_server.device ),mutex=mutex, priority=priority)
-            
-        except concurrent.futures.TimeoutError :
-            raise TimeoutError('TimeOutError')
-        except Exception as e:
-            logger.error('Error found: {}, with message {}'.format(repr(e), e))
+        return priority
 
     def blacklist(pubkey:str, request_type:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
-        Currently, this is not turned on.
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                request_type ( str, `required`):
+                    the request type ('forward' or 'backward').
         """
 
         # Check for stake
@@ -178,6 +171,7 @@ def main( config ):
                 forward_text = forward_text,
                 backward_text = backward_text,
                 blacklist= blacklist,
+                priority = priority
             ) 
 
     # Training Data
