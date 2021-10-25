@@ -2,11 +2,10 @@ import torch
 import grpc
 import bittensor
 from datetime import datetime
-import logging
 import pytest
 import unittest.mock as mock
 
-bittensor.logging()
+logging = bittensor.logging()
 
 wallet =  bittensor.wallet (
     path = '/tmp/pytest',
@@ -679,7 +678,6 @@ def is_port_in_use(port):
             return False
 
 def test_axon_is_destroyed():
-    logging.basicConfig()
     port = 8081
     assert is_port_in_use( port ) == False
     axon = bittensor.axon ( port = port )
