@@ -456,7 +456,7 @@ class Miner:
                     block_steps = [ block_delta for block_delta in range(start_block, end_block)]
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('white', f'Epoch:'))
                     for block in progress_bar:
-                        
+
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
