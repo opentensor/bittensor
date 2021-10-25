@@ -17,7 +17,7 @@ protobuf==3.13.0
 py-sr25519-bindings==0.1.2
 py-ed25519-bindings~=0.1.2
 py-bip39-bindings>=0.1.6
-pytest>=6.1.2
+pytest>=6.2.4
 pyyaml
 rich
 requests>=2.25.0

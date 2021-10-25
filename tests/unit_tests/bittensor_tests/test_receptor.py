@@ -480,7 +480,7 @@ def test_receptor_backward_endpoint_exception():
 #-- axon receptor connection -- 
 
 def test_axon_receptor_connection_forward_works():
-    def forward( pubkey:str, inputs_x:torch.FloatTensor):
+    def forward(inputs_x:torch.FloatTensor):
         return torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         forward_tensor= forward,
@@ -510,10 +510,11 @@ def test_axon_receptor_connection_forward_works():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     axon.stop()
+    axon.__del__()
 
 
 def test_axon_receptor_connection_forward_unauthenticated():
-    def forward( pubkey:str, inputs_x:torch.FloatTensor):
+    def forward(inputs_x:torch.FloatTensor):
         return torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         forward_tensor= forward,
@@ -544,9 +545,10 @@ def test_axon_receptor_connection_forward_unauthenticated():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Unauthenticated
     axon.stop()
+    axon.__del__()
 
 def test_axon_receptor_connection_backward_works():
-    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads):
+    def backward( inputs_x:torch.FloatTensor, grads):
         return torch.zeros( [ 3,3,bittensor.__network_dim__])
         
     axon = bittensor.axon (
@@ -576,9 +578,10 @@ def test_axon_receptor_connection_backward_works():
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Success
     axon.stop()
+    axon.__del__()
 
 def test_axon_receptor_connection_backward_unauthenticated():
-    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads):
+    def backward( inputs_x:torch.FloatTensor, grads):
         return torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         backward_tensor= backward,
@@ -609,11 +612,12 @@ def test_axon_receptor_connection_backward_unauthenticated():
     out, ops, time  = receptor.backward( x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Unauthenticated
     axon.stop()
+    axon.__del__()
 
 ## --unimplemented error 
 
 def test_axon_receptor_connection_forward_unimplemented():
-    def forward( pubkey:str, inputs_x:torch.FloatTensor):
+    def forward( inputs_x:torch.FloatTensor):
         return torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         forward_tensor= forward,
@@ -643,10 +647,11 @@ def test_axon_receptor_connection_forward_unimplemented():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
     assert ops == bittensor.proto.ReturnCode.NotImplemented
     axon.stop()
+    axon.__del__()
 
 
 def test_axon_receptor_connection_backward_unimplemented():
-    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads):
+    def backward( inputs_x:torch.FloatTensor, grads):
         return torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         backward_tensor= backward,
@@ -676,12 +681,13 @@ def test_axon_receptor_connection_backward_unimplemented():
     out, ops, time  = receptor.backward( x,grads, bittensor.proto.Modality.TEXT, timeout=1)
     assert ops == bittensor.proto.ReturnCode.NotImplemented
     axon.stop()
+    axon.__del__()
 
 ## -- timeout error
 
 def test_axon_receptor_connection_forward_timeout():
-    def forward( pubkey:str, inputs_x:torch.FloatTensor):
-        if pubkey == '_':
+    def forward(inputs_x:torch.FloatTensor):
+        if inputs_x.size() == (1,1,1):
             return None
         else:
             raise TimeoutError('Timeout')
@@ -713,10 +719,11 @@ def test_axon_receptor_connection_forward_timeout():
     out, ops, time  = receptor.forward( x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Timeout
     axon.stop()
+    axon.__del__()
 
 def test_axon_receptor_connection_backward_timeout():
-    def backward( pubkey:str, inputs_x:torch.FloatTensor, grads):
-        if pubkey == '_':
+    def backward( inputs_x:torch.FloatTensor, grads):
+        if inputs_x.size() == (1,1,1):
             return None
         else:
             raise TimeoutError('Timeout')
@@ -748,6 +755,7 @@ def test_axon_receptor_connection_backward_timeout():
     out, ops, time  = receptor.backward(x,x, bittensor.proto.Modality.TENSOR, timeout=1)
     assert ops == bittensor.proto.ReturnCode.Timeout
     axon.stop()
+    axon.__del__()
 
 if __name__ == "__main__":
     test_axon_receptor_connection_backward_timeout()
