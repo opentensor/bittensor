@@ -554,7 +554,6 @@ def test_grpc_forward_works():
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
-    axon.__del__()
 
 
 def test_grpc_backward_works():
@@ -594,7 +593,6 @@ def test_grpc_backward_works():
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
-    axon.__del__()
 
 def test_grpc_forward_fails():
     def forward( inputs_x:torch.FloatTensor):
@@ -628,7 +626,6 @@ def test_grpc_forward_fails():
         assert grpc_code == grpc.StatusCode.UNAUTHENTICATED
 
     axon.stop()
-    axon.__del__()
 
 def test_grpc_backward_fails():
     def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor):
@@ -666,7 +663,6 @@ def test_grpc_backward_fails():
         assert grpc_code == grpc.StatusCode.UNAUTHENTICATED
 
     axon.stop()
-    axon.__del__()
 
 def is_port_in_use(port):
     import socket
