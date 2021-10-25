@@ -2,7 +2,6 @@ import bittensor
 from unittest.mock import MagicMock
 import os
 import shutil
-import signal
 
 from bittensor.utils.balance import Balance
 subtensor = bittensor.subtensor()

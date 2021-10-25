@@ -2,9 +2,10 @@ from sys import version
 import grpc
 import torch
 import bittensor
-
 from unittest.mock import MagicMock
 import unittest.mock as mock
+
+logger = bittensor.logging()
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',
