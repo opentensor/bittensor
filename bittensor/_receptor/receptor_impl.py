@@ -199,7 +199,6 @@ class Receptor(nn.Module):
             pass
         return outputs, code, time
 
-    @logger.catch
     def _call_forward(
         self, 
         inputs: torch.Tensor, 
@@ -404,7 +403,6 @@ class Receptor(nn.Module):
         bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=list(outputs.shape), message=response_message)
         return outputs, code, call_time, message
 
-    @logger.catch
     def _call_backward(
             self,
             inputs_x: torch.Tensor, 
