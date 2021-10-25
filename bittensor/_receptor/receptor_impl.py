@@ -281,7 +281,7 @@ class Receptor(nn.Module):
                                                         ('rpc-auth-header','Bittensor'),
                                                         ('bittensor-signature',self.sign()),
                                                         ('bittensor-version',str(bittensor.__version_as_int__)),
-                                                        ('request_type', 'forward'),
+                                                        ('request_type', bittensor.proto.RequestType.FORWARD),
                                                         ))
                 self.stats.forward_bytes_in.update(sys.getsizeof(response))
                 self.stats.forward_elapsed_time.update((clock.time()-start_time))
@@ -493,7 +493,7 @@ class Receptor(nn.Module):
                                                     ('rpc-auth-header','Bittensor'),
                                                     ('bittensor-signature',self.sign()),
                                                     ('bittensor-version',str(bittensor.__version_as_int__)),
-                                                    ('request_type', 'backwards'),
+                                                    ('request_type', bittensor.proto.RequestType.BACKWARDS),
                                                     ))
 
             # Get message

@@ -111,7 +111,7 @@ def main( config ):
 
         gp_server.backward_gradients += inputs_x.size(0)
        
-    def priority(pubkey:str, request_type:str, inputs_x) -> float:
+    def priority(pubkey:str, request_type:bittensor.proto.RequestType, inputs_x) -> float:
         r"""Calculates the priority on requests based on stake and size of input
 
             Args:
@@ -119,21 +119,21 @@ def main( config ):
                     The public key of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                request_type ( str, `required`):
-                    the request type ('forward' or 'backward').
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
         """        
         uid = metagraph.hotkeys.index(pubkey)
         priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
 
         return priority
 
-    def blacklist(pubkey:str, request_type:str) -> bool:
+    def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
             Args:
                 pubkey ( str, `required`):
                     The public key of the caller.
-                request_type ( str, `required`):
-                    the request type ('forward' or 'backward').
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
         """
 
         # Check for stake
