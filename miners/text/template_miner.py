@@ -591,14 +591,14 @@ class Miner:
         priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
         return priority
 
-    def blacklist( self, pubkey:str, meta:tuple ) -> bool:
+    def blacklist(self, pubkey:str, request_type:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
             Currently, this is not turned on.
             Args:
                 pubkey ( str, `required`):
-                    The public ss58 address of the caller.
-                meta ( :obj:`tuple`, `required`):
-                    Tuple containing request information.
+                    The public key of the caller.
+                request_type ( str, `required`):
+                    the request type ('forward' or 'backward').
         """
         # Blacklist requests from peers who are not subscribed or have stake less that black_list
         uid = self.metagraph.hotkeys.index(pubkey)
