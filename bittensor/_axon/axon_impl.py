@@ -30,7 +30,6 @@ import concurrent
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-
 logger = logger.opt(colors=True)
 
 class Axon( bittensor.grpc.BittensorServicer ):
@@ -597,7 +596,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
         """
         self.stop()
-        self.server.stop(1)
 
     def subscribe( 
             self, 
