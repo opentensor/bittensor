@@ -398,7 +398,7 @@ class Miner:
 
             # ---- Init run state ----
             self.epoch = 0            
-            self.stats.ema_scores = torch.nn.Parameter(torch.ones(bittensor.neuron.metagraph.n.item()).to(self.device) * (1 / bittensor.neuron.metagraph.n.item()), requires_grad = False).to(self.device)
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(bittensor.neuron.metagraph.n.item()).to(self.device) * (1 / bittensor.neuron.metagraph.n.item()), requires_grad = False)
 
             # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
@@ -447,7 +447,6 @@ class Miner:
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                             scores = torch.nn.functional.normalize ( torch.relu( self.scores(output.remote_target_loss) ), p=1, dim = 0 )
-                            scores = torch.zeros(bittensor.neuron.metagraph.n.item()).to(self.device)
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
 
