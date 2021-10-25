@@ -353,7 +353,7 @@ class cli:
         run_parser.add_argument(
             '--path', 
             dest="path", 
-            default=os.path.expanduser('~/Workspace/bittensor/miners/text/template_miner.py'),
+            default=os.path.expanduser('miners/text/template_miner.py'),
             type=str, 
             required=False
         )
@@ -564,7 +564,6 @@ class cli:
 
         # Copy accross keys.
         file_path = Path(str(Path(__file__).resolve()) + "/../../../miners/text/template_miner.py").resolve()
-        print(file_path)
         miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(file_path)).load_module()
         miner_config = miner.Miner.config()
         for k in miner_config.keys():

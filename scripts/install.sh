@@ -232,11 +232,11 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "bittensor"
 
     wait_for_user
-    #mac_install_brew
-    #mac_install_cmake
-    #mac_install_python
-    #mac_update_pip
-    #mac_install_bittensor
+    mac_install_brew
+    mac_install_cmake
+    mac_install_python
+    mac_update_pip
+    mac_install_bittensor
     echo ""
     echo ""
     echo "######################################################################"
