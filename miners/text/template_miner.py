@@ -608,7 +608,7 @@ class Miner:
         r""" Returns a saved state dict or none.
         """
         try:
-            return torch.load("{}/model.torch".format( self.config.miner.full_path, map_location = self.device ))
+            return torch.load("{}/model.torch".format( self.config.miner.full_path), map_location = self.device )
         except Exception as e:
             logger.warning('No saved model found with error: {}', e)
             logger.info('Initalizing with new model')
@@ -731,29 +731,6 @@ class Miner:
             'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
         }
 
-        logger.info(f'next(self.nucleus.parameters()) {next(self.nucleus.parameters()).device}')
-        logger.info(f'self.nucleus.peer_weights {self.nucleus.peer_weights.device}')
-        logger.info(f'self.stats.ema_scores {self.stats.ema_scores.device}')
-        logger.info(f'bittensor.neurons.metagraph {next(bittensor.neuron.metagraph.parameters()).device}')
-        logger.info(f'next(dataset) {next(self.dataset).device}')
-        logger.info("")
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
-        logger.info('')
         # ---- Miner summary per peer for progress bar
         for uid in bittensor.neuron.metagraph.uids.tolist():
             if normalized_peer_weights[uid].item() > 0:
