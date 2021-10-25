@@ -576,7 +576,7 @@ class Miner:
                     grad_tensors = [grads_dy.to( self.device )]
                 )
     
-    def priority(self, pubkey:str, request_type:str, inputs_x: torch.FloatTensor) -> float:
+    def priority(self, pubkey:str, request_type:bittensor.proto.RequestType, inputs_x: torch.FloatTensor) -> float:
         r"""Return the request priority based on stake and size of input. 
             Used by the Axon to order requests.
             Args:
@@ -584,21 +584,21 @@ class Miner:
                     The public ss58 address of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                request_type ( str, `required`):
-                    the request type ('forward' or 'backward').
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
         """        
         # Priority = stake / request_size 
         priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
         return priority
 
-    def blacklist(self, pubkey:str, request_type:str) -> bool:
+    def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
             Currently, this is not turned on.
             Args:
                 pubkey ( str, `required`):
                     The public key of the caller.
-                request_type ( str, `required`):
-                    the request type ('forward' or 'backward').
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
         """
         # Blacklist requests from peers who are not subscribed or have stake less that black_list
         uid = self.metagraph.hotkeys.index(pubkey)

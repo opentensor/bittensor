@@ -190,7 +190,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # Make forward call.
         try:
             if self.priority != None:
-                priority = self.priority(public_key,inputs_x=inputs_x, request_type = 'forward')
+                priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.FORWARD)
                 future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
 
                 try:
@@ -251,7 +251,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         if modality == bittensor.proto.Modality.TEXT:
             if self.priority != None:
                 try:
-                    priority = self.priority(public_key,inputs_x=inputs_x, request_type = 'backward')
+                    priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.BACKWARD)
                     future = self.priority_threadpool.submit(self.backward_callback[modality],inputs_x=inputs_x,grads_dy=grads_dy,priority=priority)
                 except concurrent.futures.TimeoutError :
                     raise TimeoutError('TimeOutError')
