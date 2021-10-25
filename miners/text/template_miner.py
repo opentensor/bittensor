@@ -331,7 +331,6 @@ class Miner:
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
         parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=100)
-        parser.add_argument('--miner.batch_size_train', type=int, help='Training batch size.', default=2)
         parser.add_argument('--miner.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
@@ -353,7 +352,6 @@ class Miner:
     def check_config( config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
-        assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
 
         bittensor.check_config( config )
