@@ -584,7 +584,13 @@ class Miner:
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.
         """
-        last_saved = self.get_saved_state()
+        # --- Load previous state.
+        try:
+            last_saved = torch.load("{}/model.torch".format( self.config.miner.full_path), map_location = self.device )
+        except Exception as e:
+            logger.warning('No saved model found with error: {}', e)
+            last_saved = None
+
         if last_saved == None or last_saved['epoch_loss'] >= self.stats.local_target_epoch_loss:
             self.stats.best_epoch_loss = self.stats.local_target_epoch_loss
             self.save()
@@ -594,20 +600,15 @@ class Miner:
             logger.error('Incorrect epoch loss detected, reloading to previous saved state')
             self.reload()
 
-    def get_saved_state( self ):
-        r""" Returns a saved state dict or none.
-        """
-        try:
-            return torch.load("{}/model.torch".format( self.config.miner.full_path), map_location = self.device )
-        except Exception as e:
-            logger.warning('No saved model found with error: {}', e)
-            logger.info('Initalizing with new model')
-            return None
-
     def reload( self ):
         r""" Reloads/updates the training state from the disk.
         """
-        state_dict = self.get_saved_state()
+        # --- Load previous state.
+        try:
+            state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path), map_location = self.device )
+        except Exception as e:
+            logger.warning('No saved model found with error, initializing with new model: {}', e)
+            state_dict = None
 
         # --- loads and syncs metagraph
         try:
