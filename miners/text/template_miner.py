@@ -216,7 +216,7 @@ class Nucleus(nn.Module):
                 Joined hidden layer responses from peers.
         """
 
-        # ---- Get active peers and their weights ----
+        # ---- Get active peers and their weights ---- 
         active_uids = torch.where(bittensor.neuron.metagraph.active > 0)[0]
         active_peer_weights = self.peer_weights[active_uids]
 
@@ -237,7 +237,7 @@ class Nucleus(nn.Module):
 
         # ---- Join based on weights ----
         joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-        joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
+        joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
         output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.miner.device )
         for index, joining_weight in enumerate( joining_weights ):
             output += responses[joining_uids[index]].to( self.config.miner.device ) * joining_weight
@@ -246,7 +246,7 @@ class Nucleus(nn.Module):
         with torch.no_grad():
             self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
             self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
-
+        
         return output
 
 class Miner:
@@ -293,14 +293,14 @@ class Miner:
             forward_text = self.forward_text,
             backward_text = self.backward_text,
             blacklist = self.blacklist
-        )
+        ) 
 
-        #bittensor priority thread pool
+        #bittensor priority thread pool 
         self.thread_pool = bittensor.prioritythreadpool(
             config = self.config
         )
 
-        # ---- Init of when was the block that we sync to
+        # ---- Init of when was the block that we sync to 
         self.last_sync_block = 0
         # ---- Store all the stats
         self.stats = SimpleNamespace(
@@ -314,7 +314,7 @@ class Miner:
             best_epoch_loss = math.inf,
             ema_scores = torch.ones(0).to(self.device)
         )
-        # ---- Decay factor for fisher ema score
+        # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
 
     @staticmethod
@@ -341,9 +341,9 @@ class Miner:
         parser.add_argument('--miner.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
         parser.add_argument('--miner.sync_block_time', type=int, help='How often the sync the miner with metagraph, in terms of block time', default=15)
         parser.add_argument('--miner.restart', type=bool, help='If True, train the miner from the beginning', default=False)
-
+        
         bittensor.add_args( parser )
-        Nucleus.add_args( parser )
+        Nucleus.add_args( parser ) 
         bittensor.prioritythreadpool.add_args( parser )
 
         return bittensor.config( parser )
@@ -374,15 +374,15 @@ class Miner:
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
 
     def scores ( self, loss ):
-        """Computes salience scores for each peer in the network w.r.t the loss.
+        """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
         peer_weights_d1 = torch.autograd.grad(loss, self.nucleus.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
         if peer_weights_d1 == None: return torch.ones_like( self.nucleus.peer_weights ) * (1 / self.neuron.metagraph.n.item()) # None if no grad w.r.t the chain weights.
         peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.nucleus.peer_weights, retain_graph=True, allow_unused=True )[0]
-        validator_scores =  peer_weights_d2 * (self.nucleus.peer_weights**2)/2
+        validator_scores =  peer_weights_d2 * (self.nucleus.peer_weights**2)/2  
         return validator_scores
-
+    
     def run( self ):
         r""" Miner main loop.
         """
@@ -397,7 +397,7 @@ class Miner:
                 )
 
             # ---- Init run state ----
-            self.epoch = 0
+            self.epoch = 0            
             self.stats.ema_scores = torch.ones(bittensor.neuron.metagraph.n.item()).to(self.device) * (1 / bittensor.neuron.metagraph.n.item())
 
             # ---- reloads previous run if not restart ----
@@ -412,15 +412,7 @@ class Miner:
                 self.save()
                 self.reload()
                 self.neuron.axon.check()
-
-            #with torch.profiler.profile(
-            #        schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
-            #        on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/tao_machine'),
-            #        record_shapes=True,
-            #        profile_memory=True,
-            #        with_stack=True
-            #) as prof:
-
+            
             # --- Run until n_epochs ----
             while self.epoch < self.config.miner.n_epochs:
                 try:
@@ -440,11 +432,11 @@ class Miner:
                     block_steps = [ block_delta for block_delta in range(start_block, end_block)]
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('white', f'Epoch:'))
                     for block in progress_bar:
-
+                        
                         # --- Iterate over batches until the end of the block.
                         current_block = self.neuron.subtensor.get_current_block()
                         while block >= current_block:
-
+                            
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
                             output = self.nucleus.local_forward (
@@ -460,12 +452,11 @@ class Miner:
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
 
                             # ---- Apply and zero accumulated gradients.
-                            self.optimizer.step()
-                            #prof.step()
+                            self.optimizer.step() 
                             self.optimizer.zero_grad()
                             current_block = self.neuron.subtensor.get_current_block()
 
-                            # ---- Aggrigate outputs and losses
+                            # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
                             # total_distillation_epoch_loss += output.distillation_loss.item()
                             # total_remote_target_epoch_loss += output.remote_target_loss.item()
@@ -479,7 +470,7 @@ class Miner:
                                 self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=True)]))
                             self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
 
-                        # ---- Sync with metagraph if the current block >= last synced block + sync block time
+                        # ---- Sync with metagraph if the current block >= last synced block + sync block time 
                         current_block = self.neuron.subtensor.get_current_block()
                         block_diff = current_block - self.last_sync_block
                         if block_diff >= self.config.miner.sync_block_time:
@@ -565,7 +556,7 @@ class Miner:
                     torch inputs from previous forward call.
                 grads_dy ( :obj:`torch.Tensor`, `required`):
                     torch grads of forward output.
-
+                    
             Returns:
                 outputs (:obj:`torch.FloatTensor`, `optional`):
                     The gradients w.r.t to the inputs [batch_size, sequence_len, -1]
@@ -576,12 +567,12 @@ class Miner:
                     # ---- Set up inputs for gradient computations.
                     outputs_y = self.nucleus.local_forward( inputs = input ).local_context.to( self.device )
                     # ---- The backward call will accumulate gradients on our parameters.
-
+                
                     torch.autograd.backward (
                         tensors = [outputs_y],
                         grad_tensors = [grad]
                     )
-                    return inputs_x.grad if inputs_x.grad != None else None
+                    return inputs_x.grad if inputs_x.grad != None else None                                                                                                                                                                         
 
             priority = self.neuron.metagraph.S[ self.neuron.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
             try:
@@ -645,11 +636,11 @@ class Miner:
             raise Exception('Network does not match saved state')
 
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to( self.device )]))
+        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
         self.nucleus.to( self.device ) # Load nucleus
 
         # --- Load optimizer
-        # check if the optimizer has previously stored separate param for the chain_weight
+        # check if the optimizer has previously stored separate param for the chain_weight 
         if len(state_dict['optimizer_state']['param_groups']) == 1:
             self.optimizer = torch.optim.SGD(
                 [{"params": self.nucleus.parameters()}],
@@ -712,7 +703,7 @@ class Miner:
         self_uid = bittensor.neuron.metagraph.hotkey_to_uid(bittensor.neuron.wallet.hotkey.ss58_address)
         stake = bittensor.neuron.metagraph.S[ self_uid ].item()
         rank = bittensor.neuron.metagraph.R[ self_uid ].item()
-        incentive = bittensor.neuron.metagraph.I[ self_uid ].item()
+        incentive = bittensor.neuron.metagraph.I[ self_uid ].item()     
         normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach())
 
         # ---- Progress bar log
@@ -720,7 +711,7 @@ class Miner:
             'GS': colored('{}'.format(self.stats.global_step), 'red'),
             'LS': colored('{}'.format(iteration), 'blue'),
             'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-            'Best': colored('{:.4f}'.format(self.stats.best_epoch_loss), 'red'),
+            'Best': colored('{:.4f}'.format(self.stats.best_epoch_loss), 'red'),            
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
             # 'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
             # 'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
@@ -744,7 +735,7 @@ class Miner:
 
         progress_bar.set_infos( info )
 
-        # ---- wandb log if it is the end of epoch
+        # ---- wandb log if it is the end of epoch 
         if  self.config.neuron.use_wandb and ((iteration + 1) % (self.config.miner.epoch_length ) == 0):
             # ---- Miner summary for wandb
             wandb_info = {
@@ -768,7 +759,7 @@ class Miner:
 
             wandb_info_axon = bittensor.neuron.axon.to_wandb()
             wandb_info_dend = bittensor.neuron.dendrite.to_wandb()
-
+                
             try:
                 wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend})
 

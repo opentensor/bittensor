@@ -331,7 +331,7 @@ class Metagraph( torch.nn.Module ):
                     Path to load state_dict.
         """
         full_path = os.path.expanduser(path)
-        metastate = torch.load( full_path , map_location = torch.device('cpu'))
+        metastate = torch.load( full_path )
         return self.load_from_state_dict( metastate )
 
     def save_to_path(self, path:str, filename:str ) -> 'Metagraph':
