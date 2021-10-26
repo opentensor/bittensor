@@ -408,13 +408,13 @@ class Metagraph( torch.nn.Module ):
         for n in neurons:
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
-            stake[n.uid] = n.stake / float(RAOPERTAO)
-            ranks[n.uid] = n.rank / float(U64MAX)
-            trust[n.uid] = n.trust / float(U64MAX)
-            consensus[n.uid] = n.consensus / float(U64MAX)
-            incentive[n.uid] = n.incentive / float(U64MAX)
-            dividends[n.uid] = n.dividends / float(U64MAX)
-            emission[n.uid] = n.emission / float(RAOPERTAO)
+            stake[n.uid] = n.stake 
+            ranks[n.uid] = n.rank
+            trust[n.uid] = n.trust
+            consensus[n.uid] = n.consensus
+            incentive[n.uid] = n.incentive
+            dividends[n.uid] = n.dividends
+            emission[n.uid] = n.emission
             last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
                 version = int(n.version),
