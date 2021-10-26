@@ -43,12 +43,12 @@ __type_registery__ = {
                 ["last_update", "u64"],
                 ["priority", "u64"],
                 ["stake", "u64"],
-                ["trust", "u64"],
                 ["rank", "u64"],
+                ["trust", "u64"],
                 ["consensus", "u64"],
                 ["incentive", "u64"],
-                ["emission", "u64"],
                 ["dividends", "u64"],
+                ["emission", "u64"],
                 ["bonds", "Vec<(u32, u64)>"],
                 ["weights", "Vec<(u32, u32)>"]
             ]
