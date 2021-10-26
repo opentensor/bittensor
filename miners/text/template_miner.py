@@ -396,7 +396,7 @@ class Miner:
             os.makedirs(config.miner.full_path)
 
     def __enter__(self):
-        self.wallet.create()
+        self.wallet.create().register()
         self.metagraph.sync().save()
         self.axon.start().serve (
             use_upnpc = self.config.miner.use_upnpc, 
@@ -696,9 +696,9 @@ class Miner:
         """
 
         try:
-            k = min(self.config.miner.n_topk_peer_weights, bittensor.neuron.metagraph.n.item())
+            k = min(self.config.miner.n_topk_peer_weights, self.metagraph.n.item())
             topk_scores, topk_uids = torch.topk( self.stats.ema_scores.detach(), k = k )
-            did_set = bittensor.neuron.subtensor.timeout_set_weights(
+            did_set = self.subtensor.timeout_set_weights(
                 timeout=10,
                 uids = topk_uids,
                 weights = topk_scores,
