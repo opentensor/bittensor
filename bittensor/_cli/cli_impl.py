@@ -68,6 +68,8 @@ class CLI:
             self.regen_coldkey()
         elif self.config.command == "regen_hotkey":
             self.regen_hotkey()
+        elif self.config.command == "metagraph":
+            self.metagraph()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -356,6 +358,77 @@ class CLI:
             except:
                 pass
         print(root)
+
+    def metagraph(self):
+        r""" Prints an overview for the wallet's colkey.
+        """
+        console = bittensor.__console__
+        subtensor = bittensor.subtensor( config = self.config )
+        metagraph = bittensor.metagraph( subtensor = subtensor )
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            metagraph.load()
+            metagraph.sync()
+            metagraph.save()
+
+        TABLE_DATA = [] 
+        total_stake = 0.0
+        total_rank = 0.0
+        total_trust = 0.0
+        total_consensus = 0.0
+        total_incentive = 0.0
+        total_dividends = 0.0
+        total_emission = 0.0  
+        for uid in metagraph.uids:
+            ep = metagraph.endpoint_objs[uid]
+            row = [
+                str(ep.uid), 
+                '{:.5f}'.format( metagraph.stake[uid]),
+                '{:.5f}'.format( metagraph.ranks[uid]), 
+                '{:.5f}'.format( metagraph.trust[uid]), 
+                '{:.5f}'.format( metagraph.consensus[uid]), 
+                '{:.5f}'.format( metagraph.incentive[uid]),
+                '{:.5f}'.format( metagraph.dividends[uid]),
+                '{:.5f}'.format( metagraph.emission[uid]),
+                str(metagraph.last_update[uid].item()),
+                str( metagraph.active[uid].item() ), 
+                ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
+                ep.hotkey[:10],
+                ep.coldkey[:10]
+            ]
+            total_stake += metagraph.stake[uid]
+            total_rank += metagraph.ranks[uid]
+            total_trust += metagraph.trust[uid]
+            total_consensus += metagraph.consensus[uid]
+            total_incentive += metagraph.incentive[uid]
+            total_dividends += metagraph.dividends[uid]
+            total_emission += metagraph.emission[uid]
+            TABLE_DATA.append(row)
+        total_neurons = len(metagraph.uids)                
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Metagraph([bold grey]{}[/bold grey])".format(subtensor.network)
+        )
+        table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]LastUpdate (blocks)", justify='right', no_wrap=True)
+        table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
+        table.add_column("[overline white]COLDKEY", style='dim purple', no_wrap=False)
+        table.show_footer = True
+
+        for row in TABLE_DATA:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
 
     def overview(self):
         r""" Prints an overview for the wallet's colkey.
