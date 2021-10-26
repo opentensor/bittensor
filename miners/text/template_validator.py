@@ -89,7 +89,7 @@ def main( config ):
     # Subscribe validator.
     subtensor.serve (
         wallet = wallet,
-        ip = bittensor.external_ip(),
+        ip = bittensor.utils.networking.get_external_ip(),
         port = 8080,
         modality = 0,
         wait_for_inclusion = True,
@@ -275,7 +275,7 @@ def main( config ):
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
+        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
         subtensor.set_weights (
             uids = topk_uids,
             weights = topk_scores,
