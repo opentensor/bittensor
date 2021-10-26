@@ -135,7 +135,7 @@ def main( config ):
                 request_type ( bittensor.proto.RequestType, `required`):
                     the request type ('FORWARD' or 'BACKWARD').
         """
-        print(request_type)
+
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
