@@ -271,7 +271,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r""" Authentication between bittensor nodes. Intercepts messages and checks them
         """
         meta = handler_call_details.invocation_metadata
-        print(meta)
+
         try: 
             #version checking
             self.version_checking(meta)
@@ -333,11 +333,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 
         """
         _, pubkey, _ = meta[1].value.split('bitxx')
-        print(meta,meta[3].value)
+
         if self.blacklist == None:
             pass
         #TODO: Turn on blacklisting
-        elif self.blacklist(pubkey,meta[3].value):
+        elif self.blacklist(pubkey,int(meta[3].value)):
             raise Exception('Black listed')
         else:
             pass
