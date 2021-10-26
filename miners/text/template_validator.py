@@ -294,7 +294,7 @@ def main( config ):
             'epoch_loss': epoch_loss
         } 
 
-        norm_weights = F.softmax( validator.peer_weights.detach() )
+        norm_weights = F.softmax( validator.peer_weights.detach(), dim=0 )
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
