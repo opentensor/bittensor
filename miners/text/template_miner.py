@@ -591,14 +591,14 @@ class Miner:
         priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
         return priority
 
-    def blacklist( self, pubkey:str, meta:tuple ) -> bool:
+    def blacklist(self, pubkey:str, request_type:str) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
             Currently, this is not turned on.
             Args:
                 pubkey ( str, `required`):
-                    The public ss58 address of the caller.
-                meta ( :obj:`tuple`, `required`):
-                    Tuple containing request information.
+                    The public key of the caller.
+                request_type ( str, `required`):
+                    the request type ('forward' or 'backward').
         """
         # Blacklist requests from peers who are not subscribed or have stake less that black_list
         uid = self.metagraph.hotkeys.index(pubkey)
@@ -696,9 +696,9 @@ class Miner:
         """
 
         try:
-            k = min(self.config.miner.n_topk_peer_weights, self.metagraph.n.item())
-            topk_scores, topk_uids = torch.topk( self.stats.ema_scores, k = k )
-            did_set = self.subtensor.timeout_set_weights(
+            k = min(self.config.miner.n_topk_peer_weights, bittensor.neuron.metagraph.n.item())
+            topk_scores, topk_uids = torch.topk( self.stats.ema_scores.detach(), k = k )
+            did_set = bittensor.neuron.subtensor.timeout_set_weights(
                 timeout=10,
                 uids = topk_uids,
                 weights = topk_scores,
@@ -706,7 +706,7 @@ class Miner:
                 wallet = self.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
+                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores.item(), topk_uids.item()))))
             else:
                 logger.warning('Failed to set weights on chain.')
 
