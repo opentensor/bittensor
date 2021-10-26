@@ -82,6 +82,20 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
+
+        metagraph_parser = cmd_parsers.add_parser(
+            'metagraph', 
+            help='''Metagraph commands'''
+        )
+        metagraph_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
+        bittensor.subtensor.add_args( metagraph_parser )
+
         list_parser = cmd_parsers.add_parser(
             'list', 
             help='''List wallets'''
@@ -390,6 +404,12 @@ class cli:
             cli.check_regen_coldkey_config( config )
         elif config.command == "regen_hotkey":
             cli.check_regen_hotkey_config( config )
+        elif config.command == "metagraph":
+            cli.check_metagraph_config( config )
+
+    def check_metagraph_config( config: 'bittensor.Config'):
+        if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
     def check_transfer_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -431,7 +451,7 @@ class cli:
 
     def check_unstake_config( config: 'bittensor.Config' ):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks_descr__, default = bittensor.defaults.subtensor.network)
 
         if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
