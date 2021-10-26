@@ -20,7 +20,7 @@ from rich.console import Console
 from typing import Callable
 
 # Bittensor code and protocol version.
-__version__ = '1.5.0'
+__version__ = '1.6.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
@@ -36,16 +36,16 @@ __vocab_size__ = 50378
 __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
 # Substrate chain block time (seconds).
-__blocktime__ = 6
+__blocktime__ = 10
 
-__networks__ = ['akatsuki', 'kusanagi', 'nobunaga']
+__networks__ = ['nakamoto', 'akatsuki', 'nobunaga']
 
-__akatsuki_entrypoints__ = [
-    "main.akatsuki.bittensor.com:9944"
+__nakamoto_entrypoints__ = [
+    "main.nakamoto.opentensor.ai:9944"
 ]
 
-__kusanagi_entrypoints__ = [
-    "test.kusanagi.bittensor.com:9944"
+__akatsuki_entrypoints__ = [
+    "test.akatsuki.opentensor.ai:9944"
 ]
 
 __nobunaga_entrypoints__ = [

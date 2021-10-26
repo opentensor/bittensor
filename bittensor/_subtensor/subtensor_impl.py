@@ -453,13 +453,27 @@ To run a local node (See: docs/running_a_validator.md) \n
             for page in tqdm( page_results ):
                 for n in page:
                     if type(n.value) != int:
-                        n = SimpleNamespace( **dict(n.value) )
+                        n = Subtensor._neuron_dict_to_namespace( n.value )
                         if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
                             n.is_null = True
                         else:
                             n.is_null = False
                         result.append( n )
             return result
+
+    @staticmethod
+    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
+        RAOPERTAO = 1000000000
+        U64MAX = 18446744073709551615
+        neuron = SimpleNamespace( **neuron_dict )
+        neuron.stake = neuron.stake / RAOPERTAO
+        neuron.rank = neuron.rank / U64MAX
+        neuron.trust = neuron.trust / U64MAX
+        neuron.consensus = neuron.consensus / U64MAX
+        neuron.incentive = neuron.incentive / U64MAX
+        neuron.dividends = neuron.dividends / U64MAX
+        neuron.emission = neuron.emission / RAOPERTAO
+        return neuron
 
     def neuron_for_uid( self, uid: int, ss58_hotkey: str = None, block: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
@@ -475,9 +489,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Make the call.
         with self.substrate as substrate:
             neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
-        # Process the call.
-        neuron = SimpleNamespace( **neuron )
-        neuron.ip = net.int_to_ip(neuron.ip)
+        neuron = Subtensor._neuron_dict_to_namespace( neuron )
         if neuron.hotkey != ss58_hotkey:
             neuron.is_null = True
         else:
