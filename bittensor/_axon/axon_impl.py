@@ -30,6 +30,8 @@ import concurrent
 
 import bittensor
 import bittensor.utils.stats as stat_utils
+import bittensor.utils.networking as net
+
 logger = logger.opt(colors=True)
 
 class Axon( bittensor.grpc.BittensorServicer ):
@@ -627,16 +629,16 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ---- Setup UPNPC ----
         if use_upnpc:
             try:
-                self.external_port = bittensor.net.upnpc_create_port_map( port = self.port )
+                self.external_port = net.upnpc_create_port_map( port = self.port )
                 bittensor.logging.success(prefix = 'UPNPC', sufix = '<red>OPEN</red>')
-            except bittensor.net.UPNPCException as upnpc_exception:
+            except net.UPNPCException as upnpc_exception:
                 raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
         else:
             self.external_port = self.port
 
         # ---- Get external ip ----
         try:
-            self.external_ip = bittensor.net.get_external_ip()
+            self.external_ip = net.get_external_ip()
             bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
         except Exception as E:
             raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
