@@ -121,7 +121,7 @@ class subtensor:
                                     If this option is set it overloads subtensor.chain_endpoint with 
                                     an entry point node from that network.
                                     ''')
-            parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.network, type=str, 
+            parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
         except argparse.ArgumentError:
