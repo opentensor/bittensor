@@ -55,12 +55,10 @@ class Dataset():
             self.wikitext_text_dataset_hash, 
         ]
         # Used to retrieve directory contentx
-        # self.dag_get = 'https://gateway.pinata.cloud/api/v0/dag/get'
-        self.dag_get = 'https://ipfs.infura.io:5001/api/v0/dag/get'
+        self.dag_get = 'https://gateway.pinata.cloud/api/v0/dag/get'
 
         # Used to retrieve file contents
-        # self.file_cat = 'https://gateway.pinata.cloud/api/v0/cat'
-        self.file_cat = 'https://ipfs.infura.io:5001/api/v0/dag/get'
+        self.file_cat = 'https://gateway.pinata.cloud/api/v0/cat'
 
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
@@ -301,9 +299,9 @@ class GenesisTextDataset( Dataset ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-        
+        scale = 1
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size ):
+        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) * scale:
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
@@ -313,9 +311,9 @@ class GenesisTextDataset( Dataset ):
 
             # Set up upper bound of indices to fit the batch size we want.
             idx_bound = epoch_length * self.batch_size
-            if idx_bound < len(self):
+            if idx_bound * scale < len(self):
                 # Collect enough random indices to batch together using batch_size into epoch_length batches
-                random_start = random.randint(0, len(self) - round(idx_bound ))
+                random_start = random.randint(0, len(self) - round(idx_bound * scale))
                 indices = list(range(random_start, random_start + idx_bound))
 
                 subset = Subset(self, indices)
