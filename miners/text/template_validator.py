@@ -57,14 +57,14 @@ def config ():
     parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
     parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
     parser.add_argument('--nucleus.punishment', type=float, help='the punishment for those not responding', default=0)
-    parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default='default')
-    parser.add_argument('--wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default='default')
+
     
     bittensor.wallet.add_args( parser )
     bittensor.dendrite.add_args( parser )
     bittensor.subtensor.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.dataset.add_args( parser )
+    bittensor.wandb.add_args(parser)
     return bittensor.config( parser )
 
 def main( config ):
@@ -186,16 +186,14 @@ def main( config ):
     )
 
     # Create wandb for telemetry.
-    wandb.init (
-        config = config, 
-        name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-        project = wallet.coldkeypub.ss58_address[:8] if not config.wandb.project else config.wandb.project,
-        group = wallet.hotkey.ss58_address[:8] if not config.wandb.run_group else config.wandb.run_group,
-        dir = save_path,
-        resume = config.miner.resume,
-        save_code = True
+    bittensor.wandb(
+        config = config,
+        cold_pubkey = wallet.coldkeypub.ss58_address,
+        hot_pubkey = wallet.hotkey.ss58_address,
+        root_dir = save_path
     )
-    wandb.watch( validator, log = 'all', log_freq = 10 )
+
+    wandb.watch( validator, log = 'all', log_freq = 50 )
 
     # Optionally resume.
     if config.miner.resume:
