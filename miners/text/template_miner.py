@@ -395,19 +395,6 @@ class Miner:
         if not os.path.exists(config.miner.full_path):
             os.makedirs(config.miner.full_path)
 
-    def sync (self, current_block ):
-        """ Miner sync with metagraph and update chain weight
-        """
-        # ---- Set weights on chain ----
-        self.set_peer_weights()
-
-        # ---- Sync with metagraph ----
-        self.metagraph.load().sync().save()
-        chain_growth = self.metagraph.n.item()- self.nucleus.peer_weights.shape[0]
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
-        self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
-        logger.debug( 'Synced metagraph:'.ljust(20), 'Block: {}'.format(current_block))
-    
     def __enter__(self):
         self.wallet.create().register()
         self.metagraph.sync().save()
