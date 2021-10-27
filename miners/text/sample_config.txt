@@ -35,10 +35,7 @@ miner.accumulate_remote_gradients: false
 miner.clip_gradients: 1.0
 miner.compute_remote_gradients: false
 miner.sync_block_time: 15
-
-neuron.use_upnpc: false
-neuron.use_wandb: false
-neuron.api_key: default
+miner.use_wandb: false
 
 nucleus.dropout: 0.3
 nucleus.nhid: 200
@@ -48,7 +45,7 @@ nucleus.topk: 30
 nucleus.punishment: 0
 
 subtensor.chain_endpoint: null
-subtensor.network: akatsuki
+subtensor.network: nobunaga
 
 wallet.hotkey: default
 wallet.name: default

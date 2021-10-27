@@ -26,6 +26,7 @@ import copy
 from loguru import logger
 
 import bittensor
+import bittensor.utils.codes as codes
 
 logger = logger.opt(colors=True)
 
@@ -156,13 +157,13 @@ class logging:
             logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
 
     @classmethod
-    def set_trace(cls, debug_on: bool = True):
+    def set_trace(cls, trace_on: bool = True):
         """ Set trace back for the specific cls class 
         """
         if not cls.__has_been_inited__:
             cls()
-        cls._trace_on__ = debug_on
-        if debug_on: 
+        cls.__trace_on__ = trace_on
+        if trace_on: 
             logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
         else:  
             logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
@@ -191,11 +192,15 @@ class logging:
         if 'rpc' in extra:
             log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
             return log_format
-        if 'receptor' in extra:
+        elif 'receptor' in extra:
             log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
             return log_format
         else:
-            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
+            if cls.__trace_on__:
+                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}\n"
+            else:
+                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
+
    
     @classmethod
     def log_save_formatter(cls, record):
@@ -207,7 +212,11 @@ class logging:
             log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
             return log_format
         else:
-            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
+            if cls.__trace_on__:
+                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}\n"
+            else:
+                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
+
 
     @classmethod
     def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, call_time: float, pubkey: str, uid: int = None, inputs:list = None, outputs:list = None, message:str = ''):
@@ -239,8 +248,8 @@ class logging:
         else:
             uid_str = "-".center(5)
 
-        code_color = bittensor.utils.codes.code_to_loguru_color( code )
-        code_string = bittensor.utils.codes.code_to_string( code )
+        code_color = codes.code_to_loguru_color( code )
+        code_string = codes.code_to_string( code )
         code_string = code_string.center(16)
         code_str = "<" + code_color + ">" + code_string + "</" + code_color + ">"
 

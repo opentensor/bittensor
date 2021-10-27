@@ -69,6 +69,7 @@ def config ():
     return bittensor.config( parser )
 
 def main( config ):
+    config.to_defaults()
 
     print (config)
     
@@ -81,15 +82,15 @@ def main( config ):
     bittensor.logging ( config = config )
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet ( config = config ).create_if_non_existent()
+    wallet = bittensor.wallet ( config = config ).create_if_non_existent().register()
 
     # Connect to the chain.
     subtensor = bittensor.subtensor ( config = config )
 
     # Subscribe validator.
-    subtensor.subscribe (
+    subtensor.serve (
         wallet = wallet,
-        ip = bittensor.external_ip(),
+        ip = bittensor.utils.networking.get_external_ip(),
         port = 8080,
         modality = 0,
         wait_for_inclusion = True,
@@ -272,7 +273,7 @@ def main( config ):
             progress.set_infos( info )
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
+        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
         subtensor.set_weights (
             uids = topk_uids,
             weights = topk_scores,
@@ -291,7 +292,7 @@ def main( config ):
             'epoch_loss': epoch_loss
         } 
 
-        norm_weights = F.softmax( validator.peer_weights.detach() )
+        norm_weights = F.softmax( validator.peer_weights.detach(), dim=0 )
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)

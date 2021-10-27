@@ -122,7 +122,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 else:
                     return False
 
-    def subscribe(
+    def serve(
             self, 
             wallet: 'bittensor.wallet',
             ip: str, 
@@ -155,7 +155,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
         if not neuron.is_null and neuron.ip == ip and neuron.port == port:
-            logger.success( "Already subscribed".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
+            logger.success( "Already served".ljust(20) + '<blue>ip: {}, port: {}, modality: {}, hotkey: {}, coldkey: {}</blue>'.format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
             return True
 
         ip_as_int  = net.ip_to_int(ip)
@@ -174,7 +174,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule',
-                call_function='subscribe',
+                call_function='serve_axon',
                 call_params=params
             )
             # TODO (const): hotkey should be an argument here not assumed. Either that or the coldkey pub should also be assumed.
@@ -453,7 +453,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             for page in page_results :
                 for n in page:
                     if type(n.value) != int:
-                        n = SimpleNamespace( **dict(n.value) )
+                        n = Subtensor._neuron_dict_to_namespace( n.value )
                         if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
                             n.is_null = True
                         else:
@@ -461,7 +461,21 @@ To run a local node (See: docs/running_a_validator.md) \n
                         result.append( n )
             return result
 
-    def neuron_for_uid( self, uid: int, ss58_hotkey: str, block: int = None ) -> Union[ dict, None ]: 
+    @staticmethod
+    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
+        RAOPERTAO = 1000000000
+        U64MAX = 18446744073709551615
+        neuron = SimpleNamespace( **neuron_dict )
+        neuron.stake = neuron.stake / RAOPERTAO
+        neuron.rank = neuron.rank / U64MAX
+        neuron.trust = neuron.trust / U64MAX
+        neuron.consensus = neuron.consensus / U64MAX
+        neuron.incentive = neuron.incentive / U64MAX
+        neuron.dividends = neuron.dividends / U64MAX
+        neuron.emission = neuron.emission / RAOPERTAO
+        return neuron
+
+    def neuron_for_uid( self, uid: int, ss58_hotkey: str = None, block: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
@@ -472,15 +486,15 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (dict(NeuronMetadata)):
                 neuron object associated with uid or None if it does not exist.
         """
+        # Make the call.
         with self.substrate as substrate:
             neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
-            neuron = SimpleNamespace( **neuron )
-            neuron.ip = net.int_to_ip(neuron.ip)
-            if neuron.hotkey != ss58_hotkey:
-                neuron.is_null = True
-            else:
-                neuron.is_null = False
-            return neuron
+        neuron = Subtensor._neuron_dict_to_namespace( neuron )
+        if neuron.hotkey != ss58_hotkey:
+            neuron.is_null = True
+        else:
+            neuron.is_null = False
+        return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
         r""" Returns true if the passed hotkey is registered on the chain.
@@ -491,6 +505,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid ( int ):
                 UID of passed hotkey or -1 if it is non-existent.
         """
+        # Make the call.
         with self.substrate as substrate:
             result = substrate.query (
                 module='SubtensorModule',
@@ -498,15 +513,16 @@ To run a local node (See: docs/running_a_validator.md) \n
                 params = [ ss58_hotkey ],
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
-            uid = int(result.value)
-            if uid == 0:
-                neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
-                if neuron.is_null:
-                    return -1
-                else:
-                    return uid
+        # Process the result.
+        uid = int(result.value)
+        if uid == 0:
+            neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
+            if neuron.is_null:
+                return -1
             else:
-                return True
+                return uid
+        else:
+            return True
 
     def is_hotkey_registered( self, ss58_hotkey: str, block: int = None) -> bool:
         r""" Returns true if the passed hotkey is registered on the chain.

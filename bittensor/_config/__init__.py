@@ -42,7 +42,7 @@ class config:
         if parser == None:
             parser = ArgumentParser()
 
-        # 1. Optionall load defaults if the --config is set.
+        # 1. Optionally load defaults if the --config is set.
         try:
             config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
 
@@ -93,3 +93,4 @@ class config:
         bittensor.metagraph.add_args( parser )
         bittensor.dataset.add_args( parser )
         return bittensor.config( parser )
+

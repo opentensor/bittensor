@@ -30,6 +30,8 @@ import datetime
 from nuclei.server import server
 
 def main( config ):
+    config.to_defaults()
+
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config)
 
@@ -37,7 +39,7 @@ def main( config ):
     bittensor.logging( config = config )
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet( config = config ).create()
+    wallet = bittensor.wallet( config = config ).create().register()
 
     # Load/Sync/Save our metagraph.
     metagraph = bittensor.metagraph ( 
@@ -47,7 +49,7 @@ def main( config ):
 
     # Instantiate the model we are going to serve on the network.
     # Miner training device.
-    model = server(config=config,model_name='bert-base-uncased',pretrained=True)
+    model = server(config=config,model_name='bert-base-uncased',pretrained=False)
 
 
     # Create our optimizer.
@@ -57,13 +59,13 @@ def main( config ):
         momentum = config.server.momentum,
     )
 
-    def forward_text (pubkey, inputs_x ):
+    def forward_text ( inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
         """ 
         return model.encode_forward( inputs_x )
 
 
-    def backward_text ( pubkey:str, inputs_x, grads_dy ):
+    def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.             
         """
@@ -82,7 +84,7 @@ def main( config ):
         wallet = wallet,
         forward_text = forward_text,
         backward_text = backward_text,
-    ).start().subscribe()
+    ).start().serve(subtensor=subtensor)
 
     # --- Init Wandb.
     with wandb.init (
