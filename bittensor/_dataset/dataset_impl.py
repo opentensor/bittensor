@@ -79,8 +79,8 @@ class Dataset():
         session.mount('https://', adapter)
         return session
 
-    def retrieve_file(self, address: str, params = None, action: str = 'post'):
-        """Connects to Pinata IPFS gateway and retrieves files.
+    def retrieve_directory(self, address: str, params = None, action: str = 'post'):
+        """Connects to Pinata IPFS gateway and retrieves directory.
 
         Returns:
             dict: A dictionary of the files inside of the genesis_datasets and their hashes.
@@ -141,7 +141,7 @@ class GenesisTextDataset( Dataset ):
         """
         # --- Getting dataset hashes from pin/ls.
         dataset_hashes = [] 
-        response = self.retrieve_file(self.pin_get, (('type', 'recursive'),), action = 'post')
+        response = self.retrieve_directory(self.pin_get, (('type', 'recursive'),), action = 'post')
         if response.status_code != 200:
             dataset_hashes= [
                 'QmSQ6AnnWQUy4bETQSAgkgCkJ1AQePSeKvbaFejizj5HP3',
@@ -162,7 +162,7 @@ class GenesisTextDataset( Dataset ):
         while len(directories) == 0 and i < len(dataset_hashes):
             dataset_hash = dataset_hashes[dataset_hashes_order[i]]
             i += 1
-            response = self.retrieve_file(self.file_get, (('arg', dataset_hash),))
+            response = self.retrieve_directory(self.file_get, (('arg', dataset_hash),))
             if response.status_code != 200:
                 logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
             
@@ -192,7 +192,7 @@ class GenesisTextDataset( Dataset ):
 
         # --- Else, the directory leads to more directories, send request to break the directory.
         else:
-            response = self.retrieve_file(self.file_get, (('arg', directory['Hash']),))
+            response = self.retrieve_directory(self.file_get, (('arg', directory['Hash']),))
             
             # --- Return none if the request failed.
             if response.status_code != 200:
@@ -238,7 +238,7 @@ class GenesisTextDataset( Dataset ):
 
         # Download text
         if text == None:
-            response = self.retrieve_file(self.file_get, (('arg', file_hash),))
+            response = self.retrieve_directory(self.file_get, (('arg', file_hash),))
 
             if response.status_code != 200:
                 logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
