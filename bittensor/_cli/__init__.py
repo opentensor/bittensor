@@ -348,12 +348,6 @@ class cli:
 
         # Fill arguments for transfer
         register_parser.add_argument(
-            '--email', 
-            dest="email", 
-            type=str, 
-            required=False
-        )
-        register_parser.add_argument(
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
@@ -527,11 +521,6 @@ class cli:
         if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-
-        if config.wallet.email == None:
-            if config.email == None:
-                email_name = Prompt.ask("Enter registration email")
-                config.email = str(email_name)
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:

@@ -138,54 +138,19 @@ class Wallet():
 
     def register ( 
             self, 
-            email:str = None, 
             subtensor: 'bittensor.Subtensor' = None, 
-            registraiton_server: str = None 
+            prompt: bool = False
         ) -> 'bittensor.Wallet':
         """ Registers this wallet on the chain.
             Args:
-                email (str):
-                    registration email.
                 subtensor( 'bittensor.Subtensor' ):
                     Bittensor subtensor connection. Overrides with defaults if None.
-                registraiton_server (str):
-                    For testing only, a registration server.
             Return:
                 This wallet.
         """
-        # Register with the passed email or use the default.
-        if email == None:
-            email = self._email
-            if email == None:
-                print(colored('You must pass registration email either through wallet initialization or during the register call.', 'red')); return self
-
         # Get chain connection.
         if subtensor == None: subtensor = bittensor.subtensor()
-        
-        # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
-        if self.is_registered( subtensor = subtensor ): print (colored('Already registered {}'.format( self.hotkey.ss58_address ), 'green')); return self
-
-        # Get registration url endpoint from constants or args.
-        server_url = bittensor.__registration_servers__[0] if registraiton_server == None else registraiton_server
-
-        # Create a request signature.
-        request_signature = self.hotkey.sign( str(email) + str(self.hotkey.ss58_address) + str(self.coldkeypub.ss58_address) + str(subtensor.network) )
-        
-        # Make registration request.
-        headers = {'Content-type': 'application/json'}
-        url = 'http://' + server_url + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkeypub.ss58_address, request_signature, subtensor.network)
-        response = requests.post(url, headers=headers)
-        response = json.loads(bytes.decode(response.content)) 
-        if response['status'] == 0:
-            print ('Waiting for confirmation from email: {}'.format(email))
-            while True:
-                if self.is_registered( subtensor = subtensor ):
-                    print ('Registered hotkey: {}'.format( self.hotkey.ss58_address ))
-                    return self      
-                time.sleep(2)
-        else:
-            print ('Failed for reason: {}'.format( response['response'] ))
-            return self
+        subtensor.register( wallet = self, prompt = prompt )
 
     def is_registered( self, subtensor: 'bittensor.Subtensor' = None ) -> bool:
         """ Returns true if this wallet is registered.

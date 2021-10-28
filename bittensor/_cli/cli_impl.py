@@ -135,56 +135,7 @@ class CLI:
         console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-
-        if not wallet.hotkey_file.exists_on_device():
-            console.print(":cross_mark: [red]Wallet must have a hotkey available.[/red] ")
-            sys.exit()
-        if not wallet.coldkey_file.exists_on_device():
-            console.print(":cross_mark: [red]Wallet must have a coldkey pub available.[/red] ")
-            sys.exit()
-
-        wallet.hotkey
-        wallet.coldkeypub
-
-        # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
-        if wallet.is_registered( subtensor = subtensor ):
-            console.print(":white_heavy_check_mark: [green]Already registered[/green]")
-            return
-        
-        # Ask before moving on.
-        if not self.config.no_prompt:
-            do_register = Confirm.ask("Do you want to register: [green]{}[/green] to: [blue]{}[/blue]?".format( wallet.__str__(), subtensor.network ) )
-            if not do_register:
-                return
-
-        if 'email' not in self.config or self.config.email == None:
-            email_name = Prompt.ask("Enter registration email")
-            self.config.email = str(email_name)
-
-        # Get registration url endpoint from constants or args.
-        server_url = bittensor.__registration_servers__[0] 
-
-        # Create a request signature.
-        request_signature = wallet.hotkey.sign( str(self.config.email) + str(wallet.hotkey.ss58_address) + str(wallet.coldkeypub.ss58_address) + str(subtensor.network) )
-        
-        # Make registration request.
-        headers = {'Content-type': 'application/json'}
-        url = 'http://' + server_url + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( self.config.email, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, request_signature, subtensor.network)
-        with console.status(":satellite: Registering..."):
-            response = requests.post(url, headers=headers)
-            response = json.loads(bytes.decode(response.content)) 
-
-        if response['status'] != 0:
-            console.print(":cross_mark: [red]Failed[/red] for reason: {}".format( response['response'] ))
-            sys.exit()
-
-        with console.status(":closed_mailbox_with_raised_flag: Waiting for confirmation from email: {}".format(self.config.email)):
-            while True:
-                if wallet.is_registered( subtensor = subtensor ):
-                    console.print(":white_heavy_check_mark: [green]Registered hotkey[/green]: {}".format( wallet.hotkey.ss58_address ))
-                    break
-                time.sleep(2)
-
+        subtensor.register( wallet = wallet, prompt = not self.config.no_prompt)
 
     def transfer( self ):
         r""" Transfers token of amount to destination.
