@@ -270,6 +270,11 @@ def main( config ):
                     wait_for_inclusion = True,
                     wallet = wallet,
                 )
+                
+                if did_set:
+                    logger.success('Successfully set weights on the chain')
+                else:
+                    logger.error('Failed to set weights on chain. (Timeout)')
             except Exception as e:
                 logger.error('Failure setting weights on chain with error: {}', e)
 
