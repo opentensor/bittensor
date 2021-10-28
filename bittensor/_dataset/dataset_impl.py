@@ -41,8 +41,8 @@ class Dataset():
     def __init__(self):
         
         # Used to retrieve directory contentx
-        self.file_get = 'http://ipfs.opentensor.ai:5001/api/v0/object/get'
-        self.pin_get = 'http://ipfs.opentensor.ai:5001/api/v0/pin/ls'
+        self.file_get = 'http://ipfs2.opentensor.ai:8001/api/v0/object/get'
+        self.pin_get = 'http://ipfs2.opentensor.ai:8001/api/v0/pin/ls'
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
 
@@ -135,11 +135,8 @@ class GenesisTextDataset( Dataset ):
         if not os.path.isdir(os.path.expanduser(data_dir)):
             os.makedirs(os.path.expanduser(data_dir))
 
-        self.directories = []
-        self.init_directories()
-
-    def init_directories(self):
-        r""" Init function for getting directories
+    def get_random_directories(self):
+        r""" Getting directories from a random dataset_hash
         Where a directory could be leading to a data file or a directory file 
         """
         # --- Getting dataset hashes from pin/ls.
@@ -158,7 +155,13 @@ class GenesisTextDataset( Dataset ):
         # --- Getting directories from the dataset hashes.
         # --- directories: List[ Map {Name: str, Hash: str, Size: int} ]
         directories = []
-        for dataset_hash in dataset_hashes:
+        
+        dataset_hashes_order = list(range(len(dataset_hashes)))
+        random.shuffle(dataset_hashes_order)
+        i = 0
+        while len(directories) == 0 and i < len(dataset_hashes):
+            dataset_hash = dataset_hashes[dataset_hashes_order[i]]
+            i += 1
             response = self.retrieve_file(self.file_get, (('arg', dataset_hash),))
             if response.status_code != 200:
                 logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
@@ -167,11 +170,12 @@ class GenesisTextDataset( Dataset ):
                 directory = response.json()
                 if directory and 'Links' in directory.keys(): 
                     directories += directory['Links']
-
+                    logger.success("Loaded dataset hash:".ljust(20) + "<blue>{}</blue>".format(dataset_hash))
+                
         if len(directories) == 0:
             directories = None
         
-        self.directories = directories
+        return directories
 
     def extract_sub_directory(self, directory):
         """
@@ -263,15 +267,15 @@ class GenesisTextDataset( Dataset ):
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
             # Retrieves the directory for the given dataset
-
+            directories = self.get_random_directories()
             data_corpus = []
 
             # Generate a random order of the directories
-            directory_order = list(range(len(self.directories)))
+            directory_order = list(range(len(directories)))
             random.shuffle(directory_order)
 
             # Pick a random dataset file and return its contents
-            if self.directories:
+            if directories:
                 # Let's construct a dataset!
                 total_dataset_size = 0
                 i = 0
@@ -279,7 +283,7 @@ class GenesisTextDataset( Dataset ):
                 # Make sure the file we chose satisfies our maximum file size requirement
                 while total_dataset_size <= self.max_corpus_size:
                     # Get random data file
-                    random_dataset_dir = self.extract_sub_directory(self.directories[directory_order[i]])
+                    random_dataset_dir = self.extract_sub_directory(directories[directory_order[i]])
                     
                     if random_dataset_dir == None:
                         pass
@@ -311,7 +315,7 @@ class GenesisTextDataset( Dataset ):
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) * scale:
+        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) :
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
