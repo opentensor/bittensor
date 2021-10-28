@@ -171,12 +171,15 @@ class axon:
                 help='Number of seconds to wait for backward axon request', default=20)
             parser.add_argument('--axon.forward_timeout', type=int,
                 help='Number of seconds to wait for forward axon request', default=10)
+            parser.add_argument('--axon.priority.max_workers', type = int,
+                help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
+            parser.add_argument('--axon.priority.maxsize', type=int, 
+                help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
 
         bittensor.wallet.add_args( parser )
-        bittensor.prioritythreadpool.add_args( parser )
 
     @classmethod   
     def add_defaults(cls, defaults):
@@ -187,6 +190,10 @@ class axon:
         defaults.axon.ip = os.getenv('BT_AXON_IP') if os.getenv('BT_AXON_IP') != None else '[::]'
         defaults.axon.max_workers = os.getenv('BT_AXON_MAX_WORERS') if os.getenv('BT_AXON_MAX_WORERS') != None else 10
         defaults.axon.maximum_concurrent_rpcs = os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') if os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') != None else 400
+        
+        defaults.axon.priority = bittensor.Config()
+        defaults.axon.priority.max_workers = os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') if os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') != None else 10
+        defaults.axon.priority.maxsize = os.getenv('BT_AXON_PRIORITY_MAXSIZE') if os.getenv('BT_AXON_PRIORITY_MAXSIZE') != None else -1
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
