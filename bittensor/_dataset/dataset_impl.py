@@ -48,9 +48,9 @@ class Dataset():
 
     @staticmethod
     def requests_retry_session(
-            retries=5,
+            retries=10,
             backoff_factor=0.5,
-            status_forcelist=(500, 502, 504),
+            status_forcelist=(104, 500, 502, 504),
             session=None,
         ):
         """ Creates a retriable session for request calls. This enables

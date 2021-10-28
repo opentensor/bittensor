@@ -57,17 +57,18 @@ def config ():
     parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
     parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
     parser.add_argument('--nucleus.punishment', type=float, help='the punishment for those not responding', default=0)
-    parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default='default')
-    parser.add_argument('--wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default='default')
+
     
     bittensor.wallet.add_args( parser )
     bittensor.dendrite.add_args( parser )
     bittensor.subtensor.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.dataset.add_args( parser )
+    bittensor.wandb.add_args(parser)
     return bittensor.config( parser )
 
 def main( config ):
+    config.to_defaults()
 
     print (config)
     
@@ -80,15 +81,15 @@ def main( config ):
     bittensor.logging ( config = config )
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet ( config = config ).create_if_non_existent()
+    wallet = bittensor.wallet ( config = config ).create_if_non_existent().register()
 
     # Connect to the chain.
     subtensor = bittensor.subtensor ( config = config )
 
     # Subscribe validator.
-    subtensor.subscribe (
+    subtensor.serve (
         wallet = wallet,
-        ip = bittensor.external_ip(),
+        ip = bittensor.utils.networking.get_external_ip(),
         port = 8080,
         modality = 0,
         wait_for_inclusion = True,
@@ -183,18 +184,16 @@ def main( config ):
         lr = config.miner.learning_rate,
         momentum = config.miner.momentum,
     )
+    if config.wandb.api_key != 'default':
+        # Create wandb for telemetry.
+        bittensor.wandb(
+            config = config,
+            cold_pubkey = wallet.coldkeypub.ss58_address,
+            hot_pubkey = wallet.hotkey.ss58_address,
+            root_dir = save_path
+        )
 
-    # Create wandb for telemetry.
-    wandb.init (
-        config = config, 
-        name = datetime.datetime.now().strftime("%Y-%m-%d:%H-%M"),
-        project = wallet.coldkeypub.ss58_address[:8] if not config.wandb.project else config.wandb.project,
-        group = wallet.hotkey.ss58_address[:8] if not config.wandb.run_group else config.wandb.run_group,
-        dir = save_path,
-        resume = config.miner.resume,
-        save_code = True
-    )
-    wandb.watch( validator, log = 'all', log_freq = 10 )
+        wandb.watch( validator, log = 'all', log_freq = 50 )
 
     # Optionally resume.
     if config.miner.resume:
@@ -243,9 +242,9 @@ def main( config ):
                 optimizer.zero_grad() 
                 global_step += 1
                 batch_count += 1
-                total_epoch_score += scores
+                total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
+                ema_scores = ema_score_decay * ema_scores.detach() + (1 - ema_score_decay) * scores.detach()
 
 
             # --- Step logs.
@@ -274,7 +273,7 @@ def main( config ):
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
+        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
         subtensor.set_weights (
             uids = topk_uids,
             weights = topk_scores,
@@ -293,18 +292,20 @@ def main( config ):
             'epoch_loss': epoch_loss
         } 
 
-        norm_weights = F.softmax( validator.peer_weights.detach() )
+        norm_weights = F.softmax( validator.peer_weights.detach(), dim=0 )
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
             wandb_data[ f'fisher_ema uid: {uid_str}' ] = ema_scores[uid_j]
             wandb_data[ f'fisher_epoch_score uid: {uid_str}' ] = epoch_score[uid_j]
             wandb_data[ f'peer_norm_weight uid:{uid_str}' ] = norm_weights[uid_j]
-            wandb_data[ f'peer_wo_norm_weight uid:{uid_str}' ] = validator.peer_weights[uid_j]
+            wandb_data[ f'peer_wo_norm_weight uid:{uid_str}' ] = validator.peer_weights.detach()[uid_j]
         
-        wandb_data_dend = dendrite.to_wandb()
-        wandb.log( {**wandb_data, **wandb_data_dend} )
         
+        if config.wandb.api_key != 'default':
+            wandb_data_dend = dendrite.to_wandb()
+            wandb.log( {**wandb_data, **wandb_data_dend} )
+
         # --- Save.
         if best_loss > epoch_loss : 
             best_loss = epoch_loss

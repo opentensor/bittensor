@@ -66,25 +66,6 @@ def test_get_external_ip_os_broken():
     with mock.patch.object(os, 'popen', new=mock_call):
         assert utils.networking.get_external_ip()
 
-
-def test_get_external_ip_os_request_broken():
-    class fake():
-        def readline(self):
-            return 1
-    def mock_call():
-        return fake()
-
-    class fake_s():
-        def text(self):
-            return 1
-    def mock_call_two():
-        return fake_s()
-        
-    with mock.patch.object(os, 'popen', new=mock_call):
-        with mock.patch.object(requests, 'get', new=mock_call_two):
-            assert utils.networking.get_external_ip()
-
-
 def test_get_external_ip_os_request_urllib_broken():
     class fake():
         def readline(self):

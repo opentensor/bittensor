@@ -27,6 +27,7 @@ import torch.nn.functional as f
 import torch
 
 import bittensor
+from bittensor._subtensor import subtensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 
@@ -38,7 +39,7 @@ class Metagraph( torch.nn.Module ):
 
         Interface:
             tau (:obj:`torch.FloatTensor` of shape :obj:`(1)`): 
-                Current, per block, token inflation rate.
+                Current, per block, token emission rate.
 
             block (:obj:`torch.LongTensor` of shape :obj:`(1)`):
                 State block number.
@@ -78,7 +79,7 @@ class Metagraph( torch.nn.Module ):
         self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.incentive = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
-        self.inflation = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.emission = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.dividends = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.active = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.last_update = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
@@ -149,7 +150,7 @@ class Metagraph( torch.nn.Module ):
         Incentive = (R * C).view(self.n)
         print (Incentive)
 
-        # Compute inflation.
+        # Compute emission.
         if torch.sum(Incentive) == 0:
             Inflation = torch.zeros( (self.n.item()), dtype=torch.float32 ).view(self.n)
         else:
@@ -185,6 +186,12 @@ class Metagraph( torch.nn.Module ):
         """ Incentive
         """
         return self.incentive
+
+    @property
+    def E(self) -> torch.FloatTensor:
+        """ Emission
+        """
+        return self.emission
 
     @property
     def C(self) -> torch.FloatTensor:
@@ -362,7 +369,7 @@ class Metagraph( torch.nn.Module ):
         self.trust = torch.nn.Parameter( state_dict['trust'], requires_grad=False )
         self.consensus = torch.nn.Parameter( state_dict['consensus'], requires_grad=False )
         self.incentive = torch.nn.Parameter( state_dict['incentive'], requires_grad=False )
-        self.inflation = torch.nn.Parameter( state_dict['inflation'], requires_grad=False )
+        self.emission = torch.nn.Parameter( state_dict['emission'], requires_grad=False )
         self.dividends = torch.nn.Parameter( state_dict['dividends'], requires_grad=False )
         self.active = torch.nn.Parameter( state_dict['active'], requires_grad=False )
         self.last_update = torch.nn.Parameter( state_dict['last_update'], requires_grad=False )
@@ -391,7 +398,7 @@ class Metagraph( torch.nn.Module ):
         trust = [ 0 for _ in range(n_total) ]
         consensus = [ 0 for _ in range(n_total) ]
         incentive = [ 0 for _ in range(n_total) ]
-        inflation = [ 0 for _ in range(n_total) ]
+        emission = [ 0 for _ in range(n_total) ]
         dividends = [ 0 for _ in range(n_total) ]
         last_updates = [ -1 for _ in range(n_total) ]
         endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
@@ -401,13 +408,13 @@ class Metagraph( torch.nn.Module ):
         for n in neurons:
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
-            stake[n.uid] = n.stake / float(RAOPERTAO)
-            ranks[n.uid] = n.rank / float(RAOPERTAO)
-            trust[n.uid] = n.trust / float(RAOPERTAO)
-            consensus[n.uid] = n.consensus / float(U64MAX)
-            incentive[n.uid] = n.incentive / float(U64MAX)
-            inflation[n.uid] = n.inflation / float(RAOPERTAO)
-            dividends[n.uid] = n.dividends / float(RAOPERTAO)
+            stake[n.uid] = n.stake 
+            ranks[n.uid] = n.rank
+            trust[n.uid] = n.trust
+            consensus[n.uid] = n.consensus
+            incentive[n.uid] = n.incentive
+            dividends[n.uid] = n.dividends
+            emission[n.uid] = n.emission
             last_updates[n.uid] = n.last_update
             endpoint =  bittensor.endpoint(
                 version = int(n.version),
@@ -442,7 +449,7 @@ class Metagraph( torch.nn.Module ):
         ttrust = torch.tensor( trust, dtype=torch.float32 )
         tconsensus = torch.tensor( consensus, dtype=torch.float32 )
         tincentive = torch.tensor( incentive, dtype=torch.float32 )
-        tinflation = torch.tensor( inflation, dtype=torch.float32 )
+        temission = torch.tensor( emission, dtype=torch.float32 )
         tdividends = torch.tensor( dividends, dtype=torch.float32 )
         tlast_update = torch.tensor( last_updates, dtype=torch.int64 )
         tbonds = torch.tensor( bonds, dtype=torch.int64 )
@@ -461,7 +468,7 @@ class Metagraph( torch.nn.Module ):
         self.trust = torch.nn.Parameter( ttrust, requires_grad=False )
         self.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
         self.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
-        self.inflation = torch.nn.Parameter( tinflation, requires_grad=False )
+        self.emission = torch.nn.Parameter( temission, requires_grad=False )
         self.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
         self.active = torch.nn.Parameter( tactive, requires_grad=False )
         self.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )

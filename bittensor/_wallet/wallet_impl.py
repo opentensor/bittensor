@@ -381,7 +381,7 @@ class Wallet():
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
         """
         # ---- Setup Wallet. ----
-        if not self.coldkey_file.exists_on_device():
+        if not self.coldkey_file.exists_on_device() and not self.coldkeypub_file.exists_on_device():
             self.create_new_coldkey( n_words = 12, use_password = coldkey_use_password )
         if not self.hotkey_file.exists_on_device():
             self.create_new_hotkey( n_words = 12, use_password = hotkey_use_password )

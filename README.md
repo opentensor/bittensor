@@ -108,7 +108,7 @@ axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
     backward_text = backward_text
-).start().subscribe()
+).start().serve()
 ```
 
 ### 3.3. Validator 
@@ -137,12 +137,38 @@ bittensor.subtensor().set_weights (
 ```
 ## 4. Features
 
-### 4.1. Creating a bittensor wallet 
+### 4.1. CLI
 
-
+Creating a new wallet.
 ```bash
-$ bittensor-cli new_coldkey --wallet.name <WALLET NAME>
-$ bittensor-cli new_hotkey --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ btcli new_coldkey
+$ btcli new_hotkey
+```
+
+Listing your wallet.s
+```bash
+$ btcli list
+```
+
+Registering a wallet
+```bash
+$ btcli register --email <your email>
+```
+
+Checking balances
+```bash
+$ btcli overview
+```
+
+Transfering funds
+```bash
+$ btcli transfer
+```
+
+Staking/Unstaking from a hotkey
+```bash
+$ btcli stake
+$ btcli unstake
 ```
 
 ### 4.2. Selecting the network to join 
@@ -192,7 +218,7 @@ $ python ~/.bittensor/bittensor/miners/text/template_server.py --help
 
 ###  4.5. Subscription to the network
 
-The subscription to the bittensor network is done using the axon. We must first create a bittensor wallet and a bittensor axon to subscribe.
+The subscription to the bittensor network is done using the axon. We must first create a bittensor wallet and a bittensor axon to serve.
 
 ```python
 import bittensor
@@ -202,7 +228,7 @@ axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
     backward_text = backward_text
-).start().subscribe()
+).start().serve()
 ```
 
 ### 4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes
@@ -294,7 +320,7 @@ wallet = bittensor.wallet().create()
 axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
-).start().subscribe()
+).start().serve()
 ```
 
 ---
