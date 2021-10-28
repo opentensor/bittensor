@@ -186,13 +186,14 @@ def main( config ):
     if config.server.restart != True:
         gp_server.load(full_path)
 
-    # --- Init Wandb.
-    bittensor.wandb(
-        config = config,
-        cold_pubkey = wallet.coldkeypub.ss58_address,
-        hot_pubkey = wallet.hotkey.ss58_address,
-        root_dir = full_path
-    )
+    if config.wandb.api_key != 'default':
+        # --- Init Wandb.
+        bittensor.wandb(
+            config = config,
+            cold_pubkey = wallet.coldkeypub.ss58_address,
+            hot_pubkey = wallet.hotkey.ss58_address,
+            root_dir = full_path
+        )
 
     # -- Main Training loop --
     try:
@@ -252,7 +253,9 @@ def main( config ):
             metagraph.sync().save()
             chain_weights =torch.zeros(metagraph.n)
             chain_weights[uid] = 1 
-            wandb.log( wandb_data )
+
+            if config.wandb.api_key != 'default':
+                wandb.log( wandb_data )
             logger.info(wandb_data)
 
             # save the model
@@ -267,6 +270,11 @@ def main( config ):
                     wait_for_inclusion = True,
                     wallet = wallet,
                 )
+                
+                if did_set:
+                    logger.success('Successfully set weights on the chain')
+                else:
+                    logger.error('Failed to set weights on chain. (Timeout)')
             except Exception as e:
                 logger.error('Failure setting weights on chain with error: {}', e)
 

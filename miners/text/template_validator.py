@@ -184,16 +184,16 @@ def main( config ):
         lr = config.miner.learning_rate,
         momentum = config.miner.momentum,
     )
+    if config.wandb.api_key != 'default':
+        # Create wandb for telemetry.
+        bittensor.wandb(
+            config = config,
+            cold_pubkey = wallet.coldkeypub.ss58_address,
+            hot_pubkey = wallet.hotkey.ss58_address,
+            root_dir = save_path
+        )
 
-    # Create wandb for telemetry.
-    bittensor.wandb(
-        config = config,
-        cold_pubkey = wallet.coldkeypub.ss58_address,
-        hot_pubkey = wallet.hotkey.ss58_address,
-        root_dir = save_path
-    )
-
-    wandb.watch( validator, log = 'all', log_freq = 50 )
+        wandb.watch( validator, log = 'all', log_freq = 50 )
 
     # Optionally resume.
     if config.miner.resume:
@@ -242,9 +242,9 @@ def main( config ):
                 optimizer.zero_grad() 
                 global_step += 1
                 batch_count += 1
-                total_epoch_score += scores
+                total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores
+                ema_scores = ema_score_decay * ema_scores.detach() + (1 - ema_score_decay) * scores.detach()
 
 
             # --- Step logs.
@@ -299,11 +299,13 @@ def main( config ):
             wandb_data[ f'fisher_ema uid: {uid_str}' ] = ema_scores[uid_j]
             wandb_data[ f'fisher_epoch_score uid: {uid_str}' ] = epoch_score[uid_j]
             wandb_data[ f'peer_norm_weight uid:{uid_str}' ] = norm_weights[uid_j]
-            wandb_data[ f'peer_wo_norm_weight uid:{uid_str}' ] = validator.peer_weights[uid_j]
+            wandb_data[ f'peer_wo_norm_weight uid:{uid_str}' ] = validator.peer_weights.detach()[uid_j]
         
-        wandb_data_dend = dendrite.to_wandb()
-        wandb.log( {**wandb_data, **wandb_data_dend} )
         
+        if config.wandb.api_key != 'default':
+            wandb_data_dend = dendrite.to_wandb()
+            wandb.log( {**wandb_data, **wandb_data_dend} )
+
         # --- Save.
         if best_loss > epoch_loss : 
             best_loss = epoch_loss

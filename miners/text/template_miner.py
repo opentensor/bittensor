@@ -706,9 +706,9 @@ class Miner:
                 wallet = self.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
+                logger.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
             else:
-                logger.warning('Failed to set weights on chain.')
+                logger.error('Failed to set weights on chain. (Timeout)')
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
