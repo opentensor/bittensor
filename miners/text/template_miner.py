@@ -721,7 +721,7 @@ class Miner:
         stake = self.metagraph.S[ self_uid ].item()
         rank = self.metagraph.R[ self_uid ].item()
         incentive = self.metagraph.I[ self_uid ].item()     
-        normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach())
+        normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach(), dim=0)
 
         # ---- Progress bar log
         info = {
