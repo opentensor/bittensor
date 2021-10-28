@@ -19,7 +19,7 @@ import torch
 from tqdm import tqdm
 
 from typing import List, Tuple, Dict, Union
-from threading import Thread
+from multiprocessing import Process
 
 import bittensor
 import bittensor.utils.networking as net
@@ -419,7 +419,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             block_number (int):
                 Current chain blocknumber.
         """
-        
         with self.substrate as substrate:
             return substrate.get_block_number(None)
 
@@ -616,7 +615,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 flag is true if extrinsic was finalized or included in the block.
         """
         
-        set_weights = Thread(target= self.set_weights, kwargs={
+        set_weights = Process(target= self.set_weights, kwargs={
                                                            'uids':uids,
                                                            'weights': weights,
                                                            'wait_for_inclusion': wait_for_inclusion,
@@ -624,8 +623,10 @@ To run a local node (See: docs/running_a_validator.md) \n
                                                            })
         set_weights.start()
         set_weights.join(timeout=timeout)
+        set_weights.terminate()
 
-        if not set_weights.is_alive():
+
+        if set_weights.exitcode == 0:
             return True
-        
-        raise Exception('Timeout')
+        else:
+            return False
