@@ -182,7 +182,6 @@ class GenesisTextDataset( Dataset ):
         Returns:
             list of dict: links 
         """
-        print('extract_sub_directory ', directory)
         # --- If the size of directory is small, it is leads to data file.
         if directory['Size'] <= 262158:
             return directory
@@ -201,7 +200,8 @@ class GenesisTextDataset( Dataset ):
                 sub_directories = response.json()
                 if sub_directories and 'Links' in sub_directories.keys():
                     random_sub_directory = random.choice(sub_directories['Links'])
-                    
+
+                    # --- Fill the name of the random_sub_directory if it is empty. 
                     if random_sub_directory['Name'] == '':
                         random_sub_directory['Name'] = directory['Name']
                     
@@ -285,7 +285,6 @@ class GenesisTextDataset( Dataset ):
                         pass
 
                     text = self.get_text(random_dataset_dir)
-                    print('get_text ', len(text))
                     if text != None:
                         data_corpus.extend(text.split())
                         total_dataset_size += int(random_dataset_dir['Size'])
@@ -311,7 +310,6 @@ class GenesisTextDataset( Dataset ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-        scale = 1
         # If we've exhausted the dataset, retrieve another corpus.
         if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) * scale:
             self.data = self.construct_text_corpus()
@@ -322,7 +320,7 @@ class GenesisTextDataset( Dataset ):
         if epoch_length:
 
             # Set up upper bound of indices to fit the batch size we want.
-            idx_bound = epoch_length * self.batch_size * scale
+            idx_bound = epoch_length * self.batch_size 
             if idx_bound < len(self):
                 # Collect enough random indices to batch together using batch_size into epoch_length batches
                 random_start = random.randint(0, len(self) - round(idx_bound ))
