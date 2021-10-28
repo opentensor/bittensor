@@ -687,7 +687,7 @@ class Miner:
                 'network': self.subtensor.network # Save Network
             }
             torch.save( state_dict, "{}/model.torch".format( self.config.miner.full_path ) )
-            bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ) )
+            bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</xblue>'.format( self.config.miner.full_path ) )
         except Exception as e:
             logger.exception('Failed to save model with error:{}', e)
 
@@ -706,7 +706,7 @@ class Miner:
                 wallet = self.wallet,
             )
             if did_set:
-                logger.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
+                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
             else:
                 logger.error('Failed to set weights on chain. (Timeout)')
 
