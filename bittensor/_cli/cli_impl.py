@@ -299,15 +299,35 @@ class CLI:
         wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
         root = Tree("Wallets")
         for w_name in wallets:
-            wallet_tree = root.add("[bold white]{}".format(w_name))
+            wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
+            try:
+                if wallet_for_name.coldkeypub_file.exists_on_device() and not wallet_for_name.coldkeypub_file.is_encrypted():
+                    coldkeypub_str = wallet_for_name.coldkeypub.ss58_address
+                else:
+                    coldkeypub_str = '?'
+            except:
+                coldkeypub_str = '?'
+
+
+            wallet_tree = root.add("\n\n[bold white]{} - {}".format(w_name, coldkeypub_str))
             hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
                 if len( hotkeys ) > 1:
                     for h_name in hotkeys[2]:
-                        wallet_tree.add("[bold grey]{}".format(h_name))
+                        hotkey_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name, hotkey = h_name)
+                        try:
+                            if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
+                                hotkey_str = wallet_for_name.hotkey.ss58_address
+                            else:
+                                hotkey_str = '?'
+                        except:
+                            hotkey_str = '?'
+
+                        wallet_tree.add("[bold grey]{} - {}".format(h_name, hotkey_str))
             except:
                 pass
+
         print(root)
 
     def metagraph(self):
