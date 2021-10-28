@@ -53,7 +53,6 @@ class Wallet():
         name:str,
         path:str,
         hotkey:str,
-        email:str = None
     ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
@@ -63,19 +62,16 @@ class Wallet():
                     The name of hotkey used to running the miner.
                 path (required=True, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
-                email (required=False, default=None):
-                    Registration email.
         """
-        self._name_string = name
-        self._path_string = path
-        self._hotkey_string = hotkey
-        self._email = email
+        self.name = name
+        self.path = path
+        self.hotkey_str = hotkey
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
 
     def __str__(self):
-        return "Wallet ({}, {}, {})".format(self._name_string, self._hotkey_string, self._path_string)
+        return "Wallet ({}, {}, {})".format(self.name, self.hotkey_str, self.path)
     
     def __repr__(self):
         return self.__str__()
@@ -176,7 +172,7 @@ class Wallet():
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return None
         neuron = subtensor.neuron_for_wallet( self )
         return neuron
@@ -192,7 +188,7 @@ class Wallet():
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
         neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
@@ -211,7 +207,7 @@ class Wallet():
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return bittensor.Balance(0)
         neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
@@ -256,7 +252,7 @@ class Wallet():
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return False
         if amount == None:
             amount = self.get_balance()
@@ -289,7 +285,7 @@ class Wallet():
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return False
         if amount == None:
             amount = self.get_stake()
@@ -327,7 +323,7 @@ class Wallet():
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return False
         if not isinstance(amount, bittensor.Balance):
             amount = bittensor.utils.balance.Balance.from_float( amount )
@@ -362,19 +358,19 @@ class Wallet():
 
     @property
     def hotkey_file(self) -> 'bittensor.Keyfile':
-        wallet_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
-        hotkey_path = os.path.join(wallet_path, "hotkeys", self._hotkey_string)
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
+        hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
         return bittensor.Keyfile( path = hotkey_path )
 
     @property
     def coldkey_file(self) -> 'bittensor.Keyfile':
-        wallet_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         coldkey_path = os.path.join(wallet_path, "coldkey")
         return bittensor.Keyfile( path = coldkey_path )
 
     @property
     def coldkeypub_file(self) -> 'bittensor.Keyfile':
-        wallet_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
         return bittensor.Keyfile( path = coldkeypub_path )
 
