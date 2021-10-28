@@ -38,7 +38,7 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 10
 
-__networks__ = ['nakamoto', 'akatsuki', 'nobunaga']
+__networks__ = [ 'local', 'nobunaga', 'akatsuki', 'nakamoto']
 
 __nakamoto_entrypoints__ = [
     "main.nakamoto.opentensor.ai:9944"

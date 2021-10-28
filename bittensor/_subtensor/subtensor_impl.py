@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import random
 import torch
+from rich.prompt import Confirm
 from tqdm import tqdm
 
 from typing import List, Tuple, Dict, Union
@@ -121,6 +122,58 @@ To run a local node (See: docs/running_a_validator.md) \n
                     raise RuntimeError('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
                 else:
                     return False
+
+
+    def difficulty(
+        self
+    ) -> int:
+        with self.substrate as substrate:
+            return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
+
+    def register (
+        self,
+        wallet: 'bittensor.Wallet',
+        prompt: bool = False
+    ):
+
+        with bittensor.__console__.status(":satellite: Checking Account..."):
+            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+            if not neuron.is_null:
+                bittensor.__console__.print("Already registered:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
+                return
+
+        registration_difficulty = self.difficulty()
+
+        # Solve registration POW.
+        pow_result = bittensor.utils.create_pow( self, registration_difficulty )
+        if prompt:
+            if not Confirm.ask("Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]\n  difficulty: [bold white]{}[/bold white]\n  block_number: [bold white]{}[/bold white]\n  work: [bold white]{}[/bold white]".format( wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, self.network, registration_difficulty, pow_result['block_number'], pow_result['work'] ) ):
+                return
+
+        with bittensor.__console__.status(":satellite: Registering..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call( 
+                    call_module='SubtensorModule',  
+                    call_function='register', 
+                    call_params={ 
+                        'block_number': pow_result['block_number'], 
+                        'nonce': pow_result['nonce'], 
+                        'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
+                        'hotkey': wallet.hotkey.ss58_address, 
+                        'coldkey': wallet.coldkeypub.ss58_address
+                    } 
+                )
+                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                response = substrate.submit_extrinsic( extrinsic, wait_for_finalization=True)
+                response.process_events()
+                if not response.is_success:
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                    return
+
+        if response.is_success:
+            with bittensor.__console__.status(":satellite: Checking Balance..."):
+                neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
 
     def serve(
             self, 
