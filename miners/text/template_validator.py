@@ -30,6 +30,7 @@ import torch
 import wandb
 import datetime
 import os
+from functools import partial
 from termcolor import colored
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
@@ -223,6 +224,7 @@ def main( config ):
         end_block = start_block + config.miner.blocks_per_epoch
         blocks = [ block for block in range(start_block, end_block) ]
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
+        progress.set_bar = partial(progress.set_bar,  element='#')
 
         # --- Reset the epoch logs
         total_epoch_score = torch.zeros(metagraph.n.item())
@@ -248,29 +250,25 @@ def main( config ):
 
 
             # --- Step logs.
-            info = { 
-                'epoch': epoch,
-                'global_step': global_step,
-                'start': start_block,
-                'current': block,
-                'end': start_block + config.miner.blocks_per_epoch,
-                'loss': colored('{:.4f}'.format(loss.item()), 'green'), 
-                'best': colored('{:.4f}'.format(best_loss), 'green'), 
-                'stake': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green'),
-                'dividends': colored('{:.4f}'.format(metagraph.S[ uid ].item()), 'green')
+            info = {
+                'Step': colored('{}'.format(global_step), 'red'),
+                'Epoch': colored('{}'.format(epoch), 'yellow'),
+                'Best-loss': colored('{:.4f}'.format(best_loss), 'green'),            
+                'Loss': colored('{:.4f}'.format(loss.item()), 'blue'),            
+                'nPeers': colored(metagraph.n.item(), 'red'),
+                'Stake(\u03C4)': colored('{:.3f}'.format(metagraph.S[uid].item()), 'yellow'),
+                'Rank(\u03C4)': colored('{:.3f}'.format(metagraph.R[uid].item()), 'green'),
+                'Incentive(\u03C4/block)': colored('{:.6f}'.format(metagraph.I[uid].item()), 'blue'),
+                'Dividends': colored('{:.4f}'.format(metagraph.D[ uid ].item()), 'red'),
+                'Current Block': colored('{}'.format(block), 'yellow')
             }
-            
-            for uid_i, score_i in enumerate(scores.tolist()):
-                if score_i != 0:
-                    color =  'green' if score_i - ema_scores[ uid_i ] > 0 else 'red'
-                    info[ 'fi_' + str(uid_i) ] = colored('{:.4f}'.format( score_i ), color)
-                    
-                    weight_wo_norm = validator.peer_weights[uid_i]
-                    info[ 'pw_' + str(uid_i) ] = colored('{:.4f}'.format( weight_wo_norm ), color)
-            
+
+            topk_scores, topk_idx = torch.topk(ema_scores, 5, dim=0)
+            for uid, ema_score in zip(topk_idx, topk_scores) :
+                color =  'green' if scores[uid] - ema_score > 0 else 'red'
+                info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color) 
             
             progress.set_infos( info )
-        
         # --- End of epoch
         # --- Set mechanism weights.
         topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
