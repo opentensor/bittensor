@@ -105,6 +105,8 @@ linux_install_bittensor() {
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
+    ohai "Installing bittensor-neurons"
+    $python -m pip install -e ~/.bittensor/bittensor/neurons/
     exit_on_error $? 
 }
 
