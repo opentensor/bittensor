@@ -175,7 +175,7 @@ class logging:
         if cls.__debug_on__ or cls.__trace_on__:
             return True
         else:
-            return False
+            return record["level"].name != "DEBUG"
 
     @classmethod
     def log_save_filter(cls, record ):
