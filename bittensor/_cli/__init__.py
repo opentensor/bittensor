@@ -268,13 +268,8 @@ class cli:
         unstake_parser.add_argument(
             '--all', 
             dest="unstake_all", 
-            action='store_true'
-        )
-        unstake_parser.add_argument(
-            '--uid', 
-            dest="uid", 
-            type=int, 
-            required=False
+            action='store_true',
+            default=False,
         )
         unstake_parser.add_argument(
             '--amount', 
@@ -445,25 +440,21 @@ class cli:
 
     def check_unstake_config( config: 'bittensor.Config' ):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks_descr__, default = bittensor.defaults.subtensor.network)
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
         if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        # Get destination.
-        if config.uid == None:
-            uid = Prompt.ask("Enter uid to unstake from")
-            try:
-                config.uid = int(uid)     
-            except ValueError:
-                console.print(":cross_mark:[red] Invalid uid[/red] [bold white]{}[/bold white]".format(uid))
-                sys.exit()
+        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
         if not config.amount and not config.unstake_all:
-            if not Confirm.ask("Unstake all Tao from uid: [bold]'{}'[/bold]?".format(config.uid)):
+            if not Confirm.ask("Unstake all Tao from: [bold]'{}'[/bold]?".format(config.wallet.hotkey)):
                 amount = Prompt.ask("Enter Tao amount to unstake")
+                config.unstake_all = False
                 try:
                     config.amount = float(amount)
                 except ValueError:
@@ -481,14 +472,9 @@ class cli:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        # Get destination.
-        if config.uid == None:
-            uid = Prompt.ask("Enter uid to stake to")
-            try:
-                config.uid = int(uid)     
-            except ValueError:
-                console.print(":cross_mark:[red] Invalid uid[/red] [bold white]{}[/bold white]".format(uid))
-                sys.exit()
+        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
         if not config.amount and not config.stake_all:

@@ -44,8 +44,9 @@ def solve_for_difficulty( block_hash, difficulty ):
     return nonce, seal
 
 
-def solve_for_difficulty_fast( subtensor, difficulty ):
+def solve_for_difficulty_fast( subtensor ):
     block_number = subtensor.get_current_block()
+    difficulty = subtensor.difficulty()
     block_hash = subtensor.substrate.get_block_hash( block_number )
 
     meets = False
@@ -73,18 +74,19 @@ def solve_for_difficulty_fast( subtensor, difficulty ):
                 best_seal = seal
 
             if product < limit:
-                return nonce, block_number, block_hash, seal
+                return nonce, block_number, block_hash, difficulty, seal
 
             if nonce % update_interval == 0:
                 itrs_per_sec = update_interval / (time.time() - start_time)
                 start_time = time.time()
+                difficulty = subtensor.difficulty()
                 block_number = subtensor.get_current_block()
                 block_hash = subtensor.substrate.get_block_hash( block_number)
                 status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, int(itrs_per_sec), difficulty, block_hash.encode('utf-8'), binascii.hexlify(best_seal) ))
       
 
-def create_pow( subtensor, difficulty: int ):
-    nonce, block_number, block_hash, seal = solve_for_difficulty_fast( subtensor, difficulty )
+def create_pow( subtensor ):
+    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor )
     return {
         'nonce': nonce, 
         'difficulty': difficulty,
