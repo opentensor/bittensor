@@ -16,9 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm
-from tqdm import tqdm
 
-from typing import List, Tuple, Dict, Union
+from typing import List, Dict, Union
 from multiprocessing import Process
 
 import bittensor
