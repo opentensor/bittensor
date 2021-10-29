@@ -23,7 +23,6 @@ from typing import Tuple, List
 import torch
 from loguru import logger
 import concurrent
-import traceback
 import bittensor
 
 logger = logger.opt(colors=True)
