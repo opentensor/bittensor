@@ -331,7 +331,7 @@ class Miner:
             remote_target_epoch_loss = math.inf,
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
-            ema_scores = torch.ones(0).to(self.device)
+            ema_scores = torch.nn.Parameter(torch.ones(0), requires_grad = False).to(self.device)
         )
         # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
@@ -350,7 +350,6 @@ class Miner:
         parser.add_argument('--miner.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--miner.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
         parser.add_argument('--miner.epoch_length', type=int, help='Iterations of training per epoch', default=100)
-        parser.add_argument('--miner.batch_size_train', type=int, help='Training batch size.', default=2)
         parser.add_argument('--miner.restart_on_failure',  action='store_true', help='''Restart miner on unknown error.''', default=False)
         parser.add_argument('--miner.compute_remote_gradients', action='store_true', help='''Does the miner compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--miner.accumulate_remote_gradients', action='store_true', help='''Does the miner accumulate remote gradients from backward queries.''', default=False)
@@ -380,7 +379,6 @@ class Miner:
     def check_config( config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
-        assert config.miner.batch_size_train > 0, "batch_size_train must be a positive value"
         assert config.miner.learning_rate > 0, "learning_rate must be a positive value."
         bittensor.logging.check_config( config )
         bittensor.wallet.check_config( config )
@@ -422,7 +420,7 @@ class Miner:
 
             # ---- Init run state ----
             self.epoch = 0            
-            self.stats.ema_scores = torch.ones( self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item())
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 
             # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
@@ -467,13 +465,13 @@ class Miner:
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
-                            
+
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                             scores = torch.nn.functional.normalize ( torch.relu( self.nucleus.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.miner.clip_gradients)
-                            
+
                             # ---- Apply and zero accumulated gradients.
                             self.optimizer.step() 
                             self.optimizer.zero_grad()
@@ -486,21 +484,21 @@ class Miner:
                             total_local_epoch_acc += output.local_accuracy
                             self.stats.epoch_data_size += inputs.nelement()
                             batches_count += 1
-                            
+
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
                             chain_growth = scores.shape[0] - self.stats.ema_scores.shape[0]
                             if chain_growth > 0:
-                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=True)]))
+                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32)]), requires_grad=False)
                             self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
 
                         # ---- Sync with metagraph if the current block >= last synced block + sync block time 
                         current_block = self.subtensor.get_current_block()
                         block_diff = current_block - self.last_sync_block
                         if block_diff >= self.config.miner.sync_block_time:
-                            self.sync(current_block)                                                                                                                
+                            self.sync(current_block)
                             self.last_sync_block = current_block
                             self.stats.epoch_sync_count += 1
-                            
+
                         # ---- Update the epoch loss if it is the last iteration within epoch
                         if block+1 == end_block :
                             self.stats.local_target_epoch_loss = total_local_target_epoch_loss / batches_count
@@ -534,7 +532,6 @@ class Miner:
                         self.reload()
                     else:
                         break
-
     # ---- Axon Forward call ----
     def forward_text ( self, inputs_x: torch.FloatTensor) -> torch.FloatTensor:
         r""" Subscribed to an axon servicing endpoint: processes forward messages from the wire.
@@ -610,7 +607,13 @@ class Miner:
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.
         """
-        last_saved = self.get_saved_state()
+        # --- Load previous state.
+        try:
+            last_saved = torch.load("{}/model.torch".format( self.config.miner.full_path), map_location = self.device )
+        except Exception as e:
+            logger.warning('No saved model found with error: {}', e)
+            last_saved = None
+
         if last_saved == None or last_saved['epoch_loss'] >= self.stats.local_target_epoch_loss:
             self.stats.best_epoch_loss = self.stats.local_target_epoch_loss
             self.save()
@@ -620,21 +623,23 @@ class Miner:
             logger.error('Incorrect epoch loss detected, reloading to previous saved state')
             self.reload()
 
-    def get_saved_state( self ):
-        r""" Returns a saved state dict or none.
-        """
-        try:
-            return torch.load("{}/model.torch".format( self.config.miner.full_path ))
-        except Exception as e:
-            logger.warning('No saved model found with error: {}', e)
-            logger.info('Initalizing with new model')
-            return None
-
     def reload( self ):
         r""" Reloads/updates the training state from the disk.
         """
-        state_dict = self.get_saved_state()
-        self.metagraph.sync().save()
+        # --- Load previous state.
+        try:
+            state_dict = torch.load("{}/model.torch".format( self.config.miner.full_path), map_location = self.device )
+        except Exception as e:
+            logger.warning('No saved model found with error, initializing with new model: {}', e)
+            state_dict = None
+
+        # --- loads and syncs metagraph
+        try:
+            self.metagraph.load().sync().save()
+
+        except Exception as e:
+            logger.error('Error in loading metagraph: {}'.format(e))
+            self.metagraph.sync().save()
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
@@ -706,7 +711,7 @@ class Miner:
                 wallet = self.wallet,
             )
             if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
+                bittensor.logging.success(prefix=f'Set {k} weights, top 5 weights:', sufix='{}'.format(list(zip(topk_scores[:5], topk_uids[:5]))))
             else:
                 logger.error('Failed to set weights on chain. (Timeout)')
 
@@ -738,6 +743,7 @@ class Miner:
             'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
             'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
         }
+
         # ---- Miner summary per peer for progress bar
         for uid in self.metagraph.uids.tolist():
             if normalized_peer_weights[uid].item() > 0:
@@ -780,7 +786,6 @@ class Miner:
                 wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend})
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
-
 
 
 if __name__ == "__main__":
