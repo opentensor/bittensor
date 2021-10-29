@@ -4,39 +4,41 @@ import pytest
 from unittest.mock import MagicMock
 
 def test_create():
-    subtensor = bittensor.subtensor()
+    subtensor = bittensor.subtensor(  )
+test_create()
 
 def test_defaults_to_akatsuki( ):
-    subtensor = bittensor.subtensor()
+    subtensor = bittensor.subtensor(  )
     assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
-
+test_defaults_to_akatsuki()
 
 def test_networks():
-    subtensor = bittensor.subtensor( network = 'kusanagi' )
-    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
-    subtensor = bittensor.subtensor( network = 'akatsuki' )
+    subtensor = bittensor.subtensor( network = 'akatsuki', )
     assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+test_networks()
 
 def test_network_overrides():
     config = bittensor.subtensor.config()
-    subtensor = bittensor.subtensor(network='kusanagi',config=config)
-    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
-    subtensor = bittensor.subtensor(network='akatsuki', config=config)
+    subtensor = bittensor.subtensor(network='akatsuki', config=config, )
     assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+test_network_overrides()
 
 def test_connect_no_failure( ):
      subtensor = bittensor.subtensor(
-         network = "kusanagi"
+         network = "akatsuki",
+         
      )
      subtensor.connect(timeout = 1, failure=False)
 
 subtensor = bittensor.subtensor(
-     network = 'akatsuki'
+     network = 'akatsuki',
+     
 )
 
 def test_connect_success( ):
     subtensor = bittensor.subtensor(
-     network = 'akatsuki'
+        network = 'akatsuki',
+        
     )
     success = subtensor.connect()
     assert success == True
@@ -44,7 +46,8 @@ def test_connect_success( ):
 
 def test_connect_fail( ):
     subtensor = bittensor.subtensor(
-     network = 'akatsuki'
+        network = 'akatsuki',
+        
     )
     subtensor.substrate=None
     with pytest.raises(RuntimeError):

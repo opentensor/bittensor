@@ -30,7 +30,6 @@ import concurrent
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-import bittensor.utils.networking as net
 
 logger = logger.opt(colors=True)
 
@@ -87,9 +86,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             qps_per_pubkey = {},
             qps_failed_per_pubkey = {},
         )
-
-        self.external_ip = None
-        self.external_port = None
         self.started = None
         
         # -- Priority 
@@ -605,59 +601,29 @@ class Axon( bittensor.grpc.BittensorServicer ):
             subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
             chain_endpoint: str = None,
-            timeout = 4 * bittensor.__blocktime__,
+            prompt: bool = False
         ) -> 'Axon':
         r""" Subscribes this Axon servicing endpoint to the passed network using it's wallet.
             Args:
                 use_upnpc (:type:bool, `optional`): 
                     If true, serves the axon attempts port forward through your router before 
                     subscribing.
-                modality (:type:bool, `optional`): 
-                    Which network modality are we subscribing to. Defaults to 0 for TEXT.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     Chain connection through which to serve.
                 network (default='akatsuki', type=str)
                     If subtensor is not set, uses this network flag to create the subtensor connection.
                 chain_endpoint (default=None, type=str)
                     Overrides the network argument if not set.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
+
         """   
-
-        # Create subtensor connection.
-        if subtensor == None:
-            subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint)
-
-        # ---- Setup UPNPC ----
-        if use_upnpc:
-            try:
-                self.external_port = net.upnpc_create_port_map( port = self.port )
-                bittensor.logging.success(prefix = 'UPNPC', sufix = '<red>OPEN</red>')
-            except net.UPNPCException as upnpc_exception:
-                raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
-        else:
-            self.external_port = self.port
-
-        # ---- Get external ip ----
-        try:
-            self.external_ip = net.get_external_ip()
-            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
-        except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
-
-        # ---- Setup Wallet. ----
-        self.wallet.create()
-            
-        # ---- Subscribe to chain ----
-        serve_success = subtensor.serve(
-                wallet = self.wallet,
-                ip = self.external_ip,
-                port = self.external_port,
-                modality = self.modality,
-                wait_for_finalization = True,
-        )
-        if not serve_success:
+        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint) 
+        serv_success = subtensor.serve( axon = self, use_upnpc = use_upnpc, prompt = prompt )
+        if not serv_success:
             raise RuntimeError('Failed to serve neuron.')
-
         return self
+
 
     def start(self) -> 'Axon':
         r""" Starts the standalone axon GRPC server thread.
