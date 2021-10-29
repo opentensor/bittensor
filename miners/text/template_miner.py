@@ -422,7 +422,7 @@ class Miner:
 
             # ---- Init run state ----
             self.epoch = 0            
-            self.stats.ema_scores = torch.nn.Parameter(torch.ones(bittensor.neuron.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 
             # ---- reloads previous run if not restart ----
             if self.config.miner.restart:
@@ -617,7 +617,7 @@ class Miner:
         except Exception as e:
             logger.warning('No saved model found with error: {}', e)
             last_saved = None
-            
+
         if last_saved == None or last_saved['epoch_loss'] >= self.stats.local_target_epoch_loss:
             self.stats.best_epoch_loss = self.stats.local_target_epoch_loss
             self.save()
@@ -710,8 +710,8 @@ class Miner:
             topk_scores, topk_uids = torch.topk( self.stats.ema_scores.detach(), k = k )
             did_set = self.subtensor.timeout_set_weights(
                 timeout=10,
-                uids = topk_uids,
-                weights = topk_scores,
+                uids = topk_uids.detach().to(torch.device('cpu')),
+                weights = topk_scores.detach().to(torch.device('cpu')),
                 wait_for_inclusion = True,
                 wallet = self.wallet,
             )
