@@ -92,7 +92,6 @@ class Config ( Munch ):
                 bittensor.defaults.wallet.name = self.wallet.name
                 bittensor.defaults.wallet.hotkey = self.wallet.hotkey
                 bittensor.defaults.wallet.path = self.wallet.path
-                bittensor.defaults.wallet.email = self.wallet.email
             
             if 'wandb' in self.keys():
                 bittensor.defaults.wandb.name = self.wandb.name

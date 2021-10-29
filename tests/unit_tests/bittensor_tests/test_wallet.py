@@ -80,7 +80,6 @@ def test_wallet_mnemonic_create():
 def test_wallet_is_registered():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     the_wallet.is_registered = MagicMock(return_value = True)
-    the_wallet.register( email = 'fake@email.com')
     check_keys_exists(the_wallet)
 
 def test_wallet_prop():
@@ -114,7 +113,6 @@ def test_wallet_register_wo_email():
 
 def test_wallet_register():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
-    the_wallet._email = 'pytest@gmail.com'
     the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.register()
 

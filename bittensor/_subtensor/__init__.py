@@ -17,7 +17,6 @@
 import argparse
 import os
 
-from munch import Munch
 import bittensor
 import copy
 from substrateinterface import SubstrateInterface
@@ -56,7 +55,6 @@ __type_registery__ = {
     }
 }
 
-
 class subtensor:
     """
     Handles interactions with the subtensor chain.
@@ -81,6 +79,8 @@ class subtensor:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                _mock (bool):
+                    returned object is mocks the underlying chain connection.
         """
         if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
@@ -90,7 +90,7 @@ class subtensor:
         else:
             config.subtensor.network = network if network != None else config.subtensor.network
             config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
-
+        
         substrate = SubstrateInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
@@ -98,6 +98,7 @@ class subtensor:
             url = "ws://{}".format(config.subtensor.chain_endpoint),
             use_remote_preset=True
         )
+
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
             substrate = substrate,
@@ -116,8 +117,9 @@ class subtensor:
         try:
             parser.add_argument('--subtensor.network', default = bittensor.defaults.subtensor.network, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- kusanagi (testing network)
-                                        -- akatsuki (main network)
+                                        -- nobunaga (staging network)
+                                        -- akatsuki (testing network)
+                                        -- nakamoto (master network)
                                     If this option is set it overloads subtensor.chain_endpoint with 
                                     an entry point node from that network.
                                     ''')
@@ -156,4 +158,4 @@ class subtensor:
             return bittensor.__local_entrypoints__[0]
         else:
             return bittensor.__local_entrypoints__[0]
-            
+        

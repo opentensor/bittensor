@@ -265,8 +265,8 @@ def main( config ):
             try: 
                 did_set = subtensor.timeout_set_weights(
                     timeout=10,
-                    uids=metagraph.uids,
-                    weights = chain_weights,
+                    uids=metagraph.uids.detach().to(torch.device('cpu')),
+                    weights = chain_weights.detach().to(torch.device('cpu')),
                     wait_for_inclusion = True,
                     wallet = wallet,
                 )
