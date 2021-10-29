@@ -123,6 +123,7 @@ class GenesisTextDataset( Dataset ):
         self.dataset_name = dataset_name
         self.data_dir = data_dir
         self.save_dataset = save_dataset
+        self.datafile_size_bound = 262158
         self.__infinite_dataset_iterator = None
 
         # Retrieve a random slice of the genesis dataset
@@ -143,10 +144,21 @@ class GenesisTextDataset( Dataset ):
         response = self.retrieve_directory(self.pin_get, (('type', 'recursive'),), action = 'post')
         if response.status_code != 200:
             dataset_hashes= [
+                'QmPbAqDsMpufa2eNsE8X9TRh43JsAPxbj7tz3PmprouH7U',
+                'QmRJKZq6q64H1iwokVJTbi4tWjewvodAaZ6Kn1SpgP33EG',
+                'QmSJJtZa37kX7ABBJyani9i3cFTq86zebTLQqioRCvgDei',
                 'QmSQ6AnnWQUy4bETQSAgkgCkJ1AQePSeKvbaFejizj5HP3',
+                'QmSTudwkfLWkwFSC7LnUVZyroBgV3A6atbFeKUZ63DnTeW',
+                'QmTtuWZmTZf5JcBmXpbDDM5Hkq4AoFJk9NGoDsR4zUhbJx',
                 'QmVbNzncoJK8WwyAoWxLndk4999iyyYZbCKpEvUxrFXp1N',
-                'QmYg67pZwPsX3qH31tEc1qexrPc88zUkZG4AqsNDZo5FEX'
-            ]
+                'QmWiHsJ6z2LbZnEcidgz2vPq9ZsgrKUQ4QdB83pFcFvug3',
+                'QmXa1SDyVK6f876JYHwoQZcpXGMi8aPYKWvHzKTDXuqU5z',
+                'QmYg67pZwPsX3qH31tEc1qexrPc88zUkZG4AqsNDZo5FEX',
+                'QmZawcgwiT9S5Vk5WX41RRaBPb73KByQej9JmRCNgNVxjz',
+                'QmeSNvZVtHeMmJSuJQAUyTTW9LZbQkAqLDgVVXhzqJHrvY',
+                'Qmefa9xMdu7HZyr3U1zH8MaCayPngPJ9iZnnddXfXMrA2N',
+                'Qmf3BjH7SzK8WHGWBngt4WK6jGCpUtgPEBCw2pFZvYimto'
+                ]
         else:
             for hash, v in response.json()['Keys'].items():
                 dataset_hashes.append(hash) 
@@ -191,7 +203,7 @@ class GenesisTextDataset( Dataset ):
                 A random directory that lead to a datafile.
         """
         # --- If the size of directory is small, it is leads to data file, return the data file.
-        if directory['Size'] <= 262158:
+        if directory['Size'] <= self.datafile_size_bound:
             return directory
 
         # --- Else, the directory leads to more directories, return a random data file within the directories.
