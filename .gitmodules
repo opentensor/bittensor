@@ -1,0 +1,3 @@
+[submodule "neurons"]
+	path = neurons
+	url = https://github.com/opentensor/neurons.git
