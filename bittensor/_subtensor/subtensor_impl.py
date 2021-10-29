@@ -421,7 +421,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
             neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
         if neuron.is_null:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey is not registered: {}[/red]".format(wallet.hotkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
             return False
 
         # Covert to bittensor.Balance
@@ -435,15 +435,15 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # Check enough to unstake.
         if staking_balance > old_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount:{}\n  account:{}[/bold white]".format(old_balance, staking_balance, wallet.coldkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, wallet.name))
             return False
                 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to stake:[bold white]\n  amount:{}\n  to:{}[/bold white]".format( staking_balance, neuron.hotkey ) ):
+            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format( staking_balance, wallet.hotkey_str ) ):
                 return False
 
-        with bittensor.__console__.status(":satellite: Staking to: [white]{}[/white] ...".format(self.network)):
+        with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule', 
@@ -517,12 +517,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             account_balance = self.get_balance( wallet.coldkey.ss58_address )
         if account_balance < transfer_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  transfer:[/bold white]".format( account_balance, transfer_balance ))
+            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
             return False
 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount:{}\n  from:{}:{}\n  to:{}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
+            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Transferring..."):
@@ -590,7 +590,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
             neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
         if neuron.is_null:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey is not registered.{}[/red]".format(wallet.hotkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format( wallet.hotkey_str ))
             return False
 
         # Covert to bittensor.Balance
@@ -605,12 +605,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Check enough to unstake.
         stake_on_uid = bittensor.Balance.from_tao( neuron.stake )
         if unstaking_balance > stake_on_uid:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from uid: [white]{}[/white]".format(stake_on_uid, unstaking_balance, neuron.uid))
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
             return False
         
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to unstake:[green ]{}[/green ] from uid:[blue ]{}[/blue ]?".format( unstaking_balance, neuron.uid) ):
+            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
@@ -677,7 +677,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             uids = torch.tensor( uids, dtype = torch.int64 )
         if isinstance( weights, list ):
             weights = torch.tensor( weights, dtype = torch.float32 )
-        bittensor.logging.success( 'Setting weights', str(list(zip(uids.tolist(), weights.tolist()))))
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -690,13 +689,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             if wait_for_inclusion or wait_for_finalization:
                 response.process_events()
                 if response.is_success:
-                    bittensor.logging.success( prefix = 'Weights Set', sufix = '<green>True</green>')
+                    message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
+                    logger.debug('Set weights:'.ljust(20) +  message)
                     return True
                 else:
-                    bittensor.logging.warning(  prefix = 'Weights Set', sufix = '<green>False: </green>' + str(response.error_message) )
+                    bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
                     return False
             else:
-                bittensor.logging.warning( prefix = 'Weights Set', sufix = '<yellow>Unknown (non-waiting)</yellow>')
+                bittensor.logging.warning( prefix = 'Set weights', sufix = '<yellow>Unknown (non-waiting)</yellow>')
                 return True
 
     def get_balance(self, address: str, block: int = None) -> Balance:
@@ -753,7 +753,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             result = []
-            for page in tqdm( page_results ):
+            for page in page_results :
                 for n in page:
                     if type(n.value) != int:
                         n = Subtensor._neuron_dict_to_namespace( n.value )
