@@ -96,6 +96,19 @@ class cli:
         )
         bittensor.subtensor.add_args( metagraph_parser )
 
+        weights_parser = cmd_parsers.add_parser(
+            'weights', 
+            help='''Weights commands'''
+        )
+        weights_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
+        bittensor.subtensor.add_args( weights_parser )
+
         list_parser = cmd_parsers.add_parser(
             'list', 
             help='''List wallets'''
@@ -395,8 +408,14 @@ class cli:
             cli.check_regen_hotkey_config( config )
         elif config.command == "metagraph":
             cli.check_metagraph_config( config )
+        elif config.command == "weights":
+            cli.check_weights_config( config )
 
     def check_metagraph_config( config: 'bittensor.Config'):
+        if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+    def check_weights_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
