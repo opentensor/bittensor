@@ -19,9 +19,6 @@ import bittensor
 
 import os
 import sys
-import time
-import json
-import requests
 import importlib
 from pathlib import Path
 from rich.tree import Tree
@@ -29,7 +26,6 @@ from rich import print
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Confirm
-from rich.prompt import Prompt
 
 class CLI:
     """

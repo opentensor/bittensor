@@ -21,7 +21,6 @@
 import argparse
 import os
 import copy
-from munch import Munch
 
 import bittensor
 from . import dataset_impl

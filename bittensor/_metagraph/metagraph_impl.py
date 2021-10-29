@@ -18,7 +18,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-from sys import version
 
 from typing import List
 from loguru import logger
@@ -27,7 +26,6 @@ import torch.nn.functional as f
 import torch
 
 import bittensor
-from bittensor._subtensor import subtensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 
