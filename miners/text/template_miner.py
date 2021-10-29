@@ -489,7 +489,7 @@ class Miner:
                             batches_count += 1
 
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
-                            chain_growth = scores.shape[0] - self.stats.ema_scores.shape[0]
+                            chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
                                 self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32)]), requires_grad=False)
                             self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
@@ -652,7 +652,7 @@ class Miner:
         self.stats.global_step = state_dict['global_step']
 
         # --- Updates the shape of nucleus chain weights
-        chain_growth = self.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0]
+        chain_growth = max(self.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0], 0)
         self.nucleus.peer_weights = nn.Parameter(
             torch.ones(
                 list(state_dict['nucleus_state']['peer_weights'].shape),
@@ -679,7 +679,7 @@ class Miner:
 
         # ---- Sync with metagraph ----
         self.metagraph.sync().save()
-        chain_growth = self.metagraph.n.item()- self.nucleus.peer_weights.shape[0]
+        chain_growth = max(self.metagraph.n.item()- self.nucleus.peer_weights.shape[0], 0)
         self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
         self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True).to(self.device)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
