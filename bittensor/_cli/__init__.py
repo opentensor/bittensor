@@ -107,6 +107,7 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
+        bittensor.wallet.add_args( weights_parser )
         bittensor.subtensor.add_args( weights_parser )
 
         list_parser = cmd_parsers.add_parser(
@@ -418,6 +419,14 @@ class cli:
     def check_weights_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+            if not Confirm.ask("Show all weights?"):
+                wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+                config.wallet.name = str(wallet_name)
+                config.all_weights = False
+            else:
+                config.all_weights = True
 
     def check_transfer_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:

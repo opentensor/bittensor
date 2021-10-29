@@ -22,7 +22,6 @@ import os
 from argparse import ArgumentParser
 
 import yaml
-import munch
 from loguru import logger
 
 import bittensor

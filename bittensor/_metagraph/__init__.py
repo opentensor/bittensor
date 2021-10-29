@@ -18,11 +18,8 @@ which maintains chain state as a torch.nn.Module.
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from os import name
 import argparse
 import copy
-
-from substrateinterface import Keypair
 
 import bittensor
 from . import metagraph_impl
