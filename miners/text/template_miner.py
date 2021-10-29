@@ -30,6 +30,8 @@ import traceback
 import os
 import sys
 import wandb
+import concurrent
+from functools import partial
 
 from termcolor import colored
 from qqdm import qqdm, format_str
@@ -452,7 +454,8 @@ class Miner:
                     start_block = self.subtensor.get_current_block() + 1
                     end_block = start_block + self.config.miner.epoch_length
                     block_steps = [ block_delta for block_delta in range(start_block, end_block)]
-                    progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('white', f'Epoch:'))
+                    progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('blue', f'Epoch:'))
+                    progress_bar.set_bar = partial(progress_bar.set_bar,  element='#')
                     for block in progress_bar:
 
                         # --- Iterate over batches until the end of the block.
@@ -476,7 +479,7 @@ class Miner:
                             self.optimizer.step() 
                             self.optimizer.zero_grad()
                             current_block = self.subtensor.get_current_block()
-                            
+
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
                             total_distillation_epoch_loss += output.distillation_loss.item()
@@ -490,6 +493,7 @@ class Miner:
                             if chain_growth > 0:
                                 self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32)]), requires_grad=False)
                             self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
+                            self.stats.scores = scores
 
                         # ---- Sync with metagraph if the current block >= last synced block + sync block time 
                         current_block = self.subtensor.get_current_block()
@@ -644,6 +648,7 @@ class Miner:
         # ---- Load training state.
         self.epoch = state_dict['epoch']
         self.stats.local_target_epoch_loss = state_dict['epoch_loss']
+        self.stats.best_epoch_loss = state_dict['epoch_loss']
         self.stats.global_step = state_dict['global_step']
 
         # --- Updates the shape of nucleus chain weights
@@ -710,10 +715,6 @@ class Miner:
                 wait_for_inclusion = True,
                 wallet = self.wallet,
             )
-            if did_set:
-                bittensor.logging.success(prefix=f'Set {k} weights, top 5 weights:', sufix='{}'.format(list(zip(topk_scores[:5], topk_uids[:5]))))
-            else:
-                logger.error('Failed to set weights on chain. (Timeout)')
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
@@ -727,33 +728,32 @@ class Miner:
         rank = self.metagraph.R[ self_uid ].item()
         incentive = self.metagraph.I[ self_uid ].item()     
         normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach(), dim=0)
+        current_block = self.subtensor.get_current_block()
+        
+        #  ---- Progress bar log
 
-        # ---- Progress bar log
         info = {
-            'GS': colored('{}'.format(self.stats.global_step), 'red'),
-            'LS': colored('{}'.format(iteration), 'blue'),
-            'Epoch': colored('{}'.format(self.epoch+1), 'green'),
-            'Best': colored('{:.4f}'.format(self.stats.best_epoch_loss), 'red'),            
+            'Step': colored('{}'.format(self.stats.global_step), 'red'),
+            'Epoch': colored('{}'.format(self.epoch+1), 'yellow'),
+            'Best-loss': colored('{:.4f}'.format(self.stats.best_epoch_loss), 'green'),            
             'L-loss': colored('{:.4f}'.format(output.local_target_loss.item()), 'blue'),
-            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'green'),
+            'R-loss': colored('{:.4f}'.format(output.remote_target_loss.item()), 'red'),
             'D-loss': colored('{:.4f}'.format(output.distillation_loss.item()), 'yellow'),
-            'nPeers': colored(self.metagraph.n.item(), 'red'),
-            'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'green'),
-            'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'blue'),
-            'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'yellow'),
-            'L-accuracy': colored('{}'.format(output.local_accuracy), 'red'),
+            'L-acc': colored('{:.4f}'.format(output.local_accuracy), 'green'),
+            'nPeers': colored(self.metagraph.n.item(), 'blue'),
+            'Stake(\u03C4)': colored('{:.3f}'.format(stake), 'red'),
+            'Rank(\u03C4)': colored('{:.3f}'.format(rank), 'yellow'),
+            'Incentive(\u03C4/block)': colored('{:.6f}'.format(incentive), 'green'),
+            'Current Block': colored('{}'.format(current_block), 'blue'),
+            'Synced Block': colored('{}'.format(self.last_sync_block), 'yellow'),
         }
 
         # ---- Miner summary per peer for progress bar
-        for uid in self.metagraph.uids.tolist():
-            if normalized_peer_weights[uid].item() > 0:
-                if self.nucleus.peer_weights.grad != None:
-                    weight_diff = -self.nucleus.peer_weights.grad[uid].item()
-                else:
-                    weight_diff = 0
-
-                color = ('green' if weight_diff > 0 else ('white' if weight_diff == 0 else 'red'))
-                info[str(uid)] = colored('{:.4f}'.format(normalized_peer_weights[uid]), color)
+        topk_scores, topk_idx = torch.topk(self.stats.ema_scores, 5, dim=0)
+        
+        for uid, ema_score in zip(topk_idx, topk_scores) :
+            color =  'green' if self.stats.scores[uid] - ema_score > 0 else 'red'
+            info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
 
         progress_bar.set_infos( info )
 

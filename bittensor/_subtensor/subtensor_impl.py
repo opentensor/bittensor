@@ -677,7 +677,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             uids = torch.tensor( uids, dtype = torch.int64 )
         if isinstance( weights, list ):
             weights = torch.tensor( weights, dtype = torch.float32 )
-        bittensor.logging.success( f'Set {len(uids)} weights, top 5 samples', str(list(zip(uids.tolist()[:5], weights.tolist()[:5]))))
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -690,13 +689,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             if wait_for_inclusion or wait_for_finalization:
                 response.process_events()
                 if response.is_success:
-                    bittensor.logging.success( prefix = 'Weights Set', sufix = '<green>True</green>')
+                    message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
+                    logger.debug('Set weights:'.ljust(20) +  message)
                     return True
                 else:
-                    bittensor.logging.warning(  prefix = 'Weights Set', sufix = '<green>False: </green>' + str(response.error_message) )
+                    bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
                     return False
             else:
-                bittensor.logging.warning( prefix = 'Weights Set', sufix = '<yellow>Unknown (non-waiting)</yellow>')
+                bittensor.logging.warning( prefix = 'Set weights', sufix = '<yellow>Unknown (non-waiting)</yellow>')
                 return True
 
     def get_balance(self, address: str, block: int = None) -> Balance:
@@ -753,7 +753,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             result = []
-            for page in tqdm( page_results ):
+            for page in page_results :
                 for n in page:
                     if type(n.value) != int:
                         n = Subtensor._neuron_dict_to_namespace( n.value )
