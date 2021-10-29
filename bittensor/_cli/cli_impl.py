@@ -141,14 +141,14 @@ class CLI:
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        subtensor.transfer( wallet = wallet, dest = self.config.dest, amount = self.config.amount, wait_for_finalization = True, prompt = not self.config.no_prompt )
+        subtensor.transfer( wallet = wallet, dest = self.config.dest, amount = self.config.amount, wait_for_finalization = False, prompt = not self.config.no_prompt )
 
     def unstake( self ):
         r""" Unstaked token of amount from uid.
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_finalization = True, prompt = not self.config.no_prompt )
+        subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_finalization = False, prompt = not self.config.no_prompt )
 
     def stake( self ):
         r""" Staked token of amount to uid.
@@ -156,7 +156,7 @@ class CLI:
         console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_finalization = True, prompt = not self.config.no_prompt )
+        subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_finalization = False, prompt = not self.config.no_prompt )
 
     def list(self):
         r""" Lists wallets.
@@ -173,8 +173,7 @@ class CLI:
             except:
                 coldkeypub_str = '?'
 
-
-            wallet_tree = root.add("\n\n[bold white]{} - {}".format(w_name, coldkeypub_str))
+            wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str[:8]))
             hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
@@ -183,13 +182,12 @@ class CLI:
                         hotkey_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name, hotkey = h_name)
                         try:
                             if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
-                                hotkey_str = wallet_for_name.hotkey.ss58_address
+                                hotkey_str = hotkey_for_name.hotkey.ss58_address
                             else:
                                 hotkey_str = '?'
                         except:
                             hotkey_str = '?'
-
-                        wallet_tree.add("[bold grey]{} - {}".format(h_name, hotkey_str))
+                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str[:8]))
             except:
                 pass
 
