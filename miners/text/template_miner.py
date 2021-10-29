@@ -705,8 +705,8 @@ class Miner:
             topk_scores, topk_uids = torch.topk( self.stats.ema_scores.detach(), k = k )
             did_set = self.subtensor.timeout_set_weights(
                 timeout=10,
-                uids = topk_uids,
-                weights = topk_scores,
+                uids = topk_uids.detach().to(torch.device('cpu')),
+                weights = topk_scores.detach().to(torch.device('cpu')),
                 wait_for_inclusion = True,
                 wallet = self.wallet,
             )
