@@ -70,6 +70,8 @@ class CLI:
             self.regen_hotkey()
         elif self.config.command == "metagraph":
             self.metagraph()
+        elif self.config.command == "weights":
+            self.weights()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -263,6 +265,31 @@ class CLI:
         table.pad_edge = False
         table.width = None
         console.print(table)
+
+    def weights(self):
+        r""" Prints an overview for the wallet's colkey.
+        """
+        console = bittensor.__console__
+        subtensor = bittensor.subtensor( config = self.config )
+        metagraph = bittensor.metagraph( subtensor = subtensor )
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            metagraph.load()
+            metagraph.sync()
+            metagraph.save()
+
+        table = Table()
+        rows = []
+        table.add_column("[bold white]uid", style='white', no_wrap=False)
+        for uid in metagraph.uids.tolist():
+            table.add_column("[bold white]{}".format(uid), style='white', no_wrap=False)
+            rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+        for row in rows:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        with console.pager():
+            console.print(table)
 
     def overview(self):
         r""" Prints an overview for the wallet's colkey.
