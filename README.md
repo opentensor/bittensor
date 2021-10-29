@@ -152,12 +152,22 @@ $ btcli list
 
 Registering a wallet
 ```bash
-$ btcli register --email <your email>
+$ btcli register
+```
+
+Running a miner.
+```bash
+$ btcli run
 ```
 
 Checking balances
 ```bash
 $ btcli overview
+```
+
+Checking the incentive mechanism.
+```bash
+$ btcli metagraph
 ```
 
 Transfering funds
@@ -281,7 +291,7 @@ address = meta.endpoints[0]
 
 ### Creating the endpoint, wallet, and dendrite
 endpoint = bittensor.endpoint.from_tensor(address)
-wallet = bittensor.wallet().create()
+wallet = bittensor.wallet().create().register()
 den = bittensor.dendrite(wallet = wallet)
 
 representations, _ = den.forward_text (
@@ -316,7 +326,7 @@ def forward_text( pubkey, inputs_x ):
         raise TimeoutError('TimeOutError')
   
 
-wallet = bittensor.wallet().create()
+wallet = bittensor.wallet().create().register()
 axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
