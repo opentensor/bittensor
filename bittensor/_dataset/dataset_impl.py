@@ -201,12 +201,12 @@ class GenesisTextDataset( Dataset ):
             # --- Return none if the request failed.
             if response.status_code != 200:
                 logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(directory))
-                return []
+                return None
             
             # --- Pick a random sub_directory, run recursion until we have found a data file
             else:
                 sub_directories = response.json()
-                if sub_directories and 'Links' in sub_directories.keys():
+                if sub_directories and 'Links' in sub_directories.keys() and len(sub_directories['Links']) >= 1:
                     random_sub_directory = random.choice(sub_directories['Links'])
 
                     # --- Fill the name of the random_sub_directory if it is empty. 
@@ -216,7 +216,7 @@ class GenesisTextDataset( Dataset ):
                     return self.extract_datafile_dir(random_sub_directory)
                 else:
                     logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(dir_hash))
-        return []
+        return None
 
     def get_text(self, file):
         r"""
