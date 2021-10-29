@@ -30,6 +30,7 @@ from rich.prompt import Confirm
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
 console = bittensor.__console__
+import neurons
 
 class cli:
     """
@@ -82,6 +83,15 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
+        run_parser.add_argument(
+            '--model', 
+            type=str, 
+            choices= list(neurons.__text_neurons__.keys()), 
+            default='template_miner', 
+            help='''which miner to run'''
+        )
+        bittensor.subtensor.add_args( run_parser )
+        bittensor.wallet.add_args( run_parser )
 
         metagraph_parser = cmd_parsers.add_parser(
             'metagraph', 
@@ -562,13 +572,6 @@ class cli:
 
     def check_run_config( config: 'bittensor.Config' ):
 
-        # Copy accross keys.
-        file_path = Path(str(Path(__file__).resolve()) + "/../../../miners/text/template_miner.py").resolve()
-        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(file_path)).load_module()
-        miner_config = miner.Miner.config()
-        for k in miner_config.keys():
-            config[k] = miner_config[k]
-
         # Check network.
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
@@ -582,7 +585,11 @@ class cli:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
-
+        # Check Miner
+        if config.model == 'template_miner' and not config.no_prompt:
+            model = Prompt.ask('Enter miner name', choices = list(neurons.__text_neurons__.keys()), default = 'template_miner')
+            config.model = model
+        
 
                 
                 
