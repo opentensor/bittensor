@@ -44,7 +44,7 @@ class wandb:
         if config == None: 
             config = wandb.config()
         config = copy.deepcopy( config )
-        config.neuron.api_key = api_key if api_key != None else config.neuron.api_key
+        config.wandb.api_key = api_key if api_key != None else config.wandb.api_key
         config.wandb.name = name if name != None else config.wandb.name
         config.wandb.project = project if project != None else config.wandb.project
         config.wandb.tags = tags if tags != None else config.wandb.tags
@@ -52,8 +52,8 @@ class wandb:
         config.wandb.directory = directory if directory != None else config.wandb.directory
         wandb.check_config( config )
 
-        if config.neuron.api_key != 'default':
-            os.environ["WANDB_API_KEY"] = config.neuron.api_key 
+        if config.wandb.api_key != 'default':
+            os.environ["WANDB_API_KEY"] = config.wandb.api_key 
         else:
             pass
         os.environ["WANDB_NAME"] = config.wandb.name 
@@ -62,14 +62,14 @@ class wandb:
         os.environ["WANDB_RUN_GROUP"] = config.wandb.run_group if config.wandb.run_group != 'default' else str(hot_pubkey)[:8]
         os.environ["WANDB_DIR"] = config.wandb.directory if config.wandb.directory != 'default' else root_dir
 
-        wb.init(config = config, config_exclude_keys = ['neuron'])
+        wb.init(config = config, config_exclude_keys = ['wandb'])
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
         """ Accepting specific argument from parser
         """
         try:
-            parser.add_argument('--neuron.api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default='default')
+            parser.add_argument('--wandb.api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default='default')
             parser.add_argument('--wandb.name', type=str, help='''Optionally pass wandb run name for use_wandb''', default = bittensor.defaults.wandb.name)
             parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default = bittensor.defaults.wandb.project)
             parser.add_argument('--wandb.tags', type=str, help='''Optionally pass wandb tags for use_wandb''', default = bittensor.defaults.wandb.tags)
@@ -106,7 +106,7 @@ class wandb:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Checking config for types
         """
-        assert isinstance(config.neuron.api_key, str), 'wandb.api_key must be a string'
+        assert isinstance(config.wandb.api_key, str), 'wandb.api_key must be a string'
         assert isinstance(config.wandb.project, str), 'wandb.project must be a string'
         assert isinstance(config.wandb.name , str), 'wandb.name must be a string'
         assert isinstance(config.wandb.tags , str), 'wandb.tags must be a str'

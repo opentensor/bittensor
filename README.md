@@ -108,7 +108,7 @@ axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
     backward_text = backward_text
-).start().subscribe()
+).start().serve()
 ```
 
 ### 3.3. Validator 
@@ -137,12 +137,48 @@ bittensor.subtensor().set_weights (
 ```
 ## 4. Features
 
-### 4.1. Creating a bittensor wallet 
+### 4.1. CLI
 
-
+Creating a new wallet.
 ```bash
-$ bittensor-cli new_coldkey --wallet.name <WALLET NAME>
-$ bittensor-cli new_hotkey --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ btcli new_coldkey
+$ btcli new_hotkey
+```
+
+Listing your wallet.s
+```bash
+$ btcli list
+```
+
+Registering a wallet
+```bash
+$ btcli register
+```
+
+Running a miner.
+```bash
+$ btcli run
+```
+
+Checking balances
+```bash
+$ btcli overview
+```
+
+Checking the incentive mechanism.
+```bash
+$ btcli metagraph
+```
+
+Transfering funds
+```bash
+$ btcli transfer
+```
+
+Staking/Unstaking from a hotkey
+```bash
+$ btcli stake
+$ btcli unstake
 ```
 
 ### 4.2. Selecting the network to join 
@@ -192,7 +228,7 @@ $ python ~/.bittensor/bittensor/miners/text/template_server.py --help
 
 ###  4.5. Subscription to the network
 
-The subscription to the bittensor network is done using the axon. We must first create a bittensor wallet and a bittensor axon to subscribe.
+The subscription to the bittensor network is done using the axon. We must first create a bittensor wallet and a bittensor axon to serve.
 
 ```python
 import bittensor
@@ -202,7 +238,7 @@ axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
     backward_text = backward_text
-).start().subscribe()
+).start().serve()
 ```
 
 ### 4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes
@@ -255,7 +291,7 @@ address = meta.endpoints[0]
 
 ### Creating the endpoint, wallet, and dendrite
 endpoint = bittensor.endpoint.from_tensor(address)
-wallet = bittensor.wallet().create()
+wallet = bittensor.wallet().create().register()
 den = bittensor.dendrite(wallet = wallet)
 
 representations, _ = den.forward_text (
@@ -290,11 +326,11 @@ def forward_text( pubkey, inputs_x ):
         raise TimeoutError('TimeOutError')
   
 
-wallet = bittensor.wallet().create()
+wallet = bittensor.wallet().create().register()
 axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
-).start().subscribe()
+).start().serve()
 ```
 
 ---

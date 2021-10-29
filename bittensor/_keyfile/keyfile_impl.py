@@ -22,6 +22,7 @@ import stat
 import getpass
 import bittensor
 
+from rich.console import Console
 from ansible_vault import Vault
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import Fernet, InvalidToken
@@ -182,7 +183,9 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
                 Ansible encrypted data.
     """
     password = ask_password_to_encrypt() if password == None else password
-    vault = Vault( password )
+    console = bittensor.__console__;             
+    with console.status(":locked_with_key: Encrypting key..."):
+        vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
 
 def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
@@ -199,22 +202,25 @@ def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
             KeyFileError:
                 Raised if the file is corrupted or if the password is incorrect.
     """
+    password = getpass.getpass("Enter password to unlock key: ") if password == None else password
     try:
         password = getpass.getpass("Enter password to unlock key: ") if password == None else password
-        # Ansible decrypt.
-        if keyfile_data_is_encrypted_ansible( keyfile_data ):
-            vault = Vault( password )
-            decrypted_keyfile_data = vault.load( keyfile_data )
-        # Legacy decrypt.
-        elif keyfile_data_is_encrypted_legacy( keyfile_data ):
-            __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
-            kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
-            key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
-            cipher_suite = Fernet(key)
-            decrypted_keyfile_data = cipher_suite.decrypt( keyfile_data )   
-        # Unknown.
-        else: 
-            raise KeyFileError( "Keyfile data: {} is corrupt".format( keyfile_data ))
+        console = bittensor.__console__;             
+        with console.status(":key: Decrypting key..."):
+            # Ansible decrypt.
+            if keyfile_data_is_encrypted_ansible( keyfile_data ):
+                vault = Vault( password )
+                decrypted_keyfile_data = vault.load( keyfile_data )
+            # Legacy decrypt.
+            elif keyfile_data_is_encrypted_legacy( keyfile_data ):
+                __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
+                kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
+                key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+                cipher_suite = Fernet(key)
+                decrypted_keyfile_data = cipher_suite.decrypt( keyfile_data )   
+            # Unknown.
+            else: 
+                raise KeyFileError( "Keyfile data: {} is corrupt".format( keyfile_data ))
 
     except (InvalidSignature, InvalidKey, InvalidToken):
         raise KeyFileError('Invalid password')

@@ -22,7 +22,7 @@ import bittensor
 
 logger = logger.opt(colors=True)
 
-def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
+def code_to_string( code: 'bittensor.proto.ReturnCode' ) -> str:
     """ Return code -> string
     """
     if code == 0: 
@@ -74,7 +74,7 @@ def code_to_string( code: bittensor.proto.ReturnCode ) -> str:
     else:
         return 'UnknownCode'
 
-def code_to_loguru_color( code: bittensor.proto.ReturnCode ) -> str:
+def code_to_loguru_color( code: 'bittensor.proto.ReturnCode' ) -> str:
     """ Return code -> loguru color
     """
     if code == 0: 
