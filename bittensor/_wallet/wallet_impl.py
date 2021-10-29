@@ -236,6 +236,8 @@ class Wallet():
         # Get chain connection.
         if subtensor == None: subtensor = bittensor.subtensor()
         subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
+        
+        return self
 
     def add_stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
