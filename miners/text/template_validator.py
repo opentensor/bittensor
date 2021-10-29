@@ -274,13 +274,14 @@ def main( config ):
         # --- End of epoch
         # --- Set mechanism weights.
         topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.miner.n_topk_peer_weights, metagraph.n.item())  )
-        subtensor.set_weights (
-            uids = topk_uids,
-            weights = topk_scores,
+        subtensor.timeout_set_weights(
+            timeout=10,
+            uids = topk_uids.detach().to(torch.device('cpu')),
+            weights = topk_scores.detach().to(torch.device('cpu')),
+            wait_for_inclusion = True,
             wallet = wallet,
-            wait_for_inclusion = False,
-        )    
-
+        )
+        
         # --- Log.
         metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
