@@ -152,12 +152,17 @@ $ btcli list
 
 Registering a wallet
 ```bash
-$ btcli register --email <your email>
+$ btcli register
 ```
 
 Checking balances
 ```bash
 $ btcli overview
+```
+
+Checking the incentive mechanism.
+```bash
+$ btcli metagraph
 ```
 
 Transfering funds
