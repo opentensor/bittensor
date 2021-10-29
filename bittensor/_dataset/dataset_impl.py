@@ -273,7 +273,11 @@ class GenesisTextDataset( Dataset ):
                     file_name = random_dataset_file['Name']
                     random_dataset_file_hash = random_dataset_file['Cid']['/']
                     
-                    text = self.get_text(random_dataset_file_hash, file_name)
+                    try:
+                        text = self.get_text(random_dataset_file_hash, file_name)
+                    except: 
+                        text = None
+                        
                     if text != None:
                         data_corpus.extend(text.split())
                         total_dataset_size += int(random_dataset_file['Size'])
@@ -368,7 +372,9 @@ class GenesisTextDataset( Dataset ):
         Returns:
             int: length of dataset minus block size
         """
-        return len(self.data) - self.block_size
+        if self.data == None:
+            return 0
+        return max(len(self.data) - self.block_size, 0)
 
     def __getitem__(self, idx):
         """ Returns a batch of sentences from text dataset.
