@@ -421,7 +421,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
             neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
         if neuron.is_null:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey is not registered: {}[/red]".format(wallet.hotkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
             return False
 
         # Covert to bittensor.Balance
@@ -435,15 +435,15 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # Check enough to unstake.
         if staking_balance > old_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount:{}\n  account:{}[/bold white]".format(old_balance, staking_balance, wallet.coldkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, wallet.name))
             return False
                 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to stake:[bold white]\n  amount:{}\n  to:{}[/bold white]".format( staking_balance, neuron.hotkey ) ):
+            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format( staking_balance, wallet.hotkey_str ) ):
                 return False
 
-        with bittensor.__console__.status(":satellite: Staking to: [white]{}[/white] ...".format(self.network)):
+        with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule', 
@@ -517,12 +517,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             account_balance = self.get_balance( wallet.coldkey.ss58_address )
         if account_balance < transfer_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  transfer:[/bold white]".format( account_balance, transfer_balance ))
+            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
             return False
 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount:{}\n  from:{}:{}\n  to:{}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
+            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Transferring..."):
@@ -590,7 +590,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
             neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
         if neuron.is_null:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey is not registered.{}[/red]".format(wallet.hotkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format( wallet.hotkey_str ))
             return False
 
         # Covert to bittensor.Balance
@@ -605,12 +605,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Check enough to unstake.
         stake_on_uid = bittensor.Balance.from_tao( neuron.stake )
         if unstaking_balance > stake_on_uid:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from uid: [white]{}[/white]".format(stake_on_uid, unstaking_balance, neuron.uid))
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
             return False
         
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to unstake:[green ]{}[/green ] from uid:[blue ]{}[/blue ]?".format( unstaking_balance, neuron.uid) ):
+            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
