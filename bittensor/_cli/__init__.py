@@ -110,6 +110,22 @@ class cli:
         bittensor.wallet.add_args( weights_parser )
         bittensor.subtensor.add_args( weights_parser )
 
+        set_weights_parser = cmd_parsers.add_parser(
+            'set_weights', 
+            help='''Weights commands'''
+        )
+        set_weights_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
+        parser.add_argument ("--uids", type=int, required=False, nargs='*', action='store', help="Uids to set.")
+        parser.add_argument ("--weights", type=float, required=False, nargs='*', action='store', help="Weights to set.")
+        bittensor.wallet.add_args( set_weights_parser )
+        bittensor.subtensor.add_args( set_weights_parser )
+
         list_parser = cmd_parsers.add_parser(
             'list', 
             help='''List wallets'''
@@ -411,6 +427,8 @@ class cli:
             cli.check_metagraph_config( config )
         elif config.command == "weights":
             cli.check_weights_config( config )
+        elif config.command == "set_weights":
+            cli.check_set_weights_config( config )
 
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -496,6 +514,27 @@ class cli:
                     sys.exit()
             else:
                 config.unstake_all = True
+
+
+    def check_set_weights_config( config: 'bittensor.Config' ):
+        if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if not config.uids:
+            uids_str = Prompt.ask("Enter uids as list (e.g. 0, 2, 3, 4)")
+            config.uids = [int(val) for val in uids_str.split(',')]
+
+        if not config.weights:
+            weights_str = Prompt.ask("Enter weights as list (e.g. 0.25, 0.25, 0.25, 0.25)")
+            config.weights = [float(val) for val in weights_str.split(',')]
 
 
     def check_stake_config( config: 'bittensor.Config' ):
