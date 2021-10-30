@@ -68,6 +68,8 @@ class CLI:
             self.metagraph()
         elif self.config.command == "weights":
             self.weights()
+        elif self.config.command == "set_weights":
+            self.set_weights()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -128,33 +130,45 @@ class CLI:
         bittensor.__console__.clear()
 
     def register( self ):
-        r""" Register 
+        r""" Register neuron.
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
         subtensor.register( wallet = wallet, prompt = not self.config.no_prompt)
 
     def transfer( self ):
-        r""" Transfers token of amount to destination.
+        r""" Transfer token of amount to destination.
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        subtensor.transfer( wallet = wallet, dest = self.config.dest, amount = self.config.amount, wait_for_finalization = False, prompt = not self.config.no_prompt )
+        subtensor.transfer( wallet = wallet, dest = self.config.dest, amount = self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
     def unstake( self ):
-        r""" Unstaked token of amount from uid.
+        r""" Unstake token of amount from uid.
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_finalization = False, prompt = not self.config.no_prompt )
+        subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
     def stake( self ):
-        r""" Staked token of amount to uid.
+        r""" Stake token of amount to uid.
         """
-        console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_finalization = False, prompt = not self.config.no_prompt )
+        subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
+    def set_weights( self ):
+        r""" Set weights and uids on chain.
+        """
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+        subtensor.set_weights( 
+            wallet, 
+            uids = self.config.uids,
+            weights = self.config.weights,
+            wait_for_inclusion = True, 
+            prompt = not self.config.no_prompt 
+        )
 
     def list(self):
         r""" Lists wallets.

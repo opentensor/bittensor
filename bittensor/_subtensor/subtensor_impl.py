@@ -629,6 +629,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                     return True
 
+                response.process_events()
                 if response.is_success:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 else:
@@ -642,7 +643,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
                 
-#    @logger.catch
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
@@ -650,6 +650,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             weights: Union[torch.FloatTensor, list],
             wait_for_inclusion:bool = False,
             wait_for_finalization:bool = False,
+            prompt:bool = False
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
@@ -665,38 +666,56 @@ To run a local node (See: docs/running_a_validator.md) \n
             wait_for_finalization (bool):
                 if set, waits for the extrinsic to be finalized on the chain before returning true,
                 or returns false if the extrinsic fails to be finalized within the timeout.
-            timeout (int):
-                time that this call waits for either finalization of inclusion.
+            prompt (bool):
+                If true, the call waits for confirmation from the user before proceeding.
         Returns:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block.
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        # First convert types.
         if isinstance( uids, list ):
             uids = torch.tensor( uids, dtype = torch.int64 )
         if isinstance( weights, list ):
             weights = torch.tensor( weights, dtype = torch.float32 )
+
+        # Reformat and normalize.
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule',
-                call_function='set_weights',
-                call_params = {'dests': weight_uids, 'weights': weight_vals}
-            )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-            if wait_for_inclusion or wait_for_finalization:
+
+        # Ask before moving on.
+        if prompt:
+            if not Confirm.ask("Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format( [float(v/4294967295) for v in weight_vals], weight_uids) ):
+                return False
+
+        with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(self.network)):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='set_weights',
+                    call_params = {'dests': weight_uids, 'weights': weight_vals}
+                )
+                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                    return True
+
                 response.process_events()
                 if response.is_success:
-                    message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
-                    logger.debug('Set weights:'.ljust(20) +  message)
-                    return True
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.error_message) )
                 else:
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
                     bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
-                    return False
-            else:
-                bittensor.logging.warning( prefix = 'Set weights', sufix = '<yellow>Unknown (non-waiting)</yellow>')
-                return True
+
+        if response.is_success:
+            bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( weight_vals, weight_uids ))
+            message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
+            logger.debug('Set weights:'.ljust(20) +  message)
+            return True
+        else:
+            return False
 
     def get_balance(self, address: str, block: int = None) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
