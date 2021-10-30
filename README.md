@@ -64,7 +64,7 @@ For users that want to explore what is possible using on the Bittensor network.
 ```python
 import bittensor
 import torch
-wallet = bittensor.wallet().create()
+wallet = bittensor.wallet().create().register()
 graph = bittensor.metagraph().sync()
 representations, _ = bittensor.dendrite( wallet = wallet ).forward_text (
     endpoints = graph.endpoints,
@@ -103,7 +103,7 @@ def backward_text( pubkey, inputs_x, grads_dy ):
         optimizer.step()
         optimizer.zero_grad() 
 
-wallet = bittensor.wallet().create()
+wallet = bittensor.wallet().create().register()
 axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,
@@ -182,10 +182,11 @@ $ btcli unstake
 ```
 
 ### 4.2. Selecting the network to join 
-There are two open Bittensor networks: Kusanagi and Akatsuki.
+There are two open Bittensor networks: Nobunaga, Akatsuki, Nakamoto.
 
-- Kusanagi is the test network. Use Kusanagi to get familiar with Bittensor without worrying about losing valuable tokens. 
+- Nobunaga is the staging network.
 - Akatsuki is the main network. The main network will reopen on Bittensor-akatsuki: November 2021.
+- Nakamoto is the main network. The main network will reopen on Bittensor-nakamoto: November 2021.
 
 ```bash
 $ export NETWORK=akatsuki 
@@ -233,7 +234,7 @@ The subscription to the bittensor network is done using the axon. We must first 
 ```python
 import bittensor
 
-wallet = bittensor.wallet().create()
+wallet = bittensor.wallet().create().register()
 axon = bittensor.axon (
     wallet = wallet,
     forward_text = forward_text,

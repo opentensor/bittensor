@@ -313,8 +313,6 @@ class GenesisTextDataset( Dataset ):
                         pass
 
                     # --- Get text from the datafile directory
-                    text = self.get_text(random_datafile_dir)
-
                     try:
                         text = self.get_text(random_datafile_dir)
                     except: 

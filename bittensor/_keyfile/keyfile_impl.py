@@ -22,7 +22,6 @@ import stat
 import getpass
 import bittensor
 
-from rich.console import Console
 from ansible_vault import Vault
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import Fernet, InvalidToken
