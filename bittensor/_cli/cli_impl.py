@@ -19,14 +19,12 @@ import bittensor
 
 import os
 import sys
-import importlib
-from pathlib import Path
 from rich.tree import Tree
 from rich import print
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Confirm
-import neurons
+import bittensor._neurons.neurons as neurons
 
 class CLI:
     """

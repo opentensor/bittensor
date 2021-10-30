@@ -15,12 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
 from rich.console import Console
-from typing import Callable
 
 # Bittensor code and protocol version.
-__version__ = '1.6.0'
+__version__ = '1.7.3'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
@@ -69,6 +67,9 @@ from bittensor._logging import logging as logging
 # ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
+
+# ---- Neurons ---
+import bittensor._neurons.neurons as neurons
 
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance
