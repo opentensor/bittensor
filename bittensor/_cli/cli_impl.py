@@ -268,6 +268,7 @@ class CLI:
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )
+        wallet = bittensor.wallet( config = self.config )
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
             metagraph.load()
             metagraph.sync()
@@ -278,7 +279,16 @@ class CLI:
         table.add_column("[bold white]uid", style='white', no_wrap=False)
         for uid in metagraph.uids.tolist():
             table.add_column("[bold white]{}".format(uid), style='white', no_wrap=False)
-            rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+            if self.config.all_weights:
+                rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+            else:
+                if metagraph.coldkeys[uid] == wallet.coldkeypub.ss58_address:
+                    if not self.config.all_hotkeys:
+                        if metagraph.hotkeys[uid] == wallet.hotkey.ss58_address:
+                            rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+                    else:
+                        rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+
         for row in rows:
             table.add_row(*row)
         table.box = None

@@ -425,6 +425,12 @@ class cli:
                 wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
                 config.wallet.name = str(wallet_name)
                 config.all_weights = False
+                if not Confirm.ask("Show all hotkeys?"):
+                    hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+                    config.wallet.hotkey = str(hotkey)
+                    config.all_hotkeys = False
+                else:
+                    config.all_hotkeys = True
             else:
                 config.all_weights = True
 
