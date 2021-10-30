@@ -221,7 +221,7 @@ class CLI:
                 '{:.5f}'.format( metagraph.incentive[uid]),
                 '{:.5f}'.format( metagraph.dividends[uid]),
                 '{:.5f}'.format( metagraph.emission[uid]),
-                str(metagraph.last_update[uid].item()),
+                str((metagraph.block.item() - metagraph.last_update[uid].item())),
                 str( metagraph.active[uid].item() ), 
                 ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
                 ep.hotkey[:10],
@@ -248,7 +248,7 @@ class CLI:
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]LastUpdate (blocks)", justify='right', no_wrap=True)
+        table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
         table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
@@ -324,7 +324,7 @@ class CLI:
             incentive = metagraph.I[ uid ].item()
             dividends = metagraph.D[ uid ].item()
             emission = metagraph.E[ uid ].item() / 1000000000
-            last_update = int(metagraph.block - metagraph.last_update[uid ])
+            last_update = int(metagraph.block - metagraph.last_update[ uid ])
             row = [
                 str(ep.uid), 
                 str(active), 
@@ -362,7 +362,7 @@ class CLI:
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]LastUpdate (blocks)", justify='right', no_wrap=True)
+        table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
         table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
         table.show_footer = True
