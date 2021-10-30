@@ -26,6 +26,7 @@ from rich import print
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Confirm
+import neurons
 
 class CLI:
     """
@@ -96,7 +97,7 @@ class CLI:
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
 
     def run_miner ( self ):
-
+        self.config.to_defaults()
         # Check coldkey.
         wallet = bittensor.wallet( config = self.config )
         if not wallet.coldkeypub_file.exists_on_device():
@@ -124,10 +125,14 @@ class CLI:
         self.register()
 
         # Run miner.
-        file_path = Path(str(Path(__file__).resolve()) + "/../../../miners/text/template_miner.py").resolve()
-        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(file_path)).load_module()
-        miner.Miner( config = self.config ).run()
-        bittensor.__console__.clear()
+        if self.config.model == 'template_miner':
+            neurons.template_miner.neuron().run()
+        elif self.config.model == 'template_server':
+            neurons.template_server.neuron().run()
+        elif self.config.model == 'template_validator':
+            neurons.template_validator.neuron().run()
+        elif self.config.model == 'advanced_server':
+            neurons.advanced_server.neuron().run()
 
     def register( self ):
         r""" Register neuron.
