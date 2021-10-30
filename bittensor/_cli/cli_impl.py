@@ -278,17 +278,15 @@ class CLI:
         rows = []
         table.add_column("[bold white]uid", style='white', no_wrap=False)
         for uid in metagraph.uids.tolist():
+            table.add_column("[bold white]{}".format(uid), style='white', no_wrap=False)
             if self.config.all_weights:
-                table.add_column("[bold white]{}".format(uid), style='white', no_wrap=False)
                 rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
             else:
                 if metagraph.coldkeys[uid] == wallet.coldkeypub.ss58_address:
-                    if self.config.all_hotkeys:
+                    if not self.config.all_hotkeys:
                         if metagraph.hotkeys[uid] == wallet.hotkey.ss58_address:
-                            table.add_column("[bold white]{}".format(uid), style='white', no_wrap=False)
                             rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
                     else:
-                        table.add_column("[bold white]{}".format(uid), style='white', no_wrap=False)
                         rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
 
         for row in rows:
