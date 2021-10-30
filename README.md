@@ -14,7 +14,7 @@
 
 </div>
 
-At Bittensor, we are creating an open, decentralized, peer-to-peer network that functions as a market system for the development of artificial intelligence. Our purpose is not only to accelerate the development of AI by creating an environment optimally condusive to its evolution, but to democratize the global production and use of this valuable commodity. Our aim is to disrupt the status quo: a system that is centrally controlled, inefficient and unsustainable. In developing the Bittensor API, we are allowing standalone engineers to monetize their work, gain access to sophisticated machine intelligence models and join our community of creative, forward-thinking individuals. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+At Bittensor, we are creating an open, decentralized, peer-to-peer network that functions as a market system for the development of artificial intelligence. Our purpose is not only to accelerate the development of AI by creating an environment optimally condusive to its evolution, but to democratize the global production and use of this valuable commodity. Our aim is to disrupt the status quo: a system that is centrally controlled, inefficient and unsustainable. In developing the Bittensor API, we are allowing engineers to monetize their work, gain access to machine intelligence and join our community of creative, forward-thinking individuals. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
 
 - [1. Documentation](#1-documentation)
 - [2. Install](#2-install)
@@ -42,12 +42,12 @@ https://app.gitbook.com/@opentensor/s/bittensor/
 ## 2. Install
 Two ways to install Bittensor. 
 
-1. Through installer (recommended):
+1. Through installer:
 ```
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
 ```
 
-2. Through pip (Advanced):
+2. Through pip:
 ```bash
 $ pip3 install bittensor
 ```
@@ -81,7 +81,6 @@ loss.backward() // Accumulate gradients on endpoints.
 
 For users that want to serve up a custom model onto the Bittensor network
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/12nGV6cmoZNvywb_z6E8CDzdHCQ3F7tpQ?usp=sharing)
 ```python
 import bittensor
 import torch
@@ -115,7 +114,6 @@ axon = bittensor.axon (
 
 For users that want to validate the models that currently on the Bittensor network
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1m6c4_D1FHHcZxnDJCW4F0qORWhXV_hc_?usp=sharing)
 ```python
 import bittensor
 import torch
