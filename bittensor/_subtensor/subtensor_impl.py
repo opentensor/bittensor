@@ -345,7 +345,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         with bittensor.__console__.status(":satellite: Checking Axon..."):
             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-            if not neuron.is_null and neuron.ip == ip and neuron.port == port:
+            if not neuron.is_null and neuron.ip == net.ip_to_int(ip) and neuron.port == port:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
                 return True
 
