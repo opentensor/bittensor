@@ -22,15 +22,13 @@ import os
 import sys
 import argparse
 
-import importlib
-from pathlib import Path
 import bittensor
 from rich.prompt import Prompt
 from rich.prompt import Confirm
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
 console = bittensor.__console__
-import neurons
+import bittensor._neurons.neurons as neurons
 
 class cli:
     """
