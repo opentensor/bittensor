@@ -22,14 +22,15 @@ import os
 import sys
 import argparse
 
-import importlib
-from pathlib import Path
 import bittensor
 from rich.prompt import Prompt
 from rich.prompt import Confirm
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
 console = bittensor.__console__
+
+if bittensor.__neurons_installed__:
+    import bittensor._neurons.neurons as neurons
 
 class cli:
     """
@@ -82,6 +83,16 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
+        if bittensor.__neurons_installed__:
+            run_parser.add_argument(
+                '--model', 
+                type=str, 
+                choices= list(neurons.__text_neurons__.keys()), 
+                default='template_miner', 
+                help='''Miners available through bittensor.neurons'''
+            )
+        bittensor.subtensor.add_args( run_parser )
+        bittensor.wallet.add_args( run_parser )
 
         metagraph_parser = cmd_parsers.add_parser(
             'metagraph', 
@@ -95,6 +106,36 @@ class cli:
             default=False,
         )
         bittensor.subtensor.add_args( metagraph_parser )
+
+        weights_parser = cmd_parsers.add_parser(
+            'weights', 
+            help='''Weights commands'''
+        )
+        weights_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( weights_parser )
+        bittensor.subtensor.add_args( weights_parser )
+
+        set_weights_parser = cmd_parsers.add_parser(
+            'set_weights', 
+            help='''Weights commands'''
+        )
+        set_weights_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
+        parser.add_argument ("--uids", type=int, required=False, nargs='*', action='store', help="Uids to set.")
+        parser.add_argument ("--weights", type=float, required=False, nargs='*', action='store', help="Weights to set.")
+        bittensor.wallet.add_args( set_weights_parser )
+        bittensor.subtensor.add_args( set_weights_parser )
 
         list_parser = cmd_parsers.add_parser(
             'list', 
@@ -395,10 +436,32 @@ class cli:
             cli.check_regen_hotkey_config( config )
         elif config.command == "metagraph":
             cli.check_metagraph_config( config )
+        elif config.command == "weights":
+            cli.check_weights_config( config )
+        elif config.command == "set_weights":
+            cli.check_set_weights_config( config )
 
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+    def check_weights_config( config: 'bittensor.Config'):
+        if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+            if not Confirm.ask("Show all weights?"):
+                wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+                config.wallet.name = str(wallet_name)
+                config.all_weights = False
+                if not Confirm.ask("Show all hotkeys?"):
+                    hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+                    config.wallet.hotkey = str(hotkey)
+                    config.all_hotkeys = False
+                else:
+                    config.all_hotkeys = True
+            else:
+                config.all_weights = True
 
     def check_transfer_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -462,6 +525,27 @@ class cli:
                     sys.exit()
             else:
                 config.unstake_all = True
+
+
+    def check_set_weights_config( config: 'bittensor.Config' ):
+        if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if not config.uids:
+            uids_str = Prompt.ask("Enter uids as list (e.g. 0, 2, 3, 4)")
+            config.uids = [int(val) for val in uids_str.split(',')]
+
+        if not config.weights:
+            weights_str = Prompt.ask("Enter weights as list (e.g. 0.25, 0.25, 0.25, 0.25)")
+            config.weights = [float(val) for val in weights_str.split(',')]
 
 
     def check_stake_config( config: 'bittensor.Config' ):
@@ -543,12 +627,9 @@ class cli:
 
     def check_run_config( config: 'bittensor.Config' ):
 
-        # Copy accross keys.
-        file_path = Path(str(Path(__file__).resolve()) + "/../../../miners/text/template_miner.py").resolve()
-        miner = importlib.machinery.SourceFileLoader('Miner',os.path.expanduser(file_path)).load_module()
-        miner_config = miner.Miner.config()
-        for k in miner_config.keys():
-            config[k] = miner_config[k]
+        if not bittensor.__neurons_installed__:
+            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
+            sys.exit()
 
         # Check network.
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -563,7 +644,11 @@ class cli:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
-
+        # Check Miner
+        if config.model == 'template_miner' and not config.no_prompt:
+            model = Prompt.ask('Enter miner name', choices = list(neurons.__text_neurons__.keys()), default = 'template_miner')
+            config.model = model
+        
 
                 
                 
