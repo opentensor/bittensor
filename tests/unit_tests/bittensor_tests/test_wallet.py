@@ -2,7 +2,6 @@ import bittensor
 from unittest.mock import MagicMock
 import os
 import shutil
-import signal
 
 from bittensor.utils.balance import Balance
 subtensor = bittensor.subtensor()
@@ -81,7 +80,6 @@ def test_wallet_mnemonic_create():
 def test_wallet_is_registered():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     the_wallet.is_registered = MagicMock(return_value = True)
-    the_wallet.register( email = 'fake@email.com')
     check_keys_exists(the_wallet)
 
 def test_wallet_prop():
@@ -115,23 +113,22 @@ def test_wallet_register_wo_email():
 
 def test_wallet_register():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
-    the_wallet._email = 'pytest@gmail.com'
-    signal.signal(signal.SIGALRM, lambda x : x )
-    signal.alarm(5)
     the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.register()
 
 def test_wallet_add_stake():
+    subtensor = bittensor.subtensor()
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.add_stake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
     the_wallet.add_stake(subtensor = subtensor)
-    
+
     # when not registered
     the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.add_stake(subtensor = subtensor)
 
 def test_wallet_remove_stake():
+    subtensor = bittensor.subtensor()
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.unstake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -142,6 +139,8 @@ def test_wallet_remove_stake():
     the_wallet.remove_stake(subtensor = subtensor)
 
 def test_wallet_transfer():
+    subtensor = bittensor.subtensor()
+    
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.transfer = MagicMock(return_value = True)
     

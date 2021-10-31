@@ -23,7 +23,6 @@ from typing import Tuple, List
 import torch
 from loguru import logger
 import concurrent
-import traceback
 import bittensor
 
 logger = logger.opt(colors=True)
@@ -185,7 +184,7 @@ class ReceptorPool ( torch.nn.Module ):
                 backward_codes.append( result[1] )
                 backward_times.append( result[2] )
         except concurrent.futures._base.TimeoutError:
-            backward_outputs= [torch.zeros( (inputs_x.size(0), inputs_x.size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+            backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
             backward_times= [15] * len(endpoints)
 

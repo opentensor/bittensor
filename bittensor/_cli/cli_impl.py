@@ -1,6 +1,3 @@
-"""
-Implementation of the CLI class, which handles the coldkey, hotkey and money transfer 
-"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -18,49 +15,411 @@ Implementation of the CLI class, which handles the coldkey, hotkey and money tra
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-from loguru import logger
-
 import bittensor
-logger = logger.opt(colors=True)
+
+import os
+import sys
+from rich.tree import Tree
+from rich import print
+from tqdm import tqdm
+from rich.table import Table
+from rich.prompt import Confirm
+
+# This flag checks to see if the bittensor has access to the 
+# neurons submodule. This is true if the user installed from pip
+# or if they git cloned submodules recursively.
+if bittensor.__neurons_installed__:
+    import bittensor._neurons.neurons as neurons
+
+__neurons_not_install_message__ = """[bold white]------- Neurons is not installed ------ [/bold white]
+
+    If you are running from source, pull submodules recursively and reinstall:
+        >> git submodule update --init --recursive
+        >> python3 -m pip install -e .
+
+    Or pull the entire repository recursively and reinstall:
+        >> git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+        >> python3 -m pip install -e .
+"""
 
 class CLI:
     """
     Implementation of the CLI class, which handles the coldkey, hotkey and money transfer 
     """
-    def __init__(self, config: 'bittensor.Config', executor: 'bittensor.executor.Executor' ):
+    def __init__(self, config: 'bittensor.Config' ):
         r""" Initialized a bittensor.CLI object.
             Args:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
-                executor (:obj:`bittensor.executor.executor`, `required`):
-                    bittensor executor object, used to execute cli options.
         """
         self.config = config
-        self.executor = executor
 
     def run ( self ):
         """ Execute the command from config 
         """
-        if self.config.command == "transfer":
-            self.executor.transfer( amount_tao=self.config.amount, destination=self.config.dest)
+        if self.config.command == "run":
+            self.run_miner ()
+        elif self.config.command == "transfer":
+            self.transfer ()
+        elif self.config.command == "register":
+            self.register()
         elif self.config.command == "unstake":
-            if self.config.unstake_all:
-                self.executor.unstake_all()
-            else:
-                self.executor.unstake( amount_tao =self.config.amount, uid=self.config.uid )
+            self.unstake()
         elif self.config.command == "stake":
-            self.executor.stake( amount_tao=self.config.amount, uid=self.config.uid )
+            self.stake()
         elif self.config.command == "overview":
-            self.executor.overview()
+            self.overview()
+        elif self.config.command == "list":
+            self.list()
         elif self.config.command == "new_coldkey":
-            self.executor.create_new_coldkey( n_words=self.config.n_words, use_password=self.config.use_password )
+            self.create_new_coldkey()
         elif self.config.command == "new_hotkey":
-            self.executor.create_new_hotkey( n_words=self.config.n_words, use_password=self.config.use_password )
+            self.create_new_hotkey()
         elif self.config.command == "regen_coldkey":
-            self.executor.regenerate_coldkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
+            self.regen_coldkey()
         elif self.config.command == "regen_hotkey":
-            self.executor.regenerate_hotkey( mnemonic=self.config.mnemonic, use_password=self.config.use_password )
+            self.regen_hotkey()
+        elif self.config.command == "metagraph":
+            self.metagraph()
+        elif self.config.command == "weights":
+            self.weights()
+        elif self.config.command == "set_weights":
+            self.set_weights()
+
+    def create_new_coldkey ( self ):
+        r""" Creates a new coldkey under this wallet.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+
+    def create_new_hotkey ( self ):
+        r""" Creates a new hotke under this wallet.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+
+    def regen_coldkey ( self ):
+        r""" Creates a new coldkey under this wallet.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False )
+
+    def regen_hotkey ( self ):
+        r""" Creates a new coldkey under this wallet.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
+
+    def run_miner ( self ):
+        if bittensor.__neurons_installed__:
+            self.config.to_defaults()
+            # Check coldkey.
+            wallet = bittensor.wallet( config = self.config )
+            if not wallet.coldkeypub_file.exists_on_device():
+                if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
+                    wallet.create_new_coldkey()
+                else:
+                    sys.exit()
+
+            # Check hotkey.
+            if not wallet.hotkey_file.exists_on_device():
+                if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
+                    wallet.create_new_hotkey()
+                else:
+                    sys.exit()
+
+            if wallet.hotkey_file.is_encrypted():
+                bittensor.__console__.print("Decrypting hotkey ... ")
+            wallet.hotkey
+
+            if wallet.coldkeypub_file.is_encrypted():
+                bittensor.__console__.print("Decrypting coldkeypub ... ")
+            wallet.coldkeypub
+
+            # Check registration
+            self.register()
+
+            # Run miner.
+            if self.config.model == 'template_miner':
+                neurons.template_miner.neuron().run()
+            elif self.config.model == 'template_server':
+                neurons.template_server.neuron().run()
+            elif self.config.model == 'template_validator':
+                neurons.template_validator.neuron().run()
+            elif self.config.model == 'advanced_server':
+                neurons.advanced_server.neuron().run()
         else:
-            logger.critical("The command {} not implemented".format( self.config.command ))
+            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
             sys.exit()
+
+
+    def register( self ):
+        r""" Register neuron.
+        """
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+        subtensor.register( wallet = wallet, prompt = not self.config.no_prompt)
+
+    def transfer( self ):
+        r""" Transfer token of amount to destination.
+        """
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+        subtensor.transfer( wallet = wallet, dest = self.config.dest, amount = self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
+    def unstake( self ):
+        r""" Unstake token of amount from uid.
+        """
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+        subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
+    def stake( self ):
+        r""" Stake token of amount to uid.
+        """
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+        subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
+    def set_weights( self ):
+        r""" Set weights and uids on chain.
+        """
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+        subtensor.set_weights( 
+            wallet, 
+            uids = self.config.uids,
+            weights = self.config.weights,
+            wait_for_inclusion = True, 
+            prompt = not self.config.no_prompt 
+        )
+
+    def list(self):
+        r""" Lists wallets.
+        """
+        wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        root = Tree("Wallets")
+        for w_name in wallets:
+            wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
+            try:
+                if wallet_for_name.coldkeypub_file.exists_on_device() and not wallet_for_name.coldkeypub_file.is_encrypted():
+                    coldkeypub_str = wallet_for_name.coldkeypub.ss58_address
+                else:
+                    coldkeypub_str = '?'
+            except:
+                coldkeypub_str = '?'
+
+            wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str[:8]))
+            hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
+            try:
+                hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
+                if len( hotkeys ) > 1:
+                    for h_name in hotkeys[2]:
+                        hotkey_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name, hotkey = h_name)
+                        try:
+                            if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
+                                hotkey_str = hotkey_for_name.hotkey.ss58_address
+                            else:
+                                hotkey_str = '?'
+                        except:
+                            hotkey_str = '?'
+                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str[:8]))
+            except:
+                pass
+
+        print(root)
+
+    def metagraph(self):
+        r""" Prints an overview for the wallet's colkey.
+        """
+        console = bittensor.__console__
+        subtensor = bittensor.subtensor( config = self.config )
+        metagraph = bittensor.metagraph( subtensor = subtensor )
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            metagraph.load()
+            metagraph.sync()
+            metagraph.save()
+
+        TABLE_DATA = [] 
+        total_stake = 0.0
+        total_rank = 0.0
+        total_trust = 0.0
+        total_consensus = 0.0
+        total_incentive = 0.0
+        total_dividends = 0.0
+        total_emission = 0.0  
+        for uid in metagraph.uids:
+            ep = metagraph.endpoint_objs[uid]
+            row = [
+                str(ep.uid), 
+                '{:.5f}'.format( metagraph.stake[uid]),
+                '{:.5f}'.format( metagraph.ranks[uid]), 
+                '{:.5f}'.format( metagraph.trust[uid]), 
+                '{:.5f}'.format( metagraph.consensus[uid]), 
+                '{:.5f}'.format( metagraph.incentive[uid]),
+                '{:.5f}'.format( metagraph.dividends[uid]),
+                '{:.5f}'.format( metagraph.emission[uid]),
+                str((metagraph.block.item() - metagraph.last_update[uid].item())),
+                str( metagraph.active[uid].item() ), 
+                ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
+                ep.hotkey[:10],
+                ep.coldkey[:10]
+            ]
+            total_stake += metagraph.stake[uid]
+            total_rank += metagraph.ranks[uid]
+            total_trust += metagraph.trust[uid]
+            total_consensus += metagraph.consensus[uid]
+            total_incentive += metagraph.incentive[uid]
+            total_dividends += metagraph.dividends[uid]
+            total_emission += metagraph.emission[uid]
+            TABLE_DATA.append(row)
+        total_neurons = len(metagraph.uids)                
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Metagraph([bold grey]{}[/bold grey])".format(subtensor.network)
+        )
+        table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
+        table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
+        table.add_column("[overline white]COLDKEY", style='dim purple', no_wrap=False)
+        table.show_footer = True
+
+        for row in TABLE_DATA:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
+
+    def weights(self):
+        r""" Prints an overview for the wallet's colkey.
+        """
+        console = bittensor.__console__
+        subtensor = bittensor.subtensor( config = self.config )
+        metagraph = bittensor.metagraph( subtensor = subtensor )
+        wallet = bittensor.wallet( config = self.config )
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            metagraph.load()
+            metagraph.sync()
+            metagraph.save()
+
+        table = Table()
+        rows = []
+        table.add_column("[bold white]uid", style='white', no_wrap=False)
+        for uid in metagraph.uids.tolist():
+            table.add_column("[bold white]{}".format(uid), style='white', no_wrap=False)
+            if self.config.all_weights:
+                rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+            else:
+                if metagraph.coldkeys[uid] == wallet.coldkeypub.ss58_address:
+                    if not self.config.all_hotkeys:
+                        if metagraph.hotkeys[uid] == wallet.hotkey.ss58_address:
+                            rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+                    else:
+                        rows.append(["[bold white]{}".format(uid) ] + ['{:.3f}'.format(v) for v in metagraph.W[uid].tolist()])
+
+        for row in rows:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        with console.pager():
+            console.print(table)
+
+    def overview(self):
+        r""" Prints an overview for the wallet's colkey.
+        """
+        console = bittensor.__console__
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
+        metagraph = bittensor.metagraph( subtensor = subtensor )
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            metagraph.load()
+            metagraph.sync()
+            metagraph.save()
+            balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+
+        owned_endpoints = [] 
+        endpoints = metagraph.endpoint_objs
+        for uid, cold in enumerate(metagraph.coldkeys):
+            if cold == wallet.coldkeypub.ss58_address:
+                owned_endpoints.append( endpoints[uid] )
+
+        TABLE_DATA = []  
+        total_stake = 0.0
+        total_rank = 0.0
+        total_trust = 0.0
+        total_consensus = 0.0
+        total_incentive = 0.0
+        total_dividends = 0.0
+        total_emission = 0.0      
+        for ep in tqdm(owned_endpoints):
+            uid = ep.uid
+            active = metagraph.active[ uid ].item()
+            stake = metagraph.S[ uid ].item()
+            rank = metagraph.R[ uid ].item()
+            trust = metagraph.T[ uid ].item()
+            consensus = metagraph.C[ uid ].item()
+            incentive = metagraph.I[ uid ].item()
+            dividends = metagraph.D[ uid ].item()
+            emission = metagraph.E[ uid ].item() / 1000000000
+            last_update = int(metagraph.block - metagraph.last_update[ uid ])
+            row = [
+                str(ep.uid), 
+                str(active), 
+                '{:.5f}'.format(stake),
+                '{:.5f}'.format(rank), 
+                '{:.5f}'.format(trust), 
+                '{:.5f}'.format(consensus), 
+                '{:.5f}'.format(incentive),
+                '{:.5f}'.format(dividends),
+                '{:.5f}'.format(emission),
+                str(last_update),
+                ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
+                ep.hotkey
+            ]
+            total_stake += stake
+            total_rank += rank
+            total_trust += trust
+            total_consensus += consensus
+            total_incentive += incentive
+            total_dividends += dividends
+            total_emission += emission
+            TABLE_DATA.append(row)
+            
+        total_neurons = len(owned_endpoints)                
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
+        )
+        table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
+        table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
+        table.show_footer = True
+        table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
+
+        console.clear()
+        for row in TABLE_DATA:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)

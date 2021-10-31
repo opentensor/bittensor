@@ -102,9 +102,11 @@ linux_update_pip() {
 linux_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
+    git clone --recurse-submodules https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
+    ohai "Installing bittensor-neurons"
+    $python -m pip install -e ~/.bittensor/bittensor/neurons/
     exit_on_error $? 
 }
 
@@ -159,76 +161,12 @@ mac_update_pip() {
 
 mac_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
+    git clone --recurse-submodules https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     exit_on_error $? 
     deactivate
 }
-
-setup_wallet_and_miner() {
-    echo ""
-    echo ""
-    while true
-    do
-      read -r -p "Do you wish to create a Bittensor wallet? [Y/n] " input
-    
-      case $input in
-          [yY][eE][sS]|[yY])
-        echo ""
-        
-        wallet_name="default"
-        hotkey_name="default"
-
-        ohai "Creating new wallet. "
-        echo ""
-        echo ""
-        ohai ">>> REMEMBER TO SAVE THE MNEMONICS <<<"
-        wait_for_user 
-
-        echo ""
-        echo ""
-        ohai "Creating wallet coldkey..."
-        bittensor-cli new_coldkey --wallet.name $wallet_name
-        exit_on_error $? 
-
-        echo ""
-        echo ""
-        ohai "Creating wallet hotkey..."
-        bittensor-cli new_hotkey --wallet.name $wallet_name --wallet.hotkey $hotkey_name
-        RESULT=$?
-
-        if [ $RESULT -eq 0 ]; then
-          echo ""
-          ohai "Wallet hotkey created successfully"
-          echo "python3  ~/.bittensor/bittensor/miners/text/template_miner.py" >> ~/.bittensor/bittensor/scripts/run.sh
-          
-          # Make run.sh executable
-          chmod +x ~/.bittensor/bittensor/scripts/run.sh
-
-          # Create alias for quick run
-          OS="$(uname)"
-          if [[ "$OS" == "Linux" ]]; then
-            echo "alias run_bittensor=\"/bin/bash -c ~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bashrc
-          elif [[ "$OS" == "Darwin" ]]; then
-            echo "alias run_bittensor=\"/bin/bash -c ~/.bittensor/bittensor/scripts/run.sh\"" >> ~/.bash_profile
-          else
-            abort "Bittensor is only supported on macOS and Linux"
-          fi
-        fi
-      break
-      ;;
-          [nN][oO]|[nN])
-      echo "No"
-      break
-              ;;
-          *)
-      echo "Invalid input..."
-      ;;
-      esac
-    done
-}
-
 
 # Do install.
 OS="$(uname)"
@@ -273,7 +211,6 @@ if [[ "$OS" == "Linux" ]]; then
     echo "######################################################################"
     echo ""
     echo ""
-    setup_wallet_and_miner
 
 elif [[ "$OS" == "Darwin" ]]; then
     echo """
@@ -309,8 +246,6 @@ elif [[ "$OS" == "Darwin" ]]; then
     echo "##                      BITTENSOR SETUP                             ##"
     echo "##                                                                  ##"
     echo "######################################################################"
-    setup_wallet_and_miner
-
 else
   abort "Bittensor is only supported on macOS and Linux"
 fi
@@ -322,18 +257,34 @@ fi
 
 echo ""
 echo ""
-ohai "Installation successful!"
+ohai "Installation successful"
 echo ""
-ohai "If you simply intend to mine, then restart your machine and call \"run_bittensor\"."
-ohai "If you are a power user, you can just run the Python mining script directly: python3  ~/.bittensor/bittensor/miners/text/template_miner.py."
-ohai "If you wish to build your own Bittensor model, refer to documentation. The template_miner serves as a launching point to do this."
+echo "- To run one of the base miners: "
+echo "    $ btcli run"
 echo ""
-ohai "Follow-up:"
-echo ""
-echo "- Check your tao balance: "
-echo "    $ bittensor-cli overview --wallet.name <your wallet name> --wallet.hotkey <your hotkey name> --subtensor.network akatsuki"
+echo "- Or write your own: "
+echo "    e.g. $ ls ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/"
 echo ""
 ohai "Extras:"
+echo ""
+echo "- Check your tao balance: "
+echo "    $ btcli overview"
+echo ""
+echo "- Stake to your miners:"
+echo "    $ btcli stake"
+echo "    $ btcli unstake"
+echo ""
+echo "- Create/list/register wallets"
+echo "    $ btcli new_coldkey"
+echo "    $ btcli new_hotkey"
+echo "    $ btcli list"
+echo "    $ btcli register"
+echo ""
+echo "- Use the Python API"
+echo "    $ python3"
+echo "    >> import bittensor"
+echo ""
+ohai "Resources:"
 echo ""
 echo "- Read the docs: "
 echo "    ${tty_underline}https://app.gitbook.com/@opentensor/s/bittensor/${tty_reset}"

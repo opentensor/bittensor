@@ -39,35 +39,18 @@ class Dataset():
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
     def __init__(self):
-        # IPFS hash of the genesis dataset
-        # TODO (shibshib): Find a proper way to set this as config instead of hardcoding it.
-        # More dataset hashes can be added as we add directories for other modalities.
-        self.genesis_text_dataset_hash = 'QmXwfPoh2QFYqC6cYcW8kzyd9ruFfhnUi2kVBkdhawjUzj'
-        self.wikitext_text_dataset_hash = 'QmRjFNn3XpYMycVzTE4YcVcxk45vNZcTAjKmtEqPLKwAWd'
-        self.email_text_dataset_hash = 'QmWnqorfUGg3Cm4dLt8crcceTfa4LsTas5JXzR6w6SJgEK'
-        self.book_corpus_text_dataset_hash = 'QmXtmQEYcUse3bNkFDiLAVBRzRWtLfVMiJUZntUD88tekw'
         
-        self.test_text_dataset_hash = 'QmRhWSMPQzTiWcdGYy8vpRMxSxCAKDJBaXvmum4fjkF7cJ'
-        self.validation_text_dataset_hash = 'QmQnE8wBmxKgNteFkZ1RAdZFit16iSeHwX6zSpYfwFmAuG'
-
-        self.train_dataset_hashes = [
-            self.genesis_text_dataset_hash, 
-            self.wikitext_text_dataset_hash, 
-        ]
         # Used to retrieve directory contentx
-        self.dag_get = 'https://gateway.pinata.cloud/api/v0/dag/get'
-
-        # Used to retrieve file contents
-        self.file_cat = 'https://gateway.pinata.cloud/api/v0/cat'
-
+        self.file_get = 'http://ipfs2.opentensor.ai:8001/api/v0/object/get'
+        self.pin_get = 'http://ipfs2.opentensor.ai:8001/api/v0/pin/ls'
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
 
     @staticmethod
     def requests_retry_session(
-            retries=5,
+            retries=10,
             backoff_factor=0.5,
-            status_forcelist=(500, 502, 504),
+            status_forcelist=(104, 500, 502, 504),
             session=None,
         ):
         """ Creates a retriable session for request calls. This enables
@@ -96,19 +79,18 @@ class Dataset():
         session.mount('https://', adapter)
         return session
 
-    def retrieve_directory(self, dir_hash: str):
-        """Connects to Pinata IPFS gateway and retrieves the directory of
-        genesis datasets.
+    def retrieve_directory(self, address: str, params = None, action: str = 'post'):
+        r"""Connects to Pinata IPFS gateway and retrieves directory.
 
         Returns:
             dict: A dictionary of the files inside of the genesis_datasets and their hashes.
         """
         session = requests.Session()
-        params = (('arg', dir_hash),)
         session.params.update(params)
-
-        response = Dataset.requests_retry_session(session=session).get(self.dag_get)
-
+        if action == 'get':
+            response = Dataset.requests_retry_session(session=session).get(address)
+        elif action == 'post':
+            response = Dataset.requests_retry_session(session=session).post(address)
         return response
 
     def __len__(self):
@@ -141,6 +123,7 @@ class GenesisTextDataset( Dataset ):
         self.dataset_name = dataset_name
         self.data_dir = data_dir
         self.save_dataset = save_dataset
+        self.datafile_size_bound = 262158
         self.__infinite_dataset_iterator = None
 
         # Retrieve a random slice of the genesis dataset
@@ -152,40 +135,119 @@ class GenesisTextDataset( Dataset ):
         if not os.path.isdir(os.path.expanduser(data_dir)):
             os.makedirs(os.path.expanduser(data_dir))
 
-    def get_directory_links(self, dir_hash: str, dir_name:str = None):
+    def get_random_directories(self):
+        r""" Getting directories from a random dataset_hash
+        Where a directory could be leading to a data file or a directory file 
         """
-        Check response from retrieve_directory(), 
-        if the response is fine then return the links,
-        else return None
+        # --- Getting dataset hashes from pin/ls.
+        dataset_hashes = [] 
+        response = self.retrieve_directory(self.pin_get, (('type', 'recursive'),), action = 'post')
+        if response.status_code != 200:
+            dataset_hashes= [
+                'QmPbAqDsMpufa2eNsE8X9TRh43JsAPxbj7tz3PmprouH7U',
+                'QmRJKZq6q64H1iwokVJTbi4tWjewvodAaZ6Kn1SpgP33EG',
+                'QmSJJtZa37kX7ABBJyani9i3cFTq86zebTLQqioRCvgDei',
+                'QmSQ6AnnWQUy4bETQSAgkgCkJ1AQePSeKvbaFejizj5HP3',
+                'QmSTudwkfLWkwFSC7LnUVZyroBgV3A6atbFeKUZ63DnTeW',
+                'QmTtuWZmTZf5JcBmXpbDDM5Hkq4AoFJk9NGoDsR4zUhbJx',
+                'QmVbNzncoJK8WwyAoWxLndk4999iyyYZbCKpEvUxrFXp1N',
+                'QmWiHsJ6z2LbZnEcidgz2vPq9ZsgrKUQ4QdB83pFcFvug3',
+                'QmXa1SDyVK6f876JYHwoQZcpXGMi8aPYKWvHzKTDXuqU5z',
+                'QmYg67pZwPsX3qH31tEc1qexrPc88zUkZG4AqsNDZo5FEX',
+                'QmZawcgwiT9S5Vk5WX41RRaBPb73KByQej9JmRCNgNVxjz',
+                'QmeSNvZVtHeMmJSuJQAUyTTW9LZbQkAqLDgVVXhzqJHrvY',
+                'Qmefa9xMdu7HZyr3U1zH8MaCayPngPJ9iZnnddXfXMrA2N',
+                'Qmf3BjH7SzK8WHGWBngt4WK6jGCpUtgPEBCw2pFZvYimto'
+                ]
+        else:
+            for hash, v in response.json()['Keys'].items():
+                dataset_hashes.append(hash) 
+        
+        # --- Getting directories from a random dataset hash.
+        # --- directories: List[ Map{Name: str, Hash: str, Size: int} ]
+        i = 0
+        directories = [] 
+        dataset_hashes_order = list(range(len(dataset_hashes)))
+        random.shuffle(dataset_hashes_order)
+        
+        while len(directories) == 0 and i < len(dataset_hashes):
+            dataset_hash = dataset_hashes[dataset_hashes_order[i]]
+            i += 1
+            response = self.retrieve_directory(self.file_get, (('arg', dataset_hash),))
+            
+            if response.status_code != 200:
+                logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dataset_hash))
+            
+            else:
+                # --- Get the directory links if there is valid response, else check on another dataset_hash 
+                directory = response.json()
+                if directory and 'Links' in directory.keys(): 
+                    directories += directory['Links']
+                    logger.success("Loaded dataset hash:".ljust(20) + "<blue>{}</blue>".format(dataset_hash))
+                
+        if len(directories) == 0:
+            directories = None
+        
+        return directories
+
+    def extract_datafile_dir(self, directory):
+        r"""
+        With recursion, from the given directory, get a directory that leads to a datafile.
+
+        Args:
+            directory: Map{ Name: str, Hash: str, Size: int }: 
+                The original directory to look up a datafile for.
 
         Returns:
-            list of dict: links 
+            directory: Map{ Name: str, Hash: str, Size: int }: 
+                A random directory that lead to a datafile.
         """
-        response = self.retrieve_directory(dir_hash)
+        # --- If the size of directory is small, it is leads to data file, return the data file.
+        if directory['Size'] <= self.datafile_size_bound:
+            return directory
 
-        if response.status_code != 200:
-            logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
+        # --- Else, the directory leads to more directories, return a random data file within the directories.
         else:
-            directory = response.json()
-            if directory and 'links' in directory.keys():
-                logger.success("Loaded folder:".ljust(20) + "<blue>{}</blue>".format(dir_hash))
-                return directory['links']
+            response = self.retrieve_directory(self.file_get, (('arg', directory['Hash']),))
+            
+            # --- Return none if the request failed.
+            if response.status_code != 200:
+                logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(directory))
+                return None
+            
+            # --- Pick a random sub_directory, run recursion until we have found a data file
             else:
-                logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(dir_hash))
+                sub_directories = response.json()
+                if sub_directories and 'Links' in sub_directories.keys() and len(sub_directories['Links']) >= 1:
+                    random_sub_directory = random.choice(sub_directories['Links'])
+
+                    # --- Fill the name of the random_sub_directory if it is empty. 
+                    if random_sub_directory['Name'] == '':
+                        random_sub_directory['Name'] = directory['Name']
+                    
+                    return self.extract_datafile_dir(random_sub_directory)
+                else:
+                    logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(dir_hash))
         return None
 
-    def get_text(self, file_hash: str, file_name: str):
-        """
-        Load the data from disk if it is already in the the data_dir,
-        else download it from  IPFS using retrieve_text_file and save it
+    def get_text(self, file):
+        r"""
+        Load the text data from disk if it is already in the the data_dir,
+        else download it from IPFS and save it
 
+        Args:
+            file: Map{ Name: str, Hash: str, Size: int }
+                The directory to get text file from.
         Returns:
-            str: the data as string
+            text: str: 
+                The text data.
         """
         text = None
+        file_name = file['Name']
+        file_hash = file['Hash']
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_name))
 
-        # Load text from path
+        # --- Load text from path
         if os.path.exists(full_path):
             try:
                 with open(full_path, mode='r') as f:
@@ -194,9 +256,9 @@ class GenesisTextDataset( Dataset ):
             except Exception:
                 logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
 
-        # Download text
+        # --- If couldnt load from path, download text.
         if text == None:
-            response = self.retrieve_text_file(file_hash)
+            response = self.retrieve_directory(self.file_get, (('arg', file_hash),))
 
             if response.status_code != 200:
                 logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
@@ -204,7 +266,7 @@ class GenesisTextDataset( Dataset ):
                 text = response.text
                 logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
                 
-                # Saving text
+                # --- Save text if the save_dataset flag is on.
                 if self.save_dataset:
                     try:
                         with open(full_path, mode = 'w+') as f:
@@ -215,68 +277,51 @@ class GenesisTextDataset( Dataset ):
 
         return text
 
-    def retrieve_text_file(self, file_hash: str):
-        """Connects to Pinata IPFS gateway and retrieves the contents of
-        a genesis text file.
-
-        Returns:
-            str: The contents of the file.
-        """
-        session = requests.Session()
-        params = (('arg', file_hash),)
-        session.params.update(params)
-        response = Dataset.requests_retry_session(session=session).post(self.file_cat)
-
-        return response
-
     def construct_text_corpus(self):
-        """Connects to Pinata IPFS gateway and retrieves the directory of genesis datasets.
+        """ Main function for generating the text data.
+        1. Get directories from a random dataset_hash (dataset_hash is the result from calling pin/ls).
+        2. Pick a random directory and get the directory that would lead to a datafile.    
+        3. Get text from the directory.
+        4. Repeat 2,3 until we have reached the max_corpus_size
 
         Returns:
-            string: Contents of the text file.
+            text: str: 
+                Contents of the text data.
         """
         try:
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
-            # Retrieves the directory for the given dataset
-            if self.dataset_name == 'train':
-                directory_links = []
-                for dataset_hash in self.train_dataset_hashes: 
-                    dir_links = self.get_directory_links(dataset_hash)
-                    if dir_links:
-                        directory_links.extend(dir_links)
-                if len(directory_links) == 0:
-                    directory_links = None
-
-            elif self.dataset_name == 'test':
-                directory_links = self.get_directory_links(self.test_text_dataset_hash)
-
-            elif self.dataset_name == 'validation':
-                directory_links = self.get_directory_links(self.validation_text_dataset_hash)['links']
-
+            # --- Get directories from a random dataset_hash
+            directories = self.get_random_directories()
             data_corpus = []
 
-            # Generate a random order of the directories
-            directory_order = list(range(len(directory_links)))
+            # --- Generate a random order of the directories
+            directory_order = list(range(len(directories)))
             random.shuffle(directory_order)
 
-            # Pick a random dataset file and return its contents
-            if directory_links:
-                # Let's construct a dataset!
+            # --- Pick random directories and get their text contents.
+            if directories:
                 total_dataset_size = 0
-
-                # Make sure the file we chose satisfies our maximum file size requirement
                 i = 0
+
+                # --- Dont stop until the corpus size was reached.
                 while total_dataset_size <= self.max_corpus_size:
-                    # Find file hash
-                    random_dataset_file = directory_links[directory_order[i]]
-                    file_name = random_dataset_file['Name']
-                    random_dataset_file_hash = random_dataset_file['Cid']['/']
+                    # --- Get a directory that leads to a datafile.
+                    random_datafile_dir = self.extract_datafile_dir(directories[directory_order[i]])
                     
-                    text = self.get_text(random_dataset_file_hash, file_name)
+                    if random_datafile_dir == None:
+                        pass
+
+                    # --- Get text from the datafile directory
+                    try:
+                        text = self.get_text(random_datafile_dir)
+                    except: 
+                        text = None
+
                     if text != None:
                         data_corpus.extend(text.split())
-                        total_dataset_size += int(random_dataset_file['Size'])
+                        total_dataset_size += int(random_datafile_dir['Size'])
+
                     i += 1
 
                 return data_corpus
@@ -299,9 +344,8 @@ class GenesisTextDataset( Dataset ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-        scale = 1
         # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) * scale:
+        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) :
             self.data = self.construct_text_corpus()
             self.refresh_corpus = False
 
@@ -310,10 +354,10 @@ class GenesisTextDataset( Dataset ):
         if epoch_length:
 
             # Set up upper bound of indices to fit the batch size we want.
-            idx_bound = epoch_length * self.batch_size
-            if idx_bound * scale < len(self):
+            idx_bound = epoch_length * self.batch_size 
+            if idx_bound < len(self):
                 # Collect enough random indices to batch together using batch_size into epoch_length batches
-                random_start = random.randint(0, len(self) - round(idx_bound * scale))
+                random_start = random.randint(0, len(self) - round(idx_bound ))
                 indices = list(range(random_start, random_start + idx_bound))
 
                 subset = Subset(self, indices)
@@ -361,14 +405,15 @@ class GenesisTextDataset( Dataset ):
             self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000000)])
             return next(self.__infinite_dataset_iterator)
 
-
     def __len__(self):
         """Returns length of dataset minus the block size
 
         Returns:
             int: length of dataset minus block size
         """
-        return len(self.data) - self.block_size
+        if self.data == None:
+            return 0
+        return max(len(self.data) - self.block_size, 0)
 
     def __getitem__(self, idx):
         """ Returns a batch of sentences from text dataset.

@@ -17,75 +17,43 @@
 import argparse
 import os
 
-from munch import Munch
 import bittensor
 import copy
 from substrateinterface import SubstrateInterface
 
 from . import subtensor_impl
 
-with_priority = {
-        "runtime_id": 2,
-        "types": {
-            "Balance": "u64",
-            "NeuronMetadataOf": {
-                "type": "struct",
-                "type_mapping": [
-                    ["version", "u32"],
-                    ["ip", "u128"], 
-                    ["port", "u16"], 
-                    ["ip_type", "u8"], 
-                    ["uid", "u32"], 
-                    ["modality", "u8"], 
-                    ["hotkey", "AccountId"], 
-                    ["coldkey", "AccountId"], 
-                    ["active", "u32"],
-                    ["last_update", "u64"],
-                    ["priority", "u64"],
-                    ["stake", "u64"],
-                    ["trust", "u64"],
-                    ["rank", "u64"],
-                    ["consensus", "u64"],
-                    ["incentive", "u64"],
-                    ["inflation", "u64"],
-                    ["dividends", "u64"],
-                    ["bonds", "Vec<(u32, u64)>"],
-                    ["weights", "Vec<(u32, u32)>"]
-                ]
-            }
+__type_registery__ = {
+    "runtime_id": 2,
+    "types": {
+        "Balance": "u64",
+        "NeuronMetadataOf": {
+            "type": "struct",
+            "type_mapping": [
+                ["version", "u32"],
+                ["ip", "u128"], 
+                ["port", "u16"], 
+                ["ip_type", "u8"], 
+                ["uid", "u32"], 
+                ["modality", "u8"], 
+                ["hotkey", "AccountId"], 
+                ["coldkey", "AccountId"], 
+                ["active", "u32"],
+                ["last_update", "u64"],
+                ["priority", "u64"],
+                ["stake", "u64"],
+                ["rank", "u64"],
+                ["trust", "u64"],
+                ["consensus", "u64"],
+                ["incentive", "u64"],
+                ["dividends", "u64"],
+                ["emission", "u64"],
+                ["bonds", "Vec<(u32, u64)>"],
+                ["weights", "Vec<(u32, u32)>"]
+            ]
         }
     }
-without_priority = {
-        "runtime_id": 2,
-        "types": {
-            "Balance": "u64",
-            "NeuronMetadataOf": {
-                "type": "struct",
-                "type_mapping": [
-                    ["version", "u32"],
-                    ["ip", "u128"], 
-                    ["port", "u16"], 
-                    ["ip_type", "u8"], 
-                    ["uid", "u32"], 
-                    ["modality", "u8"], 
-                    ["hotkey", "AccountId"], 
-                    ["coldkey", "AccountId"], 
-                    ["active", "u32"],
-                    ["last_update", "u64"],
-                    ["stake", "u64"],
-                    ["trust", "u64"],
-                    ["rank", "u64"],
-                    ["consensus", "u64"],
-                    ["incentive", "u64"],
-                    ["inflation", "u64"],
-                    ["dividends", "u64"],
-                    ["bonds", "Vec<(u32, u64)>"],
-                    ["weights", "Vec<(u32, u32)>"]
-                ]
-            }
-        }
-    }
-
+}
 
 class subtensor:
     """
@@ -102,14 +70,17 @@ class subtensor:
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.subtensor.config()
-                network (default='akatsuki', type=str)
+                network (default='nakamoto', type=str)
                     The subtensor network flag. The likely choices are:
-                            -- kusanagi (testing network)
-                            -- akatsuki (main network)
+                            -- nakamoto (main network)
+                            -- akatsuki (testing network)
+                            -- nobunaga (staging network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                _mock (bool):
+                    returned object is mocks the underlying chain connection.
         """
         if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
@@ -119,18 +90,15 @@ class subtensor:
         else:
             config.subtensor.network = network if network != None else config.subtensor.network
             config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
-        if config.subtensor.network == 'nobunaga':
-            type_registry = with_priority
-        else:
-            type_registry = without_priority
-
+        
         substrate = SubstrateInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
-            type_registry = type_registry,
+            type_registry = __type_registery__,
             url = "ws://{}".format(config.subtensor.chain_endpoint),
             use_remote_preset=True
         )
+
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
             substrate = substrate,
@@ -149,12 +117,13 @@ class subtensor:
         try:
             parser.add_argument('--subtensor.network', default = bittensor.defaults.subtensor.network, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- kusanagi (testing network)
-                                        -- akatsuki (main network)
+                                        -- nobunaga (staging network)
+                                        -- akatsuki (testing network)
+                                        -- nakamoto (master network)
                                     If this option is set it overloads subtensor.chain_endpoint with 
                                     an entry point node from that network.
                                     ''')
-            parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.network, type=str, 
+            parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
         except argparse.ArgumentError:
@@ -175,17 +144,18 @@ class subtensor:
 
     @staticmethod
     def determine_chain_endpoint(network: str):
-        if network == "akatsuki":
-            # Get first network in akatsuki entrypoints, which is main
+        if network == "nakamoto":
+            # Main network.
+            return bittensor.__nakamoto_entrypoints__[0]
+        elif network == "akatsuki":
+            # Testing network.
             return bittensor.__akatsuki_entrypoints__[0]
-        elif network == "kusanagi":
-            # Kusanagi testnet
-            return bittensor.__kusanagi_entrypoints__[0]
-        elif network == "local":
-            # Kusanagi testnet
-            return bittensor.__local_entrypoints__[0]
         elif network == "nobunaga": 
+            # Staging network.
             return bittensor.__nobunaga_entrypoints__[0]
+        elif network == "local":
+            # Local chain.
+            return bittensor.__local_entrypoints__[0]
         else:
             return bittensor.__local_entrypoints__[0]
-            
+        
