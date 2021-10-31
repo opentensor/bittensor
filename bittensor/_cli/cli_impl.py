@@ -255,7 +255,7 @@ class CLI:
         total_neurons = len(metagraph.uids)                
         table = Table(show_footer=False)
         table.title = (
-            "[white]Metagraph([bold grey]{}[/bold grey])".format(subtensor.network)
+            "[white]Metagraph ( name: {}, N: {}/{}, block: {}, tau: {}/block, stake: {}, issuance: {}, difficulty: {} )".format(subtensor.network, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), subtensor.total_stake, subtensor.total_issuance, subtensor.difficulty )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
