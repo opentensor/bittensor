@@ -74,6 +74,17 @@ try:
     __neurons_installed__ = True
 except:
     __neurons_installed__ = False
+    
+__neurons_not_install_message__ = """[bold white]------- Neurons is not installed ------ [/bold white]
+
+    If you are running from source, pull submodules recursively and reinstall:
+        >> git submodule update --init --recursive
+        >> python3 -m pip install -e .
+
+    Or pull the entire repository recursively and reinstall:
+        >> git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+        >> python3 -m pip install -e .
+"""
 
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance
