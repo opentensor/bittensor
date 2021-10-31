@@ -637,7 +637,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             uids = torch.tensor( uids, dtype = torch.int64 )
         if isinstance( weights, list ):
             weights = torch.tensor( weights, dtype = torch.float32 )
-        bittensor.logging.success( 'Setting weights', str(list(zip(uids.tolist(), weights.tolist()))))
+        bittensor.logging.success( f'Set {len(uids)} weights, top 5 samples', str(list(zip(uids.tolist()[:5], weights.tolist()[:5]))))
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
         with self.substrate as substrate:
             call = substrate.compose_call(
