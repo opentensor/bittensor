@@ -69,7 +69,11 @@ import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
 # ---- Neurons ---
-import bittensor._neurons.neurons as neurons
+try:
+    import bittensor._neurons.neurons as neurons
+    __neurons_installed__ = True
+except:
+    __neurons_installed__ = False
 
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance

@@ -24,7 +24,12 @@ from rich import print
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Confirm
-import bittensor._neurons.neurons as neurons
+
+# This flag checks to see if the bittensor has access to the 
+# neurons submodule. This is true if the user installed from pip
+# or if they git cloned submodules recursively.
+if bittensor.__neurons_installed__:
+    import bittensor._neurons.neurons as neurons
 
 class CLI:
     """
@@ -95,42 +100,50 @@ class CLI:
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
 
     def run_miner ( self ):
-        self.config.to_defaults()
-        # Check coldkey.
-        wallet = bittensor.wallet( config = self.config )
-        if not wallet.coldkeypub_file.exists_on_device():
-            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
-                wallet.create_new_coldkey()
-            else:
-                sys.exit()
+        if bittensor.__neurons_installed__:
+            self.config.to_defaults()
+            # Check coldkey.
+            wallet = bittensor.wallet( config = self.config )
+            if not wallet.coldkeypub_file.exists_on_device():
+                if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
+                    wallet.create_new_coldkey()
+                else:
+                    sys.exit()
 
-        # Check hotkey.
-        if not wallet.hotkey_file.exists_on_device():
-            if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
-                wallet.create_new_hotkey()
-            else:
-                sys.exit()
+            # Check hotkey.
+            if not wallet.hotkey_file.exists_on_device():
+                if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
+                    wallet.create_new_hotkey()
+                else:
+                    sys.exit()
 
-        if wallet.hotkey_file.is_encrypted():
-            bittensor.__console__.print("Decrypting hotkey ... ")
-        wallet.hotkey
+            if wallet.hotkey_file.is_encrypted():
+                bittensor.__console__.print("Decrypting hotkey ... ")
+            wallet.hotkey
 
-        if wallet.coldkeypub_file.is_encrypted():
-            bittensor.__console__.print("Decrypting coldkeypub ... ")
-        wallet.coldkeypub
+            if wallet.coldkeypub_file.is_encrypted():
+                bittensor.__console__.print("Decrypting coldkeypub ... ")
+            wallet.coldkeypub
 
-        # Check registration
-        self.register()
+            # Check registration
+            self.register()
 
-        # Run miner.
-        if self.config.model == 'template_miner':
-            neurons.template_miner.neuron().run()
-        elif self.config.model == 'template_server':
-            neurons.template_server.neuron().run()
-        elif self.config.model == 'template_validator':
-            neurons.template_validator.neuron().run()
-        elif self.config.model == 'advanced_server':
-            neurons.advanced_server.neuron().run()
+            # Run miner.
+            if self.config.model == 'template_miner':
+                neurons.template_miner.neuron().run()
+            elif self.config.model == 'template_server':
+                neurons.template_server.neuron().run()
+            elif self.config.model == 'template_validator':
+                neurons.template_validator.neuron().run()
+            elif self.config.model == 'advanced_server':
+                neurons.advanced_server.neuron().run()
+        else:
+            bittensor.__console__.print("""[bold white]------- Neurons is not installed ------ [/bold white]
+            If you are running from source make sure you pulled this repository recursively.
+                git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+            """)
+            sys.exit()
+
 
     def register( self ):
         r""" Register neuron.
