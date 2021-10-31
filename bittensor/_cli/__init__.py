@@ -28,7 +28,9 @@ from rich.prompt import Confirm
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
 console = bittensor.__console__
-import bittensor._neurons.neurons as neurons
+
+if bittensor.__neurons_installed__:
+    import bittensor._neurons.neurons as neurons
 
 class cli:
     """
@@ -81,13 +83,14 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
-        run_parser.add_argument(
-            '--model', 
-            type=str, 
-            choices= list(neurons.__text_neurons__.keys()), 
-            default='template_miner', 
-            help='''which miner to run'''
-        )
+        if bittensor.__neurons_installed__:
+            run_parser.add_argument(
+                '--model', 
+                type=str, 
+                choices= list(neurons.__text_neurons__.keys()), 
+                default='template_miner', 
+                help='''Miners available through bittensor.neurons'''
+            )
         bittensor.subtensor.add_args( run_parser )
         bittensor.wallet.add_args( run_parser )
 
@@ -623,6 +626,10 @@ class cli:
             config.mnemonic = Prompt.ask("Enter mnemonic")
 
     def check_run_config( config: 'bittensor.Config' ):
+
+        if not bittensor.__neurons_installed__:
+            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
+            sys.exit()
 
         # Check network.
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
