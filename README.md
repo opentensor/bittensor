@@ -39,16 +39,22 @@ At Bittensor, we are creating an open, decentralized, peer-to-peer network that 
 https://app.gitbook.com/@opentensor/s/bittensor/
 
 ## 2. Install
-Two ways to install Bittensor. 
+Three ways to install Bittensor. 
 
-1. Through installer:
+1. Through the installer:
 ```
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/opentensor/bittensor/master/scripts/install.sh)"
 ```
 
-2. Through pip:
+2. With pip:
 ```bash
 $ pip3 install bittensor
+```
+
+3. From source:
+```
+$ git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+$ python3 -m pip install -e bittensor/
 ```
 
 ## 3. Using Bittensor
