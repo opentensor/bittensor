@@ -45,7 +45,7 @@ class metagraph:
                     The subtensor network flag. The likely choices are:
                             -- nobunaga (staging network)
                             -- akatsuki (testing network)
-                            -- akatsuki (main network)
+                            -- nakamoto (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
