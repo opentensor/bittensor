@@ -619,7 +619,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         """   
         if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint) 
-        serv_success = subtensor.serve( axon = self, use_upnpc = use_upnpc, prompt = prompt )
+        serv_success = subtensor.serve_axon( axon = self, use_upnpc = use_upnpc, prompt = prompt )
         if not serv_success:
             raise RuntimeError('Failed to serve neuron.')
         return self

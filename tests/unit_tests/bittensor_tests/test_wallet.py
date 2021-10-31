@@ -2,9 +2,17 @@ import bittensor
 from unittest.mock import MagicMock
 import os
 import shutil
+from pytest import fixture
+import subprocess
+from loguru import logger
+import time
+import sys
+from sys import platform   
 
 from bittensor.utils.balance import Balance
-subtensor = bittensor.subtensor()
+
+
+subtensor = bittensor.subtensor(network = 'akatsuki')
 
 def init_wallet():
     if os.path.exists('/tmp/pytest'):
@@ -77,47 +85,9 @@ def test_wallet_mnemonic_create():
     the_wallet.regen_hotkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse".split(),  use_password=False, overwrite = True )
     check_keys_exists(the_wallet)
 
-def test_wallet_is_registered():
-    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
-    the_wallet.is_registered = MagicMock(return_value = True)
-    check_keys_exists(the_wallet)
-
-def test_wallet_prop():
-    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
-    the_wallet.is_registered = MagicMock(return_value = True)
-    str(the_wallet)
-    repr(the_wallet)
-    assert the_wallet.neuron != None
-    assert the_wallet.trust != None
-    assert the_wallet.rank != None
-    assert the_wallet.incentive != None
-    assert the_wallet.dividends != None
-    assert the_wallet.consensus != None
-    assert the_wallet.inflation != None
-    assert the_wallet.ip != None
-    assert the_wallet.last_update != None
-    assert the_wallet.weights != None
-    assert the_wallet.bonds != None
-    assert the_wallet.uid != None
-    assert the_wallet.stake is not None
-    assert the_wallet.balance is not None
-    
-    the_wallet.is_registered = MagicMock(return_value = False)
-    assert the_wallet.neuron == None
-    assert the_wallet.uid == -1
-    assert the_wallet.stake == Balance(0)
-
-def test_wallet_register_wo_email():
-    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
-    the_wallet.register()
-
-def test_wallet_register():
-    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
-    the_wallet.is_registered = MagicMock(return_value = False)
-    the_wallet.register()
 
 def test_wallet_add_stake():
-    subtensor = bittensor.subtensor()
+    subtensor = bittensor.subtensor(network = 'akatsuki')
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.add_stake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -128,7 +98,7 @@ def test_wallet_add_stake():
     the_wallet.add_stake(subtensor = subtensor)
 
 def test_wallet_remove_stake():
-    subtensor = bittensor.subtensor()
+    subtensor = bittensor.subtensor(network = 'akatsuki')
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.unstake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -139,7 +109,7 @@ def test_wallet_remove_stake():
     the_wallet.remove_stake(subtensor = subtensor)
 
 def test_wallet_transfer():
-    subtensor = bittensor.subtensor()
+    subtensor = bittensor.subtensor(network = 'akatsuki')
     
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.transfer = MagicMock(return_value = True)

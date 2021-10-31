@@ -16,9 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm
-from tqdm import tqdm
 
-from typing import List, Tuple, Dict, Union
+from typing import List, Dict, Union
 from multiprocessing import Process
 
 import bittensor
@@ -124,9 +123,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 else:
                     return False
 
-    def difficulty (
-        self
-    ) -> int:
+    @property
+    def difficulty (self) -> int:
         r""" Returns registration difficulty from the chain.
         Returns:
             difficulty (int):
@@ -134,6 +132,36 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         with self.substrate as substrate:
             return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
+
+    @property
+    def total_issuance (self) -> 'bittensor.Balance':
+        r""" Returns the total token issuance.
+        Returns:
+            total_issuance (int):
+                Total issuance as balance.
+        """
+        with self.substrate as substrate:
+            return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
+
+    @property
+    def total_stake (self) -> 'bittensor.Balance':
+        r""" Returns total stake on the chain.
+        Returns:
+            total_stake (bittensor.Balance):
+                Total stake as balance.
+        """
+        with self.substrate as substrate:
+            return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
+
+
+    @property
+    def block (self) -> int:
+        r""" Returns current chain block.
+        Returns:
+            block (int):
+                Current chain block.
+        """
+        return self.get_current_block()
 
     def serve_axon (
         self,
@@ -203,8 +231,8 @@ To run a local node (See: docs/running_a_validator.md) \n
     def register (
         self,
         wallet: 'bittensor.Wallet',
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
         r""" Registers the wallet to chain.
@@ -231,41 +259,52 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
                 return True
 
-        # Solve registration POW.
-        pow_result = bittensor.utils.create_pow( self )
         if prompt:
-            if not Confirm.ask("Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]\n  block_number: [bold white]{}[/bold white]\n  work: [bold white]{}[/bold white]".format( wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, self.network, pow_result['block_number'], pow_result['work'] ) ):
+            if not Confirm.ask("Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]".format( wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, self.network ) ):
                 return False
 
-        with bittensor.__console__.status(":satellite: Registering..."):
-            with self.substrate as substrate:
-                call = substrate.compose_call( 
-                    call_module='SubtensorModule',  
-                    call_function='register', 
-                    call_params={ 
-                        'block_number': pow_result['block_number'], 
-                        'nonce': pow_result['nonce'], 
-                        'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
-                        'hotkey': wallet.hotkey.ss58_address, 
-                        'coldkey': wallet.coldkeypub.ss58_address
-                    } 
-                )
-                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                    return True
-                response.process_events()
-                if not response.is_success:
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                    return False
+        # Attempt rolling registration.
+        attempts = 0
+        max_allowed_attempts = 10
+        while True:
+            
+            # Solve latest POW.
+            pow_result = bittensor.utils.create_pow( self )
+            with bittensor.__console__.status(":satellite: Registering...({}/10)".format(attempts)) as status:
+                with self.substrate as substrate:
+                    call = substrate.compose_call( 
+                        call_module='SubtensorModule',  
+                        call_function='register', 
+                        call_params={ 
+                            'block_number': pow_result['block_number'], 
+                            'nonce': pow_result['nonce'], 
+                            'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
+                            'hotkey': wallet.hotkey.ss58_address, 
+                            'coldkey': wallet.coldkeypub.ss58_address
+                        } 
+                    )
+                    extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                    response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+                    # We only wait here if we expect finalization.
+                    if not wait_for_finalization and not wait_for_inclusion:
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                        return True
+                    response.process_events()
+                    if not response.is_success:
+                        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                        attempts += 1
+                        if attempts > max_allowed_attempts: 
+                            bittensor.__console__.print( "[red]No more attempts.[/red]" )
+                            return False
+                        else:
+                            status.update( ":satellite: Registering...({}/10)".format(attempts))
+                            continue
 
-        if response.is_success:
-            with bittensor.__console__.status(":satellite: Checking Balance..."):
-                neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
-                return True
+            if response.is_success:
+                with bittensor.__console__.status(":satellite: Checking Balance..."):
+                    neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                    return True
 
     def serve (
             self, 
@@ -306,7 +345,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         with bittensor.__console__.status(":satellite: Checking Axon..."):
             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-            if not neuron.is_null and neuron.ip == ip and neuron.port == port:
+            if not neuron.is_null and neuron.ip == net.ip_to_int(ip) and neuron.port == port:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
                 return True
 
@@ -350,8 +389,8 @@ To run a local node (See: docs/running_a_validator.md) \n
             self, 
             wallet: 'bittensor.wallet',
             amount: Union[Balance, float] = None, 
-            wait_for_inclusion: bool = False,
-            wait_for_finalization: bool = True,
+            wait_for_inclusion: bool = True,
+            wait_for_finalization: bool = False,
             prompt: bool = False,
         ) -> bool:
         r""" Adds the specified amount of stake to passed hotkey uid.
@@ -381,7 +420,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
             neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
         if neuron.is_null:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey is not registered: {}[/red]".format(wallet.hotkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
             return False
 
         # Covert to bittensor.Balance
@@ -395,15 +434,15 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # Check enough to unstake.
         if staking_balance > old_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount:{}\n  account:{}[/bold white]".format(old_balance, staking_balance, wallet.coldkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, wallet.name))
             return False
                 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to stake:[bold white]\n  amount:{}\n  to:{}[/bold white]".format( staking_balance, neuron.hotkey ) ):
+            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format( staking_balance, wallet.hotkey_str ) ):
                 return False
 
-        with bittensor.__console__.status(":satellite: Staking to: [white]{}[/white] ...".format(self.network)):
+        with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule', 
@@ -416,7 +455,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
                 response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
                 # We only wait here if we expect finalization.
-                if not wait_for_finalization:
+                if not wait_for_finalization and not wait_for_inclusion:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                     return True
 
@@ -439,8 +478,8 @@ To run a local node (See: docs/running_a_validator.md) \n
             wallet: 'bittensor.wallet',
             dest: str, 
             amount: Union[Balance, float], 
-            wait_for_inclusion: bool = False,
-            wait_for_finalization: bool = True,
+            wait_for_inclusion: bool = True,
+            wait_for_finalization: bool = False,
             prompt: bool = False,
         ) -> bool:
         r""" Transfers funds from this wallet to the destination public key address
@@ -477,12 +516,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             account_balance = self.get_balance( wallet.coldkey.ss58_address )
         if account_balance < transfer_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  transfer:[/bold white]".format( account_balance, transfer_balance ))
+            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
             return False
 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount:{}\n  from:{}:{}\n  to:{}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
+            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Transferring..."):
@@ -498,7 +537,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
                 response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
                 # We only wait here if we expect finalization.
-                if not wait_for_finalization:
+                if not wait_for_finalization and not wait_for_inclusion:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                     return True
 
@@ -519,8 +558,8 @@ To run a local node (See: docs/running_a_validator.md) \n
             self, 
             wallet: 'bittensor.wallet',
             amount: Union[Balance, float] = None, 
-            wait_for_inclusion:bool = False, 
-            wait_for_finalization:bool = True,
+            wait_for_inclusion:bool = True, 
+            wait_for_finalization:bool = False,
             prompt: bool = False,
         ) -> bool:
         r""" Removes stake into the wallet coldkey from the specified hotkey uid.
@@ -550,7 +589,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
             neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
         if neuron.is_null:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey is not registered.{}[/red]".format(wallet.hotkey.ss58_address))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format( wallet.hotkey_str ))
             return False
 
         # Covert to bittensor.Balance
@@ -565,12 +604,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Check enough to unstake.
         stake_on_uid = bittensor.Balance.from_tao( neuron.stake )
         if unstaking_balance > stake_on_uid:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from uid: [white]{}[/white]".format(stake_on_uid, unstaking_balance, neuron.uid))
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
             return False
         
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to unstake:[green ]{}[/green ] from uid:[blue ]{}[/blue ]?".format( unstaking_balance, neuron.uid) ):
+            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
@@ -586,10 +625,11 @@ To run a local node (See: docs/running_a_validator.md) \n
                 extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
                 response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
                 # We only wait here if we expect finalization.
-                if not wait_for_finalization:
+                if not wait_for_finalization and not wait_for_inclusion:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                     return True
 
+                response.process_events()
                 if response.is_success:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 else:
@@ -603,7 +643,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
                 
-#    @logger.catch
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
@@ -611,6 +650,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             weights: Union[torch.FloatTensor, list],
             wait_for_inclusion:bool = False,
             wait_for_finalization:bool = False,
+            prompt:bool = False
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
@@ -626,38 +666,56 @@ To run a local node (See: docs/running_a_validator.md) \n
             wait_for_finalization (bool):
                 if set, waits for the extrinsic to be finalized on the chain before returning true,
                 or returns false if the extrinsic fails to be finalized within the timeout.
-            timeout (int):
-                time that this call waits for either finalization of inclusion.
+            prompt (bool):
+                If true, the call waits for confirmation from the user before proceeding.
         Returns:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block.
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        # First convert types.
         if isinstance( uids, list ):
             uids = torch.tensor( uids, dtype = torch.int64 )
         if isinstance( weights, list ):
             weights = torch.tensor( weights, dtype = torch.float32 )
-        bittensor.logging.success( f'Set {len(uids)} weights, top 5 samples', str(list(zip(uids.tolist()[:5], weights.tolist()[:5]))))
+
+        # Reformat and normalize.
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule',
-                call_function='set_weights',
-                call_params = {'dests': weight_uids, 'weights': weight_vals}
-            )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-            if wait_for_inclusion or wait_for_finalization:
+
+        # Ask before moving on.
+        if prompt:
+            if not Confirm.ask("Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format( [float(v/4294967295) for v in weight_vals], weight_uids) ):
+                return False
+
+        with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(self.network)):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='set_weights',
+                    call_params = {'dests': weight_uids, 'weights': weight_vals}
+                )
+                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                    return True
+
                 response.process_events()
                 if response.is_success:
-                    bittensor.logging.success( prefix = 'Weights Set', sufix = '<green>True</green>')
-                    return True
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.error_message) )
                 else:
-                    bittensor.logging.warning(  prefix = 'Weights Set', sufix = '<green>False: </green>' + str(response.error_message) )
-                    return False
-            else:
-                bittensor.logging.warning( prefix = 'Weights Set', sufix = '<yellow>Unknown (non-waiting)</yellow>')
-                return True
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                    bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
+
+        if response.is_success:
+            bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( weight_vals, weight_uids ))
+            message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
+            logger.debug('Set weights:'.ljust(20) +  message)
+            return True
+        else:
+            return False
 
     def get_balance(self, address: str, block: int = None) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
@@ -713,7 +771,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
             result = []
-            for page in tqdm( page_results ):
+            for page in page_results :
                 for n in page:
                     if type(n.value) != int:
                         n = Subtensor._neuron_dict_to_namespace( n.value )
@@ -785,7 +843,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             else:
                 return uid
         else:
-            return True
+            return uid
 
     def is_hotkey_registered( self, ss58_hotkey: str, block: int = None) -> bool:
         r""" Returns true if the passed hotkey is registered on the chain.
