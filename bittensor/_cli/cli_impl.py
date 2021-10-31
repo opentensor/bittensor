@@ -215,9 +215,10 @@ class CLI:
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            metagraph.load()
             metagraph.sync()
             metagraph.save()
+            issuance = subtensor.total_issuance
+            difficulty = subtensor.difficulty
 
         TABLE_DATA = [] 
         total_stake = 0.0
@@ -255,7 +256,7 @@ class CLI:
         total_neurons = len(metagraph.uids)                
         table = Table(show_footer=False)
         table.title = (
-            "[white]Metagraph ( name: {}, N: {}/{}, block: {}, tau: {}/block, stake: {}, issuance: {}, difficulty: {} )".format(subtensor.network, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), subtensor.total_stake, subtensor.total_issuance, subtensor.difficulty )
+            "[white]Metagraph: name: {}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), issuance, difficulty )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
