@@ -31,6 +31,17 @@ from rich.prompt import Confirm
 if bittensor.__neurons_installed__:
     import bittensor._neurons.neurons as neurons
 
+__neurons_not_install_message__ = """[bold white]------- Neurons is not installed ------ [/bold white]
+
+    If you are running from source, pull submodules recursively and reinstall:
+        >> git submodule update --init --recursive
+        >> python3 -m pip install -e .
+
+    Or pull the entire repository recursively and reinstall:
+        >> git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+        >> python3 -m pip install -e .
+"""
+
 class CLI:
     """
     Implementation of the CLI class, which handles the coldkey, hotkey and money transfer 
@@ -138,10 +149,7 @@ class CLI:
             elif self.config.model == 'advanced_server':
                 neurons.advanced_server.neuron().run()
         else:
-            bittensor.__console__.print("""[bold white]------- Neurons is not installed ------ [/bold white]
-            If you are running from source make sure you pulled this repository recursively.
-                git clone --recurse-submodules https://github.com/opentensor/bittensor.git
-            """)
+            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
             sys.exit()
 
 

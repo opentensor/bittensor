@@ -628,10 +628,7 @@ class cli:
     def check_run_config( config: 'bittensor.Config' ):
 
         if not bittensor.__neurons_installed__:
-            bittensor.__console__.print("""[bold white]------- Neurons is not installed ------ [/bold white]
-            If you are running from source make sure you pulled this repository recursively.
-                git clone --recurse-submodules https://github.com/opentensor/bittensor.git
-            """)
+            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
             sys.exit()
 
         # Check network.
