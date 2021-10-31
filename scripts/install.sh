@@ -102,7 +102,7 @@ linux_update_pip() {
 linux_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
+    git clone --recurse-submodules https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     ohai "Installing bittensor-neurons"
@@ -161,7 +161,7 @@ mac_update_pip() {
 
 mac_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
+    git clone --recurse-submodules https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git pull --ff-only)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     exit_on_error $? 
@@ -259,11 +259,11 @@ echo ""
 echo ""
 ohai "Installation successful"
 echo ""
-echo "- To run the base miner: "
+echo "- To run one of the base miners: "
 echo "    $ btcli run"
 echo ""
 echo "- Or write your own: "
-echo "    see: ~/.bittensor/bittensor/miners/text/template_miner.py."
+echo "    e.g. $ ls ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/"
 echo ""
 ohai "Extras:"
 echo ""
@@ -275,8 +275,9 @@ echo "    $ btcli stake"
 echo "    $ btcli unstake"
 echo ""
 echo "- Create/list/register wallets"
-echo "    $ btcli list"
 echo "    $ btcli new_coldkey"
+echo "    $ btcli new_hotkey"
+echo "    $ btcli list"
 echo "    $ btcli register"
 echo ""
 echo "- Use the Python API"
