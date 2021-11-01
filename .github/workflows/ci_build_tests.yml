@@ -33,9 +33,7 @@ jobs:
     - name: Run Unit Tests
       run: pytest ./tests/unit_tests --cov=. --cov-append --cov-config .coveragerc        
     - name: Run Integration Tests
-      run: pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc        
-    - name: Run Miners
-      run: pytest tests/miners/text --cov=. --cov-append --cov-config .coveragerc        
+      run: pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc             
     - name: Run dataset tests
       run: pytest ./tests/integration_tests/test_dataset_ipfs.py --cov=. --cov-append --cov-config .coveragerc        
     - name: Upload Coverage to Codecov
