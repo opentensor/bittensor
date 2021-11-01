@@ -27,23 +27,6 @@ from rich.prompt import Confirm
 
 from bittensor.utils.balance import Balance
 
-# This flag checks to see if the bittensor has access to the 
-# neurons submodule. This is true if the user installed from pip
-# or if they git cloned submodules recursively.
-if bittensor.__neurons_installed__:
-    import bittensor._neurons.neurons as neurons
-
-__neurons_not_install_message__ = """[bold white]------- Neurons is not installed ------ [/bold white]
-
-    If you are running from source, pull submodules recursively and reinstall:
-        >> git submodule update --init --recursive
-        >> python3 -m pip install -e .
-
-    Or pull the entire repository recursively and reinstall:
-        >> git clone --recurse-submodules https://github.com/opentensor/bittensor.git
-        >> python3 -m pip install -e .
-"""
-
 class CLI:
     """
     Implementation of the CLI class, which handles the coldkey, hotkey and money transfer 
@@ -137,47 +120,42 @@ class CLI:
 
 
     def run_miner ( self ):
-        if bittensor.__neurons_installed__:
-            self.config.to_defaults()
-            # Check coldkey.
-            wallet = bittensor.wallet( config = self.config )
-            if not wallet.coldkeypub_file.exists_on_device():
-                if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
-                    wallet.create_new_coldkey()
-                else:
-                    sys.exit()
+        self.config.to_defaults()
+        # Check coldkey.
+        wallet = bittensor.wallet( config = self.config )
+        if not wallet.coldkeypub_file.exists_on_device():
+            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
+                wallet.create_new_coldkey()
+            else:
+                sys.exit()
 
-            # Check hotkey.
-            if not wallet.hotkey_file.exists_on_device():
-                if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
-                    wallet.create_new_hotkey()
-                else:
-                    sys.exit()
+        # Check hotkey.
+        if not wallet.hotkey_file.exists_on_device():
+            if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
+                wallet.create_new_hotkey()
+            else:
+                sys.exit()
 
-            if wallet.hotkey_file.is_encrypted():
-                bittensor.__console__.print("Decrypting hotkey ... ")
-            wallet.hotkey
+        if wallet.hotkey_file.is_encrypted():
+            bittensor.__console__.print("Decrypting hotkey ... ")
+        wallet.hotkey
 
-            if wallet.coldkeypub_file.is_encrypted():
-                bittensor.__console__.print("Decrypting coldkeypub ... ")
-            wallet.coldkeypub
+        if wallet.coldkeypub_file.is_encrypted():
+            bittensor.__console__.print("Decrypting coldkeypub ... ")
+        wallet.coldkeypub
 
-            # Check registration
-            self.register()
+        # Check registration
+        self.register()
 
-            # Run miner.
-            if self.config.model == 'template_miner':
-                neurons.template_miner.neuron().run()
-            elif self.config.model == 'template_server':
-                neurons.template_server.neuron().run()
-            elif self.config.model == 'template_validator':
-                neurons.template_validator.neuron().run()
-            elif self.config.model == 'advanced_server':
-                neurons.advanced_server.neuron().run()
-        else:
-            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
-            sys.exit()
-
+        # Run miner.
+        if self.config.model == 'template_miner':
+            bittensor.neurons.template_miner.neuron().run()
+        elif self.config.model == 'template_server':
+            bittensor.neurons.template_server.neuron().run()
+        elif self.config.model == 'template_validator':
+            bittensor.neurons.template_validator.neuron().run()
+        elif self.config.model == 'advanced_server':
+            bittensor.neurons.advanced_server.neuron().run()
 
     def register( self ):
         r""" Register neuron.
