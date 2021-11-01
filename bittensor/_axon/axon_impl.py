@@ -26,6 +26,7 @@ import torch
 import grpc
 from loguru import logger
 import torch.nn.functional as F
+import concurrent
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -43,7 +44,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
         server: 'grpc._Server',
         forwards: List  = [],
         backwards: List = [],
-        modality: int = None
+        priority:  'Callable' = None,
+        priority_threadpool: 'bittensor.prioritythreadpool' = None,
+        forward_timeout: int = None,
+        backward_timeout: int = None,
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -58,6 +62,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     list of functions which is called on forward requests.
                 backward (:obj:list of `callable`, `optional`):
                     list of functions which is called on backward requests.
+                priority (:obj:`callable`, `optional`):
+                    function to assign priority on requests.
+                priority_threadpool (:obj:`bittensor.prioritythreadpool`, `optional`):
+                    bittensor priority_threadpool.                
         """
         self.ip = ip
         self.port = port
@@ -65,7 +73,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.server = server
         self.forward_callback = forwards
         self.backward_callback = backwards
-        self.modality = modality if modality != None else self.find_modality()
+        self.forward_timeout = forward_timeout
+        self.backward_timeout = backward_timeout
+        self.modality = self.find_modality()
         self.stats = SimpleNamespace(
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -76,11 +86,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
             qps_per_pubkey = {},
             qps_failed_per_pubkey = {},
         )
-
-        self.external_ip = None
-        self.external_port = None
         self.started = None
         
+        # -- Priority 
+        self.priority = priority 
+        self.priority_threadpool= priority_threadpool
 
     def __str__(self) -> str:
         return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
@@ -151,7 +161,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             inputs_x: torch.Tensor, 
             modality: bittensor.proto.Modality
         ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Calls the forward callback subscribed by the nucleus.
+        r""" Calls the forward callback served by the nucleus.
             
             Args:
                 public_key (str, `required`): 
@@ -177,7 +187,20 @@ class Axon( bittensor.grpc.BittensorServicer ):
         
         # Make forward call.
         try:
-            response_tensor = self.forward_callback[modality](pubkey = public_key, inputs_x= inputs_x)
+            if self.priority != None:
+                priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.FORWARD)
+                future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
+
+                try:
+                    response_tensor = future.result(timeout= self.forward_timeout)
+                except concurrent.futures.TimeoutError :
+                    raise TimeoutError('TimeOutError')
+                except Exception as e:
+                    logger.error('Error found: {}, with message {}'.format(repr(e), e))
+
+            else:
+                response_tensor = self.forward_callback[modality]( inputs_x= inputs_x)
+
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -224,7 +247,17 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return None, bittensor.proto.ReturnCode.NotImplemented, message
 
         if modality == bittensor.proto.Modality.TEXT:
-            self.backward_callback[modality]( public_key, inputs_x, grads_dy)
+            if self.priority != None:
+                try:
+                    priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.BACKWARD)
+                    future = self.priority_threadpool.submit(self.backward_callback[modality],inputs_x=inputs_x,grads_dy=grads_dy,priority=priority)
+                except concurrent.futures.TimeoutError :
+                    raise TimeoutError('TimeOutError')
+                except Exception as e:
+                    logger.error('Error found: {}, with message {}'.format(repr(e), e))
+            else:
+                self.backward_callback[modality](inputs_x, grads_dy)
+
             response_tensor = torch.ones(inputs_x.size())
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
@@ -232,7 +265,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             
         # Make backward call.
         try:
-            response_tensor = self.backward_callback[modality]( public_key, inputs_x, grads_dy)
+            response_tensor = self.backward_callback[modality]( inputs_x, grads_dy)
             message = "Success"
             code = bittensor.proto.ReturnCode.Success
             return response_tensor, code, message
@@ -562,65 +595,35 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.stop()
 
-    def subscribe( 
+    def serve( 
             self, 
             use_upnpc: bool = False, 
             subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
             chain_endpoint: str = None,
-            timeout = 4 * bittensor.__blocktime__,
+            prompt: bool = False
         ) -> 'Axon':
         r""" Subscribes this Axon servicing endpoint to the passed network using it's wallet.
             Args:
                 use_upnpc (:type:bool, `optional`): 
-                    If true, subscribes the axon attempts port forward through your router before 
+                    If true, serves the axon attempts port forward through your router before 
                     subscribing.
-                modality (:type:bool, `optional`): 
-                    Which network modality are we subscribing to. Defaults to 0 for TEXT.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
-                    Chain connection through which to subscribe.
+                    Chain connection through which to serve.
                 network (default='akatsuki', type=str)
                     If subtensor is not set, uses this network flag to create the subtensor connection.
                 chain_endpoint (default=None, type=str)
                     Overrides the network argument if not set.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
+
         """   
-
-        # Create subtensor connection.
-        if subtensor == None:
-            subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint)
-
-        # ---- Setup UPNPC ----
-        if use_upnpc:
-            try:
-                self.external_port = bittensor.net.upnpc_create_port_map( port = self.port )
-                bittensor.logging.success(prefix = 'UPNPC', sufix = '<red>OPEN</red>')
-            except bittensor.net.UPNPCException as upnpc_exception:
-                raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
-        else:
-            self.external_port = self.port
-
-        # ---- Get external ip ----
-        try:
-            self.external_ip = bittensor.net.get_external_ip()
-            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format(self.external_ip))
-        except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
-
-        # ---- Setup Wallet. ----
-        self.wallet.create()
-
-        # ---- Subscribe to chain ----
-        subscribe_success = subtensor.subscribe(
-                wallet = self.wallet,
-                ip = self.external_ip,
-                port = self.external_port,
-                modality = self.modality,
-                wait_for_finalization = True,
-        )
-        if not subscribe_success:
-            raise RuntimeError('Failed to subscribe neuron.')
-
+        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint) 
+        serv_success = subtensor.serve_axon( axon = self, use_upnpc = use_upnpc, prompt = prompt )
+        if not serv_success:
+            raise RuntimeError('Failed to serve neuron.')
         return self
+
 
     def start(self) -> 'Axon':
         r""" Starts the standalone axon GRPC server thread.

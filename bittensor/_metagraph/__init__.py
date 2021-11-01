@@ -18,11 +18,8 @@ which maintains chain state as a torch.nn.Module.
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from os import name
 import argparse
 import copy
-
-from substrateinterface import Keypair
 
 import bittensor
 from . import metagraph_impl
@@ -44,10 +41,11 @@ class metagraph:
                     bittensor.metagraph.config()
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     bittensor subtensor chain connection.
-                network (default='kusanagi', type=str)
+                network (default='nakamoto', type=str)
                     The subtensor network flag. The likely choices are:
-                            -- kusanagi (testing network)
-                            -- akatsuki (main network)
+                            -- nobunaga (staging network)
+                            -- akatsuki (testing network)
+                            -- nakamoto (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
