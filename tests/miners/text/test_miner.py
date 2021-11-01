@@ -40,12 +40,12 @@ def test_run_template():
     with mock.patch.object(Miner,'forward_text',new=test_forward):
         
         miner = Miner( config = config )
-        miner.neuron.wallet = wallet.create(coldkey_use_password = False)
+        miner.wallet = wallet.create(coldkey_use_password = False)
         
-        with mock.patch.object(miner.neuron.subtensor, 'get_current_block', new=block_check.blocks):
-            bittensor.neuron.subtensor.connect = MagicMock(return_value = True)  
-            bittensor.neuron.subtensor.is_connected = MagicMock(return_value = True)      
-            bittensor.neuron.subtensor.subscribe = MagicMock(return_value = True)  
+        with mock.patch.object(miner.subtensor, 'get_current_block', new=block_check.blocks):
+            bittensor.subtensor.connect = MagicMock(return_value = True)  
+            bittensor.subtensor.is_connected = MagicMock(return_value = True)      
+            bittensor.subtensor.register = MagicMock(return_value = True)  
 
             miner.run()
 
