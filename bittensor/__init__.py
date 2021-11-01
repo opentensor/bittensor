@@ -34,7 +34,7 @@ __vocab_size__ = 50378
 __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
 # Substrate chain block time (seconds).
-__blocktime__ = 10
+__blocktime__ = 12
 
 __networks__ = [ 'local', 'nobunaga', 'akatsuki', 'nakamoto']
 
