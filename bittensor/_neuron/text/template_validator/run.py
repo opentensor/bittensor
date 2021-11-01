@@ -36,7 +36,7 @@ from loguru import logger; logger = logger.opt(colors=True)
 def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid, dendrite):
     print(config)
     config.to_defaults()
-
+    validator = validator.to(device)
     optimizer = torch.optim.SGD(
         [ {'params': validator.peer_weights, 'lr': config.neuron.learning_rate_chain} ],
         lr = config.neuron.learning_rate,
@@ -51,8 +51,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             root_dir = config.neuron.full_path
         )
 
-        wandb.watch( validator, log = 'all', log_freq = 50 )
-
     # Optionally resume.
     if config.neuron.resume:
         try:
@@ -66,15 +64,15 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     global_step = 0
     best_loss = math.inf
     ema_score_decay = 0.995
-    ema_scores = torch.ones_like( validator.peer_weights ) * (1 / metagraph.n.item()) 
+    ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
 
     while True:
     
         # --- Sync + reshape.      
         metagraph.sync().save()
-        chain_growth = metagraph.n.item() - torch.numel( validator.peer_weights )
-        validator.peer_weights = torch.nn.Parameter(torch.cat( [validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
-        ema_scores = torch.nn.Parameter(torch.cat( [ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True)])).to(device)
+        chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
+        validator.peer_weights = torch.nn.Parameter(torch.cat([validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True, device = device)]))
+        ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         # --- Run epoch.
         start_block = subtensor.get_current_block() + 1
@@ -84,7 +82,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         progress.set_bar = partial(progress.set_bar,  element='#')
 
         # --- Reset the epoch logs
-        total_epoch_score = torch.zeros(metagraph.n.item())
+        total_epoch_score = torch.zeros(metagraph.n.item(), device = device)
         total_epoch_loss = 0
         batch_count = 0
         
@@ -92,7 +90,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             
             # --- Training step.
             while block >= subtensor.get_current_block():
-                loss, _ = validator( next( dataset ) )
+                loss, _ = validator( next( dataset ).to(device) )
                 val_score = validator.scores()
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
@@ -103,7 +101,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores.detach() + (1 - ema_score_decay) * scores.detach()
+                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores.detach()
 
 
             # --- Step logs.
@@ -130,13 +128,14 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item())  )
-        subtensor.set_weights (
-            uids = topk_uids,
-            weights = topk_scores,
+        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item())  )
+        subtensor.timeout_set_weights(
+            timeout=10,
+            uids = topk_uids.detach().to(torch.device('cpu')),
+            weights = topk_scores.detach().to(torch.device('cpu')),
+            wait_for_inclusion = True,
             wallet = wallet,
-            wait_for_inclusion = False,
-        )    
+        )
 
         # --- Log.
         metagraph.sync().save()
