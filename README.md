@@ -203,7 +203,7 @@ The following command will run Bittensor's template miner
 
 ```bash
 $ cd bittensor
-$ python ./bittensor/_neurons/text/template_miner/main.py
+$ python ./bittensor/_neuron/text/template_miner/main.py
 ```
 or 
 ```python3
@@ -215,13 +215,13 @@ OR with customized settings
 
 ```bash
 $ cd bittensor
-$ python3 ./bittensor/_neurons/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ./bittensor/_neuron/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
 For the full list of settings, please run
 
 ```bash
-$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --help
+$ python3 ~/.bittensor/bittensor/bittensor/_neuron/neurons/text/template_miner/main.py --help
 ```
 
 ### 4.4. Running a template server
@@ -230,7 +230,7 @@ The template server follows a similar structure as the template miner.
 
 ```bash
 $ cd bittensor
-$ python3 ./bittensor/_neurons/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ./bittensor/_neuron/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 or 
 ```python3
@@ -242,7 +242,7 @@ For the full list of settings, please run
 
 ```bash
 $ cd bittensor
-$ python3 ./bittensor/_neurons/text/template_server/main.py --help
+$ python3 ./bittensor/_neuron/text/template_server/main.py --help
 ```
 
 
