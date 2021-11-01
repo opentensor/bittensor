@@ -51,8 +51,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             root_dir = config.neuron.full_path
         )
 
-        wandb.watch( validator, log = 'all', log_freq = 50 )
-
     # Optionally resume.
     if config.neuron.resume:
         try:
