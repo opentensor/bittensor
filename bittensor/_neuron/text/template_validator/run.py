@@ -90,7 +90,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             
             # --- Training step.
             while block >= subtensor.get_current_block():
-                loss, _ = validator( next( dataset ).to(device) )
+                loss, _ = validator( next( dataset ) )
                 val_score = validator.scores()
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()

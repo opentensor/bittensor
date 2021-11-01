@@ -366,6 +366,7 @@ class Neuron:
         )
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ))
 
+
     def sync (self, current_block ):
         """ Miner sync with metagraph and update chain weight
         """
