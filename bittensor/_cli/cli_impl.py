@@ -25,6 +25,8 @@ from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Confirm
 
+from bittensor.utils.balance import Balance
+
 # This flag checks to see if the bittensor has access to the 
 # neurons submodule. This is true if the user installed from pip
 # or if they git cloned submodules recursively.
@@ -85,6 +87,9 @@ class CLI:
             self.weights()
         elif self.config.command == "set_weights":
             self.set_weights()
+        elif self.config.command == "inspect":
+            self.inspect()
+
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -109,6 +114,27 @@ class CLI:
         """
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
+
+    def inspect ( self ):
+        r""" Inspect a cold, hot pair.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        subtensor = bittensor.subtensor( config = self.config )
+
+        wallet.hotkey
+        wallet.coldkeypub
+        
+        with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
+            if neuron.is_null:
+                registered = 'No'
+            else:
+                registered = 'Yes'
+            stake = bittensor.Balance.from_tao( neuron.stake )
+            cold_balance = wallet.balance
+
+        bittensor.__console__.print("[bold white]{}[/bold white]:\n  [bold grey]coldkey: {}\n  hotkey: {}\n  balance: {}\n  stake: {}\n  registered: {}[/bold grey]".format( wallet, wallet.coldkeypub.ss58_address, wallet.hotkey.ss58_address, cold_balance, stake, registered),highlight=True)
+
 
     def run_miner ( self ):
         if bittensor.__neurons_installed__:
