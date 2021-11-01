@@ -397,7 +397,7 @@ class Neuron:
             k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())
             topk_scores, topk_uids = torch.topk( self.stats.ema_scores.detach(), k = k )
             did_set = self.subtensor.timeout_set_weights(
-                timeout=100,
+                timeout = 100,
                 uids = topk_uids,
                 weights = topk_scores,
                 wait_for_inclusion = True,
