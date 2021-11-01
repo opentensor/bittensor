@@ -299,7 +299,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def vertification(self,meta):
         r"""vertification of signature in metadata. Uses the pubkey and nounce
         """
-        nounce, pubkey, message = meta[1].value.split('bitxx')
+        variable_length_messages = meta[1].value.split('bitxx')
+        nounce = variable_length_messages[0]
+        pubkey = variable_length_messages[1]
+        message = variable_length_messages[2]
         data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
         _keypair = Keypair(ss58_address=pubkey)
 
@@ -311,7 +314,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 self.nounce_dic[pubkey] = data_time
 
                 #decrypting the message and verify that message is correct
-                verification = _keypair.verify(nounce+pubkey,message)
+                verification = _keypair.verify(nounce+pubkey, message)
             else:
                 verification = False
         else:
@@ -331,10 +334,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def version_checking(self,meta):
         r""" Checks the header and version in the metadata
         """
-        if meta[0] == self._valid_metadata and bittensor.__version_as_int__ <= int(meta[2].value) + 10:
+        if meta[0] == self._valid_metadata:
             pass
         else:
-            raise Exception('Incorrect Metadata/version; please update bittensor version')
+            raise Exception('Incorrect Metadata format')
 
     def black_list_checking(self,meta):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 

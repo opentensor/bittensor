@@ -227,7 +227,7 @@ class Nucleus(nn.Module):
 
         # ---- Query network ----
         responses, return_ops, query_times = self.dendrite.forward_text (
-            endpoints = endpoints,
+            endpoints = endpoints.to('cpu'),
             inputs = inputs
         )
 
