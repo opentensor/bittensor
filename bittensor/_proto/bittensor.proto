@@ -192,3 +192,8 @@ enum Modality {
 	TENSOR = 2;
 }
 
+enum RequestType {
+	NOTDEFINED = 0;
+	FORWARD = 1;
+	BACKWARD = 2;
+}
