@@ -53,7 +53,7 @@ $ pip3 install bittensor
 
 3. From source:
 ```
-$ git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+$ git clone https://github.com/opentensor/bittensor.git
 $ python3 -m pip install -e bittensor/
 ```
 
@@ -202,13 +202,20 @@ or
 The following command will run Bittensor's template miner
 
 ```bash
-$ python ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/main.py
+$ cd bittensor
+$ python ./bittensor/_neurons/text/template_miner/main.py
+```
+or 
+```python3
+>> import bittensor
+>> bittensor.neurons.text.template_miner.neuron().run()
 ```
 
 OR with customized settings
 
 ```bash
-$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ cd bittensor
+$ python3 ./bittensor/_neurons/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
 For the full list of settings, please run
@@ -222,14 +229,22 @@ $ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/
 The template server follows a similar structure as the template miner. 
 
 ```bash
-$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ cd bittensor
+$ python3 ./bittensor/_neurons/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+```
+or 
+```python3
+>> import bittensor
+>> bittensor.neurons.text.template_server.neuron().run()
 ```
 
 For the full list of settings, please run
 
 ```bash
-$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_server/main.py --help
+$ cd bittensor
+$ python3 ./bittensor/_neurons/text/template_server/main.py --help
 ```
+
 
 ###  4.5. Serving an endpoint on the network
 
