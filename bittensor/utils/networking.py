@@ -20,7 +20,6 @@
 import os
 import urllib
 
-import miniupnpc
 import netaddr
 import requests
 
@@ -158,17 +157,17 @@ def upnpc_delete_port_map(external_port: int):
             UPNPCException (Exception):
                 Raised if UPNPC port map delete fails.
     """
-    try:
-        logger.info('UPNPC: Deleting port map {}', external_port)
-        upnp = miniupnpc.UPnP()
-        upnp.discoverdelay = 200
-        upnp.discover()
-        upnp.selectigd()
-        upnp.deleteportmapping(external_port, 'TCP')
-        logger.info('UPNPC: Delete Success')
+    # try:
+    #     logger.info('UPNPC: Deleting port map {}', external_port)
+    #     upnp = miniupnpc.UPnP()
+    #     upnp.discoverdelay = 200
+    #     upnp.discover()
+    #     upnp.selectigd()
+    #     upnp.deleteportmapping(external_port, 'TCP')
+    #     logger.info('UPNPC: Delete Success')
 
-    except Exception as e:
-        raise UPNPCException(e) from e
+    # except Exception as e:
+    #     raise UPNPCException(e) from e
 
 def upnpc_create_port_map(port: int):
     r""" Creates a upnpc port map on your router from passed external_port to local port.
@@ -185,36 +184,37 @@ def upnpc_create_port_map(port: int):
             UPNPCException (Exception):
                 Raised if UPNPC port mapping fails, for instance, if upnpc is not enabled on your router.
     """
-    try:
-        upnp = miniupnpc.UPnP()
-        upnp.discoverdelay = 200
-        logger.debug('UPNPC: Using UPnP to open a port on your router ...')
-        logger.debug('UPNPC: Discovering... delay={}ms', upnp.discoverdelay)
-        ndevices = upnp.discover()
-        upnp.selectigd()
-        logger.debug('UPNPC: ' + str(ndevices) + ' device(s) detected')
+    return port
+    # try:
+    #     upnp = miniupnpc.UPnP()
+    #     upnp.discoverdelay = 200
+    #     logger.debug('UPNPC: Using UPnP to open a port on your router ...')
+    #     logger.debug('UPNPC: Discovering... delay={}ms', upnp.discoverdelay)
+    #     ndevices = upnp.discover()
+    #     upnp.selectigd()
+    #     logger.debug('UPNPC: ' + str(ndevices) + ' device(s) detected')
 
-        ip = upnp.lanaddr
-        external_ip = upnp.externalipaddress()
+    #     ip = upnp.lanaddr
+    #     external_ip = upnp.externalipaddress()
 
-        logger.debug('UPNPC: your local ip address: ' + str(ip))
-        logger.debug('UPNPC: your external ip address: ' + str(external_ip))
-        logger.debug('UPNPC: status = ' + str(upnp.statusinfo()) + " connection type = " + str(upnp.connectiontype()))
+    #     logger.debug('UPNPC: your local ip address: ' + str(ip))
+    #     logger.debug('UPNPC: your external ip address: ' + str(external_ip))
+    #     logger.debug('UPNPC: status = ' + str(upnp.statusinfo()) + " connection type = " + str(upnp.connectiontype()))
 
-        # find a free port for the redirection
-        external_port = port
-        rc = upnp.getspecificportmapping(external_port, 'TCP')
-        while rc != None and external_port < 65536:
-            external_port += 1
-            rc = upnp.getspecificportmapping(external_port, 'TCP')
-        if rc != None:
-            raise UPNPCException("UPNPC: No available external ports for port mapping.")
+    #     # find a free port for the redirection
+    #     external_port = port
+    #     rc = upnp.getspecificportmapping(external_port, 'TCP')
+    #     while rc != None and external_port < 65536:
+    #         external_port += 1
+    #         rc = upnp.getspecificportmapping(external_port, 'TCP')
+    #     if rc != None:
+    #         raise UPNPCException("UPNPC: No available external ports for port mapping.")
 
-        logger.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, ip, port)
-        upnp.addportmapping(external_port, 'TCP', ip, port, 'Bittensor: %u' % external_port, '')
-        logger.info('UPNPC: Create Success')
+    #     logger.info('UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP', external_ip, external_port, ip, port)
+    #     upnp.addportmapping(external_port, 'TCP', ip, port, 'Bittensor: %u' % external_port, '')
+    #     logger.info('UPNPC: Create Success')
 
-        return external_port
+    #     return external_port
 
-    except Exception as e:
-        raise UPNPCException(e) from e
+    # except Exception as e:
+    #     raise UPNPCException(e) from e
