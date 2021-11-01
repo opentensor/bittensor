@@ -186,9 +186,9 @@ $ btcli unstake
 ### 4.2. Selecting the network to join 
 There are two open Bittensor networks: Nobunaga, Akatsuki, Nakamoto.
 
-- Nobunaga is the staging network.
-- Akatsuki is the main network. The main network will reopen on Bittensor-akatsuki: November 2021.
-- Nakamoto is the main network. The main network will reopen on Bittensor-nakamoto: November 2021.
+- Nobunaga (staging)
+- Akatsuki (testing)
+- Nakamoto (main)
 
 ```bash
 $ export NETWORK=akatsuki 
@@ -202,19 +202,19 @@ or
 The following command will run Bittensor's template miner
 
 ```bash
-$ python ~/.bittensor/bittensor/miners/text/template_miner.py
+$ python ~/.bittensor/bittensor/_neurons/neurons/text/template_miner/main.py
 ```
 
 OR with customized settings
 
 ```bash
-$ python ~/.bittensor/bittensor/miners/text/template_miner.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
 For the full list of settings, please run
 
 ```bash
-$ python ~/.bittensor/bittensor/miners/text/template_miner.py --help
+$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --help
 ```
 
 ### 4.4. Running a template server
@@ -222,13 +222,13 @@ $ python ~/.bittensor/bittensor/miners/text/template_miner.py --help
 The template server follows a similar structure as the template miner. 
 
 ```bash
-$ python ~/.bittensor/bittensor/miners/text/template_server.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
 For the full list of settings, please run
 
 ```bash
-$ python ~/.bittensor/bittensor/miners/text/template_server.py --help
+$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_server/main.py --help
 ```
 
 ###  4.5. Serving an endpoint on the network
