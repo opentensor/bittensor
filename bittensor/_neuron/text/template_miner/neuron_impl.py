@@ -89,6 +89,7 @@ class Neuron:
 
     def __enter__(self):
         self.wallet.create()
+        self.wallet.register()
         self.metagraph.sync().save()
         self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
@@ -103,7 +104,6 @@ class Neuron:
         r""" Miner main loop.
         """
         # ---- Build Bittensor neuron ----
-        self.wallet.register()
         with self:
             if self.config.neuron.use_wandb:
                 bittensor.wandb(
