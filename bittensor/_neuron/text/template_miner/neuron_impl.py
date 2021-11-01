@@ -296,11 +296,11 @@ class Neuron:
                     the request type ('forward' or 'backward').
         """
         # Blacklist requests from peers who are not subscribed or have stake less that black_list
-        uid = self.metagraph.hotkeys.index(pubkey)
-        if self.metagraph.S[uid].item() < self.config.neuron.blacklist:
-            return True
-        else:
+        uid = self.metagraph.hotkeys.index( pubkey )
+        if self.metagraph.S[uid].item() > self.config.neuron.blacklist:
             return False
+        else:
+            return True
 
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.
