@@ -334,7 +334,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def version_checking(self,meta):
         r""" Checks the header and version in the metadata
         """
-        if meta[0] == self._valid_metadata and bittensor.__version_as_int__ <= int(meta[2].value) + 10:
+        if meta[0] == self._valid_metadata:
             pass
         else:
             raise Exception('Incorrect Metadata/version; please update bittensor version')
