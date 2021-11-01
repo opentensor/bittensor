@@ -154,7 +154,7 @@ class Wallet():
                 neuron (Union[ SimpleNamespace, None ]):
                     neuron account on the chain or None if you are not registered.
         """
-        if subtensor == None: bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         if not self.is_registered(subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return None
@@ -170,7 +170,7 @@ class Wallet():
                 uid (int):
                     Network uid or -1 if you are not registered.
         """
-        if subtensor == None: bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         if not self.is_registered(subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
@@ -208,7 +208,7 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Coldkey balance.
         """
-        if subtensor == None: bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         return subtensor.get_balance(address = self.coldkeypub.ss58_address)
 
     def register ( 
@@ -234,7 +234,7 @@ class Wallet():
                 This wallet.
         """
         # Get chain connection.
-        if subtensor == None: bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
         
         return self
@@ -265,7 +265,7 @@ class Wallet():
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def remove_stake( self, 
@@ -294,7 +294,7 @@ class Wallet():
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def transfer( 
