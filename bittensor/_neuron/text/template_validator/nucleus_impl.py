@@ -11,7 +11,7 @@ class Validator( torch.nn.Module ):
             self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
-            self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True))
+            self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True, device = device))
             self.noise_offset = 0.0000001
             self.metagraph = metagraph
             self.dendrite = dendrite
@@ -21,7 +21,7 @@ class Validator( torch.nn.Module ):
 
         def forward ( self, inputs ):
             # Apply model.
-            query_hidden = self.query( inputs.to( self.device ) )
+            query_hidden = self.query( inputs )
             encoded_hidden = self.encoder( query_hidden )
             decoded_targets = self.decoder ( encoded_hidden )
 

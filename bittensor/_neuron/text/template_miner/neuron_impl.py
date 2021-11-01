@@ -59,7 +59,7 @@ class Neuron:
             blacklist = self.blacklist,
         )
         self.device = torch.device( device = self.config.neuron.device )
-        self.nucleus = nucleus
+        self.nucleus = nucleus.to(self.device)
         self.nucleus.metagraph = self.metagraph
         self.nucleus.dendrite = self.dendrite
         self.optimizer = torch.optim.SGD(
@@ -81,13 +81,15 @@ class Neuron:
             remote_target_epoch_loss = math.inf,
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
-            ema_scores = torch.nn.Parameter(torch.ones(0), requires_grad = False).to(self.device)
+            scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device),
+            ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device)
         )
         # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
 
     def __enter__(self):
         self.wallet.create()
+        self.wallet.register()
         self.metagraph.sync().save()
         self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
@@ -102,7 +104,6 @@ class Neuron:
         r""" Miner main loop.
         """
         # ---- Build Bittensor neuron ----
-        self.wallet.register()
         with self:
             if self.config.neuron.use_wandb:
                 bittensor.wandb(
@@ -114,7 +115,7 @@ class Neuron:
 
             # ---- Init run state ----
             self.epoch = 0            
-            self.stats.ema_scores = torch.ones( self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item())
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 
             # ---- reloads previous run if not restart ----
             if self.config.neuron.restart:
@@ -181,9 +182,9 @@ class Neuron:
                             batches_count += 1
                             
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
-                            chain_growth = scores.shape[0] - self.stats.ema_scores.shape[0]
+                            chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
-                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=True)]))
+                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32)]), requires_grad=False)
                             self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
                             self.stats.scores = scores
 
@@ -271,7 +272,7 @@ class Neuron:
                     grad_tensors = [grads_dy.to( self.device )]
                 )
     
-    def priority(self, pubkey:str, request_type:str, inputs_x: torch.FloatTensor) -> float:
+    def priority(self, pubkey:str, request_type:bittensor.proto.RequestType, inputs_x: torch.FloatTensor) -> float:
         r"""Return the request priority based on stake and size of input. 
             Used by the Axon to order requests.
             Args:
@@ -279,28 +280,28 @@ class Neuron:
                     The public ss58 address of the caller.
                 inputs_x ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
-                request_type ( str, `required`):
-                    the request type ('forward' or 'backward').
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
         """        
         # Priority = stake / request_size 
         priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
         return priority
 
-    def blacklist(self, pubkey:str, request_type:str) -> bool:
+    def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
             Currently, this is not turned on.
             Args:
                 pubkey ( str, `required`):
                     The public key of the caller.
-                request_type ( str, `required`):
-                    the request type ('forward' or 'backward').
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
         """
         # Blacklist requests from peers who are not subscribed or have stake less that black_list
-        uid = self.metagraph.hotkeys.index(pubkey)
-        if self.metagraph.S[uid].item() < self.config.neuron.blacklist:
-            return True
-        else:
+        uid = self.metagraph.hotkeys.index( pubkey )
+        if self.metagraph.S[uid].item() > self.config.neuron.blacklist:
             return False
+        else:
+            return True
 
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.
@@ -328,8 +329,15 @@ class Neuron:
     def reload( self ):
         r""" Reloads/updates the training state from the disk.
         """
+        # --- Load prev state.
         state_dict = self.get_saved_state()
-        self.metagraph.sync().save()
+        
+        # --- Loads and syncs metagraph.
+        try:
+            self.metagraph.load().sync().save()
+        except Exception as e:
+            logger.error('Error in loading metagraph: {}'.format(e))
+            self.metagraph.sync().save()
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
@@ -338,7 +346,7 @@ class Neuron:
         self.stats.global_step = state_dict['global_step']
 
         # --- Updates the shape of nucleus chain weights
-        chain_growth = self.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0]
+        chain_growth = max(0, self.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0])
         self.nucleus.peer_weights = nn.Parameter(
             torch.ones(
                 list(state_dict['nucleus_state']['peer_weights'].shape),
@@ -367,9 +375,10 @@ class Neuron:
 
         # ---- Sync with metagraph ----
         self.metagraph.sync().save()
-        chain_growth = self.metagraph.n.item()- self.nucleus.peer_weights.shape[0]
+        chain_growth = max(self.metagraph.n.item()- self.nucleus.peer_weights.shape[0], 0)
         self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
-        self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True).to(self.device)]))
+        self.stats.scores = torch.nn.Parameter(torch.cat( [self.stats.scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
+        self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
 
     def save( self ):
@@ -395,18 +404,14 @@ class Neuron:
 
         try:
             k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())
-            topk_scores, topk_uids = torch.topk( self.stats.ema_scores.detach(), k = k )
+            topk_scores, topk_uids = torch.topk( self.stats.ema_scores, k = k )
             did_set = self.subtensor.timeout_set_weights(
-                timeout=100,
-                uids = topk_uids,
-                weights = topk_scores,
+                timeout = 100,
+                uids = topk_uids.detach().to(torch.device('cpu')),
+                weights = topk_scores.detach().to(torch.device('cpu')),
                 wait_for_inclusion = True,
                 wallet = self.wallet,
             )
-            if did_set:
-                bittensor.logging.success(prefix='Set weights:', sufix='{}'.format(list(zip(topk_scores, topk_uids))))
-            else:
-                logger.error('Failed to set weights on chain. (Timeout)')
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
@@ -419,7 +424,7 @@ class Neuron:
         stake = self.metagraph.S[ self_uid ].item()
         rank = self.metagraph.R[ self_uid ].item()
         incentive = self.metagraph.I[ self_uid ].item()     
-        normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach())
+        normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach(), dim=0)
         current_block = self.subtensor.get_current_block()
 
         # ---- Progress bar log
