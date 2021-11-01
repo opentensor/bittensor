@@ -29,9 +29,6 @@ from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 from . import cli_impl
 console = bittensor.__console__
 
-if bittensor.__neurons_installed__:
-    import bittensor._neurons.neurons as neurons
-
 class cli:
     """
     Create and init the CLI class, which handles the coldkey, hotkey and tau transfer 
@@ -83,14 +80,13 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
-        if bittensor.__neurons_installed__:
-            run_parser.add_argument(
-                '--model', 
-                type=str, 
-                choices= list(neurons.__text_neurons__.keys()), 
-                default='template_miner', 
-                help='''Miners available through bittensor.neurons'''
-            )
+        run_parser.add_argument(
+            '--model', 
+            type=str, 
+            choices= list(bittensor.neurons.__text_neurons__.keys()), 
+            default='template_miner', 
+            help='''Miners available through bittensor.neurons'''
+        )
         bittensor.subtensor.add_args( run_parser )
         bittensor.wallet.add_args( run_parser )
 
@@ -654,10 +650,6 @@ class cli:
 
     def check_run_config( config: 'bittensor.Config' ):
 
-        if not bittensor.__neurons_installed__:
-            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
-            sys.exit()
-
         # Check network.
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
@@ -673,7 +665,7 @@ class cli:
 
         # Check Miner
         if config.model == 'template_miner' and not config.no_prompt:
-            model = Prompt.ask('Enter miner name', choices = list(neurons.__text_neurons__.keys()), default = 'template_miner')
+            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'template_miner')
             config.model = model
         
 

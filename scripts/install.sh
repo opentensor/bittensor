@@ -102,11 +102,9 @@ linux_update_pip() {
 linux_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
-    git clone --recurse-submodules https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
-    ohai "Installing bittensor-neurons"
-    $python -m pip install -e ~/.bittensor/bittensor/neurons/
     exit_on_error $? 
 }
 
@@ -161,7 +159,7 @@ mac_update_pip() {
 
 mac_install_bittensor() {
     ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
-    git clone --recurse-submodules https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     exit_on_error $? 
@@ -262,8 +260,8 @@ echo ""
 echo "- To run one of the base miners: "
 echo "    $ btcli run"
 echo ""
-echo "- Or write your own: "
-echo "    e.g. $ ls ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/"
+echo "- Or from source: "
+echo "    $ python3 ~/.bittensor/bittensor/bittensor/_neuron/text/template_miner/main.py"
 echo ""
 ohai "Extras:"
 echo ""

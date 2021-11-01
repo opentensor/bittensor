@@ -18,7 +18,7 @@
 from rich.console import Console
 
 # Bittensor code and protocol version.
-__version__ = '1.7.4'
+__version__ = '1.7.5'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
@@ -68,23 +68,8 @@ from bittensor._logging import logging as logging
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
-# ---- Neurons ---
-try:
-    import bittensor._neurons.neurons as neurons
-    __neurons_installed__ = True
-except:
-    __neurons_installed__ = False
-    
-__neurons_not_install_message__ = """[bold white]------- Neurons is not installed ------ [/bold white]
-
-    If you are running from source, pull submodules recursively and reinstall:
-        >> git submodule update --init --recursive
-        >> python3 -m pip install -e .
-
-    Or pull the entire repository recursively and reinstall:
-        >> git clone --recurse-submodules https://github.com/opentensor/bittensor.git
-        >> python3 -m pip install -e .
-"""
+# ---- Neurons ----
+import bittensor._neuron as neurons
 
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance
