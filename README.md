@@ -202,19 +202,19 @@ or
 The following command will run Bittensor's template miner
 
 ```bash
-$ python ~/.bittensor/bittensor/_neurons/neurons/text/template_miner/main.py
+$ python ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/main.py
 ```
 
 OR with customized settings
 
 ```bash
-$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
 For the full list of settings, please run
 
 ```bash
-$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --help
+$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --help
 ```
 
 ### 4.4. Running a template server
@@ -222,13 +222,13 @@ $ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_miner/main.py --
 The template server follows a similar structure as the template miner. 
 
 ```bash
-$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
 For the full list of settings, please run
 
 ```bash
-$ python3 ~/.bittensor/bittensor/_neurons/neurons/text/template_server/main.py --help
+$ python3 ~/.bittensor/bittensor/bittensor/_neurons/neurons/text/template_server/main.py --help
 ```
 
 ###  4.5. Serving an endpoint on the network
