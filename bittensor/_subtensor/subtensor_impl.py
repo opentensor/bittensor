@@ -704,7 +704,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 response.process_events()
                 if response.is_success:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                    bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.error_message) )
+                    bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.is_success) )
                 else:
                     bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
                     bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
@@ -843,7 +843,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             else:
                 return uid
         else:
-            return True
+            return uid
 
     def is_hotkey_registered( self, ss58_hotkey: str, block: int = None) -> bool:
         r""" Returns true if the passed hotkey is registered on the chain.
