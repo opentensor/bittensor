@@ -653,6 +653,15 @@ class Miner:
         )
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.miner.full_path ))
 
+    def get_saved_state( self ):
+        r""" Returns a saved state dict or none.
+        """
+        try:
+            return torch.load("{}/model.torch".format( self.config.miner.full_path ))
+        except Exception as e:
+            logger.warning('No saved model found with error: {}', e)
+            logger.info('Initalizing with new model')
+            return None
 
     def sync (self, current_block ):
         """ Miner sync with metagraph and update chain weight
