@@ -41,8 +41,8 @@ class Dataset():
     def __init__(self):
         
         # Used to retrieve directory contentx
-        self.file_get = 'http://ipfs2.opentensor.ai:8001/api/v0/object/get'
-        self.pin_get = 'http://ipfs2.opentensor.ai:8001/api/v0/pin/ls'
+        self.file_get = 'http://ipfs2.opentensor.ai/api/v0/object/get'
+        self.pin_get = 'http://ipfs2.opentensor.ai/api/v0/pin/ls'
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
 
