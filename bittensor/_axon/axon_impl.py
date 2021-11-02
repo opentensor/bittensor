@@ -610,7 +610,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     subscribing.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     Chain connection through which to serve.
-                network (default='akatsuki', type=str)
+                network (default='nakamoto', type=str)
                     If subtensor is not set, uses this network flag to create the subtensor connection.
                 chain_endpoint (default=None, type=str)
                     Overrides the network argument if not set.

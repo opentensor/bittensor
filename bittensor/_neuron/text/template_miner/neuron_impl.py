@@ -32,7 +32,9 @@ import wandb
 
 from termcolor import colored
 from qqdm import qqdm, format_str
-from loguru import logger; logger = logger.opt(colors=True)
+from loguru import logger
+logger = logger.opt(colors=True)
+
 from types import SimpleNamespace
 from torch.nn.utils import clip_grad_norm_
 import torch.nn as nn
@@ -89,7 +91,7 @@ class Neuron:
 
     def __enter__(self):
         self.wallet.create()
-        self.wallet.register()
+        self.subtensor.register( self.wallet )
         self.metagraph.sync().save()
         self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
