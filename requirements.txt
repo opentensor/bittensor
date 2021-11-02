@@ -9,6 +9,7 @@ grpcio-tools==1.32.0
 loguru
 msgpack==1.0.2
 msgpack-numpy==0.4.7.1
+miniupnpc
 munch
 netaddr==0.8.0
 password_strength==0.0.3.post2
