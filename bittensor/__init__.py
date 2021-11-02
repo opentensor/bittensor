@@ -39,7 +39,7 @@ __blocktime__ = 12
 __networks__ = [ 'local', 'nobunaga', 'akatsuki', 'nakamoto']
 
 __nakamoto_entrypoints__ = [
-    "main.nakamoto.opentensor.ai:9944"
+    "entrypointnetworkloadbalancer-21fe5fbdc08425ca.elb.us-east-2.amazonaws.com:9944"
 ]
 
 __akatsuki_entrypoints__ = [
