@@ -316,12 +316,12 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 self.nounce_dic[ endpoint_key ] = nounce
 
                 #decrypting the message and verify that message is correct
-                verification = _keypair.verify( nounce + pubkey + unique_receptor_uid, message)
+                verification = _keypair.verify( str(nounce) + str(pubkey) + str(unique_receptor_uid), message)
             else:
                 verification = False
         else:
             self.nounce_dic[ endpoint_key ] = nounce
-            verification = _keypair.verify( nounce + pubkey + unique_receptor_uid, message)
+            verification = _keypair.verify( str( nounce ) + str(pubkey) + str(unique_receptor_uid), message)
 
         return verification
 

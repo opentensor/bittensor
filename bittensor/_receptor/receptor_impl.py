@@ -615,7 +615,7 @@ class Receptor(nn.Module):
         nounce = self.nounce()
         message  = str(nounce) + str(self.wallet.hotkey.ss58_address) + str(self.receptor_uid)
         spliter = 'bitxx'
-        signature = spliter.join([ nounce, str(self.wallet.hotkey.ss58_address), self.wallet.hotkey.sign(message), str(self.receptor_uid) ])
+        signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), self.wallet.hotkey.sign(message), str(self.receptor_uid) ])
         return signature
     
     def nounce(self):
