@@ -27,23 +27,6 @@ from rich.prompt import Confirm
 
 from bittensor.utils.balance import Balance
 
-# This flag checks to see if the bittensor has access to the 
-# neurons submodule. This is true if the user installed from pip
-# or if they git cloned submodules recursively.
-if bittensor.__neurons_installed__:
-    import bittensor._neurons.neurons as neurons
-
-__neurons_not_install_message__ = """[bold white]------- Neurons is not installed ------ [/bold white]
-
-    If you are running from source, pull submodules recursively and reinstall:
-        >> git submodule update --init --recursive
-        >> python3 -m pip install -e .
-
-    Or pull the entire repository recursively and reinstall:
-        >> git clone --recurse-submodules https://github.com/opentensor/bittensor.git
-        >> python3 -m pip install -e .
-"""
-
 class CLI:
     """
     Implementation of the CLI class, which handles the coldkey, hotkey and money transfer 
@@ -128,56 +111,51 @@ class CLI:
             neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
             if neuron.is_null:
                 registered = 'No'
+                stake = bittensor.Balance.from_tao( 0 )
             else:
                 registered = 'Yes'
-            stake = bittensor.Balance.from_tao( neuron.stake )
+                stake = bittensor.Balance.from_tao( neuron.stake )
             cold_balance = wallet.balance
-
-        bittensor.__console__.print("[bold white]{}[/bold white]:\n  [bold grey]coldkey: {}\n  hotkey: {}\n  balance: {}\n  stake: {}\n  registered: {}[/bold grey]".format( wallet, wallet.coldkeypub.ss58_address, wallet.hotkey.ss58_address, cold_balance, stake, registered),highlight=True)
+        bittensor.__console__.print("[bold white]{}[/bold white]:\n  [bold grey]coldkey: {}\n  hotkey: {}\n  balance: {}\n  stake: {}\n  registered: {}[/bold grey]".format( wallet, wallet.coldkeypub.ss58_address, wallet.hotkey.ss58_address, cold_balance.__rich__(), stake.__rich__(), registered),highlight=True)
 
 
     def run_miner ( self ):
-        if bittensor.__neurons_installed__:
-            self.config.to_defaults()
-            # Check coldkey.
-            wallet = bittensor.wallet( config = self.config )
-            if not wallet.coldkeypub_file.exists_on_device():
-                if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
-                    wallet.create_new_coldkey()
-                else:
-                    sys.exit()
+        self.config.to_defaults()
+        # Check coldkey.
+        wallet = bittensor.wallet( config = self.config )
+        if not wallet.coldkeypub_file.exists_on_device():
+            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
+                wallet.create_new_coldkey()
+            else:
+                sys.exit()
 
-            # Check hotkey.
-            if not wallet.hotkey_file.exists_on_device():
-                if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
-                    wallet.create_new_hotkey()
-                else:
-                    sys.exit()
+        # Check hotkey.
+        if not wallet.hotkey_file.exists_on_device():
+            if Confirm.ask("Hotkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.hotkey)):
+                wallet.create_new_hotkey()
+            else:
+                sys.exit()
 
-            if wallet.hotkey_file.is_encrypted():
-                bittensor.__console__.print("Decrypting hotkey ... ")
-            wallet.hotkey
+        if wallet.hotkey_file.is_encrypted():
+            bittensor.__console__.print("Decrypting hotkey ... ")
+        wallet.hotkey
 
-            if wallet.coldkeypub_file.is_encrypted():
-                bittensor.__console__.print("Decrypting coldkeypub ... ")
-            wallet.coldkeypub
+        if wallet.coldkeypub_file.is_encrypted():
+            bittensor.__console__.print("Decrypting coldkeypub ... ")
+        wallet.coldkeypub
 
-            # Check registration
-            self.register()
+        # Check registration
+        self.register()
 
-            # Run miner.
-            if self.config.model == 'template_miner':
-                neurons.template_miner.neuron().run()
-            elif self.config.model == 'template_server':
-                neurons.template_server.neuron().run()
-            elif self.config.model == 'template_validator':
-                neurons.template_validator.neuron().run()
-            elif self.config.model == 'advanced_server':
-                neurons.advanced_server.neuron().run()
-        else:
-            bittensor.__console__.print(bittensor.__neurons_not_install_message__)
-            sys.exit()
-
+        # Run miner.
+        if self.config.model == 'template_miner':
+            bittensor.neurons.template_miner.neuron().run()
+        elif self.config.model == 'template_server':
+            bittensor.neurons.template_server.neuron().run()
+        elif self.config.model == 'template_validator':
+            bittensor.neurons.template_validator.neuron().run()
+        elif self.config.model == 'advanced_server':
+            bittensor.neurons.advanced_server.neuron().run()
 
     def register( self ):
         r""" Register neuron.
@@ -274,7 +252,7 @@ class CLI:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0.0  
+        total_emission = 0  
         for uid in metagraph.uids:
             ep = metagraph.endpoint_objs[uid]
             row = [
@@ -285,7 +263,7 @@ class CLI:
                 '{:.5f}'.format( metagraph.consensus[uid]), 
                 '{:.5f}'.format( metagraph.incentive[uid]),
                 '{:.5f}'.format( metagraph.dividends[uid]),
-                '{:.5f}'.format( metagraph.emission[uid]),
+                '{}'.format( int(metagraph.emission[uid] * 1000000000)),
                 str((metagraph.block.item() - metagraph.last_update[uid].item())),
                 str( metagraph.active[uid].item() ), 
                 ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
@@ -298,7 +276,7 @@ class CLI:
             total_consensus += metagraph.consensus[uid]
             total_incentive += metagraph.incentive[uid]
             total_dividends += metagraph.dividends[uid]
-            total_emission += metagraph.emission[uid]
+            total_emission += int(metagraph.emission[uid] * 1000000000)
             TABLE_DATA.append(row)
         total_neurons = len(metagraph.uids)                
         table = Table(show_footer=False)
@@ -306,13 +284,13 @@ class CLI:
             "[white]Metagraph: name: {}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), issuance, difficulty )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
-        table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
@@ -388,7 +366,7 @@ class CLI:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0.0      
+        total_emission = 0     
         for ep in tqdm(owned_endpoints):
             uid = ep.uid
             active = metagraph.active[ uid ].item()
@@ -398,7 +376,7 @@ class CLI:
             consensus = metagraph.C[ uid ].item()
             incentive = metagraph.I[ uid ].item()
             dividends = metagraph.D[ uid ].item()
-            emission = metagraph.E[ uid ].item() / 1000000000
+            emission = int(metagraph.E[ uid ].item() * 1000000000)
             last_update = int(metagraph.block - metagraph.last_update[ uid ])
             row = [
                 str(ep.uid), 
@@ -409,7 +387,7 @@ class CLI:
                 '{:.5f}'.format(consensus), 
                 '{:.5f}'.format(incentive),
                 '{:.5f}'.format(dividends),
-                '{:.5f}'.format(emission),
+                '{}'.format(emission),
                 str(last_update),
                 ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
                 ep.hotkey
@@ -430,13 +408,13 @@ class CLI:
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
         table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)

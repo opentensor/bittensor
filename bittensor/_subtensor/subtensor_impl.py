@@ -231,8 +231,8 @@ To run a local node (See: docs/running_a_validator.md) \n
     def register (
         self,
         wallet: 'bittensor.Wallet',
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
         r""" Registers the wallet to chain.
@@ -710,7 +710,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                     bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
 
         if response.is_success:
-            bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( weight_vals, weight_uids ))
+            bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( [float(v/4294967295) for v in weight_vals], weight_uids ))
             message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
             logger.debug('Set weights:'.ljust(20) +  message)
             return True
@@ -794,6 +794,33 @@ To run a local node (See: docs/running_a_validator.md) \n
         neuron.incentive = neuron.incentive / U64MAX
         neuron.dividends = neuron.dividends / U64MAX
         neuron.emission = neuron.emission / RAOPERTAO
+        neuron.is_null = False
+        return neuron
+
+    @staticmethod
+    def _null_neuron() -> SimpleNamespace:
+        neuron = SimpleNamespace()
+        neuron.active = 0   
+        neuron.stake = 0
+        neuron.rank = 0
+        neuron.trust = 0
+        neuron.consensus = 0
+        neuron.incentive = 0
+        neuron.dividends = 0
+        neuron.emission = 0
+        neuron.weights = []
+        neuron.bonds = []
+        neuron.version = 0
+        neuron.modality = 0
+        neuron.uid = 0
+        neuron.port = 0
+        neuron.priority = 0
+        neuron.ip_type = 0
+        neuron.last_update = 0
+        neuron.ip = 0
+        neuron.is_null = True
+        neuron.coldkey = "000000000000000000000000000000000000000000000000"
+        neuron.hotkey = "000000000000000000000000000000000000000000000000"
         return neuron
 
     def neuron_for_uid( self, uid: int, ss58_hotkey: str = None, block: int = None ) -> Union[ dict, None ]: 
@@ -812,9 +839,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
         neuron = Subtensor._neuron_dict_to_namespace( neuron )
         if neuron.hotkey != ss58_hotkey:
-            neuron.is_null = True
-        else:
-            neuron.is_null = False
+            neuron = Subtensor._null_neuron()
         return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
@@ -877,14 +902,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                 params = [ ss58_hotkey ],
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
-            
             # Get response uid. This will be zero if it doesn't exist.
             uid = int(result.value)
             neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
-            if neuron.hotkey != ss58_hotkey:
-                neuron.is_null = True
-            else:
-                neuron.is_null = False
             return neuron
 
     def get_n( self, block: int = None ) -> int: 
