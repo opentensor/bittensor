@@ -25,6 +25,7 @@ from typing import Tuple
 
 import torch
 import uuid
+import time
 import torch.nn as nn
 import grpc
 from loguru import logger
@@ -621,6 +622,6 @@ class Receptor(nn.Module):
     def nounce(self):
         r"""creates a string representation of the time
         """
-        nounce = datetime.now()
-        return nounce.strftime(format= '%m%d%Y%H%M%S%f')
+        nounce = int(time.time() * 1000)
+        return nounce
         
