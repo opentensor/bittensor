@@ -19,7 +19,6 @@
 
 import sys
 import time as clock
-from datetime import datetime
 from types import SimpleNamespace
 from typing import Tuple
 
