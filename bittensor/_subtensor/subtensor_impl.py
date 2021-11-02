@@ -231,8 +231,8 @@ To run a local node (See: docs/running_a_validator.md) \n
     def register (
         self,
         wallet: 'bittensor.Wallet',
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
         r""" Registers the wallet to chain.
