@@ -794,7 +794,6 @@ To run a local node (See: docs/running_a_validator.md) \n
         neuron.incentive = neuron.incentive / U64MAX
         neuron.dividends = neuron.dividends / U64MAX
         neuron.emission = neuron.emission / RAOPERTAO
-        neuron.active = 0
         neuron.is_null = False
         return neuron
 
