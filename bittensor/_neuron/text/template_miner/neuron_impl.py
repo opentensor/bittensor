@@ -310,7 +310,7 @@ class Neuron:
         else:
             # Else, get stake and check is above blacklist stake min.
             uid = self.metagraph.hotkeys.index( pubkey )
-            if self.metagraph.S[uid].item() > self.config.neuron.blacklist:
+            if self.metagraph.S[uid].item() >= self.config.neuron.blacklist:
                 return False
             else:
                 return True
