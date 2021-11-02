@@ -303,7 +303,7 @@ class Neuron:
 
         # If we allow non-registered requests return False = not blacklisted.
         if not is_registered:
-            if self.config.blacklist_allow_non_registered:
+            if self.config.neuron.blacklist_allow_non_registered:
                 return False
             else:
                 return True
