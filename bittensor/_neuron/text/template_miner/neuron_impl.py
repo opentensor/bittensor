@@ -33,8 +33,8 @@ import wandb
 from termcolor import colored
 from qqdm import qqdm, format_str
 from loguru import logger
+logger = logger.opt(colors=True)
 
-from bittensor._subtensor import subtensor; logger = logger.opt(colors=True)
 from types import SimpleNamespace
 from torch.nn.utils import clip_grad_norm_
 import torch.nn as nn
