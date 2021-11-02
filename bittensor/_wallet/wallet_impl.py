@@ -53,7 +53,6 @@ class Wallet():
         name:str,
         path:str,
         hotkey:str,
-        email:str = None
     ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
@@ -63,19 +62,16 @@ class Wallet():
                     The name of hotkey used to running the miner.
                 path (required=True, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
-                email (required=False, default=None):
-                    Registration email.
         """
-        self._name_string = name
-        self._path_string = path
-        self._hotkey_string = hotkey
-        self._email = email
+        self.name = name
+        self.path = path
+        self.hotkey_str = hotkey
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
 
     def __str__(self):
-        return "Wallet ({}, {}, {})".format(self._name_string, self._hotkey_string, self._path_string)
+        return "Wallet ({}, {}, {})".format(self.name, self.hotkey_str, self.path)
     
     def __repr__(self):
         return self.__str__()
@@ -136,57 +132,6 @@ class Wallet():
     def balance(self) -> SimpleNamespace:
         return self.get_balance()
 
-    def register ( 
-            self, 
-            email:str = None, 
-            subtensor: 'bittensor.Subtensor' = None, 
-            registraiton_server: str = None 
-        ) -> 'bittensor.Wallet':
-        """ Registers this wallet on the chain.
-            Args:
-                email (str):
-                    registration email.
-                subtensor( 'bittensor.Subtensor' ):
-                    Bittensor subtensor connection. Overrides with defaults if None.
-                registraiton_server (str):
-                    For testing only, a registration server.
-            Return:
-                This wallet.
-        """
-        # Register with the passed email or use the default.
-        if email == None:
-            email = self._email
-            if email == None:
-                print(colored('You must pass registration email either through wallet initialization or during the register call.', 'red')); return self
-
-        # Get chain connection.
-        if subtensor == None: subtensor = bittensor.subtensor()
-        
-        # Check registration. You cannot register twice with the same email. You also can't register the same hotkey under a different email.
-        if self.is_registered( subtensor = subtensor ): print (colored('Already registered {}'.format( self.hotkey.ss58_address ), 'green')); return self
-
-        # Get registration url endpoint from constants or args.
-        server_url = bittensor.__registration_servers__[0] if registraiton_server == None else registraiton_server
-
-        # Create a request signature.
-        request_signature = self.hotkey.sign( str(email) + str(self.hotkey.ss58_address) + str(self.coldkeypub.ss58_address) + str(subtensor.network) )
-        
-        # Make registration request.
-        headers = {'Content-type': 'application/json'}
-        url = 'http://' + server_url + '/register?email={}&hotkey={}&coldkey={}&hotkey_signature={}&network={}'.format( email, self.hotkey.ss58_address, self.coldkeypub.ss58_address, request_signature, subtensor.network)
-        response = requests.post(url, headers=headers)
-        response = json.loads(bytes.decode(response.content)) 
-        if response['status'] == 0:
-            print ('Waiting for confirmation from email: {}'.format(email))
-            while True:
-                if self.is_registered( subtensor = subtensor ):
-                    print ('Registered hotkey: {}'.format( self.hotkey.ss58_address ))
-                    return self      
-                time.sleep(2)
-        else:
-            print ('Failed for reason: {}'.format( response['response'] ))
-            return self
-
     def is_registered( self, subtensor: 'bittensor.Subtensor' = None ) -> bool:
         """ Returns true if this wallet is registered.
             Args:
@@ -197,7 +142,7 @@ class Wallet():
                 is_registered (bool):
                     Is the wallet registered on the chain.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
 
     def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> Union[ SimpleNamespace, None] :
@@ -209,9 +154,9 @@ class Wallet():
                 neuron (Union[ SimpleNamespace, None ]):
                     neuron account on the chain or None if you are not registered.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return None
         neuron = subtensor.neuron_for_wallet( self )
         return neuron
@@ -225,9 +170,9 @@ class Wallet():
                 uid (int):
                     Network uid or -1 if you are not registered.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
         neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
@@ -244,15 +189,15 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
+            print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return bittensor.Balance(0)
         neuron = self.get_neuron(subtensor = subtensor)
         if neuron.is_null:
             return bittensor.Balance(0)
         else:
-            return bittensor.Balance(neuron.stake)
+            return bittensor.Balance.from_tao(neuron.stake)
 
     def get_balance( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
         """ Returns this wallet's coldkey balance from passed subtensor connection.
@@ -263,14 +208,43 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Coldkey balance.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
         return subtensor.get_balance(address = self.coldkeypub.ss58_address)
+
+    def register ( 
+            self, 
+            wait_for_inclusion: bool = False,
+            wait_for_finalization: bool = True,
+            subtensor: 'bittensor.Subtensor' = None, 
+            prompt: bool = False
+        ) -> 'bittensor.Wallet':
+        """ Registers this wallet on the chain.
+            Args:
+                wait_for_inclusion (bool):
+                    if set, waits for the extrinsic to enter a block before returning true, 
+                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                wait_for_finalization (bool):
+                    if set, waits for the extrinsic to be finalized on the chain before returning true,
+                    or returns false if the extrinsic fails to be finalized within the timeout.
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
+            Return:
+                This wallet.
+        """
+        # Get chain connection.
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
+        
+        return self
 
     def add_stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        subtensor: 'bittensor.Subtensor' = None 
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        subtensor: 'bittensor.Subtensor' = None,
+        prompt: bool = False
     ) -> bool:
         """ Stakes tokens from this wallet's coldkey onto it's hotkey.
             Args:
@@ -284,26 +258,22 @@ class Wallet():
                     or returns false if the extrinsic fails to be finalized within the timeout.
                 subtensor( `bittensor.Subtensor` ):
                     Bittensor subtensor connection. Overrides with defaults if None.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
             Returns:
                 success (bool):
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
-            return False
-        if amount == None:
-            amount = self.get_balance()
-        if not isinstance(amount, bittensor.Balance):
-            amount = bittensor.utils.balance.Balance.from_float( amount )
-        return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def remove_stake( self, 
         amount: Union[float, bittensor.Balance] = None, 
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        subtensor: 'bittensor.Subtensor' = None 
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        subtensor: 'bittensor.Subtensor' = None,
+        prompt: bool = False,
     ) -> bool:
         """ Removes stake from this wallet's hotkey and moves them onto it's coldkey balance.
             Args:
@@ -317,35 +287,31 @@ class Wallet():
                     or returns false if the extrinsic fails to be finalized within the timeout.
                 subtensor( `bittensor.Subtensor` ):
                     Bittensor subtensor connection. Overrides with defaults if None.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
             Returns:
                 success (bool):
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
-            return False
-        if amount == None:
-            amount = self.get_stake()
-        if not isinstance(amount, bittensor.Balance):
-            amount = bittensor.utils.balance.Balance.from_float( amount )
-        return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def transfer( 
         self, 
         dest:str,
         amount: Union[float, bittensor.Balance] , 
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        subtensor: 'bittensor.Subtensor' = None 
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        subtensor: 'bittensor.Subtensor' = None,
+        prompt: bool = False,
     ) -> bool:
         """ Transfers Tao from this wallet's coldkey to the destination address.
             Args:
-                dest(`type`:str, required):
+                dest (`type`:str, required):
                     The destination address either encoded as a ss58 or ed255 public-key string of 
                     secondary account.
-                amount_tao (float, required):
+                amount (float, required):
                     amount of tao to transfer or a bittensor balance object.
                 wait_for_inclusion (bool):
                     if set, waits for the extrinsic to enter a block before returning true, 
@@ -355,22 +321,15 @@ class Wallet():
                     or returns false if the extrinsic fails to be finalized within the timeout.
                 subtensor( `bittensor.Subtensor` ):
                     Bittensor subtensor connection. Overrides with defaults if None.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
             Returns:
                 success (bool):
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
-            print(colored('This wallet is not registered. Call wallet.register( email = <your email>) before this function.','red'))
-            return False
-        if not isinstance(amount, bittensor.Balance):
-            amount = bittensor.utils.balance.Balance.from_float( amount )
-        balance = self.get_balance()
-        if amount > balance:
-            print(colored('Not enough balance to transfer: {} > {}'.format(amount, balance), 'red'))
-            return False
-        return subtensor.transfer( wallet = self, amount = amount, dest = dest, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki') 
+        return subtensor.transfer( wallet = self, dest = dest, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = False) -> 'Wallet':
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
@@ -381,7 +340,7 @@ class Wallet():
         """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
         """
         # ---- Setup Wallet. ----
-        if not self.coldkey_file.exists_on_device():
+        if not self.coldkey_file.exists_on_device() and not self.coldkeypub_file.exists_on_device():
             self.create_new_coldkey( n_words = 12, use_password = coldkey_use_password )
         if not self.hotkey_file.exists_on_device():
             self.create_new_hotkey( n_words = 12, use_password = hotkey_use_password )
@@ -397,19 +356,19 @@ class Wallet():
 
     @property
     def hotkey_file(self) -> 'bittensor.Keyfile':
-        wallet_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
-        hotkey_path = os.path.join(wallet_path, "hotkeys", self._hotkey_string)
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
+        hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
         return bittensor.Keyfile( path = hotkey_path )
 
     @property
     def coldkey_file(self) -> 'bittensor.Keyfile':
-        wallet_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         coldkey_path = os.path.join(wallet_path, "coldkey")
         return bittensor.Keyfile( path = coldkey_path )
 
     @property
     def coldkeypub_file(self) -> 'bittensor.Keyfile':
-        wallet_path = os.path.expanduser(os.path.join(self._path_string, self._name_string))
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
         return bittensor.Keyfile( path = coldkeypub_path )
 

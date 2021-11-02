@@ -1,373 +1,365 @@
 from typing import DefaultDict
 import bittensor
 import pytest
+import unittest
 from unittest.mock import MagicMock
+from bittensor.utils.balance import Balance
+from substrateinterface import Keypair
 
-def test_create():
-    subtensor = bittensor.subtensor()
+class TestSubtensor(unittest.TestCase):
+    def setUp(self):
+        self.subtensor = bittensor.subtensor( network = 'akatsuki' )
+        self.wallet = bittensor.wallet()
+        coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        self.wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
+        self.wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
+        self.wallet.set_hotkey(Keypair.create_from_mnemonic(Keypair.generate_mnemonic()), encrypt=False, overwrite=True)
+        self.mock_neuron = self.subtensor._neuron_dict_to_namespace(
+            dict({
+                "version":0,
+                "ip":0,
+                "port":0,
+                "ip_type":0,
+                "uid":1,
+                "modality":0,
+                "hotkey":'5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM',
+                "coldkey":'5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM',
+                "active":0,
+                "last_update":0,
+                "priority":0,
+                "stake":1000000000000.0,
+                "rank":0.0,
+                "trust":0.0,
+                "consensus":0.0,
+                "incentive":0.0,
+                "dividends":0.0,
+                "emission":0.0,
+                "bonds":[],
+                "weights":[],
+                "is_null":False
+            })
+        )
+        self.balance = Balance.from_tao(1000)
+        assert True
 
-def test_defaults_to_akatsuki( ):
-    subtensor = bittensor.subtensor()
-    assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+    def test_defaults_to_akatsuki( self ):
+        assert self.subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
 
+    def test_networks( self ):
+        assert self.subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
 
-def test_networks():
-    subtensor = bittensor.subtensor( network = 'kusanagi' )
-    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
-    subtensor = bittensor.subtensor( network = 'akatsuki' )
-    assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+    def test_network_overrides( self ):
+        config = bittensor.subtensor.config()
+        subtensor = bittensor.subtensor(network='akatsuki', config=config, )
+        assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
 
-def test_network_overrides():
-    config = bittensor.subtensor.config()
-    subtensor = bittensor.subtensor(network='kusanagi',config=config)
-    assert subtensor.endpoint_for_network() in bittensor.__kusanagi_entrypoints__
-    subtensor = bittensor.subtensor(network='akatsuki', config=config)
-    assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
-
-def test_connect_no_failure( ):
-     subtensor = bittensor.subtensor(
-         network = "kusanagi"
-     )
-     subtensor.connect(timeout = 1, failure=False)
-
-subtensor = bittensor.subtensor(
-     network = 'akatsuki'
-)
-
-def test_connect_success( ):
-    subtensor = bittensor.subtensor(
-     network = 'akatsuki'
-    )
-    success = subtensor.connect()
-    assert success == True
-
-
-def test_connect_fail( ):
-    subtensor = bittensor.subtensor(
-     network = 'akatsuki'
-    )
-    subtensor.substrate=None
-    with pytest.raises(RuntimeError):
-        subtensor.connect()
-
-
-def test_neurons( ):
-     neurons = subtensor.neurons()
-     assert len(neurons) > 0
-     assert type(neurons[0].ip) == int
-     assert type(neurons[0].port) == int
-     assert type(neurons[0].ip_type) == int
-     assert type(neurons[0].uid) == int
-     assert type(neurons[0].modality) == int
-     assert type(neurons[0].hotkey) == str
-     assert type(neurons[0].coldkey) == str
-
-     neuron = subtensor.neuron_for_uid( 0, neurons[0].hotkey )
-     assert type(neuron.ip) == str
-     assert type(neuron.port) == int
-     assert type(neuron.ip_type) == int
-     assert type(neuron.uid) == int
-     assert type(neuron.modality) == int
-     assert type(neuron.hotkey) == str
-     assert type(neuron.coldkey) == str
-
-     neuron = subtensor.neuron_for_pubkey(neuron.hotkey)
-     assert type(neuron.ip) == str
-     assert type(neuron.port) == int
-     assert type(neuron.ip_type) == int
-     assert type(neuron.uid) == int
-     assert type(neuron.modality) == int
-     assert type(neuron.hotkey) == str
-     assert type(neuron.coldkey) == str
+    def test_connect_no_failure( self ):
+        self.subtensor.connect(timeout = 1, failure=False)
 
 
-def test_get_current_block():
-     block = subtensor.get_current_block()
-     assert (type(block) == int)
+    def test_connect_success( self ):
+        success = self.subtensor.connect()
+        assert success == True
 
 
-wallet =  bittensor.wallet(
-    path = '/tmp/pytest',
-    name = 'pytest',
-    hotkey = 'pytest',
-) 
-
-def test_subscribe():
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
-
-    wallet.create_new_coldkey(use_password=False, overwrite = True)
-    wallet.create_new_hotkey(use_password=False, overwrite = True)
-
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.subscribe(wallet,
-                        ip='127.0.0.1',
-                        port=8080,
-                        modality=0
-                        )
-    assert success == True
+    def test_connect_fail( self ):
+        self.subtensor.substrate=None
+        with pytest.raises(RuntimeError):
+            self.subtensor.connect()
 
 
-def test_subscribe_failed():
-    class failed():
-        def __init__(self):
-            self.is_success = False
-            self.error_message = 'Mock'
-        def process_events(self):
-            return True
+    def test_neurons( self ):
+        neurons = self.subtensor.neurons()
+        assert len(neurons) > 0
+        assert type(neurons[0].ip) == int
+        assert type(neurons[0].port) == int
+        assert type(neurons[0].ip_type) == int
+        assert type(neurons[0].uid) == int
+        assert type(neurons[0].modality) == int
+        assert type(neurons[0].hotkey) == str
+        assert type(neurons[0].coldkey) == str
 
-    wallet.create_new_coldkey(use_password=False, overwrite = True)
-    wallet.create_new_hotkey(use_password=False, overwrite = True)
+        neuron = self.subtensor.neuron_for_uid( 0, neurons[0].hotkey )
+        assert type(neuron.ip) == int
+        assert type(neuron.port) == int
+        assert type(neuron.ip_type) == int
+        assert type(neuron.uid) == int
+        assert type(neuron.modality) == int
+        assert type(neuron.hotkey) == str
+        assert type(neuron.coldkey) == str
 
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
+        neuron = self.subtensor.neuron_for_pubkey(neuron.hotkey)
+        assert type(neuron.ip) == int
+        assert type(neuron.port) == int
+        assert type(neuron.ip_type) == int
+        assert type(neuron.uid) == int
+        assert type(neuron.modality) == int
+        assert type(neuron.hotkey) == str
+        assert type(neuron.coldkey) == str
 
-    fail= subtensor.subscribe(wallet,
-                        ip='127.0.0.1',
-                        port=8080,
-                        modality=0
-                        )
-    assert fail == False
 
-def test_unstake():
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
+    def test_get_current_block( self ):
+        block = self.subtensor.get_current_block()
+        assert (type(block) == int)
 
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.unstake(wallet,
-                        amount = 200
-                        )
-    assert success == True
+    def test_unstake( self ):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
 
-def test_unstake_inclusion():
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        success= self.subtensor.unstake(self.wallet,
+                            amount = 200
+                            )
+        assert success == True
 
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.unstake(wallet,
-                        amount = 200,
-                        wait_for_inclusion = True
-                        )
-    assert success == True
+    def test_unstake_inclusion( self ):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
 
-def test_unstake_failed():
-    class failed():
-        def __init__(self):
-            self.is_success = False
-            self.error_message = 'Mock'
-        def process_events(self):
-            return True
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
 
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
+        success= self.subtensor.unstake(self.wallet,
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert success == True
 
-    fail= subtensor.unstake(wallet,
-                        amount = 200,
-                        wait_for_inclusion = True
-                        )
-    assert fail == False
+    def test_unstake_failed( self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message = 'Mock'
+            def process_events(self):
+                return True
 
-def test_stake():
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
 
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.add_stake(wallet,
-                        amount = 200
-                        )
-    assert success == True
+        fail= self.subtensor.unstake(self.wallet,
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert fail == False
 
-def test_stake_inclusion():
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
+    def test_stake(self):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
 
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.add_stake(wallet,
-                        amount = 200,
-                        wait_for_inclusion = True
-                        )
-    assert success == True
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        self.subtensor.get_balance = MagicMock(return_value = self.balance)
+        success= self.subtensor.add_stake(self.wallet,
+                            amount = 200
+                            )
+        assert success == True
 
-def test_stake_failed():
-    class failed():
-        def __init__(self):
-            self.is_success = False
-            self.error_message = 'Mock'
-        def process_events(self):
-            return True
+    def test_stake_inclusion(self):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
 
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        self.subtensor.get_balance = MagicMock(return_value = self.balance)
+        success= self.subtensor.add_stake(self.wallet,
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert success == True
 
-    fail= subtensor.add_stake(wallet,
-                        amount = 200,
-                        wait_for_inclusion = True
-                        )
-    assert fail == False
-    
-def test_transfer():
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
+    def test_stake_failed( self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message = 'Mock'
+            def process_events(self):
+                return True
 
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.transfer(wallet,
-                        neuron.hotkey,
-                        amount = 200,
-                        )
-    assert success == True
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        self.subtensor.get_balance = MagicMock(return_value = Balance.from_tao(0))
 
-def test_transfer_inclusion():
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
+        fail= self.subtensor.add_stake(self.wallet,
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert fail == False
+        
+    def test_transfer( self ):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
 
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.transfer(wallet,
-                        neuron.hotkey,
-                        amount = 200,
-                        wait_for_inclusion = True
-                        )
-    assert success == True
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        self.subtensor.get_balance = MagicMock(return_value = self.balance)
+        success= self.subtensor.transfer(self.wallet,
+                            neuron.hotkey,
+                            amount = 200,
+                            )
+        assert success == True
 
-def test_transfer_failed():
-    class failed():
-        def __init__(self):
-            self.is_success = False
-            self.error_message = 'Mock'
-        def process_events(self):
-            return True
+    def test_transfer_inclusion( self ):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
 
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        self.subtensor.get_balance = MagicMock(return_value = self.balance)
+        
+        success= self.subtensor.transfer(self.wallet,
+                            neuron.hotkey,
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert success == True
 
-    fail= subtensor.transfer(wallet,
-                        neuron.hotkey,
-                        amount = 200,
-                        wait_for_inclusion = True
-                        )
-    assert fail == False
+    def test_transfer_failed(self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message = 'Mock'
+            def process_events(self):
+                return True
 
-def test_set_weights():
-    chain_weights = [0]
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.set_weights(wallet=wallet,
-                        uids=[neuron.uid],
-                        weights=chain_weights,
-                        )
-    assert success == True
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
 
-def test_set_weights_inclusion():
-    chain_weights = [0]
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.set_weights(wallet=wallet,
-                        uids=[neuron.uid],
-                        weights=chain_weights,
-                        wait_for_inclusion = True
-                        )
-    assert success == True
+        fail= self.subtensor.transfer(self.wallet,
+                            neuron.hotkey,
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert fail == False
 
-def test_set_weights_failed():
-    class failed():
-        def __init__(self):
-            self.is_success = False
-            self.error_message = 'Mock'
-        def process_events(self):
-            return True
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    chain_weights = [0]
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
+    def test_set_weights( self ):
+        chain_weights = [0]
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        success= self.subtensor.set_weights(wallet=self.wallet,
+                            uids=[neuron.uid],
+                            weights=chain_weights,
+                            )
+        assert success == True
 
-    fail= subtensor.set_weights(wallet=wallet,
-                        uids=[neuron.uid],
-                        weights=chain_weights,
-                        wait_for_inclusion = True
-                        )
-    assert fail == False
+    def test_set_weights_inclusion( self ):
+        chain_weights = [0]
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        success= self.subtensor.set_weights(wallet=self.wallet,
+                            uids=[neuron.uid],
+                            weights=chain_weights,
+                            wait_for_inclusion = True
+                            )
+        assert success == True
 
-def test_timeout_set_weights():
-    chain_weights = [0]
-    class success():
-        def __init__(self):
-            self.is_success = True
-        def process_events(self):
-            return True
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-    success= subtensor.timeout_set_weights(wallet=wallet,
-                        uids=[neuron.uid],
-                        weights=chain_weights,
-                        timeout=10,
-                        )
-    assert success == True
+    def test_set_weights_failed( self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message = 'Mock'
+            def process_events(self):
+                return True
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        chain_weights = [0]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
 
-def test_get_balance():
+        fail= self.subtensor.set_weights(wallet=self.wallet,
+                            uids=[neuron.uid],
+                            weights=chain_weights,
+                            wait_for_inclusion = True
+                            )
+        assert fail == False
 
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    balance= subtensor.get_balance(address=neuron.hotkey)
-    assert type(balance) == bittensor.utils.balance.Balance
+    def test_timeout_set_weights( self ):
+        chain_weights = [0]
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        success= self.subtensor.timeout_set_weights(wallet=self.wallet,
+                            uids=[neuron.uid],
+                            weights=chain_weights,
+                            timeout=10,
+                            )
+        assert success == True
 
-def test_get_balances():
-    subtensor = bittensor.subtensor()
-    balance= subtensor.get_balances()
-    assert type(balance) == dict
-    for i in balance:
-        assert type(balance[i]) == bittensor.utils.balance.Balance
+    def test_get_balance( self ):
 
-def test_get_uid_for_hotkey():
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    uid= subtensor.get_uid_for_hotkey(neuron.hotkey)
-    assert type(uid) == int
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        balance= self.subtensor.get_balance(address=neuron.hotkey)
+        assert type(balance) == bittensor.utils.balance.Balance
 
-def test_hotkey_register():
-    neurons = subtensor.neurons()
-    neuron = neurons[ 0 ]
-    register= subtensor.is_hotkey_registered(neuron.hotkey)
-    assert register == True
+    def test_get_balances( self ):
+        subtensor = bittensor.subtensor(network = 'akatsuki')
+        balance= subtensor.get_balances()
+        assert type(balance) == dict
+        for i in balance:
+            assert type(balance[i]) == bittensor.utils.balance.Balance
 
-def test_hotkey_register_failed():
-    subtensor.get_uid_for_hotkey = MagicMock(return_value = -1) 
-    register= subtensor.is_hotkey_registered('mock')
-    assert register == False
+    def test_get_uid_for_hotkey( self ):
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        uid= self.subtensor.get_uid_for_hotkey(neuron.hotkey)
+        assert type(uid) == int
+
+    def test_hotkey_register( self ):
+        neurons = self.subtensor.neurons()
+        neuron = neurons[ 0 ]
+        register= self.subtensor.is_hotkey_registered(neuron.hotkey)
+        assert register == True
+
+    def test_hotkey_register_failed( self ):
+        self.subtensor.get_uid_for_hotkey = MagicMock(return_value = -1) 
+        register= self.subtensor.is_hotkey_registered('mock')
+        assert register == False
 # def test_stake( ):
 #     assert(type(subtensor.get_stake_for_uid(0)) == bittensor.utils.balance.Balance)
 # def test_weight_uids( ):

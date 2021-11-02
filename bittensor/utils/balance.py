@@ -65,3 +65,16 @@ class Balance:
         """
         rao = int(amount * pow(10, 9))
         return Balance(rao)
+
+    @staticmethod
+    def from_tao(amount : float):
+        """ Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        """
+        rao = int(amount * pow(10, 9))
+        return Balance(rao)
+
+    @staticmethod
+    def from_rao(amount: int):
+        """ Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        """
+        return Balance(amount)
