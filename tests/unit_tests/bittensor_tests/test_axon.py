@@ -3,6 +3,7 @@ import grpc
 import bittensor
 from datetime import datetime
 import pytest
+import uuid
 import unittest.mock as mock
 
 logging = bittensor.logging()
@@ -22,8 +23,8 @@ def sign(wallet):
     nounce = datetime.now().strftime(format= '%m%d%Y%H%M%S%f')
     message  = nounce+str(wallet.hotkey.ss58_address) 
     spliter = 'bitxx'
-
-    signature = spliter.join([nounce,str(wallet.hotkey.ss58_address),wallet.hotkey.sign(message)])
+    receptor_uid = str(uuid.uuid1())
+    signature = spliter.join([ nounce, str(wallet.hotkey.ss58_address), wallet.hotkey.sign(message), receptor_uid])
     return signature
 
 def test_sign():
