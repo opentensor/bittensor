@@ -344,8 +344,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def black_list_checking(self,meta):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 
         """
-        _, pubkey, _ = meta[1].value.split('bitxx')
-
+        variable_length_messages = meta[1].value.split('bitxx')
+        pubkey = variable_length_messages[1]
+        
         if self.blacklist == None:
             pass
         #TODO: Turn on blacklisting
