@@ -794,6 +794,33 @@ To run a local node (See: docs/running_a_validator.md) \n
         neuron.incentive = neuron.incentive / U64MAX
         neuron.dividends = neuron.dividends / U64MAX
         neuron.emission = neuron.emission / RAOPERTAO
+        neuron.is_null = False
+        return neuron
+
+    @staticmethod
+    def _null_neuron() -> SimpleNamespace:
+        neuron = SimpleNamespace()
+        neuron.active = 0   
+        neuron.stake = 0
+        neuron.rank = 0
+        neuron.trust = 0
+        neuron.consensus = 0
+        neuron.incentive = 0
+        neuron.dividends = 0
+        neuron.emission = 0
+        neuron.weights = []
+        neuron.bonds = []
+        neuron.version = 0
+        neuron.modality = 0
+        neuron.uid = 0
+        neuron.port = 0
+        neuron.priority = 0
+        neuron.ip_type = 0
+        neuron.last_update = 0
+        neuron.ip = 0
+        neuron.is_null = True
+        neuron.coldkey = "000000000000000000000000000000000000000000000000"
+        neuron.hotkey = "000000000000000000000000000000000000000000000000"
         return neuron
 
     def neuron_for_uid( self, uid: int, ss58_hotkey: str = None, block: int = None ) -> Union[ dict, None ]: 
@@ -812,9 +839,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
         neuron = Subtensor._neuron_dict_to_namespace( neuron )
         if neuron.hotkey != ss58_hotkey:
-            neuron.is_null = True
-        else:
-            neuron.is_null = False
+            neuron = Subtensor._null_neuron()
         return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
@@ -877,14 +902,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                 params = [ ss58_hotkey ],
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
-            
             # Get response uid. This will be zero if it doesn't exist.
             uid = int(result.value)
             neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
-            if neuron.hotkey != ss58_hotkey:
-                neuron.is_null = True
-            else:
-                neuron.is_null = False
             return neuron
 
     def get_n( self, block: int = None ) -> int: 
