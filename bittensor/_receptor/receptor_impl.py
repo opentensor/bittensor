@@ -199,7 +199,6 @@ class Receptor(nn.Module):
             pass
         return outputs, code, time
 
-    @logger.catch
     def _call_forward(
         self, 
         inputs: torch.Tensor, 
@@ -233,7 +232,6 @@ class Receptor(nn.Module):
         """
         start_time = clock.time()
         zeros = nill_response_for(inputs)
-
 
         try:
             # ---- Check inputs size ----
@@ -283,7 +281,7 @@ class Receptor(nn.Module):
                                                         ('rpc-auth-header','Bittensor'),
                                                         ('bittensor-signature',self.sign()),
                                                         ('bittensor-version',str(bittensor.__version_as_int__)),
-                                                        ('request_type', 'forward'),
+                                                        ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                                                         ))
                 self.stats.forward_bytes_in.update(sys.getsizeof(response))
                 self.stats.forward_elapsed_time.update((clock.time()-start_time))
@@ -405,7 +403,6 @@ class Receptor(nn.Module):
         bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=list(outputs.shape), message=response_message)
         return outputs, code, call_time, message
 
-    @logger.catch
     def _call_backward(
             self,
             inputs_x: torch.Tensor, 
@@ -496,7 +493,7 @@ class Receptor(nn.Module):
                                                     ('rpc-auth-header','Bittensor'),
                                                     ('bittensor-signature',self.sign()),
                                                     ('bittensor-version',str(bittensor.__version_as_int__)),
-                                                    ('request_type', 'backwards'),
+                                                    ('request_type', str(bittensor.proto.RequestType.BACKWARD)),
                                                     ))
 
             # Get message
