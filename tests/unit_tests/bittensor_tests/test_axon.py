@@ -1,7 +1,7 @@
 import torch
 import grpc
 import bittensor
-from datetime import datetime
+import time
 import pytest
 import uuid
 import unittest.mock as mock
@@ -20,10 +20,10 @@ wallet.create_new_hotkey( use_password=False, overwrite = True)
 axon = bittensor.axon(wallet = wallet)
 
 def sign(wallet):
-    nounce = datetime.now().strftime(format= '%m%d%Y%H%M%S%f')
-    message  = nounce+str(wallet.hotkey.ss58_address) 
-    spliter = 'bitxx'
+    nounce = int(time.time() * 1000)
     receptor_uid = str(uuid.uuid1())
+    message  = nounce + str(wallet.hotkey.ss58_address) + receptor_uid
+    spliter = 'bitxx'
     signature = spliter.join([ nounce, str(wallet.hotkey.ss58_address), wallet.hotkey.sign(message), receptor_uid])
     return signature
 
