@@ -200,7 +200,7 @@ def serve( config, server):
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
-                    print(gp_server.pre_model.device,gp_server,device)
+                    print(gp_server.pre_model.device,gp_server.device)
                     loss, _ = gp_server( next( dataloader ).to(gp_server.device) )
                     if interation > 0 : 
                         losses += loss
