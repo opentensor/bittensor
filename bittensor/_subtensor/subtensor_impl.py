@@ -785,6 +785,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             block (int):
                 block to sync from.
+            page_size (int):
+                Number of neuron entries to return each step of the sync.
         Returns:
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
