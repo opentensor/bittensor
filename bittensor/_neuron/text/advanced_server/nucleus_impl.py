@@ -127,7 +127,8 @@ class server(torch.nn.Module):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
         sen_len = inputs.size()
-        inputs = self.token_remap(inputs,tokenizer)
+        inputs = self.token_remap(inputs,tokenizer).to(self.device)
+        print(self.pre_model.device,inputs.device,'hello')
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
         if self.interpolate:
@@ -205,7 +206,7 @@ class server(torch.nn.Module):
         parser.add_argument('--server.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
         parser.add_argument('--server.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--server.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--server.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+        parser.add_argument('--server.device', type=str, help='miner default training device cpu/cuda', default=("cuda:0" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--server.model_name', type=str, help='pretrained model from hugging face',default='gpt2')
         parser.add_argument('--server.pretrained', type=bool, help='if the model should be pretrained',default=True)
         parser.add_argument('--server.padding', type=bool, help='To pad out final dimensions',default=True)
