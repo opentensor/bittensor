@@ -52,7 +52,7 @@ def serve( config, server):
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
     mutex = Lock()
-    gp_server = server
+    gp_server = server.to(server.device)
     
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -73,7 +73,7 @@ def serve( config, server):
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-        return gp_server.encode_forward( inputs_x )
+        return gp_server.encode_forward( inputs_x.to(server.device) )
 
     # Define our backward function.
     def backward_text (inputs_x, grads_dy ):
@@ -91,11 +91,11 @@ def serve( config, server):
         grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
         
         with mutex:
-            outputs_y = gp_server.encode_forward( inputs_x )
+            outputs_y = gp_server.encode_forward( inputs_x.to(server.device) )
             with torch.autograd.set_detect_anomaly(True):
                 torch.autograd.backward (
                     tensors = [ outputs_y ],
-                    grad_tensors = [ grads_dy ],
+                    grad_tensors = [ grads_dy.to(server.device) ],
                     retain_graph=True
                 )
             logger.info('Backwards axon gradient applied')
