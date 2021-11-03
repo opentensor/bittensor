@@ -366,7 +366,13 @@ class Neuron:
             ).to(self.device)
         )
 
-        self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
+        try:
+            self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
+        except Exception as e:
+            logger.exception('Failed to load nucleus state with error, updating the current state:{}', e)
+            state_dict['nucleus_state'] = self.nucleus.state_dict()
+            torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
+
         self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
         self.nucleus.to( self.device ) # Load nucleus
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
