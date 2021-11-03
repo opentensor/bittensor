@@ -21,6 +21,7 @@ from typing import List, Dict, Union
 from multiprocessing import Process
 
 import bittensor
+from tqdm import tqdm
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 from substrateinterface import SubstrateInterface
@@ -153,6 +154,28 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
 
+    @property
+    def n (self) -> int:
+        r""" Returns total number of neurons on the chain.
+        Returns:
+            n (int):
+                Total number of neurons on chain.
+        """
+        with self.substrate as substrate:
+            return substrate.query(  module='SubtensorModule', storage_function = 'N').value
+
+    def get_n (self, block: int = None) -> int:
+        r""" Returns total number of neurons on the chain.
+        Returns:
+            n (int):
+                Total number of neurons on chain.
+        """
+        with self.substrate as substrate:
+            return substrate.query(  
+                module='SubtensorModule', 
+                storage_function = 'N',
+                block_hash = None if block == None else substrate.get_block_hash( block )
+            ).value
 
     @property
     def block (self) -> int:
@@ -757,30 +780,33 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return_dict[r[0].value] = bal
             return return_dict
 
-    def neurons(self, block: int = None) -> List[SimpleNamespace]: 
+    def neurons(self, block: int = None, page_size: int = 25) -> List[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
+        Args:
+            block (int):
+                block to sync from.
+            page_size (int):
+                Number of neuron entries to return each step of the sync.
         Returns:
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
         with self.substrate as substrate:
-            page_results = substrate.query_map (
+            results = substrate.query_map (
                 module='SubtensorModule',
                 storage_function='Neurons',
-                page_size = 100,
+                page_size = page_size,
                 block_hash = None if block == None else substrate.get_block_hash( block )
             )
-            result = []
-            for page in page_results :
-                for n in page:
-                    if type(n.value) != int:
-                        n = Subtensor._neuron_dict_to_namespace( n.value )
-                        if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
-                            n.is_null = True
-                        else:
-                            n.is_null = False
-                        result.append( n )
-            return result
+            neurons = []
+            for _ in tqdm(range(self.get_n( block ))):
+                try:
+                    neurons_result = results.__next__()[1].value
+                    neuron = Subtensor._neuron_dict_to_namespace( neurons_result )
+                    neurons.append( neuron )
+                except Exception as e:
+                    break
+            return neurons
 
     @staticmethod
     def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
