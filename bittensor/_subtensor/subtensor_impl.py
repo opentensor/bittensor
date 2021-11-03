@@ -21,6 +21,7 @@ from typing import List, Dict, Union
 from multiprocessing import Process
 
 import bittensor
+from tqdm import tqdm
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 from substrateinterface import SubstrateInterface
@@ -779,7 +780,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return_dict[r[0].value] = bal
             return return_dict
 
-    def neurons(self, block: int = None, page_size: int = 10) -> List[SimpleNamespace]: 
+    def neurons(self, block: int = None, page_size: int = 25) -> List[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             block (int):
@@ -788,7 +789,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
-        from tqdm import tqdm
         with self.substrate as substrate:
             results = substrate.query_map (
                 module='SubtensorModule',
