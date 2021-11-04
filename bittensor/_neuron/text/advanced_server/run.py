@@ -183,8 +183,7 @@ def serve( config, server):
 
     # -- Main Training loop --
     try:
-        # --  serve axon to the network.
-        axon.start().serve(subtensor=subtensor)
+
 
         # --- creating our chain weights
         chain_weights =torch.zeros(metagraph.n)
@@ -195,8 +194,13 @@ def serve( config, server):
             # --- Run 
             dataloader = iter(dataset.dataloader(epoch_length=100))
             current_block = subtensor.get_current_block()
+            start_block = current_block
             end_block = current_block + config.server.blocks_per_epoch
             interation = 0
+
+            # --  serve axon to the network.
+            axon.start().serve(subtensor=subtensor)
+
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
@@ -235,7 +239,6 @@ def serve( config, server):
                 'incentive': metagraph.I[ uid ].item(),
             } 
             # wandb syncing and update metagraph
-            metagraph.sync().save()
             chain_weights =torch.zeros(metagraph.n)
             chain_weights[uid] = 1 
 
@@ -262,6 +265,10 @@ def serve( config, server):
                     logger.error('Failed to set weights on chain. (Timeout)')
             except Exception as e:
                 logger.error('Failure setting weights on chain with error: {}', e)
+
+            if current_block - start_block > 1000:
+                metagraph.sync().save()
+                start_block = current_block
 
     except KeyboardInterrupt:
         # --- User ended session ----
