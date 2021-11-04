@@ -190,16 +190,16 @@ def serve( config, server):
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         chain_weights[uid] = 1 
 
+        dataloader = iter(dataset.dataloader(epoch_length=100))
+        # --  serve axon to the network.
+        axon.start().serve(subtensor=subtensor)
+        
         while True:
             # --- Run 
-            dataloader = iter(dataset.dataloader(epoch_length=100))
             current_block = subtensor.get_current_block()
             start_block = current_block
             end_block = current_block + config.server.blocks_per_epoch
             interation = 0
-
-            # --  serve axon to the network.
-            axon.start().serve(subtensor=subtensor)
 
             # --- Training step.
             while end_block >= current_block:
