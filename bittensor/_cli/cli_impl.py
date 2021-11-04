@@ -111,12 +111,12 @@ class CLI:
             neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
             if neuron.is_null:
                 registered = 'No'
+                stake = bittensor.Balance.from_tao( 0 )
             else:
                 registered = 'Yes'
-            stake = bittensor.Balance.from_tao( neuron.stake )
+                stake = bittensor.Balance.from_tao( neuron.stake )
             cold_balance = wallet.balance
-
-        bittensor.__console__.print("[bold white]{}[/bold white]:\n  [bold grey]coldkey: {}\n  hotkey: {}\n  balance: {}\n  stake: {}\n  registered: {}[/bold grey]".format( wallet, wallet.coldkeypub.ss58_address, wallet.hotkey.ss58_address, cold_balance, stake, registered),highlight=True)
+        bittensor.__console__.print("[bold white]{}[/bold white]:\n  [bold grey]coldkey: {}\n  hotkey: {}\n  balance: {}\n  stake: {}\n  registered: {}[/bold grey]".format( wallet, wallet.coldkeypub.ss58_address, wallet.hotkey.ss58_address, cold_balance.__rich__(), stake.__rich__(), registered),highlight=True)
 
 
     def run_miner ( self ):
@@ -252,7 +252,7 @@ class CLI:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0.0  
+        total_emission = 0  
         for uid in metagraph.uids:
             ep = metagraph.endpoint_objs[uid]
             row = [
@@ -263,7 +263,7 @@ class CLI:
                 '{:.5f}'.format( metagraph.consensus[uid]), 
                 '{:.5f}'.format( metagraph.incentive[uid]),
                 '{:.5f}'.format( metagraph.dividends[uid]),
-                '{:.5f}'.format( metagraph.emission[uid]),
+                '{}'.format( int(metagraph.emission[uid] * 1000000000)),
                 str((metagraph.block.item() - metagraph.last_update[uid].item())),
                 str( metagraph.active[uid].item() ), 
                 ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
@@ -276,7 +276,7 @@ class CLI:
             total_consensus += metagraph.consensus[uid]
             total_incentive += metagraph.incentive[uid]
             total_dividends += metagraph.dividends[uid]
-            total_emission += metagraph.emission[uid]
+            total_emission += int(metagraph.emission[uid] * 1000000000)
             TABLE_DATA.append(row)
         total_neurons = len(metagraph.uids)                
         table = Table(show_footer=False)
@@ -284,13 +284,13 @@ class CLI:
             "[white]Metagraph: name: {}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), issuance, difficulty )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
-        table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
@@ -366,7 +366,7 @@ class CLI:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0.0      
+        total_emission = 0     
         for ep in tqdm(owned_endpoints):
             uid = ep.uid
             active = metagraph.active[ uid ].item()
@@ -376,7 +376,7 @@ class CLI:
             consensus = metagraph.C[ uid ].item()
             incentive = metagraph.I[ uid ].item()
             dividends = metagraph.D[ uid ].item()
-            emission = metagraph.E[ uid ].item() / 1000000000
+            emission = int(metagraph.E[ uid ].item() * 1000000000)
             last_update = int(metagraph.block - metagraph.last_update[ uid ])
             row = [
                 str(ep.uid), 
@@ -387,7 +387,7 @@ class CLI:
                 '{:.5f}'.format(consensus), 
                 '{:.5f}'.format(incentive),
                 '{:.5f}'.format(dividends),
-                '{:.5f}'.format(emission),
+                '{}'.format(emission),
                 str(last_update),
                 ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
                 ep.hotkey
@@ -408,13 +408,13 @@ class CLI:
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]STAKE", '{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]EMISSION", '{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
         table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
