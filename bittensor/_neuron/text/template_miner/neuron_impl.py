@@ -32,7 +32,9 @@ import wandb
 
 from termcolor import colored
 from qqdm import qqdm, format_str
-from loguru import logger; logger = logger.opt(colors=True)
+from loguru import logger
+logger = logger.opt(colors=True)
+
 from types import SimpleNamespace
 from torch.nn.utils import clip_grad_norm_
 import torch.nn as nn
@@ -89,7 +91,7 @@ class Neuron:
 
     def __enter__(self):
         self.wallet.create()
-        self.wallet.register()
+        self.subtensor.register( self.wallet )
         self.metagraph.sync().save()
         self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
@@ -297,11 +299,21 @@ class Neuron:
                     the request type ('FORWARD' or 'BACKWARD').
         """
         # Blacklist requests from peers who are not subscribed or have stake less that black_list
-        uid = self.metagraph.hotkeys.index( pubkey )
-        if self.metagraph.S[uid].item() > self.config.neuron.blacklist:
-            return False
+        is_registered = pubkey in self.metagraph.hotkeys
+
+        # If we allow non-registered requests return False = not blacklisted.
+        if not is_registered:
+            if self.config.neuron.blacklist_allow_non_registered:
+                return False
+            else:
+                return True
         else:
-            return True
+            # Else, get stake and check is above blacklist stake min.
+            uid = self.metagraph.hotkeys.index( pubkey )
+            if self.metagraph.S[uid].item() >= self.config.neuron.blacklist:
+                return False
+            else:
+                return True
 
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.

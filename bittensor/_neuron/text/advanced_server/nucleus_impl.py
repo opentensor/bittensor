@@ -127,7 +127,7 @@ class server(torch.nn.Module):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
         sen_len = inputs.size()
-        inputs = self.token_remap(inputs,tokenizer)
+        inputs = self.token_remap(inputs,tokenizer).to(self.device)
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
         if self.interpolate:
@@ -215,7 +215,7 @@ class server(torch.nn.Module):
         parser.add_argument('--server.checking', type=bool, help='To check if server settings are correct',default=True)
         parser.add_argument('--server.restart', action='store_true', help='if the model should restart', default=False)
         parser.add_argument('--server.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--server.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
+        parser.add_argument('--server.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
         parser.add_argument('--server.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=5)
 
         bittensor.wallet.add_args( parser )
