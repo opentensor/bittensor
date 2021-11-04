@@ -234,7 +234,7 @@ def serve( config, server):
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
             } 
-
+            print(wandb_data)
             # wandb syncing and update metagraph
             metagraph.sync().save()
             chain_weights =torch.zeros(metagraph.n)
