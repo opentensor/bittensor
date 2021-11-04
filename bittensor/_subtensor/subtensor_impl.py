@@ -879,7 +879,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Process the result.
         uid = int(result.value)
         if uid == 0:
-            neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
+            neuron = self.neuron_for_uid( uid, block)
             if neuron.is_null:
                 return -1
             else:
@@ -921,7 +921,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             )
             # Get response uid. This will be zero if it doesn't exist.
             uid = int(result.value)
-            neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
+            neuron = self.neuron_for_uid( uid, block)
             return neuron
 
     def get_n( self, block: int = None ) -> int: 
