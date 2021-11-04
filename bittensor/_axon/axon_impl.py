@@ -257,6 +257,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 except Exception as e:
                     logger.error('Error found: {}, with message {}'.format(repr(e), e))
             else:
+                print('single-thread')
                 self.backward_callback[modality](inputs_x, grads_dy)
 
             response_tensor = torch.ones(inputs_x.size())
