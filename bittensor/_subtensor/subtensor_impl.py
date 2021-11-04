@@ -859,7 +859,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         # Make the call.
         with self.substrate as substrate:
-            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ], block_hash = substrate.get_block_hash( block )).value )
+            neuron = dict( substrate.query( 
+                module='SubtensorModule',  
+                storage_function='Neurons', 
+                params = [ uid ], 
+                block_hash = None if block == None else substrate.get_block_hash( block )
+            ).value )
         neuron = Subtensor._neuron_dict_to_namespace( neuron )
         return neuron
 
