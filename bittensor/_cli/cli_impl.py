@@ -239,11 +239,11 @@ class CLI:
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            metagraph.sync()
-            metagraph.save()
-            issuance = subtensor.total_issuance
-            difficulty = subtensor.difficulty
+        console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network))
+        metagraph.sync()
+        metagraph.save()
+        issuance = subtensor.total_issuance
+        difficulty = subtensor.difficulty
 
         TABLE_DATA = [] 
         total_stake = 0.0
