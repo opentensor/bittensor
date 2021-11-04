@@ -183,7 +183,8 @@ def serve( config, server):
 
     # -- Main Training loop --
     try:
-
+        # -- download files from the mountain
+        data = next(dataset)
 
         # --- creating our chain weights
         chain_weights =torch.zeros(metagraph.n)
