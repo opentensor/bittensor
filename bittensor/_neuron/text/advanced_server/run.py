@@ -190,7 +190,6 @@ def serve( config, server):
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         chain_weights[uid] = 1 
 
-        dataloader = iter(dataset.dataloader(epoch_length=100))
         # --  serve axon to the network.
         axon.start().serve(subtensor=subtensor)
         
@@ -204,7 +203,7 @@ def serve( config, server):
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
-                    loss, _ = gp_server( next( dataloader ).to(gp_server.device) )
+                    loss, _ = gp_server( next( dataset ).to(gp_server.device) )
                     if interation > 0 : 
                         losses += loss
                     else:
