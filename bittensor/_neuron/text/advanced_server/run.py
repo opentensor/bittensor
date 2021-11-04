@@ -249,26 +249,26 @@ def serve( config, server):
             # save the model
             gp_server.save(config.server.full_path)
 
-            # --- setting weights
-            try: 
-                did_set = subtensor.timeout_set_weights(
-                    timeout=10,
-                    uids=metagraph.uids,
-                    weights = chain_weights,
-                    wait_for_inclusion = True,
-                    wallet = wallet,
-                )
-                
-                if did_set:
-                    logger.success('Successfully set weights on the chain')
-                else:
-                    logger.error('Failed to set weights on chain. (Timeout)')
-            except Exception as e:
-                logger.error('Failure setting weights on chain with error: {}', e)
-
             if current_block - start_block > 1000:
                 metagraph.sync().save()
                 start_block = current_block
+
+                # --- setting weights
+                try: 
+                    did_set = subtensor.timeout_set_weights(
+                        timeout=12,
+                        uids=metagraph.uids,
+                        weights = chain_weights,
+                        wait_for_inclusion = True,
+                        wallet = wallet,
+                    )
+                    
+                    if did_set:
+                        logger.success('Successfully set weights on the chain')
+                    else:
+                        logger.error('Failed to set weights on chain. (Timeout)')
+                except Exception as e:
+                    logger.error('Failure setting weights on chain with error: {}', e)
 
     except KeyboardInterrupt:
         # --- User ended session ----
