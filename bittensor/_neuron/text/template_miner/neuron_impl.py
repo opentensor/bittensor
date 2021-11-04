@@ -29,7 +29,6 @@ import torch
 import traceback
 import sys
 import wandb
-import psutil
 from termcolor import colored
 from qqdm import qqdm, format_str
 from loguru import logger
@@ -107,7 +106,6 @@ class Neuron:
         """
         # ---- Build Bittensor neuron ----
         with self:
-            proc = psutil.Process()
             if self.config.neuron.use_wandb:
                 bittensor.wandb(
                     config = self.config,
@@ -157,7 +155,6 @@ class Neuron:
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
-                            print(proc.open_files())
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
                             output = self.nucleus.remote_forward (
