@@ -802,21 +802,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             return neurons
 
     @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
-        RAOPERTAO = 1000000000
-        U64MAX = 18446744073709551615
-        neuron = SimpleNamespace( **neuron_dict )
-        neuron.stake = neuron.stake / RAOPERTAO
-        neuron.rank = neuron.rank / U64MAX
-        neuron.trust = neuron.trust / U64MAX
-        neuron.consensus = neuron.consensus / U64MAX
-        neuron.incentive = neuron.incentive / U64MAX
-        neuron.dividends = neuron.dividends / U64MAX
-        neuron.emission = neuron.emission / RAOPERTAO
-        neuron.is_null = False
-        return neuron
-
-    @staticmethod
     def _null_neuron() -> SimpleNamespace:
         neuron = SimpleNamespace()
         neuron.active = 0   
@@ -841,6 +826,24 @@ To run a local node (See: docs/running_a_validator.md) \n
         neuron.coldkey = "000000000000000000000000000000000000000000000000"
         neuron.hotkey = "000000000000000000000000000000000000000000000000"
         return neuron
+
+    @staticmethod
+    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
+        if neuron_dict['version'] == 0:
+            return Subtensor._null_neuron()
+        else:
+            RAOPERTAO = 1000000000
+            U64MAX = 18446744073709551615
+            neuron = SimpleNamespace( **neuron_dict )
+            neuron.stake = neuron.stake / RAOPERTAO
+            neuron.rank = neuron.rank / U64MAX
+            neuron.trust = neuron.trust / U64MAX
+            neuron.consensus = neuron.consensus / U64MAX
+            neuron.incentive = neuron.incentive / U64MAX
+            neuron.dividends = neuron.dividends / U64MAX
+            neuron.emission = neuron.emission / RAOPERTAO
+            neuron.is_null = False
+            return neuron
 
     def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
@@ -921,8 +924,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             )
             # Get response uid. This will be zero if it doesn't exist.
             uid = int(result.value)
-            neuron = self.neuron_for_uid( uid, block)
-            return neuron
+            neuron = self.neuron_for_uid( uid, block )
+            if neuron.hotkey != ss58_hotkey:
+                return Subtensor._null_neuron()
+            else:
+                return neuron
 
     def get_n( self, block: int = None ) -> int: 
         r""" Returns the number of neurons on the chain at block.
