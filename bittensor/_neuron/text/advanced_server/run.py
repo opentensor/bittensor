@@ -229,7 +229,7 @@ def serve( config, server):
             # --- logging data
             wandb_data = {
                 'block': end_block,
-                'loss': losses.item()/interation,
+                'loss': losses.cpu().item()/interation,
                 'stake': metagraph.S[ uid ].item(),
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
