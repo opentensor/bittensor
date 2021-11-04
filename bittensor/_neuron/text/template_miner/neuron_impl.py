@@ -187,7 +187,7 @@ class Neuron:
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
                             chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
-                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32)]), requires_grad=False)
+                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, device = self.device)]), requires_grad=False)
                             self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
                             self.stats.scores = scores
 
@@ -367,8 +367,14 @@ class Neuron:
             ).to(self.device)
         )
 
-        self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
+        try:
+            self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
+        except Exception as e:
+            logger.exception('Failed to load nucleus state with error, updating the current state:{}', e)
+            state_dict['nucleus_state'] = self.nucleus.state_dict()
+            torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
+
+        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True, device = self.device)]))
         self.nucleus.to( self.device ) # Load nucleus
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
         self.nucleus.metagraph = self.metagraph # Set local metagraph.

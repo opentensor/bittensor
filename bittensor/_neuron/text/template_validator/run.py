@@ -119,9 +119,9 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             }
             
             topk_scores, topk_idx = torch.topk(ema_scores, 5, dim=0)
-            for uid, ema_score in zip(topk_idx, topk_scores) :
-                color =  'green' if scores[uid] - ema_score > 0 else 'red'
-                info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color) 
+            for idx, ema_score in zip(topk_idx, topk_scores) :
+                color =  'green' if scores[idx] - ema_score > 0 else 'red'
+                info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
             
             
             progress.set_infos( info )
