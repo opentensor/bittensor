@@ -72,7 +72,7 @@ class server(torch.nn.Module):
         self.mapping_function= mapping_function
         self.token_remap = token_remap if token_remap != None else self.remapping_token
 
-        if padding == False:
+        if self.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
 
         self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
