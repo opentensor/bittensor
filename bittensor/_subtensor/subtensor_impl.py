@@ -829,7 +829,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
     @staticmethod
     def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
-        if neuron_dict['version'] == 0:
+        if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return Subtensor._null_neuron()
         else:
             RAOPERTAO = 1000000000
