@@ -66,15 +66,17 @@ class neuron:
         # Build Device.
         self.device = torch.device ( device = config.neuron.device )    
 
-        self.nucleus = Validator(config=config, metagraph = self.metagraph, dendrite = self.dendrite, device = self.device)
+        self.nucleus = Validator(config=config, metagraph = self.metagraph_callback, dendrite = self.dendrite, device = self.device)
 
+    def metagraph_callback(self):
+        return self.metagraph
 
     def run(self):
         run(self.config,
             validator = self.nucleus,
             subtensor = self.subtensor,
             wallet = self.wallet,
-            metagraph = self.nucleus.metagraph,
+            metagraph = self.metagraph,
             dataset = self.dataset,
             device = self.device,
             uid = self.uid,
