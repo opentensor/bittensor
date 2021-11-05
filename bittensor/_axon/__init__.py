@@ -126,7 +126,6 @@ class axon:
         else: 
             priority_threadpool = None
 
-
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
             server = server,
