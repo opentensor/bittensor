@@ -70,7 +70,6 @@ class TestSubtensor(unittest.TestCase):
 
 
     def test_neurons( self ):
-        import pdb; pdb.set_trace()
         assert len(self.neurons) > 0
         assert type(self.neurons[0].ip) == int
         assert type(self.neurons[0].port) == int
