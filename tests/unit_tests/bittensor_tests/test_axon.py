@@ -20,9 +20,9 @@ wallet.create_new_hotkey( use_password=False, overwrite = True)
 axon = bittensor.axon(wallet = wallet)
 
 def sign(wallet):
-    nounce = int(time.time() * 1000)
+    nounce = str(int(time.time() * 1000))
     receptor_uid = str(uuid.uuid1())
-    message  = nounce + str(wallet.hotkey.ss58_address) + receptor_uid
+    message  = "{}{}{}".format(nounce, str(wallet.hotkey.ss58_address), receptor_uid)
     spliter = 'bitxx'
     signature = spliter.join([ nounce, str(wallet.hotkey.ss58_address), wallet.hotkey.sign(message), receptor_uid])
     return signature
