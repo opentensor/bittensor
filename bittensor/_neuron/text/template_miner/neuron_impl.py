@@ -91,7 +91,6 @@ class Neuron:
     def __enter__(self):
         self.wallet.create()
         self.subtensor.register( self.wallet )
-        self.metagraph.sync().save()
         self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
             subtensor = self.subtensor
@@ -114,10 +113,6 @@ class Neuron:
                     root_dir = self.config.neuron.full_path
                 )
 
-            # ---- Init run state ----
-            self.epoch = 0            
-            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
-
             # ---- reloads previous run if not restart ----
             if self.config.neuron.restart:
                 self.save()
@@ -130,6 +125,10 @@ class Neuron:
                 self.save()
                 self.reload()
                 self.axon.check()
+            
+            # ---- Init run state ----
+            self.epoch = 0            
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
             
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:
@@ -344,7 +343,8 @@ class Neuron:
         
         # --- Loads and syncs metagraph.
         try:
-            self.metagraph.load().sync().save()
+            self.metagraph.sync().save()
+            self.stats.last_sync_block= self.subtensor.get_current_block()
         except Exception as e:
             logger.error('Error in loading metagraph: {}'.format(e))
             self.metagraph.sync().save()
@@ -367,7 +367,7 @@ class Neuron:
         try:
             self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         except Exception as e:
-            logger.exception('Failed to load nucleus state with error, updating the current state:{}', e)
+            logger.exception('Failed to load nucleus state with error, updating the current state')
             state_dict['nucleus_state'] = self.nucleus.state_dict()
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
 
