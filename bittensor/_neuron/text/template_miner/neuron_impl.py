@@ -113,6 +113,9 @@ class Neuron:
                     root_dir = self.config.neuron.full_path
                 )
 
+            # ---- Init run state ----
+            self.epoch = 0   
+
             # ---- reloads previous run if not restart ----
             if self.config.neuron.restart:
                 self.save()
@@ -126,10 +129,8 @@ class Neuron:
                 self.reload()
                 self.axon.check()
             
-            # ---- Init run state ----
-            self.epoch = 0            
             self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
-            
+
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:
                 try:
