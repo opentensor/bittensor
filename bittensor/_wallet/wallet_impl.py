@@ -35,9 +35,9 @@ def display_mnemonic_msg( keypair : Keypair, key_type : str ):
     mnemonic_green = colored(mnemonic, 'green')
     print (colored("\nIMPORTANT: Store this mnemonic in a secure (preferable offline place), as anyone " \
                 "who has possesion of this mnemonic can use it to regenerate the key and access your tokens. \n", "red"))
-    print ("The mnemonic to the new %s is:\n\n%s\n" % (key_type, mnemonic_green))
+    print ("The mnemonic to the new {} is:\n\n{}\n".format(key_type, mnemonic_green))
     print ("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
-    print("btcli regen_%s --mnemonic %s" % (key_type, mnemonic))
+    print("btcli regen_{} --mnemonic {}".format(key_type, mnemonic))
     print('')
 
 class Wallet():
