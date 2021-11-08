@@ -11,7 +11,7 @@ class Validator( torch.nn.Module ):
             self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
-            self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph.n.item() ] , requires_grad=True, device = device))
+            self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph().n.item() ] , requires_grad=True, device = device))
             self.noise_offset = 0.0000001
             self.metagraph = metagraph
             self.dendrite = dendrite
@@ -36,7 +36,7 @@ class Validator( torch.nn.Module ):
             We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
             """
             peer_weights_d1 = torch.autograd.grad(self.loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-            if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph.n.item()) # None if no grad w.r.t the chain weights.
+            if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
             peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
             validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
             return validator_scores
@@ -44,18 +44,18 @@ class Validator( torch.nn.Module ):
         def query ( self, inputs ):
 
             # ---- Get active peers and their weights ---- 
-            active_uids = torch.where(self.metagraph.active > 0)[0]
+            active_uids = torch.where(self.metagraph().active > 0)[0]
             active_peer_weights = self.peer_weights[active_uids]
 
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
-            real_topk = min( self.config.nucleus.topk, self.metagraph.n.item(), len(active_uids))
+            real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
             noise = torch.normal( 0, torch.std(active_peer_weights).item()+self.noise_offset, size=( active_peer_weights.size())).to( self.config.neuron.device )
             topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
             topk_uids = active_uids[topk_idx]
 
             # ---- Query network ----
             responses, return_ops, query_times = self.dendrite.forward_text ( 
-                endpoints = self.metagraph.endpoints[ topk_uids ], 
+                endpoints = self.metagraph().endpoints[ topk_uids ], 
                 inputs = inputs
             )
 

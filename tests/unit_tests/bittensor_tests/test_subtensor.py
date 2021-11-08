@@ -16,14 +16,14 @@ class TestSubtensor(unittest.TestCase):
         self.wallet.set_hotkey(Keypair.create_from_mnemonic(Keypair.generate_mnemonic()), encrypt=False, overwrite=True)
         self.mock_neuron = self.subtensor._neuron_dict_to_namespace(
             dict({
-                "version":0,
+                "version":1,
                 "ip":0,
                 "port":0,
                 "ip_type":0,
                 "uid":1,
                 "modality":0,
-                "hotkey":'5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM',
-                "coldkey":'5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM',
+                "hotkey":'some_hotkey',
+                "coldkey":'some_coldkey',
                 "active":0,
                 "last_update":0,
                 "priority":0,
@@ -39,6 +39,7 @@ class TestSubtensor(unittest.TestCase):
                 "is_null":False
             })
         )
+        self.neurons = self.subtensor.neurons()
         self.balance = Balance.from_tao(1000)
         assert True
 
@@ -69,17 +70,16 @@ class TestSubtensor(unittest.TestCase):
 
 
     def test_neurons( self ):
-        neurons = self.subtensor.neurons()
-        assert len(neurons) > 0
-        assert type(neurons[0].ip) == int
-        assert type(neurons[0].port) == int
-        assert type(neurons[0].ip_type) == int
-        assert type(neurons[0].uid) == int
-        assert type(neurons[0].modality) == int
-        assert type(neurons[0].hotkey) == str
-        assert type(neurons[0].coldkey) == str
+        assert len(self.neurons) > 0
+        assert type(self.neurons[0].ip) == int
+        assert type(self.neurons[0].port) == int
+        assert type(self.neurons[0].ip_type) == int
+        assert type(self.neurons[0].uid) == int
+        assert type(self.neurons[0].modality) == int
+        assert type(self.neurons[0].hotkey) == str
+        assert type(self.neurons[0].coldkey) == str
 
-        neuron = self.subtensor.neuron_for_uid( 0, neurons[0].hotkey )
+        neuron = self.subtensor.neuron_for_uid( 1 )
         assert type(neuron.ip) == int
         assert type(neuron.port) == int
         assert type(neuron.ip_type) == int
@@ -209,8 +209,7 @@ class TestSubtensor(unittest.TestCase):
             def process_events(self):
                 return True
 
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
         self.subtensor.register = MagicMock(return_value = True) 
         self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
@@ -228,8 +227,7 @@ class TestSubtensor(unittest.TestCase):
             def process_events(self):
                 return True
 
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
         self.subtensor.register = MagicMock(return_value = True) 
         self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
@@ -250,8 +248,7 @@ class TestSubtensor(unittest.TestCase):
             def process_events(self):
                 return True
 
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
 
         fail= self.subtensor.transfer(self.wallet,
@@ -268,8 +265,7 @@ class TestSubtensor(unittest.TestCase):
                 self.is_success = True
             def process_events(self):
                 return True
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
         success= self.subtensor.set_weights(wallet=self.wallet,
                             uids=[neuron.uid],
@@ -284,8 +280,7 @@ class TestSubtensor(unittest.TestCase):
                 self.is_success = True
             def process_events(self):
                 return True
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
         success= self.subtensor.set_weights(wallet=self.wallet,
                             uids=[neuron.uid],
@@ -301,8 +296,7 @@ class TestSubtensor(unittest.TestCase):
                 self.error_message = 'Mock'
             def process_events(self):
                 return True
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         chain_weights = [0]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
 
@@ -320,8 +314,7 @@ class TestSubtensor(unittest.TestCase):
                 self.is_success = True
             def process_events(self):
                 return True
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
         success= self.subtensor.timeout_set_weights(wallet=self.wallet,
                             uids=[neuron.uid],
@@ -331,28 +324,23 @@ class TestSubtensor(unittest.TestCase):
         assert success == True
 
     def test_get_balance( self ):
-
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         balance= self.subtensor.get_balance(address=neuron.hotkey)
         assert type(balance) == bittensor.utils.balance.Balance
 
     def test_get_balances( self ):
-        subtensor = bittensor.subtensor(network = 'akatsuki')
-        balance= subtensor.get_balances()
+        balance= self.subtensor.get_balances()
         assert type(balance) == dict
         for i in balance:
             assert type(balance[i]) == bittensor.utils.balance.Balance
 
     def test_get_uid_for_hotkey( self ):
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         uid= self.subtensor.get_uid_for_hotkey(neuron.hotkey)
         assert type(uid) == int
 
     def test_hotkey_register( self ):
-        neurons = self.subtensor.neurons()
-        neuron = neurons[ 0 ]
+        neuron = self.neurons[ 1 ]
         register= self.subtensor.is_hotkey_registered(neuron.hotkey)
         assert register == True
 
