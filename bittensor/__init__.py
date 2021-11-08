@@ -18,7 +18,7 @@
 from rich.console import Console
 
 # Bittensor code and protocol version.
-__version__ = '1.7.5'
+__version__ = '2.0.2'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
@@ -39,7 +39,7 @@ __blocktime__ = 12
 __networks__ = [ 'local', 'nobunaga', 'akatsuki', 'nakamoto']
 
 __nakamoto_entrypoints__ = [
-    "main.nakamoto.opentensor.ai:9944"
+    "entrypointnetworkloadbalancer-21fe5fbdc08425ca.elb.us-east-2.amazonaws.com:9944"
 ]
 
 __akatsuki_entrypoints__ = [

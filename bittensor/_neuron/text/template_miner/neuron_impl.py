@@ -29,10 +29,11 @@ import torch
 import traceback
 import sys
 import wandb
-
 from termcolor import colored
 from qqdm import qqdm, format_str
-from loguru import logger; logger = logger.opt(colors=True)
+from loguru import logger
+logger = logger.opt(colors=True)
+
 from types import SimpleNamespace
 from torch.nn.utils import clip_grad_norm_
 import torch.nn as nn
@@ -60,7 +61,7 @@ class Neuron:
         )
         self.device = torch.device( device = self.config.neuron.device )
         self.nucleus = nucleus.to(self.device)
-        self.nucleus.metagraph = self.metagraph
+        self.nucleus.metagraph = self.metagraph_callback
         self.nucleus.dendrite = self.dendrite
         self.optimizer = torch.optim.SGD(
             [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
@@ -89,8 +90,7 @@ class Neuron:
 
     def __enter__(self):
         self.wallet.create()
-        self.wallet.register()
-        self.metagraph.sync().save()
+        self.subtensor.register( self.wallet )
         self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
             subtensor = self.subtensor
@@ -114,8 +114,7 @@ class Neuron:
                 )
 
             # ---- Init run state ----
-            self.epoch = 0            
-            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
+            self.epoch = 0   
 
             # ---- reloads previous run if not restart ----
             if self.config.neuron.restart:
@@ -130,6 +129,8 @@ class Neuron:
                 self.reload()
                 self.axon.check()
             
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
+
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:
                 try:
@@ -154,7 +155,6 @@ class Neuron:
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
-                            
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
                             output = self.nucleus.remote_forward (
@@ -184,7 +184,7 @@ class Neuron:
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
                             chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
-                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32)]), requires_grad=False)
+                                self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, device = self.device)]), requires_grad=False)
                             self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
                             self.stats.scores = scores
 
@@ -297,11 +297,21 @@ class Neuron:
                     the request type ('FORWARD' or 'BACKWARD').
         """
         # Blacklist requests from peers who are not subscribed or have stake less that black_list
-        uid = self.metagraph.hotkeys.index( pubkey )
-        if self.metagraph.S[uid].item() > self.config.neuron.blacklist:
-            return False
+        is_registered = pubkey in self.metagraph.hotkeys
+
+        # If we allow non-registered requests return False = not blacklisted.
+        if not is_registered:
+            if self.config.neuron.blacklist_allow_non_registered:
+                return False
+            else:
+                return True
         else:
-            return True
+            # Else, get stake and check is above blacklist stake min.
+            uid = self.metagraph.hotkeys.index( pubkey )
+            if self.metagraph.S[uid].item() >= self.config.neuron.blacklist:
+                return False
+            else:
+                return True
 
     def checkpoint( self ):
         r""" Optionally Saves, updates and then reloads the miner training state.
@@ -334,7 +344,8 @@ class Neuron:
         
         # --- Loads and syncs metagraph.
         try:
-            self.metagraph.load().sync().save()
+            self.metagraph.sync().save()
+            self.stats.last_sync_block= self.subtensor.get_current_block()
         except Exception as e:
             logger.error('Error in loading metagraph: {}'.format(e))
             self.metagraph.sync().save()
@@ -354,11 +365,17 @@ class Neuron:
             ).to(self.device)
         )
 
-        self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
+        try:
+            self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
+        except Exception as e:
+            logger.exception('Failed to load nucleus state with error, updating the current state')
+            state_dict['nucleus_state'] = self.nucleus.state_dict()
+            torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
+
+        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True, device = self.device)]))
         self.nucleus.to( self.device ) # Load nucleus
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
-        self.nucleus.metagraph = self.metagraph # Set local metagraph.
+        self.nucleus.metagraph = self.metagraph_callback # Set local metagraph.
         self.optimizer = torch.optim.SGD(
             [{"params": self.nucleus.parameters()}],
             lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
@@ -415,6 +432,9 @@ class Neuron:
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
+
+    def metagraph_callback(self):
+        return self.metagraph
 
     # ---- Training logs ----
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):

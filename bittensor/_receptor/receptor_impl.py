@@ -19,11 +19,12 @@
 
 import sys
 import time as clock
-from datetime import datetime
 from types import SimpleNamespace
 from typing import Tuple
 
 import torch
+import uuid
+import time
 import torch.nn as nn
 import grpc
 from loguru import logger
@@ -73,6 +74,7 @@ class Receptor(nn.Module):
         self.stub = stub
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
+        self.receptor_uid = str(uuid.uuid1())
         self.stats = SimpleNamespace(
             forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -611,14 +613,14 @@ class Receptor(nn.Module):
         r""" Uses the wallet pubkey to sign a message containing the pubkey and the time
         """
         nounce = self.nounce()
-        message  = nounce+str(self.wallet.hotkey.ss58_address) 
+        message  = str(nounce) + str(self.wallet.hotkey.ss58_address) + str(self.receptor_uid)
         spliter = 'bitxx'
-        signature = spliter.join([nounce,str(self.wallet.hotkey.ss58_address),self.wallet.hotkey.sign(message)])
+        signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), self.wallet.hotkey.sign(message), str(self.receptor_uid) ])
         return signature
     
     def nounce(self):
         r"""creates a string representation of the time
         """
-        nounce = datetime.now()
-        return nounce.strftime(format= '%m%d%Y%H%M%S%f')
+        nounce = int(time.time() * 1000)
+        return nounce
         
