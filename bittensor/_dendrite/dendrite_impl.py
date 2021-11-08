@@ -231,8 +231,8 @@ class Dendrite( torch.autograd.Function ):
                     times per call.
 
         """
-        timeout = timeout if timeout != None else self.config.dendrite.timeout 
-        requires_grad = requires_grad if requires_grad != None else self.config.dendrite.requires_grad 
+        timeout = timeout if timeout is not None else self.config.dendrite.timeout
+        requires_grad = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
         forward_response = Dendrite.apply(
             self,
             DUMMY, 
