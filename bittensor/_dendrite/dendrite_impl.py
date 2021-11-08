@@ -202,7 +202,7 @@ class Dendrite(torch.autograd.Function):
             modality: bittensor.proto.Modality,
             timeout: int = None,
             requires_grad: bool = None
-    ) -> Tuple[torch.LongTensor, List[torch.Tensor]]:
+    ) -> Tuple[List[torch.Tensor], torch.LongTensor, torch.FloatTensor]:
         r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
             Args:
@@ -246,8 +246,8 @@ class Dendrite(torch.autograd.Function):
         )
         codes = forward_response[0]
         times = forward_response[1]
-        tensors = forward_response[2:]
-        return tensors, codes, times
+        responses = forward_response[2:]
+        return responses, codes, times
 
     def forward_image(
             self,
