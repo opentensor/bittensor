@@ -99,7 +99,7 @@ class Nucleus(nn.Module):
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
         peer_weights_d1 = torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-        if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph.n.item()) # None if no grad w.r.t the chain weights.
+        if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
         peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
         validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
         return validator_scores
@@ -212,18 +212,18 @@ class Nucleus(nn.Module):
         """
 
         # ---- Get active peers and their weights ---- 
-        active_uids = torch.where(self.metagraph.active > 0)[0]
+        active_uids = torch.where(self.metagraph().active > 0)[0]
         active_peer_weights = self.peer_weights[active_uids]
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
-        real_topk = min( self.config.nucleus.topk, self.metagraph.n.item(), len(active_uids))
+        real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
         std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.noise_offset
         noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device )
         topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
 
         # ---- Filter endpoints ----
-        endpoints = self.metagraph.endpoints[ topk_uids ]
+        endpoints = self.metagraph().endpoints[ topk_uids ]
 
         # ---- Query network ----
         responses, return_ops, query_times = self.dendrite.forward_text (

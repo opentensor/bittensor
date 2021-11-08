@@ -21,6 +21,7 @@ from typing import List, Dict, Union
 from multiprocessing import Process
 
 import bittensor
+from tqdm import tqdm
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 from substrateinterface import SubstrateInterface
@@ -153,6 +154,28 @@ To run a local node (See: docs/running_a_validator.md) \n
         with self.substrate as substrate:
             return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
 
+    @property
+    def n (self) -> int:
+        r""" Returns total number of neurons on the chain.
+        Returns:
+            n (int):
+                Total number of neurons on chain.
+        """
+        with self.substrate as substrate:
+            return substrate.query(  module='SubtensorModule', storage_function = 'N').value
+
+    def get_n (self, block: int = None) -> int:
+        r""" Returns total number of neurons on the chain.
+        Returns:
+            n (int):
+                Total number of neurons on chain.
+        """
+        with self.substrate as substrate:
+            return substrate.query(  
+                module='SubtensorModule', 
+                storage_function = 'N',
+                block_hash = None if block == None else substrate.get_block_hash( block )
+            ).value
 
     @property
     def block (self) -> int:
@@ -638,7 +661,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         if response.is_success:
             with bittensor.__console__.status(":satellite: Checking Balance on: ([white]{}[/white] ...".format(self.network)):
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
-                new_stake = bittensor.Balance.from_tao( self.neuron_for_uid( uid = neuron.uid, ss58_hotkey = wallet.hotkey.ss58_address ).stake)
+                block = self.get_current_block()
+                new_stake = bittensor.Balance.from_tao( self.neuron_for_uid( uid = neuron.uid, block = block ).stake)
                 bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
@@ -757,45 +781,26 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return_dict[r[0].value] = bal
             return return_dict
 
-    def neurons(self, block: int = None) -> List[SimpleNamespace]: 
+    def neurons(self, block: int = None, page_size: int = 100) -> List[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
+        Args:
+            block (int):
+                block to sync from.
+            page_size (int):
+                Number of neuron entries to return each step of the sync.
         Returns:
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
         with self.substrate as substrate:
-            page_results = substrate.query_map (
-                module='SubtensorModule',
-                storage_function='Neurons',
-                page_size = 100,
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            result = []
-            for page in page_results :
-                for n in page:
-                    if type(n.value) != int:
-                        n = Subtensor._neuron_dict_to_namespace( n.value )
-                        if n.hotkey == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
-                            n.is_null = True
-                        else:
-                            n.is_null = False
-                        result.append( n )
-            return result
-
-    @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
-        RAOPERTAO = 1000000000
-        U64MAX = 18446744073709551615
-        neuron = SimpleNamespace( **neuron_dict )
-        neuron.stake = neuron.stake / RAOPERTAO
-        neuron.rank = neuron.rank / U64MAX
-        neuron.trust = neuron.trust / U64MAX
-        neuron.consensus = neuron.consensus / U64MAX
-        neuron.incentive = neuron.incentive / U64MAX
-        neuron.dividends = neuron.dividends / U64MAX
-        neuron.emission = neuron.emission / RAOPERTAO
-        neuron.is_null = False
-        return neuron
+            neurons = []
+            for id in tqdm(range(self.get_n( block ))): 
+                try:
+                    neuron = self.neuron_for_uid(id, block)
+                    neurons.append( neuron )
+                except Exception as e:
+                    break
+            return neurons
 
     @staticmethod
     def _null_neuron() -> SimpleNamespace:
@@ -823,7 +828,25 @@ To run a local node (See: docs/running_a_validator.md) \n
         neuron.hotkey = "000000000000000000000000000000000000000000000000"
         return neuron
 
-    def neuron_for_uid( self, uid: int, ss58_hotkey: str = None, block: int = None ) -> Union[ dict, None ]: 
+    @staticmethod
+    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
+        if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
+            return Subtensor._null_neuron()
+        else:
+            RAOPERTAO = 1000000000
+            U64MAX = 18446744073709551615
+            neuron = SimpleNamespace( **neuron_dict )
+            neuron.stake = neuron.stake / RAOPERTAO
+            neuron.rank = neuron.rank / U64MAX
+            neuron.trust = neuron.trust / U64MAX
+            neuron.consensus = neuron.consensus / U64MAX
+            neuron.incentive = neuron.incentive / U64MAX
+            neuron.dividends = neuron.dividends / U64MAX
+            neuron.emission = neuron.emission / RAOPERTAO
+            neuron.is_null = False
+            return neuron
+
+    def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
@@ -836,10 +859,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         # Make the call.
         with self.substrate as substrate:
-            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ]).value )
+            neuron = dict( substrate.query( 
+                module='SubtensorModule',  
+                storage_function='Neurons', 
+                params = [ uid ], 
+                block_hash = None if block == None else substrate.get_block_hash( block )
+            ).value )
         neuron = Subtensor._neuron_dict_to_namespace( neuron )
-        if neuron.hotkey != ss58_hotkey:
-            neuron = Subtensor._null_neuron()
         return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
@@ -862,7 +888,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Process the result.
         uid = int(result.value)
         if uid == 0:
-            neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
+            neuron = self.neuron_for_uid( uid, block)
             if neuron.is_null:
                 return -1
             else:
@@ -904,8 +930,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             )
             # Get response uid. This will be zero if it doesn't exist.
             uid = int(result.value)
-            neuron = self.neuron_for_uid( uid, ss58_hotkey, block)
-            return neuron
+            neuron = self.neuron_for_uid( uid, block )
+            if neuron.hotkey != ss58_hotkey:
+                return Subtensor._null_neuron()
+            else:
+                return neuron
 
     def get_n( self, block: int = None ) -> int: 
         r""" Returns the number of neurons on the chain at block.
