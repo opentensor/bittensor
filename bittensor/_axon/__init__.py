@@ -21,8 +21,8 @@ import argparse
 import os
 import copy
 import inspect
+import time
 from concurrent import futures
-from datetime import datetime,timedelta
 from typing import List, Callable
 from bittensor._threadpool import prioritythreadpool
 
@@ -125,7 +125,6 @@ class axon:
             priority_threadpool = bittensor.prioritythreadpool(config=config)
         else: 
             priority_threadpool = None
-
 
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
@@ -300,26 +299,28 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r"""vertification of signature in metadata. Uses the pubkey and nounce
         """
         variable_length_messages = meta[1].value.split('bitxx')
-        nounce = variable_length_messages[0]
+        nounce = int(variable_length_messages[0])
         pubkey = variable_length_messages[1]
         message = variable_length_messages[2]
-        data_time = datetime.strptime(nounce,'%m%d%Y%H%M%S%f')
+        unique_receptor_uid = variable_length_messages[3]
         _keypair = Keypair(ss58_address=pubkey)
 
+        # Unique key that specifies the endpoint.
+        endpoint_key = str(pubkey) + str(unique_receptor_uid)
         
         #checking the time of creation, compared to previous messages
-        if pubkey in self.nounce_dic.keys():
-            prev_data_time = self.nounce_dic[pubkey]
-            if data_time - prev_data_time >= timedelta(milliseconds=1):
-                self.nounce_dic[pubkey] = data_time
+        if endpoint_key in self.nounce_dic.keys():
+            prev_data_time = self.nounce_dic[ endpoint_key ]
+            if nounce - prev_data_time > 0:
+                self.nounce_dic[ endpoint_key ] = nounce
 
                 #decrypting the message and verify that message is correct
-                verification = _keypair.verify(nounce+pubkey, message)
+                verification = _keypair.verify( str(nounce) + str(pubkey) + str(unique_receptor_uid), message)
             else:
                 verification = False
         else:
-            self.nounce_dic[pubkey] = data_time
-            verification = _keypair.verify(nounce+pubkey,message)
+            self.nounce_dic[ endpoint_key ] = nounce
+            verification = _keypair.verify( str( nounce ) + str(pubkey) + str(unique_receptor_uid), message)
 
         return verification
 
@@ -342,8 +343,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def black_list_checking(self,meta):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 
         """
-        _, pubkey, _ = meta[1].value.split('bitxx')
-
+        variable_length_messages = meta[1].value.split('bitxx')
+        pubkey = variable_length_messages[1]
+        
         if self.blacklist == None:
             pass
         #TODO: Turn on blacklisting

@@ -234,7 +234,7 @@ class Wallet():
                 This wallet.
         """
         # Get chain connection.
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
         
         return self
@@ -265,7 +265,7 @@ class Wallet():
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def remove_stake( self, 
@@ -294,7 +294,7 @@ class Wallet():
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def transfer( 
@@ -328,7 +328,7 @@ class Wallet():
                     flag is true if extrinsic was finalized or uncluded in the block. 
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki') 
+        if subtensor == None: subtensor = bittensor.subtensor() 
         return subtensor.transfer( wallet = self, dest = dest, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = False) -> 'Wallet':

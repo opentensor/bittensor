@@ -48,10 +48,10 @@ def solve_for_difficulty_fast( subtensor ):
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty
     block_hash = subtensor.substrate.get_block_hash( block_number )
-
+    block_bytes = block_hash.encode('utf-8')[2:]
+    
     meets = False
     nonce = -1
-    block_bytes = block_hash.encode('utf-8')[2:]
     limit = int(math.pow(2,256) - 1)
     best = math.inf
     update_interval = 100000
@@ -82,6 +82,7 @@ def solve_for_difficulty_fast( subtensor ):
                 difficulty = subtensor.difficulty
                 block_number = subtensor.get_current_block()
                 block_hash = subtensor.substrate.get_block_hash( block_number)
+                block_bytes = block_hash.encode('utf-8')[2:]
                 status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, int(itrs_per_sec), difficulty, block_hash.encode('utf-8'), binascii.hexlify(best_seal) ))
       
 
