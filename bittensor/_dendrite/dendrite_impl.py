@@ -210,7 +210,7 @@ class Dendrite(torch.autograd.Function):
                     List of remote endpoints which match length of inputs. Tensors from inputs are sent forward to these endpoints.
 
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
-                    List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
+                    List of tensors to send to corresponding endpoints. Tensors are of arbitrary type and shape depending on the
                     modality.
 
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
@@ -263,7 +263,7 @@ class Dendrite(torch.autograd.Function):
                     List or single of endpoints which match the length of inputs. Inputs are sent forward to these endpoints.
 
                 inputs (:obj:`Union[List[torch.FloatTensor], torch.FloatTensor]` of shape :obj:`(num_endpoints * [ batch_size, sequence_len, channels, rows, cols ])`, `required`):
-                    List or single of image-tensors to send to corresponsing endpoints. Tensors are images encoded using the
+                    List or single of image-tensors to send to corresponding endpoints. Tensors are images encoded using the
                     torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
 
                 timeout (int, default = dendrite.timeout `optional`):
@@ -308,9 +308,9 @@ class Dendrite(torch.autograd.Function):
 
         # Check length.
         if len(inputs) < 1:
-            raise ValueError('inputs list must have atleast one element. Got len {}'.format(len(inputs)))
+            raise ValueError('inputs list must have at least one element. Got len {}'.format(len(inputs)))
         if len(endpoints) < 1:
-            raise ValueError('endpoints list must have atleast one item. Got len {}'.format(len(endpoints)))
+            raise ValueError('endpoints list must have at least one item. Got len {}'.format(len(endpoints)))
         if len(inputs) != len(endpoints):
             error_msg = 'List of tensor inputs should have the same length as passed destination endpoints, got {} and {}'.format(
                 len(inputs), len(endpoints))
@@ -359,7 +359,7 @@ class Dendrite(torch.autograd.Function):
                     List or single of endpoints which match the length of inputs. Inputs are sent forward to these endpoints.
 
                 inputs (:obj:`Union[List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
-                    List or single tensors to send to corresponsing endpoints. Tensors are of float type and
+                    List or single tensors to send to corresponding endpoints. Tensors are of float type and
                     with shape [batch_size, sequence_len, bittensor.__network_dim__].
 
                 timeout (int, default = dendrite.timeout `optional`):
@@ -404,9 +404,9 @@ class Dendrite(torch.autograd.Function):
 
         # Check length.
         if len(inputs) < 1:
-            raise ValueError('inputs list must have atleast one element. Got len {}'.format(len(inputs)))
+            raise ValueError('inputs list must have at least one element. Got len {}'.format(len(inputs)))
         if len(endpoints) < 1:
-            raise ValueError('endpoints list must have atleast one item. Got len {}'.format(len(endpoints)))
+            raise ValueError('endpoints list must have at least one item. Got len {}'.format(len(endpoints)))
         if len(inputs) != len(endpoints):
             error_msg = 'List of tensor inputs should have the same length as passed destination endpoints, got {} and {}'.format(
                 len(inputs), len(endpoints))
@@ -503,7 +503,7 @@ class Dendrite(torch.autograd.Function):
             if not (isinstance(tensor_input, torch.cuda.LongTensor) or isinstance(tensor_input, torch.LongTensor)):
                 raise ValueError(
                     'input {} must be of type torch.LongTensor. Got {}'.format(tensor_input, type(tensor_input)))
-            # Expand shape if it is a singlular dimension.
+            # Expand shape if it is a singular dimension.
             if len(tensor_input.shape) == 1:
                 tensor_input = tensor_input.view(1, -1)
 
@@ -615,8 +615,7 @@ class Dendrite(torch.autograd.Function):
         return responses, codes, times
 
     def update_stat(self, endpoints, return_ops, query_times):
-        r""" Update dendrite stat according to the response we get from peers.
-        Updates were saved to self.stats.
+        r""" Update dendrite stat according to the response we get from peers. Updates were saved to self.stats.
             Args:
                 endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
                     The set of endpoints that dendrite sent request to.
@@ -630,7 +629,7 @@ class Dendrite(torch.autograd.Function):
         # ---- uids that we have sent request to.
         uids = torch.tensor([e.uid for e in endpoints])
 
-        # ---- uids that gave us successful respond.
+        # ---- uids that gave us a successful response.
         success_ids = torch.where(return_ops == bittensor.proto.ReturnCode.Success)[0]
 
         # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
@@ -644,7 +643,7 @@ class Dendrite(torch.autograd.Function):
                 self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
                 self.stats.peers_respond_time[uid] = stat_utils.timed_rolling_avg(time, 0.01)
 
-        # --- Aggregating result to stats
+        # ---- Aggregating result to stats
         for uid in uids[success_ids]:
             if uid in self.stats.requested_peers_count.keys():
                 self.stats.responded_peers_count[uid].update(1)
