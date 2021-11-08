@@ -41,6 +41,7 @@ def nill_response_for(inputs):
         return torch.tensor([])
     return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
+
 class Dendrite( torch.autograd.Function ):
     r""" This is the implementation class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
     which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
