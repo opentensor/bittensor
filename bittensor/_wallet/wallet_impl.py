@@ -28,16 +28,16 @@ from substrateinterface import Keypair
 from termcolor import colored
 import bittensor
 
-def display_mnemonic_msg( kepair : Keypair ):
+def display_mnemonic_msg( keypair : Keypair, key_type : str ):
     """ Displaying the mnemonic and warning message to keep mnemonic safe
     """
-    mnemonic = kepair.mnemonic
+    mnemonic = keypair.mnemonic
     mnemonic_green = colored(mnemonic, 'green')
     print (colored("\nIMPORTANT: Store this mnemonic in a secure (preferable offline place), as anyone " \
                 "who has possesion of this mnemonic can use it to regenerate the key and access your tokens. \n", "red"))
-    print ("The mnemonic to the new key is:\n\n%s\n" % mnemonic_green)
+    print ("The mnemonic to the new {} is:\n\n{}\n".format(key_type, mnemonic_green))
     print ("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
-    print("bittensor-cli regen --mnemonic %s" % mnemonic)
+    print("btcli regen_{} --mnemonic {}".format(key_type, mnemonic))
     print('')
 
 class Wallet():
@@ -449,7 +449,7 @@ class Wallet():
                     this object with newly created coldkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair )
+        display_mnemonic_msg( keypair, "coldkey" )
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
@@ -468,7 +468,7 @@ class Wallet():
                     this object with newly created hotkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
@@ -502,7 +502,7 @@ class Wallet():
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "coldkey" )
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
@@ -537,7 +537,7 @@ class Wallet():
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
@@ -573,7 +573,7 @@ class Wallet():
         if len(mnemonic) not in [12,15,18,21,24]:
             raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
         keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "coldkey" )
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
@@ -610,6 +610,6 @@ class Wallet():
         if len(mnemonic) not in [12,15,18,21,24]:
             raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
         keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self 
