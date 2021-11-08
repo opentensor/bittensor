@@ -661,7 +661,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         if response.is_success:
             with bittensor.__console__.status(":satellite: Checking Balance on: ([white]{}[/white] ...".format(self.network)):
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
-                new_stake = bittensor.Balance.from_tao( self.neuron_for_uid( uid = neuron.uid, ss58_hotkey = wallet.hotkey.ss58_address ).stake)
+                block = self.get_current_block()
+                new_stake = bittensor.Balance.from_tao( self.neuron_for_uid( uid = neuron.uid, block = block ).stake)
                 bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
@@ -802,21 +803,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             return neurons
 
     @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
-        RAOPERTAO = 1000000000
-        U64MAX = 18446744073709551615
-        neuron = SimpleNamespace( **neuron_dict )
-        neuron.stake = neuron.stake / RAOPERTAO
-        neuron.rank = neuron.rank / U64MAX
-        neuron.trust = neuron.trust / U64MAX
-        neuron.consensus = neuron.consensus / U64MAX
-        neuron.incentive = neuron.incentive / U64MAX
-        neuron.dividends = neuron.dividends / U64MAX
-        neuron.emission = neuron.emission / RAOPERTAO
-        neuron.is_null = False
-        return neuron
-
-    @staticmethod
     def _null_neuron() -> SimpleNamespace:
         neuron = SimpleNamespace()
         neuron.active = 0   
@@ -842,6 +828,24 @@ To run a local node (See: docs/running_a_validator.md) \n
         neuron.hotkey = "000000000000000000000000000000000000000000000000"
         return neuron
 
+    @staticmethod
+    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
+        if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
+            return Subtensor._null_neuron()
+        else:
+            RAOPERTAO = 1000000000
+            U64MAX = 18446744073709551615
+            neuron = SimpleNamespace( **neuron_dict )
+            neuron.stake = neuron.stake / RAOPERTAO
+            neuron.rank = neuron.rank / U64MAX
+            neuron.trust = neuron.trust / U64MAX
+            neuron.consensus = neuron.consensus / U64MAX
+            neuron.incentive = neuron.incentive / U64MAX
+            neuron.dividends = neuron.dividends / U64MAX
+            neuron.emission = neuron.emission / RAOPERTAO
+            neuron.is_null = False
+            return neuron
+
     def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
         Args:
@@ -855,7 +859,12 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         # Make the call.
         with self.substrate as substrate:
-            neuron = dict( substrate.query( module='SubtensorModule',  storage_function='Neurons', params = [ uid ], block_hash = substrate.get_block_hash( block )).value )
+            neuron = dict( substrate.query( 
+                module='SubtensorModule',  
+                storage_function='Neurons', 
+                params = [ uid ], 
+                block_hash = None if block == None else substrate.get_block_hash( block )
+            ).value )
         neuron = Subtensor._neuron_dict_to_namespace( neuron )
         return neuron
 
@@ -921,8 +930,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             )
             # Get response uid. This will be zero if it doesn't exist.
             uid = int(result.value)
-            neuron = self.neuron_for_uid( uid, block)
-            return neuron
+            neuron = self.neuron_for_uid( uid, block )
+            if neuron.hotkey != ss58_hotkey:
+                return Subtensor._null_neuron()
+            else:
+                return neuron
 
     def get_n( self, block: int = None ) -> int: 
         r""" Returns the number of neurons on the chain at block.
