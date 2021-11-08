@@ -674,10 +674,6 @@ class Dendrite(torch.autograd.Function):
         wandb_table = wandb.Table(data=response_stats, columns=['uids', 'query_times', 'return_ops', 'return_ops_str'])
         wandb_info['query_times'] = wandb.plot.histogram(wandb_table, 'query_times', 'Dendrite query response times')
 
-        self.stats.uids = []  # clear for next logging step
-        self.stats.return_ops = []  # clear for next logging step
-        self.stats.query_times = []  # clear for next logging step
-
         # ---- Dendrite stats per pubkey for wandb 
         for uid in self.stats.requested_peers_count.keys():
             respond_rate = self.stats.responded_peers_count[uid].value / self.stats.requested_peers_count[uid].value
