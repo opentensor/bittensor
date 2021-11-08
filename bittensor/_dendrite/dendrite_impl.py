@@ -27,6 +27,9 @@ from loguru import logger
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
 import bittensor.utils.stats as stat_utils
+import bittensor.utils.codes as codes
+
+import wandb
 
 logger = logger.opt(colors=True)
 
@@ -79,6 +82,9 @@ class Dendrite(torch.autograd.Function):
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
         self.stats = SimpleNamespace(
+            uids=[],
+            return_ops=[],
+            query_times=[],
             requested_peers_count={},
             responded_peers_count={},
             peers_respond_time={}
@@ -650,6 +656,10 @@ class Dendrite(torch.autograd.Function):
             else:
                 self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
+        self.stats.uids += uids.tolist()
+        self.stats.return_ops += return_ops.tolist()
+        self.stats.query_times += query_times.tolist()
+
     def to_wandb(self):
         r""" Return a dictionary of axon stat for wandb logging
             
@@ -658,12 +668,22 @@ class Dendrite(torch.autograd.Function):
         """
         wandb_info = {}
 
+        # ---- Dendrite response histograms for return_ops and query_times
+        response_stats = [[u, t, r, codes.code_to_string(r)] for u, t, r in
+                          zip(self.stats.uids, self.stats.query_times, self.stats.return_ops)]
+        wandb_table = wandb.Table(data=response_stats, columns=['uids', 'query_times', 'return_ops', 'return_ops_str'])
+        wandb_info['query_times'] = wandb.plot.histogram(wandb_table, 'query_times', 'Dendrite query response times')
+
+        self.stats.uids = []  # clear for next logging step
+        self.stats.return_ops = []  # clear for next logging step
+        self.stats.query_times = []  # clear for next logging step
+
         # ---- Dendrite stats per pubkey for wandb 
         for uid in self.stats.requested_peers_count.keys():
             respond_rate = self.stats.responded_peers_count[uid].value / self.stats.requested_peers_count[uid].value
 
             uid_str = str(uid.item()).zfill(3)
-            wandb_info[f'dend_quested uid: {uid_str}'] = self.stats.requested_peers_count[uid].value
+            wandb_info[f'dend_requested uid: {uid_str}'] = self.stats.requested_peers_count[uid].value
             wandb_info[f'dend_responded uid: {uid_str}'] = self.stats.responded_peers_count[uid].value
             wandb_info[f'dend_respond_time uid: {uid_str}'] = self.stats.peers_respond_time[uid].value
             wandb_info[f'dend_respond_rate uid: {uid_str}'] = respond_rate
