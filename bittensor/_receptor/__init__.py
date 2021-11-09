@@ -54,7 +54,7 @@ class receptor:
         json_config = json.dumps({
             "methodConfig": [{
                 "name": [{
-                    "service": "Bittensor"
+                    "service": "Bittensor.stub"
                 }],
                 "retryPolicy": {
                     "maxAttempts": 3,
