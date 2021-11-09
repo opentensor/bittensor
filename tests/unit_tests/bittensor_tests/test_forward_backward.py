@@ -160,7 +160,7 @@ def test_axon_receptor_forward_works():
         port = 8080,
         ip = '0.0.0.0',
         wallet = wallet,
-        maximum_concurrent_rpcs = 500
+        maximum_concurrent_rpcs = 100
     )
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
