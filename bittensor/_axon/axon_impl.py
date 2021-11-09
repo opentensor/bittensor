@@ -180,6 +180,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     message associated with forward call, potentially error, or 'success'.
 
         """
+        print(self.server._state.active_rpc_count, self.server._state.rpc_states, self.server._state.due)
+
         # Check forward has been subscribed.
         if self.forward_callback[modality] == None:
             message = "Forward callback is not yet subscribed on this axon."
