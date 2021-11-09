@@ -101,6 +101,16 @@ def get_external_ip() -> str:
         return str(external_ip)
     except Exception:
         pass
+    
+    # --- Try myip.dnsomatic 
+    try:
+        process = os.popen('curl -s myip.dnsomatic.com')
+        external_ip  = process.readline()
+        process.close()
+        assert isinstance(ip_to_int(external_ip), int)
+        return str(external_ip)
+    except Exception:
+        pass    
 
     # --- Try ipify
     try:
@@ -117,16 +127,6 @@ def get_external_ip() -> str:
         return str(external_ip)
     except Exception:
         pass
-
-    # --- Try myip.dnsomatic 
-    try:
-        process = os.popen('curl -s myip.dnsomatic.com')
-        external_ip  = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass    
 
     # --- Try urllib ipv6 
     try:
