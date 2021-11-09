@@ -54,7 +54,9 @@ class receptor:
         channel = grpc.insecure_channel(
             endpoint_str,
             options=[('grpc.max_send_message_length', -1),
-                     ('grpc.max_receive_message_length', -1)])
+                     ('grpc.max_receive_message_length', -1),
+                     ('grpc.keepalive_time_ms', 100000),
+                     ('grpc.keepalive_timeout_ms', 200000)])
         stub = bittensor.grpc.BittensorStub( channel )
         return receptor_impl.Receptor( 
             endpoint = endpoint,

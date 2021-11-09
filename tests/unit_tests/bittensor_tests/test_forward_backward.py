@@ -143,7 +143,50 @@ def test_dendrite_backward_multiple():
     assert x3.grad.tolist() == y3.tolist()
 
 
+wallet =  bittensor.wallet (
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+) 
+
+wallet.create_new_coldkey( use_password=False, overwrite = True)
+wallet.create_new_hotkey( use_password=False, overwrite = True)
+
+logger = bittensor.logging(debug = True)
+def test_axon_receptor_forward_works():
+    def forward( inputs_x:torch.FloatTensor):
+        return torch.zeros([3, 3, bittensor.__network_dim__])
+    axon = bittensor.axon (
+        port = 8080,
+        ip = '0.0.0.0',
+        wallet = wallet,
+    )
+    axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
+    axon.start()
+    endpoints = []
+    for i in range(1000):
+        endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = 1,
+            hotkey = 'hi'+str(i),
+            ip = '0.0.0.0', 
+            ip_type = 4, 
+            port = 8080, 
+            modality = 0, 
+            coldkey = ''
+        )
+        endpoints += [endpoint]
+    dendrite = bittensor.dendrite()
+    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
+    state = dendrite.receptor_pool.receptors['hi'].state()
+    assert state not in [state.SHUTDOWN, state.IDLE, state.TRANSIENT_FAILURE , state.CONNECTING]
+    assert state == state.READY
+    assert codes[0].item() == bittensor.proto.ReturnCode.Success
+    assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
+
+
 if __name__  == "__main__":
-    test_dendrite_backward_multiple()
+    test_axon_receptor_forward_works()
     #test_dendrite_backward_large()
 
