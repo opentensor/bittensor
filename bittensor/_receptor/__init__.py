@@ -54,10 +54,10 @@ class receptor:
         json_config = json.dumps({
             "methodConfig": [{
                 "name": [{
-                    "service": "bittensor.BittensorStub"
+                    "service": "Bittensor"
                 }],
                 "retryPolicy": {
-                    "maxAttempts": 100,
+                    "maxAttempts": 3,
                     "initialBackoff": "0.1s",
                     "maxBackoff": "10s",
                     "backoffMultiplier": 2,
