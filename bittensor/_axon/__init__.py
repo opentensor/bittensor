@@ -116,6 +116,8 @@ class axon:
             server = grpc.server( thread_pool,
                                   interceptors=(AuthInterceptor(blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
+                                  options = [('grpc.keepalive_time_ms', 100000),
+                                             ('grpc.keepalive_timeout_ms', 200000)]
                                 )
 
         forwards = [forward_text, forward_image, forward_tensor]
