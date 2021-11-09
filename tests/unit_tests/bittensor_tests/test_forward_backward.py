@@ -176,10 +176,10 @@ def test_axon_receptor_forward_works():
             coldkey = ''
         )
         endpoints += [endpoint]
-    dendrite = bittensor.dendrite()
+    dendrite = bittensor.dendrite(max_active_receptors= 10)
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
-    state = dendrite.receptor_pool.receptors['hi0'].state()
+    state = dendrite.receptor_pool.receptors['hi100'].state()
     assert state not in [state.SHUTDOWN, state.IDLE, state.TRANSIENT_FAILURE , state.CONNECTING]
     assert state == state.READY
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
