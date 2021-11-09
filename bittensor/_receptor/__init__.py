@@ -54,7 +54,7 @@ class receptor:
         json_config = json.dumps({
             "methodConfig": [{
                 "retryPolicy": {
-                    "maxAttempts": 5,
+                    "maxAttempts": 100,
                     "initialBackoff": "0.1s",
                     "maxBackoff": "10s",
                     "backoffMultiplier": 2,
