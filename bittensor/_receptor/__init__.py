@@ -58,7 +58,7 @@ class receptor:
                 }],
                 "retryPolicy": {
                     "maxAttempts": 3,
-                    "initialBackoff": "0.1s",
+                    "initialBackoff": "0.5s",
                     "maxBackoff": "10s",
                     "backoffMultiplier": 2,
                     "retryableStatusCodes": ["RESOURCE_EXHAUSTED"],
