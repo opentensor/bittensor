@@ -155,18 +155,19 @@ wallet.create_new_hotkey( use_password=False, overwrite = True)
 logger = bittensor.logging(debug = True)
 def test_axon_receptor_forward_works():
     def forward( inputs_x:torch.FloatTensor):
+        
         time.sleep(0.2)
         return torch.zeros([3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         port = 8080,
         ip = '0.0.0.0',
         wallet = wallet,
-        maximum_concurrent_rpcs = 10
+        maximum_concurrent_rpcs = 50
     )
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
     endpoints = []
-    for i in range(500):
+    for i in range(200):
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
             uid = 1,
