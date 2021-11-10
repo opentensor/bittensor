@@ -27,6 +27,7 @@ import torch
 import time
 import wandb
 import datetime
+from threading import Lock
 
 def serve( config, server ):
     config.to_defaults()
@@ -52,6 +53,7 @@ def serve( config, server ):
         lr = config.server.learning_rate,
         momentum = config.server.momentum,
     )
+    mutex = Lock()
 
     def forward_text ( inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
@@ -63,15 +65,16 @@ def serve( config, server ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.             
         """
-        with torch.enable_grad():
-            with torch.autograd.set_detect_anomaly(True):
-                outputs_y = model.encode_forward( inputs_x )
-                torch.autograd.backward (
-                    tensors = [ outputs_y ],
-                    grad_tensors = [ grads_dy ]
-                    )
-                optimizer.step()
-                optimizer.zero_grad()
+        with mutex:
+            with torch.enable_grad():
+                with torch.autograd.set_detect_anomaly(True):
+                    outputs_y = model.encode_forward( inputs_x )
+                    torch.autograd.backward (
+                        tensors = [ outputs_y ],
+                        grad_tensors = [ grads_dy ]
+                        )
+                    optimizer.step()
+                    optimizer.zero_grad()
 
     # Create our axon server and subscribe it to the network.
     axon = bittensor.axon (

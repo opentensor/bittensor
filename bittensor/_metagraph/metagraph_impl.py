@@ -382,8 +382,8 @@ class Metagraph( torch.nn.Module ):
         """
         if block == None:
             block = self.subtensor.get_current_block()
-            n_total = self.subtensor.get_n( )
-            neurons = self.subtensor.neurons()
+            n_total = self.subtensor.get_n( block = block )
+            neurons = self.subtensor.neurons( block = block )
         else:
             n_total = self.subtensor.get_n( block = block )
             neurons = self.subtensor.neurons( block = block )
