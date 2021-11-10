@@ -205,6 +205,10 @@ if [[ "$OS" == "Linux" ]]; then
     linux_install_python
     linux_update_pip
     linux_install_bittensor
+
+    ohai "Would you like to increase the ulimit? This will allow your miner to run for a longer time"
+    wait_for_user
+    linux_increase_ulimit
     echo ""
     echo ""
     echo "######################################################################"
@@ -299,9 +303,5 @@ echo "- Join the discussion: "
 echo "    ${tty_underline}https://discord.gg/3rUr6EcvbB${tty_reset}"
 echo ""
 
-if [[ "$OS" == "Linux" ]]; then
-    ohai "Would you like to increase the ulimit? This will allow your miner to run for a longer time"
-    wait_for_user
-    linux_increase_ulimit
 
     
