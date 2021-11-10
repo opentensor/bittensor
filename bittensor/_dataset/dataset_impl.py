@@ -19,6 +19,7 @@
 
 import os
 import random
+from re import I
 
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
@@ -128,6 +129,7 @@ class GenesisTextDataset( Dataset ):
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
+        self.data_remained = []
 
         # Used to refresh corpus if we've exhausted the whole dataset
         self.refresh_corpus = True
@@ -277,7 +279,7 @@ class GenesisTextDataset( Dataset ):
 
         return text
 
-    def construct_text_corpus(self):
+    def construct_text_corpus(self, min_data_len = 0):
         """ Main function for generating the text data.
         1. Get directories from a random dataset_hash (dataset_hash is the result from calling pin/ls).
         2. Pick a random directory and get the directory that would lead to a datafile.    
@@ -302,10 +304,11 @@ class GenesisTextDataset( Dataset ):
             # --- Pick random directories and get their text contents.
             if directories:
                 total_dataset_size = 0
+                total_dataset_len = 0
                 i = 0
 
-                # --- Dont stop until the corpus size was reached.
-                while total_dataset_size <= self.max_corpus_size:
+                # --- Dont stop until the corpus size and the minimum data_length was reached.
+                while (total_dataset_size <= self.max_corpus_size) or (total_dataset_len < min_data_len):
                     # --- Get a directory that leads to a datafile.
                     random_datafile_dir = self.extract_datafile_dir(directories[directory_order[i]])
                     
@@ -319,9 +322,10 @@ class GenesisTextDataset( Dataset ):
                         text = None
 
                     if text != None:
-                        data_corpus.extend(text.split())
+                        text_list = text.split() 
+                        data_corpus.extend(text_list)
                         total_dataset_size += int(random_datafile_dir['Size'])
-
+                        total_dataset_len += len(text_list)
                     i += 1
 
                 return data_corpus
@@ -333,7 +337,7 @@ class GenesisTextDataset( Dataset ):
 
         return None
 
-    def dataloader(self, epoch_length=None):
+    def dataloader(self, epoch_length = 100):
         """ Creates a torch dataloader out of a subclass of this class.
 
         Args:
@@ -344,79 +348,47 @@ class GenesisTextDataset( Dataset ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-        # If we've exhausted the dataset, retrieve another corpus.
-        if self.refresh_corpus or len(self) < (epoch_length * self.batch_size) :
-            self.data = self.construct_text_corpus()
-            self.refresh_corpus = False
+        data_size = epoch_length * self.batch_size * self.block_size
+        
+        # Make sure the data remained is at least as big as data_size 
+        if len(self.data_remained) < (data_size) :
+            self.data_remained += self.construct_text_corpus(min_data_len = data_size)
 
-        # If epoch_length is set then we just need a slice of
-        # the dataset we downloaded of length epoch_length.
-        if epoch_length:
+        self.data = self.data_remained[:data_size]
+        del self.data_remained[:data_size]
 
-            # Set up upper bound of indices to fit the batch size we want.
-            idx_bound = epoch_length * self.batch_size 
-            if idx_bound < len(self):
-                # Collect enough random indices to batch together using batch_size into epoch_length batches
-                random_start = random.randint(0, len(self) - round(idx_bound ))
-                indices = list(range(random_start, random_start + idx_bound))
-
-                subset = Subset(self, indices)
-
-                # Clear out these indices from our current corpus
-                try:
-                    del self.data[random_start: random_start + idx_bound]
-                except Exception:
-                    # There is too little data left over for us to delete according to our epoch_length,
-                    # let's get more data!
-                    self.refresh_corpus = True
-            else:
-                self.refresh_corpus = True
-                return DataLoader(self,
-                            shuffle=True,
-                            batch_size=self.batch_size,
-                            num_workers=self.num_workers,
-                            drop_last=True)
-
-
-            # Set up dataloader
-            return DataLoader(subset,
-                            shuffle=True,
-                            batch_size=self.batch_size,
-                            num_workers=self.num_workers,
-                            drop_last=True)
-
-        # If epoch_length is not set or it is higher than the total size of the dataset,
-        #  then just shuffle dataset and return the whole thing.
-        self.refresh_corpus = True
+        # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
         return DataLoader(self,
-                            shuffle=True,
-                            batch_size=self.batch_size,
-                            num_workers=self.num_workers,
-                            drop_last=True)
+                    shuffle=True,
+                    batch_size=self.batch_size,
+                    num_workers=self.num_workers,
+                    drop_last=True)
 
     def __next__(self):
         """Returns the next element from the dataset. 
         """
         if self.__infinite_dataset_iterator == None:
-            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000000)])
+            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)]) # should set it to 1000
+        
         try:
             return next(self.__infinite_dataset_iterator)
+        
         except StopIteration:
-            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000000)])
+            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)])
             return next(self.__infinite_dataset_iterator)
 
     def __len__(self):
-        """Returns length of dataset minus the block size
+        """Returns number of samples (blocks) of dataset
 
         Returns:
-            int: length of dataset minus block size
+            length: int
         """
-        if self.data == None:
+        if (self.data == None) or (self.block_size == None) or (self.block_size == 0):
             return 0
-        return max(len(self.data) - self.block_size, 0)
+        return round( len(self.data) / self.block_size )
 
     def __getitem__(self, idx):
-        """ Returns a batch of sentences from text dataset.
+        """ Returns a block of sentences from text dataset.
 
             Args:
                 idx: index of data input
@@ -424,7 +396,7 @@ class GenesisTextDataset( Dataset ):
             Returns:
                 torch.tensor(dix)
         """
-        start_idx = (idx*self.block_size)%len(self)
+        start_idx = (idx * self.block_size) % len(self.data)
         end_idx = start_idx + self.block_size
 
         tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
