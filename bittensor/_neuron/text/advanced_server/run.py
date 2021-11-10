@@ -57,8 +57,8 @@ def serve( config, server):
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": gp_server.parameters()} ],
-        lr = config.server.learning_rate,
-        momentum = config.server.momentum,
+        lr = config.neuron.learning_rate,
+        momentum = config.neuron.momentum,
     )
     
     timecheck = {}
@@ -130,7 +130,7 @@ def serve( config, server):
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
-            if metagraph.S[uid].item() < config.server.blacklist.stake:
+            if metagraph.S[uid].item() < config.neuron.blacklist.stake:
                 return True
             else:
                 return False
@@ -140,7 +140,7 @@ def serve( config, server):
             current_time = datetime.now()
             if pubkey in timecheck.keys():
                 prev_time = timecheck[pubkey]
-                if current_time - prev_time >= timedelta(seconds=config.server.blacklist.time):
+                if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
                     timecheck[pubkey] = current_time
                     return False
                 else:
@@ -169,8 +169,8 @@ def serve( config, server):
     dataset = bittensor.dataset(config=config)
 
     # load our old model
-    if config.server.restart != True:
-        gp_server.load(config.server.full_path)
+    if config.neuron.restart != True:
+        gp_server.load(config.neuron.full_path)
 
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
@@ -178,7 +178,7 @@ def serve( config, server):
             config = config,
             cold_pubkey = wallet.coldkeypub.ss58_address,
             hot_pubkey = wallet.hotkey.ss58_address,
-            root_dir = config.server.full_path
+            root_dir = config.neuron.full_path
         )
 
     # -- Main Training loop --
@@ -198,7 +198,7 @@ def serve( config, server):
             # --- Run 
             current_block = subtensor.get_current_block()
             start_block = current_block
-            end_block = current_block + config.server.blocks_per_epoch
+            end_block = current_block + config.neuron.blocks_per_epoch
             interation = 0
 
             # --- Training step.
@@ -247,7 +247,7 @@ def serve( config, server):
             bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
             # save the model
-            gp_server.save(config.server.full_path)
+            gp_server.save(config.neuron.full_path)
             
             if current_block % 10 == 0:
                 
