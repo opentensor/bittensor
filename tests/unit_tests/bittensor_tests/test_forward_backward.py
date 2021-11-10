@@ -152,26 +152,23 @@ wallet =  bittensor.wallet (
 wallet.create_new_coldkey( use_password=False, overwrite = True)
 wallet.create_new_hotkey( use_password=False, overwrite = True)
 
-logger = bittensor.logging(debug = True)
 def test_axon_receptor_forward_works():
     def forward( inputs_x:torch.FloatTensor):
-        
         time.sleep(0.2)
         return torch.zeros([3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         port = 8080,
         ip = '0.0.0.0',
         wallet = wallet,
-        maximum_concurrent_rpcs = 100
     )
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
     endpoints = []
-    for i in range(200):
+    for i in range(5):
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
             uid = 1,
-            hotkey = 'hi'+str(i),
+            hotkey = str(i),
             ip = '0.0.0.0', 
             ip_type = 4, 
             port = 8080, 
@@ -183,7 +180,7 @@ def test_axon_receptor_forward_works():
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
     for i in dendrite.receptor_pool.receptors:
-        print(i, dendrite.receptor_pool.receptors[i].state())
+        assert(dendrite.receptor_pool.receptors[i].state() == dendrite.receptor_pool.receptors[i].state().READY)
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
 

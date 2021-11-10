@@ -637,4 +637,4 @@ class Receptor(nn.Module):
         try: 
             return self.state_dict[self.channel._channel.check_connectivity_state(True)]
         except ValueError:
-            return "closed"
+            return "Channel closed"
