@@ -183,24 +183,28 @@ def serve( config, server):
 
     # -- Main Training loop --
     try:
-        # --  serve axon to the network.
-        axon.start().serve(subtensor=subtensor)
+        # -- download files from the mountain
+        data = next(dataset)
 
         # --- creating our chain weights
         chain_weights =torch.zeros(metagraph.n)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         chain_weights[uid] = 1 
 
+        # --  serve axon to the network.
+        axon.start().serve(subtensor=subtensor)
+        
         while True:
             # --- Run 
-            dataloader = iter(dataset.dataloader(epoch_length=100))
             current_block = subtensor.get_current_block()
+            start_block = current_block
             end_block = current_block + config.server.blocks_per_epoch
             interation = 0
+
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
-                    loss, _ = gp_server( next( dataloader ).to(gp_server.device) )
+                    loss, _ = gp_server( next( dataset ).to(gp_server.device) )
                     if interation > 0 : 
                         losses += loss
                     else:
@@ -234,35 +238,41 @@ def serve( config, server):
                 'rank': metagraph.R[ uid ].item(),
                 'incentive': metagraph.I[ uid ].item(),
             } 
-
             # wandb syncing and update metagraph
-            metagraph.sync().save()
             chain_weights =torch.zeros(metagraph.n)
             chain_weights[uid] = 1 
 
             if config.wandb.api_key != 'default':
                 wandb.log( wandb_data )
-            logger.info(wandb_data)
+            bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
             # save the model
             gp_server.save(config.server.full_path)
-
-            # --- setting weights
-            try: 
-                did_set = subtensor.timeout_set_weights(
-                    timeout=10,
-                    uids=metagraph.uids,
-                    weights = chain_weights,
-                    wait_for_inclusion = True,
-                    wallet = wallet,
-                )
+            
+            if current_block % 10 == 0:
                 
-                if did_set:
-                    logger.success('Successfully set weights on the chain')
-                else:
-                    logger.error('Failed to set weights on chain. (Timeout)')
-            except Exception as e:
-                logger.error('Failure setting weights on chain with error: {}', e)
+                # --- setting weights
+                try: 
+                    did_set = subtensor.timeout_set_weights(
+                        timeout=12,
+                        uids=metagraph.uids,
+                        weights = chain_weights,
+                        wait_for_inclusion = True,
+                        wallet = wallet,
+                    )
+                    
+                    if did_set:
+                        logger.success('Successfully set weights on the chain')
+                    else:
+                        logger.error('Failed to set weights on chain. (Timeout)')
+                except Exception as e:
+                    logger.error('Failure setting weights on chain with error: {}', e)
+
+
+            if current_block - start_block > 1000:
+                metagraph.sync().save()
+                start_block = current_block
+
 
     except KeyboardInterrupt:
         # --- User ended session ----

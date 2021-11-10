@@ -29,7 +29,6 @@ import torch
 import traceback
 import sys
 import wandb
-
 from termcolor import colored
 from qqdm import qqdm, format_str
 from loguru import logger
@@ -62,7 +61,7 @@ class Neuron:
         )
         self.device = torch.device( device = self.config.neuron.device )
         self.nucleus = nucleus.to(self.device)
-        self.nucleus.metagraph = self.metagraph
+        self.nucleus.metagraph = self.metagraph_callback
         self.nucleus.dendrite = self.dendrite
         self.optimizer = torch.optim.SGD(
             [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
@@ -92,7 +91,6 @@ class Neuron:
     def __enter__(self):
         self.wallet.create()
         self.subtensor.register( self.wallet )
-        self.metagraph.sync().save()
         self.axon.start().serve (
             use_upnpc = self.config.neuron.use_upnpc, 
             subtensor = self.subtensor
@@ -116,8 +114,7 @@ class Neuron:
                 )
 
             # ---- Init run state ----
-            self.epoch = 0            
-            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
+            self.epoch = 0   
 
             # ---- reloads previous run if not restart ----
             if self.config.neuron.restart:
@@ -132,6 +129,8 @@ class Neuron:
                 self.reload()
                 self.axon.check()
             
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
+
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:
                 try:
@@ -156,7 +155,6 @@ class Neuron:
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
-                            
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
                             output = self.nucleus.remote_forward (
@@ -346,7 +344,8 @@ class Neuron:
         
         # --- Loads and syncs metagraph.
         try:
-            self.metagraph.load().sync().save()
+            self.metagraph.sync().save()
+            self.stats.last_sync_block= self.subtensor.get_current_block()
         except Exception as e:
             logger.error('Error in loading metagraph: {}'.format(e))
             self.metagraph.sync().save()
@@ -369,14 +368,14 @@ class Neuron:
         try:
             self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         except Exception as e:
-            logger.exception('Failed to load nucleus state with error, updating the current state:{}', e)
+            logger.exception('Failed to load nucleus state with error, updating the current state')
             state_dict['nucleus_state'] = self.nucleus.state_dict()
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
 
         self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True, device = self.device)]))
         self.nucleus.to( self.device ) # Load nucleus
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
-        self.nucleus.metagraph = self.metagraph # Set local metagraph.
+        self.nucleus.metagraph = self.metagraph_callback # Set local metagraph.
         self.optimizer = torch.optim.SGD(
             [{"params": self.nucleus.parameters()}],
             lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
@@ -433,6 +432,9 @@ class Neuron:
 
         except Exception as e:
             logger.error('Failure setting weights on chain with error: {}', e)
+
+    def metagraph_callback(self):
+        return self.metagraph
 
     # ---- Training logs ----
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
