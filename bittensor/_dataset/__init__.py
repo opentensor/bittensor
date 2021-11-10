@@ -78,7 +78,7 @@ class dataset:
             parser.add_argument('--dataset.num_workers',  type=int, help='Number of workers for data loader.', default = bittensor.defaults.dataset.num_workers)
             parser.add_argument('--dataset.dataset_name', type=str, help='Which datasets to use (train/test/validation)).', default = bittensor.defaults.dataset.dataset_name)
             parser.add_argument('--dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
-            parser.add_argument('--dataset.save_dataset', type=bool, help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
+            parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass

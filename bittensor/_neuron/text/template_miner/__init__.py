@@ -90,7 +90,7 @@ class neuron:
         parser.add_argument('--neuron.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, black lists non-registered peers''', default=True)
         parser.add_argument('--neuron.sync_block_time', type=int, help='How often the sync the neuron with metagraph, in terms of block time', default=100)
-        parser.add_argument('--neuron.restart', type=bool, help='If True, train the neuron from the beginning', default=False)
+        parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
         parser.add_argument('--neuron.use_wandb', action='store_true', help='''neuron activates its weights and biases powers''', default=False)
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
 
