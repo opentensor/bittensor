@@ -313,7 +313,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         #checking the time of creation, compared to previous messages
         if endpoint_key in self.nounce_dic.keys():
             prev_data_time = self.nounce_dic[ endpoint_key ]
-            if nounce - prev_data_time >= 0:
+            if nounce - prev_data_time > 0:
                 self.nounce_dic[ endpoint_key ] = nounce
 
                 #decrypting the message and verify that message is correct
