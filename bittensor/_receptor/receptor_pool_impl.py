@@ -47,6 +47,10 @@ class ReceptorPool ( torch.nn.Module ):
 
     def __repr__(self):
         return self.__str__()
+    
+    def __exit__(self):
+        for receptor in self.receptors:
+            receptor.__del__()
 
     def forward(
             self, 
@@ -81,6 +85,7 @@ class ReceptorPool ( torch.nn.Module ):
                 forward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
                     dendrite backward call times
         """
+        
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
         # ---- Run threaded calls with executor ----
@@ -200,7 +205,6 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Finally: Kill receptors over max allowed ----
         while len(self.receptors) > self.max_active_receptors:
-
             min_receptor_qps = math.inf
             receptor_to_remove = None
            
@@ -213,8 +217,6 @@ class ReceptorPool ( torch.nn.Module ):
             if receptor_to_remove != None:
                 bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
                 del self.receptors[ receptor_to_remove.endpoint.hotkey ]
-                receptor_to_remove.__del__()
-                del receptor_to_remove
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
         r""" Finds or creates a receptor TCP connection associated with the passed Neuron Endpoint
@@ -222,7 +224,6 @@ class ReceptorPool ( torch.nn.Module ):
                 receptor: (`bittensor.Receptor`):
                     receptor with tcp connection endpoint at endpoint.ip:endpoint.port
         """
-
         # ---- Find the active receptor for this endpoint ----
         if endpoint.hotkey in self.receptors:
             receptor = self.receptors[ endpoint.hotkey ]
