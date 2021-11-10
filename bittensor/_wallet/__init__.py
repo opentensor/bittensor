@@ -73,9 +73,9 @@ class wallet:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--wallet.name',required=False, help='''The name of the wallet to unlock for running bittensor''')
+            parser.add_argument('--wallet.name', required=False, help='''The name of the wallet to unlock for running bittensor''')
             parser.add_argument('--wallet.hotkey', required=False, help='''The name of wallet's hotkey.''')
-            parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
+            parser.add_argument('--wallet.path', required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass

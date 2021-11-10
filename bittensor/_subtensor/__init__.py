@@ -115,7 +115,7 @@ class subtensor:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
         try:
-            parser.add_argument('--subtensor.network', default = None, type=str, 
+            parser.add_argument('--subtensor.network', type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- nobunaga (staging network)
                                         -- akatsuki (testing network)
