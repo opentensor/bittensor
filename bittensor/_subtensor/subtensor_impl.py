@@ -449,7 +449,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Covert to bittensor.Balance
         if amount == None:
             # Stake it all.
-            staking_balance = bittensor.Balance.from_tao( old_balance.tao - 0.25 )
+            staking_balance = bittensor.Balance.from_tao( old_balance.tao )
         elif not isinstance(amount, bittensor.Balance ):
             staking_balance = bittensor.Balance.from_tao( amount )
         else:
