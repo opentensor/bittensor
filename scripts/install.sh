@@ -36,7 +36,7 @@ wait_for_user() {
   getc c
   # we test for \r and \n because some stuff does \r instead
   if ! [[ "$c" == $'\r' || "$c" == $'\n' ]]; then
-    exit 1
+    break 1
   fi
 }
 
