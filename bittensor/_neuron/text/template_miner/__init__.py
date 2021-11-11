@@ -34,7 +34,8 @@ from .nucleus_impl import Nucleus
 
 class nucleus():
 
-    def __new__(self, config: 'bittensor.Config' ):
+    def __new__(self, config: 'bittensor.Config' = None ):
+        if config == None: config = nucleus.config()
         return Nucleus( config )
 
     @staticmethod
@@ -47,6 +48,14 @@ class nucleus():
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
         parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
+
+    @staticmethod
+    def config() -> 'bittensor.Config':
+        r""" Fills a config namespace object with defaults or information from the command line.
+        """
+        parser = argparse.ArgumentParser()
+        nucleus.add_args( parser ) 
+        return bittensor.config( parser )
 
 class neuron:
 
