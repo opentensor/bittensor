@@ -74,7 +74,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.forward_callback = forwards
         self.backward_callback = backwards
         self.forward_timeout = forward_timeout
-        print(forward_timeout)
         self.backward_timeout = backward_timeout
         self.modality = self.find_modality()
         self.stats = SimpleNamespace(
@@ -192,8 +191,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if self.priority != None:
                 priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.FORWARD)
                 future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
-
+                
                 try:
+                    print(self.forward_timeout)
                     response_tensor = future.result(timeout= self.forward_timeout)
                 except concurrent.futures.TimeoutError :
                     raise TimeoutError('TimeOutError')
@@ -211,7 +211,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             response_tensor = None
             message = "Error calling forward callback: {}".format(e)
             if isinstance(e, TimeoutError):
-                print('Timeout')
                 code = bittensor.proto.ReturnCode.Timeout
             else:
                 code = bittensor.proto.ReturnCode.UnknownException

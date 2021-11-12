@@ -130,7 +130,6 @@ def serve( config, server):
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
-            print(metagraph.S[uid], request_type)
             if request_type == bittensor.proto.RequestType.FORWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
                     return True
@@ -152,6 +151,7 @@ def serve( config, server):
                     timecheck[pubkey] = current_time
                     return False
                 else:
+                    timecheck[pubkey] = current_time
                     return True
             else:
                 timecheck[pubkey] = current_time
@@ -266,7 +266,7 @@ def serve( config, server):
                         timeout=12,
                         uids=metagraph.uids,
                         weights = chain_weights,
-                        wait_for_inclusion = True,
+                        wait_for_inclusion = False,
                         wallet = wallet,
                     )
                     
