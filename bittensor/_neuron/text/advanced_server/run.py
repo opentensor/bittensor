@@ -269,8 +269,7 @@ def serve( config, server):
                 
                 # --- setting weights
                 try: 
-                    did_set = subtensor.timeout_set_weights(
-                        timeout=12,
+                    did_set = subtensor.set_weights(
                         uids=metagraph.uids,
                         weights = chain_weights,
                         wait_for_inclusion = False,
