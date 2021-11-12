@@ -130,11 +130,19 @@ def serve( config, server):
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
-            if metagraph.S[uid].item() < config.neuron.blacklist.stake:
-                return True
-            else:
-                return False
 
+            if request_type == bittensor.proto.RequestType.FORWARD:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
+                    return True
+                else:
+                    return False
+
+            elif request_type == bittensor.proto.RequestType.BACKWARD:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake.backward:
+                    return True
+                else:
+                    return False
+                    
         # Check for time
         def time_check():
             current_time = datetime.now()
@@ -217,19 +225,20 @@ def serve( config, server):
                 optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)
             else:
                 optimizer.param_groups[0]['lr'] =  0.1
-            gp_server.backward_gradients = 0
-
+            
             # --- Update parameters
-            if interation != 0:
+            if interation != 0 or gp_server.backward_gradients != 0:
                 with mutex:
                     logger.info('Backpropagation Started')
-                    losses.backward()
+                    if interation != 0:
+                        losses.backward()
                     clip_grad_norm_(gp_server.parameters(), 1.0)
                     
                     optimizer.step()
                     optimizer.zero_grad()
                     logger.info('Backpropagation Successful: Model updated')
 
+            gp_server.backward_gradients = 0
             # --- logging data
             wandb_data = {
                 'block': end_block,
