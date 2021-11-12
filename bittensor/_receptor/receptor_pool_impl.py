@@ -200,21 +200,15 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Finally: Kill receptors over max allowed ----
         while len(self.receptors) > self.max_active_receptors:
-
             min_receptor_qps = math.inf
             receptor_to_remove = None
-           
             for next_receptor in self.receptors.values():
                 next_qps = next_receptor.stats.forward_qps.value
                 if min_receptor_qps > next_qps:
                     receptor_to_remove = next_receptor
-                    min_receptor_qps = next_receptor.stats.forward_qps.value
-
             if receptor_to_remove != None:
                 bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
                 del self.receptors[ receptor_to_remove.endpoint.hotkey ]
-                receptor_to_remove.__del__()
-                del receptor_to_remove
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
         r""" Finds or creates a receptor TCP connection associated with the passed Neuron Endpoint
