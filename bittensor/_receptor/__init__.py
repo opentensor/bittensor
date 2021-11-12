@@ -20,7 +20,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import grpc
-
+import json
 import bittensor
 import bittensor.utils.networking as net
 from . import receptor_impl
@@ -50,11 +50,12 @@ class receptor:
             endpoint_str = ip + str(endpoint.port)
         else:
             endpoint_str = endpoint.ip + ':' + str(endpoint.port)
-        
+
         channel = grpc.insecure_channel(
             endpoint_str,
             options=[('grpc.max_send_message_length', -1),
-                     ('grpc.max_receive_message_length', -1)])
+                     ('grpc.max_receive_message_length', -1),
+                     ('grpc.keepalive_time_ms', 100000)])
         stub = bittensor.grpc.BittensorStub( channel )
         return receptor_impl.Receptor( 
             endpoint = endpoint,
