@@ -238,14 +238,21 @@ def serve( config, server):
                     optimizer.zero_grad()
                     logger.info('Backpropagation Successful: Model updated')
 
+            nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+
             gp_server.backward_gradients = 0
             # --- logging data
             wandb_data = {
                 'block': end_block,
                 'loss': losses.cpu().item()/interation,
-                'stake': metagraph.S[ uid ].item(),
-                'rank': metagraph.R[ uid ].item(),
-                'incentive': metagraph.I[ uid ].item(),
+                'stake': nn.stake,
+                'rank': nn.rank,
+                'incentive': nn.incentive,
+                'trust': nn.trust,
+                'consensus': nn.consensus,
+                'incentive': nn.incentive,
+                'dividends': nn.dividends,
+                'emission':  nn.emission,
             } 
             # wandb syncing and update metagraph
             chain_weights =torch.zeros(metagraph.n)
