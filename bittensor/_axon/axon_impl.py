@@ -193,7 +193,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
                 
                 try:
-                    print(self.forward_timeout)
                     response_tensor = future.result(timeout= self.forward_timeout)
                 except concurrent.futures.TimeoutError :
                     raise TimeoutError('TimeOutError')
