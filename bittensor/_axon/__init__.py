@@ -352,6 +352,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             pass
         #TODO: Turn on blacklisting
         elif self.blacklist(pubkey,int(meta[3].value)):
+            print('Black listed')
             raise Exception('Black listed')
         else:
             pass

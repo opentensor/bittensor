@@ -130,7 +130,7 @@ def serve( config, server):
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
-
+            print(metagraph.S[uid], request_type)
             if request_type == bittensor.proto.RequestType.FORWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
                     return True
@@ -142,7 +142,7 @@ def serve( config, server):
                     return True
                 else:
                     return False
-                    
+
         # Check for time
         def time_check():
             current_time = datetime.now()
