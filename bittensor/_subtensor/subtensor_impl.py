@@ -786,7 +786,6 @@ To run a local node (See: docs/running_a_validator.md) \n
         """        
         @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            print ('try')
             with self.substrate as substrate:
                 return substrate.get_block_number(None)
         return make_substrate_call_with_retry()
