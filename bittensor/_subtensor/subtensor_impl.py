@@ -132,7 +132,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             difficulty (int):
                 Registration difficulty.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
@@ -145,7 +145,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             total_issuance (int):
                 Total issuance as balance.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
@@ -158,7 +158,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             total_stake (bittensor.Balance):
                 Total stake as balance.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
@@ -171,7 +171,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             n (int):
                 Total number of neurons on chain.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(  module='SubtensorModule', storage_function = 'N').value
@@ -183,7 +183,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             n (int):
                 Total number of neurons on chain.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(  
@@ -766,7 +766,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             balance (bittensor.utils.balance.Balance):
                 account balance
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(
@@ -784,14 +784,15 @@ To run a local node (See: docs/running_a_validator.md) \n
             block_number (int):
                 Current chain blocknumber.
         """        
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
+            print ('try')
             with self.substrate as substrate:
                 return substrate.get_block_number(None)
         return make_substrate_call_with_retry()
 
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query_map(
@@ -879,7 +880,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (dict(NeuronMetadata)):
                 neuron object associated with uid or None if it does not exist.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 result = dict( substrate.query( 
@@ -902,7 +903,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid ( int ):
                 UID of passed hotkey or -1 if it is non-existent.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query (
@@ -948,7 +949,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron ( dict(NeuronMetadata) ):
                 neuron object associated with uid or None if it does not exist.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query (
@@ -976,7 +977,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             n ( int ):
                 the number of neurons subscribed to the chain.
         """
-        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        @retry(delay=1, tries=10, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return int(substrate.query(  module='SubtensorModule', storage_function = 'N', block_hash = None if block == None else substrate.get_block_hash( block ) ).value)
