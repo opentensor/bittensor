@@ -24,6 +24,7 @@ import bittensor
 from tqdm import tqdm
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
+from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from types import SimpleNamespace
@@ -131,8 +132,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             difficulty (int):
                 Registration difficulty.
         """
-        with self.substrate as substrate:
-            return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
+        return make_substrate_call_with_retry()
 
     @property
     def total_issuance (self) -> 'bittensor.Balance':
@@ -141,8 +145,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             total_issuance (int):
                 Total issuance as balance.
         """
-        with self.substrate as substrate:
-            return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
+        return make_substrate_call_with_retry()
 
     @property
     def total_stake (self) -> 'bittensor.Balance':
@@ -151,8 +158,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             total_stake (bittensor.Balance):
                 Total stake as balance.
         """
-        with self.substrate as substrate:
-            return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
+        return make_substrate_call_with_retry()
 
     @property
     def n (self) -> int:
@@ -161,8 +171,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             n (int):
                 Total number of neurons on chain.
         """
-        with self.substrate as substrate:
-            return substrate.query(  module='SubtensorModule', storage_function = 'N').value
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'N').value
+        return make_substrate_call_with_retry()
 
     def get_n (self, block: int = None) -> int:
         r""" Returns total number of neurons on the chain.
@@ -170,12 +183,15 @@ To run a local node (See: docs/running_a_validator.md) \n
             n (int):
                 Total number of neurons on chain.
         """
-        with self.substrate as substrate:
-            return substrate.query(  
-                module='SubtensorModule', 
-                storage_function = 'N',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            ).value
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  
+                    module='SubtensorModule', 
+                    storage_function = 'N',
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                ).value
+        return make_substrate_call_with_retry()
 
     @property
     def block (self) -> int:
@@ -750,57 +766,63 @@ To run a local node (See: docs/running_a_validator.md) \n
             balance (bittensor.utils.balance.Balance):
                 account balance
         """
-        with self.substrate as substrate:
-            result = substrate.query(
-                module='System',
-                storage_function='Account',
-                params=[address],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return Balance( result.value['data']['free'] )
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='System',
+                    storage_function='Account',
+                    params=[address],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        return Balance( result.value['data']['free'] )
 
     def get_current_block(self) -> int:
         r""" Returns the current block number on the chain.
         Returns:
             block_number (int):
                 Current chain blocknumber.
-        """
-        with self.substrate as substrate:
-            return substrate.get_block_number(None)
+        """        
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.get_block_number(None)
+        return make_substrate_call_with_retry()
 
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
-        with self.substrate as substrate:
-            result = substrate.query_map(
-                module='System',
-                storage_function='Account',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return_dict = {}
-            for r in result:
-                bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
-                return_dict[r[0].value] = bal
-            return return_dict
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module='System',
+                    storage_function='Account',
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        return_dict = {}
+        for r in result:
+            bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
+            return_dict[r[0].value] = bal
+        return return_dict
 
-    def neurons(self, block: int = None, page_size: int = 100) -> List[SimpleNamespace]: 
+    def neurons(self, block: int = None ) -> List[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             block (int):
                 block to sync from.
-            page_size (int):
-                Number of neuron entries to return each step of the sync.
         Returns:
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
-        with self.substrate as substrate:
-            neurons = []
-            for id in tqdm(range(self.get_n( block ))): 
-                try:
-                    neuron = self.neuron_for_uid(id, block)
-                    neurons.append( neuron )
-                except Exception as e:
-                    break
-            return neurons
+        neurons = []
+        for id in tqdm(range(self.get_n( block ))): 
+            try:
+                neuron = self.neuron_for_uid(id, block)
+                neurons.append( neuron )
+            except Exception as e:
+                break
+        return neurons
 
     @staticmethod
     def _null_neuron() -> SimpleNamespace:
@@ -857,15 +879,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (dict(NeuronMetadata)):
                 neuron object associated with uid or None if it does not exist.
         """
-        # Make the call.
-        with self.substrate as substrate:
-            neuron = dict( substrate.query( 
-                module='SubtensorModule',  
-                storage_function='Neurons', 
-                params = [ uid ], 
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            ).value )
-        neuron = Subtensor._neuron_dict_to_namespace( neuron )
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                result = dict( substrate.query( 
+                    module='SubtensorModule',  
+                    storage_function='Neurons', 
+                    params = [ uid ], 
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                ).value )
+            return result
+        result = make_substrate_call_with_retry()
+        neuron = Subtensor._neuron_dict_to_namespace( result )
         return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
@@ -877,14 +902,16 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid ( int ):
                 UID of passed hotkey or -1 if it is non-existent.
         """
-        # Make the call.
-        with self.substrate as substrate:
-            result = substrate.query (
-                module='SubtensorModule',
-                storage_function='Hotkeys',
-                params = [ ss58_hotkey ],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query (
+                    module='SubtensorModule',
+                    storage_function='Hotkeys',
+                    params = [ ss58_hotkey ],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
         # Process the result.
         uid = int(result.value)
         if uid == 0:
@@ -921,20 +948,23 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron ( dict(NeuronMetadata) ):
                 neuron object associated with uid or None if it does not exist.
         """
-        with self.substrate as substrate:
-            result = substrate.query (
-                module='SubtensorModule',
-                storage_function='Hotkeys',
-                params = [ ss58_hotkey ],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            # Get response uid. This will be zero if it doesn't exist.
-            uid = int(result.value)
-            neuron = self.neuron_for_uid( uid, block )
-            if neuron.hotkey != ss58_hotkey:
-                return Subtensor._null_neuron()
-            else:
-                return neuron
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query (
+                    module='SubtensorModule',
+                    storage_function='Hotkeys',
+                    params = [ ss58_hotkey ],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        # Get response uid. This will be zero if it doesn't exist.
+        uid = int(result.value)
+        neuron = self.neuron_for_uid( uid, block )
+        if neuron.hotkey != ss58_hotkey:
+            return Subtensor._null_neuron()
+        else:
+            return neuron
 
     def get_n( self, block: int = None ) -> int: 
         r""" Returns the number of neurons on the chain at block.
@@ -946,8 +976,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             n ( int ):
                 the number of neurons subscribed to the chain.
         """
-        with self.substrate as substrate:
-            return int(substrate.query(  module='SubtensorModule', storage_function = 'N' ).value)
+        @retry(ConnectionResetError, delay=1, tries=10, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return int(substrate.query(  module='SubtensorModule', storage_function = 'N', block_hash = None if block == None else substrate.get_block_hash( block ) ).value)
+        return make_substrate_call_with_retry()
 
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', block: int = None ) -> SimpleNamespace: 
         r""" Returns a list of neuron from the chain. 
@@ -958,7 +991,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron ( dict(NeuronMetadata) ):
                 neuron object associated with uid or None if it does not exist.
         """
-        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address )
+        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, block = block )
 
     def timeout_set_weights(
             self, 
