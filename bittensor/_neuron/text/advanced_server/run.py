@@ -47,7 +47,7 @@ def serve( config, server):
     # Load/Sync/Save our metagraph.
     metagraph = bittensor.metagraph ( 
         subtensor = subtensor
-    ).load()
+    ).load().sync().save()
 
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
