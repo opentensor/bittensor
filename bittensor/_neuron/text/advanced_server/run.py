@@ -47,7 +47,7 @@ def serve( config, server):
     # Load/Sync/Save our metagraph.
     metagraph = bittensor.metagraph ( 
         subtensor = subtensor
-    ).load().sync().save()
+    ).load()
 
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
@@ -284,8 +284,8 @@ def serve( config, server):
                     logger.error('Failure setting weights on chain with error: {}', e)
 
 
-            if current_block - start_block > 1000:
-                metagraph.sync().save()
+            if current_block - start_block > 2000:
+                metagraph.sync()
                 start_block = current_block
 
 
