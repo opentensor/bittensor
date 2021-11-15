@@ -24,6 +24,7 @@ import torch
 from loguru import logger
 import concurrent
 import bittensor
+import bittensor.utils.networking as net
 
 logger = logger.opt(colors=True)
 
@@ -41,6 +42,10 @@ class ReceptorPool ( torch.nn.Module ):
         self.thread_pool = thread_pool
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
+        try:
+            self.external_ip = str(net.get_external_ip())
+        except Exception:
+            self.external_ip = None
 
     def __str__(self):
         return "ReceptorPool({},{})".format(len(self.receptors), self.max_active_receptors)
@@ -236,7 +241,8 @@ class ReceptorPool ( torch.nn.Module ):
             bittensor.logging.create_receptor_log( endpoint )
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
-                    wallet = self.wallet
+                    wallet = self.wallet,
+                    external_ip = self.external_ip
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
 

@@ -277,14 +277,14 @@ class Receptor(nn.Module):
                 bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(serialized_inputs.shape), outputs=None, message=None )
 
                 #forwarding grpc request to the server
-                response = self.stub.Forward(request = request, 
+                response = self.stub.Forward.future(request = request, 
                                              timeout = timeout,
                                              metadata = (
                                                         ('rpc-auth-header','Bittensor'),
                                                         ('bittensor-signature',self.sign()),
                                                         ('bittensor-version',str(bittensor.__version_as_int__)),
                                                         ('request_type', str(bittensor.proto.RequestType.FORWARD)),
-                                                        ))
+                                                        )).result()
                 self.stats.forward_bytes_in.update(sys.getsizeof(response))
                 self.stats.forward_elapsed_time.update((clock.time()-start_time))
 

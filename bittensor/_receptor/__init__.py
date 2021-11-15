@@ -22,13 +22,12 @@ from concurrent.futures import ThreadPoolExecutor
 import grpc
 
 import bittensor
-import bittensor.utils.networking as net
 from . import receptor_impl
 
 class receptor:
     """ Create and init the receptor object, which encapsulates a grpc connection to an axon endpoint
     """
-    def __new__( cls, endpoint: 'bittensor.Endpoint', wallet: 'bittensor.Wallet' = None) -> 'bittensor.Receptor':
+    def __new__( cls, endpoint: 'bittensor.Endpoint', wallet: 'bittensor.Wallet' = None, external_ip: 'str' = None) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
                 endpoint (:obj:`bittensor.Endpoint`, `required`):
@@ -37,12 +36,6 @@ class receptor:
 
         if wallet == None:
             wallet = bittensor.wallet()
-        try:
-            external_ip = str(net.get_external_ip())
-        except Exception:
-            pass
-        finally:
-            external_ip = None
 
         # Get endpoint string.
         if endpoint.ip == external_ip:
@@ -51,7 +44,7 @@ class receptor:
         else:
             endpoint_str = endpoint.ip + ':' + str(endpoint.port)
         
-        channel = grpc.insecure_channel(
+        channel = grpc.aio.insecure_channel(
             endpoint_str,
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
