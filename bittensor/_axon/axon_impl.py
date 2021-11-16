@@ -191,7 +191,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if self.priority != None:
                 priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.FORWARD)
                 future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
-
+                
                 try:
                     response_tensor = future.result(timeout= self.forward_timeout)
                 except concurrent.futures.TimeoutError :

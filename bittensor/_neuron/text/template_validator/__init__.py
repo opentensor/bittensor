@@ -102,7 +102,7 @@ class neuron:
         parser = argparse.ArgumentParser()    
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
-        parser.add_argument('--neuron.resume', action='store_true', help='resume previous trial.', default=False)
+        parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False)
         parser.add_argument('--neuron.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)

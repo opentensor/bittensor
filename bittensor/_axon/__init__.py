@@ -137,8 +137,8 @@ class axon:
             backwards = backwards,
             priority = priority,
             priority_threadpool = priority_threadpool,
-            forward_timeout = forward_timeout,
-            backward_timeout = backward_timeout
+            forward_timeout = config.axon.forward_timeout,
+            backward_timeout = config.axon.backward_timeout,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
