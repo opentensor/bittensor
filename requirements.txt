@@ -1,11 +1,11 @@
 argparse
 base58>=2.0.1
 certifi>=2020.11.8
-cryptography==3.1.1
+cryptography
 idna>=2.10
 google-api-python-client
-grpcio==1.32.0
-grpcio-tools==1.32.0
+grpcio
+grpcio-tools
 loguru
 msgpack==1.0.2
 msgpack-numpy==0.4.7.1
@@ -23,7 +23,7 @@ rich
 requests>=2.25.0
 scalecodec>=1.0.3
 termcolor
-torch>=1.6.0,<=1.8.1
+torch
 transformers>=4.5.0
 numpy
 wheel
