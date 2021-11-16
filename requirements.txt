@@ -20,6 +20,7 @@ py-bip39-bindings>=0.1.6
 pytest>=6.2.4
 pyyaml
 rich
+retry
 requests>=2.25.0
 scalecodec>=1.0.3
 termcolor
