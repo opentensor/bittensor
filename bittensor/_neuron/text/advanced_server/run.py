@@ -265,14 +265,14 @@ def serve( config, server):
             # save the model
             gp_server.save(config.neuron.full_path)
             
-            if current_block % 10 == 0:
+            if current_block % 1 == 0:
                 
                 # --- setting weights
                 try: 
                     did_set = subtensor.set_weights(
                         uids=metagraph.uids,
                         weights = chain_weights,
-                        wait_for_inclusion = False,
+                        wait_for_inclusion = True,
                         wallet = wallet,
                     )
                     
