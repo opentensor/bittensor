@@ -25,6 +25,11 @@ from loguru import logger
 import concurrent
 import bittensor
 import bittensor.utils.networking as net
+import pdb
+from concurrent.futures import ThreadPoolExecutor
+import time as clock
+import cProfile
+import re
 
 logger = logger.opt(colors=True)
 
@@ -92,10 +97,14 @@ class ReceptorPool ( torch.nn.Module ):
         forward_outputs = []
         forward_codes = []
         forward_times = []
-        
+        start_time = clock.time()
         # --- Create calls ----
         def _call_receptor_forward_with_args( receptor, inputs, modality ):
-            return receptor.forward( inputs = inputs, modality = modality, timeout = timeout )
+            return (receptor, ) + receptor.call_forward( inputs = inputs, modality = modality, timeout = timeout )
+
+        # --- Create calls ----
+        def _call_receptor_forward_collect_with_args( receptor, response_future, zeros, code, call_time, message ):
+            return receptor.collect_forward( response_future, zeros, code, call_time, message )
 
         # ---- Fill calls ----
         call_args = [ 
@@ -103,9 +112,18 @@ class ReceptorPool ( torch.nn.Module ):
             for (inputs, endpoint) 
             in list(zip( inputs, endpoints )) 
         ]
-        results = self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args, timeout=timeout*10)
+        
+        print('started result_futures' ,clock.time() - start_time)
+
+        result_futures = self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args, timeout=timeout*10)
+        print('finished result_futures' ,clock.time() - start_time)
+        thread_pool = ThreadPoolExecutor( max_workers = 150 )
+        results = thread_pool.map( lambda args: _call_receptor_forward_collect_with_args(*args), result_futures, timeout=timeout*10)
+        print('finished results' ,clock.time() - start_time)
+        
         try:
             for result in results:
+                print(result)
                 forward_outputs.append( result[0] )
                 forward_codes.append( result[1] )
                 forward_times.append( result[2] )
