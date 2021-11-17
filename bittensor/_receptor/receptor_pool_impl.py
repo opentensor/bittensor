@@ -26,10 +26,13 @@ import concurrent
 import bittensor
 import bittensor.utils.networking as net
 import pdb
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import time as clock
 import cProfile
 import re
+import pstats
+from pstats import SortKey
+import io
 
 logger = logger.opt(colors=True)
 
@@ -98,14 +101,19 @@ class ReceptorPool ( torch.nn.Module ):
         forward_codes = []
         forward_times = []
         start_time = clock.time()
-        # --- Create calls ----
-        def _call_receptor_forward_with_args( receptor, inputs, modality ):
+
+
+        def _call_receptor_pre_forward_with_args( receptor, inputs, modality ):
             return (receptor, ) + receptor.call_forward( inputs = inputs, modality = modality, timeout = timeout )
+        
+        # --- Create calls ----
+        def _call_receptor_forward_with_args( receptor, request, zeros, code ,start_time, message ):
+            return (receptor, ) + receptor.test_rpc( request, zeros, code ,start_time, message )
 
         # --- Create calls ----
         def _call_receptor_forward_collect_with_args( receptor, response_future, zeros, code, call_time, message ):
             return receptor.collect_forward( response_future, zeros, code, call_time, message )
-
+        
         # ---- Fill calls ----
         call_args = [ 
             (self._get_or_create_receptor_for_endpoint( endpoint ), inputs, modality) 
@@ -115,18 +123,67 @@ class ReceptorPool ( torch.nn.Module ):
         
         print('started result_futures' ,clock.time() - start_time)
 
-        result_futures = self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args, timeout=timeout*10)
-        print('finished result_futures' ,clock.time() - start_time)
-        thread_pool = ThreadPoolExecutor( max_workers = 150 )
-        results = thread_pool.map( lambda args: _call_receptor_forward_collect_with_args(*args), result_futures, timeout=timeout*10)
-        print('finished results' ,clock.time() - start_time)
+        p = ProcessPoolExecutor(max_workers=32)
+        thread_pool_0 = ThreadPoolExecutor(max_workers = 150) 
+        thread_pool_1 = ThreadPoolExecutor(max_workers = 1000)
+        thread_pool_2 = ThreadPoolExecutor(max_workers = 150) 
+        profiler = cProfile.Profile()
+        profiler1 = cProfile.Profile()
+        profiler2 = cProfile.Profile()
+
+        # ==================================================================================== 
+        # does the serialization and logging
+
+        profiler.enable() 
         
+        pre_result_futures = []
+        for arg in call_args:
+            pre_result_futures.append(_call_receptor_pre_forward_with_args(*arg))
+
+        # pre_result_futures = thread_pool_0.map( lambda args: _call_receptor_pre_forward_with_args(*args), call_args, timeout=timeout*10)
+        
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats(SortKey.CUMULATIVE)
+        stats.print_stats(20)
+
+        # ==================================================================================== 
+        # does only stub.forward.future
+        
+        profiler1.enable() 
+
+        result_futures = []
+        for arg in pre_result_futures:
+           result_futures.append(_call_receptor_forward_with_args(*arg))
+        
+        # result_futures = thread_pool_1.map( lambda args: _call_receptor_forward_with_args(*args), pre_result_futures, timeout=timeout*10)
+
+        profiler1.disable()
+        stats = pstats.Stats(profiler1).sort_stats(SortKey.CUMULATIVE)
+        stats.print_stats(20)
+
+        print('finished result_futures' ,clock.time() - start_time)
+
+        # ==================================================================================== 
+        # collect the results
+        
+        profiler2.enable()
+        
+        # results = []
+        # for arg in result_futures:
+        #     results.append(_call_receptor_forward_collect_with_args(*arg))
+
+        results = thread_pool_2.map( lambda args: _call_receptor_forward_collect_with_args(*args), result_futures, timeout=timeout*10)
+        
+        profiler2.disable()
+        stats = pstats.Stats(profiler2).sort_stats(SortKey.CUMULATIVE)
+        stats.print_stats(20)
+
+        print('finished results' ,clock.time() - start_time)
+        # ==================================================================================== 
+
         try:
-            for result in results:
-                print(result)
-                forward_outputs.append( result[0] )
-                forward_codes.append( result[1] )
-                forward_times.append( result[2] )
+            forward_outputs, forward_codes, forward_times = zip(*results) 
+
         except concurrent.futures._base.TimeoutError:
             forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             forward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 

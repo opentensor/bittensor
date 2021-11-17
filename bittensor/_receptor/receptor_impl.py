@@ -325,15 +325,20 @@ class Receptor(nn.Module):
             tensors = [serialized_inputs],
             requires_grad = True,
         )
-    
+
+        return request, zeros, 1, start_time, ""
+        
+        
+    def test_rpc(self, request, zeros, code ,start_time, message):
+        timeout = 12
         # ---- Make RPC call ----
         try:
-            self.stats.forward_qps.update(1)
-            self.stats.forward_bytes_out.update(sys.getsizeof(request))
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(serialized_inputs.shape), outputs=None, message=None )
+            # self.stats.forward_qps.update(1)
+            # self.stats.forward_bytes_out.update(sys.getsizeof(request))
+            # call_time = clock.time() - start_time
 
             #forwarding grpc request to the server
+            #response_future = self.stub.Forward.future(request = request, 
             response_future = self.stub.Forward.future(request = request, 
                                             timeout = timeout,
                                             metadata = (
@@ -342,24 +347,29 @@ class Receptor(nn.Module):
                                                     ('bittensor-version',str(bittensor.__version_as_int__)),
                                                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                                                     ))
-            
+            call_time = clock.time() - start_time 
+            bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(zeros.shape), outputs=None, message=None )
             return response_future, zeros, bittensor.proto.ReturnCode.Success, start_time, ""
-
-        # ---- Catch GRPC Errors ----
-        except grpc.RpcError as rpc_error_call:
-            code, message =  self.rpc_exception(rpc_error_call, start_time, zeros)
-            call_time = clock.time() - start_time
-            return None, zeros, code, call_time, "forward_" + message
-
-        # ---- Catch Unknown Errors ----
         except Exception as e:
-            code, message = self.unknown_rpc_exception(e, start_time, zeros)
-            call_time = clock.time() - start_time
-            return None, zeros, code, call_time, "forward_" + message
+            print(e)
+            return None, zeros, -1, start_time, ""
+        # # ---- Catch GRPC Errors ----
+        # except grpc.RpcError as rpc_error_call:
+        #     code, message =  self.rpc_exception(rpc_error_call, start_time, zeros)
+        #     call_time = clock.time() - start_time
+        #     bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(serialized_inputs.shape), outputs=None, message=message)
+        #     return None, zeros, code, call_time, "forward_" + message
+
+        # # ---- Catch Unknown Errors ----
+        # except Exception as e:
+        #     code, message = self.unknown_rpc_exception(e, start_time, zeros)
+        #     call_time = clock.time() - start_time
+        #     bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(serialized_inputs.shape), outputs=None, message=message)
+        #     return None, zeros, code, call_time, "forward_" + message
             
     def _collect_forward(self, response_future, zeros, code, start_time, message):
         
-        if code != bittensor.proto.ReturnCode.Success:
+        if (code != bittensor.proto.ReturnCode.Success) or (not response_future):
             return zeros, code, start_time, message
         
         try:
@@ -397,11 +407,15 @@ class Receptor(nn.Module):
 
             # ---- Catch GRPC Errors ----
             except grpc.RpcError as rpc_error_call:
-                return self.rpc_exception(rpc_error_call, start_time, zeros)
+                code, message =  self.rpc_exception(rpc_error_call, start_time, zeros)
+                call_time = clock.time() - start_time
+                return zeros, code, call_time, "collect_" + message
 
             # ---- Catch Unknown Errors ----
             except Exception as e:
-                return self.unknown_rpc_exception(e, start_time, zeros)
+                code, message = self.unknown_rpc_exception(e, start_time, zeros)
+                call_time = clock.time() - start_time
+                return zeros, code, call_time, "collect_" + message
 
             # ---- Check tensor response length ----
             if len(response.tensors) == 0:

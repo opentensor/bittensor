@@ -28,6 +28,10 @@ import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
 import bittensor.utils.stats as stat_utils
 import bittensor.utils.codes as codes
+import cProfile
+import re
+import pstats
+from pstats import SortKey
 
 import wandb
 
@@ -494,6 +498,10 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
         """
+
+        
+        profiler = cProfile.Profile()
+        profiler.enable()
         # To be filled. Inputs and endpoint must be list with the same number of elements.
         formatted_inputs = []
         formatted_endpoints = []
@@ -606,6 +614,10 @@ class Dendrite(torch.autograd.Function):
             error_msg = 'List of text inputs should have the same length as passed destination endpoints, got {} and {}'.format(
                 len(inputs), len(endpoints))
             raise ValueError(error_msg)
+
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats(SortKey.CUMULATIVE)
+        stats.print_stats(20)
 
         # Make calls.
         responses, codes, times = self._forward(
