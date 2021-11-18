@@ -113,8 +113,6 @@ class ReceptorPool ( torch.nn.Module ):
             in list(zip( inputs, endpoints )) 
         ]
         
-        print('started result_futures', clock.time() - start_time, clock.time())
-
         thread_pool = ThreadPoolExecutor(max_workers = 150) 
 
         # ---- Preprocessing for the forward function. ---- 
@@ -129,8 +127,6 @@ class ReceptorPool ( torch.nn.Module ):
         
         # ---- Collect the futures. ---- 
         results = thread_pool.map( lambda args: _receptor_forward_collect(args[0]), call_args, timeout=timeout*10)
-        print('finished results' ,clock.time() - start_time, clock.time())
-        # ==================================================================================== 
 
         try:
             forward_outputs, forward_codes, forward_times = zip(*results) 
