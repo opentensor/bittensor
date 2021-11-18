@@ -25,14 +25,8 @@ from loguru import logger
 import concurrent
 import bittensor
 import bittensor.utils.networking as net
-import pdb
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import time as clock
-import cProfile
-import re
-import pstats
-from pstats import SortKey
-import io
 
 logger = logger.opt(colors=True)
 
@@ -143,7 +137,7 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
-        
+
         # ---- Return ----
         return forward_outputs, forward_codes, forward_times
 

@@ -31,7 +31,7 @@ from loguru import logger
 
 import bittensor
 import bittensor.utils.stats as stat_utils
-import pdb
+
 logger = logger.opt(colors=True)
 
 # dummy tensor that triggers autograd in a RemoteExpert
