@@ -30,7 +30,6 @@ neuron_obj = bittensor.endpoint(
 
 receptor_pool = bittensor.receptor_pool(wallet=wallet)
 
-
 def test_receptor_pool_forward():
     endpoints = [neuron_obj]
     x = torch.ones( (1,2,2) )
