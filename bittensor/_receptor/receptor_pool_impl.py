@@ -102,17 +102,9 @@ class ReceptorPool ( torch.nn.Module ):
         forward_times = []
         start_time = clock.time()
 
-
-        def _call_receptor_pre_forward_with_args( receptor, inputs, modality ):
-            return (receptor, ) + receptor.call_forward( inputs = inputs, modality = modality, timeout = timeout )
-        
         # --- Create calls ----
-        def _call_receptor_forward_with_args( receptor, request, zeros, code ,start_time, message ):
-            return (receptor, ) + receptor.test_rpc( request, zeros, code ,start_time, message )
-
-        # --- Create calls ----
-        def _call_receptor_forward_collect_with_args( receptor, response_future, zeros, code, call_time, message ):
-            return receptor.collect_forward( response_future, zeros, code, call_time, message )
+        def _receptor_forward_collect( receptor ):
+            return receptor.forward_collect()
         
         # ---- Fill calls ----
         call_args = [ 
@@ -121,64 +113,23 @@ class ReceptorPool ( torch.nn.Module ):
             in list(zip( inputs, endpoints )) 
         ]
         
-        print('started result_futures' ,clock.time() - start_time)
+        print('started result_futures', clock.time() - start_time, clock.time())
 
-        p = ProcessPoolExecutor(max_workers=32)
-        thread_pool_0 = ThreadPoolExecutor(max_workers = 150) 
-        thread_pool_1 = ThreadPoolExecutor(max_workers = 1000)
-        thread_pool_2 = ThreadPoolExecutor(max_workers = 150) 
-        profiler = cProfile.Profile()
-        profiler1 = cProfile.Profile()
-        profiler2 = cProfile.Profile()
+        thread_pool = ThreadPoolExecutor(max_workers = 150) 
 
-        # ==================================================================================== 
-        # does the serialization and logging
-
-        profiler.enable() 
-        
-        pre_result_futures = []
+        # ---- Preprocessing for the forward function. ---- 
         for arg in call_args:
-            pre_result_futures.append(_call_receptor_pre_forward_with_args(*arg))
+            receptor, inputs, modality = arg
+            receptor.forward_prep( inputs = inputs, modality = modality )
 
-        # pre_result_futures = thread_pool_0.map( lambda args: _call_receptor_pre_forward_with_args(*args), call_args, timeout=timeout*10)
+        # ---- Send the forward request to peers. ---- 
+        for arg in call_args:    
+            receptor = arg[0]
+            receptor.forward_call(timeout = timeout)
         
-        profiler.disable()
-        stats = pstats.Stats(profiler).sort_stats(SortKey.CUMULATIVE)
-        stats.print_stats(20)
-
-        # ==================================================================================== 
-        # does only stub.forward.future
-        
-        profiler1.enable() 
-
-        result_futures = []
-        for arg in pre_result_futures:
-           result_futures.append(_call_receptor_forward_with_args(*arg))
-        
-        # result_futures = thread_pool_1.map( lambda args: _call_receptor_forward_with_args(*args), pre_result_futures, timeout=timeout*10)
-
-        profiler1.disable()
-        stats = pstats.Stats(profiler1).sort_stats(SortKey.CUMULATIVE)
-        stats.print_stats(20)
-
-        print('finished result_futures' ,clock.time() - start_time)
-
-        # ==================================================================================== 
-        # collect the results
-        
-        profiler2.enable()
-        
-        # results = []
-        # for arg in result_futures:
-        #     results.append(_call_receptor_forward_collect_with_args(*arg))
-
-        results = thread_pool_2.map( lambda args: _call_receptor_forward_collect_with_args(*args), result_futures, timeout=timeout*10)
-        
-        profiler2.disable()
-        stats = pstats.Stats(profiler2).sort_stats(SortKey.CUMULATIVE)
-        stats.print_stats(20)
-
-        print('finished results' ,clock.time() - start_time)
+        # ---- Collect the futures. ---- 
+        results = thread_pool.map( lambda args: _receptor_forward_collect(args[0]), call_args, timeout=timeout*10)
+        print('finished results' ,clock.time() - start_time, clock.time())
         # ==================================================================================== 
 
         try:
