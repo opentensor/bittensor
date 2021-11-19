@@ -44,8 +44,12 @@ class Dataset():
         # Used to retrieve directory contentx
         self.file_get = 'http://ipfs2.opentensor.ai/api/v0/object/get'
         self.pin_get = 'http://ipfs2.opentensor.ai/api/v0/pin/ls'
+        self.cat = 'http://ipfs.opentensor.ai:5001/api/v0/cat' 
+        self.node_get = 'http://ipfs.opentensor.ai:5001/api/v0/object/get'
+        self.mountain_hash = 'QmSdDg6V9dgpdAFtActs75Qfc36qJtm9y8a7yrQ1rHm7ZX'
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
+        
 
     @staticmethod
     def requests_retry_session(
@@ -113,7 +117,8 @@ class GenesisTextDataset( Dataset ):
         num_workers,
         dataset_name,
         data_dir,
-        save_dataset
+        save_dataset,
+        max_datasets
     ):
         super().__init__()
         self.block_size = block_size
@@ -125,6 +130,7 @@ class GenesisTextDataset( Dataset ):
         self.data_dir = data_dir
         self.save_dataset = save_dataset
         self.datafile_size_bound = 262158
+        self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
 
         # Retrieve a random slice of the genesis dataset
@@ -134,6 +140,8 @@ class GenesisTextDataset( Dataset ):
         # Used to refresh corpus if we've exhausted the whole dataset
         self.refresh_corpus = True
 
+        self.build_hash_table()
+
         if not os.path.isdir(os.path.expanduser(data_dir)):
             os.makedirs(os.path.expanduser(data_dir))
 
@@ -141,56 +149,51 @@ class GenesisTextDataset( Dataset ):
         r""" Getting directories from a random dataset_hash
         Where a directory could be leading to a data file or a directory file 
         """
-        # --- Getting dataset hashes from pin/ls.
-        dataset_hashes = [] 
-        response = self.retrieve_directory(self.pin_get, (('type', 'recursive'),), action = 'post')
-        if response.status_code != 200:
-            dataset_hashes= [
-                'QmPbAqDsMpufa2eNsE8X9TRh43JsAPxbj7tz3PmprouH7U',
-                'QmRJKZq6q64H1iwokVJTbi4tWjewvodAaZ6Kn1SpgP33EG',
-                'QmSJJtZa37kX7ABBJyani9i3cFTq86zebTLQqioRCvgDei',
-                'QmSQ6AnnWQUy4bETQSAgkgCkJ1AQePSeKvbaFejizj5HP3',
-                'QmSTudwkfLWkwFSC7LnUVZyroBgV3A6atbFeKUZ63DnTeW',
-                'QmTtuWZmTZf5JcBmXpbDDM5Hkq4AoFJk9NGoDsR4zUhbJx',
-                'QmVbNzncoJK8WwyAoWxLndk4999iyyYZbCKpEvUxrFXp1N',
-                'QmWiHsJ6z2LbZnEcidgz2vPq9ZsgrKUQ4QdB83pFcFvug3',
-                'QmXa1SDyVK6f876JYHwoQZcpXGMi8aPYKWvHzKTDXuqU5z',
-                'QmYg67pZwPsX3qH31tEc1qexrPc88zUkZG4AqsNDZo5FEX',
-                'QmZawcgwiT9S5Vk5WX41RRaBPb73KByQej9JmRCNgNVxjz',
-                'QmeSNvZVtHeMmJSuJQAUyTTW9LZbQkAqLDgVVXhzqJHrvY',
-                'Qmefa9xMdu7HZyr3U1zH8MaCayPngPJ9iZnnddXfXMrA2N',
-                'Qmf3BjH7SzK8WHGWBngt4WK6jGCpUtgPEBCw2pFZvYimto'
-                ]
-        else:
-            for hash, v in response.json()['Keys'].items():
-                dataset_hashes.append(hash) 
         
         # --- Getting directories from a random dataset hash.
         # --- directories: List[ Map{Name: str, Hash: str, Size: int} ]
         i = 0
         directories = [] 
-        dataset_hashes_order = list(range(len(dataset_hashes)))
+        dataset_hashes_order = list(range(len(self.dataset_hashes)))
         random.shuffle(dataset_hashes_order)
         
-        while len(directories) == 0 and i < len(dataset_hashes):
-            dataset_hash = dataset_hashes[dataset_hashes_order[i]]
+        while i < self.max_datasets:
+            
+            dataset_key = list(self.dataset_hashes.keys())[dataset_hashes_order[i]]
+            dataset_hash = self.dataset_hashes[dataset_key]
             i += 1
-            response = self.retrieve_directory(self.file_get, (('arg', dataset_hash),))
+            logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
+            response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
             
             if response.status_code != 200:
-                logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dataset_hash))
+                logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
             
             else:
                 # --- Get the directory links if there is valid response, else check on another dataset_hash 
-                directory = response.json()
-                if directory and 'Links' in directory.keys(): 
-                    directories += directory['Links']
-                    logger.success("Loaded dataset hash:".ljust(20) + "<blue>{}</blue>".format(dataset_hash))
+                directories += response.json()
+                logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
                 
         if len(directories) == 0:
             directories = None
         
         return directories
+
+    def get_directories(self, keys):
+        directories = []
+        for key in keys:
+            if key in self.dataset_hashes.keys():
+                dataset_hash = self.dataset_hashes[key] 
+                response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
+                if response.status_code != 200:
+                    logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(key))
+                
+                else:
+                    # --- Get the directory links if there is valid response, else check on another dataset_hash 
+                    directories += response.json()
+                    logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(key))
+
+        return directories
+
 
     def extract_datafile_dir(self, directory):
         r"""
@@ -210,7 +213,7 @@ class GenesisTextDataset( Dataset ):
 
         # --- Else, the directory leads to more directories, return a random data file within the directories.
         else:
-            response = self.retrieve_directory(self.file_get, (('arg', directory['Hash']),))
+            response = self.retrieve_directory(self.node_get, (('arg', directory['Hash']),))
             
             # --- Return none if the request failed.
             if response.status_code != 200:
@@ -260,7 +263,7 @@ class GenesisTextDataset( Dataset ):
 
         # --- If couldnt load from path, download text.
         if text == None:
-            response = self.retrieve_directory(self.file_get, (('arg', file_hash),))
+            response = self.retrieve_directory(self.node_get, (('arg', file_hash),))
 
             if response.status_code != 200:
                 logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
@@ -294,7 +297,11 @@ class GenesisTextDataset( Dataset ):
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
             # --- Get directories from a random dataset_hash
-            directories = self.get_random_directories()
+            print(self.dataset_name)
+            if self.dataset_name == None:
+                directories = self.get_random_directories()
+            else:
+                directories = self.get_directories(self.dataset_name)
             data_corpus = []
 
             # --- Generate a random order of the directories
@@ -402,3 +409,10 @@ class GenesisTextDataset( Dataset ):
         tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
 
         return tokenized_text[:self.block_size]
+
+    def build_hash_table(self):
+        self.dataset_hashes = {}
+        response = self.retrieve_directory(self.node_get, (('arg', self.mountain_hash),))
+        for i in response.json()['Links']:
+            self.dataset_hashes[i['Name'][:-4]]= i['Hash'] 
+
