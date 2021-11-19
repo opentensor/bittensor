@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
+from types import SimpleNamespace
 import torch
 import bittensor
 
@@ -41,6 +42,19 @@ class endpoint:
         coldkey:str 
     ) -> 'bittensor.Endpoint':
         return endpoint_impl.Endpoint( version, uid, hotkey, ip, ip_type, port, modality, coldkey )
+
+    @staticmethod
+    def from_neuron( neuron: SimpleNamespace ) -> 'bittensor.Endpoint':
+        return endpoint_impl.Endpoint(
+            version = neuron.version,
+            uid = neuron.uid, 
+            hotkey = neuron.hotkey, 
+            port = neuron.port,
+            ip = neuron.ip, 
+            ip_type = neuron.ip_type, 
+            modality = neuron.modality, 
+            coldkey = neuron.coldkey
+        )
 
     @staticmethod
     def from_dict(endpoint_dict: dict) -> 'bittensor.Endpoint':
