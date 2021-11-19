@@ -297,7 +297,6 @@ class GenesisTextDataset( Dataset ):
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
             # --- Get directories from a random dataset_hash
-            print(self.dataset_name)
             if self.dataset_name == None:
                 directories = self.get_random_directories()
             else:
