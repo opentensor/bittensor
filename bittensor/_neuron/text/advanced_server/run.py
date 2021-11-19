@@ -177,7 +177,7 @@ def serve( config, server):
     dataset = bittensor.dataset(config=config)
 
     # load our old model
-    if config.neuron.restart != True:
+    if config.neuron.no_restart != True:
         gp_server.load(config.neuron.full_path)
 
     if config.wandb.api_key != 'default':
@@ -272,7 +272,7 @@ def serve( config, server):
                     did_set = subtensor.set_weights(
                         uids=metagraph.uids,
                         weights = chain_weights,
-                        wait_for_inclusion = True,
+                        wait_for_inclusion = False,
                         wallet = wallet,
                     )
                     
