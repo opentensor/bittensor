@@ -38,6 +38,7 @@ neuron_obj = bittensor.endpoint(
 )
 
 receptor_pool = bittensor.receptor_pool(wallet=wallet)
+bittensor.logging( debug = True )
 
 def test_receptor_pool_forward():
     endpoints = [neuron_obj]

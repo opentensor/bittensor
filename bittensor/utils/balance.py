@@ -41,6 +41,12 @@ class Balance:
     def __rich__(self):
         return "[green]\u03C4[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format( str(float(self.tao)).split('.')[0], str(float(self.tao)).split('.')[1])
 
+    def __str_rao__(self):
+        return "\u03C1{}".format( int(self.rao) )
+
+    def __rich_rao__(self):
+        return "[green]\u03C1{}[/green]".format( int(self.rao) )
+
     def __repr__(self):
         return self.__str__()
 
