@@ -181,7 +181,9 @@ class GenesisTextDataset( Dataset ):
     def get_directories(self, keys):
         directories = []
         for key in keys:
+            
             if key in self.dataset_hashes.keys():
+                logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(key))
                 dataset_hash = self.dataset_hashes[key] 
                 response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
                 if response.status_code != 200:
@@ -191,6 +193,8 @@ class GenesisTextDataset( Dataset ):
                     # --- Get the directory links if there is valid response, else check on another dataset_hash 
                     directories += response.json()
                     logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(key))
+            else:
+                logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
 
         return directories
 
@@ -297,7 +301,7 @@ class GenesisTextDataset( Dataset ):
             logger.success("Retrieving a dataset files from the IPFS gateway...")
 
             # --- Get directories from a random dataset_hash
-            if self.dataset_name == None:
+            if self.dataset_name == 'default':
                 directories = self.get_random_directories()
             else:
                 directories = self.get_directories(self.dataset_name)

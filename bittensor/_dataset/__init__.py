@@ -35,7 +35,7 @@ class dataset:
             batch_size: int = None,
             max_corpus_size:int = None,
             num_workers: int = None,
-            dataset_name: str=None,
+            dataset_name: list = [],
             save_dataset: bool=None
         ):
         if config == None: 
@@ -45,7 +45,7 @@ class dataset:
         config.dataset.batch_size = batch_size if batch_size != None else config.dataset.batch_size
         config.dataset.max_corpus_size = max_corpus_size if max_corpus_size != None else config.dataset.max_corpus_size
         config.dataset.num_workers = num_workers if num_workers != None else config.dataset.num_workers
-        config.dataset.dataset_name = dataset_name if dataset_name != None else config.dataset.dataset_name
+        config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
         dataset.check_config( config )
         return dataset_impl.GenesisTextDataset(
