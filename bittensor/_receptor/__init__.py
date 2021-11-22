@@ -62,7 +62,6 @@ class receptor_pool:
     def __new__( 
             cls, 
             wallet: 'bittensor.Wallet',
-            thread_pool: ThreadPoolExecutor = None,
             max_worker_threads: int = 150,
             max_active_receptors: int = 500,
         ) -> 'bittensor.ReceptorPool':
@@ -78,10 +77,8 @@ class receptor_pool:
                 max_active_receptors (:type:`int`, `optional`):
                     Maximum allowed active allocated TCP connections.
         """        
-        if thread_pool == None:
-            thread_pool = ThreadPoolExecutor( max_workers = max_worker_threads )
         return bittensor.ReceptorPool ( 
             wallet = wallet,
-            thread_pool = thread_pool,
+            max_worker_threads = max_worker_threads,
             max_active_receptors = max_active_receptors
         )
