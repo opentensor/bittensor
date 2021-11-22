@@ -265,7 +265,7 @@ def serve( config, server):
             # save the model
             gp_server.save(config.neuron.full_path)
             
-            if current_block % 1 == 0:
+            if current_block % 10 == 0:
                 
                 # --- setting weights
                 try: 
