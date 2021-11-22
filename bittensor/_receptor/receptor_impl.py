@@ -129,7 +129,7 @@ class Receptor(nn.Module):
 
         self.forward_prep( inputs = inputs, modality = modality)
         self.forward_call(timeout = timeout)
-        return self.forward_collect
+        return self.forward_collect()
 
 
     def backward(
@@ -223,14 +223,14 @@ class Receptor(nn.Module):
         if torch.numel(inputs) == 0:
             self.forward_request.code = bittensor.proto.ReturnCode.EmptyRequest
             self.forward_request.message = 'Empty request.'
-            self.forward_log(is_response = False, inputs = list(input.shape))
+            self.forward_log(is_response = False, inputs = list(inputs.shape))
             return 
         
         # ---- Check endpoint----
         elif self.endpoint.uid == -1:
             self.forward_request.code = bittensor.proto.ReturnCode.EmptyRequest
             self.forward_request.message = 'Bad endpoint.'
-            self.forward_log(is_response = False, inputs = list(input.shape))
+            self.forward_log(is_response = False, inputs = list(inputs.shape))
             return 
 
         # ---- Inputs Serialization ----
@@ -334,7 +334,7 @@ class Receptor(nn.Module):
             if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
                 self.forward_request.message = 'No return code.'
                 self.forward_log(is_response = True, inputs = list(self.forward_request.zeros.shape))
-                return self.forward_request.zeros, self.forward_request.code, clock.time() - self.forward_request.start_time
+                return self.forward_request.zeros, bittensor_code, clock.time() - self.forward_request.start_time
 
             # ---- Catch bittensor errors ----
             if bittensor_code == bittensor.proto.ReturnCode.UnknownException:

@@ -6,6 +6,7 @@ import time
 
 from unittest.mock import MagicMock
 import unittest.mock as mock
+import asyncio
 
 # --- Receptor Pool ---
 
@@ -62,13 +63,23 @@ def test_receptor_pool_max_workers_forward():
 
 def test_receptor_pool_forward_hang():
     endpoints = [neuron_obj,neuron_obj]
-    x = torch.ones( (2,2,2) )
-    def sleep(request ,timeout,metadata):
-        time.sleep(20)
+    x = torch.ones( (2,2,2) )    
+    y = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            return_code = bittensor.proto.ReturnCode.Timeout,
+            tensors = [y_serialized])
+    
+    future = asyncio.Future()
+    future.set_result(mock_return_val)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
-    with mock.patch.object(receptor_pool.receptors[neuron_obj.hotkey].stub, 'Forward', new=sleep): 
-        resp1,  codes, _ = receptor_pool.forward( endpoints, x, bittensor.proto.Modality.TENSOR, timeout=1)
-        assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward.future = MagicMock( return_value = future )
+    resp1,  codes, _ = receptor_pool.forward( endpoints, x, bittensor.proto.Modality.TENSOR, timeout=1)
+    assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
 
 def test_receptor_pool_backward_hang():
     endpoints = [neuron_obj,neuron_obj]
