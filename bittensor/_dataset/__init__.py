@@ -85,7 +85,7 @@ class dataset:
             parser.add_argument('--dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
             parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
             parser.add_argument('--dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
-            parser.add_argument('--dataset.no_tokenizer', action='store_false', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=True)
+            parser.add_argument('--dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
 
 
         except argparse.ArgumentError:
