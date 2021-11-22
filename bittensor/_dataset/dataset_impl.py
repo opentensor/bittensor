@@ -116,7 +116,8 @@ class GenesisTextDataset( Dataset ):
         dataset_name,
         data_dir,
         save_dataset,
-        max_datasets
+        max_datasets,
+        no_tokenizer
     ):
         super().__init__()
         self.block_size = block_size
@@ -130,6 +131,7 @@ class GenesisTextDataset( Dataset ):
         self.datafile_size_bound = 262158
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
+        self.no_tokenizer = no_tokenizer
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -406,8 +408,10 @@ class GenesisTextDataset( Dataset ):
         """
         start_idx = (idx * self.block_size) % len(self.data)
         end_idx = start_idx + self.block_size
-
-        tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
+        if self.no_tokenizer == False:
+            tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
+        elif self.no_tokenizer == True:
+            tokenized_text = " ".join(self.data[start_idx:end_idx])
 
         return tokenized_text[:self.block_size]
 

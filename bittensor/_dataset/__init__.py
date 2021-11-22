@@ -36,7 +36,8 @@ class dataset:
             max_corpus_size:int = None,
             num_workers: int = None,
             dataset_name: list = [],
-            save_dataset: bool=None
+            save_dataset: bool=None,
+            no_tokenizer: bool=None
         ):
         if config == None: 
             config = dataset.config()
@@ -47,6 +48,7 @@ class dataset:
         config.dataset.num_workers = num_workers if num_workers != None else config.dataset.num_workers
         config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
+        config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
         dataset.check_config( config )
         return dataset_impl.GenesisTextDataset(
             block_size = config.dataset.block_size,
@@ -56,7 +58,8 @@ class dataset:
             dataset_name = config.dataset.dataset_name,
             data_dir = config.dataset.data_dir,
             save_dataset = config.dataset.save_dataset,
-            max_datasets = config.dataset.max_datasets
+            max_datasets = config.dataset.max_datasets,
+            no_tokenizer = config.dataset.no_tokenizer
         )
 
     @classmethod
@@ -82,6 +85,8 @@ class dataset:
             parser.add_argument('--dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
             parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
             parser.add_argument('--dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
+            parser.add_argument('--dataset.no_tokenizer', action='store_false', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=True)
+
 
         except argparse.ArgumentError:
             # re-parsing arguments.
