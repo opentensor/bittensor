@@ -108,6 +108,11 @@ linux_install_bittensor() {
     exit_on_error $? 
 }
 
+linux_increase_ulimit(){
+    ohai "Increasing ulimit to 1,000,000"
+    ulimit -n 1000000
+}
+
 
 mac_install_xcode() {
     which -s xcode-select
@@ -200,6 +205,10 @@ if [[ "$OS" == "Linux" ]]; then
     linux_install_python
     linux_update_pip
     linux_install_bittensor
+
+    ohai "Would you like to increase the ulimit? This will allow your miner to run for a longer time"
+    wait_for_user
+    linux_increase_ulimit
     echo ""
     echo ""
     echo "######################################################################"
@@ -293,5 +302,6 @@ echo ""
 echo "- Join the discussion: "
 echo "    ${tty_underline}https://discord.gg/3rUr6EcvbB${tty_reset}"
 echo ""
+
 
     
