@@ -282,13 +282,19 @@ class Receptor(nn.Module):
             self.forward_log(request = forward_request, is_response = False, inputs = list(inputs.shape))
             return forward_request
             
-        # ---- Build request ----
-        forward_request.request = bittensor.proto.TensorMessage (
-            version = bittensor.__version_as_int__,
-            hotkey = self.wallet.hotkey.ss58_address,
-            tensors = [forward_request.serialized_inputs],
-            requires_grad = True,
-        )
+        try: 
+            # ---- Build request ----
+            forward_request.request = bittensor.proto.TensorMessage (
+                version = bittensor.__version_as_int__,
+                hotkey = self.wallet.hotkey.ss58_address,
+                tensors = [forward_request.serialized_inputs],
+                requires_grad = True,
+            )
+        except Exception as e:
+            forward_request.code = bittensor.proto.ReturnCode.UnknownException
+            forward_request.message = str(e)
+            self.forward_log(request = forward_request, is_response = False, inputs = list(forward_request.serialized_inputs.shape))
+            return forward_request
 
         forward_request.code = bittensor.proto.ReturnCode.Success
         return forward_request
