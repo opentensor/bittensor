@@ -52,7 +52,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         )
 
     # Optionally resume.
-    if config.neuron.resume:
+    if config.neuron.no_restart != True:
         try:
             validator.load_state_dict( torch.load("{}/validator.torch".format( config.neuron.full_path ))['validator'], strict=False )
         except Exception as e:

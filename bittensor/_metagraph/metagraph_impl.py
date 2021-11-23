@@ -22,6 +22,8 @@ import os
 from typing import List
 from loguru import logger
 
+import wandb
+import matplotlib.pyplot as plt
 import torch.nn.functional as f
 import torch
 
@@ -476,6 +478,77 @@ class Metagraph( torch.nn.Module ):
             
         # For contructor.
         return self
+
+    def to_wandb(self):
+        wandb_data = {
+            'metagraph_n': self.n.item(),
+            'metagraph_tau': self.tau.item(),
+            'metagraph_block': self.block.item(),
+        }
+        _ = plt.figure()
+        axS = plt.axes()
+
+        _ = plt.figure()
+        axR = plt.axes()
+
+        figS = plt.figure()
+        axT = plt.axes()
+
+        figS = plt.figure()
+        axC = plt.axes()
+
+        figS = plt.figure()
+        axD = plt.axes()
+
+        figS = plt.figure()
+        axI = plt.axes()
+
+        figS = plt.figure()
+        axE = plt.axes()
+
+        axS.plot( self.S.tolist() )
+        axS.set_title('Stake')
+        axS.set_xlabel('uid')
+        axS.set_ylabel('stake')
+        wandb_data['stake'] = axS
+
+        axR.plot( self.R.tolist() )
+        axR.set_title('Ranks')
+        axR.set_xlabel('uid')
+        axR.set_ylabel('ranks')
+        wandb_data['ranks'] = axR
+
+        axT.plot( self.T.tolist() )
+        axT.set_title('Trust')
+        axT.set_xlabel('uid')
+        axT.set_ylabel('trust')
+        wandb_data['trust'] = axT
+
+        axC.plot( self.C.tolist() )
+        axC.set_title('Consensus')
+        axC.set_xlabel('uid')
+        axC.set_ylabel('consensus')
+        wandb_data['consensus'] = axC
+
+        axI.plot( self.I.tolist() )
+        axI.set_title('Incentive')
+        axI.set_xlabel('uid')
+        axI.set_ylabel('incentive')
+        wandb_data['incentive'] = axI
+
+        axD.plot( self.D.tolist() )
+        axD.set_title('Dividends')
+        axD.set_xlabel('uid')
+        axD.set_ylabel('dividends')
+        wandb_data['dividends'] = axD
+
+        axE.plot( self.E.tolist() )
+        axE.set_title('Emission')
+        axE.set_xlabel('uid')
+        axE.set_ylabel('emission')
+        wandb_data['emission'] = axE
+
+        return wandb_data
     
     def __str__(self):
         return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.subtensor.network)
