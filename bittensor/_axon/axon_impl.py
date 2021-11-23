@@ -78,33 +78,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.forward_timeout = forward_timeout
         self.backward_timeout = backward_timeout
         self.modality = self.find_modality()
-        self.stats = SimpleNamespace(
-
-            # queries on the endpoint per second.
-            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
-
-            # failed queries on this endpoint per second.
-            qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
-
-            # total bytes recieved byt this axon per second.
-            total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
-
-            # total bytest responded by this axon per second.
-            total_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
-
-            # bytes recieved by this axon per pubkey.
-            in_bytes_per_pubkey = {},
-
-            # bytes responded by this axon per pubkey.
-            out_bytes_per_pubkey = {},
-
-            # queries recieved by this axon per pubkey.
-            qps_per_pubkey = {},
-
-            # queries failed by this axon per pubkey.
-            qps_failed_per_pubkey = {},
-
-        )
+        self.stats = self._init_stats()
         self.started = None
         
         # -- Priority 
@@ -143,7 +117,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             requires_grad = True,
         )
         # ---- Update stats for this request.
-        self.update_stats_for_request( request, response )
+        self.update_stats_for_request( request, response, code)
         return response
 
     def Backward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
@@ -171,7 +145,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             tensors = [tensor] if tensor is not None else [],
             requires_grad = True,
         )
-        self.update_stats_for_request( request, response )
+        self.update_stats_for_request( request, response, code )
         return response
 
     def _call_forward(
@@ -584,33 +558,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         bittensor.axon.check_backward_callback(backward_callback,modality)
         self.backward_callback[modality] = backward_callback
 
-    def update_stats_for_request(self, request, response):
-        """ Save the in_bytes and out_bytes from request and respond to self.stats 
-        """
-        self.stats.qps.update(1)
-        in_bytes = sys.getsizeof(request)
-        out_bytes = sys.getsizeof(response)
-        self.stats.total_in_bytes.update(in_bytes)
-        self.stats.total_out_bytes.update(out_bytes)
-
-        # ---- Check we have a stats column for this peer
-        if request.hotkey in self.stats.in_bytes_per_pubkey:
-            self.stats.in_bytes_per_pubkey[request.hotkey].update(in_bytes)
-            self.stats.out_bytes_per_pubkey[request.hotkey].update(out_bytes)
-            self.stats.qps_per_pubkey[request.hotkey].update(1)
-            self.stats.qps_failed_per_pubkey[request.hotkey].update(0)
-
-        else:
-            self.stats.in_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
-            self.stats.out_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
-            self.stats.qps_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(1, 0.01)
-            self.stats.qps_failed_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
-
-        # ---- Adding failed responses to stat  
-        if response.return_code != bittensor.proto.ReturnCode.Success:
-            self.stats.qps_failed.update(1)
-            self.stats.qps_failed_per_pubkey[request.hotkey].update(1)
-
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
         """
@@ -697,7 +644,73 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
         return self
 
-    def to_wandb( self, metagraph = None):
+    def _init_stats(self):
+        return SimpleNamespace(
+            # Queries per second.
+            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            # Total requests.
+            total_requests = 0,
+            # Total bytes recieved per second.
+            total_in_bytes = 0,
+            # Total bytes responded per second.
+            total_out_bytes = 0,
+            # Bytes recieved per second.
+            in_bytes_per_second = stat_utils.timed_rolling_avg(0.0, 0.01),
+            # Bytes responded per second.
+            out_bytes_per_second = stat_utils.timed_rolling_avg(0.0, 0.01),
+            # Requests per pubkey.
+            requests_per_pubkey = {},
+            # Success per pubkey.
+            successes_per_pubkey = {},
+            # Query time per pubkey.
+            query_times_per_pubkey = {},
+            # Queries per second per pubkey.
+            qps_per_pubkey = {},
+            # Codes recieved per pubkey.
+            codes_per_pubkey = {},
+            # Bytes recieved per pubkey.
+            in_bytes_per_pubkey = {},
+            # Bytes sent per pubkey.
+            out_bytes_per_pubkey = {}
+        )
+
+    def update_stats_for_request(self, request, response, time, code):
+        r""" Updates statistics for this request and response.
+            Args:
+                requests ( bittensor.proto.TensorMessage, `required`):
+                    The request.
+                response ( bittensor.proto.TensorMessage, `required`):
+                    The response.
+                time (:type:`float`, `required`):
+                    Length of call in seconds.
+                code (:obj:`bittensor.proto.ReturnCode, `required`)
+                    Return code associated with the call i.e. Success of Timeout.
+        """
+        self.stats.qps.update(1)
+        self.stats.total_requests += 1
+        self.stats.total_in_bytes = sys.getsizeof(request) 
+        self.stats.total_out_bytes = sys.getsizeof(response) 
+        self.stats.in_bytes_per_second.update( sys.getsizeof(request) )
+        self.stats.out_bytes_per_second.update( sys.getsizeof(response) )
+        if request.hotkey not in self.stats.requests_per_pubkey:
+            pubkey = request.hotkey
+            self.stats.requests_per_pubkey[ pubkey ] = 0
+            self.stats.successes_per_pubkey[ pubkey ] = 0
+            self.stats.query_times_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0, 0.01)
+            self.stats.qps_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0, 0.01)
+            self.stats.codes_per_pubkey[pubkey] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
+            self.stats.in_bytes_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
+            self.stats.out_bytes_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)      
+        self.stats.requests_per_pubkey[pubkey] += 1
+        self.stats.successes_per_pubkey[pubkey] += 1 if code == 1 else 0
+        if bittensor.proto.ReturnCode.Name(code) in self.stats.codes_per_pubkey[pubkey].keys():
+            self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code)] += 1
+        self.stats.query_times_per_pubkey[pubkey].update( time )
+        self.stats.in_bytes_per_pubkey[pubkey].update( sys.getsizeof(request) )
+        self.stats.out_bytes_per_pubkey[pubkey].update( sys.getsizeof(response) )
+        self.stats.qps_per_pubkey[pubkey].update(1)      
+
+    def to_wandb( self ):
         r""" Return a dictionary of axon stat info for wandb logging
             Return:
                 wandb_info (:obj:`Dict`)
@@ -705,75 +718,26 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ---- Axon summary for wandb
         wandb_data = {
             'axon_qps': self.stats.qps.value,
-            'axon_qps_failed' : self.stats.qps_failed.value,
-            'axon_total_in_bytes' : self.stats.total_in_bytes.value,
-            'axon_total_out_bytes' : self.stats.total_out_bytes.value,
+            'axon_total_requests': self.stats.total_requests,
+            'axon_total_in_bytes' : self.stats.total_in_bytes,
+            'axon_total_out_bytes' : self.stats.total_out_bytes,
         }
         # Create table view
         table_data = []
-        for pubkey in self.stats.in_bytes_per_pubkey.keys():
-            table_data.append( [
+        for pubkey in self.stats.requests_per_pubkey.keys():
+            row = [
                 pubkey,
+                self.stats.requests_per_pubkey[pubkey],
+                self.stats.successes_per_pubkey[pubkey].value,
+                self.stats.query_times_per_pubkey[pubkey].value,
                 self.stats.in_bytes_per_pubkey[pubkey].value,
                 self.stats.out_bytes_per_pubkey[pubkey].value,
                 self.stats.qps_per_pubkey[pubkey].value,
-                self.stats.qps_failed_per_pubkey[pubkey].value,
-            ] )
+            ] + list(self.stats.codes_per_pubkey[pubkey].values())
+            table_data.append( row )
+
         wandb_data['axon_data'] = wandb.Table( 
             data = table_data, 
-            columns=['pubkey', 'in_bytes', 'out_bytes', 'qps', 'qps_failed']
+            columns=['pubkey', 'requests', 'successes', 'query_time', 'in_bytes', 'out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
         )
-        
-        # Create matplot lib charts
-        if metagraph != None:
-
-            # Create uid indexed tables.
-            in_bytes = [0] * (metagraph.n.item() + 1)
-            out_bytes = [0] * (metagraph.n.item() + 1)
-            qps = [0] * (metagraph.n.item() + 1)
-            failed = [0] * (metagraph.n.item() + 1)
-            for pubkey in self.stats.in_bytes_per_pubkey.keys():
-                try:
-                    # Uid of pubkey in metagraph
-                    uid = metagraph.index( pubkey ) 
-                except:
-                    # Null uid.
-                    uid = metagraph.n.item() + 1
-                in_bytes[uid] = self.stats.in_bytes_per_pubkey[pubkey]
-                out_bytes[uid] = self.stats.out_bytes_per_pubkey[pubkey]
-                qps[uid] = self.stats.qps_per_pubkey[pubkey]
-                failed[uid] = self.stats.qps_failed_per_pubkey[pubkey]
-
-            plt.figure()
-            axBR = plt.axes()
-            axBR.plot( in_bytes )
-            axBR.set_title('Bytes recieved per second')
-            axBR.set_xlabel('uid')
-            axBR.set_ylabel('in_bytes')
-            wandb_data['axon_in_bytes'] = axBR
-
-            plt.figure()
-            axBS = plt.axes()
-            axBS.plot( out_bytes )
-            axBS.set_title('Bytes sent per second')
-            axBS.set_xlabel('uid')
-            axBS.set_ylabel('out_bytes') 
-            wandb_data['axon_out_bytes'] = axBS
-
-            plt.figure()
-            axQPS = plt.axes()
-            axQPS.plot( qps )
-            axQPS.set_title('QPS')
-            axQPS.set_xlabel('uid')
-            axQPS.set_ylabel('qps') 
-            wandb_data['axon_qps'] = axQPS
-
-            plt.figure()
-            axF = plt.axes()
-            axF.plot( failed )
-            axF.set_title('Failed')
-            axF.set_xlabel('uid')
-            axF.set_ylabel('failed') 
-            wandb_data['axon_failed'] = axF
-
         return wandb_data 
