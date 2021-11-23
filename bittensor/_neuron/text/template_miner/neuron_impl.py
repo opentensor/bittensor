@@ -496,9 +496,10 @@ class Neuron:
 
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
+            wandb_info_metagraph = self.metagraph.to_wandb()   
                 
             try:
-                wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend})
+                wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend, **wandb_info_metagraph})
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
