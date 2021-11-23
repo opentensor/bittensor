@@ -728,7 +728,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             row = [
                 pubkey,
                 self.stats.requests_per_pubkey[pubkey],
-                self.stats.successes_per_pubkey[pubkey].value,
+                self.stats.successes_per_pubkey[pubkey],
                 self.stats.query_times_per_pubkey[pubkey].value,
                 self.stats.in_bytes_per_pubkey[pubkey].value,
                 self.stats.out_bytes_per_pubkey[pubkey].value,
