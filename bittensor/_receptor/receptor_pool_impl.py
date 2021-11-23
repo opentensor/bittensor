@@ -29,25 +29,19 @@ from concurrent.futures import ThreadPoolExecutor
 
 logger = logger.opt(colors=True)
 
-# Helper function for filling nill (zero) responses on failures.
-def nill_response_for(inputs):
-    """ Empty response
-    """
-    if torch.numel(inputs) == 0:
-        return torch.tensor([])
-    return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
-
 class ReceptorPool ( torch.nn.Module ):
     """ Manages a pool of grpc connections as receptors
     """
     def __init__(
         self, 
         wallet: 'bittensor.Wallet',
+        thread_pool: 'ThreadPoolExecutor',
         max_worker_threads: int,
         max_active_receptors: int
     ):
         super().__init__()
         self.wallet = wallet
+        self.thread_pool = thread_pool
         self.max_worker_threads = max_worker_threads
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
@@ -263,7 +257,7 @@ class ReceptorPool ( torch.nn.Module ):
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
                     wallet = self.wallet,
-                    external_ip = self.external_ip
+                    external_ip = self.external_ip,
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
 
