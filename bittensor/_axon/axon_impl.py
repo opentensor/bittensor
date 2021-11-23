@@ -117,7 +117,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             requires_grad = True,
         )
         # ---- Update stats for this request.
-        self.update_stats_for_request( request, response, code, time)
+        self.update_stats_for_request( request, response, time, code)
         return response
 
     def Backward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
@@ -145,7 +145,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             tensors = [tensor] if tensor is not None else [],
             requires_grad = True,
         )
-        self.update_stats_for_request( request, response, code, time )
+        self.update_stats_for_request( request, response, time, code )
         return response
 
     def _call_forward(
@@ -703,8 +703,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.out_bytes_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)      
         self.stats.requests_per_pubkey[pubkey] += 1
         self.stats.successes_per_pubkey[pubkey] += 1 if code == 1 else 0
-        if bittensor.proto.ReturnCode.Name(code) in self.stats.codes_per_pubkey[pubkey].keys():
-            self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code)] += 1
+        try:
+            if bittensor.proto.ReturnCode.Name(code) in self.stats.codes_per_pubkey[pubkey].keys():
+                self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code)] += 1
+        except:
+            pass
         self.stats.query_times_per_pubkey[pubkey].update( time )
         self.stats.in_bytes_per_pubkey[pubkey].update( sys.getsizeof(request) )
         self.stats.out_bytes_per_pubkey[pubkey].update( sys.getsizeof(response) )
