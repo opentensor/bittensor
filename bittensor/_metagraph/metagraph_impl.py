@@ -489,7 +489,7 @@ class Metagraph( torch.nn.Module ):
             table_data.append( [
                 uid,
                 self.stake[uid].item(),
-                self.rank[uid].item(),
+                self.ranks[uid].item(),
                 self.trust[uid].item(),
                 self.consensus[uid].item(),
                 self.emission[uid].item(),
