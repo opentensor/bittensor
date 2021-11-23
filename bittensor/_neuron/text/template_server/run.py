@@ -50,8 +50,8 @@ def serve( config, server ):
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": model.parameters()} ],
-        lr = config.server.learning_rate,
-        momentum = config.server.momentum,
+        lr = config.neuron.learning_rate,
+        momentum = config.neuron.momentum,
     )
     mutex = Lock()
 
@@ -89,12 +89,12 @@ def serve( config, server ):
             config = config,
             cold_pubkey = wallet.coldkeypub.ss58_address,
             hot_pubkey = wallet.hotkey.ss58_address,
-            root_dir = config.server.full_path
+            root_dir = config.neuron.full_path
         )
 
     # --- Run Forever.
     while True:
-        end_block = subtensor.get_current_block() + config.server.blocks_per_epoch
+        end_block = subtensor.get_current_block() + config.neuron.blocks_per_epoch
         while end_block >= subtensor.get_current_block():
             time.sleep( bittensor.__blocktime__ )
         metagraph.sync().save()

@@ -116,6 +116,8 @@ class axon:
             server = grpc.server( thread_pool,
                                   interceptors=(AuthInterceptor(blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
+                                  options = [('grpc.keepalive_time_ms', 100000),
+                                             ('grpc.keepalive_timeout_ms', 500000)]
                                 )
 
         forwards = [forward_text, forward_image, forward_tensor]
@@ -135,8 +137,8 @@ class axon:
             backwards = backwards,
             priority = priority,
             priority_threadpool = priority_threadpool,
-            forward_timeout = forward_timeout,
-            backward_timeout = backward_timeout
+            forward_timeout = config.axon.forward_timeout,
+            backward_timeout = config.axon.backward_timeout,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )

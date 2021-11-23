@@ -28,6 +28,7 @@ import time
 import torch.nn as nn
 import grpc
 from loguru import logger
+from grpc import _common
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -75,6 +76,7 @@ class Receptor(nn.Module):
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.receptor_uid = str(uuid.uuid1())
+        self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
         self.stats = SimpleNamespace(
             forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -117,8 +119,15 @@ class Receptor(nn.Module):
         return self.__str__()
 
     def __del__(self):
-        if self.channel is not None:
-            self.channel.close()
+        try:
+            result = self.channel._channel.check_connectivity_state(True)
+            if self.state_dict[result] != self.state_dict[result].SHUTDOWN:        
+                self.channel.close()
+        except:
+            pass
+        
+    def __exit__(self):
+        self.__del__()
 
     def forward (
         self, 
@@ -234,7 +243,7 @@ class Receptor(nn.Module):
         """
         start_time = clock.time()
         zeros = nill_response_for(inputs)
-
+        
         try:
             # ---- Check inputs size ----
             if torch.numel(inputs) == 0:
@@ -624,3 +633,8 @@ class Receptor(nn.Module):
         nounce = int(time.time() * 1000)
         return nounce
         
+    def state(self):
+        try: 
+            return self.state_dict[self.channel._channel.check_connectivity_state(True)]
+        except ValueError:
+            return "Channel closed"

@@ -198,6 +198,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     message associated with forward call, potentially error, or 'success'.
 
         """
+
         # Check forward has been subscribed.
         if self.forward_callback[modality] == None:
             message = "Forward callback is not yet subscribed on this axon."
@@ -208,7 +209,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if self.priority != None:
                 priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.FORWARD)
                 future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
-
+                
                 try:
                     response_tensor = future.result(timeout= self.forward_timeout)
                 except concurrent.futures.TimeoutError :
