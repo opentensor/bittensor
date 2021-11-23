@@ -73,7 +73,6 @@ class Nucleus(nn.Module):
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
-        self.noise_offset = 0.0000001
         self.init_weights()
         self.metagraph = None
         self.dendrite = None
@@ -88,6 +87,7 @@ class Nucleus(nn.Module):
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
         parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
+        parser.add_argument('--nucleus.noise_offset', type=float, help='Noise added to weights during each call.', default=0.001 )
 
     def init_weights(self):
         initrange = 0.1
@@ -217,7 +217,7 @@ class Nucleus(nn.Module):
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
-        std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.noise_offset
+        std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.config.nucleus.noise_offset
         noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device )
         topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
