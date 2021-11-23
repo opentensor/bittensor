@@ -494,7 +494,7 @@ class Neuron:
                 wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.peer_weights[uid]
                 wandb_info[f'fisher_ema uid: {uid_str}'] = self.stats.ema_scores[uid]
 
-            wandb_info_axon = self.axon.to_wandb()
+            wandb_info_axon = self.axon.to_wandb(self.metagraph)
             wandb_info_dend = self.dendrite.to_wandb()
             wandb_info_metagraph = self.metagraph.to_wandb()   
                 

@@ -257,7 +257,7 @@ def serve( config, server):
             bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
             # Add additional wandb data for axon, metagraph etc.
-            wandb_info_axon = axon.to_wandb()                
+            wandb_info_axon = axon.to_wandb( metagraph )                
             wandb_info_metagraph = metagraph.to_wandb()   
             if config.wandb.api_key != 'default':
                 wandb.log( {**wandb_data, **wandb_info_axon, **wandb_info_metagraph } )
