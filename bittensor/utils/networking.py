@@ -94,7 +94,9 @@ def get_external_ip() -> str:
     """
     # --- Try curl.
     try:
-        external_ip  = os.popen('curl -s ifconfig.me').readline()
+        process =  os.popen('curl -s ifconfig.me', close_fds=True)
+        external_ip = process.readline()
+        process.close()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except Exception:
@@ -118,7 +120,9 @@ def get_external_ip() -> str:
 
     # --- Try myip.dnsomatic 
     try:
-        external_ip  = os.popen('curl -s myip.dnsomatic.com').readline()
+        process = os.popen('curl -s myip.dnsomatic.com')
+        external_ip  = process.readline()
+        process.close()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except Exception:

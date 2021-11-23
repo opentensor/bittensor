@@ -51,8 +51,8 @@ class server(torch.nn.Module):
         self.config = config;print(config)
         
         #setting up pretrained model
-        self.model_name = model_name if model_name != None else config.server.model_name
-        self.pretrained = pretrained if pretrained != None else config.server.pretrained
+        self.model_name = model_name if model_name != None else config.neuron.model_name
+        self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
             self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
             self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
@@ -65,11 +65,11 @@ class server(torch.nn.Module):
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
-        self.device = config.server.device
-        self.padding = padding if padding != None else config.server.padding
-        self.interpolate = interpolate if interpolate != None else config.server.interpolate
-        self.inter_degree = inter_degree if inter_degree != None else config.server.inter_degree
-        self.checking = checking if checking != None else config.server.checking
+        self.device = config.neuron.device
+        self.padding = padding if padding != None else config.neuron.padding
+        self.interpolate = interpolate if interpolate != None else config.neuron.interpolate
+        self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
+        self.checking = checking if checking != None else config.neuron.checking
         self.mapping_function= mapping_function
         self.token_remap = token_remap if token_remap != None else self.remapping_token
 
@@ -203,21 +203,21 @@ class server(torch.nn.Module):
     @staticmethod
     def config ():
         parser = argparse.ArgumentParser()
-        parser.add_argument('--server.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
-        parser.add_argument('--server.momentum', type=float, help='optimizer momentum.', default=0.8)
-        parser.add_argument('--server.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--server.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--server.model_name', type=str, help='pretrained model from hugging face',default='gpt2')
-        parser.add_argument('--server.pretrained', action='store_false', help='if the model should be pretrained',default=True)
-        parser.add_argument('--server.padding', action='store_false', help='To pad out final dimensions',default=True)
-        parser.add_argument('--server.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
-        parser.add_argument('--server.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
-        parser.add_argument('--server.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='advanced_server')
-        parser.add_argument('--server.checking', action='store_false', help='To check if server settings are correct',default=True)
-        parser.add_argument('--server.restart', action='store_true', help='if the model should restart', default=False)
-        parser.add_argument('--server.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--server.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
-        parser.add_argument('--server.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=5)
+        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
+        parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
+        parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
+        parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+        parser.add_argument('--neuron.model_name', type=str, help='pretrained model from hugging face',default='gpt2')
+        parser.add_argument('--neuron.pretrained', action='store_false', help='if the model should be pretrained',default=True)
+        parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
+        parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
+        parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='advanced_server')
+        parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
+        parser.add_argument('--neuron.no_restart', action='store_true', help='if the model should restart', default=False)
+        parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
+        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=5)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
