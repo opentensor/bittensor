@@ -420,9 +420,10 @@ class Neuron:
         """
 
         try:
-            k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())
-            topk_scores, topk_uids = torch.topk( self.stats.ema_scores, k = k )
-            did_set = self.subtensor.timeout_set_weights(
+            k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
+            epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() )).device('cpu')
+            topk_scores, topk_uids = torch.topk(epsilon_scores, k = k )
+            self.subtensor.timeout_set_weights(
                 timeout = 100,
                 uids = topk_uids.detach().to(torch.device('cpu')),
                 weights = topk_scores.detach().to(torch.device('cpu')),
@@ -494,7 +495,7 @@ class Neuron:
                 wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.peer_weights[uid]
                 wandb_info[f'fisher_ema uid: {uid_str}'] = self.stats.ema_scores[uid]
 
-            wandb_info_axon = self.axon.to_wandb(self.metagraph)
+            wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
             wandb_info_metagraph = self.metagraph.to_wandb()   
                 

@@ -20,9 +20,13 @@
 from types import SimpleNamespace
 from typing import Tuple, List, Union, Optional
 
+import sys
 import torch
+import matplotlib.pyplot as plt
+
 from torch.autograd.function import once_differentiable
 from loguru import logger
+from transformers.utils.logging import enable_explicit_format
 
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
@@ -81,14 +85,7 @@ class Dendrite(torch.autograd.Function):
 
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
-        self.stats = SimpleNamespace(
-            uids=[],
-            return_ops=[],
-            query_times=[],
-            requested_peers_count={},
-            responded_peers_count={},
-            peers_respond_time={}
-        )
+        self.stats = self._init_stats()
 
     def __str__(self):
         return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
@@ -617,14 +614,45 @@ class Dendrite(torch.autograd.Function):
         )
 
         # Return.
-        self.update_stat(formatted_endpoints, codes, times)
+        self.update_stats( formatted_endpoints, formatted_inputs, responses, codes, times )
         return responses, codes, times
 
-    def update_stat(self, endpoints, return_ops, query_times):
+    def _init_stats(self):
+        return SimpleNamespace(
+            total_requests = 0,
+            # queries on dendrite per second.
+            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            # total bytes recieved by this dendrite per second.
+            in_bytes_per_second = stat_utils.timed_rolling_avg(0.0, 0.01),
+            # total sent by this dendrite per second.
+            out_bytes_per_second = stat_utils.timed_rolling_avg(0.0, 0.01),
+            # Codes recieved per pubkey.
+            codes_per_pubkey = {},
+            # Number of requests per pubkey.
+            requests_per_pubkey = {},
+            # Success rate per pubkey.
+            successes_per_pubkey = {},
+            # Query time per pubkey.
+            query_times_per_pubkey = {},
+            # Bytes recieved per pubkey.
+            in_bytes_per_pubkey = {},
+            # Bytes sent per pubkey.
+            out_bytes_per_pubkey = {},
+            # QPS per pubkey.
+            qps_per_pubkey = {},
+        )
+
+    def update_stats(self, endpoints, requests, responses, return_ops, query_times):
         r""" Update dendrite stat according to the response we get from peers. Updates were saved to self.stats.
             Args:
                 endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
                     The set of endpoints that dendrite sent request to.
+
+                requests (List[torch.Tensor] of shape :obj:`[ num_endpoints ]`, `required`):
+                    Requests from the call.
+
+                responses (List[torch.FloatTensor] of shape :obj:`[ num_endpoints ]`, `required`):
+                    Responses from the call.
 
                 return_ops (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     Dendrite call return ops.
@@ -632,56 +660,62 @@ class Dendrite(torch.autograd.Function):
                 query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     Times per call.
         """
-        # ---- uids that we have sent request to.
-        uids = torch.tensor([e.uid for e in endpoints])
+        self.stats.qps.update(1)
+        self.stats.total_requests += 1
+        total_in_bytes_per_second = 0
+        self.stats.out_bytes_per_second.update( sys.getsizeof(requests) )
+        for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops, query_times)):
+            pubkey = e_i.hotkey
 
-        # ---- uids that gave us a successful response.
-        success_ids = torch.where(return_ops == bittensor.proto.ReturnCode.Success)[0]
+            # First time for this pubkey we create a new entry.
+            if pubkey not in self.stats.requests_per_pubkey:
+                self.stats.requests_per_pubkey[pubkey] = 0
+                self.stats.successes_per_pubkey[pubkey] = 0
+                self.stats.codes_per_pubkey[pubkey] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
+                self.stats.query_times_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
+                self.stats.in_bytes_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
+                self.stats.out_bytes_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
+                self.stats.qps_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
 
-        # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
-        for uid, time in zip(uids, query_times):
-            if uid in self.stats.requested_peers_count.keys():
-                self.stats.requested_peers_count[uid].update(1)
-                self.stats.peers_respond_time[uid].update(time)
+            self.stats.requests_per_pubkey[pubkey] += 1
+            self.stats.successes_per_pubkey[pubkey] += 1 if code_i == 1 else 0
+            if bittensor.proto.ReturnCode.Name(code_i) in self.stats.codes_per_pubkey[pubkey].keys():
+                self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code_i)] += 1
+            self.stats.query_times_per_pubkey[pubkey].update( time_i )
+            self.stats.in_bytes_per_pubkey[pubkey].update( sys.getsizeof(resp_i) )
+            self.stats.out_bytes_per_pubkey[pubkey].update( sys.getsizeof(req_i) )
+            self.stats.qps_per_pubkey[pubkey].update(1)
+            total_in_bytes_per_second += sys.getsizeof(resp_i) if code_i == 1 else 0 
 
-            else:
-                self.stats.requested_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
-                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
-                self.stats.peers_respond_time[uid] = stat_utils.timed_rolling_avg(time, 0.01)
+        self.stats.in_bytes_per_second.update( total_in_bytes_per_second )
 
-        # ---- Aggregating result to stats
-        for uid in uids[success_ids]:
-            if uid in self.stats.requested_peers_count.keys():
-                self.stats.responded_peers_count[uid].update(1)
-            else:
-                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
 
-        self.stats.uids += uids.tolist()
-        self.stats.return_ops += return_ops.tolist()
-        self.stats.query_times += query_times.tolist()
-
-    def to_wandb(self):
+    def to_wandb( self ):
         r""" Return a dictionary of axon stat for wandb logging
             
             Return:
                 wandb_info (:obj:`Dict`)
         """
-        wandb_info = {}
-
-        # ---- Dendrite response histograms for return_ops and query_times
-        response_stats = [[u, t, r, codes.code_to_string(r)] for u, t, r in
-                          zip(self.stats.uids, self.stats.query_times, self.stats.return_ops)]
-        wandb_table = wandb.Table(data=response_stats, columns=['uids', 'query_times', 'return_ops', 'return_ops_str'])
-        wandb_info['query_times'] = wandb.plot.histogram(wandb_table, 'query_times', 'Dendrite query response times')
-
-        # ---- Dendrite stats per pubkey for wandb 
-        for uid in self.stats.requested_peers_count.keys():
-            respond_rate = self.stats.responded_peers_count[uid].value / self.stats.requested_peers_count[uid].value
-
-            uid_str = str(uid.item()).zfill(3)
-            wandb_info[f'dend_requested uid: {uid_str}'] = self.stats.requested_peers_count[uid].value
-            wandb_info[f'dend_responded uid: {uid_str}'] = self.stats.responded_peers_count[uid].value
-            wandb_info[f'dend_respond_time uid: {uid_str}'] = self.stats.peers_respond_time[uid].value
-            wandb_info[f'dend_respond_rate uid: {uid_str}'] = respond_rate
-
+        wandb_info = {
+            'dendrite_qps': self.stats.qps.value,
+            'dendrite_total_requests' : self.stats.total_requests,
+            'dendrite_in_bytes_per_second' : self.stats.in_bytes_per_second.value,
+            'dendrite_out_bytes_per_second' : self.stats.out_bytes_per_second.value,
+        }
+        table_data = []
+        for pubkey in self.stats.requests_per_pubkey.keys():
+            row = [
+                pubkey,
+                self.stats.requests_per_pubkey[pubkey],
+                self.stats.successes_per_pubkey[pubkey].value,
+                self.stats.query_times_per_pubkey[pubkey].value,
+                self.stats.in_bytes_per_pubkey[pubkey].value,
+                self.stats.out_bytes_per_pubkey[pubkey].value,
+                self.stats.qps_per_pubkey[pubkey].value,
+            ] + list(self.stats.codes_per_pubkey[pubkey].values())
+            table_data.append( row )
+        wandb_info['dendrite_data'] = wandb.Table( 
+            data = table_data, 
+            columns=[ 'pubkey', 'requests', 'success_rate', 'query_time', 'in_bytes', 'out_bytes', 'qps' ] + bittensor.proto.ReturnCode.keys()
+        )
         return wandb_info
