@@ -107,7 +107,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (bittensor.proto.TensorMessage): 
                     proto response carring the nucleus forward output or None under failure.
         """
-        tensor, code, _, message = self._forward( request )
+        tensor, code, time, message = self._forward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
@@ -117,7 +117,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             requires_grad = True,
         )
         # ---- Update stats for this request.
-        self.update_stats_for_request( request, response, code)
+        self.update_stats_for_request( request, response, code, time)
         return response
 
     def Backward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
@@ -136,7 +136,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (:obj:`bittensor.proto.TensorMessage`): 
                     proto response carring the nucleus backward output or None under failure.
         """
-        tensor, code, _, message = self._backward( request )
+        tensor, code, time, message = self._backward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
@@ -145,7 +145,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             tensors = [tensor] if tensor is not None else [],
             requires_grad = True,
         )
-        self.update_stats_for_request( request, response, code )
+        self.update_stats_for_request( request, response, code, time )
         return response
 
     def _call_forward(
