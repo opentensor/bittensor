@@ -24,6 +24,7 @@ from typing import List, Tuple, Callable
 
 import torch
 import grpc
+import wandb
 from loguru import logger
 import torch.nn.functional as F
 import concurrent
@@ -77,14 +78,31 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.backward_timeout = backward_timeout
         self.modality = self.find_modality()
         self.stats = SimpleNamespace(
+
+            # queries on the endpoint per second.
             qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+
+            # failed queries on this endpoint per second.
             qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
+
+            # total bytes recieved byt this axon per second.
             total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
-            total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
+
+            # total bytest responded by this axon per second.
+            total_out_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
+
+            # bytes recieved by this axon per pubkey.
             in_bytes_per_pubkey = {},
+
+            # bytes responded by this axon per pubkey.
             out_bytes_per_pubkey = {},
+
+            # queries recieved by this axon per pubkey.
             qps_per_pubkey = {},
+
+            # queries failed by this axon per pubkey.
             qps_failed_per_pubkey = {},
+
         )
         self.started = None
         
@@ -578,6 +596,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.stats.in_bytes_per_pubkey[request.hotkey].update(in_bytes)
             self.stats.out_bytes_per_pubkey[request.hotkey].update(out_bytes)
             self.stats.qps_per_pubkey[request.hotkey].update(1)
+            self.stats.qps_failed_per_pubkey[request.hotkey].update(0)
 
         else:
             self.stats.in_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
@@ -676,9 +695,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
         return self
 
-    def to_wandb(self):
-        r""" Return a dictionary of axon stat for wandb logging
-            
+    def to_wandb( self ):
+        r""" Return a dictionary of axon stat info for wandb logging
             Return:
                 wandb_info (:obj:`Dict`)
         """
@@ -689,12 +707,22 @@ class Axon( bittensor.grpc.BittensorServicer ):
             'axon_total_in_bytes' : self.stats.total_in_bytes.value,
             'axon_total_out_bytes' : self.stats.total_out_bytes.value,
         }
-
-        # ---- Axon stats per pubkey for wandb 
+        table_data = []
         for pubkey in self.stats.in_bytes_per_pubkey.keys():
-            wandb_data[f'axon_in_bytes\n{pubkey}'] = self.stats.in_bytes_per_pubkey[pubkey].value
-            wandb_data[f'axon_out_bytes\n{pubkey}'] = self.stats.out_bytes_per_pubkey[pubkey].value
-            wandb_data[f'axon_qps\n{pubkey}'] = self.stats.qps_per_pubkey[pubkey].value
-            wandb_data[f'axon_qps_failed\n{pubkey}'] = self.stats.qps_failed_per_pubkey[pubkey].value
-            
+            table_data.append( [
+                pubkey,
+                self.stats.in_bytes_per_pubkey[pubkey].value,
+                self.stats.out_bytes_per_pubkey[pubkey].value,
+                self.stats.qps_per_pubkey[pubkey].value,
+                self.stats.qps_failed_per_pubkey[pubkey].value,
+            ] )
+        wandb_table = wandb.Table( 
+            data = table_data, 
+            columns=['pubkey', 'in_bytes', 'out_bytes', 'qps', 'qps_failed']
+        )
+        wandb_data['axon_query_data'] = wandb.plot.histogram(
+            wandb_table, 
+            'axon_query_data', 
+            'Axon query data'
+        )
         return wandb_data 
