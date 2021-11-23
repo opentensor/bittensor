@@ -134,7 +134,7 @@ class Neuron:
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:
                 try:
-
+                    self.dendrite.clear_stats()
                     # --- Init epoch stat----
                     self.stats.epoch_data_size = 0
                     self.stats.epoch_sync_count = 0

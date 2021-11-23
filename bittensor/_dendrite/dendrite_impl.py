@@ -685,3 +685,13 @@ class Dendrite(torch.autograd.Function):
             wandb_info[f'dend_respond_rate uid: {uid_str}'] = respond_rate
 
         return wandb_info
+
+    def clear_stats(self):
+        r"""
+        Clears stats about requests and response times
+        """
+
+        self.stats.uids = []
+        self.stats.return_ops = []
+        self.stats.query_times = []
+

@@ -67,7 +67,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
 
     while True:
-    
+        dendrite.clear_stats()
         # --- Sync + reshape.      
         metagraph.sync().save()
         chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
