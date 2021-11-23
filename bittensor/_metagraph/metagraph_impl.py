@@ -22,6 +22,7 @@ import os
 from typing import List
 from loguru import logger
 
+import wandb
 import torch.nn.functional as f
 import torch
 
@@ -476,6 +477,37 @@ class Metagraph( torch.nn.Module ):
             
         # For contructor.
         return self
+
+    def to_wandb(self):
+        wandb_data = {
+            'metagraph_n': self.n.item(),
+            'metagraph_tau': self.tau.item(),
+            'metagraph_block': self.block.item(),
+        }
+        table_data = []
+        for uid in self.uids.tolist():
+            table_data.append( [
+                uid,
+                self.stake[uid].item(),
+                self.rank[uid].item(),
+                self.trust[uid].item(),
+                self.consensus[uid].item(),
+                self.emission[uid].item(),
+                self.dividends[uid].item(),
+                self.active[uid].item(),
+                self.last_update[uid].item(),
+                self.active[uid].item(),
+            ] )
+        wandb_table = wandb.Table( 
+            data = table_data, 
+            columns=['uid', 'stake', 'rank', 'trust', 'consensus', 'emission', 'dividends', 'active', 'last_update', 'active']
+        )
+        wandb_data['metagraph_data'] = wandb.plot.histogram(
+            wandb_table, 
+            'metagraph_data', 
+            'Metagraph'
+        )
+        return wandb_data
     
     def __str__(self):
         return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.subtensor.network)
