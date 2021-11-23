@@ -144,9 +144,9 @@ class Receptor(nn.Module):
                     Time of call.
 
         """
-        self.forward_prep( inputs = inputs, modality = modality)
-        self.forward_call(timeout = timeout)
-        return self.forward_collect()
+        request = self.forward_prep( inputs = inputs, modality = modality)
+        request = self.forward_call(request, timeout = timeout)
+        return self.forward_collect(request)
 
 
     def backward(
@@ -248,6 +248,7 @@ class Receptor(nn.Module):
         forward_request = SimpleNamespace(
             inputs = inputs,
             serialized_inputs = None,
+            zeros = nill_response_for(inputs),
             modality = modality,
             start_time = clock.time(),
             code = None,
@@ -354,7 +355,7 @@ class Receptor(nn.Module):
                     message associated with forward call, potentially error, or 'success'.
         """ 
         if (forward_request.code != bittensor.proto.ReturnCode.Success) or (forward_request.future == None):
-            return None, forward_request.code, clock.time() - forward_request.start_time
+            return forward_request.zeros, forward_request.code, clock.time() - forward_request.start_time
         
         try:
             response = forward_request.future.result()
@@ -373,36 +374,36 @@ class Receptor(nn.Module):
             if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
                 forward_request.message = 'No return code.'
                 self.forward_log(request = forward_request, is_response = True, inputs = list(forward_request.inputs.shape))
-                return None, bittensor_code, clock.time() - forward_request.start_time
+                return forward_request.zeros, bittensor_code, clock.time() - forward_request.start_time
 
             # ---- Catch bittensor errors ----
             if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
                 forward_request.message = 'Return code unknown exception.'
                 self.forward_log(request = forward_request, is_response = True, inputs = list(forward_request.inputs.shape))
-                return None, bittensor_code, clock.time() - forward_request.start_time
+                return forward_request.zeros, bittensor_code, clock.time() - forward_request.start_time
 
             elif bittensor_code != bittensor.proto.ReturnCode.Success:
                 self.forward_log(request = forward_request, is_response = True, inputs = list(forward_request.inputs.shape))
-                return None, bittensor_code, clock.time() - forward_request.start_time
+                return forward_request.zeros, bittensor_code, clock.time() - forward_request.start_time
 
         # ---- Catch GRPC Errors ----
         except grpc.RpcError as rpc_error_call:
             forward_request.code, forward_request.message =  self.rpc_exception_handler(forward_request, rpc_error_call)
-            return None, forward_request.code, clock.time() - forward_request.start_time
+            return forward_request.zeros, forward_request.code, clock.time() - forward_request.start_time
 
         # ---- Catch Unknown Errors ----
         except Exception as e:
             forward_request.code = bittensor.proto.ReturnCode.UnknownException
             forward_request.message = str(e)
             self.forward_log(request = forward_request, is_response = True, inputs = list(forward_request.inputs.shape))
-            return None, forward_request.code, clock.time() - forward_request.start_time
+            return forward_request.zeros, forward_request.code, clock.time() - forward_request.start_time
 
         # ---- Check tensor response length ----
         if len(response.tensors) == 0:
             forward_request.code = bittensor.proto.ReturnCode.EmptyResponse
             forward_request.message = 'No tensors in response.'
             self.forward_log(request = forward_request, is_response = True, inputs = list(forward_request.inputs.shape))
-            return None, forward_request.code, clock.time() - forward_request.start_time
+            return forward_request.zeros, forward_request.code, clock.time() - forward_request.start_time
 
         # ---- Deserialize response ----
         try:
@@ -414,7 +415,7 @@ class Receptor(nn.Module):
             forward_request.code = bittensor.proto.ReturnCode.ResponseDeserializationException
             forward_request.message = 'Deserialziation exception with error:{}'.format(str(e))
             self.forward_log(request = forward_request, is_response = True, inputs = list(forward_request.inputs.shape))
-            return None, forward_request.code, clock.time() - forward_request.start_time
+            return forward_request.zeros, forward_request.code, clock.time() - forward_request.start_time
     
         # ---- Check response shape ----
         if  (
@@ -425,7 +426,7 @@ class Receptor(nn.Module):
             forward_request.code = bittensor.proto.ReturnCode.ResponseShapeException
             forward_request.message = "output.shape:{} does not match inputs:{}".format(outputs.shape, forward_request.inputs.shape)
             self.forward_log(request = forward_request, is_response = True, inputs = list(forward_request.inputs.shape), outputs = list(outputs.shape))
-            return None, forward_request.code, clock.time() - forward_request.start_time
+            return forward_request.zeros, forward_request.code, clock.time() - forward_request.start_time
 
         # ---- Safe catch NaNs and replace with 0.0 ----
         outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)

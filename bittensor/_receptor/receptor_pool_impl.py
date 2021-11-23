@@ -101,7 +101,6 @@ class ReceptorPool ( torch.nn.Module ):
         forward_outputs = []
         forward_codes = []
         forward_times = []
-        zeros = nill_response_for(inputs[0])
 
         # ---- Fill calls ----
         call_args = [ 
@@ -127,12 +126,7 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request_future in zip(call_args, request_futures):
             receptor = arg[0]
             result = receptor.forward_collect(forward_request = request_future)
-            if result[0] == None:
-                output = zeros
-            else:
-                output = result[0]
-            results.append((output, result[1], result[2]))
-  
+            results.append(result)
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
 
