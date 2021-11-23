@@ -166,12 +166,12 @@ def serve( config, server):
 
     # Create our axon server
     axon = bittensor.axon (
-                wallet = wallet,
-                forward_text = forward_text,
-                backward_text = backward_text,
-                blacklist= blacklist,
-                priority = priority
-            ) 
+        wallet = wallet,
+        forward_text = forward_text,
+        backward_text = backward_text,
+        blacklist = blacklist,
+        priority = priority
+    ) 
 
     # Training Data
     dataset = bittensor.dataset(config=config)
@@ -200,7 +200,7 @@ def serve( config, server):
         chain_weights[uid] = 1 
 
         # --  serve axon to the network.
-        axon.start().serve(subtensor=subtensor)
+        axon.start().serve(subtensor = subtensor)
         
         while True:
             # --- Run 
@@ -254,21 +254,24 @@ def serve( config, server):
                 'dividends': nn.dividends,
                 'emission':  nn.emission,
             } 
-            # wandb syncing and update metagraph
-            chain_weights =torch.zeros(metagraph.n)
-            chain_weights[uid] = 1 
-
-            if config.wandb.api_key != 'default':
-                wandb.log( wandb_data )
             bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
-            # save the model
-            gp_server.save(config.neuron.full_path)
+            # Add additional wandb data for axon, metagraph etc.
+            wandb_info_axon = axon.to_wandb()                
+            wandb_info_metagraph = metagraph.to_wandb()   
+            if config.wandb.api_key != 'default':
+                wandb.log( {**wandb_data, **wandb_info_axon, **wandb_info_metagraph } )
+             
+            # Save the model
+            gp_server.save(config.server.full_path)
             
             if current_block % 10 == 0:
                 
-                # --- setting weights
+                # --- Setting weights
                 try: 
+                    # Set self weights to maintain activity.
+                    chain_weights = torch.zeros(metagraph.n)
+                    chain_weights [ uid ] = 1 
                     did_set = subtensor.set_weights(
                         uids=metagraph.uids,
                         weights = chain_weights,
