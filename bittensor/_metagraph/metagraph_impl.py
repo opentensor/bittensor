@@ -23,6 +23,7 @@ from typing import List
 from loguru import logger
 
 import wandb
+import matplotlib.pyplot as plt
 import torch.nn.functional as f
 import torch
 
@@ -484,29 +485,69 @@ class Metagraph( torch.nn.Module ):
             'metagraph_tau': self.tau.item(),
             'metagraph_block': self.block.item(),
         }
-        table_data = []
-        for uid in self.uids.tolist():
-            table_data.append( [
-                uid,
-                self.stake[uid].item(),
-                self.ranks[uid].item(),
-                self.trust[uid].item(),
-                self.consensus[uid].item(),
-                self.emission[uid].item(),
-                self.dividends[uid].item(),
-                self.active[uid].item(),
-                self.last_update[uid].item(),
-                self.active[uid].item(),
-            ] )
-        wandb_table = wandb.Table( 
-            data = table_data, 
-            columns=['uid', 'stake', 'rank', 'trust', 'consensus', 'emission', 'dividends', 'active', 'last_update', 'active']
-        )
-        wandb_data['metagraph_data'] = wandb.plot.histogram(
-            wandb_table, 
-            'metagraph_data', 
-            'Metagraph'
-        )
+        _ = plt.figure()
+        axS = plt.axes()
+
+        _ = plt.figure()
+        axR = plt.axes()
+
+        figS = plt.figure()
+        axT = plt.axes()
+
+        figS = plt.figure()
+        axC = plt.axes()
+
+        figS = plt.figure()
+        axD = plt.axes()
+
+        figS = plt.figure()
+        axI = plt.axes()
+
+        figS = plt.figure()
+        axE = plt.axes()
+
+        axS.plot( self.S.tolist() )
+        axS.set_title('Stake')
+        axS.set_xlabel('uid')
+        axS.set_ylabel('stake')
+        wandb_data['stake'] = axS
+
+        axR.plot( self.R.tolist() )
+        axR.set_title('Ranks')
+        axR.set_xlabel('uid')
+        axR.set_ylabel('ranks')
+        wandb_data['ranks'] = axR
+
+        axT.plot( self.T.tolist() )
+        axT.set_title('Trust')
+        axT.set_xlabel('uid')
+        axT.set_ylabel('trust')
+        wandb_data['trust'] = axT
+
+        axC.plot( self.C.tolist() )
+        axC.set_title('Consensus')
+        axC.set_xlabel('uid')
+        axC.set_ylabel('consensus')
+        wandb_data['consensus'] = axC
+
+        axI.plot( self.I.tolist() )
+        axI.set_title('Incentive')
+        axI.set_xlabel('uid')
+        axI.set_ylabel('incentive')
+        wandb_data['incentive'] = axI
+
+        axD.plot( self.D.tolist() )
+        axD.set_title('Dividends')
+        axD.set_xlabel('uid')
+        axD.set_ylabel('dividends')
+        wandb_data['dividends'] = axD
+
+        axE.plot( self.E.tolist() )
+        axE.set_title('Emission')
+        axE.set_xlabel('uid')
+        axE.set_ylabel('emission')
+        wandb_data['emission'] = axE
+
         return wandb_data
     
     def __str__(self):
