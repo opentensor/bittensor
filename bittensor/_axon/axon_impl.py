@@ -690,8 +690,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.stats.total_requests += 1
         self.stats.total_in_bytes += sys.getsizeof(request) 
         self.stats.total_out_bytes += sys.getsizeof(response) 
-        self.stats.avg_in_bytes_per_second.event( sys.getsizeof(request) )
-        self.stats.avg_out_bytes_per_second.event( sys.getsizeof(response) )
+        self.stats.avg_in_bytes_per_second.event( float(sys.getsizeof(request)) )
+        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(response)) )
         pubkey = request.hotkey
         if pubkey not in self.stats.requests_per_pubkey:
             self.stats.requests_per_pubkey[ pubkey ] = 0
@@ -705,9 +705,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # Add values.
         self.stats.requests_per_pubkey[ pubkey ] += 1
         self.stats.successes_per_pubkey[ pubkey ] += 1 if code == 1 else 0
-        self.stats.query_times_per_pubkey[ pubkey ].event( time )
-        self.stats.avg_in_bytes_per_pubkey[ pubkey ].event( sys.getsizeof(request) )
-        self.stats.avg_out_bytes_per_pubkey[ pubkey ].event( sys.getsizeof(response) )
+        self.stats.query_times_per_pubkey[ pubkey ].event( float(time) )
+        self.stats.avg_in_bytes_per_pubkey[ pubkey ].event( float(sys.getsizeof(request)) )
+        self.stats.avg_out_bytes_per_pubkey[ pubkey ].event( float(sys.getsizeof(response)) )
         self.stats.qps_per_pubkey[ pubkey ].event()    
         try:
             if bittensor.proto.ReturnCode.Name( code ) in self.stats.codes_per_pubkey[ pubkey ].keys():
@@ -722,24 +722,24 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         # ---- Axon summary for wandb
         wandb_data = {
-            'axon_qps': self.stats.qps.value,
+            'axon_qps': self.stats.qps.get(),
             'axon_total_requests': self.stats.total_requests,
             'axon_total_in_bytes' : self.stats.total_in_bytes,
             'axon_total_out_bytes' : self.stats.total_out_bytes,
-            'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.value,
-            'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.value,
+            'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+            'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
         }
         # Create table view
         table_data = []
         for pubkey in self.stats.requests_per_pubkey.keys():
             row = [
                 pubkey,
-                self.stats.requests_per_pubkey[pubkey],
-                self.stats.successes_per_pubkey[pubkey],
-                self.stats.query_times_per_pubkey[pubkey].value,
-                self.stats.avg_in_bytes_per_pubkey[pubkey].value,
-                self.stats.avg_out_bytes_per_pubkey[pubkey].value,
-                self.stats.qps_per_pubkey[pubkey].value,
+                int(self.stats.requests_per_pubkey[pubkey]),
+                int(self.stats.successes_per_pubkey[pubkey]),
+                float(self.stats.query_times_per_pubkey[pubkey].get()),
+                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.qps_per_pubkey[pubkey].get()),
             ] + list(self.stats.codes_per_pubkey[pubkey].values())
             table_data.append( row )
 

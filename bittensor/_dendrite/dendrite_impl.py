@@ -663,7 +663,7 @@ class Dendrite(torch.autograd.Function):
         self.stats.qps.event()
         self.stats.total_requests += 1
         total_in_bytes_per_second = 0
-        self.stats.avg_out_bytes_per_second.event( sys.getsizeof(requests) )
+        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(requests)) )
         for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops, query_times)):
             pubkey = e_i.hotkey
 
@@ -679,9 +679,9 @@ class Dendrite(torch.autograd.Function):
 
             self.stats.requests_per_pubkey[pubkey] += 1
             self.stats.successes_per_pubkey[pubkey] += 1 if code_i == 1 else 0
-            self.stats.query_times_per_pubkey[pubkey].event( time_i )
-            self.stats.avg_in_bytes_per_pubkey[pubkey].event( sys.getsizeof(resp_i) )
-            self.stats.avg_out_bytes_per_pubkey[pubkey].event( sys.getsizeof(req_i) )
+            self.stats.query_times_per_pubkey[pubkey].event( float(time_i) )
+            self.stats.avg_in_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(resp_i)) )
+            self.stats.avg_out_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(req_i)) )
             self.stats.qps_per_pubkey[pubkey].event()
             total_in_bytes_per_second += sys.getsizeof(resp_i) if code_i == 1 else 0 
             try:
@@ -691,7 +691,7 @@ class Dendrite(torch.autograd.Function):
                 # Code may be faulty.
                 pass
 
-        self.stats.avg_in_bytes_per_second.event( total_in_bytes_per_second )
+        self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
 
 
     def to_wandb( self ):
@@ -701,21 +701,21 @@ class Dendrite(torch.autograd.Function):
                 wandb_info (:obj:`Dict`)
         """
         wandb_info = {
-            'dendrite_qps': self.stats.qps.value,
+            'dendrite_qps': self.stats.qps.get(),
             'dendrite_total_requests' : self.stats.total_requests,
-            'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.value,
-            'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.value,
+            'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+            'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
         }
         table_data = []
         for pubkey in self.stats.requests_per_pubkey.keys():
             row = [
                 pubkey,
-                self.stats.requests_per_pubkey[pubkey],
-                self.stats.successes_per_pubkey[pubkey],
-                self.stats.query_times_per_pubkey[pubkey].value,
-                self.stats.avg_in_bytes_per_pubkey[pubkey].value,
-                self.stats.avg_out_bytes_per_pubkey[pubkey].value,
-                self.stats.qps_per_pubkey[pubkey].value,
+                int(self.stats.requests_per_pubkey[pubkey]),
+                int(self.stats.successes_per_pubkey[pubkey]),
+                float(self.stats.query_times_per_pubkey[pubkey].get()),
+                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.qps_per_pubkey[pubkey].get()),
             ] + list(self.stats.codes_per_pubkey[pubkey].values())
             table_data.append( row )
         wandb_info['dendrite_data'] = wandb.Table( 
