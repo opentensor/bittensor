@@ -492,14 +492,17 @@ class Neuron:
             weights_data = []
             for uid in self.metagraph.uids.tolist():
                 weights_data.append([ 
-                    uid,
-                    normalized_peer_weights[uid], 
-                    self.nucleus.peer_weights[uid],
-                    self.stats.ema_scores[uid],
+                    int(uid),
+                    float( self.nucleus.peer_weights[uid] ),
+                    float( normalized_peer_weights[uid] ), 
+                    float( self.stats.ema_scores[uid] ),
+                    float( self.metagraph.W[ self_uid, uid ] ),
+                    float( self.metagraph.B[ self_uid, uid ] ),
+                    float( self.metagraph.I[ uid ] )
                 ])
             wandb_info['mechanism_weights'] = wandb.Table( 
                 data = weights_data, 
-                columns=['uid', 'peers_norm_weight', 'peers_wo_norm_weight', 'fisher_ema']
+                columns=['uid', 'weight', 'normalized_weight', 'ema weight', 'chain weight', 'bond ownership', 'incentive']
             )
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
