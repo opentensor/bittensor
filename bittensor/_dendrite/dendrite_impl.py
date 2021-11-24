@@ -664,7 +664,7 @@ class Dendrite(torch.autograd.Function):
         self.stats.total_requests += 1
         total_in_bytes_per_second = 0
         self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(requests)) )
-        for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops, query_times)):
+        for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops.tolist(), query_times.tolist())):
             pubkey = e_i.hotkey
 
             # First time for this pubkey we create a new entry.
@@ -720,6 +720,6 @@ class Dendrite(torch.autograd.Function):
             table_data.append( row )
         wandb_info['dendrite_data'] = wandb.Table( 
             data = table_data, 
-            columns=[ 'pubkey', 'requests', 'success_rate', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps' ] + bittensor.proto.ReturnCode.keys()
+            columns=[ 'pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps' ] + bittensor.proto.ReturnCode.keys()
         )
         return wandb_info
