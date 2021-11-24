@@ -142,7 +142,7 @@ class Nucleus(nn.Module):
         #           predicting each token in the sequence.
         # src_mask.shape = [sequence_len, sequence_len]
         src_mask = torch.triu(torch.ones(sequence_len, sequence_len) * float('-inf'), diagonal=1)
-        src_mask.to(self.config.neuron.device)
+        src_mask = src_mask.to(self.config.neuron.device)
 
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
