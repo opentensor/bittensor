@@ -130,15 +130,23 @@ class Nucleus(nn.Module):
         # To be filled.
         output = SimpleNamespace()
 
+        # https://pytorch.org/docs/1.8.1/generated/torch.nn.Transformer.html#torch.nn.Transformer.forward
+        # src: (S, N, E) the sequence to the encoder (required).
+        # src_mask: (S, S) the mask for the src sequence (optional).
+        # where S is the source sequence length, N is the batch size, E is the feature number
+
+        # inputs.shape = [batch_size, sequence_len]
+        sequence_len = inputs.shape[1]
+
+        # src_mask: attention mask adds -inf to positions not allowed to attend, preventing forward-looking when
+        #           predicting each token in the sequence.
+        # src_mask.shape = [sequence_len, sequence_len]
+        src_mask = torch.triu(torch.ones(sequence_len, sequence_len) * float('-inf'), diagonal=1)
+
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         embedding = self.embedding(inputs)
-
-        # https://pytorch.org/docs/1.8.1/generated/torch.nn.Transformer.html#torch.nn.Transformer.forward
-        # src: (S, N, E) the sequence to the encoder (required).
-        # mask: (S, S) the mask for the src sequence (optional).
-        # where S is the source sequence length, N is the batch size, E is the feature number
 
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         # local_encoder expects input shape = [sequence_len, batch_size, bittensor.__network_dim__]
@@ -146,7 +154,7 @@ class Nucleus(nn.Module):
 
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
-        local_context = self.local_encoder(embedding) * math.sqrt(bittensor.__network_dim__)
+        local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
 
         # local_context: adding positional encoding to local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
@@ -158,7 +166,7 @@ class Nucleus(nn.Module):
         if training:
             # local_hidden: local model which learns a new projection from the local_context
             # local_hidden.shape = [sequence_len, batch_size, bittensor.__vocab_size__]
-            local_hidden = self.local_hidden(local_context.detach())
+            local_hidden = self.local_hidden(local_context.detach(), mask=src_mask)
 
             # local_target: projection of local_hidden onto target dimension.
             # local_target.shape = [sequence_len, batch_size, bittensor.__vocab_size__]
