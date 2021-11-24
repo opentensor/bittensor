@@ -489,16 +489,21 @@ class Neuron:
                 'data_size': self.stats.epoch_data_size,
                 }
             # ---- Miner summary per peer
+            weights_data = []
             for uid in self.metagraph.uids.tolist():
-                uid_str = str(uid).zfill(3)
-                wandb_info[f'peers_norm_weight uid: {uid_str}']= normalized_peer_weights[uid]
-                wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.peer_weights[uid]
-                wandb_info[f'fisher_ema uid: {uid_str}'] = self.stats.ema_scores[uid]
-
+                weights_data.append([ 
+                    uid,
+                    normalized_peer_weights[uid], 
+                    self.nucleus.peer_weights[uid],
+                    self.stats.ema_scores[uid],
+                ])
+            wandb_info['mechanism_weights'] = wandb.Table( 
+                data = weights_data, 
+                columns=['uid', 'peers_norm_weight', 'peers_wo_norm_weight', 'fisher_ema']
+            )
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
-            wandb_info_metagraph = self.metagraph.to_wandb()   
-                
+            wandb_info_metagraph = self.metagraph.to_wandb()     
             try:
                 wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend, **wandb_info_metagraph})
             except Exception as e:
