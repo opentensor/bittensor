@@ -692,26 +692,26 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.stats.total_out_bytes = sys.getsizeof(response) 
         self.stats.in_bytes_per_second.update( sys.getsizeof(request) )
         self.stats.out_bytes_per_second.update( sys.getsizeof(response) )
-        if request.hotkey not in self.stats.requests_per_pubkey:
-            pubkey = request.hotkey
+        pubkey = request.hotkey
+        if pubkey not in self.stats.requests_per_pubkey:
             self.stats.requests_per_pubkey[ pubkey ] = 0
             self.stats.successes_per_pubkey[ pubkey ] = 0
             self.stats.query_times_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0, 0.01)
             self.stats.qps_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0, 0.01)
-            self.stats.codes_per_pubkey[pubkey] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
-            self.stats.in_bytes_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
-            self.stats.out_bytes_per_pubkey[pubkey] = stat_utils.timed_rolling_avg(0.0, 0.01)      
-        self.stats.requests_per_pubkey[pubkey] += 1
-        self.stats.successes_per_pubkey[pubkey] += 1 if code == 1 else 0
+            self.stats.codes_per_pubkey[ pubkey ] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
+            self.stats.in_bytes_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0.0, 0.01)
+            self.stats.out_bytes_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0.0, 0.01)      
+        self.stats.requests_per_pubkey[ pubkey ] += 1
+        self.stats.successes_per_pubkey[ pubkey ] += 1 if code == 1 else 0
         try:
-            if bittensor.proto.ReturnCode.Name(code) in self.stats.codes_per_pubkey[pubkey].keys():
-                self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code)] += 1
+            if bittensor.proto.ReturnCode.Name( code ) in self.stats.codes_per_pubkey[ pubkey ].keys():
+                self.stats.codes_per_pubkey[ pubkey ][bittensor.proto.ReturnCode.Name( code )] += 1
         except:
             pass
-        self.stats.query_times_per_pubkey[pubkey].update( time )
-        self.stats.in_bytes_per_pubkey[pubkey].update( sys.getsizeof(request) )
-        self.stats.out_bytes_per_pubkey[pubkey].update( sys.getsizeof(response) )
-        self.stats.qps_per_pubkey[pubkey].update(1)      
+        self.stats.query_times_per_pubkey[ pubkey ].update( time )
+        self.stats.in_bytes_per_pubkey[ pubkey ].update( sys.getsizeof(request) )
+        self.stats.out_bytes_per_pubkey[ pubkey ].update( sys.getsizeof(response) )
+        self.stats.qps_per_pubkey[ pubkey ].update(1)      
 
     def to_wandb( self ):
         r""" Return a dictionary of axon stat info for wandb logging
