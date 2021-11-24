@@ -647,7 +647,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def _init_stats(self):
         return SimpleNamespace(
             # Queries per second.
-            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
+            qps = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 ),
             # Total requests.
             total_requests = 0,
             # Total bytes recieved per second.
@@ -655,9 +655,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
             # Total bytes responded per second.
             total_out_bytes = 0,
             # Bytes recieved per second.
-            in_bytes_per_second = stat_utils.timed_rolling_avg(0.0, 0.01),
+            avg_in_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
             # Bytes responded per second.
-            out_bytes_per_second = stat_utils.timed_rolling_avg(0.0, 0.01),
+            avg_out_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
             # Requests per pubkey.
             requests_per_pubkey = {},
             # Success per pubkey.
@@ -669,9 +669,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
             # Codes recieved per pubkey.
             codes_per_pubkey = {},
             # Bytes recieved per pubkey.
-            in_bytes_per_pubkey = {},
+            avg_in_bytes_per_pubkey = {},
             # Bytes sent per pubkey.
-            out_bytes_per_pubkey = {}
+            avg_out_bytes_per_pubkey = {}
         )
 
     def update_stats_for_request(self, request, response, time, code):
@@ -686,32 +686,34 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code (:obj:`bittensor.proto.ReturnCode, `required`)
                     Return code associated with the call i.e. Success of Timeout.
         """
-        self.stats.qps.update(1)
+        self.stats.qps.event()
         self.stats.total_requests += 1
-        self.stats.total_in_bytes = sys.getsizeof(request) 
-        self.stats.total_out_bytes = sys.getsizeof(response) 
-        self.stats.in_bytes_per_second.update( sys.getsizeof(request) )
-        self.stats.out_bytes_per_second.update( sys.getsizeof(response) )
+        self.stats.total_in_bytes += sys.getsizeof(request) 
+        self.stats.total_out_bytes += sys.getsizeof(response) 
+        self.stats.avg_in_bytes_per_second.event( sys.getsizeof(request) )
+        self.stats.avg_out_bytes_per_second.event( sys.getsizeof(response) )
         pubkey = request.hotkey
         if pubkey not in self.stats.requests_per_pubkey:
             self.stats.requests_per_pubkey[ pubkey ] = 0
             self.stats.successes_per_pubkey[ pubkey ] = 0
-            self.stats.query_times_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0, 0.01)
-            self.stats.qps_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0, 0.01)
+            self.stats.query_times_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.05)
+            self.stats.qps_per_pubkey[ pubkey ] = stat_utils.EventsPerSecondRollingAverage(0, 0.05)
             self.stats.codes_per_pubkey[ pubkey ] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
-            self.stats.in_bytes_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0.0, 0.01)
-            self.stats.out_bytes_per_pubkey[ pubkey ] = stat_utils.timed_rolling_avg(0.0, 0.01)      
+            self.stats.avg_in_bytes_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.01)
+            self.stats.avg_out_bytes_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.01)
+
+        # Add values.
         self.stats.requests_per_pubkey[ pubkey ] += 1
         self.stats.successes_per_pubkey[ pubkey ] += 1 if code == 1 else 0
+        self.stats.query_times_per_pubkey[ pubkey ].event( time )
+        self.stats.avg_in_bytes_per_pubkey[ pubkey ].event( sys.getsizeof(request) )
+        self.stats.avg_out_bytes_per_pubkey[ pubkey ].event( sys.getsizeof(response) )
+        self.stats.qps_per_pubkey[ pubkey ].event()    
         try:
             if bittensor.proto.ReturnCode.Name( code ) in self.stats.codes_per_pubkey[ pubkey ].keys():
                 self.stats.codes_per_pubkey[ pubkey ][bittensor.proto.ReturnCode.Name( code )] += 1
         except:
-            pass
-        self.stats.query_times_per_pubkey[ pubkey ].update( time )
-        self.stats.in_bytes_per_pubkey[ pubkey ].update( sys.getsizeof(request) )
-        self.stats.out_bytes_per_pubkey[ pubkey ].update( sys.getsizeof(response) )
-        self.stats.qps_per_pubkey[ pubkey ].update(1)      
+            pass  
 
     def to_wandb( self ):
         r""" Return a dictionary of axon stat info for wandb logging
@@ -724,6 +726,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
             'axon_total_requests': self.stats.total_requests,
             'axon_total_in_bytes' : self.stats.total_in_bytes,
             'axon_total_out_bytes' : self.stats.total_out_bytes,
+            'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.value,
+            'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.value,
         }
         # Create table view
         table_data = []
@@ -733,14 +737,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 self.stats.requests_per_pubkey[pubkey],
                 self.stats.successes_per_pubkey[pubkey],
                 self.stats.query_times_per_pubkey[pubkey].value,
-                self.stats.in_bytes_per_pubkey[pubkey].value,
-                self.stats.out_bytes_per_pubkey[pubkey].value,
+                self.stats.avg_in_bytes_per_pubkey[pubkey].value,
+                self.stats.avg_out_bytes_per_pubkey[pubkey].value,
                 self.stats.qps_per_pubkey[pubkey].value,
             ] + list(self.stats.codes_per_pubkey[pubkey].values())
             table_data.append( row )
 
         wandb_data['axon_data'] = wandb.Table( 
             data = table_data, 
-            columns=['pubkey', 'requests', 'successes', 'query_time', 'in_bytes', 'out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
+            columns=['pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
         )
         return wandb_data 
