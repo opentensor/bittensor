@@ -1,0 +1,56 @@
+axon.backward_timeout: 20
+axon.forward_timeout: 10
+axon.ip: '[::]'
+axon.max_workers: 10
+axon.maximum_concurrent_rpcs: 400
+axon.port: 8091
+axon.priority.max_workers: 10
+axon.priority.maxsize: -1
+
+config: null
+
+dataset.batch_size: 10
+dataset.block_size: 20
+dataset.data_dir: ~/.bittensor/data/
+dataset.dataset_name: train
+dataset.max_corpus_size: 10000.0
+dataset.num_workers: 0
+dataset.save_dataset: false
+
+logging.debug: false
+logging.logging_dir: ~/.bittensor/miners
+logging.record_log: false
+logging.trace: false
+
+server:
+server.blacklist.stake: 0
+server.blacklist.time: 5
+server.blocks_per_epoch: 10
+server.checking: true
+server.clip_gradients: 1.0
+server.device: cpu
+server.full_path: /Users/endub/.bittensor/miners/default/default/advanced_server
+server.inter_degree: nearest
+server.interpolate: true
+server.learning_rate: 0.01
+server.model_name: gpt2
+server.momentum: 0.8
+server.name: advanced_server
+server.padding: true
+server.pretrained: true
+server.restart: false
+
+subtensor.chain_endpoint: null
+subtensor.network: nakamoto
+
+wallet.hotkey: default
+wallet.name: default
+wallet.path: ~/.bittensor/wallets/
+
+wandb.api_key: default
+wandb.directory: default
+wandb.name: default
+wandb.offline: false
+wandb.project: default
+wandb.run_group: default
+wandb.tags: default
