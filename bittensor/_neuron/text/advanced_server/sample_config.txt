@@ -7,8 +7,6 @@ axon.port: 8091
 axon.priority.max_workers: 10
 axon.priority.maxsize: -1
 
-config: null
-
 dataset.batch_size: 10
 dataset.block_size: 20
 dataset.data_dir: ~/.bittensor/data/
