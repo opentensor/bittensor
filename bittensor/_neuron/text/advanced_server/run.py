@@ -287,8 +287,8 @@ def serve( config, server):
                     logger.error('Failure setting weights on chain with error: {}', e)
 
 
-            if current_block - start_block > 1000:
-                metagraph.sync().save()
+            if current_block - start_block > 2000:
+                metagraph.sync()
                 start_block = current_block
 
 
