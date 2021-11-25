@@ -182,11 +182,6 @@ class ReceptorPool ( torch.nn.Module ):
         if len(endpoints) != len(inputs_x):
             raise ValueError('Endpoints and inputs must have the same length. Got {} and {}'.format(len(endpoints), len(inputs_x)))
 
-        # ---- Run threaded calls with executor ----
-        backward_outputs = []
-        backward_codes = []
-        backward_times = []
-
         # ---- Fill calls ----
         call_args = [
             (self._get_or_create_receptor_for_endpoint( endpoint ), inputs_x, grads_dy, modality) 
@@ -206,29 +201,10 @@ class ReceptorPool ( torch.nn.Module ):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
-        # ---- Collect the futures. ---- 
-        results = []
-        for arg, request_future in zip(call_args, request_futures):
-            receptor = arg[0]
-            result = receptor.handle_request_response(request = request_future)
-            results.append(result)
-
-        # --- catch any timeout issues due to threadpool --- 
-        try:
-            for result in results:
-                backward_outputs.append( result[0] )
-                backward_codes.append( result[1] )
-                backward_times.append( result[2] )
-        except concurrent.futures._base.TimeoutError:
-            backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
-            backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
-            backward_times= [15] * len(endpoints)
-
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
         
-        # ---- Return ----
-        return backward_outputs, backward_codes, backward_times
+        return 
 
     def _destroy_receptors_over_max_allowed( self ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
