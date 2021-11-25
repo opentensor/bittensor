@@ -24,6 +24,8 @@ import torch
 from loguru import logger
 import concurrent
 import bittensor
+import bittensor.utils.networking as net
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logger.opt(colors=True)
 
@@ -34,13 +36,19 @@ class ReceptorPool ( torch.nn.Module ):
         self, 
         wallet: 'bittensor.Wallet',
         thread_pool: 'ThreadPoolExecutor',
+        max_worker_threads: int,
         max_active_receptors: int
     ):
         super().__init__()
         self.wallet = wallet
         self.thread_pool = thread_pool
+        self.max_worker_threads = max_worker_threads
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
+        try:
+            self.external_ip = str(net.get_external_ip())
+        except Exception:
+            self.external_ip = None
 
     def __str__(self):
         return "ReceptorPool({},{})".format(len(self.receptors), self.max_active_receptors)
@@ -92,10 +100,6 @@ class ReceptorPool ( torch.nn.Module ):
         forward_outputs = []
         forward_codes = []
         forward_times = []
-        
-        # --- Create calls ----
-        def _call_receptor_forward_with_args( receptor, inputs, modality ):
-            return receptor.forward( inputs = inputs, modality = modality, timeout = timeout )
 
         # ---- Fill calls ----
         call_args = [ 
@@ -103,12 +107,28 @@ class ReceptorPool ( torch.nn.Module ):
             for (inputs, endpoint) 
             in list(zip( inputs, endpoints )) 
         ]
-        results = self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args, timeout=timeout*10)
+
+        # ---- Preprocessing for the forward function, get the request. ---- 
+        requests = []
+        for arg in call_args:
+            receptor, inputs, modality = arg
+            requests.append(receptor.forward_prep( inputs = inputs, modality = modality ))
+
+        # ---- Send the forward request to peers. ---- 
+        request_futures = []
+        for arg, request in zip(call_args, requests):
+            receptor = arg[0]
+            request_futures.append(receptor.forward_call(forward_request = request, timeout = timeout))
+
+        # ---- Collect the futures. ---- 
+        results = []
+        for arg, request_future in zip(call_args, request_futures):
+            receptor = arg[0]
+            result = receptor.forward_collect(forward_request = request_future)
+            results.append(result)
         try:
-            for result in results:
-                forward_outputs.append( result[0] )
-                forward_codes.append( result[1] )
-                forward_times.append( result[2] )
+            forward_outputs, forward_codes, forward_times = zip(*results)
+
         except concurrent.futures._base.TimeoutError:
             forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             forward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
@@ -121,9 +141,9 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
-        
+
         # ---- Return ----
-        return forward_outputs, forward_codes, forward_times
+        return list(forward_outputs), list(forward_codes), list(forward_times)
 
     def backward(
                 self, 
@@ -243,7 +263,8 @@ class ReceptorPool ( torch.nn.Module ):
             bittensor.logging.create_receptor_log( endpoint )
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
-                    wallet = self.wallet
+                    wallet = self.wallet,
+                    external_ip = self.external_ip,
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
 
