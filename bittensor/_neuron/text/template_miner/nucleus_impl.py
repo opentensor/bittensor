@@ -105,7 +105,7 @@ class Nucleus(nn.Module):
         return validator_scores
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
-        """ Forward pass through GPT2 nucleus.
+        """ Forward pass through local transformer model of nucleus.
             Args:
                 inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, block_size)`, `required`):
                     Input batch of batch_size token sequences each of length block_size, where
