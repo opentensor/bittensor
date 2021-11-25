@@ -16,7 +16,6 @@ class Validator( torch.nn.Module ):
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
             self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph().n.item() ] , requires_grad=True, device = device))
-            self.noise_offset = 0.0000001
             self.metagraph = metagraph
             self.dendrite = dendrite
             self.config = config
@@ -28,24 +27,30 @@ class Validator( torch.nn.Module ):
         def forward ( self, inputs ):
             # Apply model.
             
-            query_hidden,topk_weights = self.query( inputs)
+            query_hidden = self.query( inputs)
             encoded_hidden = self.encoder( query_hidden )
             decoded_targets = self.decoder ( encoded_hidden )
+
+
+            # regularization of importance
+            importance_loss = self.config.nucleus.importance  * (torch.std(self.total_weights)/torch.mean(self.total_weights))**2
+            print(self.total_weights)
+            print('importance loss {}'.format(importance_loss))
 
             # Compute loss.
             shift_logits = decoded_targets[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
             self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
-            return self.loss, decoded_targets,topk_weights
+            return self.loss, decoded_targets
 
-        def scores ( self, topk_weights ):
+        def scores ( self ):
             """Computes salience scores for each peer in the network w.r.t the loss. 
             We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
             """
-            peer_weights_d1 = torch.autograd.grad(self.loss, topk_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-            if peer_weights_d1 == None: return torch.ones_like( topk_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
-            peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), topk_weights, retain_graph=True, allow_unused=True )[0]
-            validator_scores =  peer_weights_d2 * (topk_weights**2)/2  
+            peer_weights_d1 = torch.autograd.grad(self.loss, self.total_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
+            if peer_weights_d1 == None: return torch.ones_like( self.total_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
+            peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.total_weights, retain_graph=True, allow_unused=True )[0]
+            validator_scores =  peer_weights_d2 * (self.total_weights**2)/2  
             return validator_scores
 
         def query ( self, inputs ):
@@ -78,7 +83,8 @@ class Validator( torch.nn.Module ):
             for i in range(len(topk_uids)):
                 total_weights[topk_uids[i]] = topk_weights[i]
 
-            return output, total_weights
+            self.total_weights = total_weights
+            return output
 
         def sync_with_chain_state( self ):
             r""" Creates new parameters based on metagraph size.
@@ -134,14 +140,14 @@ class Validator( torch.nn.Module ):
             # filtered_weights_mean.shape = [ n_filtered ]
             filtered_mean_weights = torch.mean(weights, axis = 0)
 
-
+            noise = torch.normal( 0, torch.std(filtered_mean_weights).item(), size=( filtered_mean_weights.size())).to( self.config.neuron.device )
             # Get indices and values for uids with highest scores.
             # topk_weights: (torch.float64): scores of uids with highest scores.
             # topk_weights.shape = [ real_topk ]
             # topk_indices: (torch.LongTensor): indicies of uids with highest scores.
             # topk_indices.shape = [ real_topk ]
             real_topk = min( len(active_uids), self.config.neuron.topk )
-            topk_weights, topk_indices = filtered_mean_weights.topk(real_topk, dim=0) 
+            topk_weights, topk_indices = torch.topk(filtered_mean_weights + noise , real_topk, dim=0)
 
             # Get the real uids with the top scores.
             # real_filtered_topk_uids: (torch.LongTensor): uids with highest scores.

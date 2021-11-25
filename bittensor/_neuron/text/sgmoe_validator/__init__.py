@@ -118,7 +118,7 @@ class neuron:
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.punishment', type=float, help='the punishment for those not responding', default=0)
-
+        parser.add_argument('--nucleus.importance', type=float, help='the importance factor', default=0.1)
         
         bittensor.wallet.add_args( parser )
         bittensor.dendrite.add_args( parser )

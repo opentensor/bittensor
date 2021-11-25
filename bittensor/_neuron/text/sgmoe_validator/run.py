@@ -88,8 +88,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             
             # --- Training step.
             while block >= subtensor.get_current_block():
-                loss, _, topk_weights = validator( next( dataset ) )
-                val_score = validator.scores(topk_weights)
+                loss, _ = validator( next( dataset ) )
+                val_score = validator.scores()
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)
@@ -148,7 +148,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
 
         norm_weights = F.softmax( validator.peer_weights.detach(), dim=0 )
         
-        for uid_j in topk_uids.tolist():
+        for uid_j in range(metagraph.n.item()):
             uid_str = str(uid_j).zfill(3)
             wandb_data[ f'fisher_ema uid: {uid_str}' ] = ema_scores[uid_j]
             wandb_data[ f'fisher_epoch_score uid: {uid_str}' ] = epoch_score[uid_j]
@@ -157,7 +157,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         
         if config.wandb.api_key != 'default':
-            wandb_data_dend = dendrite.to_wandb()
+            #wandb_data_dend = dendrite.to_wandb()
             wandb.log( {**wandb_data, **wandb_data_dend} )
 
         # --- Save.
