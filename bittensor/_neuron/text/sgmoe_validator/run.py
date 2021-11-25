@@ -136,7 +136,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         )
 
         # --- Log.
-        metagraph.sync().save()
+        #metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
         epoch_score = total_epoch_score / batch_count
         
