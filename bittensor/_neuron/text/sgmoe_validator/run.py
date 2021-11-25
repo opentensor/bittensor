@@ -99,8 +99,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores.detach()
-
+                ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
 
             # --- Step logs.
             info = {
@@ -116,7 +115,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             
-            topk_scores, topk_idx = torch.topk(ema_scores, 5, dim=0)
+            topk_scores, topk_idx = torch.topk(ema_scores, 100, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
@@ -146,14 +145,12 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             'epoch_loss': epoch_loss
         } 
 
-        norm_weights = F.softmax( validator.peer_weights.detach(), dim=0 )
         
-        for uid_j in range(metagraph.n.item()):
+        for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
             wandb_data[ f'fisher_ema uid: {uid_str}' ] = ema_scores[uid_j]
             wandb_data[ f'fisher_epoch_score uid: {uid_str}' ] = epoch_score[uid_j]
-            wandb_data[ f'peer_norm_weight uid:{uid_str}' ] = norm_weights[uid_j]
-            wandb_data[ f'peer_wo_norm_weight uid:{uid_str}' ] = validator.peer_weights.detach()[uid_j]
+
         
         
         if config.wandb.api_key != 'default':

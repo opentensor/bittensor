@@ -40,7 +40,7 @@ class Validator( torch.nn.Module ):
             # Compute loss.
             shift_logits = decoded_targets[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
-            self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
+            self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ) + importance_loss
             return self.loss, decoded_targets
 
         def scores ( self ):
@@ -48,6 +48,7 @@ class Validator( torch.nn.Module ):
             We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
             """
             peer_weights_d1 = torch.autograd.grad(self.loss, self.total_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
+            print('grad',peer_weights_d1)
             if peer_weights_d1 == None: return torch.ones_like( self.total_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
             peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.total_weights, retain_graph=True, allow_unused=True )[0]
             validator_scores =  peer_weights_d2 * (self.total_weights**2)/2  
