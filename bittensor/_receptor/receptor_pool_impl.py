@@ -96,10 +96,6 @@ class ReceptorPool ( torch.nn.Module ):
         
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
-        # ---- Run threaded calls with executor ----
-        forward_outputs = []
-        forward_codes = []
-        forward_times = []
 
         # ---- Fill calls ----
         call_args = [ 
@@ -112,20 +108,21 @@ class ReceptorPool ( torch.nn.Module ):
         requests = []
         for arg in call_args:
             receptor, inputs, modality = arg
-            requests.append(receptor.forward_prep( inputs = inputs, modality = modality ))
+            requests.append(receptor.preprocess_resquest( inputs = inputs, modality = modality ))
 
         # ---- Send the forward request to peers. ---- 
         request_futures = []
         for arg, request in zip(call_args, requests):
             receptor = arg[0]
-            request_futures.append(receptor.forward_call(forward_request = request, timeout = timeout))
+            request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
         # ---- Collect the futures. ---- 
         results = []
         for arg, request_future in zip(call_args, request_futures):
             receptor = arg[0]
-            result = receptor.forward_collect(forward_request = request_future)
+            result = receptor.handle_request_response(request = request_future)
             results.append(result)
+
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
 
@@ -190,17 +187,31 @@ class ReceptorPool ( torch.nn.Module ):
         backward_codes = []
         backward_times = []
 
-        # --- Create calls ----
-        def _call_receptor_backward_with_args( receptor, inputs_x, grads_dy , modality ):
-            return receptor.backward( inputs_x = inputs_x, grads_dy = grads_dy, modality = modality, timeout = timeout )
-
         # ---- Fill calls ----
         call_args = [
             (self._get_or_create_receptor_for_endpoint( endpoint ), inputs_x, grads_dy, modality) 
             for (inputs_x, grads_dy, endpoint) in 
             list(zip( inputs_x, grads_dy, endpoints )) 
         ]
-        results = self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args, timeout=timeout*10)
+
+        # ---- Preprocessing for the forward function, get the request. ---- 
+        requests = []
+        for arg in call_args:
+            receptor, inputs, grads_dy, modality = arg
+            requests.append(receptor.preprocess_resquest( inputs = inputs, modality = modality, grads_dy = grads_dy, backward = True))
+
+        # ---- Send the forward request to peers. ---- 
+        request_futures = []
+        for arg, request in zip(call_args, requests):
+            receptor = arg[0]
+            request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
+
+        # ---- Collect the futures. ---- 
+        results = []
+        for arg, request_future in zip(call_args, request_futures):
+            receptor = arg[0]
+            result = receptor.handle_request_response(request = request_future)
+            results.append(result)
 
         # --- catch any timeout issues due to threadpool --- 
         try:

@@ -82,7 +82,7 @@ def test_receptor_pool_forward_hang():
             version = bittensor.__version_as_int__,
             hotkey = wallet.hotkey.ss58_address,
             return_code = bittensor.proto.ReturnCode.Timeout,
-            tensors = [y_serialized])
+            tensors = [])
     
     future = asyncio.Future()
     future.set_result(mock_return_val)
@@ -94,12 +94,19 @@ def test_receptor_pool_forward_hang():
 def test_receptor_pool_backward_hang():
     endpoints = [neuron_obj,neuron_obj]
     x = torch.ones( (2,2,2) )
-    def sleep(request ,timeout,metadata):
-        time.sleep(20)
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            return_code = bittensor.proto.ReturnCode.Timeout,
+            tensors = [])
+    
+    future = asyncio.Future()
+    future.set_result(mock_return_val)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
-    with mock.patch.object(receptor_pool.receptors[neuron_obj.hotkey].stub, 'Backward', new=sleep): 
-        resp1,  codes, _ = receptor_pool.backward( endpoints, x,x, bittensor.proto.Modality.TENSOR, timeout=1)
-        assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Backward.future = MagicMock( return_value = future )
+    resp1,  codes, _ = receptor_pool.backward( endpoints, x,x, bittensor.proto.Modality.TENSOR, timeout=1)
+    assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
 
 if __name__ == "__main__":
-    test_receptor_pool_max_workers_forward()
+    # test_receptor_pool_max_workers_forward()
+    test_receptor_pool_backward_hang()
