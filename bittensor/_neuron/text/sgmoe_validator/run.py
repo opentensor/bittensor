@@ -141,7 +141,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         epoch_loss = total_epoch_loss / batch_count
         epoch_score = total_epoch_score / batch_count
         active_uids = torch.where(metagraph.active > 0)[0]
-
+        print(ema_scores[active_uids].detach())
+        print([e for i, e in enumerate(ema_scores.detach()) if i not in active_uids])
         wandb_data = {
             'stake': metagraph.S[ uid ].item(),
             'dividends': metagraph.D[ uid ].item(),
@@ -154,7 +155,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
-            wandb_data[ f'fisher_ema uid:/{uid_str}' ] = ema_scores[uid_j]
+            wandb_data[ f'fisher_ema uid:/{uid_str}' ] = ema_scores.detach()[uid_j]
             wandb_data[ f'fisher_epoch_score uid:/{uid_str}' ] = epoch_score[uid_j]
 
             if uid_j in dendrite.stats.responded_peers_count.keys():
