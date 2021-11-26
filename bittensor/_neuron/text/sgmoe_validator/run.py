@@ -160,7 +160,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
                 wandb_data[ f'{uid_str}/dend_requested uid:' ] = dendrite.stats.requested_peers_count[uid]
                 wandb_data[ f'{uid_str}/dend_respond_rate uid:' ] = respond_rate
-                wandb_data[ f'{uid_str}/dend_respond_time uid' ] = sum(dendrite.stats.peers_respond_time[uid])/len(dendrite.stats.peers_respond_time[uid])
 
         
         
