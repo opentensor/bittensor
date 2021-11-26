@@ -75,7 +75,6 @@ class Validator( torch.nn.Module ):
 
             output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
             for index, joining_weight in enumerate( joining_weights ): 
-                print(joining_uids[index])
                 output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
             return output
@@ -116,7 +115,6 @@ class Validator( torch.nn.Module ):
             metagraph = self.metagraph()
             # Active uids in the metagraph
             active_uids = torch.where(metagraph.active > 0)[0]
-            print('active',active_uids)
 
             # Get weights for uids.
             # weights: (torch.FloatTensor): weights for each filtered_uid
