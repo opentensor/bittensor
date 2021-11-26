@@ -35,8 +35,7 @@ class Validator( torch.nn.Module ):
 
             # regularization of importance
             importance_loss = self.config.nucleus.importance  * (torch.std(self.total_weights[active_uids])/torch.mean(self.total_weights[active_uids]))**2
-            print(self.total_weights[active_uids])
-            print('importance loss {}'.format(importance_loss))
+
 
             # Compute loss.
             shift_logits = decoded_targets[..., :-1, :].contiguous()
@@ -49,7 +48,6 @@ class Validator( torch.nn.Module ):
             We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
             """
             peer_weights_d1 = torch.autograd.grad(self.loss, self.total_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-            print('grad',peer_weights_d1)
             if peer_weights_d1 == None: return torch.ones_like( self.total_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
             peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.total_weights, retain_graph=True, allow_unused=True )[0]
             validator_scores =  peer_weights_d2 * (self.total_weights**2)/2  
