@@ -35,8 +35,9 @@ class dataset:
             batch_size: int = None,
             max_corpus_size:int = None,
             num_workers: int = None,
-            dataset_name: str=None,
-            save_dataset: bool=None
+            dataset_name: list = [],
+            save_dataset: bool=None,
+            no_tokenizer: bool=None
         ):
         if config == None: 
             config = dataset.config()
@@ -45,8 +46,9 @@ class dataset:
         config.dataset.batch_size = batch_size if batch_size != None else config.dataset.batch_size
         config.dataset.max_corpus_size = max_corpus_size if max_corpus_size != None else config.dataset.max_corpus_size
         config.dataset.num_workers = num_workers if num_workers != None else config.dataset.num_workers
-        config.dataset.dataset_name = dataset_name if dataset_name != None else config.dataset.dataset_name
+        config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
+        config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
         dataset.check_config( config )
         return dataset_impl.GenesisTextDataset(
             block_size = config.dataset.block_size,
@@ -55,7 +57,9 @@ class dataset:
             num_workers = config.dataset.num_workers,
             dataset_name = config.dataset.dataset_name,
             data_dir = config.dataset.data_dir,
-            save_dataset = config.dataset.save_dataset
+            save_dataset = config.dataset.save_dataset,
+            max_datasets = config.dataset.max_datasets,
+            no_tokenizer = config.dataset.no_tokenizer
         )
 
     @classmethod
@@ -76,9 +80,14 @@ class dataset:
             parser.add_argument('--dataset.block_size', type=int, help='Number of text items to pull for each example..', default = bittensor.defaults.dataset.block_size)
             parser.add_argument('--dataset.max_corpus_size',  type=int, help='Maximum amount of data to download from IPFS into memory for training.', default = bittensor.defaults.dataset.max_corpus_size)
             parser.add_argument('--dataset.num_workers',  type=int, help='Number of workers for data loader.', default = bittensor.defaults.dataset.num_workers)
-            parser.add_argument('--dataset.dataset_name', type=str, help='Which datasets to use (train/test/validation)).', default = bittensor.defaults.dataset.dataset_name)
+            parser.add_argument('--dataset.dataset_name', type=str, required=False, nargs='*', action='store', help='Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).',
+                                                                    default = bittensor.defaults.dataset.dataset_name)
             parser.add_argument('--dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
             parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
+            parser.add_argument('--dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
+            parser.add_argument('--dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
+
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -92,9 +101,10 @@ class dataset:
         defaults.dataset.block_size = os.getenv('BT_DATASET_BLOCK_SIZE') if os.getenv('BT_DATASET_BLOCK_SIZE') != None else 20
         defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else 1e+4
         defaults.dataset.num_workers = os.getenv('BT_DATASET_NUM_WORKERS') if os.getenv('BT_DATASET_NUM_WORKERS') != None else 0
-        defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'train'
+        defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
         defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else '~/.bittensor/data/'
         defaults.dataset.save_dataset = os.getenv('BT_DATASET_SAVE_DATASET') if os.getenv('BT_DATASET_SAVE_DATASET') != None else False
+        defaults.dataset.max_datasets = os.getenv('BT_DATASET_max_datasets') if os.getenv('BT_DATASET_max_datasets') != None else 3
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -104,5 +114,4 @@ class dataset:
         assert config.dataset.block_size > 0, 'Block size must be larger than 0'
         assert config.dataset.max_corpus_size > 0, 'max_corpus_size must be larger than 0'
         assert config.dataset.num_workers >= 0, 'num_workers must be equal to or larger than 0'
-        assert config.dataset.dataset_name in ['train','test','validation'], 'dataset_name must be one of the following choices: train, test, or validation'
         assert isinstance(config.dataset.save_dataset, bool) , 'save_dataset must be True/False only'

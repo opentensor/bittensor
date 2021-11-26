@@ -781,4 +781,4 @@ def test_axon_receptor_connection_backward_timeout():
     axon.stop()
 
 if __name__ == "__main__":
-    test_dummy_backward()
+    test_receptor_neuron_mock_server()
