@@ -53,7 +53,7 @@ class neuron:
         self.subtensor = bittensor.subtensor ( config = config )
     
         # Load/Sync/Save our metagraph.
-        self.metagraph = bittensor.metagraph ( subtensor = self.subtensor ).load().sync().save()
+        self.metagraph = bittensor.metagraph ( subtensor = self.subtensor ).load()
         
         self.uid = self.metagraph.hotkeys.index ( self.wallet.hotkey.ss58_address )
 
