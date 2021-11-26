@@ -141,25 +141,27 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         epoch_loss = total_epoch_loss / batch_count
         epoch_score = total_epoch_score / batch_count
         active_uids = torch.where(metagraph.active > 0)[0]
-        print(ema_scores[active_uids].detach())
-        print([e for i, e in enumerate(ema_scores.detach()) if i not in active_uids])
         wandb_data = {
             'stake': metagraph.S[ uid ].item(),
             'dividends': metagraph.D[ uid ].item(),
             'epoch_loss': epoch_loss,
             'Total unique queries': len(dendrite.stats.requested_peers_count.keys()),
             'STD in scores': torch.std(ema_scores[active_uids]).item(),
-            'Percentage of active nodes queried': len(dendrite.stats.requested_peers_count.keys()) / len(active_uids)
+            'Percentage of active nodes queried': len(dendrite.stats.requested_peers_count.keys()) / len(active_uids),
+            'Total requests sent': sum(dendrite.stats.requested_peers_count.values()),
+            'Total responses recieved': sum(dendrite.stats.requested_peers_count.values()),
+
         } 
 
-        
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
             wandb_data[ f'fisher_ema uid:/{uid_str}' ] = ema_scores.detach()[uid_j]
             wandb_data[ f'fisher_epoch_score uid:/{uid_str}' ] = epoch_score[uid_j]
-
-            if uid_j in dendrite.stats.responded_peers_count.keys():
-                respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
+            if uid_j in dendrite.stats.requested_peers_count.keys():
+                try:
+                    respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
+                except:
+                    respond_rate = 0
                 wandb_data[ f'dend_requested uid:/{uid_str}' ] = dendrite.stats.requested_peers_count[uid_j]
                 wandb_data[ f'dend_respond_rate uid:/{uid_str}' ] = respond_rate
                 wandb_data[ f'dend_respond_time uid:/{uid_str}' ] = sum(dendrite.stats.peers_respond_time[uid_j])/len(dendrite.stats.peers_respond_time[uid_j])

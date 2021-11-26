@@ -40,8 +40,9 @@ class Validator( torch.nn.Module ):
             # Compute loss.
             shift_logits = decoded_targets[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()     
-            self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ) + importance_loss
-            return self.loss, decoded_targets
+            self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ) 
+            self.total_loss = self.loss + importance_loss
+            return self.total_loss, decoded_targets
 
         def scores ( self ):
             """Computes salience scores for each peer in the network w.r.t the loss. 
