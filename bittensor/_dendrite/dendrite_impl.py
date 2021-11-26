@@ -645,15 +645,15 @@ class Dendrite(torch.autograd.Function):
                 self.stats.peers_respond_time[uid.item()] += [time]
 
             else:
-                self.stats.requested_peers_count[uid.item()] = 0
-                self.stats.peers_respond_time[uid.item()] = []
+                self.stats.requested_peers_count[uid.item()] = 1
+                self.stats.peers_respond_time[uid.item()] = [time]
 
         # ---- Aggregating result to stats
         for uid in uids[success_ids]:
             if uid.item() in self.stats.responded_peers_count.keys():
                 self.stats.responded_peers_count[uid.item()] += 1
             else:
-                self.stats.responded_peers_count[uid.item()] = 0
+                self.stats.responded_peers_count[uid.item()] = 1
 
         self.stats.uids += uids.tolist()
         self.stats.return_ops += return_ops.tolist()
