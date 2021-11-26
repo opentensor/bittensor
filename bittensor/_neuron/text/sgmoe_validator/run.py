@@ -154,21 +154,20 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         for uid_j in topk_uids.tolist():
             uid_str = str(uid_j).zfill(3)
-            wandb_data[ f'{uid_str}/fisher_ema uid:' ] = ema_scores[uid_j]
-            wandb_data[ f'{uid_str}/fisher_epoch_score uid:' ] = epoch_score[uid_j]
+            wandb_data[ f'fisher_ema uid:/{uid_str}' ] = ema_scores[uid_j]
+            wandb_data[ f'fisher_epoch_score uid:/{uid_str}' ] = epoch_score[uid_j]
 
             if uid_j in dendrite.stats.responded_peers_count.keys():
-                print(uid_j, dendrite.stats.responded_peers_count[uid_j],dendrite.stats.requested_peers_count[uid_j],len(dendrite.stats.peers_respond_time[uid_j]))
-                #respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
-                wandb_data[ f'{uid_str}/dend_requested uid:' ] = dendrite.stats.requested_peers_count[uid_j]
-                #wandb_data[ f'{uid_str}/dend_respond_rate uid:' ] = respond_rate
-                wandb_data[ f'{uid_str}/dend_respond_time uid' ] = sum(dendrite.stats.peers_respond_time[uid_j])/len(dendrite.stats.peers_respond_time[uid_j])
+                respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
+                wandb_data[ f'dend_requested uid:/{uid_str}' ] = dendrite.stats.requested_peers_count[uid_j]
+                wandb_data[ f'dend_respond_rate uid:/{uid_str}' ] = respond_rate
+                wandb_data[ f'dend_respond_time uid:/{uid_str}' ] = sum(dendrite.stats.peers_respond_time[uid_j])/len(dendrite.stats.peers_respond_time[uid_j])
 
         
         
         if config.wandb.api_key != 'default':
             #wandb_data_dend = dendrite.to_wandb()
-            wandb.log( {**wandb_data} )
+            wandb.log( {**wandb_data}, step = block)
 
         # --- Save.
         if best_loss > epoch_loss : 
