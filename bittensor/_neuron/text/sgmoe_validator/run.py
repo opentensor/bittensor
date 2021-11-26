@@ -117,7 +117,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             
-            topk_scores, topk_idx = torch.topk(ema_scores, 50, dim=0)
+            topk_scores, topk_idx = torch.topk(ema_scores, 5, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
@@ -156,10 +156,12 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             uid_str = str(uid_j).zfill(3)
             wandb_data[ f'{uid_str}/fisher_ema uid:' ] = ema_scores[uid_j]
             wandb_data[ f'{uid_str}/fisher_epoch_score uid:' ] = epoch_score[uid_j]
+
             if uid_j in dendrite.stats.responded_peers_count.keys():
-                respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
+                print(uid_j, dendrite.stats.responded_peers_count[uid_j],dendrite.stats.requested_peers_count[uid_j],len(dendrite.stats.peers_respond_time[uid_j]))
+                #respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
                 wandb_data[ f'{uid_str}/dend_requested uid:' ] = dendrite.stats.requested_peers_count[uid_j]
-                wandb_data[ f'{uid_str}/dend_respond_rate uid:' ] = respond_rate
+                #wandb_data[ f'{uid_str}/dend_respond_rate uid:' ] = respond_rate
                 wandb_data[ f'{uid_str}/dend_respond_time uid' ] = sum(dendrite.stats.peers_respond_time[uid_j])/len(dendrite.stats.peers_respond_time[uid_j])
 
         
