@@ -167,7 +167,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         if config.wandb.api_key != 'default':
             #wandb_data_dend = dendrite.to_wandb()
-            wandb.log( {**wandb_data}, step = block)
+            wandb.log( {**wandb_data})
 
         # --- Save.
         if best_loss > epoch_loss : 
