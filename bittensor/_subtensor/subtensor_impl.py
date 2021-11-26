@@ -821,9 +821,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron = self.neuron_for_uid(id)
                 neurons.append( neuron )
             except Exception as e:
-                logger.error('Exception encountered when pull neuron {}: {}'.format(id, e))
-                neuron = self.neuron_for_uid(id)
-                neurons.append( neuron )
+                logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
+                break
         return neurons
 
     @staticmethod
