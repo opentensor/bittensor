@@ -104,7 +104,7 @@ class neuron:
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
         parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False)
         parser.add_argument('--neuron.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
+        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1e-4)
         parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
@@ -118,7 +118,7 @@ class neuron:
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.punishment', type=float, help='the punishment for those not responding', default=0)
-        parser.add_argument('--nucleus.importance', type=float, help='the importance factor', default=0.1)
+        parser.add_argument('--nucleus.importance', type=float, help='the importance factor', default=0.01)
         
         bittensor.wallet.add_args( parser )
         bittensor.dendrite.add_args( parser )

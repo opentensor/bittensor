@@ -26,15 +26,16 @@ class Validator( torch.nn.Module ):
 
         def forward ( self, inputs ):
             # Apply model.
-            
+            active_uids = torch.where(self.metagraph().active > 0)[0]
+
             query_hidden = self.query( inputs)
             encoded_hidden = self.encoder( query_hidden )
             decoded_targets = self.decoder ( encoded_hidden )
 
 
             # regularization of importance
-            importance_loss = self.config.nucleus.importance  * (torch.std(self.total_weights)/torch.mean(self.total_weights))**2
-            print(self.total_weights)
+            importance_loss = self.config.nucleus.importance  * (torch.std(self.total_weights[active_uids])/torch.mean(self.total_weights[active_uids]))**2
+            print(self.total_weights[active_uids])
             print('importance loss {}'.format(importance_loss))
 
             # Compute loss.
@@ -64,7 +65,6 @@ class Validator( torch.nn.Module ):
             local_context = self.local_encoder( self.embedding( inputs ) )* math.sqrt(bittensor.__network_dim__)
 
             endpoints, topk_weights,topk_uids = self.route(inputs,local_context)
-
             # ---- Query network ----
             responses, return_ops, query_times = self.dendrite.forward_text ( 
                 endpoints = endpoints, 
@@ -147,7 +147,7 @@ class Validator( torch.nn.Module ):
             # topk_indices: (torch.LongTensor): indicies of uids with highest scores.
             # topk_indices.shape = [ real_topk ]
             real_topk = min( len(active_uids), self.config.neuron.topk )
-            topk_weights, topk_indices = torch.topk(self.total_weights, real_topk, dim=0)
+            topk_weights, topk_indices = torch.topk(self.total_weights[active_uids], real_topk, dim=0)
 
             # Get the real uids with the top scores.
             # real_filtered_topk_uids: (torch.LongTensor): uids with highest scores.

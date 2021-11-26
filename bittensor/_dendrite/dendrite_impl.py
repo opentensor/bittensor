@@ -640,21 +640,20 @@ class Dendrite(torch.autograd.Function):
 
         # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
         for uid, time in zip(uids, query_times):
-            if uid in self.stats.requested_peers_count.keys():
-                self.stats.requested_peers_count[uid].update(1)
-                self.stats.peers_respond_time[uid].update(time)
+            if uid.item() in self.stats.requested_peers_count.keys():
+                self.stats.requested_peers_count[uid.item()] += 1 
+                self.stats.peers_respond_time[uid.item()] += [time]
 
             else:
-                self.stats.requested_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
-                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
-                self.stats.peers_respond_time[uid] = stat_utils.timed_rolling_avg(time, 0.01)
+                self.stats.requested_peers_count[uid.item()] = 0
+                self.stats.peers_respond_time[uid.item()] = []
 
         # ---- Aggregating result to stats
         for uid in uids[success_ids]:
-            if uid in self.stats.requested_peers_count.keys():
-                self.stats.responded_peers_count[uid].update(1)
+            if uid.item() in self.stats.responded_peers_count.keys():
+                self.stats.responded_peers_count[uid.item()] += 1
             else:
-                self.stats.responded_peers_count[uid] = stat_utils.timed_rolling_avg(1, 0.01)
+                self.stats.responded_peers_count[uid.item()] = 0
 
         self.stats.uids += uids.tolist()
         self.stats.return_ops += return_ops.tolist()
@@ -691,7 +690,12 @@ class Dendrite(torch.autograd.Function):
         Clears stats about requests and response times
         """
 
-        self.stats.uids = []
-        self.stats.return_ops = []
-        self.stats.query_times = []
+        self.stats = SimpleNamespace(
+            uids=[],
+            return_ops=[],
+            query_times=[],
+            requested_peers_count={},
+            responded_peers_count={},
+            peers_respond_time={}
+        )
 
