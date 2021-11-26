@@ -1,0 +1,24 @@
+{
+    "os": "macOS-11.5.2-x86_64-i386-64bit",
+    "python": "3.8.12",
+    "heartbeatAt": "2021-11-24T21:17:27.871495",
+    "startedAt": "2021-11-24T21:17:26.416939",
+    "docker": null,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [
+        "-f",
+        "/Users/const/Library/Jupyter/runtime/kernel-5637b070-f0bc-41a0-b4ca-30ef4f58f43d.json"
+    ],
+    "state": "running",
+    "program": "Untitled.ipynb",
+    "root": "/Users/const/Workspace/bittensor",
+    "git": {
+        "remote": "https://github.com/opentensor/bittensor.git",
+        "commit": "01f59556f3c1cb57528f02de43d2ed25c9632b68"
+    },
+    "email": "jake@bittensor.com",
+    "host": "Jacobs-MacBook-Pro.local",
+    "username": "const",
+    "executable": "/usr/local/opt/python@3.8/bin/python3.8"
+}

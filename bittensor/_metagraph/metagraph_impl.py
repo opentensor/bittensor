@@ -279,11 +279,9 @@ class Metagraph( torch.nn.Module ):
         elif self._endpoint_objs != None:
             return self._endpoint_objs
         else:
+            self._endpoint_objs = []
             for tensor in self.endpoints:
-                try:
-                    obj = bittensor.endpoint.from_tensor( tensor )
-                except Exception:
-                    obj = None
+                obj = bittensor.endpoint.from_tensor( tensor )
                 self._endpoint_objs.append( obj )
             return self._endpoint_objs
 
