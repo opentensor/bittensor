@@ -24,6 +24,8 @@ from typing import List, Tuple, Callable
 
 import torch
 import grpc
+import wandb
+import matplotlib.pyplot as plt
 from loguru import logger
 import torch.nn.functional as F
 import concurrent
@@ -76,16 +78,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.forward_timeout = forward_timeout
         self.backward_timeout = backward_timeout
         self.modality = self.find_modality()
-        self.stats = SimpleNamespace(
-            qps = stat_utils.timed_rolling_avg(0.0, 0.01),
-            qps_failed = stat_utils.timed_rolling_avg(0.0, 0.01),
-            total_in_bytes = stat_utils.timed_rolling_avg(0.0, 0.01),
-            total_out_bytes= stat_utils.timed_rolling_avg(0.0, 0.01),
-            in_bytes_per_pubkey = {},
-            out_bytes_per_pubkey = {},
-            qps_per_pubkey = {},
-            qps_failed_per_pubkey = {},
-        )
+        self.stats = self._init_stats()
         self.started = None
         
         # -- Priority 
@@ -114,7 +107,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (bittensor.proto.TensorMessage): 
                     proto response carring the nucleus forward output or None under failure.
         """
-        tensor, code, _, message = self._forward( request )
+        tensor, code, time, message = self._forward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
@@ -124,7 +117,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             requires_grad = True,
         )
         # ---- Update stats for this request.
-        self.update_stats_for_request( request, response )
+        self.update_stats_for_request( request, response, time, code)
         return response
 
     def Backward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
@@ -143,7 +136,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (:obj:`bittensor.proto.TensorMessage`): 
                     proto response carring the nucleus backward output or None under failure.
         """
-        tensor, code, _, message = self._backward( request )
+        tensor, code, time, message = self._backward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
@@ -152,7 +145,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             tensors = [tensor] if tensor is not None else [],
             requires_grad = True,
         )
-        self.update_stats_for_request( request, response )
+        self.update_stats_for_request( request, response, time, code )
         return response
 
     def _call_forward(
@@ -180,6 +173,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     message associated with forward call, potentially error, or 'success'.
 
         """
+
         # Check forward has been subscribed.
         if self.forward_callback[modality] == None:
             message = "Forward callback is not yet subscribed on this axon."
@@ -190,7 +184,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             if self.priority != None:
                 priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.FORWARD)
                 future = self.priority_threadpool.submit(self.forward_callback[modality],inputs_x=inputs_x,priority=priority)
-
+                
                 try:
                     response_tensor = future.result(timeout= self.forward_timeout)
                 except concurrent.futures.TimeoutError :
@@ -564,32 +558,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         bittensor.axon.check_backward_callback(backward_callback,modality)
         self.backward_callback[modality] = backward_callback
 
-    def update_stats_for_request(self, request, response):
-        """ Save the in_bytes and out_bytes from request and respond to self.stats 
-        """
-        self.stats.qps.update(1)
-        in_bytes = sys.getsizeof(request)
-        out_bytes = sys.getsizeof(response)
-        self.stats.total_in_bytes.update(in_bytes)
-        self.stats.total_out_bytes.update(out_bytes)
-
-        # ---- Check we have a stats column for this peer
-        if request.hotkey in self.stats.in_bytes_per_pubkey:
-            self.stats.in_bytes_per_pubkey[request.hotkey].update(in_bytes)
-            self.stats.out_bytes_per_pubkey[request.hotkey].update(out_bytes)
-            self.stats.qps_per_pubkey[request.hotkey].update(1)
-
-        else:
-            self.stats.in_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(in_bytes, 0.01)
-            self.stats.out_bytes_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(out_bytes, 0.01)
-            self.stats.qps_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(1, 0.01)
-            self.stats.qps_failed_per_pubkey[request.hotkey] = stat_utils.timed_rolling_avg(0.0, 0.01)
-
-        # ---- Adding failed responses to stat  
-        if response.return_code != bittensor.proto.ReturnCode.Success:
-            self.stats.qps_failed.update(1)
-            self.stats.qps_failed_per_pubkey[request.hotkey].update(1)
-
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
         """
@@ -676,25 +644,107 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 bittensor.axon.check_backward_callback(backward,index,pubkey)
         return self
 
-    def to_wandb(self):
-        r""" Return a dictionary of axon stat for wandb logging
-            
+    def _init_stats(self):
+        return SimpleNamespace(
+            # Queries per second.
+            qps = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 ),
+            # Total requests.
+            total_requests = 0,
+            # Total bytes recieved per second.
+            total_in_bytes = 0,
+            # Total bytes responded per second.
+            total_out_bytes = 0,
+            # Bytes recieved per second.
+            avg_in_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
+            # Bytes responded per second.
+            avg_out_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
+            # Requests per pubkey.
+            requests_per_pubkey = {},
+            # Success per pubkey.
+            successes_per_pubkey = {},
+            # Query time per pubkey.
+            query_times_per_pubkey = {},
+            # Queries per second per pubkey.
+            qps_per_pubkey = {},
+            # Codes recieved per pubkey.
+            codes_per_pubkey = {},
+            # Bytes recieved per pubkey.
+            avg_in_bytes_per_pubkey = {},
+            # Bytes sent per pubkey.
+            avg_out_bytes_per_pubkey = {}
+        )
+
+    def update_stats_for_request(self, request, response, time, code):
+        r""" Updates statistics for this request and response.
+            Args:
+                requests ( bittensor.proto.TensorMessage, `required`):
+                    The request.
+                response ( bittensor.proto.TensorMessage, `required`):
+                    The response.
+                time (:type:`float`, `required`):
+                    Length of call in seconds.
+                code (:obj:`bittensor.proto.ReturnCode, `required`)
+                    Return code associated with the call i.e. Success of Timeout.
+        """
+        self.stats.qps.event()
+        self.stats.total_requests += 1
+        self.stats.total_in_bytes += sys.getsizeof(request) 
+        self.stats.total_out_bytes += sys.getsizeof(response) 
+        self.stats.avg_in_bytes_per_second.event( float(sys.getsizeof(request)) )
+        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(response)) )
+        pubkey = request.hotkey
+        if pubkey not in self.stats.requests_per_pubkey:
+            self.stats.requests_per_pubkey[ pubkey ] = 0
+            self.stats.successes_per_pubkey[ pubkey ] = 0
+            self.stats.query_times_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.05)
+            self.stats.qps_per_pubkey[ pubkey ] = stat_utils.EventsPerSecondRollingAverage(0, 0.05)
+            self.stats.codes_per_pubkey[ pubkey ] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
+            self.stats.avg_in_bytes_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.01)
+            self.stats.avg_out_bytes_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.01)
+
+        # Add values.
+        self.stats.requests_per_pubkey[ pubkey ] += 1
+        self.stats.successes_per_pubkey[ pubkey ] += 1 if code == 1 else 0
+        self.stats.query_times_per_pubkey[ pubkey ].event( float(time) )
+        self.stats.avg_in_bytes_per_pubkey[ pubkey ].event( float(sys.getsizeof(request)) )
+        self.stats.avg_out_bytes_per_pubkey[ pubkey ].event( float(sys.getsizeof(response)) )
+        self.stats.qps_per_pubkey[ pubkey ].event()    
+        try:
+            if bittensor.proto.ReturnCode.Name( code ) in self.stats.codes_per_pubkey[ pubkey ].keys():
+                self.stats.codes_per_pubkey[ pubkey ][bittensor.proto.ReturnCode.Name( code )] += 1
+        except:
+            pass  
+
+    def to_wandb( self ):
+        r""" Return a dictionary of axon stat info for wandb logging
             Return:
                 wandb_info (:obj:`Dict`)
         """
         # ---- Axon summary for wandb
         wandb_data = {
-            'axon_qps': self.stats.qps.value,
-            'axon_qps_failed' : self.stats.qps_failed.value,
-            'axon_total_in_bytes' : self.stats.total_in_bytes.value,
-            'axon_total_out_bytes' : self.stats.total_out_bytes.value,
+            'axon_qps': self.stats.qps.get(),
+            'axon_total_requests': self.stats.total_requests,
+            'axon_total_in_bytes' : self.stats.total_in_bytes,
+            'axon_total_out_bytes' : self.stats.total_out_bytes,
+            'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+            'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
         }
+        # Create table view
+        table_data = []
+        for pubkey in self.stats.requests_per_pubkey.keys():
+            row = [
+                pubkey,
+                int(self.stats.requests_per_pubkey[pubkey]),
+                int(self.stats.successes_per_pubkey[pubkey]),
+                float(self.stats.query_times_per_pubkey[pubkey].get()),
+                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.qps_per_pubkey[pubkey].get()),
+            ] + list(self.stats.codes_per_pubkey[pubkey].values())
+            table_data.append( row )
 
-        # ---- Axon stats per pubkey for wandb 
-        for pubkey in self.stats.in_bytes_per_pubkey.keys():
-            wandb_data[f'axon_in_bytes\n{pubkey}'] = self.stats.in_bytes_per_pubkey[pubkey].value
-            wandb_data[f'axon_out_bytes\n{pubkey}'] = self.stats.out_bytes_per_pubkey[pubkey].value
-            wandb_data[f'axon_qps\n{pubkey}'] = self.stats.qps_per_pubkey[pubkey].value
-            wandb_data[f'axon_qps_failed\n{pubkey}'] = self.stats.qps_failed_per_pubkey[pubkey].value
-            
+        wandb_data['axon_data'] = wandb.Table( 
+            data = table_data, 
+            columns=['pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
+        )
         return wandb_data 

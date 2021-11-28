@@ -117,7 +117,7 @@ class Neuron:
             self.epoch = 0   
 
             # ---- reloads previous run if not restart ----
-            if self.config.neuron.restart:
+            if self.config.neuron.no_restart:
                 self.save()
 
             try:
@@ -420,9 +420,10 @@ class Neuron:
         """
 
         try:
-            k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())
-            topk_scores, topk_uids = torch.topk( self.stats.ema_scores, k = k )
-            did_set = self.subtensor.timeout_set_weights(
+            k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
+            epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() )).device('cpu')
+            topk_scores, topk_uids = torch.topk(epsilon_scores, k = k )
+            self.subtensor.timeout_set_weights(
                 timeout = 100,
                 uids = topk_uids.detach().to(torch.device('cpu')),
                 weights = topk_scores.detach().to(torch.device('cpu')),
@@ -488,17 +489,26 @@ class Neuron:
                 'data_size': self.stats.epoch_data_size,
                 }
             # ---- Miner summary per peer
+            weights_data = []
             for uid in self.metagraph.uids.tolist():
-                uid_str = str(uid).zfill(3)
-                wandb_info[f'peers_norm_weight uid: {uid_str}']= normalized_peer_weights[uid]
-                wandb_info[f'peers_wo_norm_weight uid: {uid_str}']= self.nucleus.peer_weights[uid]
-                wandb_info[f'fisher_ema uid: {uid_str}'] = self.stats.ema_scores[uid]
-
+                weights_data.append([ 
+                    int(uid),
+                    float( self.nucleus.peer_weights[uid] ),
+                    float( normalized_peer_weights[uid] ), 
+                    float( self.stats.ema_scores[uid] ),
+                    float( self.metagraph.W[ self_uid, uid ] ),
+                    float( self.metagraph.B[ self_uid, uid ] ),
+                    float( self.metagraph.I[ uid ] )
+                ])
+            wandb_info['mechanism_weights'] = wandb.Table( 
+                data = weights_data, 
+                columns=['uid', 'weight', 'normalized_weight', 'ema weight', 'chain weight', 'bond ownership', 'incentive']
+            )
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
-                
+            wandb_info_metagraph = self.metagraph.to_wandb()     
             try:
-                wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend})
+                wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend, **wandb_info_metagraph})
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 
