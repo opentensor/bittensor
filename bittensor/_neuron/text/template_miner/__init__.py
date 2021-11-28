@@ -34,7 +34,8 @@ from .nucleus_impl import Nucleus
 
 class nucleus():
 
-    def __new__(self, config: 'bittensor.Config' ):
+    def __new__(self, config: 'bittensor.Config' = None ):
+        if config == None: config = nucleus.config()
         return Nucleus( config )
 
     @staticmethod
@@ -47,6 +48,16 @@ class nucleus():
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
         parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
+        parser.add_argument('--nucleus.noise_offset', type=float, help='Noise added to weights during each call.', default=0.001 )
+        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=1 )
+
+    @staticmethod
+    def config() -> 'bittensor.Config':
+        r""" Fills a config namespace object with defaults or information from the command line.
+        """
+        parser = argparse.ArgumentParser()
+        nucleus.add_args( parser ) 
+        return bittensor.config( parser )
 
 class neuron:
 
@@ -90,7 +101,7 @@ class neuron:
         parser.add_argument('--neuron.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, black lists non-registered peers''', default=True)
         parser.add_argument('--neuron.sync_block_time', type=int, help='How often the sync the neuron with metagraph, in terms of block time', default=100)
-        parser.add_argument('--neuron.restart', type=bool, help='If True, train the neuron from the beginning', default=False)
+        parser.add_argument('--neuron.no_restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
         parser.add_argument('--neuron.use_wandb', action='store_true', help='''neuron activates its weights and biases powers''', default=False)
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
 

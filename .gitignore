@@ -4,6 +4,8 @@
 *$py.class
 *.pyc
 
+wandb/
+
 # runs/data/models/logs/~
 data/
 **/data/
