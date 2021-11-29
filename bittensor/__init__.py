@@ -38,6 +38,8 @@ __blocktime__ = 12
 
 __networks__ = [ 'local', 'nobunaga', 'akatsuki', 'nakamoto']
 
+__datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
+
 __nakamoto_entrypoints__ = [
     "entrypointnetworkloadbalancer-21fe5fbdc08425ca.elb.us-east-2.amazonaws.com:9944"
 ]

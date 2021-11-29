@@ -23,7 +23,6 @@ from typing import List
 from loguru import logger
 
 import wandb
-import matplotlib.pyplot as plt
 import torch.nn.functional as f
 import torch
 
@@ -281,10 +280,7 @@ class Metagraph( torch.nn.Module ):
         else:
             self._endpoint_objs = []
             for tensor in self.endpoints:
-                try:
-                    obj = bittensor.endpoint.from_tensor( tensor )
-                except Exception:
-                    obj = None
+                obj = bittensor.endpoint.from_tensor( tensor )
                 self._endpoint_objs.append( obj )
             return self._endpoint_objs
 
@@ -500,13 +496,11 @@ class Metagraph( torch.nn.Module ):
                 self.incentive[uid],
                 self.dividends[uid],
                 self.emission[uid],
-                endpoints[uid].ip_str(),
-                endpoints[uid].coldkey,
             ]
             table_data.append( row )
         wandb_info['metagraph_data'] = wandb.Table( 
             data = table_data, 
-            columns=[ 'pubkey', 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission', 'endpoint', 'coldkey']
+            columns=[ 'pubkey', 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
         )
         return wandb_info
             
