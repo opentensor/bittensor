@@ -733,14 +733,18 @@ class Axon( bittensor.grpc.BittensorServicer ):
         for pubkey in self.stats.requests_per_pubkey.keys():
             row = [
                 pubkey,
-                self.stats.in_bytes_per_pubkey[pubkey].value,
-                self.stats.out_bytes_per_pubkey[pubkey].value,
-                self.stats.qps_per_pubkey[pubkey].value,
-                self.stats.qps_failed_per_pubkey[pubkey].value,
-            ] )
+                int(self.stats.requests_per_pubkey[pubkey]),
+                int(self.stats.successes_per_pubkey[pubkey]),
+                float(self.stats.query_times_per_pubkey[pubkey].get()),
+                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.qps_per_pubkey[pubkey].get()),
+            ] + list(self.stats.codes_per_pubkey[pubkey].values())
+            table_data.append( row )
+
         wandb_data['axon_data'] = wandb.Table( 
             data = table_data, 
-            columns=['pubkey', 'in_bytes', 'out_bytes', 'qps', 'qps_failed']
+            columns=['pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
         )
         
         return wandb_data 
