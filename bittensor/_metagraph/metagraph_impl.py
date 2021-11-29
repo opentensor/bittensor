@@ -500,7 +500,7 @@ class Metagraph( torch.nn.Module ):
             table_data.append( row )
         wandb_info['metagraph_data'] = wandb.Table( 
             data = table_data, 
-            columns=[ 'pubkey', 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission', 'endpoint', 'coldkey']
+            columns=[ 'pubkey', 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
         )
         return wandb_info
             
