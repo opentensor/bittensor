@@ -1,8 +1,10 @@
 dataset.batch_size: 10
 dataset.block_size: 20
 dataset.data_dir: ~/.bittensor/data/
-dataset.dataset_name: train
+dataset.dataset_name: default
 dataset.max_corpus_size: 10000.0
+dataset.max_datasets: 3
+dataset.no_tokenizer: false
 dataset.num_workers: 0
 dataset.save_dataset: false
 
@@ -19,13 +21,13 @@ logging.trace: false
 neuron.blocks_per_epoch: 100
 neuron.clip_gradients: 1.0
 neuron.device: cpu
-neuron.full_path: /Users/endub/.bittensor/miners/default/default/template_miner
+neuron.full_path: ~/.bittensor/miners/default/default/template_miner
 neuron.learning_rate: 1
 neuron.learning_rate_chain: 1
 neuron.momentum: 0.8
 neuron.n_topk_peer_weights: 100
 neuron.name: template_miner
-neuron.resume: false
+neuron.no_restart: false
 neuron.topk: 20
 
 nucleus.dropout: 0.2
