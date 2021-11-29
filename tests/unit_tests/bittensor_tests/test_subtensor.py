@@ -43,16 +43,16 @@ class TestSubtensor(unittest.TestCase):
         self.balance = Balance.from_tao(1000)
         assert True
 
-    def test_defaults_to_akatsuki( self ):
-        assert self.subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+    def test_defaults_to_nobunaga( self ):
+        assert self.subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
 
     def test_networks( self ):
-        assert self.subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+        assert self.subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
 
     def test_network_overrides( self ):
         config = bittensor.subtensor.config()
-        subtensor = bittensor.subtensor(network='akatsuki', config=config, )
-        assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+        subtensor = bittensor.subtensor(network='nobunaga', config=config, )
+        assert subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
 
     def test_connect_no_failure( self ):
         self.subtensor.connect(timeout = 1, failure=False)
