@@ -32,6 +32,8 @@ import wandb
 from termcolor import colored
 from qqdm import qqdm, format_str
 from loguru import logger
+
+from bittensor._metagraph import metagraph
 logger = logger.opt(colors=True)
 
 from types import SimpleNamespace
@@ -134,7 +136,6 @@ class Neuron:
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:
                 try:
-
                     # --- Init epoch stat----
                     self.stats.epoch_data_size = 0
                     self.stats.epoch_sync_count = 0
@@ -489,26 +490,19 @@ class Neuron:
                 'data_size': self.stats.epoch_data_size,
                 }
             # ---- Miner summary per peer
-            weights_data = []
-            for uid in self.metagraph.uids.tolist():
-                weights_data.append([ 
-                    int(uid),
-                    float( self.nucleus.peer_weights[uid] ),
-                    float( normalized_peer_weights[uid] ), 
-                    float( self.stats.ema_scores[uid] ),
-                    float( self.metagraph.W[ self_uid, uid ] ),
-                    float( self.metagraph.B[ self_uid, uid ] ),
-                    float( self.metagraph.I[ uid ] )
-                ])
-            wandb_info['mechanism_weights'] = wandb.Table( 
-                data = weights_data, 
-                columns=['uid', 'weight', 'normalized_weight', 'ema weight', 'chain weight', 'bond ownership', 'incentive']
-            )
-            wandb_info_axon = self.axon.to_wandb()
-            wandb_info_dend = self.dendrite.to_wandb()
-            wandb_info_metagraph = self.metagraph.to_wandb()     
+            wandb_data = []
+            for uid, ema_score in zip(topk_idx, topk_scores):
+                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = ema_score.detach()[uid]
+                wandb_data[ '{}/raw_peer_weight'.format(uid) ] = self.nucleus.peer_weights.detach()[uid]
+                wandb_data[ '{}/normalized_peer_weight'.format(uid) ] = float( normalized_peer_weights.detach()[uid] )
+                wandb_data[ '{}/chain_weight'.format(uid) ] = float( self.metagraph.W[ self_uid, uid ] )
+            for uid_i, val in enumerate(self.metagraph.W[ :, self_uid ].tolist()):
+                if uid_i > 0:
+                    wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, self_uid) ] = val
+            wandb_info_axon = self.axon.to_wandb( metagraph )
+            wandb_info_dend = self.dendrite.to_wandb( metagraph )
             try:
-                wandb.log({**wandb_info, **wandb_info_axon, **wandb_info_dend, **wandb_info_metagraph})
+                wandb.log({ **wandb_info, **wandb_info_axon, **wandb_info_dend })
             except Exception as e:
                 logger.warning('Failed to update weights and biases with error:{}', e)
 

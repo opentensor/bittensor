@@ -98,16 +98,21 @@ def serve( config, server ):
         while end_block >= subtensor.get_current_block():
             time.sleep( bittensor.__blocktime__ )
         metagraph.sync().save()
-        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-        wandb_data = {
-            'stake': metagraph.S[ uid ].item(),
-            'rank': metagraph.R[ uid ].item(),
-            'incentive': metagraph.I[ uid ].item(),
-            'axon QPS': axon.stats.qps.value
-        } 
-        for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
-            wandb_data[ 'w_{},{}'.format(uid_i, uid) ] = val
+        my_uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+       
         if config.wandb.api_key != 'default':
-            wandb.log( wandb_data )
+            wandb_data = {
+                'stake': metagraph.S[ my_uid ].item(),
+                'rank': metagraph.R[ my_uid ].item(),
+                'trust': metagraph.I[ my_uid ].item(),
+                'consensus': metagraph.C[ my_uid ].item(),
+                'incentive': metagraph.I[ my_uid ].item(),
+                'emission': metagraph.E[ my_uid ].item(),
+            } 
+            for uid_i, val in enumerate(metagraph.W[:,my_uid].tolist()):
+                if uid_i > 0:
+                    wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, my_uid) ] = val
+            axon_wandb = axon.to_wandb( metagraph )
+            wandb.log( { **wandb_data, **axon_wandb } )
 
         

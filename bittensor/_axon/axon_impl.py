@@ -714,37 +714,41 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except:
             pass  
 
-    def to_wandb( self ):
+    def to_wandb( self, metagraph = None):
         r""" Return a dictionary of axon stat info for wandb logging
             Return:
                 wandb_info (:obj:`Dict`)
         """
-        # ---- Axon summary for wandb
-        wandb_data = {
-            'axon_qps': self.stats.qps.get(),
-            'axon_total_requests': self.stats.total_requests,
-            'axon_total_in_bytes' : self.stats.total_in_bytes,
-            'axon_total_out_bytes' : self.stats.total_out_bytes,
-            'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-            'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
-        }
-        # Create table view
-        table_data = []
-        for pubkey in self.stats.requests_per_pubkey.keys():
-            row = [
-                pubkey,
-                int(self.stats.requests_per_pubkey[pubkey]),
-                int(self.stats.successes_per_pubkey[pubkey]),
-                float(self.stats.query_times_per_pubkey[pubkey].get()),
-                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.qps_per_pubkey[pubkey].get()),
-            ] + list(self.stats.codes_per_pubkey[pubkey].values())
-            table_data.append( row )
+        try:
+            # ---- Axon summary for wandb
+            wandb_data = {
+                'axon_qps': self.stats.qps.get(),
+                'axon_total_requests': self.stats.total_requests,
+                'axon_total_in_bytes' : self.stats.total_in_bytes,
+                'axon_total_out_bytes' : self.stats.total_out_bytes,
+                'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+                'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+            }
+            for pubkey in self.stats.requests_per_pubkey.keys():
+                # Get the key for the pubkey optionally from the metagraph.
+                if metagraph != None:
+                    if pubkey in metagraph.hotkeys:
+                        # uid key for known peers.
+                        key = metagraph.hotkeys.index(pubkey)
+                    else:
+                        # -1 key for non known peers.
+                        key = -1
+                else:
+                    # index by pubkey
+                    key = pubkey
+                wandb_data[ f'{key}/axon_n_requested' ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_data[ f'{key}/axon_n_success' ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_data[ f'{key}/axon_query_time' ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
+                wandb_data[ f'{key}/axon_avg_inbytes' ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
+                wandb_data[ f'{key}/axon_avg_outbytes' ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                wandb_data[ f'{key}/axon_qps' ] = float(self.stats.qps_per_pubkey[pubkey].get())
 
-        wandb_data['axon_data'] = wandb.Table( 
-            data = table_data, 
-            columns=['pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
-        )
+        except Exception as e:
+            bittensor.logging.error('failed axon.to_wandb', str(e))
         
         return wandb_data 
