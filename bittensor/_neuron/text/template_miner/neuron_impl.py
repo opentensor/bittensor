@@ -422,7 +422,7 @@ class Neuron:
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
             epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() )).device('cpu')
-            topk_scores, topk_uids = torch.topk(epsilon_scores, k = k )
+            topk_scores, topk_uids = bittensor.unbiased_topk(epsilon_scores, k = k )
             self.subtensor.timeout_set_weights(
                 timeout = 100,
                 uids = topk_uids.detach().to(torch.device('cpu')),
@@ -465,7 +465,7 @@ class Neuron:
             'Synced Block': colored('{}'.format(self.stats.last_sync_block), 'yellow'),
         }
         # ---- Miner summary per peer for progress bar
-        topk_scores, topk_idx = torch.topk(self.stats.ema_scores, 5, dim=0)
+        topk_scores, topk_idx = bittensor.unbiased_topk(self.stats.ema_scores, 5, dim=0)
 
         for uid, ema_score in zip(topk_idx, topk_scores) :
             color =  'green' if self.stats.scores[uid] - ema_score > 0 else 'red'
