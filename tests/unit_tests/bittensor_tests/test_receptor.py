@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import unittest.mock as mock
 import asyncio
 
+logging = bittensor.logging()
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',

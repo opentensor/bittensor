@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 import unittest.mock as mock
 import asyncio
 
+logging = bittensor.logging()
+
 # --- Receptor Pool ---
 
 wallet =  bittensor.wallet(
