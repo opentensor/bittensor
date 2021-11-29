@@ -8,7 +8,7 @@ from substrateinterface import Keypair
 
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
-        self.subtensor = bittensor.subtensor( network = 'akatsuki' )
+        self.subtensor = bittensor.subtensor( network = 'nobunaga' )
         self.wallet = bittensor.wallet()
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         self.wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)

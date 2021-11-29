@@ -598,7 +598,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
         return torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         backward_tensor= backward,
-        port = 8084,
+        port = 8090,
         ip = '127.0.0.1',
         wallet = wallet,
     )
@@ -609,7 +609,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
         uid = 0,
         ip = '127.0.0.1',
         ip_type = 4,
-        port = 8084,
+        port = 8090,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
         modality = 2
@@ -767,4 +767,4 @@ def test_axon_receptor_connection_backward_timeout():
 
 if __name__ == "__main__":
     # test_axon_receptor_connection_backward_timeout()
-    test_receptor_neuron_mock_server()
+    test_axon_receptor_connection_backward_unauthenticated()
