@@ -81,6 +81,7 @@ class Request():
         self.modality = modality
         self.backward = backward
         self.start_time = clock.time()
+        self.end_time = None
 
         # ---- Intermediate states ---- 
         self.serialized_inputs = None
@@ -530,18 +531,19 @@ class Receptor(nn.Module):
         """
 
         call_time = clock.time() - request.start_time
-        bittensor.logging.rpc_log(
-            axon=False, 
-            forward= not request.backward, 
-            is_response=is_response, 
-            code=request.code, 
-            call_time=call_time, 
-            pubkey=self.endpoint.hotkey, 
-            uid = self.endpoint.uid, 
-            inputs=inputs, 
-            outputs=outputs, 
-            message=request.message
-        )
+        if bittensor.logging.__debug_on__: 
+            bittensor.logging.rpc_log(
+                axon=False, 
+                forward= not request.backward, 
+                is_response=is_response, 
+                code=request.code, 
+                call_time=call_time, 
+                pubkey=self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs=inputs, 
+                outputs=outputs, 
+                message=request.message
+            )
 
     def preprocess_resquest(
         self, 
@@ -611,6 +613,7 @@ class Receptor(nn.Module):
                                         ('bittensor-version',str(bittensor.__version_as_int__)),
                                         ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                                         ))
+                request.future.add_done_callback(lambda z : self.handle_request_response(request))
             else:
                 self.stats.backward_qps.update(1)
                 self.stats.backward_bytes_out.update(sys.getsizeof(request.grpc_request))
@@ -660,7 +663,11 @@ class Receptor(nn.Module):
                 message (:type:`str`, `required`): 
                     message associated with forward call, potentially error, or 'success'.
         """ 
+        if request.outputs != None:
+            return request.outputs, request.code, request.end_time
+
         if (request.code != bittensor.proto.ReturnCode.Success) or (request.future == None):
+            request.end_time = clock.time() - request.start_time
             return request.zeros, request.code, clock.time() - request.start_time
 
         deserializer = self.deserialize_forward_response if not request.backward else self.deserialize_backward_response
@@ -669,9 +676,11 @@ class Receptor(nn.Module):
         for fun in response_handling_funs:
             check, request = fun(request)
             if not check:
+                request.end_time = clock.time() - request.start_time
                 return request.zeros, request.code, clock.time() - request.start_time
-
-        return request.outputs if check else request.zeros, request.code, clock.time() - request.start_time
+        
+        request.end_time = clock.time() - request.start_time
+        return request.outputs if check else request.zeros, request.code, request.end_time
  
 
     def rpc_exception_handler(self, request, rpc_error_call):
