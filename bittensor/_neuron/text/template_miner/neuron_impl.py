@@ -492,7 +492,7 @@ class Neuron:
             # ---- Miner summary per peer
             wandb_data = []
             for uid, ema_score in zip(topk_idx, topk_scores):
-                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = ema_score.detach()[uid]
+                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = self.stats.ema_scores.detach()[uid]
                 wandb_data[ '{}/raw_peer_weight'.format(uid) ] = self.nucleus.peer_weights.detach()[uid]
                 wandb_data[ '{}/normalized_peer_weight'.format(uid) ] = float( normalized_peer_weights.detach()[uid] )
                 wandb_data[ '{}/chain_weight'.format(uid) ] = float( self.metagraph.W[ self_uid, uid ] )
