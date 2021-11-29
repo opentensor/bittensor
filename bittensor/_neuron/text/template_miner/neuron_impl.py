@@ -488,14 +488,14 @@ class Neuron:
                 'local_epoch_acc': self.stats.local_epoch_acc,
                 'num_sync_metagraph': self.stats.epoch_sync_count,
                 'data_size': self.stats.epoch_data_size,
-                }
+            }
             # ---- Miner summary per peer
             wandb_data = []
             for uid, ema_score in zip(topk_idx, topk_scores):
-                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = self.stats.ema_scores.detach()[uid]
-                wandb_data[ '{}/raw_peer_weight'.format(uid) ] = self.nucleus.peer_weights.detach()[uid]
-                wandb_data[ '{}/normalized_peer_weight'.format(uid) ] = float( normalized_peer_weights.detach()[uid] )
-                wandb_data[ '{}/chain_weight'.format(uid) ] = float( self.metagraph.W[ self_uid, uid ] )
+                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = self.stats.ema_scores.detach()[ int(uid) ]
+                wandb_data[ '{}/raw_peer_weight'.format(uid) ] = self.nucleus.peer_weights.detach()[ int(uid) ]
+                wandb_data[ '{}/normalized_peer_weight'.format(uid) ] = float( normalized_peer_weights.detach()[ int(uid) ] )
+                wandb_data[ '{}/chain_weight'.format(uid) ] = float( self.metagraph.W[ int(self_uid), int(uid) ] )
             for uid_i, val in enumerate(self.metagraph.W[ :, self_uid ].tolist()):
                 if uid_i > 0:
                     wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, self_uid) ] = val
