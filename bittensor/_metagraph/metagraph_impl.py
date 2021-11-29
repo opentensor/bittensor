@@ -496,8 +496,6 @@ class Metagraph( torch.nn.Module ):
                 self.incentive[uid],
                 self.dividends[uid],
                 self.emission[uid],
-                endpoints[uid].ip_str(),
-                endpoints[uid].coldkey,
             ]
             table_data.append( row )
         wandb_info['metagraph_data'] = wandb.Table( 
