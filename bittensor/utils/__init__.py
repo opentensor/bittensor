@@ -11,7 +11,7 @@ def unbiased_topk( values, k, dim=0, sorted = True, largest = True):
     perm = torch.randperm(len(values))
     perm_values = values[perm]
     topk, indices = torch.topk( perm_values,  k, dim = dim, sorted=sorted, largest=largest )
-    return topk[indices], perm[indices]
+    return topk, perm[indices]
 
 def hex_bytes_to_u8_list( hex_bytes: bytes ):
     hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
