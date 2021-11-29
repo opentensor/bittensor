@@ -4,4 +4,4 @@ omit =
   ./routers/*
   ./setup.py
   ./tests/*
-  ./miners/*
+  ./bittensor/_neuron/*

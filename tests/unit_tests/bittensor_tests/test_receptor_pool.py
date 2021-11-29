@@ -17,6 +17,15 @@ wallet =  bittensor.wallet(
 wallet.create_new_coldkey(use_password=False, overwrite = True)
 wallet.create_new_hotkey(use_password=False, overwrite = True)
 
+wallet2 =  bittensor.wallet(
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest2',
+) 
+wallet2.create_new_coldkey(use_password=False, overwrite = True)
+wallet2.create_new_hotkey(use_password=False, overwrite = True)
+
+
 neuron_obj = bittensor.endpoint(
     version = bittensor.__version_as_int__,
     uid = 0,
@@ -29,6 +38,7 @@ neuron_obj = bittensor.endpoint(
 )
 
 receptor_pool = bittensor.receptor_pool(wallet=wallet)
+bittensor.logging( debug = True )
 
 def test_receptor_pool_forward():
     endpoints = [neuron_obj]
@@ -50,8 +60,8 @@ def test_receptor_pool_max_workers_forward():
         ip = '0.0.0.1',
         ip_type = 4,
         port = 12345,
-        hotkey = wallet.hotkey.public_key,
-        coldkey = wallet.coldkey.public_key,
+        hotkey = wallet2.hotkey.public_key,
+        coldkey = wallet2.coldkey.public_key,
         modality = 0
     )
     receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
@@ -81,4 +91,4 @@ def test_receptor_pool_backward_hang():
         assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
 
 if __name__ == "__main__":
-    test_receptor_pool_forward_hang()
+    test_receptor_pool_max_workers_forward()
