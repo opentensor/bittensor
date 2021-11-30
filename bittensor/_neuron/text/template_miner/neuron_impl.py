@@ -491,14 +491,10 @@ class Neuron:
             }
             # ---- Miner summary per peer
             wandb_data = []
-            for uid, ema_score in list(zip(topk_idx.tolist(), topk_scores.tolist())):
-                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = ema_score
-                wandb_data[ '{}/raw_peer_weight'.format(uid) ] = self.nucleus.peer_weights[ uid ].item()
-                wandb_data[ '{}/normalized_peer_weight'.format(uid) ] = float( normalized_peer_weights[ uid ].item() )
-                wandb_data[ '{}/chain_weight'.format(uid) ] = float( self.metagraph.W[ int(self_uid), int(uid) ] )
-            for uid_i, val in enumerate(self.metagraph.W[ :, self_uid ].tolist()):
-                if uid_i > 0:
-                    wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, self_uid) ] = val
+            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'fisher_ema_score', index = topk_idx, values = topk_scores )
+            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'raw_peer_weight', index = topk_idx, values = self.nucleus.peer_weights )
+            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'normalized_peer_weight', index = topk_idx, values = normalized_peer_weights )
+            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'out_weight', index = topk_idx, values = self.metagraph.W[ self_uid, : ] )
             wandb_info_axon = self.axon.to_wandb( metagraph )
             wandb_info_dend = self.dendrite.to_wandb( metagraph )
             try:
