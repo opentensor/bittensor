@@ -8,10 +8,23 @@ import time
 import torch
 
 def unbiased_topk( values, k, dim=0, sorted = True, largest = True):
-    perm = torch.randperm(len(values))
-    perm_values = values[perm]
-    topk, indices = torch.topk( perm_values,  k, dim = dim, sorted=sorted, largest=largest )
-    return topk, perm[indices]
+    r""" Selects topk as in torch.topk but does not bias lower indices when values are equal.
+        Args:
+            values: (torch.Tensor)
+                Values to index into.
+            k: (int):
+                Number to take.
+            
+        Return:
+            topk: (torch.Tensor):
+                topk k values.
+            indices: (torch.LongTensor)
+                indices of the topk values.
+    """
+    permutation = torch.randperm(values.shape[ dim ])
+    permuted_values = values[ permutation ]
+    topk, indices = torch.topk( permuted_values,  k, dim = dim, sorted=sorted, largest=largest )
+    return topk, permutation[ indices ]
 
 def hex_bytes_to_u8_list( hex_bytes: bytes ):
     hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]

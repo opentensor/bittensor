@@ -694,9 +694,11 @@ class Dendrite(torch.autograd.Function):
 
         self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
 
-    def to_wandb( self, metagraph: None ):
-        r""" Return a dictionary of axon stat for wandb logging
-            
+    def to_wandb( self, metagraph = None ):
+        r""" Return a dictionary of dendrite stats as wandb logging info.
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    If not None, indexes the wandb data using int uids rather than string pubkeys.
             Return:
                 wandb_info (:obj:`Dict`)
         """
@@ -708,25 +710,23 @@ class Dendrite(torch.autograd.Function):
                 'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
             }
             for pubkey in self.stats.requests_per_pubkey.keys():
-                if metagraph != None:
-                    if pubkey in metagraph.hotkeys:
-                        # uid key for known peers.
-                        key = metagraph.hotkeys.index(pubkey)
-                    else:
-                        # -1 key for non known peers.
-                        key = -1
+                # Optionally index by uid if metagraph is set.
+                if metagraph == None:
+                    index = pubkey
                 else:
-                    # index by pubkey
-                    key = pubkey
-                wandb_info[ f'{key}/dendrite_n_requested' ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_info[ f'{key}/dendrite_n_success' ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_info[ f'{key}/dendrite_query_time' ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
-                wandb_info[ f'{key}/dendrite_avg_inbytes' ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
-                wandb_info[ f'{key}/dendrite_avg_outbytes' ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                wandb_info[ f'{key}/dendrite_qps' ] = float(self.stats.qps_per_pubkey[pubkey].get())
+                    if pubkey in metagraph.hotkeys:
+                        index = metagraph.hotkeys.index(pubkey)
+                    else:
+                        index = -1
+                wandb_info[ f'{index}/dendrite_n_requested' ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_info[ f'{index}/dendrite_n_success' ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_info[ f'{index}/dendrite_query_time' ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
+                wandb_info[ f'{index}/dendrite_avg_inbytes' ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
+                wandb_info[ f'{index}/dendrite_avg_outbytes' ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                wandb_info[ f'{index}/dendrite_qps' ] = float(self.stats.qps_per_pubkey[pubkey].get())
 
         except Exception as e:
-            bittensor.logging.error('failed axon.to_wandb', str(e))
+            bittensor.logging.error('failed dendrite.to_wandb()', str(e))
 
         return wandb_info
 

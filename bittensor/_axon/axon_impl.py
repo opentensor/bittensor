@@ -716,6 +716,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
     def to_wandb( self, metagraph = None):
         r""" Return a dictionary of axon stat info for wandb logging
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    If not None, indexes the wandb data using int uids rather than string pubkeys.
             Return:
                 wandb_info (:obj:`Dict`)
         """
@@ -730,25 +733,22 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
             }
             for pubkey in self.stats.requests_per_pubkey.keys():
-                # Get the key for the pubkey optionally from the metagraph.
-                if metagraph != None:
-                    if pubkey in metagraph.hotkeys:
-                        # uid key for known peers.
-                        key = metagraph.hotkeys.index(pubkey)
-                    else:
-                        # -1 key for non known peers.
-                        key = -1
+                # Optionally index by uid if metagraph is set.
+                if metagraph == None:
+                    index = pubkey
                 else:
-                    # index by pubkey
-                    key = pubkey
-                wandb_data[ f'{key}/axon_n_requested' ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_data[ f'{key}/axon_n_success' ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_data[ f'{key}/axon_query_time' ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
-                wandb_data[ f'{key}/axon_avg_inbytes' ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
-                wandb_data[ f'{key}/axon_avg_outbytes' ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                wandb_data[ f'{key}/axon_qps' ] = float(self.stats.qps_per_pubkey[pubkey].get())
+                    if pubkey in metagraph.hotkeys:
+                        index = metagraph.hotkeys.index(pubkey)
+                    else:
+                        index = -1
+                wandb_data[ f'{index}/axon_n_requested' ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_data[ f'{index}/axon_n_success' ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_data[ f'{index}/axon_query_time' ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
+                wandb_data[ f'{index}/axon_avg_inbytes' ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
+                wandb_data[ f'{index}/axon_avg_outbytes' ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                wandb_data[ f'{index}/axon_qps' ] = float(self.stats.qps_per_pubkey[pubkey].get())
 
         except Exception as e:
-            bittensor.logging.error('failed axon.to_wandb', str(e))
+            bittensor.logging.error('failed during axon.to_wandb()', str(e))
         
         return wandb_data 

@@ -475,7 +475,7 @@ class Neuron:
         progress_bar.set_infos( info )
 
         # ---- wandb log if it is the end of epoch 
-        if  self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
+        if self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
             # ---- Miner summary for wandb
             wandb_info = {
                 'stake':stake,
@@ -491,10 +491,10 @@ class Neuron:
             }
             # ---- Miner summary per peer
             wandb_data = []
-            for uid, ema_score in zip(topk_idx, topk_scores):
-                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = self.stats.ema_scores.detach()[ int(uid) ]
-                wandb_data[ '{}/raw_peer_weight'.format(uid) ] = self.nucleus.peer_weights.detach()[ int(uid) ]
-                wandb_data[ '{}/normalized_peer_weight'.format(uid) ] = float( normalized_peer_weights.detach()[ int(uid) ] )
+            for uid, ema_score in list(zip(topk_idx.tolist(), topk_scores.tolist())):
+                wandb_data[ '{}/fisher_ema_score'.format(uid) ] = ema_score
+                wandb_data[ '{}/raw_peer_weight'.format(uid) ] = self.nucleus.peer_weights[ uid ].item()
+                wandb_data[ '{}/normalized_peer_weight'.format(uid) ] = float( normalized_peer_weights[ uid ].item() )
                 wandb_data[ '{}/chain_weight'.format(uid) ] = float( self.metagraph.W[ int(self_uid), int(uid) ] )
             for uid_i, val in enumerate(self.metagraph.W[ :, self_uid ].tolist()):
                 if uid_i > 0:
