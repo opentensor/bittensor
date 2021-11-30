@@ -494,8 +494,8 @@ class Neuron:
                 bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights )
                 bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights )
                 bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
-                wandb_info_axon = self.axon.to_wandb( metagraph )
-                wandb_info_dend = self.dendrite.to_wandb( metagraph )
+                wandb_info_axon = self.axon.to_wandb( metagraph = self.metagraph )
+                wandb_info_dend = self.dendrite.to_wandb( metagraph = self.metagraph )
                 wandb.log({ **wandb_info, **wandb_info_axon, **wandb_info_dend })
 
             except Exception as e:
