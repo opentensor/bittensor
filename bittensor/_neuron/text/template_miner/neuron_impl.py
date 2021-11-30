@@ -23,6 +23,8 @@ Example:
 
 """
 
+import pandas
+from pandas.core.frame import DataFrame
 import bittensor
 import math
 import torch
@@ -490,13 +492,19 @@ class Neuron:
                     'num_sync_metagraph': self.stats.epoch_sync_count,
                     'data_size': self.stats.epoch_data_size,
                 }
-                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'fisher_ema_score', index = topk_uids, values = topk_scores )
-                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights )
-                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights )
-                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
                 wandb_info_axon = self.axon.to_wandb( metagraph = self.metagraph )
                 wandb_info_dend = self.dendrite.to_wandb( metagraph = self.metagraph )
-                wandb.log({ **wandb_info, **wandb_info_axon, **wandb_info_dend })
+
+                # Build stats dataframe.
+                df = pandas.DataFrame() 
+                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = topk_scores )
+                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights )
+                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights )
+                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
+                df = df + self.axon.to_dataframe( metagraph = self.metagraph )
+                df = df + self.dendrite.to_dataframe( metagraph = self.metagraph )
+                wandb.log({ **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
+                wandb.log( {'dataframe': wandb.Table( dataframe= df)}, step = current_block)
 
             except Exception as e:
                 logger.exception('Failed to update weights and biases with error:{}', e)

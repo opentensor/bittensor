@@ -7,7 +7,39 @@ import rich
 import time
 import torch
 import numbers
+import pandas
 from typing import Tuple, List, Union, Optional
+
+
+def indexed_values_to_dataframe ( 
+        prefix: Union[str, int],
+        index: Union[list, torch.LongTensor], 
+        values: Union[list, torch.Tensor],
+    ) -> 'pandas.DataFrame':
+    try:
+        # Type checking.
+        if not isinstance(prefix, str) and not isinstance(prefix, numbers.Number):
+            raise ValueError('Passed prefix must have type str or Number')
+        if isinstance(prefix, numbers.Number):
+            prefix = str(prefix)
+        if not isinstance(index, list) and not isinstance(index, torch.Tensor):
+            raise ValueError('Passed uids must have type list or torch.Tensor')
+        if not isinstance(values, list) and not isinstance(values, torch.Tensor):
+            raise ValueError('Passed values must have type list or torch.Tensor')
+        if not isinstance(index, list):
+            index = index.tolist()
+        if not isinstance(values, list):
+            values = values.tolist()
+
+        dataframe = pandas.DataFrame(columns=[prefix], index = index )
+        for idx_i in index:
+            value_i = values[ idx_i ]
+            dataframe.loc[idx_i] = pandas.Series( { str(prefix): value_i } )
+        return dataframe
+
+    except Exception as e:
+        bittensor.logging.error('Failed convert prefix: {} values: {} with index: {} to dataframe'.format(prefix, index, values))
+        return pandas.DataFrame()
 
 def indexed_values_to_wandb( 
         wandb_data: dict, 

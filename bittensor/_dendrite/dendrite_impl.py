@@ -22,6 +22,7 @@ from typing import Tuple, List, Union, Optional
 
 import sys
 import torch
+import pandas
 import matplotlib.pyplot as plt
 
 from torch.autograd.function import once_differentiable
@@ -694,6 +695,42 @@ class Dendrite(torch.autograd.Function):
 
         self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
 
+    def to_dataframe ( self, metagraph = None ):
+        r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    If not None, indexes the wandb data using int uids rather than string pubkeys.
+            Return:
+                dataframe (:obj:`pandas.Dataframe`)
+        """
+        def pubkey_to_uid_or_negative_one( pubkey, metagraph ):
+            if metagraph == None:
+                return pubkey
+            if pubkey in metagraph.hotkeys:
+                return metagraph.hotkeys.index(pubkey)
+            else:
+                return -1
+        try:
+            index = [ pubkey_to_uid_or_negative_one(pubkey, metagraph) for pubkey in self.stats.requests_per_pubkey.keys() ]
+            columns = [ 'dendrite_n_requested', 'dendrite_n_success', 'dendrite_query_time', 'dendrite_avg_inbytes', 'dendrite_avg_outbytes', 'dendrite_qps' ]
+            dataframe = pandas.DataFrame(columns = columns, index = index)
+            for pubkey in self.stats.requests_per_pubkey.keys():
+                index = pubkey_to_uid_or_negative_one( pubkey, metagraph )
+                dataframe.loc[index] = pandas.Series( {
+                    'dendrite_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
+                    'dendrite_n_success': int(self.stats.requests_per_pubkey[pubkey]),
+                    'dendrite_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),               
+                    'dendrite_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                    'dendrite_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                    'dendrite_qps': float(self.stats.qps_per_pubkey[pubkey].get())
+                } )
+            return dataframe
+
+        except Exception as e:
+            bittensor.logging.error('failed dendrite.to_dataframe()', str(e))
+            return pandas.DataFrame()
+
+
     def to_wandb( self, metagraph = None ):
         r""" Return a dictionary of dendrite stats as wandb logging info.
             Args:
@@ -709,22 +746,6 @@ class Dendrite(torch.autograd.Function):
                 'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
                 'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
             }
-            for pubkey in self.stats.requests_per_pubkey.keys():
-                # Optionally index by uid if metagraph is set.
-                if metagraph == None:
-                    index = pubkey
-                else:
-                    if pubkey in metagraph.hotkeys:
-                        index = metagraph.hotkeys.index(pubkey)
-                    else:
-                        index = -1
-                wandb_info[ '{}/dendrite_n_requested'.format(index)  ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_info[ '{}/dendrite_n_success'.format(index)  ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_info[ '{}/dendrite_query_time'.format(index)  ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
-                wandb_info[ '{}/dendrite_avg_inbytes'.format(index)  ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
-                wandb_info[ '{}/dendrite_avg_outbytes'.format(index)  ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                wandb_info[ '{}/dendrite_qps'.format(index) ] = float(self.stats.qps_per_pubkey[pubkey].get())
-
         except Exception as e:
             bittensor.logging.error('failed dendrite.to_wandb()', str(e))
 
