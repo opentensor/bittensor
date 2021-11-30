@@ -503,5 +503,6 @@ class Neuron:
                 self.axon.to_dataframe( metagraph = self.metagraph ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1)
+            df['uid'] = df.index
             wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': wandb.Table( dataframe = df)}, step = current_block)
