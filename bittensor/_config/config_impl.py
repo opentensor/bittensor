@@ -64,15 +64,13 @@ class Config ( Munch ):
                 bittensor.defaults.dataset.dataset_name = self.dataset.dataset_name
                 bittensor.defaults.dataset.data_dir = self.dataset.data_dir
                 bittensor.defaults.dataset.save_dataset = self.dataset.save_dataset
+                bittensor.defaults.dataset.max_datasets = self.dataset.max_datasets
 
             if 'dendrite' in self.keys():
-                bittensor.defaults.dataset.batch_size = self.dataset.batch_size
-                bittensor.defaults.dataset.block_size = self.dataset.block_size
-                bittensor.defaults.dataset.max_corpus_size = self.dataset.max_corpus_size
-                bittensor.defaults.dataset.num_workers = self.dataset.num_workers
-                bittensor.defaults.dataset.dataset_name = self.dataset.dataset_name
-                bittensor.defaults.dataset.data_dir = self.dataset.data_dir
-                bittensor.defaults.dataset.save_dataset = self.dataset.save_dataset
+                bittensor.defaults.dendrite.timeout = self.dendrite.timeout
+                bittensor.defaults.dendrite.max_worker_threads = self.dendrite.max_worker_threads
+                bittensor.defaults.dendrite.max_active_receptors = self.dendrite.max_active_receptors
+                bittensor.defaults.dendrite.requires_grad = self.dendrite.requires_grad
 
             if  'logging' in self.keys():
                 bittensor.defaults.logging.debug = self.logging.debug
