@@ -40,7 +40,7 @@ class neuron:
         self.check_config( config )
         bittensor.logging (
             config = config,
-            logging_dir = config.server.full_path,
+            logging_dir = config.neuron.full_path,
         )
 
         self.model = server(config=config)
@@ -60,7 +60,7 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.wandb.check_config( config )
-        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.server.name ))
-        config.server.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.server.full_path):
-            os.makedirs(config.server.full_path)
+        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
+        config.neuron.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.neuron.full_path):
+            os.makedirs(config.neuron.full_path)

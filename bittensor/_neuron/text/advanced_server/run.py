@@ -57,8 +57,8 @@ def serve( config, server):
     # Create our optimizer.
     optimizer = torch.optim.SGD(
         [ {"params": gp_server.parameters()} ],
-        lr = config.server.learning_rate,
-        momentum = config.server.momentum,
+        lr = config.neuron.learning_rate,
+        momentum = config.neuron.momentum,
     )
     
     timecheck = {}
@@ -130,20 +130,28 @@ def serve( config, server):
         # Check for stake
         def stake_check():
             uid =metagraph.hotkeys.index(pubkey)
-            if metagraph.S[uid].item() < config.server.blacklist.stake:
-                return True
-            else:
-                return False
+            if request_type == bittensor.proto.RequestType.FORWARD:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
+                    return True
+                else:
+                    return False
+
+            elif request_type == bittensor.proto.RequestType.BACKWARD:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake.backward:
+                    return True
+                else:
+                    return False
 
         # Check for time
         def time_check():
             current_time = datetime.now()
             if pubkey in timecheck.keys():
                 prev_time = timecheck[pubkey]
-                if current_time - prev_time >= timedelta(seconds=config.server.blacklist.time):
+                if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
                     timecheck[pubkey] = current_time
                     return False
                 else:
+                    timecheck[pubkey] = current_time
                     return True
             else:
                 timecheck[pubkey] = current_time
@@ -158,19 +166,19 @@ def serve( config, server):
 
     # Create our axon server
     axon = bittensor.axon (
-                wallet = wallet,
-                forward_text = forward_text,
-                backward_text = backward_text,
-                blacklist= blacklist,
-                priority = priority
-            ) 
+        wallet = wallet,
+        forward_text = forward_text,
+        backward_text = backward_text,
+        blacklist = blacklist,
+        priority = priority
+    ) 
 
     # Training Data
     dataset = bittensor.dataset(config=config)
 
     # load our old model
-    if config.server.restart != True:
-        gp_server.load(config.server.full_path)
+    if config.neuron.no_restart != True:
+        gp_server.load(config.neuron.full_path)
 
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
@@ -178,7 +186,7 @@ def serve( config, server):
             config = config,
             cold_pubkey = wallet.coldkeypub.ss58_address,
             hot_pubkey = wallet.hotkey.ss58_address,
-            root_dir = config.server.full_path
+            root_dir = config.neuron.full_path
         )
 
     # -- Main Training loop --
@@ -192,13 +200,13 @@ def serve( config, server):
         chain_weights[uid] = 1 
 
         # --  serve axon to the network.
-        axon.start().serve(subtensor=subtensor)
+        axon.start().serve(subtensor = subtensor)
         
         while True:
             # --- Run 
             current_block = subtensor.get_current_block()
             start_block = current_block
-            end_block = current_block + config.server.blocks_per_epoch
+            end_block = current_block + config.neuron.blocks_per_epoch
             interation = 0
 
             # --- Training step.
@@ -217,47 +225,57 @@ def serve( config, server):
                 optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)
             else:
                 optimizer.param_groups[0]['lr'] =  0.1
-            gp_server.backward_gradients = 0
-
+            
             # --- Update parameters
-            if interation != 0:
+            if interation != 0 or gp_server.backward_gradients != 0:
                 with mutex:
                     logger.info('Backpropagation Started')
-                    losses.backward()
+                    if interation != 0:
+                        losses.backward()
                     clip_grad_norm_(gp_server.parameters(), 1.0)
                     
                     optimizer.step()
                     optimizer.zero_grad()
                     logger.info('Backpropagation Successful: Model updated')
 
+            nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+
+            gp_server.backward_gradients = 0
             # --- logging data
             wandb_data = {
                 'block': end_block,
                 'loss': losses.cpu().item()/interation,
-                'stake': metagraph.S[ uid ].item(),
-                'rank': metagraph.R[ uid ].item(),
-                'incentive': metagraph.I[ uid ].item(),
+                'stake': nn.stake,
+                'rank': nn.rank,
+                'incentive': nn.incentive,
+                'trust': nn.trust,
+                'consensus': nn.consensus,
+                'incentive': nn.incentive,
+                'dividends': nn.dividends,
+                'emission':  nn.emission,
             } 
-            # wandb syncing and update metagraph
-            chain_weights =torch.zeros(metagraph.n)
-            chain_weights[uid] = 1 
-
-            if config.wandb.api_key != 'default':
-                wandb.log( wandb_data )
             bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
-            # save the model
+            # Add additional wandb data for axon, metagraph etc.
+            wandb_info_axon = axon.to_wandb()                
+            wandb_info_metagraph = metagraph.to_wandb()   
+            if config.wandb.api_key != 'default':
+                wandb.log( {**wandb_data, **wandb_info_axon, **wandb_info_metagraph } )
+             
+            # Save the model
             gp_server.save(config.server.full_path)
             
             if current_block % 10 == 0:
                 
-                # --- setting weights
+                # --- Setting weights
                 try: 
-                    did_set = subtensor.timeout_set_weights(
-                        timeout=12,
+                    # Set self weights to maintain activity.
+                    chain_weights = torch.zeros(metagraph.n)
+                    chain_weights [ uid ] = 1 
+                    did_set = subtensor.set_weights(
                         uids=metagraph.uids,
                         weights = chain_weights,
-                        wait_for_inclusion = True,
+                        wait_for_inclusion = False,
                         wallet = wallet,
                     )
                     
