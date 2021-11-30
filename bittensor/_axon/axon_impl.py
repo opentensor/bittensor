@@ -25,7 +25,6 @@ from typing import List, Tuple, Callable
 import torch
 import grpc
 import wandb
-import matplotlib.pyplot as plt
 from loguru import logger
 import torch.nn.functional as F
 import concurrent
@@ -747,4 +746,5 @@ class Axon( bittensor.grpc.BittensorServicer ):
             data = table_data, 
             columns=['pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
         )
+        
         return wandb_data 
