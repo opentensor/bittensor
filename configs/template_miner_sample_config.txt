@@ -33,7 +33,7 @@ neuron.blacklist: 0
 neuron.blacklist_allow_non_registered: true
 neuron.clip_gradients: 1.0
 neuron.compute_remote_gradients: false
-neuron.device: cpu
+neuron.device: cuda
 neuron.epoch_length: 100
 neuron.learning_rate: 1
 neuron.learning_rate_chain: 1
