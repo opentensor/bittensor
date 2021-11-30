@@ -29,7 +29,6 @@ neuron.blocks_per_epoch: 2
 neuron.checking: true
 neuron.clip_gradients: 1.0
 neuron.device: cuda
-neuron.full_path: ~/.bittensor/miners/default/default/advanced_server
 neuron.inter_degree: nearest
 neuron.interpolate: true
 neuron.learning_rate: 0.01
