@@ -12,7 +12,7 @@ from sys import platform
 from bittensor.utils.balance import Balance
 
 
-subtensor = bittensor.subtensor(network = 'akatsuki')
+subtensor = bittensor.subtensor(network = 'nobunaga')
 
 def init_wallet():
     if os.path.exists('/tmp/pytest'):
@@ -87,7 +87,7 @@ def test_wallet_mnemonic_create():
 
 
 def test_wallet_add_stake():
-    subtensor = bittensor.subtensor(network = 'akatsuki')
+    subtensor = bittensor.subtensor(network = 'nobunaga')
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.add_stake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -98,7 +98,7 @@ def test_wallet_add_stake():
     the_wallet.add_stake(subtensor = subtensor)
 
 def test_wallet_remove_stake():
-    subtensor = bittensor.subtensor(network = 'akatsuki')
+    subtensor = bittensor.subtensor(network = 'nobunaga')
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.unstake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -109,7 +109,7 @@ def test_wallet_remove_stake():
     the_wallet.remove_stake(subtensor = subtensor)
 
 def test_wallet_transfer():
-    subtensor = bittensor.subtensor(network = 'akatsuki')
+    subtensor = bittensor.subtensor(network = 'nobunaga')
     
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.transfer = MagicMock(return_value = True)
