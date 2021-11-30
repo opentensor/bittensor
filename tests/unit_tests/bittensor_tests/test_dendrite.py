@@ -31,6 +31,8 @@ def test_dendrite_forward_text_endpoints_tensor():
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
     resp1,  _, _ = dendrite.forward_text( endpoints, x )
     assert list(torch.stack(resp1, dim=0).shape) == [1, 2, 3, bittensor.__network_dim__]
+    assert dendrite.stats.total_requests == 1
+    assert dendrite.to_wandb()['dendrite_total_requests'] == 1
 
 def test_dendrite_forward_text_multiple_endpoints_tensor():
     endpoints_1 = neuron_obj.to_tensor()

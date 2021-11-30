@@ -48,6 +48,8 @@ class nucleus():
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
         parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
+        parser.add_argument('--nucleus.noise_offset', type=float, help='Noise added to weights during each call.', default=0.001 )
+        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=1 )
 
     @staticmethod
     def config() -> 'bittensor.Config':

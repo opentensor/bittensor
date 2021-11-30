@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 import unittest.mock as mock
 import asyncio
 
+logging = bittensor.logging()
+
 # --- Receptor Pool ---
 
 wallet =  bittensor.wallet(
@@ -39,7 +41,6 @@ neuron_obj = bittensor.endpoint(
 )
 
 receptor_pool = bittensor.receptor_pool(wallet=wallet)
-bittensor.logging( debug = True )
 
 def test_receptor_pool_forward():
     endpoints = [neuron_obj]
