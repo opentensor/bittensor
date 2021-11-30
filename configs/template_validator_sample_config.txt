@@ -20,7 +20,7 @@ logging.trace: false
 
 neuron.blocks_per_epoch: 100
 neuron.clip_gradients: 1.0
-neuron.device: cuda
+neuron.device: cpu
 neuron.learning_rate: 1
 neuron.learning_rate_chain: 1
 neuron.momentum: 0.8
