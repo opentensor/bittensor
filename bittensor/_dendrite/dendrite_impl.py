@@ -727,7 +727,7 @@ class Dendrite(torch.autograd.Function):
             return dataframe
 
         except Exception as e:
-            bittensor.logging.error('failed dendrite.to_dataframe()', str(e))
+            bittensor.logging.error( prefix='failed dendrite.to_dataframe()', sufix=str(e) )
             return pandas.DataFrame()
 
 
@@ -746,9 +746,9 @@ class Dendrite(torch.autograd.Function):
                 'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
                 'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
             }
+            return wandb_info
         except Exception as e:
-            bittensor.logging.error('failed dendrite.to_wandb()', str(e))
-
-        return wandb_info
+            bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
+            return {}
 
 

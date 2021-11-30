@@ -749,7 +749,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return dataframe
 
         except Exception as e:
-            bittensor.logging.error('failed axon.to_dataframe()', str(e))
+            bittensor.logging.error(prefix='failed axon.to_dataframe()', sufix=str(e))
             return pandas.DataFrame()
 
     def to_wandb( self, metagraph = None ):
@@ -770,7 +770,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
                 'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
             }
+            return wandb_data
         except Exception as e:
-            bittensor.logging.error('failed during axon.to_wandb()', str(e))
-        
-        return wandb_data 
+            bittensor.logging.error(prefix='failed during axon.to_wandb()', sufix=str(e))
+            return {} 

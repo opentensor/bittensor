@@ -503,8 +503,8 @@ class Neuron:
                 df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
                 df = df + self.axon.to_dataframe( metagraph = self.metagraph )
                 df = df + self.dendrite.to_dataframe( metagraph = self.metagraph )
-                wandb.log({ **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
-                wandb.log( {'dataframe': wandb.Table( dataframe= df)}, step = current_block)
+                wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
+                wandb.log( {'dataframe': wandb.Table( dataframe = df)}, step = current_block)
 
             except Exception as e:
                 logger.exception('Failed to update weights and biases with error:{}', e)

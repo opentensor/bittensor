@@ -38,7 +38,7 @@ def indexed_values_to_dataframe (
         return dataframe
 
     except Exception as e:
-        bittensor.logging.error('Failed convert prefix: {} values: {} with index: {} to dataframe'.format(prefix, index, values))
+        bittensor.logging.error( prefix='Failed dataframe', sufix='prefix: {} values: {} with index: {} to dataframe with error:{}'.format( prefix, index, values, e ))
         return pandas.DataFrame()
 
 def indexed_values_to_wandb( 
