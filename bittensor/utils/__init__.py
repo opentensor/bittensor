@@ -55,7 +55,7 @@ def indexed_values_to_wandb(
         # Add value to wandb data dict.
         if int_idx < len(values) and int_idx > 0:
             log_value = values[ int_idx ]
-            wandb_data[ 'UID:{}/{}'.format( int_idx, prefix ) ] = log_value
+            wandb_data[ '{}/{}'.format( int_idx, prefix ) ] = log_value
 
 
 def unbiased_topk( values, k, dim=0, sorted = True, largest = True):

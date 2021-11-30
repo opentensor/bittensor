@@ -718,12 +718,12 @@ class Dendrite(torch.autograd.Function):
                         index = metagraph.hotkeys.index(pubkey)
                     else:
                         index = -1
-                wandb_info[ 'UID:{}/dendrite_n_requested'.format(index)  ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_info[ 'UID:{}/dendrite_n_success'.format(index)  ] = int(self.stats.requests_per_pubkey[pubkey])
-                wandb_info[ 'UID:{}/dendrite_query_time'.format(index)  ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
-                wandb_info[ 'UID:{}/dendrite_avg_inbytes'.format(index)  ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
-                wandb_info[ 'UID:{}/dendrite_avg_outbytes'.format(index)  ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                wandb_info[ 'UID:{}/dendrite_qps'.format(index) ] = float(self.stats.qps_per_pubkey[pubkey].get())
+                wandb_info[ '{}/dendrite_n_requested'.format(index)  ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_info[ '{}/dendrite_n_success'.format(index)  ] = int(self.stats.requests_per_pubkey[pubkey])
+                wandb_info[ '{}/dendrite_query_time'.format(index)  ] = float(self.stats.query_times_per_pubkey[pubkey].get())                
+                wandb_info[ '{}/dendrite_avg_inbytes'.format(index)  ] = float(self.stats.avg_in_bytes_per_pubkey[pubkey].get())
+                wandb_info[ '{}/dendrite_avg_outbytes'.format(index)  ] = float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                wandb_info[ '{}/dendrite_qps'.format(index) ] = float(self.stats.qps_per_pubkey[pubkey].get())
 
         except Exception as e:
             bittensor.logging.error('failed dendrite.to_wandb()', str(e))
