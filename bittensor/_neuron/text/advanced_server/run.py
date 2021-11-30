@@ -263,7 +263,7 @@ def serve( config, server):
                 wandb.log( {**wandb_data, **wandb_info_axon, **wandb_info_metagraph } )
              
             # Save the model
-            gp_server.save(config.server.full_path)
+            gp_server.save(config.neuron.full_path)
             
             if current_block % 10 == 0:
                 
@@ -287,8 +287,8 @@ def serve( config, server):
                     logger.error('Failure setting weights on chain with error: {}', e)
 
 
-            if current_block - start_block > 1000:
-                metagraph.sync().save()
+            if current_block - start_block > 2000:
+                metagraph.sync()
                 start_block = current_block
 
 
