@@ -477,26 +477,27 @@ class Neuron:
         # ---- wandb log if it is the end of epoch 
         if self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
             # ---- Miner summary for wandb
-            wandb_info = {
-                'stake':stake,
-                'rank':rank,
-                'incentive':incentive,
-                'num_peers':self.metagraph.n.item(),
-                'remote_target_epoch_loss': self.stats.remote_target_epoch_loss,
-                'distillation_epoch_loss': self.stats.distillation_epoch_loss,
-                'local_target_epoch_loss': self.stats.local_target_epoch_loss,
-                'local_epoch_acc': self.stats.local_epoch_acc,
-                'num_sync_metagraph': self.stats.epoch_sync_count,
-                'data_size': self.stats.epoch_data_size,
-            }
-            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'fisher_ema_score', index = topk_uids, values = topk_scores )
-            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights )
-            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights )
-            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
-            wandb_info_axon = self.axon.to_wandb( metagraph )
-            wandb_info_dend = self.dendrite.to_wandb( metagraph )
             try:
+                wandb_info = {
+                    'stake':stake,
+                    'rank':rank,
+                    'incentive':incentive,
+                    'num_peers':self.metagraph.n.item(),
+                    'remote_target_epoch_loss': self.stats.remote_target_epoch_loss,
+                    'distillation_epoch_loss': self.stats.distillation_epoch_loss,
+                    'local_target_epoch_loss': self.stats.local_target_epoch_loss,
+                    'local_epoch_acc': self.stats.local_epoch_acc,
+                    'num_sync_metagraph': self.stats.epoch_sync_count,
+                    'data_size': self.stats.epoch_data_size,
+                }
+                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'fisher_ema_score', index = topk_uids, values = topk_scores )
+                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights )
+                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights )
+                bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
+                wandb_info_axon = self.axon.to_wandb( metagraph )
+                wandb_info_dend = self.dendrite.to_wandb( metagraph )
                 wandb.log({ **wandb_info, **wandb_info_axon, **wandb_info_dend })
+
             except Exception as e:
-                logger.warning('Failed to update weights and biases with error:{}', e)
+                logger.exception('Failed to update weights and biases with error:{}', e)
 
