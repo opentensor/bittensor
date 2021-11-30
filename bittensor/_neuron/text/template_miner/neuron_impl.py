@@ -479,33 +479,29 @@ class Neuron:
         # ---- wandb log if it is the end of epoch 
         if self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
             # ---- Miner summary for wandb
-            try:
-                wandb_info = {
-                    'stake':stake,
-                    'rank':rank,
-                    'incentive':incentive,
-                    'num_peers':self.metagraph.n.item(),
-                    'remote_target_epoch_loss': self.stats.remote_target_epoch_loss,
-                    'distillation_epoch_loss': self.stats.distillation_epoch_loss,
-                    'local_target_epoch_loss': self.stats.local_target_epoch_loss,
-                    'local_epoch_acc': self.stats.local_epoch_acc,
-                    'num_sync_metagraph': self.stats.epoch_sync_count,
-                    'data_size': self.stats.epoch_data_size,
-                }
-                wandb_info_axon = self.axon.to_wandb( metagraph = self.metagraph )
-                wandb_info_dend = self.dendrite.to_wandb( metagraph = self.metagraph )
+            wandb_info = {
+                'stake':stake,
+                'rank':rank,
+                'incentive':incentive,
+                'num_peers':self.metagraph.n.item(),
+                'remote_target_epoch_loss': self.stats.remote_target_epoch_loss,
+                'distillation_epoch_loss': self.stats.distillation_epoch_loss,
+                'local_target_epoch_loss': self.stats.local_target_epoch_loss,
+                'local_epoch_acc': self.stats.local_epoch_acc,
+                'num_sync_metagraph': self.stats.epoch_sync_count,
+                'data_size': self.stats.epoch_data_size,
+            }
+            wandb_info_axon = self.axon.to_wandb( metagraph = self.metagraph )
+            wandb_info_dend = self.dendrite.to_wandb( metagraph = self.metagraph )
 
-                # Build stats dataframe.
-                df = pandas.DataFrame() 
-                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = topk_scores )
-                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights )
-                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights )
-                df = df + bittensor.utils.indexed_values_to_dataframe( prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
-                df = df + self.axon.to_dataframe( metagraph = self.metagraph )
-                df = df + self.dendrite.to_dataframe( metagraph = self.metagraph )
-                wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
-                wandb.log( {'dataframe': wandb.Table( dataframe = df)}, step = current_block)
-
-            except Exception as e:
-                logger.exception('Failed to update weights and biases with error:{}', e)
-
+            # Build stats dataframe.
+            df = pandas.concat( [
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = self.stats.ema_scores ),
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights ),
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights ),
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] ),
+                self.axon.to_dataframe( metagraph = self.metagraph ),
+                self.dendrite.to_dataframe( metagraph = self.metagraph )
+            ], axis = 1)
+            wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
+            wandb.log( { 'stats': wandb.Table( dataframe = df)}, step = current_block)

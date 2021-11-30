@@ -662,6 +662,7 @@ class Dendrite(torch.autograd.Function):
                 query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     Times per call.
         """
+        bittensor.logging.info(prefix='dendrite', sufix='update stats for request')
         self.stats.qps.event()
         self.stats.total_requests += 1
         total_in_bytes_per_second = 0
@@ -694,36 +695,31 @@ class Dendrite(torch.autograd.Function):
                 pass
 
         self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
+        bittensor.logging.info(prefix='dendrite', sufix='done')
 
-    def to_dataframe ( self, metagraph = None ):
+    def to_dataframe ( self, metagraph ):
         r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
             Args:
                 metagraph: (bittensor.Metagraph):
-                    If not None, indexes the wandb data using int uids rather than string pubkeys.
+                    Indexes the stats data using metagraph hotkeys.
             Return:
                 dataframe (:obj:`pandas.Dataframe`)
         """
-        def pubkey_to_uid_or_negative_one( pubkey, metagraph ):
-            if metagraph == None:
-                return pubkey
-            if pubkey in metagraph.hotkeys:
-                return metagraph.hotkeys.index(pubkey)
-            else:
-                return -1
         try:
-            index = [ pubkey_to_uid_or_negative_one(pubkey, metagraph) for pubkey in self.stats.requests_per_pubkey.keys() ]
+            index = [ metagraph.hotkeys.index(pubkey) for pubkey in self.stats.requests_per_pubkey.keys() if pubkey in metagraph.hotkeys]
             columns = [ 'dendrite_n_requested', 'dendrite_n_success', 'dendrite_query_time', 'dendrite_avg_inbytes', 'dendrite_avg_outbytes', 'dendrite_qps' ]
             dataframe = pandas.DataFrame(columns = columns, index = index)
             for pubkey in self.stats.requests_per_pubkey.keys():
-                index = pubkey_to_uid_or_negative_one( pubkey, metagraph )
-                dataframe.loc[index] = pandas.Series( {
-                    'dendrite_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
-                    'dendrite_n_success': int(self.stats.requests_per_pubkey[pubkey]),
-                    'dendrite_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),               
-                    'dendrite_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                    'dendrite_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                    'dendrite_qps': float(self.stats.qps_per_pubkey[pubkey].get())
-                } )
+                if pubkey in metagraph.hotkeys:
+                    uid = metagraph.hotkeys.index(pubkey)
+                    dataframe.loc[ uid ] = pandas.Series( {
+                        'dendrite_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
+                        'dendrite_n_success': int(self.stats.requests_per_pubkey[pubkey]),
+                        'dendrite_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),               
+                        'dendrite_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                        'dendrite_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                        'dendrite_qps': float(self.stats.qps_per_pubkey[pubkey].get())
+                    } )
             return dataframe
 
         except Exception as e:

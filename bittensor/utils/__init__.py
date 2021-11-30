@@ -16,30 +16,26 @@ def indexed_values_to_dataframe (
         index: Union[list, torch.LongTensor], 
         values: Union[list, torch.Tensor],
     ) -> 'pandas.DataFrame':
-    try:
-        # Type checking.
-        if not isinstance(prefix, str) and not isinstance(prefix, numbers.Number):
-            raise ValueError('Passed prefix must have type str or Number')
-        if isinstance(prefix, numbers.Number):
-            prefix = str(prefix)
-        if not isinstance(index, list) and not isinstance(index, torch.Tensor):
-            raise ValueError('Passed uids must have type list or torch.Tensor')
-        if not isinstance(values, list) and not isinstance(values, torch.Tensor):
-            raise ValueError('Passed values must have type list or torch.Tensor')
-        if not isinstance(index, list):
-            index = index.tolist()
-        if not isinstance(values, list):
-            values = values.tolist()
+    # Type checking.
+    if not isinstance(prefix, str) and not isinstance(prefix, numbers.Number):
+        raise ValueError('Passed prefix must have type str or Number')
+    if isinstance(prefix, numbers.Number):
+        prefix = str(prefix)
+    if not isinstance(index, list) and not isinstance(index, torch.Tensor):
+        raise ValueError('Passed uids must have type list or torch.Tensor')
+    if not isinstance(values, list) and not isinstance(values, torch.Tensor):
+        raise ValueError('Passed values must have type list or torch.Tensor')
+    if not isinstance(index, list):
+        index = index.tolist()
+    if not isinstance(values, list):
+        values = values.tolist()
 
-        dataframe = pandas.DataFrame(columns=[prefix], index = index )
-        for idx_i in index:
-            value_i = values[ idx_i ]
-            dataframe.loc[idx_i] = pandas.Series( { str(prefix): value_i } )
-        return dataframe
-
-    except Exception as e:
-        bittensor.logging.error( prefix='Failed dataframe', sufix='prefix: {} values: {} with index: {} to dataframe with error:{}'.format( prefix, index, values, e ))
-        return pandas.DataFrame()
+    index = [ idx_i for idx_i in index if idx_i < len(values) and idx_i >= 0 ]
+    dataframe = pandas.DataFrame(columns=[prefix], index = index )
+    for idx_i in index:
+        value_i = values[ idx_i ]
+        dataframe.loc[idx_i] = pandas.Series( { str(prefix): value_i } )
+    return dataframe
 
 def indexed_values_to_wandb( 
         wandb_data: dict, 

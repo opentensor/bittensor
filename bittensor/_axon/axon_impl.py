@@ -715,37 +715,30 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except:
             pass  
 
-    def to_dataframe ( self, metagraph = None ):
+    def to_dataframe ( self, metagraph ):
         r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
             Args:
                 metagraph: (bittensor.Metagraph):
-                    If not None, indexes the wandb data using int uids rather than string pubkeys.
+                    Indexes the stats data using uids.
             Return:
                 dataframe (:obj:`pandas.Dataframe`)
         """
         # Reindex the pubkey to uid if metagraph is present.
-        def pubkey_to_uid_or_negative_one( pubkey, metagraph ):
-            if metagraph == None:
-                return pubkey
-            if pubkey in metagraph.hotkeys:
-                return metagraph.hotkeys.index(pubkey)
-            else:
-                return -1
-
         try:
-            index = [ pubkey_to_uid_or_negative_one(pubkey, metagraph) for pubkey in self.stats.requests_per_pubkey.keys() ]
+            index = [ metagraph.hotkeys.index(pubkey) for pubkey in self.stats.requests_per_pubkey.keys() if pubkey in metagraph.hotkeys ]
             columns = [ 'axon_n_requested', 'axon_n_success', 'axon_query_time','axon_avg_inbytes','axon_avg_outbytes', 'axon_qps' ]
             dataframe = pandas.DataFrame(columns = columns, index = index)
             for pubkey in self.stats.requests_per_pubkey.keys():
-                index = pubkey_to_uid_or_negative_one( pubkey, metagraph )
-                dataframe.loc[index] = pandas.Series( {
-                    'axon_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
-                    'axon_n_success': int(self.stats.requests_per_pubkey[pubkey]),
-                    'axon_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),             
-                    'axon_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                    'axon_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                    'axon_qps': float(self.stats.qps_per_pubkey[pubkey].get())
-                } )
+                if pubkey in metagraph.hotkeys:
+                    uid = metagraph.hotkeys.index(pubkey)
+                    dataframe.loc[ uid ] = pandas.Series( {
+                        'axon_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
+                        'axon_n_success': int(self.stats.requests_per_pubkey[pubkey]),
+                        'axon_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),             
+                        'axon_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                        'axon_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                        'axon_qps': float(self.stats.qps_per_pubkey[pubkey].get())
+                    } )
             return dataframe
 
         except Exception as e:
