@@ -423,7 +423,7 @@ class Neuron:
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
             epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() )).device('cpu')
-            topk_scores, topk_uids = bittensor.unbiased_topk(epsilon_scores, k = k )
+            topk_scores, topk_uids = bittensor.unbiased_topk( epsilon_scores, k = k )
             self.subtensor.timeout_set_weights(
                 timeout = 100,
                 uids = topk_uids.detach().to(torch.device('cpu')),
@@ -466,9 +466,9 @@ class Neuron:
             'Synced Block': colored('{}'.format(self.stats.last_sync_block), 'yellow'),
         }
         # ---- Miner summary per peer for progress bar
-        topk_scores, topk_idx = bittensor.unbiased_topk(self.stats.ema_scores, 5, dim=0)
-
-        for uid, ema_score in zip(topk_idx, topk_scores) :
+        k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
+        topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores, k, dim=0 )
+        for uid, ema_score in zip( topk_uids, topk_scores ) :
             color =  'green' if self.stats.scores[uid] - ema_score > 0 else 'red'
             info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
 
@@ -489,12 +489,10 @@ class Neuron:
                 'num_sync_metagraph': self.stats.epoch_sync_count,
                 'data_size': self.stats.epoch_data_size,
             }
-            # ---- Miner summary per peer
-            wandb_data = []
-            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'fisher_ema_score', index = topk_idx, values = topk_scores )
-            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'raw_peer_weight', index = topk_idx, values = self.nucleus.peer_weights )
-            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'normalized_peer_weight', index = topk_idx, values = normalized_peer_weights )
-            bittensor.utils.indexed_values_to_wandb( wandb_data, prefix = 'out_weight', index = topk_idx, values = self.metagraph.W[ self_uid, : ] )
+            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'fisher_ema_score', index = topk_uids, values = topk_scores )
+            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights )
+            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights )
+            bittensor.utils.indexed_values_to_wandb( wandb_info, prefix = 'out_weight', index = topk_uids, values = self.metagraph.W[ self_uid, : ] )
             wandb_info_axon = self.axon.to_wandb( metagraph )
             wandb_info_dend = self.dendrite.to_wandb( metagraph )
             try:

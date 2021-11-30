@@ -45,7 +45,7 @@ def indexed_values_to_wandb(
     if not isinstance(values, list):
         values = values.tolist()
 
-    bittensor.logging.info( prefix = 'wandb index log', sufix='prefix:{} - index:{} : values:{}'.format(prefix, index, values ) )
+    bittensor.logging.info( prefix = 'wandb index log', sufix = 'prefix:{} - index:{} : values:{}'.format(prefix, index, values ) )
     for idx_i in index:
 
         # Convert index to integer or fail.
