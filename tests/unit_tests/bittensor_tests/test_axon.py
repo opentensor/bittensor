@@ -6,8 +6,6 @@ import pytest
 import uuid
 import unittest.mock as mock
 
-logging = bittensor.logging()
-
 wallet =  bittensor.wallet (
     path = '/tmp/pytest',
     name = 'pytest',
