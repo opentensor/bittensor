@@ -534,7 +534,7 @@ def test_grpc_forward_works():
     def forward( inputs_x:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
     axon = bittensor.axon (
-        port = 8081,
+        port = 7081,
         ip = '127.0.0.1',
         wallet = wallet,
     )
@@ -542,7 +542,7 @@ def test_grpc_forward_works():
     axon.start()
 
     channel = grpc.insecure_channel(
-            '127.0.0.1:8081',
+            '127.0.0.1:7081',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
     stub = bittensor.grpc.BittensorStub( channel )
