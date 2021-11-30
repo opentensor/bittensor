@@ -23,7 +23,7 @@ def indexed_values_to_wandb(
             prefix str:
                 Prefix name given to wandb log value.
 
-            index: Union[list, torch.LongTensor]:
+            index: Union[list(int), torch.LongTensor]:
                 Index into values which act as group.
 
             values: Union[list, torch.Tensor]:
@@ -47,9 +47,17 @@ def indexed_values_to_wandb(
 
     print ( 'logging to wandb prefix', prefix, 'with index', index, 'and values', values )
     for idx_i in index:
-        if idx_i < len(values) and idx_i > 0:
-            log_value = values[ idx_i ]
-            wandb_data[ '{}/{}'.format( idx_i, prefix ) ] = log_value
+
+        # Convert index to integer or fail.
+        try:
+            int_idx = int( idx_i )
+        except Exception as e:
+            bittensor.logging.error('Failed to convert index: {} to integer with error'.format(idx_i, e))
+
+        # Add value to wandb data dict.
+        if int_idx < len(values) and int_idx > 0:
+            log_value = values[ int_idx ]
+            wandb_data[ '{}/{}'.format( int_idx, prefix ) ] = log_value
 
 
 def unbiased_topk( values, k, dim=0, sorted = True, largest = True):
