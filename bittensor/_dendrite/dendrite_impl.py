@@ -22,7 +22,6 @@ from typing import Tuple, List, Union, Optional
 
 import sys
 import torch
-import matplotlib.pyplot as plt
 
 from torch.autograd.function import once_differentiable
 from loguru import logger
