@@ -23,7 +23,6 @@ from typing import List
 from loguru import logger
 
 import wandb
-import matplotlib.pyplot as plt
 import torch.nn.functional as f
 import torch
 
