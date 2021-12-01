@@ -263,7 +263,7 @@ def serve( config, server):
                 wandb.log( {**wandb_data, **wandb_info_axon, **wandb_info_metagraph } )
              
             # Save the model
-            gp_server.save(config.server.full_path)
+            gp_server.save(config.neuron.full_path)
             
             if current_block % 10 == 0:
                 

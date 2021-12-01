@@ -6,8 +6,6 @@ import pytest
 import uuid
 import unittest.mock as mock
 
-logging = bittensor.logging()
-
 wallet =  bittensor.wallet (
     path = '/tmp/pytest',
     name = 'pytest',
@@ -30,6 +28,18 @@ def sign(wallet):
 def test_sign():
     sign(wallet)
     sign(axon.wallet)
+
+def test_forward_wandb():
+    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
+    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized]
+    )
+    response, code, call_time, message = axon._forward( request )
+    axon.update_stats_for_request( request, response, call_time, code )
+    print( axon.to_wandb() )
 
 def test_forward_not_implemented():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -524,7 +534,7 @@ def test_grpc_forward_works():
     def forward( inputs_x:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
     axon = bittensor.axon (
-        port = 8080,
+        port = 7081,
         ip = '127.0.0.1',
         wallet = wallet,
     )
@@ -532,7 +542,7 @@ def test_grpc_forward_works():
     axon.start()
 
     channel = grpc.insecure_channel(
-            '127.0.0.1:8080',
+            '127.0.0.1:7081',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
     stub = bittensor.grpc.BittensorStub( channel )
@@ -555,6 +565,8 @@ def test_grpc_forward_works():
     outputs = serializer.deserialize(response.tensors[0], to_type=bittensor.proto.TensorType.TORCH)
     assert outputs.tolist() == [[[0]]]
     axon.stop()
+    assert axon.stats.total_requests == 1 
+    assert axon.to_wandb()['axon_total_requests'] == 1 
 
 
 def test_grpc_backward_works():
@@ -562,7 +574,7 @@ def test_grpc_backward_works():
         return torch.zeros( [1, 1, 1])
 
     axon = bittensor.axon (
-        port = 8080,
+        port = 7081,
         ip = '127.0.0.1',
         wallet = wallet,
     )
@@ -570,7 +582,7 @@ def test_grpc_backward_works():
     axon.start()
 
     channel = grpc.insecure_channel(
-            '127.0.0.1:8080',
+            '127.0.0.1:7081',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
     stub = bittensor.grpc.BittensorStub( channel )
@@ -599,7 +611,7 @@ def test_grpc_forward_fails():
     def forward( inputs_x:torch.FloatTensor):
         return torch.zeros( [1, 1, 1])
     axon = bittensor.axon (
-        port = 8080,
+        port = 7081,
         ip = '127.0.0.1',
         wallet = wallet,
     )
@@ -607,7 +619,7 @@ def test_grpc_forward_fails():
     axon.start()
 
     channel = grpc.insecure_channel(
-            '127.0.0.1:8080',
+            '127.0.0.1:7081',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
     stub = bittensor.grpc.BittensorStub( channel )
@@ -633,7 +645,7 @@ def test_grpc_backward_fails():
         return torch.zeros( [1, 1, 1])
 
     axon = bittensor.axon (
-        port = 8080,
+        port = 7081,
         ip = '127.0.0.1',
         wallet = wallet
     )
@@ -641,7 +653,7 @@ def test_grpc_backward_fails():
     axon.start()
 
     channel = grpc.insecure_channel(
-            '127.0.0.1:8080',
+            '127.0.0.1:7081',
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1)])
     stub = bittensor.grpc.BittensorStub( channel )
@@ -713,5 +725,7 @@ def test_axon_is_destroyed():
 
 
 if __name__ == "__main__":
-    test_backward_response_serialization_error()
-    test_axon_is_destroyed()
+    #test_backward_response_serialization_error()
+    #test_axon_is_destroyed()
+    test_forward_wandb()
+    test_grpc_forward_works()

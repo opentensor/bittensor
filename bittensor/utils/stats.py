@@ -36,6 +36,53 @@ class timed_rolling_avg():
         new_value = new_value / time_delta
         self.value = (1 - self.alpha) * self.value + self.alpha * new_value
 
+class AmountPerSecondRollingAverage():
+    """ A exponential moving average that counts quantity per second.
+    """
+    def __init__(self, initial_value=0, alpha=0.1):
+        self.value = initial_value
+        self.alpha = alpha
+        self.last_update = None
+
+    def event(self, amount):
+        """ Update self.value (the moving average) with the new_value 
+        """
+        if self.last_update == None:
+            self.last_update = time.time()
+        else:
+            now = time.time()
+            time_delta = now - self.last_update
+            self.last_update = now
+            new_value = amount / time_delta
+            self.value = (1 - self.alpha) * self.value + self.alpha * new_value
+
+    def get(self) -> float:
+        return float(self.value)
+
+        
+class EventsPerSecondRollingAverage():
+    """ A exponential moving average that counts the number of events per second.
+    """
+    def __init__(self, initial_value, alpha):
+        self.value = initial_value
+        self.alpha = alpha
+        self.last_update = None
+
+    def event(self):
+        """ Update self.value (the moving average) with the new_value 
+        """
+        if self.last_update == None:
+            self.last_update = time.time()
+        else:
+            now = time.time()
+            time_delta = now - self.last_update
+            self.last_update = now
+            new_value = 1 / time_delta
+            self.value = (1 - self.alpha) * self.value + self.alpha * new_value
+    
+    def get(self) -> float:
+        return float(self.value)
+
 
 class Running_Average(object):
     def __init__(self, buffer_size=10):

@@ -72,22 +72,11 @@ class Nucleus(nn.Module):
         self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
         self.loss_fct = nn.CrossEntropyLoss()
+        self.noise_multiplier = self.config.nucleus.noise_multiplier
         self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
-        self.noise_offset = 0.0000001
         self.init_weights()
         self.metagraph = None
         self.dendrite = None
-
-    @staticmethod
-    def add_args( parser: argparse.ArgumentParser ):
-        r""" Add custom params to the parser.
-        """
-        parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200)
-        parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
-        parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
-        parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
 
     def init_weights(self):
         initrange = 0.1
@@ -104,52 +93,87 @@ class Nucleus(nn.Module):
         validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
         return validator_scores
 
-    def local_forward(self, inputs: torch.int64, training : bool = True) -> SimpleNamespace:
-        """ Forward pass through GPT2 nucleus.
+    def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
+        """ Forward pass through local transformer model of nucleus.
             Args:
-                inputs (:obj:`torch.int64` of shape :obj:`(batch_size, block_size)`, `required`):
-                    Batch_size length x list of text sentences.
+                inputs (:obj:`torch.LongTensor` of shape :obj:`(batch_size, block_size)`, `required`):
+                    Input batch of batch_size token sequences each of length block_size, where
+                    each token is :obj:`torch.int64` in range [0, bittensor.__vocab_size__ - 1]
                 training (:obj:`bool')`, `optional`, defaults to True):
                     Switch to True if this forward pass computes a CLM loss.
 
             Returns:
                 SimpleNamespace {
                     local_context (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Hidden layer context.
+                        Transformer encoding produced using embedded inputs.
+                    local_hidden (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
+                        Transformer encoding produced using local_context.
                     local_target (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_len, bittensor.__vocab_size__)`, `optional`):
-                        MLM Target predictions produced using local_context.
+                        Next token prediction logits produced using local_hidden.
                     local_target_loss (:obj:`torch.FloatTensor` of shape :obj:`(1)`, `optional`):
-                        MLM loss using local_context.
+                        Next token prediction loss using local_hidden.
+                    local_accuracy (:obj:`float`, `optional`):
+                        Next token prediction accuracy using local_hidden.
                 }
         """
         # To be filled.
         output = SimpleNamespace()
 
+        # https://pytorch.org/docs/1.8.1/generated/torch.nn.Transformer.html#torch.nn.Transformer.forward
+        # src: (S, N, E) the sequence to the encoder (required).
+        # src_mask: (S, S) the mask for the src sequence (optional).
+        # where S is the source sequence length, N is the batch size, E is the feature number
+
+        # inputs.shape = [batch_size, sequence_len]
+        sequence_len = inputs.shape[1]
+
+        # src_mask: attention mask adds -inf to positions not allowed to attend, preventing forward-looking when
+        #           predicting each token in the sequence.
+        # src_mask.shape = [sequence_len, sequence_len]
+        src_mask = torch.triu(torch.ones(sequence_len, sequence_len) * float('-inf'), diagonal=1)
+        src_mask = src_mask.to(self.config.neuron.device)
+
+        # embedding: retrieve learned representation vectors for input vocabulary tokens.
+        # inputs.shape = [batch_size, sequence_len]
+        # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        embedding = self.embedding(inputs)
+
+        # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        # local_encoder expects input shape = [sequence_len, batch_size, bittensor.__network_dim__]
+        embedding = embedding.transpose(0, 1)
+
         # local_context: hidden layer encoding of sequence with local_context.
-        # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.local_context = self.local_encoder( self.embedding( inputs ) )* math.sqrt(bittensor.__network_dim__)
+        # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
+        local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
 
         # local_context: adding positional encoding to local_context.
-        # local_context.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.local_context = self.local_pos_encoder(output.local_context)
+        # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
+        local_context = self.local_pos_encoder(local_context)
 
-        if training :
+        # external expects output.local_context shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        output.local_context = local_context.transpose(0, 1)
+
+        if training:
             # local_hidden: local model which learns a new projection from the local_context
-            # local_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_hidden = self.local_hidden( output.local_context.detach())
+            # local_hidden.shape = [sequence_len, batch_size, bittensor.__vocab_size__]
+            local_hidden = self.local_hidden(local_context.detach(), mask=src_mask)
 
             # local_target: projection of local_hidden onto target dimension.
-            # local_target.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
-            output.local_target = self.local_decoder( output.local_hidden )
+            # local_target.shape = [sequence_len, batch_size, bittensor.__vocab_size__]
+            local_target = self.local_decoder(local_hidden)
+
+            # external expects output shape = [batch_size, sequence_len, bittensor.__network_dim__]
+            output.local_hidden = local_hidden.transpose(0, 1)
+            output.local_target = local_target.transpose(0, 1)
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()
-            output.local_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
+            output.local_target_loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
 
-            predictions=shift_logits.detach().max(2).indices
-            output.local_accuracy = (predictions==shift_labels).sum().item()/predictions.nelement()
+            predictions = shift_logits.detach().max(2).indices
+            output.local_accuracy = (predictions == shift_labels).sum().item() / predictions.nelement()
         return output
 
     def remote_forward(self, inputs: torch.int64, training: bool) -> SimpleNamespace:
@@ -217,8 +241,8 @@ class Nucleus(nn.Module):
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
-        std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.noise_offset
-        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device )
+        std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.config.nucleus.noise_offset
+        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
         topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
 

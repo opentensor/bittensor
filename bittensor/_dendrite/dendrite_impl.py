@@ -20,9 +20,13 @@
 from types import SimpleNamespace
 from typing import Tuple, List, Union, Optional
 
+import sys
 import torch
+import matplotlib.pyplot as plt
+
 from torch.autograd.function import once_differentiable
 from loguru import logger
+from transformers.utils.logging import enable_explicit_format
 
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
@@ -81,14 +85,7 @@ class Dendrite(torch.autograd.Function):
 
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
-        self.stats = SimpleNamespace(
-            uids=[],
-            return_ops=[],
-            query_times=[],
-            requested_peers_count={},
-            responded_peers_count={},
-            peers_respond_time={}
-        )
+        self.stats = self._init_stats()
 
     def __str__(self):
         return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
@@ -348,7 +345,7 @@ class Dendrite(torch.autograd.Function):
             responses = responses[0]
 
         # Return.
-        self.update_stat(endpoints, codes, times)
+        self.update_stats( endpoints, inputs, responses, codes, times )
         return responses, codes, times
 
     def forward_tensor(
@@ -447,7 +444,7 @@ class Dendrite(torch.autograd.Function):
             responses = responses[0]
 
         # Return.
-        self.update_stat(endpoints, codes, times)
+        self.update_stats( endpoints, inputs, responses, codes, times )
         return responses, codes, times
 
     def forward_text(
@@ -618,14 +615,45 @@ class Dendrite(torch.autograd.Function):
         )
 
         # Return.
-        self.update_stat(formatted_endpoints, codes, times)
+        self.update_stats( formatted_endpoints, formatted_inputs, responses, codes, times )
         return responses, codes, times
 
-    def update_stat(self, endpoints, return_ops, query_times):
+    def _init_stats(self):
+        return SimpleNamespace(
+            total_requests = 0,
+            # queries on dendrite per second.
+            qps = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 ),
+            # total bytes recieved by this dendrite per second.
+            avg_in_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
+            # total sent by this dendrite per second.
+            avg_out_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
+            # Codes recieved per pubkey.
+            codes_per_pubkey = {},
+            # Number of requests per pubkey.
+            requests_per_pubkey = {},
+            # Success rate per pubkey.
+            successes_per_pubkey = {},
+            # Query time per pubkey.
+            query_times_per_pubkey = {},
+            # Bytes recieved per pubkey.
+            avg_in_bytes_per_pubkey = {},
+            # Bytes sent per pubkey.
+            avg_out_bytes_per_pubkey = {},
+            # QPS per pubkey.
+            qps_per_pubkey = {},
+        )
+
+    def update_stats(self, endpoints, requests, responses, return_ops, query_times):
         r""" Update dendrite stat according to the response we get from peers. Updates were saved to self.stats.
             Args:
                 endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
                     The set of endpoints that dendrite sent request to.
+
+                requests (List[torch.Tensor] of shape :obj:`[ num_endpoints ]`, `required`):
+                    Requests from the call.
+
+                responses (List[torch.FloatTensor] of shape :obj:`[ num_endpoints ]`, `required`):
+                    Responses from the call.
 
                 return_ops (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     Dendrite call return ops.
@@ -666,24 +694,28 @@ class Dendrite(torch.autograd.Function):
             Return:
                 wandb_info (:obj:`Dict`)
         """
-        wandb_info = {}
-
-        # ---- Dendrite response histograms for return_ops and query_times
-        response_stats = [[u, t, r, codes.code_to_string(r)] for u, t, r in
-                          zip(self.stats.uids, self.stats.query_times, self.stats.return_ops)]
-        wandb_table = wandb.Table(data=response_stats, columns=['uids', 'query_times', 'return_ops', 'return_ops_str'])
-        wandb_info['query_times'] = wandb.plot.histogram(wandb_table, 'query_times', 'Dendrite query response times')
-
-        # ---- Dendrite stats per pubkey for wandb 
-        for uid in self.stats.requested_peers_count.keys():
-            respond_rate = self.stats.responded_peers_count[uid].value / self.stats.requested_peers_count[uid].value
-
-            uid_str = str(uid.item()).zfill(3)
-            wandb_info[f'dend_requested uid: {uid_str}'] = self.stats.requested_peers_count[uid].value
-            wandb_info[f'dend_responded uid: {uid_str}'] = self.stats.responded_peers_count[uid].value
-            wandb_info[f'dend_respond_time uid: {uid_str}'] = self.stats.peers_respond_time[uid].value
-            wandb_info[f'dend_respond_rate uid: {uid_str}'] = respond_rate
-
+        wandb_info = {
+            'dendrite_qps': self.stats.qps.get(),
+            'dendrite_total_requests' : self.stats.total_requests,
+            'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+            'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+        }
+        table_data = []
+        for pubkey in self.stats.requests_per_pubkey.keys():
+            row = [
+                pubkey,
+                int(self.stats.requests_per_pubkey[pubkey]),
+                int(self.stats.successes_per_pubkey[pubkey]),
+                float(self.stats.query_times_per_pubkey[pubkey].get()),
+                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                float(self.stats.qps_per_pubkey[pubkey].get()),
+            ] + list(self.stats.codes_per_pubkey[pubkey].values())
+            table_data.append( row )
+        wandb_info['dendrite_data'] = wandb.Table( 
+            data = table_data, 
+            columns=[ 'pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps' ] + bittensor.proto.ReturnCode.keys()
+        )
         return wandb_info
 
     def clear_stats(self):
