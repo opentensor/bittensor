@@ -745,7 +745,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             bittensor.logging.error(prefix='failed axon.to_dataframe()', sufix=str(e))
             return pandas.DataFrame()
 
-    def to_wandb( self, metagraph = None ):
+    def to_wandb( self ):
         r""" Return a dictionary of axon stat info for wandb logging
             Args:
                 metagraph: (bittensor.Metagraph):

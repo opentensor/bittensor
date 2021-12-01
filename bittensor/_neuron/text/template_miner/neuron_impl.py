@@ -493,8 +493,6 @@ class Neuron:
                 'neuron/num_sync_metagraph': self.stats.epoch_sync_count,
                 'neuron/data_size': self.stats.epoch_data_size,
             }
-            wandb_info_axon = self.axon.to_wandb( metagraph = self.metagraph )
-            wandb_info_dend = self.dendrite.to_wandb( metagraph = self.metagraph )
 
             # Build stats dataframe.
             df = pandas.concat( [
@@ -506,5 +504,8 @@ class Neuron:
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1)
             df['uid'] = df.index
+
+            wandb_info_axon = self.axon.to_wandb()
+            wandb_info_dend = self.dendrite.to_wandb()
             wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': wandb.Table( dataframe = df)}, step = current_block)

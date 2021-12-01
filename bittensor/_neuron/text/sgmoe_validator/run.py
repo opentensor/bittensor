@@ -25,6 +25,7 @@ import bittensor
 import math
 import torch
 import wandb
+import pandas
 from termcolor import colored
 from functools import partial
 
@@ -88,7 +89,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         for block in progress:
             
             # --- Training step.
-            while block >= subtensor.get_current_block():
+            current_block = subtensor.get_current_block()
+            while block >= current_block:
                 loss, _ = validator( next( dataset ) )
                 val_score = validator.scores()
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
@@ -101,6 +103,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
                 ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
+                current_block = subtensor.get_current_block()
+
 
             # --- Step logs.
             info = {
@@ -152,11 +156,14 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Total requests sent': sum(dendrite.stats.requested_peers_count.values()),
                 'Total responses recieved': sum(dendrite.stats.responded_peers_count.values()),
             } 
-            for uid_j in topk_uids.tolist():
-                wandb_data[ '{}/fisher_ema uid'.format(uid_j) ] = ema_scores.detach()[uid_j]
-                wandb_data[ '{}/fisher_epoch_score uid'.format(uid_j) ] = epoch_score[uid_j]
-            wandb_dendrite = dendrite.to_wandb( metagraph )
-            wandb.log( {**wandb_data, **wandb_dendrite})
+            df = pandas.concat( [
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
+                dendrite.to_dataframe( metagraph = metagraph )
+            ], axis = 1)
+            df['uid'] = df.index
+            wandb_dendrite = dendrite.to_wandb()
+            wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
+            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # --- Save.
         if best_loss > epoch_loss : 

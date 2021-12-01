@@ -725,7 +725,7 @@ class Dendrite(torch.autograd.Function):
             return pandas.DataFrame()
 
 
-    def to_wandb( self, metagraph = None ):
+    def to_wandb( self ):
         r""" Return a dictionary of dendrite stats as wandb logging info.
             Args:
                 metagraph: (bittensor.Metagraph):

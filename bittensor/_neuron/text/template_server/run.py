@@ -26,6 +26,7 @@ import sys
 import torch
 import time
 import wandb
+import pandas
 import datetime
 from threading import Lock
 
@@ -94,9 +95,13 @@ def serve( config, server ):
 
     # --- Run Forever.
     while True:
-        end_block = subtensor.get_current_block() + config.neuron.blocks_per_epoch
-        while end_block >= subtensor.get_current_block():
+        
+        current_block = subtensor.get_current_block()
+        end_block = current_block + config.neuron.blocks_per_epoch
+        while end_block >= current_block:
             time.sleep( bittensor.__blocktime__ )
+            current_block = subtensor.get_current_block()
+
         metagraph.sync().save()
         my_uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
        
@@ -109,6 +114,15 @@ def serve( config, server ):
                 'incentive': metagraph.I[ my_uid ].item(),
                 'emission': metagraph.E[ my_uid ].item(),
             } 
+            df = pandas.concat( [
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
+                axon.to_dataframe( metagraph = metagraph ),
+            ], axis = 1)
+            df['uid'] = df.index
+            wandb_info_axon = axon.to_wandb()                
+            wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
+            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+
             for uid_i, val in enumerate(metagraph.W[:,my_uid].tolist()):
                 if uid_i > 0:
                     wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, my_uid) ] = val
