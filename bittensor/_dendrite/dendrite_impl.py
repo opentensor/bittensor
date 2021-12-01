@@ -662,7 +662,6 @@ class Dendrite(torch.autograd.Function):
                 query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     Times per call.
         """
-        bittensor.logging.info(prefix='dendrite', sufix='update stats for request')
         self.stats.qps.event()
         self.stats.total_requests += 1
         total_in_bytes_per_second = 0
@@ -695,7 +694,6 @@ class Dendrite(torch.autograd.Function):
                 pass
 
         self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
-        bittensor.logging.info(prefix='dendrite', sufix='done')
 
     def to_dataframe ( self, metagraph ):
         r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
@@ -737,10 +735,10 @@ class Dendrite(torch.autograd.Function):
         """
         try:
             wandb_info = {
-                'dendrite_qps': self.stats.qps.get(),
-                'dendrite_total_requests' : self.stats.total_requests,
-                'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-                'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+                'dendrite/qps': self.stats.qps.get(),
+                'dendrite/total_requests' : self.stats.total_requests,
+                'dendrite/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+                'dendrite/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
             }
             return wandb_info
         except Exception as e:

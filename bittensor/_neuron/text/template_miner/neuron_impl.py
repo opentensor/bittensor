@@ -424,12 +424,14 @@ class Neuron:
 
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
-            epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() )).device('cpu')
+            epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() ) )
             topk_scores, topk_uids = bittensor.unbiased_topk( epsilon_scores, k = k )
+            topk_uids = topk_uids.detach().to('cpu')
+            topk_scores = topk_scores.detach().to('cpu')
             self.subtensor.timeout_set_weights(
                 timeout = 100,
-                uids = topk_uids.detach().to(torch.device('cpu')),
-                weights = topk_scores.detach().to(torch.device('cpu')),
+                uids = topk_uids,
+                weights = topk_scores,
                 wait_for_inclusion = True,
                 wallet = self.wallet,
             )
@@ -480,16 +482,16 @@ class Neuron:
         if self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
             # ---- Miner summary for wandb
             wandb_info = {
-                'stake':stake,
-                'rank':rank,
-                'incentive':incentive,
-                'num_peers':self.metagraph.n.item(),
-                'remote_target_epoch_loss': self.stats.remote_target_epoch_loss,
-                'distillation_epoch_loss': self.stats.distillation_epoch_loss,
-                'local_target_epoch_loss': self.stats.local_target_epoch_loss,
-                'local_epoch_acc': self.stats.local_epoch_acc,
-                'num_sync_metagraph': self.stats.epoch_sync_count,
-                'data_size': self.stats.epoch_data_size,
+                'neuron/stake':stake,
+                'neuron/rank':rank,
+                'neuron/incentive':incentive,
+                'neuron/num_peers':self.metagraph.n.item(),
+                'nucleus/remote_target_epoch_loss': self.stats.remote_target_epoch_loss,
+                'nucleus/distillation_epoch_loss': self.stats.distillation_epoch_loss,
+                'nucleus/local_target_epoch_loss': self.stats.local_target_epoch_loss,
+                'nucleus/local_epoch_acc': self.stats.local_epoch_acc,
+                'neuron/num_sync_metagraph': self.stats.epoch_sync_count,
+                'neuron/data_size': self.stats.epoch_data_size,
             }
             wandb_info_axon = self.axon.to_wandb( metagraph = self.metagraph )
             wandb_info_dend = self.dendrite.to_wandb( metagraph = self.metagraph )

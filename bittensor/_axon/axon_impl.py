@@ -756,12 +756,12 @@ class Axon( bittensor.grpc.BittensorServicer ):
         try:
             # ---- Axon summary for wandb
             wandb_data = {
-                'axon_qps': self.stats.qps.get(),
-                'axon_total_requests': self.stats.total_requests,
-                'axon_total_in_bytes' : self.stats.total_in_bytes,
-                'axon_total_out_bytes' : self.stats.total_out_bytes,
-                'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-                'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+                'axon/qps': self.stats.qps.get(),
+                'axon/total_requests': self.stats.total_requests,
+                'axon/total_in_bytes' : self.stats.total_in_bytes,
+                'axon/total_out_bytes' : self.stats.total_out_bytes,
+                'axon/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+                'axon/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
             }
             return wandb_data
         except Exception as e:
