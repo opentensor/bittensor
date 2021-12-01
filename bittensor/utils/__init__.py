@@ -15,6 +15,7 @@ def indexed_values_to_dataframe (
         prefix: Union[str, int],
         index: Union[list, torch.LongTensor], 
         values: Union[list, torch.Tensor],
+        filter_zeros: bool = False
     ) -> 'pandas.DataFrame':
     # Type checking.
     if not isinstance(prefix, str) and not isinstance(prefix, numbers.Number):
@@ -34,7 +35,8 @@ def indexed_values_to_dataframe (
     dataframe = pandas.DataFrame(columns=[prefix], index = index )
     for idx_i in index:
         value_i = values[ idx_i ]
-        dataframe.loc[idx_i] = pandas.Series( { str(prefix): value_i } )
+        if value_i > 0 or not filter_zeros:
+            dataframe.loc[idx_i] = pandas.Series( { str(prefix): value_i } )
     return dataframe
 
 def indexed_values_to_wandb( 
