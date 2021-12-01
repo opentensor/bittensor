@@ -446,11 +446,12 @@ class Neuron:
     def logs( self, progress_bar, iteration:int, output: SimpleNamespace ):
         r""" Called after every training step. Displays miner state to screen.
         """
-        self_uid = self.metagraph.hotkey_to_uid(self.wallet.hotkey.ss58_address)
-        stake = self.metagraph.S[ self_uid ].item()
-        rank = self.metagraph.R[ self_uid ].item()
-        incentive = self.metagraph.I[ self_uid ].item()     
-        normalized_peer_weights =  F.softmax (self.nucleus.peer_weights.detach(), dim=0)
+        self_neuron = self.subtensor.neuron_for_pubkey( self.wallet.hotkey.ss58_address )
+        self_uid = self_neuron.uid
+        stake = self_neuron.stake
+        rank = self_neuron.rank
+        incentive = self_neuron.incentive
+        normalized_peer_weights = F.softmax (self.nucleus.peer_weights.detach(), dim=0)
         current_block = self.subtensor.get_current_block()
 
         # ---- Progress bar log
@@ -500,7 +501,7 @@ class Neuron:
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights, filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights, filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_{}_i'.format(self_uid), index = topk_uids, values = self.metagraph.W[ self_uid, : ], filter_zeros = True),
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(self_uid), index = topk_uids, values = self.metagraph.W[ self_uid, : ], filter_zeros = True),
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(self_uid), index = topk_uids, values = self.metagraph.W[ :, self_uid ], filter_zeros = True),
                 self.axon.to_dataframe( metagraph = self.metagraph ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1)
