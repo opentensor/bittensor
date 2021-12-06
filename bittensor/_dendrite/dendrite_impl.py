@@ -661,41 +661,34 @@ class Dendrite(torch.autograd.Function):
                 query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     Times per call.
         """
-        self.stats.qps.event()
-        self.stats.total_requests += 1
-        total_in_bytes_per_second = 0
-        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(requests)) )
-        for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops.tolist(), query_times.tolist())):
-            pubkey = e_i.hotkey
+        # ---- uids that we have sent request to.
+        uids = torch.tensor([e.uid for e in endpoints])
 
-            # First time for this pubkey we create a new entry.
-            if pubkey not in self.stats.requests_per_pubkey:
-                self.stats.requests_per_pubkey[pubkey] = 0
-                self.stats.successes_per_pubkey[pubkey] = 0
-                self.stats.codes_per_pubkey[pubkey] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
-                self.stats.query_times_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
-                self.stats.avg_in_bytes_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
-                self.stats.avg_out_bytes_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
-                self.stats.qps_per_pubkey[pubkey] = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 )
+        # ---- uids that gave us a successful response.
+        success_ids = torch.where(return_ops == bittensor.proto.ReturnCode.Success)[0]
 
-            self.stats.requests_per_pubkey[pubkey] += 1
-            self.stats.successes_per_pubkey[pubkey] += 1 if code_i == 1 else 0
-            self.stats.query_times_per_pubkey[pubkey].event( float(time_i) )
-            self.stats.avg_in_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(resp_i)) )
-            self.stats.avg_out_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(req_i)) )
-            self.stats.qps_per_pubkey[pubkey].event()
-            total_in_bytes_per_second += sys.getsizeof(resp_i) if code_i == 1 else 0 
-            try:
-                if bittensor.proto.ReturnCode.Name(code_i) in self.stats.codes_per_pubkey[pubkey].keys():
-                    self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code_i)] += 1
-            except:
-                # Code may be faulty.
-                pass
+        # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
+        for uid, time in zip(uids, query_times):
+            if uid.item() in self.stats.requested_peers_count.keys():
+                self.stats.requested_peers_count[uid.item()] += 1 
+                self.stats.peers_respond_time[uid.item()] += [time]
 
-        self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
+            else:
+                self.stats.requested_peers_count[uid.item()] = 1
+                self.stats.peers_respond_time[uid.item()] = [time]
 
+        # ---- Aggregating result to stats
+        for uid in uids[success_ids]:
+            if uid.item() in self.stats.responded_peers_count.keys():
+                self.stats.responded_peers_count[uid.item()] += 1
+            else:
+                self.stats.responded_peers_count[uid.item()] = 1
 
-    def to_wandb( self ):
+        self.stats.uids += uids.tolist()
+        self.stats.return_ops += return_ops.tolist()
+        self.stats.query_times += query_times.tolist()
+
+    def to_wandb(self):
         r""" Return a dictionary of axon stat for wandb logging
             
             Return:
@@ -724,3 +717,18 @@ class Dendrite(torch.autograd.Function):
             columns=[ 'pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps' ] + bittensor.proto.ReturnCode.keys()
         )
         return wandb_info
+
+    def clear_stats(self):
+        r"""
+        Clears stats about requests and response times
+        """
+
+        self.stats = SimpleNamespace(
+            uids=[],
+            return_ops=[],
+            query_times=[],
+            requested_peers_count={},
+            responded_peers_count={},
+            peers_respond_time={}
+        )
+
