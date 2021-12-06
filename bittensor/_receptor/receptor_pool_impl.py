@@ -108,7 +108,7 @@ class ReceptorPool ( torch.nn.Module ):
         requests = []
         for arg in call_args:
             receptor, inputs, modality = arg
-            requests.append(receptor.preprocess_resquest( inputs = inputs, modality = modality ))
+            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
 
         # ---- Send the forward request to peers. ---- 
         request_futures = []
@@ -189,7 +189,7 @@ class ReceptorPool ( torch.nn.Module ):
         requests = []
         for arg in call_args:
             receptor, inputs, grads_dy, modality = arg
-            requests.append(receptor.preprocess_resquest( inputs = inputs, modality = modality, grads_dy = grads_dy, backward = True))
+            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality, grads_dy = grads_dy, backward = True))
 
         # ---- Send the forward request to peers. ---- 
         request_futures = []

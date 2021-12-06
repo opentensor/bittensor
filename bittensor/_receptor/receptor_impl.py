@@ -201,7 +201,7 @@ class Receptor(nn.Module):
                     Time of call.
 
         """
-        request = self.preprocess_resquest( inputs = inputs, modality = modality)
+        request = self.preprocess_request ( inputs = inputs, modality = modality)
         request = self.make_request_call(request, timeout = timeout)
         return self.handle_request_response(request)
 
@@ -238,7 +238,7 @@ class Receptor(nn.Module):
                 time (:obj:`float`, `required`):
                     Time of call.
         """
-        request = self.preprocess_resquest(inputs = inputs_x, modality = modality, grads_dy = grads_dy, backward = True)
+        request = self.preprocess_request (inputs = inputs_x, modality = modality, grads_dy = grads_dy, backward = True)
         request = self.make_request_call(request, timeout = timeout)
         return self.handle_request_response(request)
             
@@ -545,7 +545,7 @@ class Receptor(nn.Module):
                 message=request.message
             )
 
-    def preprocess_resquest(
+    def preprocess_request (
         self, 
         inputs: torch.Tensor, 
         modality: bittensor.proto.Modality,
