@@ -40,7 +40,6 @@ def test_forward_wandb():
     response, code, call_time, message = axon._forward( request )
     axon.update_stats_for_request( request, response, call_time, code )
     print( axon.to_wandb() )
-    print( axon.to_dataframe() )
 
 
 def test_forward_not_implemented():
@@ -568,7 +567,6 @@ def test_grpc_forward_works():
     assert outputs.tolist() == [[[0]]]
     axon.stop()
     assert axon.stats.total_requests == 1 
-    axon.to_dataframe()
     axon.to_wandb()
 
 

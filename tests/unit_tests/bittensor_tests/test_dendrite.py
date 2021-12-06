@@ -33,7 +33,6 @@ def test_dendrite_forward_text_endpoints_tensor():
     assert list(torch.stack(resp1, dim=0).shape) == [1, 2, 3, bittensor.__network_dim__]
     assert dendrite.stats.total_requests == 1
     dendrite.to_wandb()
-    dendrite.to_dataframe()
 
 def test_dendrite_forward_text_multiple_endpoints_tensor():
     endpoints_1 = neuron_obj.to_tensor()
