@@ -20,6 +20,7 @@
 import os
 import random
 from re import I
+from threading import Thread
 
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
@@ -34,6 +35,24 @@ from loguru import logger
 import bittensor
 
 logger = logger.opt(colors=True)
+class PreloadData (Thread):
+    def __init__(self, dataloader, epoch_len):
+        Thread.__init__(self)
+        self.busy = False
+        self.dataloader = dataloader
+        self.epoch_len = epoch_len
+    
+    def run(self):
+        self.busy = True 
+        self.dataset = self.dataloader( self.epoch_len )
+
+    def join(self):
+        try:
+            Thread.join(self)
+            self.busy = False
+            return self.dataset
+        except:
+            return False
 
 
 class Dataset():
@@ -132,6 +151,7 @@ class GenesisTextDataset( Dataset ):
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
         self.no_tokenizer = no_tokenizer
+        self.preload = PreloadData(self.dataloader, 1000)
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -379,12 +399,24 @@ class GenesisTextDataset( Dataset ):
         """
         if self.__infinite_dataset_iterator == None:
             self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)]) # should set it to 1000
+            self.remaining_data = 1000
         
         try:
+            self.remaining_data -= 1
+            if self.remaining_data < 500:
+                self.preload.start()
+                self.remaining_data += 1000
             return next(self.__infinite_dataset_iterator)
         
         except StopIteration:
-            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)])
+            if self.preload.busy:
+                dataset = self.preload.join()
+                
+            if dataset:
+                self.__infinite_dataset_iterator = iter([input for input in dataset])
+            else:
+                self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)])
+
             return next(self.__infinite_dataset_iterator)
 
     def __len__(self):
