@@ -25,6 +25,7 @@ import bittensor
 import math
 import torch
 import wandb
+import pandas
 from termcolor import colored
 from functools import partial
 
@@ -67,7 +68,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
 
     while True:
-        dendrite.clear_stats()
 
         # --- Sync + reshape.      
         chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
@@ -89,7 +89,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         for block in progress:
             
             # --- Training step.
-            while block >= subtensor.get_current_block():
+            current_block = subtensor.get_current_block()
+            while block >= current_block:
                 loss, _ = validator( next( dataset ) )
                 val_score = validator.scores()
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
@@ -102,6 +103,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
                 ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
+                current_block = subtensor.get_current_block()
 
             # --- Step logs.
             info = {
@@ -141,36 +143,26 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         epoch_loss = total_epoch_loss / batch_count
         epoch_score = total_epoch_score / batch_count
         active_uids = torch.where(metagraph.active > 0)[0]
-        wandb_data = {
-            'stake': metagraph.S[ uid ].item(),
-            'dividends': metagraph.D[ uid ].item(),
-            'epoch_loss': epoch_loss,
-            'Total unique queries': len(dendrite.stats.requested_peers_count.keys()),
-            'STD in scores': torch.std(ema_scores[active_uids]).item(),
-            'Percentage of active nodes queried': len(dendrite.stats.requested_peers_count.keys()) / len(active_uids),
-            'Total requests sent': sum(dendrite.stats.requested_peers_count.values()),
-            'Total responses recieved': sum(dendrite.stats.responded_peers_count.values()),
-
-        } 
-
-        for uid_j in topk_uids.tolist():
-            uid_str = str(uid_j).zfill(3)
-            wandb_data[ f'{uid_str}/fisher_ema uid' ] = ema_scores.detach()[uid_j]
-            wandb_data[ f'{uid_str}/fisher_epoch_score uid' ] = epoch_score[uid_j]
-            if uid_j in dendrite.stats.requested_peers_count.keys():
-                try:
-                    respond_rate = dendrite.stats.responded_peers_count[uid_j] / dendrite.stats.requested_peers_count[uid_j]
-                except:
-                    respond_rate = 0
-                wandb_data[ f'{uid_str}/dend_requested uid:' ] = dendrite.stats.requested_peers_count[uid_j]
-                wandb_data[ f'{uid_str}/dend_respond_rate uid:' ] = respond_rate
-                wandb_data[ f'{uid_str}/dend_respond_time uid:' ] = sum(dendrite.stats.peers_respond_time[uid_j])/len(dendrite.stats.peers_respond_time[uid_j])
-
-        
-        
+                
         if config.wandb.api_key != 'default':
-            #wandb_data_dend = dendrite.to_wandb()
-            wandb.log( {**wandb_data})
+            wandb_data = {
+                'stake': metagraph.S[ uid ].item(),
+                'dividends': metagraph.D[ uid ].item(),
+                'epoch_loss': epoch_loss,
+                'Total unique queries': len(dendrite.stats.requested_peers_count.keys()),
+                'STD in scores': torch.std(ema_scores[active_uids]).item(),
+                'Percentage of active nodes queried': len(dendrite.stats.requested_peers_count.keys()) / len(active_uids),
+                'Total requests sent': sum(dendrite.stats.requested_peers_count.values()),
+                'Total responses recieved': sum(dendrite.stats.responded_peers_count.values()),
+            } 
+            df = pandas.concat( [
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
+                dendrite.to_dataframe( metagraph = metagraph )
+            ], axis = 1)
+            df['uid'] = df.index
+            wandb_dendrite = dendrite.to_wandb()
+            wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
+            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # --- Save.
         if best_loss > epoch_loss : 

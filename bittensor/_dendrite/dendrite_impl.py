@@ -22,6 +22,7 @@ from typing import Tuple, List, Union, Optional
 
 import sys
 import torch
+import pandas
 import matplotlib.pyplot as plt
 
 from torch.autograd.function import once_differentiable
@@ -661,74 +662,87 @@ class Dendrite(torch.autograd.Function):
                 query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     Times per call.
         """
-        # ---- uids that we have sent request to.
-        uids = torch.tensor([e.uid for e in endpoints])
+        self.stats.qps.event()
+        self.stats.total_requests += 1
+        total_in_bytes_per_second = 0
+        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(requests)) )
+        for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops.tolist(), query_times.tolist())):
+            pubkey = e_i.hotkey
 
-        # ---- uids that gave us a successful response.
-        success_ids = torch.where(return_ops == bittensor.proto.ReturnCode.Success)[0]
+            # First time for this pubkey we create a new entry.
+            if pubkey not in self.stats.requests_per_pubkey:
+                self.stats.requests_per_pubkey[pubkey] = 0
+                self.stats.successes_per_pubkey[pubkey] = 0
+                self.stats.codes_per_pubkey[pubkey] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
+                self.stats.query_times_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
+                self.stats.avg_in_bytes_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
+                self.stats.avg_out_bytes_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
+                self.stats.qps_per_pubkey[pubkey] = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 )
 
-        # ---- For each uid, check we have a stats column for this peer and aggregate to stats.
-        for uid, time in zip(uids, query_times):
-            if uid.item() in self.stats.requested_peers_count.keys():
-                self.stats.requested_peers_count[uid.item()] += 1 
-                self.stats.peers_respond_time[uid.item()] += [time]
+            self.stats.requests_per_pubkey[pubkey] += 1
+            self.stats.successes_per_pubkey[pubkey] += 1 if code_i == 1 else 0
+            self.stats.query_times_per_pubkey[pubkey].event( float(time_i) )
+            self.stats.avg_in_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(resp_i)) )
+            self.stats.avg_out_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(req_i)) )
+            self.stats.qps_per_pubkey[pubkey].event()
+            total_in_bytes_per_second += sys.getsizeof(resp_i) if code_i == 1 else 0 
+            try:
+                if bittensor.proto.ReturnCode.Name(code_i) in self.stats.codes_per_pubkey[pubkey].keys():
+                    self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code_i)] += 1
+            except:
+                # Code may be faulty.
+                pass
 
-            else:
-                self.stats.requested_peers_count[uid.item()] = 1
-                self.stats.peers_respond_time[uid.item()] = [time]
+        self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
 
-        # ---- Aggregating result to stats
-        for uid in uids[success_ids]:
-            if uid.item() in self.stats.responded_peers_count.keys():
-                self.stats.responded_peers_count[uid.item()] += 1
-            else:
-                self.stats.responded_peers_count[uid.item()] = 1
+    def to_dataframe ( self, metagraph ):
+        r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    Indexes the stats data using metagraph hotkeys.
+            Return:
+                dataframe (:obj:`pandas.Dataframe`)
+        """
+        try:
+            index = [ metagraph.hotkeys.index(pubkey) for pubkey in self.stats.requests_per_pubkey.keys() if pubkey in metagraph.hotkeys]
+            columns = [ 'dendrite_n_requested', 'dendrite_n_success', 'dendrite_query_time', 'dendrite_avg_inbytes', 'dendrite_avg_outbytes', 'dendrite_qps' ]
+            dataframe = pandas.DataFrame(columns = columns, index = index)
+            for pubkey in self.stats.requests_per_pubkey.keys():
+                if pubkey in metagraph.hotkeys:
+                    uid = metagraph.hotkeys.index(pubkey)
+                    dataframe.loc[ uid ] = pandas.Series( {
+                        'dendrite_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
+                        'dendrite_n_success': int(self.stats.requests_per_pubkey[pubkey]),
+                        'dendrite_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),               
+                        'dendrite_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                        'dendrite_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                        'dendrite_qps': float(self.stats.qps_per_pubkey[pubkey].get())
+                    } )
+            return dataframe
 
-        self.stats.uids += uids.tolist()
-        self.stats.return_ops += return_ops.tolist()
-        self.stats.query_times += query_times.tolist()
+        except Exception as e:
+            bittensor.logging.error( prefix='failed dendrite.to_dataframe()', sufix=str(e) )
+            return pandas.DataFrame()
 
-    def to_wandb(self):
-        r""" Return a dictionary of axon stat for wandb logging
-            
+
+    def to_wandb( self ):
+        r""" Return a dictionary of dendrite stats as wandb logging info.
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    If not None, indexes the wandb data using int uids rather than string pubkeys.
             Return:
                 wandb_info (:obj:`Dict`)
         """
-        wandb_info = {
-            'dendrite_qps': self.stats.qps.get(),
-            'dendrite_total_requests' : self.stats.total_requests,
-            'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-            'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
-        }
-        table_data = []
-        for pubkey in self.stats.requests_per_pubkey.keys():
-            row = [
-                pubkey,
-                int(self.stats.requests_per_pubkey[pubkey]),
-                int(self.stats.successes_per_pubkey[pubkey]),
-                float(self.stats.query_times_per_pubkey[pubkey].get()),
-                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.qps_per_pubkey[pubkey].get()),
-            ] + list(self.stats.codes_per_pubkey[pubkey].values())
-            table_data.append( row )
-        wandb_info['dendrite_data'] = wandb.Table( 
-            data = table_data, 
-            columns=[ 'pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps' ] + bittensor.proto.ReturnCode.keys()
-        )
-        return wandb_info
+        try:
+            wandb_info = {
+                'dendrite/qps': self.stats.qps.get(),
+                'dendrite/total_requests' : self.stats.total_requests,
+                'dendrite/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+                'dendrite/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+            }
+            return wandb_info
+        except Exception as e:
+            bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
+            return {}
 
-    def clear_stats(self):
-        r"""
-        Clears stats about requests and response times
-        """
-
-        self.stats = SimpleNamespace(
-            uids=[],
-            return_ops=[],
-            query_times=[],
-            requested_peers_count={},
-            responded_peers_count={},
-            peers_respond_time={}
-        )
 
