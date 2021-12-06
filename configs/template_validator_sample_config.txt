@@ -1,0 +1,53 @@
+dataset.batch_size: 10
+dataset.block_size: 20
+dataset.data_dir: ~/.bittensor/data/
+dataset.dataset_name: default
+dataset.max_corpus_size: 10000.0
+dataset.max_datasets: 3
+dataset.no_tokenizer: false
+dataset.num_workers: 0
+dataset.save_dataset: false
+
+dendrite.max_active_receptors: 500
+dendrite.max_worker_threads: 150
+dendrite.requires_grad: true
+dendrite.timeout: 12
+
+logging.debug: false
+logging.logging_dir: ~/.bittensor/miners
+logging.record_log: false
+logging.trace: false
+
+neuron.blocks_per_epoch: 100
+neuron.clip_gradients: 1.0
+neuron.device: cpu
+neuron.learning_rate: 1
+neuron.learning_rate_chain: 1
+neuron.momentum: 0.8
+neuron.n_topk_peer_weights: 100
+neuron.name: template_miner
+neuron.no_restart: false
+neuron.topk: 20
+
+nucleus.dropout: 0.2
+nucleus.nhead: 2
+nucleus.nhid: 200
+nucleus.nlayers: 2
+nucleus.noise_multiplier: 1.0
+nucleus.punishment: 0
+nucleus.topk: 20
+
+subtensor.chain_endpoint: null
+subtensor.network: nakamoto
+
+wallet.hotkey: default
+wallet.name: default
+wallet.path: ~/.bittensor/wallets/
+
+wandb.api_key: default
+wandb.directory: default
+wandb.name: default
+wandb.offline: false
+wandb.project: default
+wandb.run_group: default
+wandb.tags: default

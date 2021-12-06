@@ -40,11 +40,11 @@ class neuron:
         if config == None: config = neuron.config()
         config = config; 
         self.check_config( config )
-        bittensor.logging (
+        bittensor.logging(
             config = config,
             logging_dir = config.neuron.full_path,
         )
-        self.config = config
+        self.config = config;print(config)
 
         # Load/Create our bittensor wallet.
         self.wallet = bittensor.wallet ( config = config ).create().register()
