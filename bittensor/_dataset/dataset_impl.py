@@ -35,6 +35,7 @@ from loguru import logger
 import bittensor
 
 logger = logger.opt(colors=True)
+
 class PreloadData (Thread):
     def __init__(self, dataloader, epoch_len):
         Thread.__init__(self)
@@ -151,7 +152,7 @@ class GenesisTextDataset( Dataset ):
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
         self.no_tokenizer = no_tokenizer
-        self.preload = PreloadData(self.dataloader, 1000)
+        self.preload = None
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -404,17 +405,22 @@ class GenesisTextDataset( Dataset ):
         try:
             self.remaining_data -= 1
             if self.remaining_data < 500:
+                print("start pre-loading")
+                self.preload = PreloadData(self.dataloader, 1000)
                 self.preload.start()
                 self.remaining_data += 1000
             return next(self.__infinite_dataset_iterator)
         
         except StopIteration:
-            if self.preload.busy:
+            set_dataset_iterator = False 
+            if self.preload != None:
                 dataset = self.preload.join()
-                
-            if dataset:
-                self.__infinite_dataset_iterator = iter([input for input in dataset])
-            else:
+                if dataset:
+                    self.__infinite_dataset_iterator = iter([input for input in dataset])
+                    self.preload = None
+                    set_dataset_iterator = True
+            
+            if not set_dataset_iterator:
                 self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)])
 
             return next(self.__infinite_dataset_iterator)
