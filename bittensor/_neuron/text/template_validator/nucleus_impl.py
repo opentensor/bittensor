@@ -50,7 +50,7 @@ class Validator( torch.nn.Module ):
             # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
             real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
             noise = torch.normal( 0, torch.std(active_peer_weights).item()+self.noise_offset, size=( active_peer_weights.size())).to( self.config.neuron.device )
-            topk_weights, topk_idx = torch.topk(active_peer_weights + noise , real_topk, dim=0)
+            topk_weights, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
             topk_uids = active_uids[topk_idx]
 
             # ---- Query network ----

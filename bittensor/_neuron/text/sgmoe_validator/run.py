@@ -15,10 +15,10 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-""" The Exodus base validator
+""" The SGMOE base validator
 
 Example:
-    $ python miners/text/template_validator.py --logging.debug
+    $ python miners/text/sgmoe_validator.py --logging.debug
 
 """
 import bittensor
@@ -39,7 +39,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     config.to_defaults()
     validator = validator.to(device)
     optimizer = torch.optim.SGD(
-        [ {'params': validator.peer_weights, 'lr': config.neuron.learning_rate_chain} ],
+        validator.parameters(),
         lr = config.neuron.learning_rate,
         momentum = config.neuron.momentum,
     )
@@ -68,10 +68,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
 
     while True:
+
         # --- Sync + reshape.      
-        metagraph.sync().save()
         chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
-        validator.peer_weights = torch.nn.Parameter(torch.cat([validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True, device = device)]))
+        validator.sync_with_chain_state()
         ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         # --- Run epoch.
@@ -102,7 +102,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores.detach()
+                ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
@@ -119,16 +119,17 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             
-            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
+            topk_scores, topk_idx = torch.topk(ema_scores, 5, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
+            
             
             progress.set_infos( info )
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item())  )
+        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.timeout_set_weights(
             timeout=10,
             uids = topk_uids.detach().to(torch.device('cpu')),
@@ -138,26 +139,30 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         )
 
         # --- Log.
-        metagraph.sync().save()
+        #metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
         epoch_score = total_epoch_score / batch_count
-    
-        # Push to wandb.
+        active_uids = torch.where(metagraph.active > 0)[0]
+                
         if config.wandb.api_key != 'default':
             wandb_data = {
                 'stake': metagraph.S[ uid ].item(),
                 'dividends': metagraph.D[ uid ].item(),
-                'epoch_loss': epoch_loss
+                'epoch_loss': epoch_loss,
+                'Total unique queries': len(dendrite.stats.requested_peers_count.keys()),
+                'STD in scores': torch.std(ema_scores[active_uids]).item(),
+                'Percentage of active nodes queried': len(dendrite.stats.requested_peers_count.keys()) / len(active_uids),
+                'Total requests sent': sum(dendrite.stats.requested_peers_count.values()),
+                'Total responses recieved': sum(dendrite.stats.responded_peers_count.values()),
             } 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'peer_weight', index = topk_uids, values = validator.peer_weights ),
                 dendrite.to_dataframe( metagraph = metagraph )
             ], axis = 1)
             df['uid'] = df.index
-            wandb_data_dend = dendrite.to_wandb()
-            wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block)
-            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block)
+            wandb_dendrite = dendrite.to_wandb()
+            wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
+            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # --- Save.
         if best_loss > epoch_loss : 

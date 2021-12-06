@@ -24,6 +24,7 @@ Example:
 import bittensor
 import torch
 import wandb
+import pandas
 import datetime
 import traceback
 import sys
@@ -257,11 +258,17 @@ def serve( config, server):
             bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
             # Add additional wandb data for axon, metagraph etc.
-            wandb_info_axon = axon.to_wandb()                
-            wandb_info_metagraph = metagraph.to_wandb()   
             if config.wandb.api_key != 'default':
-                wandb.log( {**wandb_data, **wandb_info_axon, **wandb_info_metagraph } )
-             
+
+                df = pandas.concat( [
+                    bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
+                    axon.to_dataframe( metagraph = metagraph ),
+                ], axis = 1)
+                df['uid'] = df.index
+                wandb_info_axon = axon.to_wandb()                
+                wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
+                wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+
             # Save the model
             gp_server.save(config.neuron.full_path)
             
