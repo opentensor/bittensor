@@ -89,7 +89,9 @@ class subtensor:
             config.subtensor.chain_endpoint = chain_endpoint
         else:
             config.subtensor.network = network if network != None else config.subtensor.network
-            config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
+
+            if (config.subtensor.chain_endpoint == None):
+                config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
         
         substrate = SubstrateInterface(
             address_type = 42,
