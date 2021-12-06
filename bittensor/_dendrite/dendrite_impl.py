@@ -22,7 +22,7 @@ from typing import Tuple, List, Union, Optional
 
 import sys
 import torch
-import matplotlib.pyplot as plt
+import pandas
 
 from torch.autograd.function import once_differentiable
 from loguru import logger
@@ -694,33 +694,54 @@ class Dendrite(torch.autograd.Function):
 
         self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
 
+    def to_dataframe ( self, metagraph ):
+        r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    Indexes the stats data using metagraph hotkeys.
+            Return:
+                dataframe (:obj:`pandas.Dataframe`)
+        """
+        try:
+            index = [ metagraph.hotkeys.index(pubkey) for pubkey in self.stats.requests_per_pubkey.keys() if pubkey in metagraph.hotkeys]
+            columns = [ 'dendrite_n_requested', 'dendrite_n_success', 'dendrite_query_time', 'dendrite_avg_inbytes', 'dendrite_avg_outbytes', 'dendrite_qps' ]
+            dataframe = pandas.DataFrame(columns = columns, index = index)
+            for pubkey in self.stats.requests_per_pubkey.keys():
+                if pubkey in metagraph.hotkeys:
+                    uid = metagraph.hotkeys.index(pubkey)
+                    dataframe.loc[ uid ] = pandas.Series( {
+                        'dendrite_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
+                        'dendrite_n_success': int(self.stats.requests_per_pubkey[pubkey]),
+                        'dendrite_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),               
+                        'dendrite_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                        'dendrite_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                        'dendrite_qps': float(self.stats.qps_per_pubkey[pubkey].get())
+                    } )
+            return dataframe
+
+        except Exception as e:
+            bittensor.logging.error( prefix='failed dendrite.to_dataframe()', sufix=str(e) )
+            return pandas.DataFrame()
+
 
     def to_wandb( self ):
-        r""" Return a dictionary of axon stat for wandb logging
-            
+        r""" Return a dictionary of dendrite stats as wandb logging info.
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    If not None, indexes the wandb data using int uids rather than string pubkeys.
             Return:
                 wandb_info (:obj:`Dict`)
         """
-        wandb_info = {
-            'dendrite_qps': self.stats.qps.get(),
-            'dendrite_total_requests' : self.stats.total_requests,
-            'dendrite_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-            'dendrite_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
-        }
-        table_data = []
-        for pubkey in self.stats.requests_per_pubkey.keys():
-            row = [
-                pubkey,
-                int(self.stats.requests_per_pubkey[pubkey]),
-                int(self.stats.successes_per_pubkey[pubkey]),
-                float(self.stats.query_times_per_pubkey[pubkey].get()),
-                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.qps_per_pubkey[pubkey].get()),
-            ] + list(self.stats.codes_per_pubkey[pubkey].values())
-            table_data.append( row )
-        wandb_info['dendrite_data'] = wandb.Table( 
-            data = table_data, 
-            columns=[ 'pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps' ] + bittensor.proto.ReturnCode.keys()
-        )
-        return wandb_info
+        try:
+            wandb_info = {
+                'dendrite/qps': self.stats.qps.get(),
+                'dendrite/total_requests' : self.stats.total_requests,
+                'dendrite/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+                'dendrite/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+            }
+            return wandb_info
+        except Exception as e:
+            bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
+            return {}
+
+

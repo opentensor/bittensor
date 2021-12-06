@@ -25,6 +25,7 @@ from typing import List, Tuple, Callable
 import torch
 import grpc
 import wandb
+import pandas
 from loguru import logger
 import torch.nn.functional as F
 import concurrent
@@ -714,37 +715,55 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except:
             pass  
 
+    def to_dataframe ( self, metagraph ):
+        r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    Indexes the stats data using uids.
+            Return:
+                dataframe (:obj:`pandas.Dataframe`)
+        """
+        # Reindex the pubkey to uid if metagraph is present.
+        try:
+            index = [ metagraph.hotkeys.index(pubkey) for pubkey in self.stats.requests_per_pubkey.keys() if pubkey in metagraph.hotkeys ]
+            columns = [ 'axon_n_requested', 'axon_n_success', 'axon_query_time','axon_avg_inbytes','axon_avg_outbytes', 'axon_qps' ]
+            dataframe = pandas.DataFrame(columns = columns, index = index)
+            for pubkey in self.stats.requests_per_pubkey.keys():
+                if pubkey in metagraph.hotkeys:
+                    uid = metagraph.hotkeys.index(pubkey)
+                    dataframe.loc[ uid ] = pandas.Series( {
+                        'axon_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
+                        'axon_n_success': int(self.stats.requests_per_pubkey[pubkey]),
+                        'axon_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),             
+                        'axon_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
+                        'axon_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
+                        'axon_qps': float(self.stats.qps_per_pubkey[pubkey].get())
+                    } )
+            return dataframe
+
+        except Exception as e:
+            bittensor.logging.error(prefix='failed axon.to_dataframe()', sufix=str(e))
+            return pandas.DataFrame()
+
     def to_wandb( self ):
         r""" Return a dictionary of axon stat info for wandb logging
+            Args:
+                metagraph: (bittensor.Metagraph):
+                    If not None, indexes the wandb data using int uids rather than string pubkeys.
             Return:
                 wandb_info (:obj:`Dict`)
         """
-        # ---- Axon summary for wandb
-        wandb_data = {
-            'axon_qps': self.stats.qps.get(),
-            'axon_total_requests': self.stats.total_requests,
-            'axon_total_in_bytes' : self.stats.total_in_bytes,
-            'axon_total_out_bytes' : self.stats.total_out_bytes,
-            'axon_avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-            'axon_avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
-        }
-        # Create table view
-        table_data = []
-        for pubkey in self.stats.requests_per_pubkey.keys():
-            row = [
-                pubkey,
-                int(self.stats.requests_per_pubkey[pubkey]),
-                int(self.stats.successes_per_pubkey[pubkey]),
-                float(self.stats.query_times_per_pubkey[pubkey].get()),
-                float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                float(self.stats.qps_per_pubkey[pubkey].get()),
-            ] + list(self.stats.codes_per_pubkey[pubkey].values())
-            table_data.append( row )
-
-        wandb_data['axon_data'] = wandb.Table( 
-            data = table_data, 
-            columns=['pubkey', 'requests', 'successes', 'avg_query_time', 'avg_in_bytes', 'avg_out_bytes', 'qps'] + bittensor.proto.ReturnCode.keys()
-        )
-        
-        return wandb_data 
+        try:
+            # ---- Axon summary for wandb
+            wandb_data = {
+                'axon/qps': self.stats.qps.get(),
+                'axon/total_requests': self.stats.total_requests,
+                'axon/total_in_bytes' : self.stats.total_in_bytes,
+                'axon/total_out_bytes' : self.stats.total_out_bytes,
+                'axon/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
+                'axon/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+            }
+            return wandb_data
+        except Exception as e:
+            bittensor.logging.error(prefix='failed during axon.to_wandb()', sufix=str(e))
+            return {} 
