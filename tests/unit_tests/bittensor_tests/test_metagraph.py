@@ -5,7 +5,7 @@ import unittest
 class TestMetagraph(unittest.TestCase):
 
     def setUp (self):
-        self.metagraph = bittensor.metagraph(network = 'akatsuki')
+        self.metagraph = bittensor.metagraph(network = 'nobunaga')
         assert True
 
     def test_print_empty(self):

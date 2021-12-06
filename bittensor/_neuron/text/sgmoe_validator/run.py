@@ -105,7 +105,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
                 current_block = subtensor.get_current_block()
 
-
             # --- Step logs.
             info = {
                 'Step': colored('{}'.format(global_step), 'red'),
