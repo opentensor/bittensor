@@ -200,18 +200,13 @@ class ReceptorPool ( torch.nn.Module ):
             for (inputs_x, grads_dy, endpoint) in 
             list(zip( inputs_x, grads_dy, endpoints )) 
         ]
-        results = self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args, timeout=timeout*10)
 
-        # --- catch any timeout issues due to threadpool --- 
-        try:
-            for result in results:
-                backward_outputs.append( result[0] )
-                backward_codes.append( result[1] )
-                backward_times.append( result[2] )
-        except concurrent.futures._base.TimeoutError:
-            backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
-            backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
-            backward_times= [15] * len(endpoints)
+        results = self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args, timeout=timeout*10)
+        
+        # ---- Return zeros ----
+        backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+        backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
+        backward_times= [15] * len(endpoints)
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
