@@ -197,10 +197,15 @@ class ReceptorPool ( torch.nn.Module ):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
+        # ---- Return zeros ----
+        backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+        backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
+        backward_times= [15] * len(endpoints)
+
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
         
-        return 
+        return backward_outputs, backward_codes, backward_times
 
     def _destroy_receptors_over_max_allowed( self ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
