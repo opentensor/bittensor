@@ -131,7 +131,6 @@ class GenesisTextDataset( Dataset ):
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
         self.no_tokenizer = no_tokenizer
-        self.preload = None
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
