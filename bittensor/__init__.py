@@ -73,6 +73,9 @@ import bittensor._proto.bittensor_pb2_grpc as grpc
 # ---- Neurons ----
 import bittensor._neuron as neurons
 
+# ---- Utils ----
+from bittensor.utils import unbiased_topk as unbiased_topk
+
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli

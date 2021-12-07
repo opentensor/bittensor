@@ -4,14 +4,15 @@ certifi>=2020.11.8
 cryptography==3.1.1
 idna>=2.10
 google-api-python-client
-grpcio==1.32.0
-grpcio-tools==1.32.0
+grpcio==1.42.0
+grpcio-tools==1.42.0
 loguru
 msgpack==1.0.2
 msgpack-numpy==0.4.7.1
 miniupnpc
 munch
 netaddr==0.8.0
+pandas
 password_strength==0.0.3.post2
 protobuf==3.13.0
 py-sr25519-bindings==0.1.2

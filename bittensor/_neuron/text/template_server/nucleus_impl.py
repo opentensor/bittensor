@@ -203,6 +203,7 @@ class server(torch.nn.Module):
     @staticmethod
     def config ():
         parser = argparse.ArgumentParser()
+        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)

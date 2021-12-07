@@ -84,13 +84,36 @@ class subtensor:
         """
         if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
-        if chain_endpoint != None:
-            config.subtensor.network = chain_endpoint
-            config.subtensor.chain_endpoint = chain_endpoint
-        else:
-            config.subtensor.network = network if network != None else config.subtensor.network
-            config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
         
+        # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
+        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
+        # Argument importance: chain_endpoint > network > config.subtensor.chain_endpoint > config.subtensor.network
+       
+        # Select using chain_endpoint arg.
+        if chain_endpoint != None:
+            config.subtensor.chain_endpoint = chain_endpoint
+            config.subtensor.network = 'endpoint'
+            
+        # Select using network arg.
+        elif network != None:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( network )
+            config.subtensor.network = network
+            
+        # Select using config.subtensor.chain_endpoint
+        elif config.subtensor.chain_endpoint != None:
+            config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
+            config.subtensor.network = 'endpoint'
+         
+        # Select using config.subtensor.network
+        elif config.subtensor.network != None:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.network )
+            config.subtensor.network = config.subtensor.network
+            
+        # Fallback to defaults.
+        else:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( bittensor.defaults.subtensor.network )
+            config.subtensor.network = bittensor.defaults.subtensor.network
+           
         substrate = SubstrateInterface(
             address_type = 42,
             type_registry_preset='substrate-node-template',
@@ -120,6 +143,7 @@ class subtensor:
                                         -- nobunaga (staging network)
                                         -- akatsuki (testing network)
                                         -- nakamoto (master network)
+                                        -- local (local running network)
                                     If this option is set it overloads subtensor.chain_endpoint with 
                                     an entry point node from that network.
                                     ''')
