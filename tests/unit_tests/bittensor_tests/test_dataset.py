@@ -1,11 +1,9 @@
 import bittensor
 
 def test_construct_text_corpus():
-
     # text corpus for the train set
     dataset = bittensor.dataset(max_corpus_size = 10000, save_dataset = True)
     dataset.construct_text_corpus()
-
 
 def test_next():
     dataset = bittensor.dataset(max_corpus_size = 1000)

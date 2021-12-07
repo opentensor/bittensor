@@ -5,6 +5,107 @@ import math
 import bittensor
 import rich
 import time
+import torch
+import numbers
+import pandas
+from typing import Tuple, List, Union, Optional
+
+
+def indexed_values_to_dataframe ( 
+        prefix: Union[str, int],
+        index: Union[list, torch.LongTensor], 
+        values: Union[list, torch.Tensor],
+        filter_zeros: bool = False
+    ) -> 'pandas.DataFrame':
+    # Type checking.
+    if not isinstance(prefix, str) and not isinstance(prefix, numbers.Number):
+        raise ValueError('Passed prefix must have type str or Number')
+    if isinstance(prefix, numbers.Number):
+        prefix = str(prefix)
+    if not isinstance(index, list) and not isinstance(index, torch.Tensor):
+        raise ValueError('Passed uids must have type list or torch.Tensor')
+    if not isinstance(values, list) and not isinstance(values, torch.Tensor):
+        raise ValueError('Passed values must have type list or torch.Tensor')
+    if not isinstance(index, list):
+        index = index.tolist()
+    if not isinstance(values, list):
+        values = values.tolist()
+
+    index = [ idx_i for idx_i in index if idx_i < len(values) and idx_i >= 0 ]
+    dataframe = pandas.DataFrame(columns=[prefix], index = index )
+    for idx_i in index:
+        value_i = values[ idx_i ]
+        if value_i > 0 or not filter_zeros:
+            dataframe.loc[idx_i] = pandas.Series( { str(prefix): value_i } )
+    return dataframe
+
+def indexed_values_to_wandb( 
+        wandb_data: dict, 
+        prefix: Union[str, int],
+        index: Union[list, torch.LongTensor], 
+        values: Union[list, torch.Tensor],
+    ):
+    r""" Adds Values to wandb data grouped by index.
+        Args:
+            wandb_data: dict:
+                Wandb dictionary to fill
+
+            prefix str:
+                Prefix name given to wandb log value.
+
+            index: Union[list(int), torch.LongTensor]:
+                Index into values which act as group.
+
+            values: Union[list, torch.Tensor]:
+                Values to index into. If index is non existend value is not added.
+    """
+    # Type checking and converion.
+    if not isinstance(wandb_data, dict):
+        raise ValueError('Passed wandb_data must have type dict')
+    if not isinstance(prefix, str) and not isinstance(prefix, numbers.Number):
+        raise ValueError('Passed prefix must have type str or Number')
+    if isinstance(prefix, numbers.Number):
+        prefix = str(prefix)
+    if not isinstance(index, list) and not isinstance(index, torch.Tensor):
+        raise ValueError('Passed uids must have type list or torch.Tensor')
+    if not isinstance(values, list) and not isinstance(values, torch.Tensor):
+        raise ValueError('Passed values must have type list or torch.Tensor')
+    if not isinstance(index, list):
+        index = index.tolist()
+    if not isinstance(values, list):
+        values = values.tolist()
+
+    for idx_i in index:
+        # Convert index to integer or fail.
+        try:
+            int_idx = int( idx_i )
+        except Exception as e:
+            bittensor.logging.error('Failed to convert index: {} to integer with error'.format(idx_i, e))
+
+        # Add value to wandb data dict.
+        if int_idx < len(values) and int_idx > 0:
+            log_value = values[ int_idx ]
+            wandb_data[ '{}/{}'.format( int_idx, prefix ) ] = log_value
+
+
+def unbiased_topk( values, k, dim=0, sorted = True, largest = True):
+    r""" Selects topk as in torch.topk but does not bias lower indices when values are equal.
+        Args:
+            values: (torch.Tensor)
+                Values to index into.
+            k: (int):
+                Number to take.
+            
+        Return:
+            topk: (torch.Tensor):
+                topk k values.
+            indices: (torch.LongTensor)
+                indices of the topk values.
+    """
+    permutation = torch.randperm(values.shape[ dim ])
+    permuted_values = values[ permutation ]
+    topk, indices = torch.topk( permuted_values,  k, dim = dim, sorted=sorted, largest=largest )
+    return topk, permutation[ indices ]
 
 def hex_bytes_to_u8_list( hex_bytes: bytes ):
     hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
