@@ -93,7 +93,6 @@ from bittensor._dataset import dataset as dataset
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
-from bittensor._threadqueue import threadqueue as threadqueue
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -111,7 +110,6 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-from bittensor._threadqueue.thread_queue_impl import ThreadQueue as ThreadQueue
 
 
 # DEFAULTS
