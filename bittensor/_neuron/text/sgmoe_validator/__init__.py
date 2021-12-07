@@ -15,11 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-""" Template validator.
+""" SGMOE validator.
 
 Example:
     $ import neurons
-    $ neurons.text.template_validator.neuron().run()
+    $ neurons.text.sgmoe_validator.neuron().run()
 """
 
 import argparse
@@ -40,11 +40,11 @@ class neuron:
         if config == None: config = neuron.config()
         config = config; 
         self.check_config( config )
-        bittensor.logging(
+        bittensor.logging (
             config = config,
             logging_dir = config.neuron.full_path,
         )
-        self.config = config;print(config)
+        self.config = config
 
         # Load/Create our bittensor wallet.
         self.wallet = bittensor.wallet ( config = config ).create().register()
@@ -101,24 +101,21 @@ class neuron:
     def config ():
         parser = argparse.ArgumentParser()    
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='sgmoe_validator')
         parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False)
         parser.add_argument('--neuron.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
+        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1e-4)
         parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
         parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Noise standard deviation multiplier. Increases query exploration.', default=1.0)
         parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200)
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.punishment', type=float, help='the punishment for those not responding', default=0)
-
+        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.01)
         
         bittensor.wallet.add_args( parser )
         bittensor.dendrite.add_args( parser )
