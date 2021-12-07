@@ -96,10 +96,6 @@ class ReceptorPool ( torch.nn.Module ):
         
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
-        # ---- Run threaded calls with executor ----
-        forward_outputs = []
-        forward_codes = []
-        forward_times = []
 
         # ---- Fill calls ----
         call_args = [ 
@@ -112,20 +108,17 @@ class ReceptorPool ( torch.nn.Module ):
         requests = []
         for arg in call_args:
             receptor, inputs, modality = arg
-            requests.append(receptor.forward_prep( inputs = inputs, modality = modality ))
+            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
 
         # ---- Send the forward request to peers. ---- 
         request_futures = []
         for arg, request in zip(call_args, requests):
             receptor = arg[0]
-            request_futures.append(receptor.forward_call(forward_request = request, timeout = timeout))
+            request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
         # ---- Collect the futures. ---- 
-        results = []
-        for arg, request_future in zip(call_args, request_futures):
-            receptor = arg[0]
-            result = receptor.forward_collect(forward_request = request_future)
-            results.append(result)
+        thread_pool = ThreadPoolExecutor(max_workers=self.max_worker_threads)    
+        results = thread_pool.map(lambda arg, request_future: arg[0].handle_request_response(request = request_future), call_args, request_futures)
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
 
@@ -185,15 +178,6 @@ class ReceptorPool ( torch.nn.Module ):
         if len(endpoints) != len(inputs_x):
             raise ValueError('Endpoints and inputs must have the same length. Got {} and {}'.format(len(endpoints), len(inputs_x)))
 
-        # ---- Run threaded calls with executor ----
-        backward_outputs = []
-        backward_codes = []
-        backward_times = []
-
-        # --- Create calls ----
-        def _call_receptor_backward_with_args( receptor, inputs_x, grads_dy , modality ):
-            return receptor.backward( inputs_x = inputs_x, grads_dy = grads_dy, modality = modality, timeout = timeout )
-
         # ---- Fill calls ----
         call_args = [
             (self._get_or_create_receptor_for_endpoint( endpoint ), inputs_x, grads_dy, modality) 
@@ -201,8 +185,18 @@ class ReceptorPool ( torch.nn.Module ):
             list(zip( inputs_x, grads_dy, endpoints )) 
         ]
 
-        results = self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args, timeout=timeout*10)
-        
+        # ---- Preprocessing for the forward function, get the request. ---- 
+        requests = []
+        for arg in call_args:
+            receptor, inputs, grads_dy, modality = arg
+            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality, grads_dy = grads_dy, backward = True))
+
+        # ---- Send the forward request to peers. ---- 
+        request_futures = []
+        for arg, request in zip(call_args, requests):
+            receptor = arg[0]
+            request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
+
         # ---- Return zeros ----
         backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
         backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
@@ -211,7 +205,6 @@ class ReceptorPool ( torch.nn.Module ):
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
         
-        # ---- Return ----
         return backward_outputs, backward_codes, backward_times
 
     def _destroy_receptors_over_max_allowed( self ):

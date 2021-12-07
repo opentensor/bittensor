@@ -23,6 +23,7 @@ from typing import List
 from loguru import logger
 
 import wandb
+import pandas
 import torch.nn.functional as f
 import torch
 
@@ -476,32 +477,33 @@ class Metagraph( torch.nn.Module ):
         # For contructor.
         return self
 
+    def to_dataframe(self):
+        try:
+            index = self.uids.tolist()
+            columns = [ 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
+            dataframe = pandas.DataFrame(columns = columns, index = index)
+            for uid in self.uids.tolist():
+                dataframe.loc[index] = pandas.Series( {
+                    'active': self.active[uid].item(),             
+                    'stake': self.stake[uid].item(),             
+                    'rank': self.ranks[uid].item(),            
+                    'trust': self.trust[uid].item(),             
+                    'consensus': self.consensus[uid].item(),             
+                    'incentive': self.incentive[uid].item(),             
+                    'dividend': self.dividend[uid].item(),             
+                    'emission': self.emission[uid].item(),          
+                } )
+            return dataframe
+        except Exception as e:
+            bittensor.logging.error('failed metagraph.to_dataframe()', str(e))
+            return pandas.DataFrame()
+
     def to_wandb(self):
         wandb_info = {
             'metagraph_n': self.n.item(),
             'metagraph_tau': self.tau.item(),
             'metagraph_block': self.block.item(),
         }
-        table_data = []
-        endpoints = self.endpoint_objs
-        for uid in self.uids.tolist():
-            row = [
-                endpoints[uid].hotkey,
-                uid,
-                self.active[uid],
-                self.stake[uid],
-                self.ranks[uid],
-                self.trust[uid],
-                self.consensus[uid],
-                self.incentive[uid],
-                self.dividends[uid],
-                self.emission[uid],
-            ]
-            table_data.append( row )
-        wandb_info['metagraph_data'] = wandb.Table( 
-            data = table_data, 
-            columns=[ 'pubkey', 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
-        )
         return wandb_info
             
     def __str__(self):
