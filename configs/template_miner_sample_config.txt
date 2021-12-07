@@ -1,0 +1,72 @@
+axon.backward_timeout: 20
+axon.forward_timeout: 10
+axon.ip: '[::]'
+axon.max_workers: 10
+axon.maximum_concurrent_rpcs: 400
+axon.port: 8091
+axon.priority.max_workers: 10
+axon.priority.maxsize: -1
+
+dataset.batch_size: 10
+dataset.block_size: 20
+dataset.data_dir: ~/.bittensor/data/
+dataset.dataset_name: default
+dataset.max_corpus_size: 10000.0
+dataset.max_datasets: 3
+dataset.no_tokenizer: false
+dataset.num_workers: 0
+dataset.save_dataset: false
+
+dendrite.max_active_receptors: 500
+dendrite.max_worker_threads: 150
+dendrite.requires_grad: true
+dendrite.timeout: 12
+
+logging.debug: false
+logging.logging_dir: ~/.bittensor/miners
+logging.record_log: false
+logging.trace: false
+
+neuron.accumulate_remote_gradients: false
+neuron.batch_size_train: 2
+neuron.blacklist: 0
+neuron.blacklist_allow_non_registered: true
+neuron.clip_gradients: 1.0
+neuron.compute_remote_gradients: false
+neuron.device: cpu
+neuron.epoch_length: 100
+neuron.learning_rate: 1
+neuron.learning_rate_chain: 1
+neuron.momentum: 0.8
+neuron.n_epochs: 9223372036854775807
+neuron.n_topk_peer_weights: 100
+neuron.name: template_neuron
+neuron.no_restart: false
+neuron.restart_on_failure: true
+neuron.sync_block_time: 100
+neuron.timeout: 10
+neuron.use_upnpc: false
+neuron.use_wandb: false
+neuron.weight_decay: 0.25
+
+nucleus.dropout: 0.2
+nucleus.nhead: 2
+nucleus.nhid: 200
+nucleus.nlayers: 2
+nucleus.punishment: 0.001
+nucleus.topk: 20
+
+subtensor.chain_endpoint: null
+subtensor.network: nakamoto
+
+wallet.hotkey: default
+wallet.name: default
+wallet.path: ~/.bittensor/wallets/
+
+wandb.api_key: default
+wandb.directory: default
+wandb.name: default
+wandb.offline: false
+wandb.project: default
+wandb.run_group: default
+wandb.tags: default
