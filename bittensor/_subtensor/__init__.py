@@ -165,6 +165,8 @@ class subtensor:
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
         assert config.subtensor
+        assert config.subtensor.network != None
+        assert config.subtensor.chain_endpoint != None
 
     @staticmethod
     def determine_chain_endpoint(network: str):
