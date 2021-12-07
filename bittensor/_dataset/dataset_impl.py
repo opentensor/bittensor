@@ -36,26 +36,6 @@ import bittensor
 
 logger = logger.opt(colors=True)
 
-class PreloadData (Thread):
-    def __init__(self, dataloader, epoch_len):
-        Thread.__init__(self)
-        self.busy = False
-        self.dataloader = dataloader
-        self.epoch_len = epoch_len
-    
-    def run(self):
-        self.busy = True 
-        self.dataset = self.dataloader( self.epoch_len )
-
-    def join(self):
-        try:
-            Thread.join(self)
-            self.busy = False
-            return self.dataset
-        except:
-            return False
-
-
 class Dataset():
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
@@ -165,6 +145,12 @@ class GenesisTextDataset( Dataset ):
 
         if not os.path.isdir(os.path.expanduser(data_dir)):
             os.makedirs(os.path.expanduser(data_dir))
+            
+        self.data_queue = bittensor.ThreadQueue(
+            producer_target = self.dataloader,
+            producer_arg = (1000,),
+            buffer_size = 2
+        )
 
     def get_random_directories(self):
         r""" Getting directories from a random dataset_hash
@@ -398,31 +384,30 @@ class GenesisTextDataset( Dataset ):
     def __next__(self):
         """Returns the next element from the dataset. 
         """
+        
         if self.__infinite_dataset_iterator == None:
-            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)]) # should set it to 1000
-            self.remaining_data = 1000
+            set_dataset_iterator = False 
+            while not set_dataset_iterator: 
+                if not self.data_queue.queue.empty() :
+                    dataset = self.data_queue.queue.get()
+                    print(f"\n\nQUEUE GET QUEUE SIZE {self.data_queue.queue.qsize()}\n\n")
+                    if dataset:
+                        self.__infinite_dataset_iterator = iter([input for input in dataset])
+                        set_dataset_iterator = True
         
         try:
-            self.remaining_data -= 1
-            if self.remaining_data < 500:
-                print("start pre-loading")
-                self.preload = PreloadData(self.dataloader, 1000)
-                self.preload.start()
-                self.remaining_data += 1000
             return next(self.__infinite_dataset_iterator)
         
         except StopIteration:
             set_dataset_iterator = False 
-            if self.preload != None:
-                dataset = self.preload.join()
-                if dataset:
-                    self.__infinite_dataset_iterator = iter([input for input in dataset])
-                    self.preload = None
-                    set_dataset_iterator = True
+            while not set_dataset_iterator: 
+                if not self.data_queue.queue.empty() :
+                    dataset = self.data_queue.queue.get()
+                    print(f"\n\nQUEUE GET QUEUE SIZE {self.data_queue.queue.qsize()}\n\n")
+                    if dataset:
+                        self.__infinite_dataset_iterator = iter([input for input in dataset])
+                        set_dataset_iterator = True
             
-            if not set_dataset_iterator:
-                self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)])
-
             return next(self.__infinite_dataset_iterator)
 
     def __len__(self):
