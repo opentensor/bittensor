@@ -20,7 +20,23 @@ import time
 import queue
 
 class ProducerThread(threading.Thread):
-    def __init__(self, queue, target, arg = None, name=None):
+    r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
+    """
+    def __init__(self, queue, target, arg, name=None):
+        r"""Initialization.
+        Args:
+            queue (:obj:`queue.Queue`, `required`)
+                The queue to be filled.
+                
+            target (:obj:`function`, `required`)
+                The target function to run when the queue is not full.
+
+            arg (:type:`tuple`, `required`)
+                The arguments to be passed to the target function.
+
+            name (:type:`str`, `optional`)
+                The name of this threading object. 
+        """
         super(ProducerThread,self).__init__()
         self.name = name
         self.target = target
@@ -28,6 +44,8 @@ class ProducerThread(threading.Thread):
         self.queue = queue 
 
     def run(self):
+        r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
+        """
         while True:
             if not self.queue.full():
                 item = self.target(*self.arg)
@@ -35,7 +53,22 @@ class ProducerThread(threading.Thread):
                 time.sleep(10)
         return
 class ThreadQueue():
+    r""" Manages the queue the producer thread that monitor and fills the queue.
+    """
     def __init__(self, producer_target, producer_arg, buffer_size = 5):
+        """ Setup the queue and start the producer thread.
+        
+        Args:
+                
+            producer_target (:obj:`function`, `required`)
+                The target function to run when the queue is not full.
+
+            producer_arg (:type:`tuple`, `required`)
+                The arguments to be passed to the target function.
+
+            buffer_size (:type:`int`, `optional`)
+                The size of the queue.
+        """
         self.buffer_size = buffer_size
         self.queue = queue.Queue(buffer_size)
         self.producer = ProducerThread(name='producer', queue = self.queue, target = producer_target, arg = producer_arg)

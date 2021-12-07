@@ -153,6 +153,12 @@ class GenesisTextDataset( Dataset ):
     def get_random_directories(self):
         r""" Getting directories from a random dataset_hash
         Where a directory could be leading to a data file or a directory file 
+
+            Returns:
+                directories (:type:`list`, `required`)
+                    A list of directory.
+                        directory: Map{ Name: str, Hash: str, Size: int }: 
+                            A random directory that lead to a datafile.
         """
         
         # --- Getting directories from a random dataset hash.
@@ -183,7 +189,20 @@ class GenesisTextDataset( Dataset ):
         
         return directories
 
-    def get_directories(self, keys):
+    def get_directories(self, keys: list):
+        r""" Getting directories with names that matches keys.
+        Where a directory could be leading to a data file or a directory file.
+
+        Args:
+            keys (:type:`list`, `required`): 
+                The list of ipfs dataset names specified by the user to be included in the dataset.
+
+        Returns:
+            directories (:type:`list`, `required`)
+                A list of directory.
+                    directory: Map{ Name: str, Hash: str, Size: int }: 
+                        A random directory that lead to a datafile.
+        """
         directories = []
         for key in keys:
             
@@ -380,6 +399,8 @@ class GenesisTextDataset( Dataset ):
                     drop_last=True)
     
     def set_dataset_iterator(self):
+        r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ . 
+        """
         success = False 
         while not success: 
             if not self.data_queue.queue.empty() :
