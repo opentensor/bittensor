@@ -1,4 +1,3 @@
-
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -16,18 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
 import threading
 import time
-import random
-import multiprocessing as mp
 import queue
 
 class ProducerThread(threading.Thread):
-    def __init__(self, queue, target=None, arg = None, name=None):
+    def __init__(self, queue, target, arg = None, name=None):
         super(ProducerThread,self).__init__()
-        self.target = target
         self.name = name
+        self.target = target
         self.arg = arg
         self.queue = queue 
 
@@ -35,12 +31,9 @@ class ProducerThread(threading.Thread):
         while True:
             if not self.queue.full():
                 item = self.target(*self.arg)
-                print(item)
                 self.queue.put(item)
-                print(f"\n\nQUEUE PUT {item} \t QUEUE SIZE {self.queue.qsize()}\n\n", item)
                 time.sleep(10)
         return
-
 class ThreadQueue():
     def __init__(self, producer_target, producer_arg, buffer_size = 5):
         self.buffer_size = buffer_size

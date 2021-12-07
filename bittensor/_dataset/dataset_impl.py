@@ -19,8 +19,6 @@
 
 import os
 import random
-from re import I
-from threading import Thread
 
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
@@ -30,9 +28,10 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import requests
 
-
 from loguru import logger
 import bittensor
+from .thread_queue import ThreadQueue
+import time
 
 logger = logger.opt(colors=True)
 
@@ -146,7 +145,7 @@ class GenesisTextDataset( Dataset ):
         if not os.path.isdir(os.path.expanduser(data_dir)):
             os.makedirs(os.path.expanduser(data_dir))
             
-        self.data_queue = bittensor.ThreadQueue(
+        self.data_queue = ThreadQueue(
             producer_target = self.dataloader,
             producer_arg = (1000,),
             buffer_size = 2
@@ -380,34 +379,31 @@ class GenesisTextDataset( Dataset ):
                     batch_size=self.batch_size,
                     num_workers=self.num_workers,
                     drop_last=True)
+    
+    def set_dataset_iterator(self):
+        success = False 
+        while not success: 
+            if not self.data_queue.queue.empty() :
+                dataset = self.data_queue.queue.get()
+                if dataset:
+                    self.__infinite_dataset_iterator = iter([input for input in dataset])
+                    success = True
+            else:
+                time.sleep(2)
+
+        return
 
     def __next__(self):
         """Returns the next element from the dataset. 
         """
-        
         if self.__infinite_dataset_iterator == None:
-            set_dataset_iterator = False 
-            while not set_dataset_iterator: 
-                if not self.data_queue.queue.empty() :
-                    dataset = self.data_queue.queue.get()
-                    print(f"\n\nQUEUE GET QUEUE SIZE {self.data_queue.queue.qsize()}\n\n")
-                    if dataset:
-                        self.__infinite_dataset_iterator = iter([input for input in dataset])
-                        set_dataset_iterator = True
-        
+            self.set_dataset_iterator()
+
         try:
             return next(self.__infinite_dataset_iterator)
         
         except StopIteration:
-            set_dataset_iterator = False 
-            while not set_dataset_iterator: 
-                if not self.data_queue.queue.empty() :
-                    dataset = self.data_queue.queue.get()
-                    print(f"\n\nQUEUE GET QUEUE SIZE {self.data_queue.queue.qsize()}\n\n")
-                    if dataset:
-                        self.__infinite_dataset_iterator = iter([input for input in dataset])
-                        set_dataset_iterator = True
-            
+            self.set_dataset_iterator()
             return next(self.__infinite_dataset_iterator)
 
     def __len__(self):
