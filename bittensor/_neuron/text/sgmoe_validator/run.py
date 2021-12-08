@@ -132,11 +132,11 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.timeout_set_weights(
             timeout=10,
-            uids = topk_uids.detach().to(torch.device('cpu')),
-            weights = topk_scores.detach().to(torch.device('cpu')),
+            uids = topk_uids.to(torch.device('cpu')),
+            weights = topk_scores.to(torch.device('cpu')),
             wait_for_inclusion = True,
             wallet = wallet,
         )
@@ -152,9 +152,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'stake': metagraph.S[ uid ].item(),
                 'dividends': metagraph.D[ uid ].item(),
                 'epoch_loss': epoch_loss,
-                'Total unique queries': len(dendrite.stats.requests_per_pubkey.keys()),
                 'STD in scores': torch.std(ema_scores[active_uids]).item(),
-                'Percentage of active nodes queried': len(dendrite.stats.requests_per_pubkey.keys()) / len(active_uids),
+                
             } 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
