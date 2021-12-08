@@ -784,8 +784,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             block_number (int):
                 Current chain blocknumber.
         """        
-        with self.substrate as substrate:
-            return substrate.get_block_number(None)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.get_block_number(None)
+        return make_substrate_call_with_retry()
 
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
