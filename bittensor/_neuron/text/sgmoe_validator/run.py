@@ -60,6 +60,9 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             logger.error('Error reloading model: {} '.format(e))
     torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
+    # --- last sync block 
+    last_sync_block = subtensor.get_current_block()
+
     # --- Run Forever.
     epoch = 0
     global_step = 0
@@ -168,5 +171,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         if best_loss > epoch_loss : 
             best_loss = epoch_loss
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
+
+        if current_block - last_sync_block > 2000:
+            metagraph.sync()
+            last_sync_block = current_block
+
         epoch += 1
 
