@@ -133,7 +133,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         # --- End of epoch
         # --- Set mechanism weights.
         topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
-        import pdb;pdb.set_trace()
         subtensor.timeout_set_weights(
             timeout=10,
             uids = topk_uids.detach().to(torch.device('cpu')),
@@ -164,7 +163,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             df['uid'] = df.index
             wandb_dendrite = dendrite.to_wandb()
             wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
-            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+            #wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # --- Save.
         if best_loss > epoch_loss : 
