@@ -169,7 +169,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             best_loss = epoch_loss
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
-        if current_block - last_sync_block > 10:
+        if current_block - last_sync_block > config.neuron.metagraph_sync:
             metagraph.sync()
             last_sync_block = current_block
 
