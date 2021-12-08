@@ -133,6 +133,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         # --- End of epoch
         # --- Set mechanism weights.
         topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        import pdb;pdb.set_trace()
         subtensor.timeout_set_weights(
             timeout=10,
             uids = topk_uids.detach().to(torch.device('cpu')),
@@ -170,7 +171,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             best_loss = epoch_loss
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
-        if current_block - last_sync_block > 5000:
+        if current_block - last_sync_block > 10:
             metagraph.sync()
             last_sync_block = current_block
 
