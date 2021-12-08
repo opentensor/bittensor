@@ -155,8 +155,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Total unique queries': len(dendrite.stats.requests_per_pubkey.keys()),
                 'STD in scores': torch.std(ema_scores[active_uids]).item(),
                 'Percentage of active nodes queried': len(dendrite.stats.requests_per_pubkey.keys()) / len(active_uids),
-                'Total requests sent': sum(dendrite.stats.requests_per_pubkey.values()),
-                'Total responses recieved': sum(dendrite.stats.successes_per_pubkey.values()),
             } 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
@@ -172,9 +170,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             best_loss = epoch_loss
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
-        if current_block - last_sync_block > 2000:
-            metagraph.sync()
-            last_sync_block = current_block
 
         epoch += 1
 
