@@ -738,6 +738,7 @@ class Dendrite(torch.autograd.Function):
                 'dendrite/total_requests' : self.stats.total_requests,
                 'dendrite/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
                 'dendrite/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
+                'dendrite/Total unique queries': len(self.stats.requests_per_pubkey.keys()),
             }
             return wandb_info
         except Exception as e:
