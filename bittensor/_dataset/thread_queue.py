@@ -42,16 +42,24 @@ class ProducerThread(threading.Thread):
         self.target = target
         self.arg = arg
         self.queue = queue 
+        self._stop_event = threading.Event()
 
     def run(self):
         r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
         """
-        while True:
+        while True and (not self.stopped()):
             if not self.queue.full():
                 item = self.target(*self.arg)
                 self.queue.put(item)
                 time.sleep(10)
         return
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
 class ThreadQueue():
     r""" Manages the queue the producer thread that monitor and fills the queue.
     """
@@ -73,3 +81,7 @@ class ThreadQueue():
         self.queue = queue.Queue(buffer_size)
         self.producer = ProducerThread(name='producer', queue = self.queue, target = producer_target, arg = producer_arg)
         self.producer.start()
+
+    def close(self):
+        self.producer.stop()
+        self.producer.join()

@@ -150,6 +150,9 @@ class GenesisTextDataset( Dataset ):
             buffer_size = 2
         )
 
+    def close(self):
+        self.data_queue.close()
+
     def get_random_directories(self):
         r""" Getting directories from a random dataset_hash
         Where a directory could be leading to a data file or a directory file 
@@ -365,11 +368,11 @@ class GenesisTextDataset( Dataset ):
                 return data_corpus
 
             logger.error("It appears the directory is empty... Restart your miner to try again.")
-            return None
+            return []
         except Exception as e:
             logger.error("Ran into exception when trying to retrieve dataset from IPFS: {}".format(e))
 
-        return None
+        return []
 
     def dataloader(self, epoch_length = 100):
         """ Creates a torch dataloader out of a subclass of this class.
@@ -385,7 +388,7 @@ class GenesisTextDataset( Dataset ):
         data_size = epoch_length * self.batch_size * self.block_size
         
         # Make sure the data remained is at least as big as data_size 
-        if len(self.data_remained) < (data_size) :
+        while len(self.data_remained) < (data_size) :
             self.data_remained += self.construct_text_corpus(min_data_len = data_size)
 
         self.data = self.data_remained[:data_size]
