@@ -117,7 +117,9 @@ class GenesisTextDataset( Dataset ):
         data_dir,
         save_dataset,
         max_datasets,
-        no_tokenizer
+        no_tokenizer, 
+        world_size,
+        rank
     ):
         super().__init__()
         self.block_size = block_size
@@ -132,6 +134,8 @@ class GenesisTextDataset( Dataset ):
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
         self.no_tokenizer = no_tokenizer
+        self.world_size = world_size
+        self.rank = rank
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -197,7 +201,6 @@ class GenesisTextDataset( Dataset ):
                 logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
 
         return directories
-
 
     def extract_datafile_dir(self, directory):
         r"""
@@ -368,11 +371,18 @@ class GenesisTextDataset( Dataset ):
         del self.data_remained[:data_size]
 
         # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
+        if self.world_size > 0:
+            sampler = torch.utils.data.distributed.DistributedSampler(
+    	        self,
+    	        num_replicas=self.world_size,
+    	        rank=self.rank
+            )
         return DataLoader(self,
                     shuffle=True,
                     batch_size=self.batch_size,
                     num_workers=self.num_workers,
-                    drop_last=True)
+                    drop_last=True,
+                    sampler=sampler)
 
     def __next__(self):
         """Returns the next element from the dataset. 

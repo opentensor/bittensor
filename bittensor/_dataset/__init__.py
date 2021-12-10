@@ -36,8 +36,10 @@ class dataset:
             max_corpus_size:int = None,
             num_workers: int = None,
             dataset_name: list = [],
-            save_dataset: bool=None,
-            no_tokenizer: bool=None
+            save_dataset: bool = None,
+            no_tokenizer: bool = None,
+            world_size: int = 0,
+            rank: int = 0
         ):
         if config == None: 
             config = dataset.config()
@@ -59,7 +61,9 @@ class dataset:
             data_dir = config.dataset.data_dir,
             save_dataset = config.dataset.save_dataset,
             max_datasets = config.dataset.max_datasets,
-            no_tokenizer = config.dataset.no_tokenizer
+            no_tokenizer = config.dataset.no_tokenizer,
+            world_size = world_size,
+            rank = rank
         )
 
     @classmethod

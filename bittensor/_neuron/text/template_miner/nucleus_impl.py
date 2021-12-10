@@ -83,7 +83,7 @@ class Nucleus(nn.Module):
         self.remote_decoder.weight.data.uniform_(-initrange, initrange)
         self.local_decoder.weight.data.uniform_(-initrange, initrange)
 
-    def compute_scores ( self, loss ):
+    def compute_scores( self, loss ):
         """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
@@ -92,6 +92,9 @@ class Nucleus(nn.Module):
         peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
         validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
         return validator_scores
+
+    def forward(self, *args):
+        return self.remote_forward(args)
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
