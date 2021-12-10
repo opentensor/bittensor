@@ -818,7 +818,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         neurons = []
         for id in tqdm(range(self.get_n( block ))): 
             try:
-                neuron = self.neuron_for_uid(id)
+                neuron = self.neuron_for_uid(id, block)
                 neurons.append( neuron )
             except Exception as e:
                 logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
