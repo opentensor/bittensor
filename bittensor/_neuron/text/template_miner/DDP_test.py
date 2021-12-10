@@ -8,6 +8,7 @@ import torch.optim as optim
 import torch.multiprocessing as mp
 
 from torch.nn.parallel import DistributedDataParallel as DDP
+from . import neuron
 
 # On Windows platform, the torch.distributed package only
 # supports Gloo backend, FileStore and TcpStore.
@@ -47,7 +48,8 @@ def demo_basic(rank, world_size):
     setup(rank, world_size)
 
     # create model and move it to GPU with id rank
-    model = ToyModel().to(rank)
+    # model = ToyModel().to(rank)
+    model = neuron()
     ddp_model = DDP(model, device_ids=[rank])
 
     loss_fn = nn.MSELoss()
@@ -67,7 +69,7 @@ def run_demo(demo_fn, world_size):
              args=(world_size,),
              nprocs=world_size,
              join=True)
-             
+
 n_gpus = torch.cuda.device_count()
 assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
 world_size = n_gpus 
