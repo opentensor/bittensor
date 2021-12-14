@@ -257,11 +257,13 @@ def test_dendrite_backoff():
 def forward(i):
     endpoints = neuron_obj.to_tensor()
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
-    dendrite.forward_text( endpoints, x )
+    dend = bittensor.dendrite(wallet = wallet)
+    dend.forward_text( endpoints, x )
+    print(dend.receptor_pool)
 
 def test_dendrite_multiprocessing():
     with Pool(5) as p:
         p.map(forward, [0 ,1, 2, 3, 4, 5])
 
 if __name__ == "__main__":
-    test_dendrite_forward_text_endpoints_tensor()
+    test_dendrite_multiprocessing()
