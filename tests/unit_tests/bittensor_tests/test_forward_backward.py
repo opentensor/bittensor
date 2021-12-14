@@ -191,10 +191,9 @@ def test_axon_receptor_forward_works():
     dendrite = bittensor.dendrite(max_active_receptors= 500)
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
-    time.sleep(5)
     for i in dendrite.receptor_pool.get_receptors_state():
         print(i)
-    assert i == i.READY
+        assert i == i.READY
 
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
