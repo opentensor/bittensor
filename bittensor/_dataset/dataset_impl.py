@@ -19,18 +19,27 @@
 
 import os
 import random
-from re import I
 
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
 
+<<<<<<< HEAD
 from loguru import logger
 import bittensor
 from bittensor._ipfs.ipfs_impl import Ipfs
+=======
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+import requests
+
+from loguru import logger
+import bittensor
+from .thread_queue import ThreadQueue
+import time
+>>>>>>> f507272759b3b086eef7a976f8cc3f8950956828
 
 logger = logger.opt(colors=True)
-
 
 class Dataset():
     """ Implementation for the dataset class, which handles dataloading from ipfs
@@ -87,10 +96,25 @@ class GenesisTextDataset( Dataset ):
 
         if not os.path.isdir(os.path.expanduser(data_dir)):
             os.makedirs(os.path.expanduser(data_dir))
+            
+        self.data_queue = ThreadQueue(
+            producer_target = self.dataloader,
+            producer_arg = (1000,),
+            buffer_size = 2
+        )
+
+    def close(self):
+        self.data_queue.close()
 
     def get_random_directories(self):
         r""" Getting directories from a random dataset_hash
         Where a directory could be leading to a data file or a directory file 
+
+            Returns:
+                directories (:type:`list`, `required`)
+                    A list of directory.
+                        directory: Map{ Name: str, Hash: str, Size: int }: 
+                            A random directory that lead to a datafile.
         """
         
         # --- Getting directories from a random dataset hash.
@@ -122,7 +146,20 @@ class GenesisTextDataset( Dataset ):
         
         return directories
 
-    def get_directories(self, keys):
+    def get_directories(self, keys: list):
+        r""" Getting directories with names that matches keys.
+        Where a directory could be leading to a data file or a directory file.
+
+        Args:
+            keys (:type:`list`, `required`): 
+                The list of ipfs dataset names specified by the user to be included in the dataset.
+
+        Returns:
+            directories (:type:`list`, `required`)
+                A list of directory.
+                    directory: Map{ Name: str, Hash: str, Size: int }: 
+                        A random directory that lead to a datafile.
+        """
         directories = []
         ipfs = Ipfs()
         for key in keys:
@@ -288,11 +325,11 @@ class GenesisTextDataset( Dataset ):
                 return data_corpus
 
             logger.error("It appears the directory is empty... Restart your miner to try again.")
-            return None
+            return []
         except Exception as e:
             logger.error("Ran into exception when trying to retrieve dataset from IPFS: {}".format(e))
 
-        return None
+        return []
 
     def dataloader(self, epoch_length = 100):
         """ Creates a torch dataloader out of a subclass of this class.
@@ -308,7 +345,7 @@ class GenesisTextDataset( Dataset ):
         data_size = epoch_length * self.batch_size * self.block_size
         
         # Make sure the data remained is at least as big as data_size 
-        if len(self.data_remained) < (data_size) :
+        while len(self.data_remained) < (data_size) :
             self.data_remained += self.construct_text_corpus(min_data_len = data_size)
 
         self.data = self.data_remained[:data_size]
@@ -320,18 +357,33 @@ class GenesisTextDataset( Dataset ):
                     batch_size=self.batch_size,
                     num_workers=self.num_workers,
                     drop_last=True)
+    
+    def set_dataset_iterator(self):
+        r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ . 
+        """
+        success = False 
+        while not success: 
+            if not self.data_queue.queue.empty() :
+                dataset = self.data_queue.queue.get()
+                if dataset:
+                    self.__infinite_dataset_iterator = iter([input for input in dataset])
+                    success = True
+            else:
+                time.sleep(2)
+
+        return
 
     def __next__(self):
         """Returns the next element from the dataset. 
         """
         if self.__infinite_dataset_iterator == None:
-            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)]) # should set it to 1000
-        
+            self.set_dataset_iterator()
+
         try:
             return next(self.__infinite_dataset_iterator)
         
         except StopIteration:
-            self.__infinite_dataset_iterator = iter([input for input in self.dataloader(1000)])
+            self.set_dataset_iterator()
             return next(self.__infinite_dataset_iterator)
 
     def __len__(self):
