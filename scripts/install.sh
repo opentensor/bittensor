@@ -110,7 +110,7 @@ linux_install_bittensor() {
 
 linux_increase_ulimit(){
     ohai "Increasing ulimit to 1,000,000"
-    prlimit --pid=$PPID --nofile=10000
+    prlimit --pid=$PPID --nofile=1000000
 }
 
 
