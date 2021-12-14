@@ -194,7 +194,7 @@ def test_axon_receptor_forward_works():
     time.sleep(5)
     for i in dendrite.receptor_pool.get_receptors_state():
         print(i)
-        assert i == i.READY
+    assert i == i.READY
 
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
