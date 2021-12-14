@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm
-
+import faulthandler
 from typing import List, Dict, Union
 from multiprocessing import Process
 
@@ -1019,7 +1019,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             success (bool):
                 flag is true if extrinsic was finalized or included in the block.
         """
-        
+        faulthandler.enable()
         set_weights = Process(target= self.set_weights, kwargs={
                                                            'uids':uids,
                                                            'weights': weights,
