@@ -5,6 +5,7 @@ import torch
 import pytest
 import time
 import bittensor
+from multiprocessing import Pool
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',
@@ -253,22 +254,14 @@ def test_dendrite_backoff():
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
 
+def forward(i):
+    endpoints = neuron_obj.to_tensor()
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    dendrite.forward_text( endpoints, x )
+
+def test_dendrite_multiprocessing():
+    with Pool(5) as p:
+        p.map(forward, [0 ,1, 2, 3, 4, 5])
 
 if __name__ == "__main__":
-    # test_dendrite_forward_tensor_shape_error ()
-    # test_dendrite_forward_image_shape_error ()
-    # test_dendrite_forward_text_shape_error ()
-    # test_dendrite_forward_text ()
-    # test_dendrite_forward_image ()
-    # test_dendrite_forward_tensor ()
-    # test_dendrite_backoff ()
-    # test_dendrite_forward_text_singular_no_batch_size()
-    # test_dendrite_forward_text_singular()
-    # test_dendrite_forward_text_singular_string()
-    # test_dendrite_forward_text_list_string()
-    # test_dendrite_forward_text_tensor_list_singular()
-    # test_dendrite_forward_text_tensor_list()
-    # test_dendrite_forward_text_endpoints_tensor()
-    # test_dendrite_forward_text_multiple_endpoints_tensor()
-    # test_dendrite_forward_text_multiple_endpoints_tensor_list()
     test_dendrite_forward_text_endpoints_tensor()

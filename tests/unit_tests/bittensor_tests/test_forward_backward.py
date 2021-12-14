@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import multiprocessing
 import time
 
-dendrite = bittensor.dendrite()
+dendrite = bittensor.dendrite(requires_grad=True)
 dendrite.receptor_pool.forward = MagicMock(return_value = [torch.tensor([]), [1], [0]]) 
 dendrite.receptor_pool.backward = MagicMock(return_value = [torch.tensor([]), [1], [0]]) 
 endpoint = bittensor.endpoint(
@@ -123,6 +123,19 @@ def test_dendrite_backward_large():
     assert x.grad.shape == y.shape
     assert x.grad.tolist() == y.tolist()
 
+def test_dendrite_backward_no_grad():
+    x = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
+    y = torch.ones((1, 1, bittensor.__network_dim__))
+    nill_response = torch.zeros((1, 1, bittensor.__network_dim__))
+    dendrite_no_grad = bittensor.dendrite(requires_grad=False)
+    dendrite_no_grad.receptor_pool.forward = MagicMock(return_value = [ [y], [0], [0]]) 
+    dendrite_no_grad.receptor_pool.backward = MagicMock(return_value = [ [y], [0], [0]]) 
+    tensors, codes, times = dendrite_no_grad.forward_tensor( endpoints = [ endpoint ], inputs=[ x ])
+    tensors[0].sum().backward()
+    assert x.grad.shape == y.shape
+    assert x.grad.tolist() == nill_response.tolist()
+
+
 def test_dendrite_backward_multiple():
     x1 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
     x2 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
@@ -141,7 +154,6 @@ def test_dendrite_backward_multiple():
     assert x1.grad.tolist() == y1.tolist()
     assert x2.grad.tolist() == y2.tolist()
     assert x3.grad.tolist() == y3.tolist()
-
 
 wallet =  bittensor.wallet (
     path = '/tmp/pytest',
@@ -179,13 +191,12 @@ def test_axon_receptor_forward_works():
     dendrite = bittensor.dendrite(max_active_receptors= 500)
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
-    for i in dendrite.receptor_pool.receptors:
-        assert(dendrite.receptor_pool.receptors[i].state() == dendrite.receptor_pool.receptors[i].state().READY)
+    for i in dendrite.receptor_pool.get_receptors_state():
+        assert i == i.READY
+
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
 
-
 if __name__  == "__main__":
     test_axon_receptor_forward_works()
-    #test_dendrite_backward_large()
 

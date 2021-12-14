@@ -152,7 +152,8 @@ class Dendrite(torch.autograd.Function):
             timeout=timeout
         )
         ctx.forward_codes = forward_codes
-        return (torch.tensor(forward_codes, dtype=torch.int64), torch.tensor(forward_times, dtype=torch.float32),
+        return (torch.tensor(forward_codes, dtype=torch.int64), 
+                torch.tensor(forward_times, dtype=torch.float32),
                 *forward_outputs)
 
     @staticmethod

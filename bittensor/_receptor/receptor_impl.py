@@ -205,7 +205,6 @@ class Receptor(nn.Module):
         request = self.make_request_call(request, timeout = timeout)
         return self.handle_request_response(request)
 
-
     def backward(
             self, 
             inputs_x: torch.Tensor, 
@@ -459,8 +458,8 @@ class Receptor(nn.Module):
             return False, request
 
         # ---- Safe catch NaNs and replace with 0.0 ----
-        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
-        
+        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
+
         # ---- Return ----
         request.code = request.response.return_code
         self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape), outputs = list(outputs.shape))
@@ -508,7 +507,7 @@ class Receptor(nn.Module):
             return False, request
 
         # ---- Safe catch NaNs and replace with 0.0 ----
-        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
+        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
    
         # ---- Return ----
         request.code = bittensor.proto.ReturnCode.Success
