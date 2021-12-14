@@ -24,20 +24,9 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
 
-<<<<<<< HEAD
 from loguru import logger
 import bittensor
 from bittensor._ipfs.ipfs_impl import Ipfs
-=======
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-import requests
-
-from loguru import logger
-import bittensor
-from .thread_queue import ThreadQueue
-import time
->>>>>>> f507272759b3b086eef7a976f8cc3f8950956828
 
 logger = logger.opt(colors=True)
 
