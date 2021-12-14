@@ -122,7 +122,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             
-            topk_scores, topk_idx = torch.topk(ema_scores, 5, dim=0)
+            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
@@ -132,7 +132,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach(), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.timeout_set_weights(
             timeout=10,
             uids = topk_uids.to('cpu'),

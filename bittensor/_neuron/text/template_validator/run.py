@@ -131,8 +131,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item())  )
         subtensor.timeout_set_weights(
             timeout=10,
-            uids = topk_uids.detach().to(torch.device('cpu')),
-            weights = topk_scores.detach().to(torch.device('cpu')),
+            uids = topk_uids.detach().to('cpu'),
+            weights = topk_scores.detach().to('cpu'),
             wait_for_inclusion = True,
             wallet = wallet,
         )
