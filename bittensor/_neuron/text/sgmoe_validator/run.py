@@ -138,7 +138,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             timeout=10,
             uids = topk_uids.to('cpu'),
             weights = topk_scores.to('cpu'),
-            wait_for_inclusion = True,
+            wait_for_inclusion = False,
             wallet = wallet,
         )
 
