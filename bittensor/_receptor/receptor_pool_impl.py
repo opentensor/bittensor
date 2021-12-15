@@ -125,9 +125,11 @@ class ReceptorPool ( torch.nn.Module ):
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
         # ---- Collect the futures. ---- 
-        thread_pool = ThreadPoolExecutor(max_workers=self.max_worker_threads)    
-        results = thread_pool.map(lambda arg, request_future: arg[0].handle_request_response(request = request_future), call_args, request_futures)
-        
+        results = []
+        for arg, request in zip(call_args, request_futures):
+            receptor = arg[0]
+            results.append(receptor.handle_request_response(request = request))
+       
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
 
