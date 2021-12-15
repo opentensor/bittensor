@@ -33,7 +33,6 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from loguru import logger; logger = logger.opt(colors=True)
-import sys
 def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid, dendrite):
     
     print(config)
