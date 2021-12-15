@@ -26,6 +26,20 @@ from multiprocessing.managers import BaseManager
 from loguru import logger
 import threading
 
+class StoppableThread(threading.Thread):
+    """Thread class with a stop() method. The thread itself has to check
+    regularly for the stopped() condition."""
+
+    def __init__(self,  *args, **kwargs):
+        super(StoppableThread, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
 class dendrite:
     r""" This is the factory class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
     which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
@@ -82,14 +96,14 @@ class dendrite:
                 max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors
             )
-
+        manager_thread = None
         try:
             m = dendrite.manager_connect()
             logger.success('Receptor Pool Server Connected')
             logger.info(m.get_receptorpool())
             
         except:
-            dendrite.manager_serve(config, wallet, receptor_pool)
+            manager_thread = dendrite.manager_serve(config, wallet, receptor_pool)
             m = dendrite.manager_connect()
             logger.success('Receptor Pool Server Started')
             logger.info(m.get_receptorpool())
@@ -98,6 +112,7 @@ class dendrite:
             config = config,
             wallet = wallet, 
             receptor_pool = m.get_receptorpool(),
+            manager_thread = manager_thread
         )
 
     @classmethod   
@@ -167,4 +182,6 @@ class dendrite:
             )
         MyManager.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state'])
         server = MyManager(address=('', 50000), authkey=b'abracadabra').get_server()
-        threading.Thread(target=server.serve_forever,daemon=True).start()
+        manager_thread = StoppableThread(target=server.serve_forever,daemon=True)
+        manager_thread.start()
+        return manager_thread
