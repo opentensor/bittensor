@@ -133,11 +133,11 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach(), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.timeout_set_weights(
             timeout=10,
-            uids = topk_uids.to('cpu'),
-            weights = topk_scores.to('cpu'),
+            uids = topk_uids,
+            weights = topk_scores,
             wait_for_inclusion = False,
             wallet = wallet,
         )
