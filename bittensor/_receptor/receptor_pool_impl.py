@@ -197,6 +197,9 @@ class ReceptorPool ( torch.nn.Module ):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
+        for arg, request_future in request_futures:
+            request_future.future.cancel()
+
         # ---- Return zeros ----
         backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
         backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 

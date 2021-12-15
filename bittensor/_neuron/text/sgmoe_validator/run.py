@@ -154,7 +154,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'dividends': metagraph.D[ uid ].item(),
                 'epoch_loss': epoch_loss,
                 'STD in scores': torch.std(ema_scores[active_uids]).item(),
-                
             } 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
