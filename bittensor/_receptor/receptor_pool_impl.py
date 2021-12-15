@@ -197,7 +197,8 @@ class ReceptorPool ( torch.nn.Module ):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
-        for arg, request_future in request_futures:
+        print(request_futures)
+        for request_future in request_futures:
             request_future.future.cancel()
 
         # ---- Return zeros ----
