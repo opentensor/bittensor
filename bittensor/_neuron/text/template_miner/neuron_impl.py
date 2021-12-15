@@ -428,11 +428,11 @@ class Neuron:
             topk_scores, topk_uids = bittensor.unbiased_topk( epsilon_scores, k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
-            self.subtensor.timeout_set_weights(
+            self.subtensor.set_weights(
                 timeout = 100,
                 uids = topk_uids,
                 weights = topk_scores,
-                wait_for_inclusion = True,
+                wait_for_inclusion = False,
                 wallet = self.wallet,
             )
 

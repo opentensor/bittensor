@@ -112,8 +112,8 @@ class Validator( torch.nn.Module ):
                         Batchwise weights for each of the top k peers.
             """
             # For ease of use.
-            batch_size = inputs.shape[0]
             metagraph = self.metagraph()
+
             # Active uids in the metagraph
             active_uids = torch.where(metagraph.active > 0)[0]
 
@@ -121,11 +121,11 @@ class Validator( torch.nn.Module ):
             # weights: (torch.FloatTensor): weights for each filtered_uid
             # weights.shape = [batch size , n_filtered]
             # gates use the last token for context 
-            weights = torch.cat( [ self.gates[ uid ](context[:,-1,:]) for uid in active_uids.tolist() ], axis = 1)
+            weights = torch.cat( [ self.gates[ uid ](context[:,-1,:]) for uid in active_uids.tolist()], axis = 1)
 
             # Normalize weights across batch dimension. 
-            # filtered_weights_mean: (torch.FloatTensor): normalized weights across batch dimension. 
-            # filtered_weights_mean.shape = [ n_filtered ]
+            # filtered_mean_weights: (torch.FloatTensor): normalized weights across batch dimension. 
+            # filtered_mean_weights.shape = [ n_filtered ]
             filtered_mean_weights = torch.mean(weights, axis = 0)
             noise = torch.normal( 0, torch.std(filtered_mean_weights).item(), size=( filtered_mean_weights.size())).to( self.config.neuron.device )
 
@@ -141,12 +141,8 @@ class Validator( torch.nn.Module ):
             real_topk = min( len(active_uids), self.config.neuron.topk )
             topk_weights, topk_indices = torch.topk(self.total_weights[active_uids], real_topk, dim=0)
 
-            # Get the real uids with the top scores.
-            # real_filtered_topk_uids: (torch.LongTensor): uids with highest scores.
-            # real_filtered_topk_uids.shape = [ real_topk ]
-            
             # Get endpoint information for the highest scoring uids.
-            # neurons: List[bittensor.proto.Neuron]: endpoint information for filtered uids.
+            # filtered_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
             # len(neurons) == real_topk
             filtered_endpoints = []
             for uid in active_uids[topk_indices]:
