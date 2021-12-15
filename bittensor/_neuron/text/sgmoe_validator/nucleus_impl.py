@@ -9,9 +9,9 @@ class Validator( torch.nn.Module ):
             super(Validator, self).__init__()
 
             self.embedding = torch.nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
-            self.layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout )
+            self.layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout,batch_first=True)
             self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
-            self.c_layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout )
+            self.c_layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout,batch_first=True)
             self.local_encoder = TransformerEncoder(self.c_layers, 1)
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
