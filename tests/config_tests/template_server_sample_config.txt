@@ -1,4 +1,4 @@
 axon.backward_timeout: 20
 dataset.data_dir: ~/.bittensor/data/
 logging.debug: false
-neuron.blacklist.stake.backward: 100
+wandb.api_key: default
