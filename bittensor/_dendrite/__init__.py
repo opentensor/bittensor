@@ -22,23 +22,9 @@ import copy
 
 import bittensor
 from . import dendrite_impl
+from .manager_server import ManagerServer
 from multiprocessing.managers import BaseManager
 from loguru import logger
-import threading
-
-class StoppableThread(threading.Thread):
-    """Thread class with a stop() method. The thread itself has to check
-    regularly for the stopped() condition."""
-
-    def __init__(self,  *args, **kwargs):
-        super(StoppableThread, self).__init__(*args, **kwargs)
-        self._stop_event = threading.Event()
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
 
 class dendrite:
     r""" This is the factory class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
@@ -96,23 +82,23 @@ class dendrite:
                 max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors
             )
-        manager_thread = None
         try:
-            m = dendrite.manager_connect()
+            manager_client = dendrite.manager_connect()
             logger.success('Receptor Pool Server Connected')
-            logger.info(m.get_receptorpool())
+            logger.info(manager_client.get_receptorpool())
             
         except:
-            manager_thread = dendrite.manager_serve(config, wallet, receptor_pool)
-            m = dendrite.manager_connect()
+            dendrite.manager_serve(config, wallet, receptor_pool)
             logger.success('Receptor Pool Server Started')
-            logger.info(m.get_receptorpool())
+            manager_client = dendrite.manager_connect()
+            logger.success('Receptor Pool Server Connected')
+            logger.info(manager_client.get_receptorpool())
         
         return dendrite_impl.Dendrite ( 
             config = config,
             wallet = wallet, 
-            receptor_pool = m.get_receptorpool(),
-            manager_thread = manager_thread
+            receptor_pool = manager_client.get_receptorpool(),
+            manager = manager_client,
         )
 
     @classmethod   
@@ -163,25 +149,25 @@ class dendrite:
     def manager_connect(cls):
         r"""Creates a custom manager class and connects it to the local server.
         """
-        class MyManager(BaseManager):pass
-        MyManager.register('get_receptorpool')
-        manager = MyManager(address=('', 50000), authkey=b'abracadabra')
+        BaseManager.register('get_receptorpool')
+        BaseManager.register('add_connection_count')
+        BaseManager.register('deduct_connection_count')
+        manager = BaseManager(address=('', 50000), authkey=b'abracadabra')
         manager.connect()
+        manager.add_connection_count()
         return manager
 
     @classmethod
     def manager_serve(cls, config, wallet, receptor_pool = None):
         r"""Creates/Uses a receptor pool to create a local server for receptor pool
         """
-        class MyManager(BaseManager):pass
         if receptor_pool == None:
             receptor_pool = bittensor.receptor_pool( 
                 wallet = wallet,
                 max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors
             )
-        MyManager.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state'])
-        server = MyManager(address=('', 50000), authkey=b'abracadabra').get_server()
-        manager_thread = StoppableThread(target=server.serve_forever,daemon=True)
-        manager_thread.start()
-        return manager_thread
+        ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state'])
+        manager = ManagerServer(address=('', 50000), authkey=b'abracadabra')
+
+        return manager

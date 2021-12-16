@@ -253,17 +253,23 @@ def test_dendrite_backoff():
     out, ops, times = _dendrite.forward_tensor( [_endpoint_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+    del _dendrite
 
 def forward(i):
     endpoints = neuron_obj.to_tensor()
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
     dend = bittensor.dendrite(wallet = wallet)
     dend.forward_text( endpoints, x )
-    print(dend.receptor_pool)
+    del dend
 
 def test_dendrite_multiprocessing():
     with Pool(5) as p:
         p.map(forward, [0 ,1, 2, 3, 4, 5])
 
+def test_dendrite_del():
+    global dendrite
+    del dendrite
+
 if __name__ == "__main__":
     test_dendrite_multiprocessing()
+    test_dendrite_del()

@@ -66,7 +66,7 @@ class ReceptorPool ( torch.nn.Module ):
                 states (:obj:`List[grpc.channel.state]`)
                     The state of receptor.
         """
-        return [r.state() for r in self.receptors.values()]
+        return {hotkey: v.state() for hotkey, v in self.receptors.items()}
 
     def forward(
             self, 

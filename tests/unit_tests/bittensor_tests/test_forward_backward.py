@@ -169,7 +169,7 @@ wallet.create_new_hotkey( use_password=False, overwrite = True)
 
 def test_axon_receptor_forward_works():
     def forward( inputs_x:torch.FloatTensor):
-        time.sleep(9)
+        time.sleep(0.2)
         return torch.zeros([3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         port = 8080,
@@ -193,12 +193,11 @@ def test_axon_receptor_forward_works():
         endpoints += [endpoint]
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
-    for i in dendrite.receptor_pool.get_receptors_state():
-        assert i == i.READY
-
+    receptors_states = dendrite.receptor_pool.get_receptors_state()
+    
+    assert receptors_states[endpoint.hotkey] == receptors_states[endpoint.hotkey].READY
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
-
     axon.stop()
 
 def test_dendrite_call_time():
@@ -217,7 +216,7 @@ def test_dendrite_call_time():
     for i in range(1000):
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
-            uid = 1,
+            uid = 0,
             hotkey = str(i),
             ip = '0.0.0.0', 
             ip_type = 4, 
@@ -231,6 +230,12 @@ def test_dendrite_call_time():
     tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
     total_time = time.time() - start_time
     axon.stop()
+
+def test_dendrite_del():
+    global dendrite, dendrite_no_grad, dendrite_mock
+    del dendrite
+    del dendrite_no_grad
+    del dendrite_mock
 
 if __name__  == "__main__":
     test_axon_receptor_forward_works()

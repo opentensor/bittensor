@@ -72,7 +72,7 @@ class Dendrite(torch.autograd.Function):
             config: 'bittensor.Config',
             wallet: 'bittensor.Wallet',
             receptor_pool: 'bittensor.ReceptorPool',
-            manager_thread: 'threading.Thread'
+            manager: 'BaseManager',
     ):
         r""" Initializes a new Dendrite entry point.
             Args:
@@ -83,7 +83,7 @@ class Dendrite(torch.autograd.Function):
         self.config = config
         self.wallet = wallet
         self.receptor_pool = receptor_pool
-        self.manager_thread = manager_thread
+        self.manager = manager
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
         self.stats = self._init_stats()
@@ -94,11 +94,9 @@ class Dendrite(torch.autograd.Function):
     def __repr__(self):
         return self.__str__()
 
-    def stop(self):
-        if self.manager_thread:
-            self.manager_thread.stop()
-            self.manager_thread.join()
-            logger.success('Receptor Pool Server Stopped')
+    def __del__(self):
+        if self.manager:
+            self.manager.deduct_connection_count()
 
     @staticmethod
     def forward(
@@ -159,6 +157,7 @@ class Dendrite(torch.autograd.Function):
             timeout=timeout
         )
         ctx.forward_codes = forward_codes
+        forward_times = [-1 if t is None else t for t in forward_times]
         return (torch.tensor(forward_codes, dtype=torch.int64), 
                 torch.tensor(forward_times, dtype=torch.float32),
                 *forward_outputs)

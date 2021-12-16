@@ -667,7 +667,7 @@ class Receptor(nn.Module):
 
         if (request.code != bittensor.proto.ReturnCode.Success) or (request.future == None):
             request.end_time = clock.time() - request.start_time
-            return request.zeros, request.code, clock.time() - request.start_time
+            return request.zeros, request.code, request.end_time
 
         deserializer = self.deserialize_forward_response if not request.backward else self.deserialize_backward_response
         response_handling_funs = [self.collect_future, self.check_response, deserializer]
@@ -675,10 +675,10 @@ class Receptor(nn.Module):
         for fun in response_handling_funs:
             check, request = fun(request)
             if not check:
-                request.end_time = clock.time() - request.start_time
-                return request.zeros, request.code, clock.time() - request.start_time
+                request.end_time = clock.time()-request.start_time
+                return request.zeros, request.code, request.end_time
         
-        request.end_time = clock.time() - request.start_time
+        request.end_time = clock.time()-request.start_time
         return request.outputs if check else request.zeros, request.code, request.end_time
  
 
