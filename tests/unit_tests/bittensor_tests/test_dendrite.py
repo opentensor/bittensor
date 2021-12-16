@@ -5,6 +5,7 @@ import torch
 import pytest
 import time
 import bittensor
+from multiprocessing import Pool
 
 wallet =  bittensor.wallet(
     path = '/tmp/pytest',
@@ -252,23 +253,42 @@ def test_dendrite_backoff():
     out, ops, times = _dendrite.forward_tensor( [_endpoint_obj], [x])
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+    del _dendrite
 
+def test_dendrite_multiple():
+    endpoints = neuron_obj.to_tensor()
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+
+    dend1 = bittensor.dendrite( wallet = wallet )
+    dend2 = bittensor.dendrite( wallet = wallet )
+    dend3 = bittensor.dendrite( wallet = wallet )
+    dend4 = bittensor.dendrite( wallet = wallet )
+    
+    dend1.forward_text( endpoints, x )
+    dend2.forward_text( endpoints, x )
+    dend3.forward_text( endpoints, x )
+    dend4.forward_text( endpoints, x )
+    
+    del dend1
+    del dend2
+    del dend3
+    del dend4
+    
+def forward(i):
+    endpoints = neuron_obj.to_tensor()
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    dend = bittensor.dendrite(wallet = wallet)
+    dend.forward_text( endpoints, x )
+    del dend
+
+def test_dendrite_multiprocessing():
+    with Pool(5) as p:
+        p.map(forward, [0 ,1, 2, 3, 4, 5])
+
+def test_dendrite_del():
+    global dendrite
+    del dendrite
 
 if __name__ == "__main__":
-    # test_dendrite_forward_tensor_shape_error ()
-    # test_dendrite_forward_image_shape_error ()
-    # test_dendrite_forward_text_shape_error ()
-    # test_dendrite_forward_text ()
-    # test_dendrite_forward_image ()
-    # test_dendrite_forward_tensor ()
-    # test_dendrite_backoff ()
-    # test_dendrite_forward_text_singular_no_batch_size()
-    # test_dendrite_forward_text_singular()
-    # test_dendrite_forward_text_singular_string()
-    # test_dendrite_forward_text_list_string()
-    # test_dendrite_forward_text_tensor_list_singular()
-    # test_dendrite_forward_text_tensor_list()
-    # test_dendrite_forward_text_endpoints_tensor()
-    # test_dendrite_forward_text_multiple_endpoints_tensor()
-    # test_dendrite_forward_text_multiple_endpoints_tensor_list()
-    test_dendrite_forward_text_endpoints_tensor()
+    test_dendrite_multiprocessing()
+    test_dendrite_del()

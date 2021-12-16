@@ -109,7 +109,6 @@ class Neuron:
         print(exc_type, exc_value, exc_traceback)
     
     def setup(self, rank):
-        # initialize the process group
         dist.init_process_group("nccl", rank=rank, world_size=self.world_size)
     
     def cleanup(self):
@@ -119,7 +118,6 @@ class Neuron:
         print("SETTING MASTER_ADDR")
         os.environ['MASTER_ADDR'] = '192.168.131.176'
         os.environ['MASTER_PORT'] = '8888'
-        assert self.world_size >= 2, f"Requires at least 2 GPUs to run, but got {self.world_size}"
         mp.spawn(self.run,
              args=(self.world_size,),
              nprocs=self.world_size,
@@ -240,11 +238,12 @@ class Neuron:
                             )
                             self.stats.global_step += 1
 
-                    # ---- Update params ----
-                    self.epoch += 1
+                    if rank == 0:
+                        # ---- Update params ----
+                        self.epoch += 1
 
-                    # ---- Checkpoint state ----
-                    self.checkpoint()
+                        # ---- Checkpoint state ----
+                        self.checkpoint()
 
                 except KeyboardInterrupt:
                     # --- User ended session ----

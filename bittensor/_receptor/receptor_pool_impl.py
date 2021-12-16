@@ -60,6 +60,14 @@ class ReceptorPool ( torch.nn.Module ):
         for receptor in self.receptors:
             receptor.__del__()
 
+    def get_receptors_state(self):
+        r""" Return the state of each receptor.
+            Returns:
+                states (:obj:`List[grpc.channel.state]`)
+                    The state of receptor.
+        """
+        return {hotkey: v.state() for hotkey, v in self.receptors.items()}
+
     def forward(
             self, 
             endpoints: List['bittensor.Endpoint'],
@@ -118,10 +126,10 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Collect the futures. ---- 
         results = []
-        for arg, request_future in zip(call_args, request_futures):
+        for arg, request in zip(call_args, request_futures):
             receptor = arg[0]
-            results.append(receptor.handle_request_response(request = request_future, timeout = timeout))
-
+            results.append(receptor.handle_request_response(request = request))
+       
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
 
@@ -129,6 +137,7 @@ class ReceptorPool ( torch.nn.Module ):
             forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             forward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
             forward_times= [15] * len(endpoints)
+        
         except Exception as e:
             forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             forward_codes= [bittensor.proto.ReturnCode.UnknownException] * len(endpoints) 

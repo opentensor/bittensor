@@ -60,6 +60,9 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             logger.error('Error reloading model: {} '.format(e))
     torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
+    # --- last sync block 
+    last_sync_block = subtensor.get_current_block()
+
     # --- Run Forever.
     epoch = 0
     global_step = 0
@@ -129,11 +132,11 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.timeout_set_weights(
             timeout=10,
-            uids = topk_uids.detach().to(torch.device('cpu')),
-            weights = topk_scores.detach().to(torch.device('cpu')),
+            uids = topk_uids.to('cpu'),
+            weights = topk_scores.to('cpu'),
             wait_for_inclusion = True,
             wallet = wallet,
         )
@@ -149,11 +152,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'stake': metagraph.S[ uid ].item(),
                 'dividends': metagraph.D[ uid ].item(),
                 'epoch_loss': epoch_loss,
-                'Total unique queries': len(dendrite.stats.requested_peers_count.keys()),
                 'STD in scores': torch.std(ema_scores[active_uids]).item(),
-                'Percentage of active nodes queried': len(dendrite.stats.requested_peers_count.keys()) / len(active_uids),
-                'Total requests sent': sum(dendrite.stats.requested_peers_count.values()),
-                'Total responses recieved': sum(dendrite.stats.responded_peers_count.values()),
+                
             } 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
@@ -168,5 +168,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         if best_loss > epoch_loss : 
             best_loss = epoch_loss
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
+
+        if current_block - last_sync_block > config.neuron.metagraph_sync:
+            metagraph.sync()
+            last_sync_block = current_block
+
         epoch += 1
 
