@@ -39,8 +39,8 @@ nucleus.nlayers: 2
 subtensor.chain_endpoint: null
 subtensor.network: local
 
-wallet.hotkey: ndubuisi
-wallet.name: ndubuisi
+wallet.hotkey: default
+wallet.name: default
 wallet.path: ~/.bittensor/wallets/
 
 wandb.api_key: default
