@@ -37,17 +37,18 @@ class StoppableThread(threading.Thread):
 class ManagerServer(BaseManager):
     def __init__(self,  *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.connected_count = 0
         self.server = self.get_server()
         self.manager_thread = StoppableThread(target=self.server.serve_forever,daemon=True)
         self.manager_thread.start()
-        self.connected_count = 0
         self.register('add_connection_count', callable=self.add_connection_count)     
         self.register('deduct_connection_count', callable=self.deduct_connection_count)     
         
-    def __del__(self):
-        self.server.stop_event.set()
-        self.manager_thread.stop()
-        self.manager_thread.join()
+    def close(self):
+        if self.server:
+            self.server.stop_event.set()
+            self.manager_thread.stop()
+            self.manager_thread.join()
     
     def add_connection_count(self):
         self.connected_count += 1
@@ -58,8 +59,7 @@ class ManagerServer(BaseManager):
         self.connected_count -= 1
         logger.success(f'Manager Server: Removed 1 connection, total connections:  {self.connected_count}')
 
-        if self.connected_count < 1:
+        if self.connected_count == 0:
             logger.success(f'Manager Server: No one is connecting, killing this server {self.connected_count}')
-            self.__del__()
 
         return

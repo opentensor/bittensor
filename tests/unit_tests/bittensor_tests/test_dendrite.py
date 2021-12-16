@@ -255,6 +255,25 @@ def test_dendrite_backoff():
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
     del _dendrite
 
+def test_dendrite_multiple():
+    endpoints = neuron_obj.to_tensor()
+    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+
+    dend1 = bittensor.dendrite( wallet = wallet )
+    dend2 = bittensor.dendrite( wallet = wallet )
+    dend3 = bittensor.dendrite( wallet = wallet )
+    dend4 = bittensor.dendrite( wallet = wallet )
+    
+    dend1.forward_text( endpoints, x )
+    dend2.forward_text( endpoints, x )
+    dend3.forward_text( endpoints, x )
+    dend4.forward_text( endpoints, x )
+    
+    del dend1
+    del dend2
+    del dend3
+    del dend4
+    
 def forward(i):
     endpoints = neuron_obj.to_tensor()
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )

@@ -85,14 +85,12 @@ class dendrite:
         try:
             manager_client = dendrite.manager_connect()
             logger.success('Receptor Pool Server Connected')
-            logger.info(manager_client.get_receptorpool())
             
         except:
             dendrite.manager_serve(config, wallet, receptor_pool)
             logger.success('Receptor Pool Server Started')
             manager_client = dendrite.manager_connect()
             logger.success('Receptor Pool Server Connected')
-            logger.info(manager_client.get_receptorpool())
         
         return dendrite_impl.Dendrite ( 
             config = config,
