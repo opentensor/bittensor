@@ -570,7 +570,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 transfer_fee = "N/A"
                 # Otherwise continue with finalization.
                 if payment_info:
-                    print(payment_info)
                     transfer_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
                     bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( transfer_fee ))
                 else:
