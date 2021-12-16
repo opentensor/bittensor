@@ -554,13 +554,34 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Check balance.
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             account_balance = self.get_balance( wallet.coldkey.ss58_address )
-        if account_balance < transfer_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
+
+        # Estimate transfer fee.
+        with bittensor.__console__.status(":satellite: Estimating Transfer Fees..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='Balances',
+                    call_function='transfer',
+                    call_params={
+                        'dest': dest, 
+                        'value': transfer_balance.rao
+                    }
+                )
+                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+                transfer_fee = "N/A"
+                # Otherwise continue with finalization.
+                if payment_info:
+                    transfer_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( transfer_fee ))
+                else:
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate transfer fee")
+
+        if account_balance < transfer_balance + transfer_fee:
+            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {} fee: {}[/bold white]".format( account_balance, transfer_balance, transfer_fee ))
             return False
 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
+            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, transfer_fee )):
                 return False
 
         with bittensor.__console__.status(":satellite: Transferring..."):
