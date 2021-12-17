@@ -126,13 +126,7 @@ def serve( config, server ):
             wandb_info_axon = axon.to_wandb()                
             wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
-
-            for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
-                if uid_i > 0:
-                    wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, uid) ] = val
-            axon_wandb = axon.to_wandb()
-            wandb.log( { **wandb_data, **axon_wandb } )
-
+            
         if current_block % 10 == 0:                     
             # --- Setting weights
             try: 
