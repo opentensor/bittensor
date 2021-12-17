@@ -75,7 +75,7 @@ class server(torch.nn.Module):
         if self.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
 
-        self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False).half()
+        self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
         self.loss_fct = torch.nn.CrossEntropyLoss()
         
         self.outputs_cache = None

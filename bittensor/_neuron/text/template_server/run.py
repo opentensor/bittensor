@@ -108,16 +108,17 @@ def serve( config, server ):
         metagraph.sync().save()
         mn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-       
+        wandb_data = {
+            'stake': nn.stake,
+            'rank': nn.rank,
+            'trust': nn.trust,
+            'consensus': nn.consensus,
+            'incentive': nn.incentive,
+            'emission': nn.emission,
+        }
+        bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
         if config.wandb.api_key != 'default':
-            wandb_data = {
-                'stake': nn.stake,
-                'rank': nn.rank,
-                'trust': nn.trust,
-                'consensus': nn.consensus,
-                'incentive': nn.incentive,
-                'emission': nn.emission,
-            } 
+
             nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
@@ -128,10 +129,28 @@ def serve( config, server ):
             wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-            for uid_i, val in enumerate(metagraph.W[:,my_uid].tolist()):
+            for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 if uid_i > 0:
-                    wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, my_uid) ] = val
+                    wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, uid) ] = val
             axon_wandb = axon.to_wandb( metagraph )
             wandb.log( { **wandb_data, **axon_wandb } )
 
-        
+        if current_block % 10 == 0:                     
+            # --- Setting weights
+            try: 
+                # Set self weights to maintain activity.
+                chain_weights = torch.zeros(metagraph.n)
+                chain_weights [ uid ] = 1 
+                did_set = subtensor.set_weights(
+                    uids=metagraph.uids,
+                    weights = chain_weights,
+                    wait_for_inclusion = False,
+                    wallet = wallet,
+                )
+                
+                if did_set:
+                    logger.success('Successfully set weights on the chain')
+                else:
+                    logger.error('Failed to set weights on chain. (Timeout)')
+            except Exception as e:
+                logger.error('Failure setting weights on chain with error: {}', e)
