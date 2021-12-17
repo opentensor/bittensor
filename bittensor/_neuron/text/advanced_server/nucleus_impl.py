@@ -53,7 +53,7 @@ class server(torch.nn.Module):
         self.model_name = model_name if model_name != None else config.neuron.model_name
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
-            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
+            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name).eval()
             self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
         elif self.pretrained == False:
             model_config = AutoConfig.from_pretrained(self.model_name)
