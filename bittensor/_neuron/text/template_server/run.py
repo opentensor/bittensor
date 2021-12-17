@@ -130,7 +130,7 @@ def serve( config, server ):
             for uid_i, val in enumerate(metagraph.W[:,uid].tolist()):
                 if uid_i > 0:
                     wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, uid) ] = val
-            axon_wandb = axon.to_wandb( metagraph )
+            axon_wandb = axon.to_wandb()
             wandb.log( { **wandb_data, **axon_wandb } )
 
         if current_block % 10 == 0:                     
