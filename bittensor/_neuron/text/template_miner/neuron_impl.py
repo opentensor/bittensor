@@ -105,30 +105,35 @@ class Neuron:
         )
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
+        del self.dendrite
+        self.dataset.close()
         self.axon.stop()   
         print(exc_type, exc_value, exc_traceback)
     
-    def setup(self, rank):
+    def init_process(self, rank):
+        os.environ['MASTER_ADDR'] = '192.168.131.176'
+        os.environ['MASTER_PORT'] = '8888'
         dist.init_process_group("nccl", rank=rank, world_size=self.world_size)
     
     def cleanup(self):
         dist.destroy_process_group()
 
     def run_parallel( self ):
-        print("SETTING MASTER_ADDR")
-        os.environ['MASTER_ADDR'] = '192.168.131.176'
-        os.environ['MASTER_PORT'] = '8888'
-        mp.spawn(self.run,
+        mp.spawn(self.run_test,
              args=(self.world_size,),
              nprocs=self.world_size,
              join=True
         )
 
+    def run_test(self, rank = 0):
+        pass
+
     def run( self, rank = 0 ):
         r""" Miner main loop.
         """
-        self.setup(rank)
-        nucleus = DDP(self.nucleus, device_ids = rank)
+        self.init_process(rank)
+        # nucleus = DDP(self.nucleus, device_ids = rank)
+        nuclue = self.nucleus
 
         # ---- Build Bittensor neuron ----
         with self:
