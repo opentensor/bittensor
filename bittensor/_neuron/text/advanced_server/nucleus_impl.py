@@ -54,7 +54,7 @@ class server(torch.nn.Module):
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
             self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name).eval().half()
-            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name).half()
+            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
         elif self.pretrained == False:
             model_config = AutoConfig.from_pretrained(self.model_name)
             model_config.vocab_size= bittensor.__vocab_size__
@@ -129,7 +129,7 @@ class server(torch.nn.Module):
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer).to(self.device)
         with torch.no_grad():
-            pre_hidden = self.pre_model(inputs).last_hidden_state
+            pre_hidden = self.pre_model(inputs.half()).last_hidden_state
 
         if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
