@@ -201,7 +201,7 @@ def serve( config, server):
         chain_weights[uid] = 1 
 
         # --  serve axon to the network.
-        axon.start().serve(subtensor = subtensor)
+        #axon.start().serve(subtensor = subtensor)
         
         while True:
             # --- Run 
