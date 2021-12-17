@@ -56,21 +56,21 @@ class Neuron:
         self.config = config
         self.world_size = torch.cuda.device_count()
         self.wallet = bittensor.wallet ( config = self.config )
-        self.subtensor = bittensor.subtensor ( config = self.config )
-        self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
-        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
-        self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size )
-        self.axon = bittensor.axon (
-            config = self.config,
-            wallet = self.wallet,
-            forward_text = self.forward_text,
-            backward_text = self.backward_text,
-            blacklist = self.blacklist,
-        )
+        # self.subtensor = bittensor.subtensor ( config = self.config )
+        # self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
+        # self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
+        # self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size )
+        # self.axon = bittensor.axon (
+        #     config = self.config,
+        #     wallet = self.wallet,
+        #     forward_text = self.forward_text,
+        #     backward_text = self.backward_text,
+        #     blacklist = self.blacklist,
+        # )
         self.device = torch.device( device = self.config.neuron.device )
         self.nucleus = nucleus.to(self.device)
-        self.nucleus.metagraph = self.metagraph_callback
-        self.nucleus.dendrite = self.dendrite
+        # self.nucleus.metagraph = self.metagraph_callback
+        # self.nucleus.dendrite = self.dendrite
         self.optimizer = torch.optim.SGD(
             [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
             lr = self.config.neuron.learning_rate,
@@ -93,16 +93,16 @@ class Neuron:
             scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device),
             ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device)
         )
-        # ---- Decay factor for fisher ema score 
+        # # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
 
     def __enter__(self):
         self.wallet.create()
-        self.subtensor.register( self.wallet )
-        self.axon.start().serve (
-            use_upnpc = self.config.neuron.use_upnpc, 
-            subtensor = self.subtensor
-        )
+        # self.subtensor.register( self.wallet )
+        # self.axon.start().serve (
+        #     use_upnpc = self.config.neuron.use_upnpc, 
+        #     subtensor = self.subtensor
+        # )
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         del self.dendrite
@@ -113,27 +113,64 @@ class Neuron:
     def init_process(self, rank):
         os.environ['MASTER_ADDR'] = '192.168.131.176'
         os.environ['MASTER_PORT'] = '8888'
+        print("hey i am here")
         dist.init_process_group("nccl", rank=rank, world_size=self.world_size)
+        print("hey still here")
     
     def cleanup(self):
         dist.destroy_process_group()
 
     def run_parallel( self ):
-        mp.spawn(self.run_test,
+        mp.spawn(self.run,
              args=(self.world_size,),
              nprocs=self.world_size,
              join=True
         )
 
-    def run_test(self, rank = 0):
+    def run_test(self, *args):
+        self.subtensor = bittensor.subtensor ( config = self.config )
+        print("got subtensor")
+        self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
+        print("got metagraph")
+        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
+        print("got dend")
+        self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size )
+        print("got dataset")
+        self.axon = bittensor.axon (
+            config = self.config,
+            wallet = self.wallet,
+            forward_text = self.forward_text,
+            backward_text = self.backward_text,
+            blacklist = self.blacklist,
+        )
+        print("got axon")
         pass
 
-    def run( self, rank = 0 ):
+    def run( self, rank = 0, what = 1):
         r""" Miner main loop.
         """
+        self.subtensor = bittensor.subtensor ( config = self.config )
+        print("got subtensor")
+        self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
+        print("got metagraph")
+        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
+        print("got dend")
+        self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size )
+        print("got dataset")
+        self.axon = bittensor.axon (
+            config = self.config,
+            wallet = self.wallet,
+            forward_text = self.forward_text,
+            backward_text = self.backward_text,
+            blacklist = self.blacklist,
+        )
+        print("got axon")
+
         self.init_process(rank)
-        # nucleus = DDP(self.nucleus, device_ids = rank)
-        nuclue = self.nucleus
+        print("got init process")
+        nucleus = DDP(self.nucleus, device_ids = rank)
+        print("got nucleus")
+        # nucleus = self.nucleus
 
         # ---- Build Bittensor neuron ----
         with self:
@@ -182,7 +219,7 @@ class Neuron:
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('blue', f'Epoch:'))
                     progress_bar.set_bar = partial(progress_bar.set_bar,  element='#')
                     for block in progress_bar:
-
+                        print("hey 1 batch")
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
@@ -415,7 +452,6 @@ class Neuron:
             momentum = state_dict['optimizer_state']['param_groups'][0]['momentum'],
         )
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ))
-
 
     def sync (self, current_block ):
         """ Miner sync with metagraph and update chain weight
