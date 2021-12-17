@@ -106,7 +106,7 @@ def serve( config, server ):
             current_block = subtensor.get_current_block()
 
         metagraph.sync().save()
-        mn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         wandb_data = {
             'stake': nn.stake,
@@ -119,7 +119,6 @@ def serve( config, server ):
         bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
         if config.wandb.api_key != 'default':
 
-            nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
                 axon.to_dataframe( metagraph = metagraph ),
