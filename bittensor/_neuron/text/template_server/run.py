@@ -66,16 +66,18 @@ def serve( config, server ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.             
         """
-        with mutex:
-            with torch.enable_grad():
-                with torch.autograd.set_detect_anomaly(True):
-                    outputs_y = model.encode_forward( inputs_x )
-                    torch.autograd.backward (
-                        tensors = [ outputs_y ],
-                        grad_tensors = [ grads_dy ]
-                        )
-                    optimizer.step()
-                    optimizer.zero_grad()
+        if config.neuron.training:
+            with mutex:
+                with torch.enable_grad():
+                    with torch.autograd.set_detect_anomaly(True):
+                        outputs_y = model.encode_forward( inputs_x )
+                        torch.autograd.backward (
+                            tensors = [ outputs_y ],
+                            grad_tensors = [ grads_dy ]
+                            )
+                        optimizer.step()
+                        optimizer.zero_grad()
+
 
     # Create our axon server and subscribe it to the network.
     axon = bittensor.axon (
@@ -103,17 +105,19 @@ def serve( config, server ):
             current_block = subtensor.get_current_block()
 
         metagraph.sync().save()
-        my_uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+        mn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
        
         if config.wandb.api_key != 'default':
             wandb_data = {
-                'stake': metagraph.S[ my_uid ].item(),
-                'rank': metagraph.R[ my_uid ].item(),
-                'trust': metagraph.I[ my_uid ].item(),
-                'consensus': metagraph.C[ my_uid ].item(),
-                'incentive': metagraph.I[ my_uid ].item(),
-                'emission': metagraph.E[ my_uid ].item(),
+                'stake': nn.stake,
+                'rank': nn.rank,
+                'trust': nn.trust,
+                'consensus': nn.consensus,
+                'incentive': nn.incentive,
+                'emission': nn.emission,
             } 
+            nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
                 axon.to_dataframe( metagraph = metagraph ),
