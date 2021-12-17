@@ -53,8 +53,8 @@ class server(torch.nn.Module):
         self.model_name = model_name if model_name != None else config.neuron.model_name
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
-            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name).eval()
-            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
+            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name).eval().half()
+            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name).half()
         elif self.pretrained == False:
             model_config = AutoConfig.from_pretrained(self.model_name)
             model_config.vocab_size= bittensor.__vocab_size__
@@ -75,7 +75,7 @@ class server(torch.nn.Module):
         if self.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
 
-        self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
+        self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False).half()
         self.loss_fct = torch.nn.CrossEntropyLoss()
         
         self.outputs_cache = None
