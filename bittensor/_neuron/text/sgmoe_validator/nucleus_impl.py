@@ -15,7 +15,7 @@ class Validator( torch.nn.Module ):
             self.local_encoder = TransformerEncoder(self.c_layers, 1)
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
-            self.peer_weights = torch.nn.Parameter(torch.ones( [ metagraph().n.item() ] , requires_grad=True, device = device))
+            self.peer_weights = torch.ones( [ metagraph().n.item() ] , requires_grad=False, device = device)
             self.metagraph = metagraph
             self.dendrite = dendrite
             self.config = config
@@ -58,7 +58,6 @@ class Validator( torch.nn.Module ):
 
             # ---- Get active peers and their weights ---- 
             active_uids = torch.where(self.metagraph().active > 0)[0]
-            active_peer_weights = self.peer_weights[active_uids]
 
             # --- Create the local context ---
             local_context = self.local_encoder( self.embedding( inputs ) )* math.sqrt(bittensor.__network_dim__)

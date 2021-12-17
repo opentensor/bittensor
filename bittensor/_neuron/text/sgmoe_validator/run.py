@@ -58,7 +58,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             validator.load_state_dict( torch.load("{}/validator.torch".format( config.neuron.full_path ))['validator'], strict=False )
         except Exception as e:
             logger.error('Error reloading model: {} '.format(e))
-    torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
     # --- last sync block 
     last_sync_block = subtensor.get_current_block()
