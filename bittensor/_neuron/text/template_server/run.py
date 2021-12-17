@@ -105,7 +105,6 @@ def serve( config, server ):
             time.sleep( bittensor.__blocktime__ )
             current_block = subtensor.get_current_block()
 
-        metagraph.sync().save()
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         wandb_data = {
