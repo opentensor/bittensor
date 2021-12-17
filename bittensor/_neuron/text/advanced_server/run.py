@@ -212,15 +212,14 @@ def serve( config, server):
 
             # --- Training step.
             while end_block >= current_block:
-                if current_block != subtensor.get_current_block():
-                    loss, _ = gp_server( next( dataset ).to(gp_server.device) )
-                    if interation > 0 : 
-                        losses += loss
-                    else:
-                        losses = loss
-                    interation += 1
-                    current_block = subtensor.get_current_block()
-            
+                loss, _ = gp_server( next( dataset ).to(gp_server.device) )
+                if interation > 0 : 
+                    losses += loss
+                else:
+                    losses = loss
+                interation += 1
+                current_block = subtensor.get_current_block()
+        
             #Custom learning rate
             if gp_server.backward_gradients > 0:
                 optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)
