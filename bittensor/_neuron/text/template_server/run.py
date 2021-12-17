@@ -29,6 +29,7 @@ import wandb
 import pandas
 import datetime
 from threading import Lock
+from loguru import logger; logger = logger.opt(colors=True)
 
 def serve( config, server ):
     config.to_defaults()
