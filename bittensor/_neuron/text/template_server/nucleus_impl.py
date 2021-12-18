@@ -54,7 +54,7 @@ class server(torch.nn.Module):
         self.model_name = model_name if model_name != None else config.neuron.model_name
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
-            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
+            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name).to(dtype=torch.bfloat16)
             self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
         elif self.pretrained == False:
             model_config = AutoConfig.from_pretrained(self.model_name)
@@ -129,14 +129,16 @@ class server(torch.nn.Module):
         """
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer)
+        print(inputs.size())
         pre_hidden = self.pre_model(inputs).last_hidden_state
-
-        if self.interpolate:
+        print(sen_len[1], pre_hidden.size()[1])
+        if self.interpolate and sen_len[1] != pre_hidden.size()[1]:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
             down = self.mapping_function(pre_hidden)
         else:
-            raise Exception('interpolation off but no mapping function found. Please attach a mapping function')
+            down = pre_hidden
+
 
         if self.padding:
             padding_l = (self.final_dim-self.pre_dimension)//2

@@ -31,7 +31,7 @@ import datetime
 from threading import Lock
 from loguru import logger; logger = logger.opt(colors=True)
 
-def serve( config, server ):
+def serve( config, model ):
     config.to_defaults()
 
     # Create Subtensor connection
@@ -44,10 +44,6 @@ def serve( config, server ):
     metagraph = bittensor.metagraph ( 
         subtensor = bittensor.subtensor( config = config )
     ).load().sync().save()
-
-    # Instantiate the model we are going to serve on the network.
-    # Miner training device.
-    model = server
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -78,6 +74,21 @@ def serve( config, server ):
                             )
                         optimizer.step()
                         optimizer.zero_grad()
+                        
+    for module in model.pre_model.modules():
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm) and module.affine is True:
+            continue
+        
+        for param in module.parameters(recurse=False):
+            if param is not None:
+                if param.data.dtype.is_floating_point:
+                    param.data = param.data.to(dtype=torch.bfloat16)
+                if param._grad is not None and param._grad.data.dtype.is_floating_point:
+                    param._grad.data = param._grad.data.to(dtype=torch.bfloat16)
+
+        for buf in module.buffers(recurse=False):
+            if buf is not None and buf.data.dtype.is_floating_point:
+                buf.data = buf.data.to(dtype=torch.bfloat16)
 
 
     # Create our axon server and subscribe it to the network.
@@ -126,7 +137,7 @@ def serve( config, server ):
             wandb_info_axon = axon.to_wandb()                
             wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
-            
+
         if current_block % 10 == 0:                     
             # --- Setting weights
             try: 
