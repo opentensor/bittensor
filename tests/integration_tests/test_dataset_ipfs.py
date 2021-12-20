@@ -15,3 +15,5 @@ def test_text_dataset():
     assert len(dataloader) != len(dataset)
     assert len(dataset[0]) == block_size
     assert len(dataloader.dataset) == batch_size * epoch_length
+    
+    dataset.close()
