@@ -54,7 +54,7 @@ class Neuron:
         r""" Initializes the neuron with the passed config.
         """
         self.config = config
-        self.world_size = torch.cuda.device_count()
+        self.world_size = 3# torch.cuda.device_count()
         self.wallet = bittensor.wallet ( config = self.config )
         # self.subtensor = bittensor.subtensor ( config = self.config )
         # self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
@@ -112,10 +112,10 @@ class Neuron:
     
     def init_process(self, rank):
         os.environ['MASTER_ADDR'] = '192.168.131.176'
-        os.environ['MASTER_PORT'] = '8888'
-        print("hey i am here")
-        dist.init_process_group("nccl", rank=rank, world_size=self.world_size)
-        print("hey still here")
+        os.environ['MASTER_PORT'] = '8865'
+        print(f"init_process {rank}")
+        dist.init_process_group("gloo", rank=rank, world_size=self.world_size)
+        print(f"init_process finished {rank}")
     
     def cleanup(self):
         dist.destroy_process_group()
@@ -168,7 +168,7 @@ class Neuron:
 
         self.init_process(rank)
         print("got init process")
-        nucleus = DDP(self.nucleus, device_ids = rank)
+        nucleus_ddp = DDP(self.nucleus, find_unused_parameters=True) # , device_ids = rank
         print("got nucleus")
         # nucleus = self.nucleus
 
@@ -225,15 +225,15 @@ class Neuron:
                         while block >= current_block:
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
-                            output = nucleus.remote_forward (
+                            output = nucleus_ddp.forward(
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
                             
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-                            output.loss.backward() # Accumulates gradients on the nucleus.
-                            clip_grad_norm_(nucleus.parameters(), self.config.neuron.clip_gradients)
+                            output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
+                            clip_grad_norm_(nucleus_ddp.parameters(), self.config.neuron.clip_gradients)
                             
                             # ---- Apply and zero accumulated gradients.
                             self.optimizer.step() 
@@ -249,7 +249,7 @@ class Neuron:
                             batches_count += 1
                             
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
-                            scores = torch.nn.functional.normalize ( torch.relu( nucleus.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
+                            scores = torch.nn.functional.normalize ( torch.relu( nucleus_ddp.module.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
                             chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
                                 self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, device = self.device)]), requires_grad=False)

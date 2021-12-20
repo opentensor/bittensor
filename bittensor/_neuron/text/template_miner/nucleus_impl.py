@@ -93,9 +93,9 @@ class Nucleus(nn.Module):
         validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
         return validator_scores
 
-    def forward(self, *args):
-        return self.remote_forward(args)
-
+    def forward(self, *input, **kwargs):
+        return self.remote_forward(inputs = kwargs['inputs'], training = kwargs['training'])
+    
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
             Args:

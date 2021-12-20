@@ -84,13 +84,13 @@ class dendrite:
             )
         try:
             manager_client = dendrite.manager_connect()
-            logger.success('Receptor Pool Server Connected')
+            bittensor.logging.success(prefix='Dendrite manager server', sufix='Connected')
             
         except:
             dendrite.manager_serve(config, wallet, receptor_pool)
-            logger.success('Receptor Pool Server Started')
+            bittensor.logging.success(prefix='Dendrite manager server', sufix='Served')
             manager_client = dendrite.manager_connect()
-            logger.success('Receptor Pool Server Connected')
+            bittensor.logging.success(prefix='Dendrite manager server', sufix='Connected')
         
         return dendrite_impl.Dendrite ( 
             config = config,
@@ -150,7 +150,7 @@ class dendrite:
         BaseManager.register('get_receptorpool')
         BaseManager.register('add_connection_count')
         BaseManager.register('deduct_connection_count')
-        manager = BaseManager(address=('', 50000), authkey=b'abracadabra')
+        manager = BaseManager(address=('', 4098), authkey=b'abracadabr')
         manager.connect()
         manager.add_connection_count()
         return manager
@@ -166,6 +166,6 @@ class dendrite:
                 max_active_receptors = config.dendrite.max_active_receptors
             )
         ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state'])
-        manager = ManagerServer(address=('', 50000), authkey=b'abracadabra')
+        manager = ManagerServer(address=('', 4098), authkey=b'abracadabr')
 
         return manager
