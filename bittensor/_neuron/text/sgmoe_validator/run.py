@@ -73,7 +73,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
 
         # --- Sync + reshape.      
         chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
-        validator.sync_with_chain_state()
         ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         # --- Run epoch.
@@ -169,6 +168,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         if current_block - last_sync_block > config.neuron.metagraph_sync:
             metagraph.sync()
             last_sync_block = current_block
+            validator.sync_with_chain_state()
 
         epoch += 1
 
