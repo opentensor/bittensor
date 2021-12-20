@@ -139,15 +139,15 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         )
 
         # --- Log.
-        #metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
-        epoch_score = total_epoch_score / batch_count
         active_uids = torch.where(metagraph.active > 0)[0]
+
+        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
                 
         if config.wandb.api_key != 'default':
             wandb_data = {
-                'stake': metagraph.S[ uid ].item(),
-                'dividends': metagraph.D[ uid ].item(),
+                'stake': nn.stake,
+                'dividends': nn.dividends,
                 'epoch_loss': epoch_loss,
                 'STD in scores': torch.std(ema_scores[active_uids]).item(),
             } 
