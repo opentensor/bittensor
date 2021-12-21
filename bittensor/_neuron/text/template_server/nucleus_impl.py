@@ -62,6 +62,13 @@ class server(torch.nn.Module):
             self.pre_model = model if model != None else AutoModel.from_config(model_config)
             self.tokenizer = bittensor.tokenizer()
 
+        if self.config.neuron.training:
+            self.pre_model.train()
+        elif self.config.neuron.autocast and self.device == 'cuda':
+            self.pre_model.half()
+        else:
+            self.pre_model.eval()
+            
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
@@ -131,6 +138,9 @@ class server(torch.nn.Module):
         inputs = self.token_remap(inputs,tokenizer)
         if self.config.neuron.training:
             pre_hidden = self.pre_model(inputs).last_hidden_state
+        elif self.config.neuron.autocast and self.device == 'cuda':
+            with torch.autocast(dtype=torch.float16, device_type="cuda"):
+                pre_hidden = self.pre_model(inputs).last_hidden_state
         else:
             with torch.no_grad():
                 pre_hidden = self.pre_model(inputs).last_hidden_state
@@ -225,6 +235,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=5)
         parser.add_argument('--neuron.training',  action='store_true', help='if the model should be training (increases memory load)', default=False)
+        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )

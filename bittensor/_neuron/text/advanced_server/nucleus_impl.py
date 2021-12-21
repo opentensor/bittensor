@@ -128,8 +128,7 @@ class server(torch.nn.Module):
         """
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer).to(self.device)
-        with torch.no_grad():
-            pre_hidden = self.pre_model(inputs).last_hidden_state
+        pre_hidden = self.pre_model(inputs).last_hidden_state
 
         if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
