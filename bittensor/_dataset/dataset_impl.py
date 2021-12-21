@@ -24,9 +24,14 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Subset
 import torch
 
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+import requests
+
 from loguru import logger
 import bittensor
-from bittensor._ipfs.ipfs_impl import Ipfs
+from .thread_queue import ThreadQueue
+import time
 
 logger = logger.opt(colors=True)
 
@@ -34,9 +39,62 @@ class Dataset():
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
     def __init__(self):
+        
+        # Used to retrieve directory contentx
+        self.cat = 'http://ipfs.opentensor.ai/api/v0/cat' 
+        self.node_get = 'http://ipfs.opentensor.ai/api/v0/object/get'
+        self.mountain_hash = 'QmSdDg6V9dgpdAFtActs75Qfc36qJtm9y8a7yrQ1rHm7ZX'
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
         
+
+    @staticmethod
+    def requests_retry_session(
+            retries=10,
+            backoff_factor=0.5,
+            status_forcelist=(104, 500, 502, 504),
+            session=None,
+        ):
+        """ Creates a retriable session for request calls. This enables
+        automatic retries and back-off retries should any request calls fail.
+
+        Args:
+            retries (int, optional): Maximum number of retries. Defaults to 3.
+            backoff_factor (float, optional): Factor by which to back off if a retry fails. Defaults to 0.3.
+            status_forcelist (tuple, optional): A set of integer HTTP status codes that we should force a retry on. Defaults to (500, 502, 504).
+            session ([type], optional): Session for which to set up the retries. Defaults to None.
+
+        Returns:
+            requests.Session(): A Requests Session object set up for retries and backoff.
+        """
+
+        session = session or requests.Session()
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        return session
+
+    def retrieve_directory(self, address: str, params = None, action: str = 'post'):
+        r"""Connects to Pinata IPFS gateway and retrieves directory.
+
+        Returns:
+            dict: A dictionary of the files inside of the genesis_datasets and their hashes.
+        """
+        session = requests.Session()
+        session.params.update(params)
+        if action == 'get':
+            response = Dataset.requests_retry_session(session=session).get(address)
+        elif action == 'post':
+            response = Dataset.requests_retry_session(session=session).post(address)
+        return response
+
     def __len__(self):
         """ Returns length of the dataset that the dataset is processing
         """
@@ -110,7 +168,6 @@ class GenesisTextDataset( Dataset ):
         # --- directories: List[ Map{Name: str, Hash: str, Size: int} ]
         i = 0
         directories = [] 
-        ipfs = Ipfs()
         dataset_hashes_order = list(range(len(self.dataset_hashes)))
         random.shuffle(dataset_hashes_order)
         
@@ -120,7 +177,7 @@ class GenesisTextDataset( Dataset ):
             dataset_hash = self.dataset_hashes[dataset_key]
             i += 1
             logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
-            response = ipfs.retrieve_directory(ipfs.cat, (('arg', dataset_hash),))
+            response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
             
             if response.status_code != 200:
                 logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
@@ -150,13 +207,12 @@ class GenesisTextDataset( Dataset ):
                         A random directory that lead to a datafile.
         """
         directories = []
-        ipfs = Ipfs()
         for key in keys:
             
             if key in self.dataset_hashes.keys():
                 logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(key))
                 dataset_hash = self.dataset_hashes[key] 
-                response = ipfs.retrieve_directory(ipfs.cat, (('arg', dataset_hash),))
+                response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
                 if response.status_code != 200:
                     logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(key))
                 
@@ -182,14 +238,13 @@ class GenesisTextDataset( Dataset ):
             directory: Map{ Name: str, Hash: str, Size: int }: 
                 A random directory that lead to a datafile.
         """
-        ipfs = Ipfs()
         # --- If the size of directory is small, it is leads to data file, return the data file.
         if directory['Size'] <= self.datafile_size_bound:
             return directory
 
         # --- Else, the directory leads to more directories, return a random data file within the directories.
         else:
-            response = ipfs.retrieve_directory(ipfs.node_get, (('arg', directory['Hash']),))
+            response = self.retrieve_directory(self.node_get, (('arg', directory['Hash']),))
             
             # --- Return none if the request failed.
             if response.status_code != 200:
@@ -224,7 +279,6 @@ class GenesisTextDataset( Dataset ):
                 The text data.
         """
         text = None
-        ipfs = Ipfs()
         file_name = file['Name']
         file_hash = file['Hash']
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_name))
@@ -240,7 +294,7 @@ class GenesisTextDataset( Dataset ):
 
         # --- If couldnt load from path, download text.
         if text == None:
-            response = ipfs.retrieve_directory(ipfs.node_get, (('arg', file_hash),))
+            response = self.retrieve_directory(self.node_get, (('arg', file_hash),))
 
             if response.status_code != 200:
                 logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
@@ -405,8 +459,6 @@ class GenesisTextDataset( Dataset ):
 
     def build_hash_table(self):
         self.dataset_hashes = {}
-        ipfs = Ipfs()
-        response = ipfs.retrieve_directory(ipfs.node_get, (('arg', ipfs.mountain_hash),))
+        response = self.retrieve_directory(self.node_get, (('arg', self.mountain_hash),))
         for i in response.json()['Links']:
             self.dataset_hashes[i['Name'][:-4]]= i['Hash'] 
-
