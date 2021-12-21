@@ -664,7 +664,8 @@ class Receptor(nn.Module):
                     message associated with forward call, potentially error, or 'success'.
         """ 
         if request.outputs != None:
-            print('skipped',request.end_time)
+            if request.end_time == None:
+                request.end_time = 15
             return request.outputs, request.code, request.end_time
 
         if (request.code != bittensor.proto.ReturnCode.Success) or (request.future == None):
@@ -681,7 +682,6 @@ class Receptor(nn.Module):
                 return request.zeros, request.code, clock.time() - request.start_time
         
         request.end_time = clock.time() - request.start_time
-        print(request.end_time)
         return request.outputs if check else request.zeros, request.code, request.end_time
  
 
