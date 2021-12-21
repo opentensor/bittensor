@@ -190,14 +190,16 @@ def serve( config, server):
             root_dir = config.neuron.full_path
         )
 
+    nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+
     # -- Main Training loop --
     try:
         # -- download files from the mountain
         data = next(dataset)
 
         # --- creating our chain weights
-        chain_weights =torch.zeros(metagraph.n)
-        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+        chain_weights = torch.zeros(metagraph.n)
+        uid = nn.uid
         chain_weights[uid] = 1 
 
         # --  serve axon to the network.
