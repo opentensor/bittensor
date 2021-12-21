@@ -232,7 +232,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.no_restart', action='store_true', help='if the model should restart', default=False)
         parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
-        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=5)
+        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
         parser.add_argument('--neuron.training',  action='store_true', help='if the model should be training (increases memory load)', default=False)
         parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
 
