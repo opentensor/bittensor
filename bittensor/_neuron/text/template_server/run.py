@@ -74,22 +74,6 @@ def serve( config, model ):
                             )
                         optimizer.step()
                         optimizer.zero_grad()
-                        
-    for module in model.pre_model.modules():
-        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm) and module.affine is True:
-            continue
-        
-        for param in module.parameters(recurse=False):
-            if param is not None:
-                if param.data.dtype.is_floating_point:
-                    param.data = param.data.to(dtype=torch.bfloat16)
-                if param._grad is not None and param._grad.data.dtype.is_floating_point:
-                    param._grad.data = param._grad.data.to(dtype=torch.bfloat16)
-
-        for buf in module.buffers(recurse=False):
-            if buf is not None and buf.data.dtype.is_floating_point:
-                buf.data = buf.data.to(dtype=torch.bfloat16)
-
 
     # Create our axon server and subscribe it to the network.
     axon = bittensor.axon (
