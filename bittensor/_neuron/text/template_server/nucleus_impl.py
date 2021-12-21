@@ -68,7 +68,7 @@ class server(torch.nn.Module):
             self.pre_model.half()
         else:
             self.pre_model.eval()
-            
+
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
@@ -139,8 +139,7 @@ class server(torch.nn.Module):
         if self.config.neuron.training:
             pre_hidden = self.pre_model(inputs).last_hidden_state
         elif self.config.neuron.autocast and self.device == 'cuda':
-            with torch.autocast(dtype=torch.float16, device_type="cuda"):
-                pre_hidden = self.pre_model(inputs).last_hidden_state
+            pre_hidden = self.pre_model(inputs).last_hidden_state
         else:
             with torch.no_grad():
                 pre_hidden = self.pre_model(inputs).last_hidden_state
