@@ -71,10 +71,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
 
     while True:
 
-        # --- Sync + reshape.      
-        chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
-        ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
-
         # --- Run epoch.
         start_block = subtensor.get_current_block() + 1
         end_block = start_block + config.neuron.blocks_per_epoch
