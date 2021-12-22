@@ -171,6 +171,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             validator.sync_with_chain_state()
             chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
             ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
+            print(torch.numel( ema_scores ), chain_growth, metagraph.n.item())
 
         epoch += 1
 
