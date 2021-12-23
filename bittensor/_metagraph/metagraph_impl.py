@@ -420,18 +420,22 @@ class Metagraph( torch.nn.Module ):
             n_total = self.subtensor.get_n( block = block )
 
             if cached and self.subtensor.network in ("nakamoto", "local"):
-                with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                if bittensor.__use_console__:
+                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                        neurons = self.retrieve_cached_neurons( )
+                else:
                     neurons = self.retrieve_cached_neurons( )
-
             else:
                 neurons = self.subtensor.neurons( block = block )
         else:
             n_total = self.subtensor.get_n( block = block )
             
             if cached and self.subtensor.network in ("nakamoto", "local"):
-                with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                if bittensor.__use_console__:
+                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                        neurons = self.retrieve_cached_neurons( block = block )
+                else:
                     neurons = self.retrieve_cached_neurons( block = block )
-
             else:
                 neurons = self.subtensor.neurons( block = block )
 
@@ -527,20 +531,22 @@ class Metagraph( torch.nn.Module ):
     def to_dataframe(self):
         try:
             index = self.uids.tolist()
-            columns = [ 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
-            dataframe = pandas.DataFrame(columns = columns, index = index)
+            columns = [ 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
+            df = pandas.DataFrame( columns = columns, index = index )
             for uid in self.uids.tolist():
-                dataframe.loc[index] = pandas.Series( {
+                v = {
+                    'uid': self.uids[uid].item(),
                     'active': self.active[uid].item(),             
                     'stake': self.stake[uid].item(),             
                     'rank': self.ranks[uid].item(),            
                     'trust': self.trust[uid].item(),             
                     'consensus': self.consensus[uid].item(),             
                     'incentive': self.incentive[uid].item(),             
-                    'dividend': self.dividend[uid].item(),             
-                    'emission': self.emission[uid].item(),          
-                } )
-            return dataframe
+                    'dividends': self.dividends[uid].item(),             
+                    'emission': self.emission[uid].item()}
+                df.loc[uid] = pandas.Series(v)
+            df['uid'] = df.index
+            return df
         except Exception as e:
             bittensor.logging.error('failed metagraph.to_dataframe()', str(e))
             return pandas.DataFrame()
