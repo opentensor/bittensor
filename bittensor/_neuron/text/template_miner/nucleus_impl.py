@@ -73,15 +73,15 @@ class Nucleus(nn.Module):
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.noise_multiplier = self.config.nucleus.noise_multiplier
-        # self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
+        self.peer_weights = nn.Parameter(torch.ones( [2000], dtype=torch.float32 , requires_grad=True))
         # self.init_weights()
         self.metagraph = None
         self.dendrite = None
 
-    def init_weights(self):
-        initrange = 0.1
-        self.remote_decoder.weight.data.uniform_(-initrange, initrange)
-        self.local_decoder.weight.data.uniform_(-initrange, initrange)
+    # def init_weights(self):
+    #     initrange = 0.1
+    #     self.remote_decoder.weight.data.uniform_(-initrange, initrange)
+    #     self.local_decoder.weight.data.uniform_(-initrange, initrange)
 
     def compute_scores( self, loss ):
         """Computes salience scores for each peer in the network w.r.t the loss. 
@@ -241,20 +241,16 @@ class Nucleus(nn.Module):
         """
 
         # ---- Get active peers and their weights ---- 
-        # active_uids = torch.where(self.metagraph().active > 0)[0]
-        # active_peer_weights = self.peer_weights[active_uids]
+        active_uids = torch.where(self.metagraph().active > 0)[0]
+        active_peer_weights = self.peer_weights[active_uids]
 
-        # # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
-        # real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
-        # print(active_peer_weights)
-        # std = torch.std(active_peer_weights).item()
-        # std = std if std and std > 0 else self.config.nucleus.noise_offset
-        # noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
-        # topk_weights, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
-        # topk_uids = active_uids[topk_idx]
-
-        topk_weights = torch.tensor([1]*10, dtype = torch.float)
-        topk_uids = torch.tensor(list(range(10)))
+        # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
+        real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
+        std = torch.std(active_peer_weights).item()
+        std = std if std and std > 0 else self.config.nucleus.noise_offset
+        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
+        topk_weights, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
+        topk_uids = active_uids[topk_idx]
 
         # ---- Filter endpoints ----
         endpoints = self.metagraph().endpoints[ topk_uids ]
@@ -273,8 +269,8 @@ class Nucleus(nn.Module):
             output += responses[joining_uids[index]].to( self.config.neuron.device ) * joining_weight
 
         # ---- Punish peers with non-successful return ops ----
-        # with torch.no_grad():
-        #     self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
-        #     self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
+        with torch.no_grad():
+            self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
+            self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
         return output

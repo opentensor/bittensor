@@ -54,7 +54,7 @@ class Neuron:
         r""" Initializes the neuron with the passed config.
         """
         self.config = config
-        self.world_size = 3# torch.cuda.device_count()
+        self.world_size = 2# torch.cuda.device_count()
         self.wallet = bittensor.wallet ( config = self.config )
         # self.subtensor = bittensor.subtensor ( config = self.config )
         # self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
@@ -71,16 +71,16 @@ class Neuron:
         self.nucleus = nucleus.to(self.device)
         # self.nucleus.metagraph = self.metagraph_callback
         # self.nucleus.dendrite = self.dendrite
-        self.optimizer = torch.optim.SGD(
-            # [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
-            [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
-            lr = self.config.neuron.learning_rate,
-            momentum = self.config.neuron.momentum,
-        )
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
-            step_size = 1.0,
-            gamma = 0.95
-        )
+        # self.optimizer = torch.optim.SGD(
+        #     # [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
+        #     [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
+        #     lr = self.config.neuron.learning_rate,
+        #     momentum = self.config.neuron.momentum,
+        # )
+        # self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
+        #     step_size = 1.0,
+        #     gamma = 0.95
+        # )
         self.stats = SimpleNamespace(
             global_step = 0,
             last_sync_block = 0,
@@ -138,6 +138,12 @@ class Neuron:
             backward_text = self.backward_text,
             blacklist = self.blacklist,
         )
+        self.optimizer = torch.optim.SGD(
+            # [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
+            [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
+            lr = self.config.neuron.learning_rate,
+            momentum = self.config.neuron.momentum,
+        )
 
     def run( self, rank = 0, what = 1):
         r""" Miner main loop.
@@ -193,7 +199,6 @@ class Neuron:
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('blue', f'Epoch:'))
                     progress_bar.set_bar = partial(progress_bar.set_bar,  element='#')
                     for block in progress_bar:
-                        print("hey 1 batchhh")
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
@@ -203,15 +208,29 @@ class Neuron:
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
+                            bittensor.logging.success( prefix = f'Forward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
 
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                             output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
+                            bittensor.logging.success( prefix = f'Backward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
                             clip_grad_norm_(nucleus_ddp.parameters(), self.config.neuron.clip_gradients)
+                            
+                            # for name, p in nucleus_ddp.named_parameters():
+                            #     try:
+                            #         bittensor.logging.success(f"{rank, name, sum(torch.isnan(p.grad))}", sufix = "")
+                            #     except Exception as e:
+                            #         bittensor.logging.success(f"{rank, name}", sufix = f"FAILED {e}")
+                            #         pass
                             
                             # ---- Apply and zero accumulated gradients.
                             self.optimizer.step() 
                             self.optimizer.zero_grad()
+                            bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
                             current_block = self.subtensor.get_current_block()
                             
                     #         # ---- Aggrigate outputs and losses 
@@ -220,7 +239,7 @@ class Neuron:
                     #         total_remote_target_epoch_loss += output.remote_target_loss.item()
                     #         total_local_epoch_acc += output.local_accuracy
                     #         self.stats.epoch_data_size += inputs.nelement()
-                    #         batches_count += 1
+                            batches_count += 1
                             
                     #         # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
                     #         scores = torch.nn.functional.normalize ( torch.relu( nucleus_ddp.module.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
@@ -401,7 +420,7 @@ class Neuron:
         self.stats.global_step = state_dict['global_step']
 
         # --- Updates the shape of nucleus chain weights
-        # chain_growth = max(0, self.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0])
+        chain_growth = max(0, self.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0])
         # self.nucleus.peer_weights = nn.Parameter(
         #     torch.ones(
         #         list(state_dict['nucleus_state']['peer_weights'].shape),
@@ -436,7 +455,7 @@ class Neuron:
         # ---- Sync with metagraph ----
         self.metagraph.sync().save()
         chain_growth = max(self.metagraph.n.item()- self.nucleus.peer_weights.shape[0], 0)
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
+        # self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
         self.stats.scores = torch.nn.Parameter(torch.cat( [self.stats.scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
