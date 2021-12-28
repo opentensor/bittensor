@@ -90,10 +90,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             while block >= current_block:
                 loss, _ = validator( next( dataset ) )
                 val_score = validator.scores()
-                top = torch.argsort(val_score.detach())[-50:]
-                print('uids',top)
-                print('scores',val_score[top])
-                print('active',metagraph.active[top])
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)
@@ -104,6 +100,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
                 ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
+                top = torch.argsort(ema_scores.detach())[-50:]
+                print('uids',top)
+                print('scores',ema_scores[top])
+                print('active',metagraph.active[top])
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
