@@ -7,6 +7,10 @@ on:
   pull_request:
     branches:
       - master
+      - akatsuki
+  push:
+    branches:
+      - akatsuki
 
 jobs:
   build:
