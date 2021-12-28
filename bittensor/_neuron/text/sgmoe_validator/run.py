@@ -90,6 +90,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             while block >= current_block:
                 loss, _ = validator( next( dataset ) )
                 val_score = validator.scores()
+                print(val_score)
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)
@@ -128,6 +129,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         # --- Set mechanism weights.
         inactive_uids = torch.where(metagraph.active == 0)[0]
         ema_scores[inactive_uids] = 0
+        print(ema_scores)
         topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.set_weights(
             uids = topk_uids,
