@@ -90,7 +90,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             while block >= current_block:
                 loss, _ = validator( next( dataset ) )
                 val_score = validator.scores()
-                print(val_score)
+                top = torch.argsort(val_score.detach())[-50:]
+                print('uids',top)
+                print('scores',val_score[top])
+                print('active',metagraph.active[top])
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)
@@ -117,7 +120,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             
-            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
+            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 50, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
@@ -129,7 +132,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         # --- Set mechanism weights.
         inactive_uids = torch.where(metagraph.active == 0)[0]
         ema_scores[inactive_uids] = 0
-        print(ema_scores)
         topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.set_weights(
             uids = topk_uids,
