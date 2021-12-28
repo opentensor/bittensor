@@ -424,6 +424,8 @@ class Neuron:
 
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
+            inactive_uids = torch.where(metagraph.active == 0)[0]
+            self.stats.ema_scores[inactive_uids] = 0
             epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() ) )
             topk_scores, topk_uids = bittensor.unbiased_topk( epsilon_scores, k = k )
             topk_uids = topk_uids.detach().to('cpu')
