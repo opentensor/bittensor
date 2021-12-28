@@ -71,7 +71,6 @@ class Validator( torch.nn.Module ):
 
             # ---- Join based on weights ----
             joining_uids = torch.where(return_ops== bittensor.proto.ReturnCode.Success)[0]
-            print(joining_uids)
             joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
 
             output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
