@@ -71,11 +71,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
 
     while True:
 
-        # --- Sync + reshape.      
-        chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
-        validator.sync_with_chain_state()
-        ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
-
         # --- Run epoch.
         start_block = subtensor.get_current_block() + 1
         end_block = start_block + config.neuron.blocks_per_epoch
@@ -140,15 +135,15 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         )
 
         # --- Log.
-        #metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
-        epoch_score = total_epoch_score / batch_count
         active_uids = torch.where(metagraph.active > 0)[0]
+
+        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
                 
         if config.wandb.api_key != 'default':
             wandb_data = {
-                'stake': metagraph.S[ uid ].item(),
-                'dividends': metagraph.D[ uid ].item(),
+                'stake': nn.stake,
+                'dividends': nn.dividends,
                 'epoch_loss': epoch_loss,
                 'STD in scores': torch.std(ema_scores[active_uids]).item(),
             } 
@@ -169,6 +164,9 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         if current_block - last_sync_block > config.neuron.metagraph_sync:
             metagraph.sync()
             last_sync_block = current_block
+            validator.sync_with_chain_state()
+            chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
+            ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         epoch += 1
 
