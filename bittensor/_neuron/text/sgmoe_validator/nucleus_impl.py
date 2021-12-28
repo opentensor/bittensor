@@ -71,13 +71,14 @@ class Validator( torch.nn.Module ):
 
             # ---- Join based on weights ----
             joining_uids = torch.where(return_ops== bittensor.proto.ReturnCode.Success)[0]
+            print(joining_uids)
             joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 )
 
             output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
-            return output, query_uids
+            return output, query_uids[joining_uids]
 
         def sync_with_chain_state( self ):
             r""" Creates new parameters based on metagraph size.

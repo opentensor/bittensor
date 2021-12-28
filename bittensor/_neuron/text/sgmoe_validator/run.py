@@ -102,9 +102,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 total_epoch_loss += loss.item()
                 ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
                 top = torch.argsort(ema_scores.detach())[-50:]
-                print('uids',top)
+                print('query uids', query_uids)
                 print('scores',ema_scores[top])
                 print('active',metagraph.active[top])
+                print('uids',top)
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
