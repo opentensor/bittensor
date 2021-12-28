@@ -294,7 +294,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         except Exception as e:
             self.message = str(e)
-            print(self.message)
             return self._deny
 
 
