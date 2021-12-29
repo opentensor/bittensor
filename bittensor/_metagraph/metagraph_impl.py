@@ -22,10 +22,12 @@ import os
 from typing import List
 from loguru import logger
 
-import wandb
+import ast
 import pandas
 import torch.nn.functional as f
 import torch
+import pickle
+import json
 
 import bittensor
 import bittensor.utils.networking as net
@@ -377,16 +379,65 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    def sync ( self, block: int = None ) -> 'Metagraph':
+    def retrieve_cached_neurons( self, block: int = None ):
+        """
+            Retrieves cached metagraph syncs from IPFS. 
+        """
+        ipfs = bittensor.Ipfs()
+        ipns_hash = ipfs.latest_neurons_ipns
+        ipfs_hash = ipfs.cat
+        
+        if block != None:
+            ipns_hash = ipfs.historical_neurons_ipns
+            ipfs_hash = ipfs.node_get
+        
+        # Ping IPNS for latest IPFS hash
+        ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
+
+        # Extract IPFS hash from IPNS response
+        ipfs_path = ast.literal_eval(ipns_resolve.text)
+        ipfs_resolved_hash = ipfs_path['Path'].split("ipfs/")[1]
+        ipfs_response = ipfs.retrieve_directory(ipfs_hash, (('arg', ipfs_resolved_hash),))
+
+        # Extract all neuron sync hashes
+        if block != None:
+            historical_neurons = json.loads(ipfs_response.content)['Links']
+            # Find the one that corresponds to our block
+            sync_data = next(item for item in historical_neurons if item["Name"] == "nakamoto-{}.pkl".format(block))
+            # Retrieve Neuron contents
+            ipfs_response = ipfs.retrieve_directory(ipfs.cat, (('arg', sync_data['Hash']),))
+
+        # Unpickle the response
+        neurons = pickle.loads(ipfs_response.content)
+
+        return neurons
+
+    def sync ( self, block: int = None, cached: bool = True ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
         """
         if block == None:
             block = self.subtensor.get_current_block()
             n_total = self.subtensor.get_n( block = block )
-            neurons = self.subtensor.neurons()
+
+            if cached and self.subtensor.network in ("nakamoto", "local"):
+                if bittensor.__use_console__:
+                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                        neurons = self.retrieve_cached_neurons( )
+                else:
+                    neurons = self.retrieve_cached_neurons( )
+            else:
+                neurons = self.subtensor.neurons( block = block )
         else:
             n_total = self.subtensor.get_n( block = block )
-            neurons = self.subtensor.neurons( block = block )
+            
+            if cached and self.subtensor.network in ("nakamoto", "local"):
+                if bittensor.__use_console__:
+                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                        neurons = self.retrieve_cached_neurons( block = block )
+                else:
+                    neurons = self.retrieve_cached_neurons( block = block )
+            else:
+                neurons = self.subtensor.neurons( block = block )
 
         # Fill arrays.
         uids = [ i for i in range(n_total) ]
@@ -480,20 +531,22 @@ class Metagraph( torch.nn.Module ):
     def to_dataframe(self):
         try:
             index = self.uids.tolist()
-            columns = [ 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
-            dataframe = pandas.DataFrame(columns = columns, index = index)
+            columns = [ 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
+            df = pandas.DataFrame( columns = columns, index = index )
             for uid in self.uids.tolist():
-                dataframe.loc[index] = pandas.Series( {
+                v = {
+                    'uid': self.uids[uid].item(),
                     'active': self.active[uid].item(),             
                     'stake': self.stake[uid].item(),             
                     'rank': self.ranks[uid].item(),            
                     'trust': self.trust[uid].item(),             
                     'consensus': self.consensus[uid].item(),             
                     'incentive': self.incentive[uid].item(),             
-                    'dividend': self.dividend[uid].item(),             
-                    'emission': self.emission[uid].item(),          
-                } )
-            return dataframe
+                    'dividends': self.dividends[uid].item(),             
+                    'emission': self.emission[uid].item()}
+                df.loc[uid] = pandas.Series(v)
+            df['uid'] = df.index
+            return df
         except Exception as e:
             bittensor.logging.error('failed metagraph.to_dataframe()', str(e))
             return pandas.DataFrame()

@@ -36,7 +36,7 @@ from datetime import datetime,timedelta
 from threading import Lock
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
-def serve( config, server):
+def serve( config, gp_server):
     config.to_defaults()
 
     # Create Subtensor connection
@@ -53,7 +53,7 @@ def serve( config, server):
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
     mutex = Lock()
-    gp_server = server.to(server.device)
+    gp_server = gp_server.to(gp_server.device)
     
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -74,7 +74,7 @@ def serve( config, server):
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-        return gp_server.encode_forward( inputs_x.to(server.device) )
+        return gp_server.encode_forward( inputs_x.to(gp_server.device) )
 
     # Define our backward function.
     def backward_text (inputs_x, grads_dy ):
@@ -92,11 +92,11 @@ def serve( config, server):
         grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
         
         with mutex:
-            outputs_y = gp_server.encode_forward( inputs_x.to(server.device) )
+            outputs_y = gp_server.encode_forward( inputs_x.to(gp_server.device) )
             with torch.autograd.set_detect_anomaly(True):
                 torch.autograd.backward (
                     tensors = [ outputs_y ],
-                    grad_tensors = [ grads_dy.to(server.device) ],
+                    grad_tensors = [ grads_dy.to(gp_server.device) ],
                     retain_graph=True
                 )
             logger.info('Backwards axon gradient applied')
@@ -190,14 +190,16 @@ def serve( config, server):
             root_dir = config.neuron.full_path
         )
 
+    nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+
     # -- Main Training loop --
     try:
         # -- download files from the mountain
         data = next(dataset)
 
         # --- creating our chain weights
-        chain_weights =torch.zeros(metagraph.n)
-        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+        chain_weights = torch.zeros(metagraph.n)
+        uid = nn.uid
         chain_weights[uid] = 1 
 
         # --  serve axon to the network.
@@ -220,7 +222,8 @@ def serve( config, server):
                         losses = loss
                     interation += 1
                     current_block = subtensor.get_current_block()
-            
+
+        
             #Custom learning rate
             if gp_server.backward_gradients > 0:
                 optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)

@@ -29,8 +29,9 @@ import wandb
 import pandas
 import datetime
 from threading import Lock
+from loguru import logger; logger = logger.opt(colors=True)
 
-def serve( config, server ):
+def serve( config, model ):
     config.to_defaults()
 
     # Create Subtensor connection
@@ -43,10 +44,6 @@ def serve( config, server ):
     metagraph = bittensor.metagraph ( 
         subtensor = bittensor.subtensor( config = config )
     ).load().sync().save()
-
-    # Instantiate the model we are going to serve on the network.
-    # Miner training device.
-    model = server
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -66,16 +63,17 @@ def serve( config, server ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
             Updates the server parameters with gradients through the chain.             
         """
-        with mutex:
-            with torch.enable_grad():
-                with torch.autograd.set_detect_anomaly(True):
-                    outputs_y = model.encode_forward( inputs_x )
-                    torch.autograd.backward (
-                        tensors = [ outputs_y ],
-                        grad_tensors = [ grads_dy ]
-                        )
-                    optimizer.step()
-                    optimizer.zero_grad()
+        if config.neuron.training:
+            with mutex:
+                with torch.enable_grad():
+                    with torch.autograd.set_detect_anomaly(True):
+                        outputs_y = model.encode_forward( inputs_x )
+                        torch.autograd.backward (
+                            tensors = [ outputs_y ],
+                            grad_tensors = [ grads_dy ]
+                            )
+                        optimizer.step()
+                        optimizer.zero_grad()
 
     # Create our axon server and subscribe it to the network.
     axon = bittensor.axon (
@@ -102,18 +100,19 @@ def serve( config, server ):
             time.sleep( bittensor.__blocktime__ )
             current_block = subtensor.get_current_block()
 
-        metagraph.sync().save()
-        my_uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-       
+        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+        wandb_data = {
+            'stake': nn.stake,
+            'rank': nn.rank,
+            'trust': nn.trust,
+            'consensus': nn.consensus,
+            'incentive': nn.incentive,
+            'emission': nn.emission,
+        }
+        bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
         if config.wandb.api_key != 'default':
-            wandb_data = {
-                'stake': metagraph.S[ my_uid ].item(),
-                'rank': metagraph.R[ my_uid ].item(),
-                'trust': metagraph.I[ my_uid ].item(),
-                'consensus': metagraph.C[ my_uid ].item(),
-                'incentive': metagraph.I[ my_uid ].item(),
-                'emission': metagraph.E[ my_uid ].item(),
-            } 
+
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
                 axon.to_dataframe( metagraph = metagraph ),
@@ -123,10 +122,20 @@ def serve( config, server ):
             wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-            for uid_i, val in enumerate(metagraph.W[:,my_uid].tolist()):
-                if uid_i > 0:
-                    wandb_data[ '{}/w_{}_{}'.format(uid_i, uid_i, my_uid) ] = val
-            axon_wandb = axon.to_wandb( metagraph )
-            wandb.log( { **wandb_data, **axon_wandb } )
-
-        
+        try: 
+            # Set self weights to maintain activity.
+            chain_weights = torch.zeros(metagraph.n)
+            chain_weights [ uid ] = 1 
+            did_set = subtensor.set_weights(
+                uids=metagraph.uids,
+                weights = chain_weights,
+                wait_for_inclusion = False,
+                wallet = wallet,
+            )
+            
+            if did_set:
+                logger.success('Successfully set weights on the chain')
+            else:
+                logger.error('Failed to set weights on chain. (Timeout)')
+        except Exception as e:
+            logger.error('Failure setting weights on chain with error: {}', e)
