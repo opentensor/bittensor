@@ -1,0 +1,4 @@
+axon.backward_timeout: 20
+dataset.data_dir: ~/.bittensor/data/
+logging.debug: false
+wandb.api_key: default

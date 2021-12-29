@@ -24,6 +24,7 @@ __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])
 
 # Rich console.
 __console__ = Console()
+__use_console__ = True
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -110,7 +111,7 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-
+from bittensor._ipfs.ipfs_impl import Ipfs
 
 # DEFAULTS
 defaults = Config()

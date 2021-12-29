@@ -1,12 +1,3 @@
-axon.backward_timeout: 20
-axon.forward_timeout: 10
-axon.ip: '[::]'
-axon.max_workers: 10
-axon.maximum_concurrent_rpcs: 400
-axon.port: 8091
-axon.priority.max_workers: 10
-axon.priority.maxsize: -1
-
 dataset.batch_size: 10
 dataset.block_size: 20
 dataset.data_dir: ~/.bittensor/data/
@@ -17,30 +8,36 @@ dataset.no_tokenizer: false
 dataset.num_workers: 0
 dataset.save_dataset: false
 
+dendrite.max_active_receptors: 500
+dendrite.max_worker_threads: 150
+dendrite.requires_grad: true
+dendrite.timeout: 12
+
 logging.debug: false
 logging.logging_dir: ~/.bittensor/miners
 logging.record_log: false
 logging.trace: false
 
-neuron.blacklist.stake.backward: 100
-neuron.blacklist.stake.forward: 10
-neuron.blacklist.time: 2
-neuron.blocks_per_epoch: 2
-neuron.checking: true
+neuron.blocks_per_epoch: 100
 neuron.clip_gradients: 1.0
 neuron.device: cpu
-neuron.inter_degree: nearest
-neuron.interpolate: true
-neuron.learning_rate: 0.01
-neuron.model_name: gpt2
+neuron.learning_rate: 0.0001
+neuron.learning_rate_chain: 1
+neuron.metagraph_sync: 5000
 neuron.momentum: 0.8
-neuron.name: advanced_server
+neuron.n_topk_peer_weights: 100
+neuron.name: sgmoe_validator
 neuron.no_restart: false
-neuron.padding: true
-neuron.pretrained: true
+neuron.topk: 20
+
+nucleus.dropout: 0.2
+nucleus.importance: 0.01
+nucleus.nhead: 2
+nucleus.nhid: 200
+nucleus.nlayers: 2
 
 subtensor.chain_endpoint: null
-subtensor.network: nakamoto
+subtensor.network: local
 
 wallet.hotkey: default
 wallet.name: default
