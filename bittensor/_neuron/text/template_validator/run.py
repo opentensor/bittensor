@@ -127,6 +127,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             progress.set_infos( info )
         
         # --- End of epoch
+        inactive_uids = torch.where(metagraph.active == 0)[0]
+        ema_scores[inactive_uids] = 0
         # --- Set mechanism weights.
         topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item())  )
         subtensor.set_weights(
