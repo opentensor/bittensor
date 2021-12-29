@@ -28,7 +28,7 @@ class Validator( torch.nn.Module ):
             # Apply model.
             active_uids = torch.where(self.metagraph().active > 0)[0]
 
-            query_hidden = self.query( inputs)
+            query_hidden, query_uids = self.query( inputs)
             encoded_hidden = self.encoder( query_hidden )
             decoded_targets = self.decoder ( encoded_hidden )
 
@@ -42,7 +42,7 @@ class Validator( torch.nn.Module ):
             shift_labels = inputs[..., 1:].contiguous()     
             self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ) 
             self.total_loss = self.loss + importance_loss
-            return self.total_loss, decoded_targets
+            return self.total_loss, decoded_targets, query_uids
 
         def scores ( self ):
             """Computes salience scores for each peer in the network w.r.t the loss. 
@@ -62,7 +62,7 @@ class Validator( torch.nn.Module ):
             # --- Create the local context ---
             local_context = self.local_encoder( self.embedding( inputs ) )* math.sqrt(bittensor.__network_dim__)
 
-            endpoints, topk_weights = self.route(inputs,local_context)
+            endpoints, topk_weights, query_uids = self.route(inputs,local_context)
             # ---- Query network ----
             responses, return_ops, query_times = self.dendrite.forward_text ( 
                 endpoints = endpoints, 
@@ -77,7 +77,7 @@ class Validator( torch.nn.Module ):
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
-            return output
+            return output, query_uids[joining_uids]
 
         def sync_with_chain_state( self ):
             r""" Creates new parameters based on metagraph size.
@@ -146,5 +146,5 @@ class Validator( torch.nn.Module ):
             filtered_endpoints = []
             for uid in active_uids[topk_indices]:
                 filtered_endpoints.append( metagraph.endpoints[ uid ] )
-            return filtered_endpoints, topk_weights
+            return filtered_endpoints, topk_weights, active_uids[topk_indices]
 
