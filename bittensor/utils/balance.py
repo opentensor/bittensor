@@ -68,6 +68,21 @@ class Balance:
     def __ge__(self, other):
         return self.rao >= other.rao
 
+    def __add__(self, other):
+        return Balance(self.rao + other.rao)
+
+    def __sub__(self, other):
+        return Balance(self.rao - other.rao)
+
+    def __neg__(self):
+        return Balance(-self.rao)
+
+    def __pos__(self):
+        return Balance(self.rao)
+
+    def __abs__(self):
+        return Balance(abs(self.rao))
+
     @staticmethod
     def from_float(amount : float):
         """ Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))

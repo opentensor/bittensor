@@ -49,7 +49,7 @@ class nucleus():
         parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
         parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
         parser.add_argument('--nucleus.noise_offset', type=float, help='Noise added to weights during each call.', default=0.001 )
-        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=1 )
+        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
 
     @staticmethod
     def config() -> 'bittensor.Config':
@@ -94,7 +94,7 @@ class neuron:
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True)
         parser.add_argument('--neuron.compute_remote_gradients', action='store_true', help='''Does the neuron compute and return gradients from backward queries.''', default=False)
         parser.add_argument('--neuron.accumulate_remote_gradients', action='store_true', help='''Does the neuron accumulate remote gradients from backward queries.''', default=False)
-        parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
+        parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=500 )
         parser.add_argument('--neuron.name', type=str, help='Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name ', default='template_neuron')
         parser.add_argument('--neuron.device', type=str, help='neuron default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.timeout', type=int, help='Number of seconds to wait for axon request', default=10)

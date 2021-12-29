@@ -33,8 +33,8 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from loguru import logger; logger = logger.opt(colors=True)
-
 def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid, dendrite):
+    
     print(config)
     config.to_defaults()
     validator = validator.to(device)
@@ -58,7 +58,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             validator.load_state_dict( torch.load("{}/validator.torch".format( config.neuron.full_path ))['validator'], strict=False )
         except Exception as e:
             logger.error('Error reloading model: {} '.format(e))
-    torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
     # --- last sync block 
     last_sync_block = subtensor.get_current_block()
@@ -71,11 +70,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
 
     while True:
-
-        # --- Sync + reshape.      
-        chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
-        validator.sync_with_chain_state()
-        ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         # --- Run epoch.
         start_block = subtensor.get_current_block() + 1
@@ -94,9 +88,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             # --- Training step.
             current_block = subtensor.get_current_block()
             while block >= current_block:
-                loss, _ = validator( next( dataset ) )
+                loss, _, query_uids = validator( next( dataset ) )
                 val_score = validator.scores()
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
+                scores[query_uids] += 1e-6
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)
                 optimizer.step()
@@ -122,7 +117,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             
-            topk_scores, topk_idx = torch.topk(ema_scores, 5, dim=0)
+            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
@@ -132,28 +127,28 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         # --- End of epoch
         # --- Set mechanism weights.
-        topk_scores, topk_uids = torch.topk( ema_scores.detach(), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
-        subtensor.timeout_set_weights(
-            timeout=10,
-            uids = topk_uids.to('cpu'),
-            weights = topk_scores.to('cpu'),
-            wait_for_inclusion = True,
+        inactive_uids = torch.where(metagraph.active == 0)[0]
+        ema_scores[inactive_uids] = 0
+        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        subtensor.set_weights(
+            uids = topk_uids,
+            weights = topk_scores,
+            wait_for_inclusion = False,
             wallet = wallet,
         )
 
         # --- Log.
-        #metagraph.sync().save()
         epoch_loss = total_epoch_loss / batch_count
-        epoch_score = total_epoch_score / batch_count
         active_uids = torch.where(metagraph.active > 0)[0]
+
+        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
                 
         if config.wandb.api_key != 'default':
             wandb_data = {
-                'stake': metagraph.S[ uid ].item(),
-                'dividends': metagraph.D[ uid ].item(),
+                'stake': nn.stake,
+                'dividends': nn.dividends,
                 'epoch_loss': epoch_loss,
                 'STD in scores': torch.std(ema_scores[active_uids]).item(),
-                
             } 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = ema_scores ),
@@ -172,6 +167,9 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         if current_block - last_sync_block > config.neuron.metagraph_sync:
             metagraph.sync()
             last_sync_block = current_block
+            validator.sync_with_chain_state()
+            chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
+            ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         epoch += 1
 

@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm
-
 from typing import List, Dict, Union
 from multiprocessing import Process
 
@@ -554,13 +553,34 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Check balance.
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             account_balance = self.get_balance( wallet.coldkey.ss58_address )
-        if account_balance < transfer_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
+
+        # Estimate transfer fee.
+        with bittensor.__console__.status(":satellite: Estimating Transfer Fees..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='Balances',
+                    call_function='transfer',
+                    call_params={
+                        'dest': dest, 
+                        'value': transfer_balance.rao
+                    }
+                )
+                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+                transfer_fee = "N/A"
+                # Otherwise continue with finalization.
+                if payment_info:
+                    transfer_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( transfer_fee ))
+                else:
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate transfer fee")
+
+        if account_balance < transfer_balance + transfer_fee:
+            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {} fee: {}[/bold white]".format( account_balance, transfer_balance, transfer_fee ))
             return False
 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
+            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, transfer_fee )):
                 return False
 
         with bittensor.__console__.status(":satellite: Transferring..."):
@@ -993,45 +1013,3 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron object associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, block = block )
-
-    def timeout_set_weights(
-            self, 
-            timeout,
-            wallet: 'bittensor.wallet',
-            uids: torch.LongTensor,
-            weights: torch.FloatTensor,
-            wait_for_inclusion:bool = False,
-        ) -> bool:
-        r""" wrapper for set weights function that includes a timeout component
-        Args:
-            wallet (bittensor.wallet):
-                bittensor wallet object.
-            uids (torch.LongTensor):
-                uint64 uids of destination neurons.
-            weights (torch.FloatTensor):
-                weights to set which must floats and correspond to the passed uids.
-            wait_for_inclusion (bool):
-                if set, waits for the extrinsic to enter a block before returning true,
-                or returns false if the extrinsic fails to enter the block within the timeout.
-            timeout (int):
-                time that this call waits for either finalization of inclusion.
-        Returns:
-            success (bool):
-                flag is true if extrinsic was finalized or included in the block.
-        """
-        
-        set_weights = Process(target= self.set_weights, kwargs={
-                                                           'uids':uids,
-                                                           'weights': weights,
-                                                           'wait_for_inclusion': wait_for_inclusion,
-                                                           'wallet' : wallet,
-                                                           })
-        set_weights.start()
-        set_weights.join(timeout=timeout)
-        set_weights.terminate()
-
-
-        if set_weights.exitcode == 0:
-            return True
-        else:
-            return False
