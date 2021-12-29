@@ -14,7 +14,7 @@ class Ipfs():
         self.ipns_resolve = 'http://ipfs.opentensor.ai/api/v0/name/resolve'
 
         self.mountain_hash = 'QmSdDg6V9dgpdAFtActs75Qfc36qJtm9y8a7yrQ1rHm7ZX'
-        self.latest_neurons_ipns = "k51qzi5uqu5djv6gszvcv76rvt9abcyx1w3i38z0nwr920vnfsf5k7a95prnz9"
+        self.latest_neurons_ipns = "k51qzi5uqu5di1eoe0o91g32tbfsgikva6mvz0jw0414zhxzhiakana67shoh7"
         self.historical_neurons_ipns = "k51qzi5uqu5dhf5yxm3kqw9hyrv28q492p3t32s23059z911a23l30ai6ziceh"
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
