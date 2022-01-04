@@ -73,15 +73,14 @@ class Nucleus(nn.Module):
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.noise_multiplier = self.config.nucleus.noise_multiplier
-        self.peer_weights = nn.Parameter(torch.ones( [2000], dtype=torch.float32 , requires_grad=True))
-        # self.init_weights()
+        self.peer_weights = nn.Parameter(torch.ones( [4000], dtype=torch.float32 , requires_grad=True))
         self.metagraph = None
         self.dendrite = None
 
+        initrange = 0.1
+        self.remote_decoder.weight.data.uniform_(-initrange, initrange)
+        self.local_decoder.weight.data.uniform_(-initrange, initrange)
     # def init_weights(self):
-    #     initrange = 0.1
-    #     self.remote_decoder.weight.data.uniform_(-initrange, initrange)
-    #     self.local_decoder.weight.data.uniform_(-initrange, initrange)
 
     def compute_scores( self, loss ):
         """Computes salience scores for each peer in the network w.r.t the loss. 
@@ -96,8 +95,10 @@ class Nucleus(nn.Module):
     def forward(self, *input, **kwargs):
         inputs = kwargs["inputs"]
         training = kwargs["training"]
-        return self.remote_forward(inputs=inputs, training=training)
-        
+        output = self.remote_forward(**kwargs) 
+        output.scores = torch.nn.functional.normalize ( torch.relu( self.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
+        return output
+
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
             Args:
