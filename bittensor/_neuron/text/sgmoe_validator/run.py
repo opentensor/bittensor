@@ -71,10 +71,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
 
     while True:
 
-        # --- Sync + reshape.      
-        chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
-        ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
-
         # --- Run epoch.
         start_block = subtensor.get_current_block() + 1
         end_block = start_block + config.neuron.blocks_per_epoch
@@ -92,9 +88,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             # --- Training step.
             current_block = subtensor.get_current_block()
             while block >= current_block:
-                loss, _ = validator( next( dataset ) )
+                loss, _, query_uids = validator( next( dataset ) )
                 val_score = validator.scores()
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
+                scores[query_uids] += 1e-6
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)
                 optimizer.step()
@@ -130,6 +127,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         
         # --- End of epoch
         # --- Set mechanism weights.
+        inactive_uids = torch.where(metagraph.active == 0)[0]
+        ema_scores[inactive_uids] = 0
         topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
         subtensor.set_weights(
             uids = topk_uids,
@@ -171,7 +170,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             validator.sync_with_chain_state()
             chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
             ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
-            print(torch.numel( ema_scores ), chain_growth, metagraph.n.item())
 
         epoch += 1
 
