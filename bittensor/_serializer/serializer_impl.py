@@ -174,10 +174,10 @@ class MSGPackSerializer( Serializer ):
 
 
 class CMPPackSerializer( Serializer ):
-    """ Make conversion between torch and bittensor.proto.torch
+    """ Make conversion between torch and bittensor.proto.torch in float16
     """
     def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
-        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+        """ Serializes a torch.Tensor to an bittensor Tensor proto in float16
 
         Args:
             torch_tensor (torch.Tensor): 

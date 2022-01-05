@@ -185,6 +185,7 @@ enum DataType {
 	INT32 = 3;
 	INT64 = 4;
 	UTF8 = 5;
+	FLOAT16 = 6;
 }
 
 enum Modality {
