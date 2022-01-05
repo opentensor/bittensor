@@ -60,6 +60,7 @@ class Neuron:
         self.world_size = 2# torch.cuda.device_count()
         self.wallet = bittensor.wallet ( config = self.config )
         self.device = torch.device( device = self.config.neuron.device )
+        self.nucleus = nucleus.to(self.device)
         self.stats = SimpleNamespace(
             global_step = 0,
             last_sync_block = 0,
@@ -102,12 +103,9 @@ class Neuron:
 
     def init_bit(self, rank = 0):
         self.subtensor = bittensor.subtensor ( config = self.config )
-        bittensor.logging.success( prefix = f'got subtensor', sufix = f'Rank {rank}')
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
-        bittensor.logging.success( prefix = f'got metagraph', sufix = f'Rank {rank}')
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
-        bittensor.logging.success( prefix = f'got dendrite', sufix = f'Rank {rank}')
-        self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size )
+        self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size, rank = rank)
         bittensor.logging.success( prefix = f'got dataset', sufix = f'Rank {rank}')
         self.axon = bittensor.axon (
             config = self.config,
@@ -117,28 +115,21 @@ class Neuron:
             blacklist = self.blacklist,
         )
         bittensor.logging.success( prefix = f'got axon', sufix = f'Rank {rank}')
-        self.optimizer = torch.optim.SGD(
-            # [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
-            [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
-            lr = self.config.neuron.learning_rate,
-            momentum = self.config.neuron.momentum,
-        )
-        bittensor.logging.success( prefix = f'got optimizer', sufix = f'Rank {rank}')
-        # if rank == 0 :
-        #     self.subtensor.register( self.wallet )
-        #     self.axon.start().serve (
-        #         use_upnpc = self.config.neuron.use_upnpc, 
-        #         subtensor = self.subtensor
-        #     )
-        #     bittensor.logging.success( prefix = f'got axon started ', sufix = f'Rank {rank}')
+        
+        if rank == 0 :
+            self.subtensor.register( self.wallet )
+            self.axon.start().serve (
+                use_upnpc = self.config.neuron.use_upnpc, 
+                subtensor = self.subtensor
+            )
+            bittensor.logging.success( prefix = f'got axon running ', sufix = f'Rank {rank}')
 
     def run( self, rank = 0, world_size = 0):
         r""" Miner main loop.
         """
         self.init_bit(rank)
-        self.init_process(rank)
-        nucleus_ddp = DDP(self.nucleus, find_unused_parameters=False) # , device_ids = rank
-        bittensor.logging.success( prefix = f'got ddp', sufix = f'Rank {rank}')
+        bittensor.logging.success( prefix = f'Finished initialization', sufix = f'Rank {rank}')
+
         # counter = Counter(torch.device(f"cuda:{rank}"), dist.group.WORLD)
 
         # ---- Build Bittensor neuron ----
@@ -166,6 +157,26 @@ class Neuron:
                 self.save()
                 self.reload()
                 self.axon.check()
+
+
+            if self.config.neuron.multiprocessing:
+                bittensor.logging.success( prefix = f'getting ddp', sufix = f'Rank {rank}')
+                self.init_process(rank)
+                self.nucleus = DDP(self.nucleus)
+                bittensor.logging.success( prefix = f'finished getting ddp', sufix = f'Rank {rank}')
+
+            self.nucleus.metagraph = self.metagraph
+            self.nucleus.dendrite = self.dendrite
+            bittensor.logging.success( prefix = f'finished setting ddp dend and meta', sufix = f'Rank {rank}')
+
+            optimizer = torch.optim.SGD(
+                # [ {'params': nucleus_ddp.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
+                [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
+                lr = self.config.neuron.learning_rate,
+                momentum = self.config.neuron.momentum,
+            )
+
+            bittensor.logging.success( prefix = f'Initialized', sufix = f'Rank {rank}')
             
             self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 
@@ -194,7 +205,7 @@ class Neuron:
                         while block >= current_block:
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
-                            output = nucleus_ddp.forward(
+                            output = self.nucleus.forward(
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
@@ -204,11 +215,11 @@ class Neuron:
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                             output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
                             bittensor.logging.success( prefix = f'Backward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
-                            clip_grad_norm_(nucleus_ddp.parameters(), self.config.neuron.clip_gradients)
+                            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                             
                             # ---- Apply and zero accumulated gradients.
-                            self.optimizer.step() 
-                            self.optimizer.zero_grad()
+                            optimizer.step() 
+                            optimizer.zero_grad()
                             bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
                             current_block = self.subtensor.get_current_block()
 
@@ -249,11 +260,11 @@ class Neuron:
                                 self.stats.local_epoch_acc = total_local_epoch_acc / batches_count
 
                             # ---- Block logs.
-                            self.logs (
-                                progress_bar,
-                                iteration = block-start_block,
-                                output = output,
-                            )
+                            # self.logs (
+                            #     progress_bar,
+                            #     iteration = block-start_block,
+                            #     output = output,
+                            # )
                             self.stats.global_step += 1
 
                     if rank == 0:
