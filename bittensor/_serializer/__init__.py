@@ -58,6 +58,8 @@ class serializer:
         #     return PyTorchPickleSerializer()
         if serialzer_type == bittensor.proto.Serializer.MSGPACK:
             return serializer_impl.MSGPackSerializer()
+        elif serialzer_type == bittensor.proto.Serializer.CMPPACK:
+            return serializer_impl.CMPPackSerializer()
         else:
             raise bittensor.serializer.NoSerializerForEnum("No known serialzier for proto type {}".format(serialzer_type))
 

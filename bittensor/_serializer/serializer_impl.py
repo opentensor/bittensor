@@ -171,3 +171,54 @@ class MSGPackSerializer( Serializer ):
         numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
+
+
+class CMPPackSerializer( Serializer ):
+    """ Make conversion between torch and bittensor.proto.torch
+    """
+    def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+
+        Args:
+            torch_tensor (torch.Tensor): 
+                Torch tensor to serialize.
+
+            modality (bittensor.proto.Modality): 
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
+        shape = list(torch_tensor.shape)
+        torch_numpy = torch_tensor.cpu().detach().half().numpy().copy()
+        data_buffer = msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    shape = shape,
+                                    dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.CMPPACK,
+                                    tensor_type = bittensor.proto.TensorType.TORCH,
+                                    modality = modality,
+                                    requires_grad = torch_tensor.requires_grad
+                                )
+        return torch_proto
+
+    def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
+
+        Args:
+            torch_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            torch.Tensor: 
+                Deserialized torch tensor.
+        """
+        dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype(torch_proto.dtype)
+        shape = tuple(torch_proto.shape)
+        numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
+        torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
+        return torch_object.type(dtype)
