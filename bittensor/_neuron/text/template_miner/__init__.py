@@ -105,6 +105,8 @@ class neuron:
         parser.add_argument('--neuron.use_wandb', action='store_true', help='''neuron activates its weights and biases powers''', default=False)
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
         parser.add_argument('--neuron.multiprocessing', action='store_true', help='Use multiprocessing or not', default=False )
+        parser.add_argument('--neuron.world_size', type=int, help='The number of processes for multiprocessing', default=1 )
+
 
         bittensor.logging.add_args( parser )
         bittensor.wallet.add_args( parser )
