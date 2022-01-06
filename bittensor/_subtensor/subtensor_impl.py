@@ -471,6 +471,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         else:
             staking_balance = amount
 
+        # Remove existential balance
+        staking_balance = staking_balance - bittensor.Balance.from_rao( 1000 )
+
         # Estimate transfer fee.
         staking_fee = None # To be filled.
         with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
