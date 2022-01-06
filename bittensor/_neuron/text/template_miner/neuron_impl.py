@@ -48,8 +48,6 @@ from functools import partial
 
 import torch.nn.functional as F
 
-# from join_manager import Counter
-# from torch.distributed.algorithms.join import Join
 
 class Neuron:
 
@@ -181,7 +179,6 @@ class Neuron:
             self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 
             # --- Run until n_epochs ----
-            # with Join([counter], sync_max_count=True):
             while self.epoch < self.config.neuron.n_epochs:
                 try:
                     # --- Init epoch stat----
@@ -223,10 +220,6 @@ class Neuron:
                             bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
                             current_block = self.subtensor.get_current_block()
 
-                            # counter()
-                            # print(f"{int(counter.count.item())} inputs processed before rank {rank} joined!")
-                            # print(f"{int(counter.max_count.item())} inputs processed across all ranks!")
-                            
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
                             total_distillation_epoch_loss += output.distillation_loss.item()
@@ -302,7 +295,8 @@ class Neuron:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        output = self.nucleus.local_forward (
+        output = self.nucleus.forward (
+            forward_type = 'local',
             inputs = inputs_x.to( self.device )
         )
         return output.local_hidden
@@ -322,7 +316,9 @@ class Neuron:
         if self.config.neuron.accumulate_remote_gradients:
             with torch.enable_grad():
                 # ---- Set up inputs for gradient computations.
-                outputs_y = self.nucleus.local_forward( inputs = inputs_x.to( self.device ) ).local_context.to( self.device )
+                outputs_y = self.nucleus.forward(
+                    forward_type = 'local',
+                    inputs = inputs_x.to( self.device ) ).local_context.to( self.device )
                 # ---- The backward call will accumulate gradients on our parameters.
                 torch.autograd.backward (
                     tensors = [outputs_y],

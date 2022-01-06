@@ -93,11 +93,16 @@ class Nucleus(nn.Module):
         return validator_scores
 
     def forward(self, *input, **kwargs):
-        inputs = kwargs["inputs"]
-        training = kwargs["training"]
-        output = self.remote_forward(**kwargs) 
-        output.scores = torch.nn.functional.normalize ( torch.relu( self.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
-        return output
+        if 'forward_type' in kwargs and kwargs['forward_type'] == 'local':
+            del kwargs['forward_type']
+            return self.local_forward(**kwargs)
+
+        else:
+            if 'forward_type' in kwargs:
+                del kwargs['forward_type']
+            output = self.remote_forward(**kwargs) 
+            output.scores = torch.nn.functional.normalize ( torch.relu( self.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
+            return output
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
