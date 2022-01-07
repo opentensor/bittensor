@@ -691,7 +691,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             return False
 
         # Estimate unstaking fee.
-        unstake_fee = self.get_fee
+        unstake_fee = None # To be filled.
         with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
             with self.substrate as substrate:
                 call = substrate.compose_call(
