@@ -416,6 +416,7 @@ class Metagraph( torch.nn.Module ):
         r""" Synchronizes this metagraph with the chain state.
         """
         if block == None:
+            block = self.subtensor.get_current_block()
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
@@ -424,10 +425,9 @@ class Metagraph( torch.nn.Module ):
                 else:
                     neurons = self.retrieve_cached_neurons( )
             else:
-                block = self.subtensor.get_current_block()
+                
                 neurons = self.subtensor.neurons( block = block )
         else:
-            
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
