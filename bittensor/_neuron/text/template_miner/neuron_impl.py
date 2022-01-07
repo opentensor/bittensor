@@ -60,7 +60,6 @@ class Neuron:
         self.wallet = bittensor.wallet ( config = self.config )
         self.device = torch.device( device = self.config.neuron.device )
         self.nucleus_base = nucleus
-        self.nucleus = nucleus
         self.stats = SimpleNamespace(
             global_step = 0,
             last_sync_block = 0,
