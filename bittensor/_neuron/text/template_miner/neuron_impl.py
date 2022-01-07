@@ -60,6 +60,7 @@ class Neuron:
         self.wallet = bittensor.wallet ( config = self.config )
         self.device = torch.device( device = self.config.neuron.device )
         self.nucleus_base = nucleus
+        self.nucleus = nucleus
         self.stats = SimpleNamespace(
             global_step = 0,
             last_sync_block = 0,
@@ -459,8 +460,8 @@ class Neuron:
                 'epoch': self.epoch,
                 'epoch_loss': self.stats.local_target_epoch_loss,
                 'global_step': self.stats.global_step,
-                # 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
-                # 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
+                'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
+                'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
                 'network': self.subtensor.network # Save Network
             }
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
