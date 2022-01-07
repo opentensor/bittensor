@@ -102,8 +102,6 @@ class Nucleus(nn.Module):
                 del kwargs['forward_type']
             output = self.remote_forward(**kwargs) 
             output.scores = torch.nn.functional.normalize ( torch.relu( self.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
-            output.scores = output.scores.detach()
-            output.scores.requires_grad = False
             return output
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
