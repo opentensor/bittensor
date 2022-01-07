@@ -413,8 +413,7 @@ class Neuron:
         """
         # --- Load prev state.
         state_dict = self.get_saved_state()
-        nucleus = bittensor.nucleus(self.config, device = self.device)
-        self.nucleus = nucleus.to(self.device)
+        self.nucleus = self.nucleus_base.to(self.device)
         
         # --- Loads and syncs metagraph.
         try:
@@ -442,6 +441,7 @@ class Neuron:
         
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
         self.nucleus.metagraph = self.metagraph_callback # Set local metagraph.
+        self.nucleus.device = self.device
         self.optimizer = torch.optim.SGD(
             [{"params": self.nucleus.parameters()}],
             lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
