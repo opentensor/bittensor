@@ -424,9 +424,11 @@ class Metagraph( torch.nn.Module ):
                         n_total = len(neurons)
                 else:
                     neurons = self.retrieve_cached_neurons( )
+                    n_total = len(neurons)
             else:
                 
                 neurons = self.subtensor.neurons( block = block )
+                n_total = len(neurons)
         else:
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
@@ -435,8 +437,10 @@ class Metagraph( torch.nn.Module ):
                         n_total = len(neurons)
                 else:
                     neurons = self.retrieve_cached_neurons( block = block )
+                    n_total = len(neurons)
             else:
                 neurons = self.subtensor.neurons( block = block )
+                n_total = len(neurons)
 
         # Fill arrays.
         uids = [ i for i in range(n_total) ]
