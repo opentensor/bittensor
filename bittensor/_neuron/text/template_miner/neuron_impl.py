@@ -59,6 +59,7 @@ class Neuron:
         self.world_size = config.neuron.world_size# torch.cuda.device_count()
         self.wallet = bittensor.wallet ( config = self.config )
         self.nucleus_base = nucleus
+        self.nucleus = nucleus
         self.stats = SimpleNamespace(
             global_step = 0,
             last_sync_block = 0,
