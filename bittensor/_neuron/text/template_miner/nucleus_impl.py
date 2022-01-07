@@ -51,10 +51,9 @@ class PositionalEncoding(nn.Module):
 
 class Nucleus(nn.Module):
 
-    def __init__(self, config, device ):
+    def __init__(self, config ):
         super(Nucleus, self).__init__()
         self.config = config
-        self.device = device
 
         # Embedding Layer.
         self.embedding = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )

@@ -402,8 +402,7 @@ class Neuron:
         """
         # --- Load prev state.
         state_dict = self.get_saved_state()
-        nucleus = bittensor.nucleus(self.config, device = self.device)
-        self.nucleus = nucleus.to(self.device)
+        self.nucleus = self.nucleus_base.to(self.device)
         
         # --- Loads and syncs metagraph.
         try:
