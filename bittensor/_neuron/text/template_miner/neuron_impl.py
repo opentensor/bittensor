@@ -164,7 +164,6 @@ class Neuron:
 
             self.nucleus.metagraph = self.metagraph
             self.nucleus.dendrite = self.dendrite
-            self.nucleus.device = self.device
             bittensor.logging.success( prefix = f'finished setting ddp dend and meta', sufix = f'Rank {rank}')
 
             optimizer = torch.optim.SGD(
