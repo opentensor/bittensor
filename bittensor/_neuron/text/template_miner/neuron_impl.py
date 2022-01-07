@@ -162,13 +162,16 @@ class Neuron:
                 self.axon.check()
             except Exception as e:
                 logger.error("Error when trying to reload model: {}".format(e))
-                self.save()
-                self.reload(rank)
-                self.axon.check()
+                # self.save()
+                # self.reload(rank)
+                # self.axon.check()
         
             if self.config.neuron.multiprocessing:
                 self.init_process(rank)
-                self.nucleus = DDP(self.nucleus)
+                try:
+                    self.nucleus = DDP(self.nucleus)
+                except:
+                    self.nucleus = DDP(self.nucleus_base.to(self.device))
                 bittensor.logging.success( prefix = 'Enabled DDP', sufix = '<blue>Rank: {}</blue>'.format( rank ))
 
             self.nucleus.metagraph = self.metagraph
@@ -176,7 +179,7 @@ class Neuron:
             self.nucleus.device = self.device
             bittensor.logging.success( prefix = f'finished setting ddp dend and meta', sufix = f'Rank {rank}')
 
-            optimizer = torch.optim.SGD(
+            self.optimizer = torch.optim.SGD(
                 # [ {'params': nucleus_ddp.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
                 [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
                 lr = self.config.neuron.learning_rate,
@@ -227,8 +230,8 @@ class Neuron:
                             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                             
                             # ---- Apply and zero accumulated gradients.
-                            optimizer.step() 
-                            optimizer.zero_grad()
+                            self.optimizer.step() 
+                            self.optimizer.zero_grad()
                             bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
                             current_block = self.subtensor.get_current_block()
 
@@ -466,8 +469,8 @@ class Neuron:
                 'epoch': self.epoch,
                 'epoch_loss': self.stats.local_target_epoch_loss,
                 'global_step': self.stats.global_step,
-                # 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
-                # 'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
+                'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
+                'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
                 'network': self.subtensor.network # Save Network
             }
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
