@@ -51,7 +51,7 @@ class PositionalEncoding(nn.Module):
 
 class Nucleus(nn.Module):
 
-    def __init__(self, config, device ):
+    def __init__(self, config, device = None ):
         super(Nucleus, self).__init__()
         self.config = config
         self.device = device
