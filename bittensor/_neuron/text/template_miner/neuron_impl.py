@@ -149,7 +149,7 @@ class Neuron:
                 self.save()
 
             try:
-                # self.reload(rank)
+                self.reload(rank)
                 self.axon.check()
             except Exception as e:
                 logger.error("Error when trying to reload model: {}".format(e))
