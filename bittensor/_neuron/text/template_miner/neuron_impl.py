@@ -107,7 +107,7 @@ class Neuron:
             )
 
     def init_bit(self, rank = 0):
-        if self.config.neuron.multiprocessing and self.config.neuron.device == 'cuda':
+        if self.config.neuron.multiprocessing and 'cuda' in self.config.neuron.device:
             self.device = torch.device( device = f'cuda:{rank}' )
         else: 
             self.device = torch.device( device = self.config.neuron.device )
@@ -173,6 +173,7 @@ class Neuron:
 
             self.nucleus.metagraph = self.metagraph
             self.nucleus.dendrite = self.dendrite
+            self.nucleus.device = self.device
             bittensor.logging.success( prefix = f'finished setting ddp dend and meta', sufix = f'Rank {rank}')
 
             optimizer = torch.optim.SGD(
