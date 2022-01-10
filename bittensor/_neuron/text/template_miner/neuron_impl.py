@@ -87,7 +87,12 @@ class Neuron:
     def init_process(self, rank):
         os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '8865'
-        dist.init_process_group("gloo", rank=rank, world_size=self.world_size)
+        if 'cuda' in self.config.neuron.device:
+            backend = 'nccl'
+        else:
+            backend = 'gloo'
+
+        dist.init_process_group(backend, rank=rank, world_size=self.world_size)
     
     def cleanup(self):
         dist.destroy_process_group()
