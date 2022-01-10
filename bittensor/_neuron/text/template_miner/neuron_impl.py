@@ -116,6 +116,12 @@ class Neuron:
             blacklist = self.blacklist,
         )
         bittensor.logging.success( prefix = f'got axon', sufix = f'Rank {rank}')
+        self.optimizer = torch.optim.SGD(
+            # [ {'params': nucleus_ddp.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
+            [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
+            lr = self.config.neuron.learning_rate,
+            momentum = self.config.neuron.momentum,
+        )
         
         if rank == 0 :
             self.subtensor.register( self.wallet )
@@ -166,12 +172,6 @@ class Neuron:
             self.nucleus.dendrite = self.dendrite
             bittensor.logging.success( prefix = f'finished setting ddp dend and meta', sufix = f'Rank {rank}')
 
-            optimizer = torch.optim.SGD(
-                # [ {'params': nucleus_ddp.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
-                [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
-                lr = self.config.neuron.learning_rate,
-                momentum = self.config.neuron.momentum,
-            )
 
             bittensor.logging.success( prefix = f'Initialized', sufix = f'Rank {rank}')
             
@@ -216,8 +216,8 @@ class Neuron:
                             
                             # ---- Apply and zero accumulated gradients.
                             dist.barrier()
-                            optimizer.step() 
-                            optimizer.zero_grad()
+                            self.optimizer.step() 
+                            self.optimizer.zero_grad()
                             bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
                             current_block = self.subtensor.get_current_block()
 
