@@ -160,7 +160,13 @@ class Neuron:
             if self.config.neuron.multiprocessing:
                 self.init_process(rank)
                 bittensor.logging.success( prefix = 'Inited process group', sufix = '<blue>Rank: {}</blue>'.format( rank ))
-                self.nucleus = DDP(self.nucleus)
+                if 'cuda' in self.config.neuron.device:
+                    self.nucleus.to(rank)
+                    self.nucleus = DDP(self.nucleus,  device_ids=[rank])
+                else:
+                    self.nucleus = DDP(self.nucleus)
+                    
+                
                 bittensor.logging.success( prefix = 'Enabled DDP', sufix = '<blue>Rank: {}</blue>'.format( rank ))
 
             self.nucleus.metagraph = self.metagraph
