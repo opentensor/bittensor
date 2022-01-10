@@ -739,6 +739,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                         'axon_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
                         'axon_qps': float(self.stats.qps_per_pubkey[pubkey].get())
                     } )
+            dataframe['uid'] = dataframe.index
             return dataframe
 
         except Exception as e:
