@@ -47,7 +47,7 @@ import torch.nn as nn
 from functools import partial
 
 import torch.nn.functional as F
-from torch.multiprocessing import Manager
+# from torch.multiprocessing import Manager
 
 
 class Neuron:
@@ -98,12 +98,12 @@ class Neuron:
         dist.destroy_process_group()
 
     def run_parallel( self ):
-        with Manager() as manager:
-            mp.spawn(self.run,
-                args=(self.world_size,),
-                nprocs=self.world_size,
-                join=True
-            )
+        # with Manager() as manager:
+        mp.spawn(self.run,
+            args=(self.world_size,),
+            nprocs=self.world_size,
+            join=True
+        )
 
     def init_bit(self, rank = 0):
         if self.config.neuron.multiprocessing and self.config.neuron.device == 'cuda':
