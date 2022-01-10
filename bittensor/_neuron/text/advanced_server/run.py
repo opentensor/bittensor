@@ -194,7 +194,7 @@ def serve( config, gp_server):
 
     # --- last sync block 
     last_sync_block = subtensor.get_current_block()
-    last_set_block = subtensor.get_current_block()
+    last_set_block = last_sync_block
 
     # -- Main Training loop --
     try:
