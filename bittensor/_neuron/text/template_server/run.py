@@ -125,7 +125,7 @@ def serve( config, model ):
             wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-        if current_block - last_set_block > config.neuron.set_weights:
+        if current_block - last_set_block > config.neuron.blocks_per_set_weights:
             try: 
                 last_set_block = current_block
                 # Set self weights to maintain activity.
