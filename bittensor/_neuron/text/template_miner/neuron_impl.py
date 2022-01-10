@@ -119,10 +119,10 @@ class Neuron:
         
         if rank == 0 :
             self.subtensor.register( self.wallet )
-            self.axon.start().serve (
-                use_upnpc = self.config.neuron.use_upnpc, 
-                subtensor = self.subtensor
-            )
+            # self.axon.start().serve (
+            #     use_upnpc = self.config.neuron.use_upnpc, 
+            #     subtensor = self.subtensor
+            # )
             bittensor.logging.success( prefix = f'got axon running ', sufix = f'Rank {rank}')
 
     def run( self, rank = 0, world_size = 0):
