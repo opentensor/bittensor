@@ -202,6 +202,7 @@ class Neuron:
                     total_remote_target_epoch_loss = 0
                     total_local_epoch_acc = 0
                     batches_count = 0
+                    bittensor.logging.success( prefix = f'reseting stats to zeros', sufix = f'batches_count {batches_count}, Rank {rank}')
 
                     # ---- Run epoch ----
                     start_block = self.subtensor.get_current_block() + 1
@@ -243,6 +244,11 @@ class Neuron:
                             self.stats.epoch_data_size += inputs.nelement()
                             batches_count += 1
                             
+                            bittensor.logging.success( prefix = f'adding to local target epoch loss', sufix = f' {output.local_target_loss.item(), total_local_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'adding to distillation epoch loss', sufix = f' {output.distillation_loss.item(), total_distillation_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'adding to remote target epoch loss', sufix = f' {output.remote_target_loss.item(), total_remote_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'adding to local accuracy', sufix = f' {output.local_accuracy, total_local_epoch_acc}, Rank {rank}')
+                            
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
                             output.scores = output.scores.detach()
                             output.scores.requires_grad = False
@@ -260,10 +266,14 @@ class Neuron:
                             
                         # ---- Update the epoch loss if iVt is the last iteration within epoch
                         if block+1 == end_block :
-                            self.stats.local_target_epoch_loss += total_local_target_epoch_loss / (batches_count*self.world_size) 
-                            self.stats.distillation_epoch_loss += total_distillation_epoch_loss / (batches_count*self.world_size)
-                            self.stats.remote_target_epoch_loss += total_remote_target_epoch_loss / (batches_count*self.world_size)
-                            self.stats.local_epoch_acc += total_local_epoch_acc / (batches_count*self.world_size)
+                            self.stats.local_target_epoch_loss = total_local_target_epoch_loss / (batches_count) 
+                            self.stats.distillation_epoch_loss = total_distillation_epoch_loss / (batches_count)
+                            self.stats.remote_target_epoch_loss = total_remote_target_epoch_loss / (batches_count)
+                            self.stats.local_epoch_acc = total_local_epoch_acc / (batches_count)
+                            bittensor.logging.success( prefix = f'getting avg of local target epoch loss', sufix = f' {self.stats.local_target_epoch_loss, total_local_target_epoch_loss, batches_count, self.world_size}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'getting avg of distillation epoch loss', sufix = f' {self.stats.distillation_epoch_loss, total_distillation_epoch_loss, batches_count, self.world_size}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'getting avg of remote_target epoch loss', sufix = f' {self.stats.remote_target_epoch_loss, total_remote_target_epoch_loss, batches_count, self.world_size}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'getting avg of local epoch acc', sufix = f' {self.stats.local_epoch_acc, total_local_epoch_acc, batches_count, self.world_size}, Rank {rank}')
 
                         if rank == 0:
                             # ---- Sync with metagraph if the current block >= last synced block + sync block time 
@@ -276,6 +286,16 @@ class Neuron:
                                 
 
                             # ---- Block logs.
+
+                            bittensor.logging.success( prefix = f'local target epoch loss', sufix = f' {self.stats.local_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'distillation epoch loss', sufix = f' {self.stats.distillation_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'remote target epoch loss', sufix = f' {self.stats.remote_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'local epoch accuracy', sufix = f' {self.stats.local_epoch_acc}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
                             self.logs (
                                 progress_bar,
                                 iteration = block-start_block,
