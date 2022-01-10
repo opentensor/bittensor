@@ -155,7 +155,7 @@ class Nucleus(nn.Module):
 
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
-        print(self.device, next(self.parameters()).device )
+        bittensor.logging.success( f"{self.device, next(self.parameters()).device}", sufix="" )
         local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
 
         # local_context: adding positional encoding to local_context.
