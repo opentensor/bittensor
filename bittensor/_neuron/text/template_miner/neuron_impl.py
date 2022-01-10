@@ -101,7 +101,11 @@ class Neuron:
             )
 
     def init_bit(self, rank = 0):
-        self.device = torch.device( device = self.config.neuron.device )
+        if self.config.neuron.multiprocessing and self.config.neuron.device == 'cuda':
+            self.device = torch.device( device = f'cuda:{rank}' )
+        else:
+            self.device = torch.device( device = self.config.neuron.device )
+        
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
