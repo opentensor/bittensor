@@ -209,11 +209,13 @@ class Neuron:
 
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+                            dist.barrier()
                             output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
                             bittensor.logging.success( prefix = f'Backward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
                             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                             
                             # ---- Apply and zero accumulated gradients.
+                            dist.barrier()
                             optimizer.step() 
                             optimizer.zero_grad()
                             bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
@@ -499,7 +501,7 @@ class Neuron:
         stake = self_neuron.stake
         rank = self_neuron.rank
         incentive = self_neuron.incentive
-        normalized_peer_weights = F.softmax (self.nucleus.peer_weights.detach(), dim=0)
+        normalized_peer_weights = F.softmax (self.nucleus.state_dict()['module.peer_weights'], dim=0)
         current_block = self.subtensor.get_current_block()
 
         # ---- Progress bar log
