@@ -36,10 +36,10 @@ class Balance:
         return self.tao
 
     def __str__(self):
-        return "\u03C4{}\u002C{}".format( str(float(self.tao)).split('.')[0], str(float(self.tao)).split('.')[1])
+        return "\u03C4{}\u002C{}".format( format(float(self.tao), 'f').split('.')[0], format(float(self.tao), 'f').split('.')[1])
 
     def __rich__(self):
-        return "[green]\u03C4[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format( str(float(self.tao)).split('.')[0], str(float(self.tao)).split('.')[1])
+        return "[green]\u03C4[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format( format(float(self.tao), 'f').split('.')[0], format(float(self.tao), 'f').split('.')[1])
 
     def __str_rao__(self):
         return "\u03C1{}".format( int(self.rao) )
@@ -67,6 +67,21 @@ class Balance:
 
     def __ge__(self, other):
         return self.rao >= other.rao
+
+    def __add__(self, other):
+        return Balance(self.rao + other.rao)
+
+    def __sub__(self, other):
+        return Balance(self.rao - other.rao)
+
+    def __neg__(self):
+        return Balance(-self.rao)
+
+    def __pos__(self):
+        return Balance(self.rao)
+
+    def __abs__(self):
+        return Balance(abs(self.rao))
 
     @staticmethod
     def from_float(amount : float):
