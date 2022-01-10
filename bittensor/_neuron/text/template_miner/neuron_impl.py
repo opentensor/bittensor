@@ -58,7 +58,6 @@ class Neuron:
         self.config = config
         self.world_size = config.neuron.world_size# torch.cuda.device_count()
         self.wallet = bittensor.wallet ( config = self.config )
-        self.device = torch.device( device = self.config.neuron.device )
         self.nucleus_base = nucleus
         self.stats = SimpleNamespace(
             global_step = 0,
@@ -71,7 +70,7 @@ class Neuron:
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
             scores = {},
-            ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device)
+            ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False)
         )
         # # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
@@ -95,7 +94,6 @@ class Neuron:
 
     def run_parallel( self ):
         with Manager() as manager:
-            self.stats.scores = manager.dict()
             mp.spawn(self.run,
                 args=(self.world_size,),
                 nprocs=self.world_size,
@@ -103,11 +101,11 @@ class Neuron:
             )
 
     def init_bit(self, rank = 0):
+        self.device = torch.device( device = self.config.neuron.device )
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
         self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size, rank = rank)
-        bittensor.logging.success( prefix = f'got dataset', sufix = f'Rank {rank}')
         self.axon = bittensor.axon (
             config = self.config,
             wallet = self.wallet,
@@ -115,7 +113,7 @@ class Neuron:
             backward_text = self.backward_text,
             blacklist = self.blacklist,
         )
-        bittensor.logging.success( prefix = f'got axon', sufix = f'Rank {rank}')
+        self.stats.ema_scores.to(self.device)
         
         if rank == 0 :
             self.subtensor.register( self.wallet )
@@ -435,7 +433,7 @@ class Neuron:
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
 
         self.nucleus.to( self.device ) # Load nucleus
-        
+        self.nucleus.device = self.device 
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
         self.nucleus.metagraph = self.metagraph_callback # Set local metagraph.
         self.optimizer = torch.optim.SGD(

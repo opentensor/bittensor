@@ -142,7 +142,7 @@ class Nucleus(nn.Module):
         #           predicting each token in the sequence.
         # src_mask.shape = [sequence_len, sequence_len]
         src_mask = torch.triu(torch.ones(sequence_len, sequence_len) * float('-inf'), diagonal=1)
-        src_mask = src_mask.to(self.config.neuron.device)
+        src_mask = src_mask.to(self.device)
 
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
@@ -254,7 +254,7 @@ class Nucleus(nn.Module):
         real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
         std = torch.std(active_peer_weights).item()
         std = std if std and std > 0 else self.config.nucleus.noise_offset
-        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
+        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.device ) * self.noise_multiplier
         topk_weights, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
 
@@ -270,9 +270,9 @@ class Nucleus(nn.Module):
         # # ---- Join based on weights ----
         # joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
         # joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-        # output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.neuron.device )
+        # output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
         # for index, joining_weight in enumerate( joining_weights ):
-        #     output += responses[joining_uids[index]].to( self.config.neuron.device ) * joining_weight
+        #     output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
         # ---- Join based on weights ----
         joining_idx= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
@@ -280,15 +280,15 @@ class Nucleus(nn.Module):
         topk_weights_normed = topk_weights
         topk_weights_normed[joining_idx] = joining_weights
         
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.neuron.device )
-        failed_response = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.neuron.device )
+        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
+        failed_response = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
         
         for index, weight in enumerate( topk_weights_normed ):
             if index in joining_idx:
-                output += responses[index].to( self.config.neuron.device ) * weight
+                output += responses[index].to( self.device ) * weight
                 # bittensor.logging.success(f"j0ining ", sufix = f"{index, }")
             else:
-                output += failed_response.to( self.config.neuron.device ) * weight
+                output += failed_response.to( self.device ) * weight
 
                 # bittensor.logging.success(f"j0ining a failed one", sufix = f"{index, }")
         
