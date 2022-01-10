@@ -420,23 +420,42 @@ class Metagraph( torch.nn.Module ):
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        neurons = self.retrieve_cached_neurons( )
+                        try:
+                            neurons = self.retrieve_cached_neurons( )
+                        except:
+                            # For some reason IPFS cache is down, fallback on regular sync
+                            logger.warning("IPFS cache may be down, falling back to regular sync")
+                            neurons = self.subtensor.neurons()
                         n_total = len(neurons)
                 else:
-                    neurons = self.retrieve_cached_neurons( )
+                    try:
+                        neurons = self.retrieve_cached_neurons( )
+                    except:
+                        # For some reason IPFS cache is down, fallback on regular sync
+                        logger.warning("IPFS cache may be down, falling back to regular sync")
+                        neurons = self.subtensor.neurons()
                     n_total = len(neurons)
             else:
-                
                 neurons = self.subtensor.neurons( block = block )
                 n_total = len(neurons)
         else:
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        neurons = self.retrieve_cached_neurons( block = block )
+                        try:
+                            neurons = self.retrieve_cached_neurons( block = block )
+                        except:
+                            # For some reason IPFS cache is down, fallback on regular sync
+                            logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                            neurons = self.subtensor.neurons( block = block )
                         n_total = len(neurons)
                 else:
-                    neurons = self.retrieve_cached_neurons( block = block )
+                    try:
+                        neurons = self.retrieve_cached_neurons( block = block )
+                    except:
+                        # For some reason IPFS cache is down, fallback on regular sync
+                        logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                        neurons = self.subtensor.neurons( block = block )
                     n_total = len(neurons)
             else:
                 neurons = self.subtensor.neurons( block = block )
