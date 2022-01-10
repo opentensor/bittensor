@@ -86,7 +86,7 @@ class Neuron:
         print(exc_type, exc_value, exc_traceback)
     
     def init_process(self, rank):
-        os.environ['MASTER_ADDR'] = '192.168.131.176'
+        os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '8865'
         dist.init_process_group("gloo", rank=rank, world_size=self.world_size)
     
@@ -159,6 +159,7 @@ class Neuron:
         
             if self.config.neuron.multiprocessing:
                 self.init_process(rank)
+                bittensor.logging.success( prefix = 'Inited process group', sufix = '<blue>Rank: {}</blue>'.format( rank ))
                 self.nucleus = DDP(self.nucleus)
                 bittensor.logging.success( prefix = 'Enabled DDP', sufix = '<blue>Rank: {}</blue>'.format( rank ))
 
