@@ -168,6 +168,8 @@ class Neuron:
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                             scores = torch.nn.functional.normalize ( torch.relu( self.nucleus.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
+                            scores[output.query_uids] += 1e-6
+
                             output.loss.backward() # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                             
@@ -424,15 +426,15 @@ class Neuron:
 
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
-            epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() ) )
-            topk_scores, topk_uids = bittensor.unbiased_topk( epsilon_scores, k = k )
+            inactive_uids = torch.where(self.metagraph.active == 0)[0]
+            self.stats.ema_scores[inactive_uids] = 0
+            topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores , k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
-            self.subtensor.timeout_set_weights(
-                timeout = 100,
+            self.subtensor.set_weights(
                 uids = topk_uids,
                 weights = topk_scores,
-                wait_for_inclusion = True,
+                wait_for_inclusion = False,
                 wallet = self.wallet,
             )
 

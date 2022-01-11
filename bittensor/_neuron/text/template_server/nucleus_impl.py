@@ -62,6 +62,13 @@ class server(torch.nn.Module):
             self.pre_model = model if model != None else AutoModel.from_config(model_config)
             self.tokenizer = bittensor.tokenizer()
 
+        if self.config.neuron.training:
+            self.pre_model.train()
+        elif self.config.neuron.autocast and self.device == 'cuda':
+            self.pre_model.half()
+        else:
+            self.pre_model.eval()
+
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
@@ -73,7 +80,7 @@ class server(torch.nn.Module):
         self.mapping_function= mapping_function
         self.token_remap = token_remap if token_remap != None else self.remapping_token
 
-        if padding == False:
+        if self.config.neuron.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
 
         self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
@@ -129,14 +136,21 @@ class server(torch.nn.Module):
         """
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer)
-        pre_hidden = self.pre_model(inputs).last_hidden_state
-
-        if self.interpolate:
+        if self.config.neuron.training:
+            pre_hidden = self.pre_model(inputs).last_hidden_state
+        elif self.config.neuron.autocast and self.device == 'cuda':
+            pre_hidden = self.pre_model(inputs).last_hidden_state
+        else:
+            with torch.no_grad():
+                pre_hidden = self.pre_model(inputs).last_hidden_state
+        
+        if self.interpolate and sen_len[1] != pre_hidden.size()[1]:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
             down = self.mapping_function(pre_hidden)
         else:
-            raise Exception('interpolation off but no mapping function found. Please attach a mapping function')
+            down = pre_hidden
+
 
         if self.padding:
             padding_l = (self.final_dim-self.pre_dimension)//2
@@ -217,8 +231,13 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
         parser.add_argument('--neuron.no_restart', action='store_true', help='if the model should restart', default=False)
         parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
-        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=5)
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
+        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
+        parser.add_argument('--neuron.training',  action='store_true', help='if the model should be training (increases memory load)', default=False)
+        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
+        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
+        parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
+
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
