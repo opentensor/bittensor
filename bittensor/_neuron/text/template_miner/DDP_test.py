@@ -27,7 +27,7 @@ def setup(rank, world_size):
     os.environ['MASTER_PORT'] = '12355'
 
     # initialize the process group
-    dist.init_process_group("", rank=rank, world_size=world_size)
+    dist.init_process_group("gloo", rank=rank, world_size=world_size)
 
 def cleanup():
     dist.destroy_process_group()
@@ -55,11 +55,21 @@ def demo_basic(rank, world_size):
     loss_fn = nn.MSELoss()
     optimizer = optim.SGD(ddp_model.parameters(), lr=0.001)
 
-    optimizer.zero_grad()
-    outputs = ddp_model(torch.randn(20, 10))
-    labels = torch.randn(20, 5)# .to(rank)
-    loss_fn(outputs, labels).backward()
-    optimizer.step()
+    with ddp_model.join():
+        optimizer.zero_grad()
+        outputs = ddp_model(torch.randn(20, 10))
+        labels = torch.randn(20, 5)# .to(rank)
+        loss_fn(outputs, labels).backward()
+        optimizer.step()
+
+        if rank == 0:
+            for i in range(5):
+                print(f"Running basic DDP example on rank {rank}.")
+                optimizer.zero_grad()
+                outputs = ddp_model(torch.randn(20, 10))
+                labels = torch.randn(20, 5)# .to(rank)
+                loss_fn(outputs, labels).backward()
+                optimizer.step()
 
     cleanup()
 
