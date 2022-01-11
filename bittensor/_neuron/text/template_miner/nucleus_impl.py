@@ -296,4 +296,4 @@ class Nucleus(nn.Module):
         #     self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
         #     self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
-        return output, topk_uids[joining_uids]
+        return output, topk_uids[joining_idx]
