@@ -465,11 +465,21 @@ class Neuron:
         self.nucleus.device = self.device 
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
         self.nucleus.metagraph = self.metagraph_callback # Set local metagraph.
-        self.optimizer = torch.optim.SGD(
-            [{"params": self.nucleus.parameters()}],
-            lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
-            momentum = state_dict['optimizer_state']['param_groups'][0]['momentum'],
-        )
+        if 'optimizer_state' in state_dict.keys():
+            self.optimizer = torch.optim.SGD(
+                [{"params": self.nucleus.parameters()}],
+                lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
+                momentum = state_dict['optimizer_state']['param_groups'][0]['momentum'],
+            )
+        else:
+            self.optimizer = torch.optim.SGD(
+                [{"params": self.nucleus.parameters()}],
+                lr = self.config.neuron.learning_rate,
+                momentum = self.config.neuron.momentum,
+            )
+
+            
+
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ))
 
     def sync (self, current_block ):
@@ -494,9 +504,10 @@ class Neuron:
                 'epoch_loss': self.stats.local_target_epoch_loss,
                 'global_step': self.stats.global_step,
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
-                'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
                 'network': self.subtensor.network # Save Network
             }
+            if hasattr(self, 'optimizer'):
+                state_dict['optimizer_state']= self.optimizer.state_dict() # Save optimizer.
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
             bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ) )
         except Exception as e:
