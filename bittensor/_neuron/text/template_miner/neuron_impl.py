@@ -519,14 +519,15 @@ class Neuron:
 
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
-            epsilon_scores = self.stats.ema_scores + torch.normal( 0.001, 0.001, size=( self.stats.ema_scores.size() ) )
-            topk_scores, topk_uids = bittensor.unbiased_topk( epsilon_scores, k = k )
+            inactive_uids = torch.where(self.metagraph.active == 0)[0]
+            self.stats.ema_scores[inactive_uids] = 0
+            topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores , k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
             self.subtensor.set_weights(
                 uids = topk_uids,
                 weights = topk_scores,
-                wait_for_inclusion = True,
+                wait_for_inclusion = False,
                 wallet = self.wallet,
             )
 
@@ -597,8 +598,11 @@ class Neuron:
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1)
             df['uid'] = df.index
+            stats_data_table = wandb.Table( dataframe = df)
 
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
             wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
-            wandb.log( { 'stats': wandb.Table( dataframe = df)}, step = current_block)
+            wandb.log( { 'stats': stats_data_table}, step = current_block)
+            wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time vs UID") } )
+            wandb.log( { 'dendrite_query_times': wandb.plot.scatter( stats_data_table, "uid", "dendrite_query_time", title="Dendrite Query time vs UID") } )
