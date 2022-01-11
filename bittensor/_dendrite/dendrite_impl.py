@@ -711,7 +711,7 @@ class Dendrite(torch.autograd.Function):
                     uid = metagraph.hotkeys.index(pubkey)
                     dataframe.loc[ uid ] = pandas.Series( {
                         'dendrite_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
-                        'dendrite_n_success': int(self.stats.requests_per_pubkey[pubkey]),
+                        'dendrite_n_success': int(self.stats.successes_per_pubkey[pubkey]),
                         'dendrite_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),               
                         'dendrite_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
                         'dendrite_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
