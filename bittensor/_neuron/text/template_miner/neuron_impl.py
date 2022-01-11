@@ -512,8 +512,7 @@ class Neuron:
             topk_scores, topk_uids = bittensor.unbiased_topk( epsilon_scores, k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
-            self.subtensor.timeout_set_weights(
-                timeout = 100,
+            self.subtensor.set_weights(
                 uids = topk_uids,
                 weights = topk_scores,
                 wait_for_inclusion = True,
