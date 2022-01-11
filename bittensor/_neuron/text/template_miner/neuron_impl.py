@@ -214,26 +214,49 @@ class Neuron:
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
-                            # ---- Forward pass ----
-                            inputs = next( self.dataset )
-                            output = self.nucleus.forward(
-                                inputs = inputs.to( self.device ),
-                                training = True,
-                            )
-                            bittensor.logging.success( prefix = f'Forward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+                            with self.nucleus.join():
+                                # ---- Forward pass ----
+                                if rank != 0:
+                                    for lol in range(4):
+                                        inputs = next( self.dataset )
+                                        output = self.nucleus.forward(
+                                            inputs = inputs.to( self.device ),
+                                            training = True,
+                                        )
+                                        bittensor.logging.success( prefix = f'Forward pass', sufix = f'round{lol}, batches_count {batches_count}, Rank {rank}')
 
-                            # ---- Backward pass ----
-                            output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-                            dist.barrier()
-                            output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
-                            bittensor.logging.success( prefix = f'Backward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
-                            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-                            
-                            # ---- Apply and zero accumulated gradients.
-                            dist.barrier()
-                            optimizer.step() 
-                            optimizer.zero_grad()
-                            bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+                                        # ---- Backward pass ----
+                                        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+                                        output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
+                                        bittensor.logging.success( prefix = f'Backward pass', sufix = f'round{lol}, batches_count {batches_count}, Rank {rank}')
+                                        clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+                                        
+                                        # ---- Apply and zero accumulated gradients.
+                                        optimizer.step() 
+                                        optimizer.zero_grad()
+                                        bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'round{lol}, batches_count {batches_count}, Rank {rank}')
+
+                                if rank == 0:
+                                    for lol in range(3):
+                                        inputs = next( self.dataset )
+                                        output = self.nucleus.forward(
+                                            inputs = inputs.to( self.device ),
+                                            training = True,
+                                        )
+                                        bittensor.logging.success( prefix = f'2nd Forward pass', sufix = f'round {lol}, batches_count {batches_count}, Rank {rank}')
+
+                                        # ---- Backward pass ----
+                                        output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
+                                        output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
+                                        bittensor.logging.success( prefix = f'2nd Backward pass', sufix = f'round {lol}, batches_count {batches_count}, Rank {rank}')
+                                        clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+                                        
+                                        # ---- Apply and zero accumulated gradients.
+                                        optimizer.step() 
+                                        optimizer.zero_grad()
+                                        bittensor.logging.success( prefix = f'2nd Optimizer pass', sufix = f'round {lol}, batches_count {batches_count}, Rank {rank}')
+
+
                             current_block = self.subtensor.get_current_block()
 
                             # ---- Aggrigate outputs and losses 
