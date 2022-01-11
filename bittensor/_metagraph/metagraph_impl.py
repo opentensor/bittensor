@@ -391,11 +391,22 @@ class Metagraph( torch.nn.Module ):
             ipns_hash = ipfs.historical_neurons_ipns
             ipfs_hash = ipfs.node_get
         
-        # Ping IPNS for latest IPFS hash
-        ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
+        try:
+            # Ping IPNS for latest IPFS hash
+            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
 
-        # Extract IPFS hash from IPNS response
-        ipfs_path = ast.literal_eval(ipns_resolve.text)
+            # Extract IPFS hash from IPNS response
+            ipfs_path = ast.literal_eval(ipns_resolve.text)
+        except Exception as e:
+            logger.error("Error detected in metagraph sync: {} with sample text {}".format(e,ipns_resolve.text))
+
+            # Try Again
+            # Ping IPNS for latest IPFS hash
+            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
+
+            # Extract IPFS hash from IPNS response
+            ipfs_path = ast.literal_eval(ipns_resolve.text)
+
         ipfs_resolved_hash = ipfs_path['Path'].split("ipfs/")[1]
         ipfs_response = ipfs.retrieve_directory(ipfs_hash, (('arg', ipfs_resolved_hash),))
 
@@ -420,23 +431,42 @@ class Metagraph( torch.nn.Module ):
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        neurons = self.retrieve_cached_neurons( )
+                        try:
+                            neurons = self.retrieve_cached_neurons( )
+                        except:
+                            # For some reason IPFS cache is down, fallback on regular sync
+                            logger.warning("IPFS cache may be down, falling back to regular sync")
+                            neurons = self.subtensor.neurons()
                         n_total = len(neurons)
                 else:
-                    neurons = self.retrieve_cached_neurons( )
+                    try:
+                        neurons = self.retrieve_cached_neurons( )
+                    except:
+                        # For some reason IPFS cache is down, fallback on regular sync
+                        logger.warning("IPFS cache may be down, falling back to regular sync")
+                        neurons = self.subtensor.neurons()
                     n_total = len(neurons)
             else:
-                
                 neurons = self.subtensor.neurons( block = block )
                 n_total = len(neurons)
         else:
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        neurons = self.retrieve_cached_neurons( block = block )
+                        try:
+                            neurons = self.retrieve_cached_neurons( block = block )
+                        except:
+                            # For some reason IPFS cache is down, fallback on regular sync
+                            logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                            neurons = self.subtensor.neurons( block = block )
                         n_total = len(neurons)
                 else:
-                    neurons = self.retrieve_cached_neurons( block = block )
+                    try:
+                        neurons = self.retrieve_cached_neurons( block = block )
+                    except:
+                        # For some reason IPFS cache is down, fallback on regular sync
+                        logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                        neurons = self.subtensor.neurons( block = block )
                     n_total = len(neurons)
             else:
                 neurons = self.subtensor.neurons( block = block )

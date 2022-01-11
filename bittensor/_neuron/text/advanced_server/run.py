@@ -283,7 +283,7 @@ def serve( config, gp_server):
             # Save the model
             gp_server.save(config.neuron.full_path)
             
-            if current_block - last_set_block > config.neuron.set_weights:
+            if current_block - last_set_block > config.neuron.blocks_per_set_weights:
                 
                 # --- Setting weights
                 try: 
