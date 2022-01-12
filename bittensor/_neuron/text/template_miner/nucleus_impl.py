@@ -244,7 +244,7 @@ class Nucleus(nn.Module):
         """
 
         # ---- Get active peers and their weights ---- 
-        active_uids = torch.where(self.metagraph().active > 0)[0]
+        active_uids = torch.tensor(list(range(1698, 1703)))# torch.where(self.metagraph().active > 0)[0]
         active_peer_weights = self.peer_weights[active_uids]
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
