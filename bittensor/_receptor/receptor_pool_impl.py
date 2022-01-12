@@ -187,6 +187,7 @@ class ReceptorPool ( torch.nn.Module ):
                 backward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
                     dendrite call times.
         """
+        bittensor.logging.success("receptor pool", sufix = f'backward')
         if len(endpoints) != len(inputs_x):
             raise ValueError('Endpoints and inputs must have the same length. Got {} and {}'.format(len(endpoints), len(inputs_x)))
 
