@@ -82,21 +82,22 @@ class dendrite:
                 max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors
             )
-        try:
-            manager_client = dendrite.manager_connect()
-            bittensor.logging.success(prefix='Dendrite manager server', sufix='Connected')
+        # try:
+        #     manager_client = dendrite.manager_connect()
+        #     bittensor.logging.success(prefix='Dendrite manager server', sufix='Connected')
             
-        except:
-            dendrite.manager_serve(config, wallet, receptor_pool)
-            bittensor.logging.success(prefix='Dendrite manager server', sufix='Served')
-            manager_client = dendrite.manager_connect()
-            bittensor.logging.success(prefix='Dendrite manager server', sufix='Connected')
+        # except:
+        #     dendrite.manager_serve(config, wallet, receptor_pool)
+        #     bittensor.logging.success(prefix='Dendrite manager server', sufix='Served')
+        #     manager_client = dendrite.manager_connect()
+        #     bittensor.logging.success(prefix='Dendrite manager server', sufix='Connected')
         
         return dendrite_impl.Dendrite ( 
             config = config,
             wallet = wallet, 
-            receptor_pool = manager_client.get_receptorpool(),
-            manager = manager_client,
+            # receptor_pool = manager_client.get_receptorpool(),
+            receptor_pool = receptor_pool,
+            manager = None,
         )
 
     @classmethod   
