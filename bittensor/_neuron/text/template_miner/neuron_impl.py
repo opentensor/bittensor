@@ -136,11 +136,11 @@ class Neuron:
     def run( self, rank = 0, world_size = 0):
         r""" Miner main loop.
         """
-        self.init_bit(rank)
-        bittensor.logging.success( prefix = f'Finished initialization', sufix = f'Rank {rank}')
 
         # ---- Build Bittensor neuron ----
         with self:
+            self.init_bit(rank)
+            bittensor.logging.success( prefix = f'Finished initialization', sufix = f'Rank {rank}')
             if self.config.neuron.use_wandb:
                 bittensor.wandb(
                     config = self.config,
