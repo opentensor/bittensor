@@ -23,7 +23,7 @@ import threading
 """Tests bittensor server and client side compression 
 Apdated from: https://github.com/grpc/grpc/blob/0045e27bf93e4376363a86a6ce8bc7d13565b1da/src/python/grpcio_tests/tests/unit/_compression_test.py#L22
 
-TODO (const): add 
+TODO (const): add tests for other grpc connections: currently, only unary_unary is tested
 """
 
 _DEFAULT_SOCK_OPTIONS = (socket.SO_REUSEADDR,

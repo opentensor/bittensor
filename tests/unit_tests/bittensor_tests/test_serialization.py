@@ -136,6 +136,7 @@ class TestCMPSerialization(unittest.TestCase):
         # Let's grab some image data
         # Let's grab a random image, and give it a crazy type to break the system
         image = torch.ones( [1, 28, 28] )
+        data_size = image.element_size()*image.nelement()
 
         serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_image_tensor_message = serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
@@ -144,6 +145,7 @@ class TestCMPSerialization(unittest.TestCase):
         assert list(image.shape) == serialized_image_tensor_message.shape
         assert serialized_image_tensor_message.modality == bittensor.proto.Modality.IMAGE
         assert serialized_image_tensor_message.dtype != bittensor.proto.DataType.UNKNOWN
+        assert serialized_image_tensor_message.ByteSize() < data_size
 
         deserialized_image_tensor_message = serializer.deserialize(serialized_image_tensor_message, to_type = bittensor.proto.TensorType.TORCH)
         assert serialized_image_tensor_message.requires_grad == deserialized_image_tensor_message.requires_grad
@@ -165,6 +167,7 @@ class TestCMPSerialization(unittest.TestCase):
         data = torch.zeros((len(ts_list), max_l), dtype=torch.int64)
         for i, ts in enumerate(ts_list):
             data[i, 0:ts.size()[0]] = ts
+        data_size = data.element_size()*data.nelement()
 
         serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_data_tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
@@ -173,6 +176,7 @@ class TestCMPSerialization(unittest.TestCase):
         assert list(data.shape) == serialized_data_tensor_message.shape
         assert serialized_data_tensor_message.modality == bittensor.proto.Modality.TEXT
         assert serialized_data_tensor_message.dtype != bittensor.proto.DataType.UNKNOWN
+        assert serialized_data_tensor_message.ByteSize() < data_size
 
         deserialized_data_tensor_message = serializer.deserialize(serialized_data_tensor_message, to_type = bittensor.proto.TensorType.TORCH)
         assert serialized_data_tensor_message.requires_grad == deserialized_data_tensor_message.requires_grad
@@ -183,7 +187,8 @@ class TestCMPSerialization(unittest.TestCase):
 
     
     def test_serialize_deserialize_tensor(self):
-        data = torch.rand([12, 23],dtype=torch.float16)
+        data = torch.rand([12, 23])
+        data_size = data.element_size()*data.nelement()
 
         serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -191,14 +196,16 @@ class TestCMPSerialization(unittest.TestCase):
         assert data.requires_grad == serialized_tensor_message.requires_grad
         assert list(data.shape) == serialized_tensor_message.shape
         assert serialized_tensor_message.modality == bittensor.proto.Modality.TENSOR
-        assert serialized_tensor_message.dtype == bittensor.proto.DataType.FLOAT16
+        assert serialized_tensor_message.dtype == bittensor.proto.DataType.FLOAT32
+        assert serialized_tensor_message.ByteSize() < data_size
+
 
         deserialized_tensor_message = serializer.deserialize(serialized_tensor_message, to_type = bittensor.proto.TensorType.TORCH)
         assert serialized_tensor_message.requires_grad == deserialized_tensor_message.requires_grad
         assert serialized_tensor_message.shape == list(deserialized_tensor_message.shape)
-        assert bittensor.serializer.torch_dtype_to_bittensor_dtype(deserialized_tensor_message.dtype) == bittensor.proto.DataType.FLOAT16
+        assert bittensor.serializer.torch_dtype_to_bittensor_dtype(deserialized_tensor_message.dtype) == bittensor.proto.DataType.FLOAT32
 
-        assert torch.all(torch.eq(deserialized_tensor_message, data))
+        assert torch.all(torch.eq(deserialized_tensor_message, data.to(torch.float16)))
 
     
     def test_bittensor_dtype_to_torch_dtype(self):
