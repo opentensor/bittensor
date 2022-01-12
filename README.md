@@ -70,7 +70,7 @@ import bittensor
 import torch
 wallet = bittensor.wallet().create().register()
 graph = bittensor.metagraph().sync()
-representations, _ = bittensor.dendrite( wallet = wallet ).forward_text (
+representations, _, _ = bittensor.dendrite( wallet = wallet ).forward_text (
     endpoints = graph.endpoints,
     inputs = "The quick brown fox jumped over the lazy dog"
 )

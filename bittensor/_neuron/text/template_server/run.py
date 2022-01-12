@@ -91,6 +91,9 @@ def serve( config, model ):
             root_dir = config.neuron.full_path
         )
 
+    last_set_block = subtensor.get_current_block()
+
+
     # --- Run Forever.
     while True:
         
@@ -122,20 +125,22 @@ def serve( config, model ):
             wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-        try: 
-            # Set self weights to maintain activity.
-            chain_weights = torch.zeros(metagraph.n)
-            chain_weights [ uid ] = 1 
-            did_set = subtensor.set_weights(
-                uids=metagraph.uids,
-                weights = chain_weights,
-                wait_for_inclusion = False,
-                wallet = wallet,
-            )
-            
-            if did_set:
-                logger.success('Successfully set weights on the chain')
-            else:
-                logger.error('Failed to set weights on chain. (Timeout)')
-        except Exception as e:
-            logger.error('Failure setting weights on chain with error: {}', e)
+        if current_block - last_set_block > config.neuron.blocks_per_set_weights:
+            try: 
+                last_set_block = current_block
+                # Set self weights to maintain activity.
+                chain_weights = torch.zeros(metagraph.n)
+                chain_weights [ uid ] = 1 
+                did_set = subtensor.set_weights(
+                    uids=metagraph.uids,
+                    weights = chain_weights,
+                    wait_for_inclusion = False,
+                    wallet = wallet,
+                )
+                
+                if did_set:
+                    logger.success('Successfully set weights on the chain')
+                else:
+                    logger.error('Failed to set weights on chain. (Timeout)')
+            except Exception as e:
+                logger.error('Failure setting weights on chain with error: {}', e)
