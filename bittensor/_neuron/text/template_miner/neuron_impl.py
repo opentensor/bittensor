@@ -254,7 +254,6 @@ class Neuron:
                             output.scores.requires_grad = False
                             self.stats.scores[rank] = output.scores
                             print(rank, output.scores, self.stats.scores)
-                            dist.barrier()          
                                               
                             chain_growth = max(output.scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
