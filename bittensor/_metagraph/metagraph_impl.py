@@ -391,11 +391,22 @@ class Metagraph( torch.nn.Module ):
             ipns_hash = ipfs.historical_neurons_ipns
             ipfs_hash = ipfs.node_get
         
-        # Ping IPNS for latest IPFS hash
-        ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
+        try:
+            # Ping IPNS for latest IPFS hash
+            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
 
-        # Extract IPFS hash from IPNS response
-        ipfs_path = ast.literal_eval(ipns_resolve.text)
+            # Extract IPFS hash from IPNS response
+            ipfs_path = ast.literal_eval(ipns_resolve.text)
+        except Exception as e:
+            logger.error("Error detected in metagraph sync: {} with sample text {}".format(e,ipns_resolve.text))
+
+            # Try Again
+            # Ping IPNS for latest IPFS hash
+            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
+
+            # Extract IPFS hash from IPNS response
+            ipfs_path = ast.literal_eval(ipns_resolve.text)
+
         ipfs_resolved_hash = ipfs_path['Path'].split("ipfs/")[1]
         ipfs_response = ipfs.retrieve_directory(ipfs_hash, (('arg', ipfs_resolved_hash),))
 
@@ -417,27 +428,49 @@ class Metagraph( torch.nn.Module ):
         """
         if block == None:
             block = self.subtensor.get_current_block()
-            n_total = self.subtensor.get_n( block = block )
-
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                        try:
+                            neurons = self.retrieve_cached_neurons( )
+                        except:
+                            # For some reason IPFS cache is down, fallback on regular sync
+                            logger.warning("IPFS cache may be down, falling back to regular sync")
+                            neurons = self.subtensor.neurons()
+                        n_total = len(neurons)
+                else:
+                    try:
                         neurons = self.retrieve_cached_neurons( )
-                else:
-                    neurons = self.retrieve_cached_neurons( )
+                    except:
+                        # For some reason IPFS cache is down, fallback on regular sync
+                        logger.warning("IPFS cache may be down, falling back to regular sync")
+                        neurons = self.subtensor.neurons()
+                    n_total = len(neurons)
             else:
                 neurons = self.subtensor.neurons( block = block )
+                n_total = len(neurons)
         else:
-            n_total = self.subtensor.get_n( block = block )
-            
             if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        neurons = self.retrieve_cached_neurons( block = block )
+                        try:
+                            neurons = self.retrieve_cached_neurons( block = block )
+                        except:
+                            # For some reason IPFS cache is down, fallback on regular sync
+                            logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                            neurons = self.subtensor.neurons( block = block )
+                        n_total = len(neurons)
                 else:
-                    neurons = self.retrieve_cached_neurons( block = block )
+                    try:
+                        neurons = self.retrieve_cached_neurons( block = block )
+                    except:
+                        # For some reason IPFS cache is down, fallback on regular sync
+                        logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                        neurons = self.subtensor.neurons( block = block )
+                    n_total = len(neurons)
             else:
                 neurons = self.subtensor.neurons( block = block )
+                n_total = len(neurons)
 
         # Fill arrays.
         uids = [ i for i in range(n_total) ]
@@ -532,7 +565,7 @@ class Metagraph( torch.nn.Module ):
         try:
             index = self.uids.tolist()
             columns = [ 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
-            df = pandas.DataFrame( columns = columns, index = index )
+            dataframe = pandas.DataFrame(columns = columns, index = index)
             for uid in self.uids.tolist():
                 v = {
                     'uid': self.uids[uid].item(),
@@ -543,10 +576,10 @@ class Metagraph( torch.nn.Module ):
                     'consensus': self.consensus[uid].item(),             
                     'incentive': self.incentive[uid].item(),             
                     'dividends': self.dividends[uid].item(),             
-                    'emission': self.emission[uid].item()}
-                df.loc[uid] = pandas.Series(v)
-            df['uid'] = df.index
-            return df
+                    'emission': self.emission[uid].item()
+                }
+                dataframe.loc[uid] = pandas.Series( v )
+            dataframe['uid'] = dataframe.index
         except Exception as e:
             bittensor.logging.error('failed metagraph.to_dataframe()', str(e))
             return pandas.DataFrame()

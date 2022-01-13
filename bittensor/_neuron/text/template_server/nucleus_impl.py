@@ -235,6 +235,9 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
         parser.add_argument('--neuron.training',  action='store_true', help='if the model should be training (increases memory load)', default=False)
         parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
+        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
+        parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
+
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )

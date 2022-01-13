@@ -739,6 +739,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                         'axon_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
                         'axon_qps': float(self.stats.qps_per_pubkey[pubkey].get())
                     } )
+            dataframe['uid'] = dataframe.index
             return dataframe
 
         except Exception as e:
@@ -754,9 +755,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 wandb_info (:obj:`Dict`)
         """
         try:
+            avg_query_time = 0.0
+            for pubkey in self.stats.query_times_per_pubkey:
+                avg_query_time += self.stats.query_times_per_pubkey[pubkey].get() / len( self.stats.query_times_per_pubkey )
             # ---- Axon summary for wandb
             wandb_data = {
                 'axon/qps': self.stats.qps.get(),
+                'axon/avg_query_time': avg_query_time,
                 'axon/total_requests': self.stats.total_requests,
                 'axon/total_in_bytes' : self.stats.total_in_bytes,
                 'axon/total_out_bytes' : self.stats.total_out_bytes,

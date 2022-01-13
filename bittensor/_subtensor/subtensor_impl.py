@@ -470,14 +470,37 @@ To run a local node (See: docs/running_a_validator.md) \n
         else:
             staking_balance = amount
 
+        # Remove existential balance
+        staking_balance = staking_balance - bittensor.Balance.from_rao( 1000 )
+
+        # Estimate transfer fee.
+        staking_fee = None # To be filled.
+        with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='SubtensorModule', 
+                    call_function='add_stake',
+                    call_params={
+                        'hotkey': wallet.hotkey.ss58_address,
+                        'ammount_staked': staking_balance.rao
+                    }
+                )
+                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+                if payment_info:
+                    staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
+                else:
+                    staking_fee = bittensor.Balance.from_tao( 0.2 )
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
+
         # Check enough to unstake.
-        if staking_balance > old_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, wallet.name))
+        if staking_balance > old_balance + staking_fee:
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, staking_fee, wallet.name))
             return False
                 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format( staking_balance, wallet.hotkey_str ) ):
+            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}\n  fee: {}[/bold white]".format( staking_balance, wallet.hotkey_str, staking_fee) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
@@ -567,12 +590,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 )
                 payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
                 transfer_fee = "N/A"
-                # Otherwise continue with finalization.
                 if payment_info:
                     transfer_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
                     bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( transfer_fee ))
                 else:
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate transfer fee")
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate transfer fee, assuming base fee of 0.2")
+                    transfer_fee = bittensor.Balance.from_tao( 0.2 )
 
         if account_balance < transfer_balance + transfer_fee:
             bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {} fee: {}[/bold white]".format( account_balance, transfer_balance, transfer_fee ))
@@ -665,10 +688,30 @@ To run a local node (See: docs/running_a_validator.md) \n
         if unstaking_balance > stake_on_uid:
             bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
             return False
-        
+
+        # Estimate unstaking fee.
+        unstake_fee = None # To be filled.
+        with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='SubtensorModule', 
+                    call_function='remove_stake',
+                    call_params={
+                        'hotkey': wallet.hotkey.ss58_address,
+                        'ammount_unstaked': unstaking_balance.rao
+                    }
+                )
+                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+                if payment_info:
+                    unstake_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( unstake_fee ))
+                else:
+                    unstake_fee = bittensor.Balance.from_tao( 0.2 )
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
+                        
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
+            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}\n  fee: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str, unstake_fee) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
