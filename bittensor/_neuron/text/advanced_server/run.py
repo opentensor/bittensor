@@ -36,7 +36,7 @@ from datetime import datetime,timedelta
 from threading import Lock
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
-def serve( config, server):
+def serve( config, gp_server):
     config.to_defaults()
 
     # Create Subtensor connection
@@ -53,7 +53,7 @@ def serve( config, server):
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
     mutex = Lock()
-    gp_server = server.to(server.device)
+    gp_server = gp_server.to(gp_server.device)
     
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -74,7 +74,7 @@ def serve( config, server):
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-        return gp_server.encode_forward( inputs_x.to(server.device) )
+        return gp_server.encode_forward( inputs_x.to(gp_server.device) )
 
     # Define our backward function.
     def backward_text (inputs_x, grads_dy ):
@@ -92,11 +92,11 @@ def serve( config, server):
         grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
         
         with mutex:
-            outputs_y = gp_server.encode_forward( inputs_x.to(server.device) )
+            outputs_y = gp_server.encode_forward( inputs_x.to(gp_server.device) )
             with torch.autograd.set_detect_anomaly(True):
                 torch.autograd.backward (
                     tensors = [ outputs_y ],
-                    grad_tensors = [ grads_dy.to(server.device) ],
+                    grad_tensors = [ grads_dy.to(gp_server.device) ],
                     retain_graph=True
                 )
             logger.info('Backwards axon gradient applied')
@@ -190,14 +190,20 @@ def serve( config, server):
             root_dir = config.neuron.full_path
         )
 
+    nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+
+    # --- last sync block 
+    last_sync_block = subtensor.get_current_block()
+    last_set_block = last_sync_block
+
     # -- Main Training loop --
     try:
         # -- download files from the mountain
         data = next(dataset)
 
         # --- creating our chain weights
-        chain_weights =torch.zeros(metagraph.n)
-        uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
+        chain_weights = torch.zeros(metagraph.n)
+        uid = nn.uid
         chain_weights[uid] = 1 
 
         # --  serve axon to the network.
@@ -206,7 +212,6 @@ def serve( config, server):
         while True:
             # --- Run 
             current_block = subtensor.get_current_block()
-            start_block = current_block
             end_block = current_block + config.neuron.blocks_per_epoch
             interation = 0
 
@@ -220,7 +225,8 @@ def serve( config, server):
                         losses = loss
                     interation += 1
                     current_block = subtensor.get_current_block()
-            
+
+        
             #Custom learning rate
             if gp_server.backward_gradients > 0:
                 optimizer.param_groups[0]['lr'] =  1/(gp_server.backward_gradients)
@@ -262,20 +268,26 @@ def serve( config, server):
 
                 df = pandas.concat( [
                     bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
+                    bittensor.utils.indexed_values_to_dataframe( prefix = 's_i'.format(nn.uid), index = metagraph.uids, values = metagraph.S ),
                     axon.to_dataframe( metagraph = metagraph ),
                 ], axis = 1)
                 df['uid'] = df.index
+                stats_data_table = wandb.Table( dataframe = df ) 
                 wandb_info_axon = axon.to_wandb()                
                 wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
-                wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
-
+                wandb.log( { 'stats': stats_data_table }, step = current_block )
+                wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
+                wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
+                wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
+                
             # Save the model
             gp_server.save(config.neuron.full_path)
             
-            if current_block % 10 == 0:
+            if current_block - last_set_block > config.neuron.blocks_per_set_weights:
                 
                 # --- Setting weights
                 try: 
+                    last_set_block = current_block
                     # Set self weights to maintain activity.
                     chain_weights = torch.zeros(metagraph.n)
                     chain_weights [ uid ] = 1 
@@ -294,9 +306,9 @@ def serve( config, server):
                     logger.error('Failure setting weights on chain with error: {}', e)
 
 
-            if current_block - start_block > 2000:
+            if current_block - last_sync_block > config.neuron.metagraph_sync:
                 metagraph.sync()
-                start_block = current_block
+                last_sync_block = current_block
 
 
     except KeyboardInterrupt:

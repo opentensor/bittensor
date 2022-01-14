@@ -307,22 +307,6 @@ class TestSubtensor(unittest.TestCase):
                             )
         assert fail == False
 
-    def test_timeout_set_weights( self ):
-        chain_weights = [0]
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-        neuron = self.neurons[ 1 ]
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-        success= self.subtensor.timeout_set_weights(wallet=self.wallet,
-                            uids=[neuron.uid],
-                            weights=chain_weights,
-                            timeout=10,
-                            )
-        assert success == True
-
     def test_get_balance( self ):
         neuron = self.neurons[ 1 ]
         balance= self.subtensor.get_balance(address=neuron.hotkey)

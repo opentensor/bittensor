@@ -7,7 +7,7 @@ class Validator( torch.nn.Module ):
 
         def __init__(self, config, metagraph, dendrite, device):
             super(Validator, self).__init__()
-            self.layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout )
+            self.layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout, batch_first=True)
             self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
