@@ -663,6 +663,8 @@ class Receptor(nn.Module):
                     message associated with forward call, potentially error, or 'success'.
         """ 
         if request.outputs != None:
+            if request.end_time == None:
+                request.end_time = 15
             return request.outputs, request.code, request.end_time
 
         if (request.code != bittensor.proto.ReturnCode.Success) or (request.future == None):
