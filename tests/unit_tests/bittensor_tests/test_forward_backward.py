@@ -9,6 +9,16 @@ import multiprocessing
 import time
 import warnings
 
+wallet =  bittensor.wallet (
+    path = '/tmp/pytest',
+    name = 'pytest',
+    hotkey = 'pytest',
+) 
+
+wallet.create_new_coldkey( use_password=False, overwrite = True)
+wallet.create_new_hotkey( use_password=False, overwrite = True)
+
+
 bittensor.logging(debug = True)
 dendrite = bittensor.dendrite(requires_grad=True)
 dendrite_no_grad = bittensor.dendrite(requires_grad=False)
@@ -18,12 +28,12 @@ dendrite_mock.receptor_pool.backward = MagicMock(return_value = [torch.tensor([]
 endpoint = bittensor.endpoint(
     version = bittensor.__version_as_int__,
     uid = 0,
-    hotkey = '',
+    hotkey = wallet.hotkey.ss58_address,
     ip = '0.0.0.0', 
     ip_type = 4, 
     port = 8080, 
     modality = 0, 
-    coldkey = ''
+    coldkey = wallet.coldkey.ss58_address
 )
 
 def test_dendrite_forward_tensor_shape_error():
@@ -158,15 +168,6 @@ def test_dendrite_backward_multiple():
     assert x2.grad.tolist() == y2.tolist()
     assert x3.grad.tolist() == y3.tolist()
 
-wallet =  bittensor.wallet (
-    path = '/tmp/pytest',
-    name = 'pytest',
-    hotkey = 'pytest',
-) 
-
-wallet.create_new_coldkey( use_password=False, overwrite = True)
-wallet.create_new_hotkey( use_password=False, overwrite = True)
-
 def test_axon_receptor_forward_works():
     def forward( inputs_x:torch.FloatTensor):
         time.sleep(0.2)
@@ -182,13 +183,13 @@ def test_axon_receptor_forward_works():
     for i in range(20):
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
-            uid = 0,
+            uid = wallet.hotkey.ss58_address,
             hotkey = str(i),
             ip = '0.0.0.0', 
             ip_type = 4, 
             port = 8080, 
             modality = 0, 
-            coldkey = ''
+            coldkey = wallet.coldkey.ss58_address
         )
         endpoints += [endpoint]
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
@@ -214,15 +215,16 @@ def test_dendrite_call_time():
     axon.start()
     endpoints = []
     for i in range(1000):
+        wallet.create_new_hotkey( use_password=False, overwrite = True)
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
             uid = 0,
-            hotkey = str(i),
+            hotkey = wallet.hotkey.ss58_address,
             ip = '0.0.0.0', 
             ip_type = 4, 
             port = 8080, 
             modality = 0, 
-            coldkey = ''
+            coldkey = wallet.coldkey.ss58_address
         )
         endpoints += [endpoint]
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)

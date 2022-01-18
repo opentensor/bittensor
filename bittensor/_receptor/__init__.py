@@ -27,7 +27,13 @@ from . import receptor_impl
 class receptor:
     """ Create and init the receptor object, which encapsulates a grpc connection to an axon endpoint
     """
-    def __new__( cls, endpoint: 'bittensor.Endpoint', wallet: 'bittensor.Wallet' = None, external_ip: 'str' = None) -> 'bittensor.Receptor':
+    def __new__( 
+             cls,
+             endpoint: 'bittensor.Endpoint',
+             max_processes: 'int' = 1,
+             wallet: 'bittensor.Wallet' = None,
+             external_ip: 'str' = None,
+        ) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
                 endpoint (:obj:`bittensor.Endpoint`, `required`):
@@ -54,7 +60,8 @@ class receptor:
             endpoint = endpoint,
             channel = channel, 
             wallet = wallet,
-            stub = stub
+            stub = stub,
+            max_processes=max_processes
         )
 
 class receptor_pool:
