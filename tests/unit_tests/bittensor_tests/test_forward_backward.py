@@ -214,7 +214,7 @@ def test_dendrite_call_time():
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
     endpoints = []
-    for i in range(1000):
+    for i in range(100):
         wallet.create_new_hotkey( use_password=False, overwrite = True)
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
