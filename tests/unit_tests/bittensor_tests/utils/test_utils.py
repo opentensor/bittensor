@@ -29,16 +29,12 @@ def setup_chain():
     # Select a port
     port = select_port()
     
+    # Delete existing wallets
+    #subprocess.Popen(["rm", '-r', '~/.bittensor/wallets/*testwallet'], close_fds=True, shell=False)
+
     # Purge chain first
     subprocess.Popen([path, 'purge-chain', '--dev', '-y'], close_fds=True, shell=False)
-    
     proc = subprocess.Popen([path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False)
-
-    # Delete existing wallets
-    subprocess.Popen(["rm", '-r', '~/.bittensor/wallets/*testwallet'], close_fds=True, shell=False)
-    
-    _ = subprocess.Popen([path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False)
-
 
     # Wait 4 seconds for the node to come up
     time.sleep(4)
@@ -59,7 +55,6 @@ def initialize_tests():
 def select_port():
     port = random.randrange(1000, 65536, 5)
     return port
-
 
 def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
     wallet = bittensor.wallet()   
@@ -91,32 +86,6 @@ def construct_config():
     bittensor.dataset.add_defaults( defaults )
     
     return defaults
-
-
-def test_indexed_values_to_dataframe( setup_chain ):
-    subtensor, port = setup_subtensor(setup_chain)
-    wallet = generate_wallet()
-
-    wallet.register(subtensor=subtensor)
-    nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
-    metagraph = bittensor.metagraph(subtensor=subtensor)
-    metagraph.sync()
-    idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = [nn.uid], values = metagraph.W[:, nn.uid] )
-    assert idx_df.values[0][0] == 1.0
-
-    idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = nn.uid, index = [nn.uid], values = metagraph.W[:, nn.uid] )
-    assert idx_df.values[0][0] == 1.0
-
-    idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = nn.uid, index = torch.LongTensor([nn.uid]), values = metagraph.W[:, nn.uid] )
-    assert idx_df.values[0][0] == 1.0
-
-    # Need to check for errors 
-    with pytest.raises(ValueError):
-        idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = b'w_i', index = [nn.uid], values = metagraph.W[:, nn.uid] )
-    with pytest.raises(ValueError):
-        idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = nn.uid, values = metagraph.W[:, nn.uid] )
-    with pytest.raises(ValueError):
-        idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = [nn.uid], values = nn.uid)
 
 def test_unbiased_topk():
     input_tensor = torch.FloatTensor([1., 2., 3., 4., 5., 6., 7., 8., 9., 10.])
@@ -168,11 +137,3 @@ def test_solve_for_difficulty():
     nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 10)
     assert nonce == 2
     assert seal == b'\x8a\xa5\x0fA\xb1\n\xd0\xdea\x7f\x86rWq1\xa5|\x18\xd0\xc7\x81\xf4\x81\x03\xf9P\xc8\x19\xb9\x1f-\xcf'
-
-def test_solve_for_difficulty_fast( setup_chain ):
-    subtensor, port = setup_subtensor(setup_chain)
-    nonce, block_number, block_hash, difficulty, seal = bittensor.utils.solve_for_difficulty_fast(subtensor)
-
-    assert block_number == 1
-    assert difficulty == 10000
-    
