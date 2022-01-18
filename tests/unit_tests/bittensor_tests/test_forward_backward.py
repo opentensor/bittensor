@@ -183,8 +183,8 @@ def test_axon_receptor_forward_works():
     for i in range(20):
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
-            uid = wallet.hotkey.ss58_address,
-            hotkey = str(i),
+            uid = 0,
+            hotkey = wallet.hotkey.ss58_address,
             ip = '0.0.0.0', 
             ip_type = 4, 
             port = 8080, 
@@ -214,7 +214,7 @@ def test_dendrite_call_time():
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
     endpoints = []
-    for i in range(100):
+    for i in range(1000):
         wallet.create_new_hotkey( use_password=False, overwrite = True)
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
