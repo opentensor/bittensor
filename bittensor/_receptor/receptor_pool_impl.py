@@ -19,6 +19,7 @@
 
 import math
 from typing import Tuple, List
+from threading import Lock
 
 import torch
 from loguru import logger
@@ -45,6 +46,7 @@ class ReceptorPool ( torch.nn.Module ):
         self.max_worker_threads = max_worker_threads
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
+        self.cull_mutex = Lock()
         self.max_processes = 10
         try:
             self.external_ip = str(net.get_external_ip())
@@ -130,7 +132,6 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request in zip(call_args, request_futures):
             receptor = arg[0]
             results.append(receptor.handle_request_response(request = request))
-            receptor.semaphore.release()
        
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
@@ -227,26 +228,26 @@ class ReceptorPool ( torch.nn.Module ):
     def _destroy_receptors_over_max_allowed( self ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
         """
-
-        # ---- Finally: Kill receptors over max allowed ----
-        while len(self.receptors) > self.max_active_receptors:
-            min_receptor_qps = math.inf
-            receptor_to_remove = None
-            for next_receptor in self.receptors.values():
-                next_qps = next_receptor.stats.forward_qps.value
-                sema_value = next_receptor.semaphore._value
-                if (min_receptor_qps > next_qps) and (sema_value == self.max_processes):
-                    receptor_to_remove = next_receptor
-                    min_receptor_qps = next_receptor.stats.forward_qps.value
-                    
-            if receptor_to_remove != None:
-                try:
-                    bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
-                    del self.receptors[ receptor_to_remove.endpoint.hotkey ]
-                except KeyError:
-                    pass
-            elif receptor_to_remove == None:
-                break
+        with self.cull_mutex:
+            # ---- Finally: Kill receptors over max allowed ----
+            while len(self.receptors) > self.max_active_receptors:
+                min_receptor_qps = math.inf
+                receptor_to_remove = None
+                for next_receptor in self.receptors.values():
+                    next_qps = next_receptor.stats.forward_qps.value
+                    sema_value = next_receptor.semaphore._value
+                    if (min_receptor_qps > next_qps) and (sema_value == self.max_processes):
+                        receptor_to_remove = next_receptor
+                        min_receptor_qps = next_receptor.stats.forward_qps.value
+                        
+                if receptor_to_remove != None:
+                    try:
+                        bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
+                        del self.receptors[ receptor_to_remove.endpoint.hotkey ]
+                    except KeyError:
+                        pass
+                elif receptor_to_remove == None:
+                    break
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
         r""" Finds or creates a receptor TCP connection associated with the passed Neuron Endpoint
