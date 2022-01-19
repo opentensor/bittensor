@@ -116,13 +116,13 @@ class Neuron:
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
         self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size, rank = rank)
-        self.axon = bittensor.axon (
-            config = self.config,
-            wallet = self.wallet,
-            forward_text = self.forward_text,
-            backward_text = self.backward_text,
-            blacklist = self.blacklist,
-        )
+        # self.axon = bittensor.axon (
+        #     config = self.config,
+        #     wallet = self.wallet,
+        #     forward_text = self.forward_text,
+        #     backward_text = self.backward_text,
+        #     blacklist = self.blacklist,
+        # )
         self.stats.ema_scores.to(self.device)
         
         if rank == 0 :
@@ -131,7 +131,27 @@ class Neuron:
             #     use_upnpc = self.config.neuron.use_upnpc, 
             #     subtensor = self.subtensor
             # )
-            bittensor.logging.success( prefix = f'got axon running ', sufix = f'Rank {rank}')
+    def clip_grad_hook(
+        self, process_group: dist.ProcessGroup, bucket: dist.GradBucket
+        ): # -> torch.futures.Future[torch.Tensor]:
+        print("in all reduce")
+        print("old", [g.shape for g in bucket.gradients()])
+        total_norm = clip_grad_norm_(bucket.parameters(), 1)
+
+        print("total norm", total_norm)
+        flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
+        tensor = torch.cat(flat_grads)
+        bucket.set_buffer(tensor)
+        group_to_use = process_group if process_group is not None else dist.group.WORLD
+
+        # Apply the division first to avoid overflow, especially for FP16.
+        tensor.div_(group_to_use.size())
+
+        return (
+            dist.all_reduce(tensor, group=group_to_use, async_op=True)
+            .get_future()
+            .then(lambda fut: fut.value()[0])
+        )
 
     def run( self, rank = 0, world_size = 0):
         r""" Miner main loop.
@@ -158,12 +178,10 @@ class Neuron:
 
             try:
                 self.reload(rank)
-                self.axon.check()
             except Exception as e:
                 logger.error("Error when trying to reload model: {}".format(e))
                 self.save()
                 self.reload(rank)
-                self.axon.check()
         
             if self.config.neuron.multiprocessing:
                 self.init_process(rank)
@@ -173,6 +191,7 @@ class Neuron:
                     self.nucleus = DDP(self.nucleus,  device_ids=[rank])
                 else:
                     self.nucleus = DDP(self.nucleus)
+                    self.nucleus.register_comm_hook(state=None, hook=self.clip_grad_hook)
                     
                 
                 bittensor.logging.success( prefix = 'Enabled DDP', sufix = '<blue>Rank: {}</blue>'.format( rank ))
@@ -227,7 +246,7 @@ class Neuron:
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
                             output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
                             bittensor.logging.success( prefix = f'Backward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
-                            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+                            # clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                             
                             # ---- Apply and zero accumulated gradients.
                             optimizer.step() 
@@ -452,14 +471,13 @@ class Neuron:
         self.stats.best_epoch_loss = state_dict['epoch_loss']
         self.stats.global_step = state_dict['global_step']
 
-
         try:
             self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         except Exception as e:
             logger.exception('Failed to load nucleus state with error, updating the current state')
             state_dict['nucleus_state'] = self.nucleus.state_dict()
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
-
+        
         self.nucleus.to( self.device ) # Load nucleus
         self.nucleus.device = self.device 
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
@@ -477,7 +495,6 @@ class Neuron:
                 momentum = self.config.neuron.momentum,
             )
 
-            
 
         bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ))
 

@@ -30,6 +30,9 @@ import copy
 from unittest.mock import MagicMock
 import neuron_impl
 import copy
+from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
+from torch._six import inf
+from torch.nn.utils import clip_grad_norm_
 
 logger = logger.opt(colors=True)
 bittensor.logging(debug = True)
@@ -89,9 +92,6 @@ class NeuronDDP(neuron_impl.Neuron):
             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
             output.loss.backward(retain_graph = True)
             bittensor.logging.success("finished backward", sufix = "yy")
-            # dist.barrier()
-            # for p in self.nucleus.named_parameters():
-            #     print(p)
 
         return self.nucleus.parameters()
 
@@ -102,7 +102,7 @@ class NeuronDDP2:
         self.world_size = 3
         self.nucleus = bittensor.neurons.template_miner.nucleus()
         self.config = bittensor.neurons.template_miner.neuron().config
-        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd1')
+        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd2')
         self.wallet.create()
         
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( self.config.logging.logging_dir, self.config.wallet.name, self.config.wallet.hotkey, self.config.neuron.name ))
@@ -141,6 +141,7 @@ class NeuronDDP2:
             join=True
         )
 
+
     def init_bit(self, rank):
         self.device = torch.device( device = 'cpu' ) 
         self.subtensor = bittensor.subtensor ( config = self.config )
@@ -149,6 +150,70 @@ class NeuronDDP2:
         self.dendrite.receptor_pool.forward = MagicMock(return_value = [torch.tensor([]), [2,2,2,2,2], [0]]) 
         if rank == 0 :
             self.subtensor.register( self.wallet )
+
+    def clip_grads_norm( self, grads , max_norm: float = 1, norm_type: float = 2.0, error_if_nonfinite: bool = False): # -> torch.Tensor:
+        r"""Clips gradient norm of an iterable of parameters.
+
+        The norm is computed over all gradients together, as if they were
+        concatenated into a single vector. Gradients are modified in-place.
+
+        Args:
+            parameters (Iterable[Tensor] or Tensor): an iterable of Tensors or a
+                single Tensor that will have gradients normalized
+            max_norm (float or int): max norm of the gradients
+            norm_type (float or int): type of the used p-norm. Can be ``'inf'`` for
+                infinity norm.
+            error_if_nonfinite (bool): if True, an error is thrown if the total
+                norm of the gradients from :attr:``parameters`` is ``nan``,
+                ``inf``, or ``-inf``. Default: False (will switch to True in the future)
+
+        Returns:
+            Total norm of the parameters (viewed as a single vector).
+        """
+        max_norm = float(max_norm)
+        norm_type = float(norm_type)
+        device = grads[0].device
+        if norm_type == inf:
+            norms = [g.abs().max().to(device) for g in grads]
+            total_norm = norms[0] if len(norms) == 1 else torch.max(torch.stack(norms))
+        else:
+            total_norm = torch.norm(torch.stack([torch.norm(g, norm_type).to(device) for g in grads]), norm_type)
+        if error_if_nonfinite and torch.logical_or(total_norm.isnan(), total_norm.isinf()):
+            raise RuntimeError(
+                f'The total norm of order {norm_type} for gradients from '
+                '`parameters` is non-finite, so it cannot be clipped. To disable '
+                'this error and scale the gradients by the non-finite norm anyway, '
+                'set `error_if_nonfinite=False`')
+        clip_coef = max_norm / (total_norm + 1e-6)
+        # Note: multiplying by the clamped coef is redundant when the coef is clamped to 1, but doing so
+        # avoids a `if clip_coef < 1:` conditional which can require a CPU <=> device synchronization
+        # when the gradients do not reside in CPU memory.
+        clip_coef_clamped = torch.clamp(clip_coef, max=1.0)
+        for g in grads:
+            g.mul_(clip_coef_clamped.to(device))
+        return grads
+
+    def allreduce_hook(
+        self, process_group: dist.ProcessGroup, bucket: dist.GradBucket
+        ): # -> torch.futures.Future[torch.Tensor]:
+        print("in all reduce")
+        print("old", [g.shape for g in bucket.gradients()])
+        total_norm = clip_grad_norm_(bucket.parameters(), 1)
+
+        print("total norm", total_norm)
+        flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
+        tensor = torch.cat(flat_grads)
+        bucket.set_buffer(tensor)
+        group_to_use = process_group if process_group is not None else dist.group.WORLD
+
+        # Apply the division first to avoid overflow, especially for FP16.
+        tensor.div_(group_to_use.size())
+
+        return (
+            dist.all_reduce(tensor, group=group_to_use, async_op=True)
+            .get_future()
+            .then(lambda fut: fut.value()[0])
+        )
 
     def run(self, rank, world_size):
         self.init_process(rank)
@@ -162,6 +227,8 @@ class NeuronDDP2:
         bittensor.logging.success("finished gettign data", sufix = "yy")
 
         self.nucleus = DDP(self.nucleus)
+        self.nucleus.register_comm_hook(state=None, hook=self.allreduce_hook)
+        # self.nucleus.register_comm_hook(state=None, hook=dist.algorithms.ddp_comm_hooks.default_hooks.allreduce_hook)
         bittensor.logging.success("enabled ddp", sufix = "yy")
 
         output = self.nucleus.forward(
@@ -188,7 +255,7 @@ class NeuronDDPSim:
         torch.manual_seed(0)
         self.world_size = 3
         self.config = bittensor.neurons.template_miner.neuron().config
-        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd1')
+        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd2')
         self.wallet.create()
         self.device = torch.device( device = 'cpu' ) 
         self.subtensor = bittensor.subtensor ( config = self.config )
@@ -230,6 +297,8 @@ class NeuronDDPSim:
             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
             output.loss.backward(retain_graph = True)
 
+            total_norm = clip_grad_norm_(self.nucleus.parameters(), 1)
+            print('total norm', total_norm)
             bittensor.logging.success("finished backward", sufix = f"{rank}")
             print("finished gettign backward")
             g = {k.replace('module.', ''): (v, v.grad) for k,v in self.nucleus.named_parameters()}
@@ -239,18 +308,17 @@ class NeuronDDPSim:
         for n, v in grads[0].items():
             sum_grad = v[1] + grads[1][n][1] + grads[2][n][1]
             avg_grads[n] = (v[0], sum_grad/3)
-            print(n, v[1], grads[1][n][1], grads[2][n][1] , sum_grad/3)
 
         return inputs, output, avg_grads
 
 def test_grads_align():
     
-    neuron1 = NeuronDDPSim()
-    input1, output1, grads1 = neuron1.run()
-    
     neuron2 = NeuronDDP2()
     neuron2.run_parallel()
     grads2 = torch.load('DDP_params_grad.pt')
+
+    neuron1 = NeuronDDPSim()
+    input1, output1, grads1 = neuron1.run()
     
     for key in grads1.keys():
         print("======================", key)
@@ -265,7 +333,8 @@ def test_grads_align():
         p1 = grads1[key]
         p2 = grads2[key]
 
-        if torch.any( abs(p1[1] - p2[1]) > 1e-7 ).item():
+        grad_diff = abs(p1[1] - p2[1]) 
+        if torch.any(  torch.logical_and (grad_diff > 1e-7, grad_diff > abs(p1[1]/1000) )  ).item():
             print("NOT eq")
             not_eq_ids = torch.where(abs(p1[1] - p2[1]) > 1e-7)
             print(p1[1][not_eq_ids], '\n', p2[1][not_eq_ids])
