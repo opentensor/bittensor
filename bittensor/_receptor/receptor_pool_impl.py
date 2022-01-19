@@ -132,6 +132,7 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request in zip(call_args, request_futures):
             receptor = arg[0]
             results.append(receptor.handle_request_response(request = request))
+            receptor.semaphore.release()
        
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
@@ -229,6 +230,7 @@ class ReceptorPool ( torch.nn.Module ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
         """
         with self.cull_mutex:
+            print('acquired mutex')
             # ---- Finally: Kill receptors over max allowed ----
             while len(self.receptors) > self.max_active_receptors:
                 min_receptor_qps = math.inf
@@ -247,6 +249,7 @@ class ReceptorPool ( torch.nn.Module ):
                     except KeyError:
                         pass
                 elif receptor_to_remove == None:
+                    print('Cant find things to cull')
                     break
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
