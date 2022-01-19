@@ -134,8 +134,7 @@ class Neuron:
     def clip_grad_hook(
         self, process_group: dist.ProcessGroup, bucket: dist.GradBucket
         ): # -> torch.futures.Future[torch.Tensor]:
-        print("in all reduce")
-        print("old", [g.shape for g in bucket.gradients()])
+        print("in all reduce bucket index", bucket.index())
         total_norm = clip_grad_norm_(bucket.parameters(), 1)
 
         print("total norm", total_norm)
@@ -190,7 +189,7 @@ class Neuron:
                     self.nucleus.to(rank)
                     self.nucleus = DDP(self.nucleus,  device_ids=[rank])
                 else:
-                    self.nucleus = DDP(self.nucleus, bucket_cap_mb = 100000)
+                    self.nucleus = DDP(self.nucleus, bucket_cap_mb = 1000000)
                     self.nucleus.register_comm_hook(state=None, hook=self.clip_grad_hook)
                     
                 
@@ -610,15 +609,15 @@ class Neuron:
                 # bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights, filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_{}_i'.format(self_uid), index = topk_uids, values = self.metagraph.W[ self_uid, : ], filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(self_uid), index = topk_uids, values = self.metagraph.W[ :, self_uid ], filter_zeros = True),
-                self.axon.to_dataframe( metagraph = self.metagraph ),
+                # self.axon.to_dataframe( metagraph = self.metagraph ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1)
             df['uid'] = df.index
             stats_data_table = wandb.Table( dataframe = df)
 
-            wandb_info_axon = self.axon.to_wandb()
+            # wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
-            wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
+            wandb.log( { **wandb_info, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': stats_data_table}, step = current_block)
             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time vs UID") } )
             wandb.log( { 'dendrite_query_times': wandb.plot.scatter( stats_data_table, "uid", "dendrite_query_time", title="Dendrite Query time vs UID") } )
