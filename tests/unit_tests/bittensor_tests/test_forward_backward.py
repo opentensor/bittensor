@@ -173,7 +173,7 @@ def test_axon_receptor_forward_works():
         time.sleep(0.2)
         return torch.zeros([3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
-        port = 8080,
+        port = 8090,
         ip = '0.0.0.0',
         wallet = wallet,
     )
@@ -181,14 +181,15 @@ def test_axon_receptor_forward_works():
     axon.start()
     endpoints = []
     for i in range(20):
+        wallet.create_new_hotkey( use_password=False, overwrite = True)
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
             uid = 0,
             hotkey = wallet.hotkey.ss58_address,
             ip = '0.0.0.0', 
             ip_type = 4, 
-            port = 8080, 
-            modality = 0, 
+            port = 8090, 
+            modality = 2, 
             coldkey = wallet.coldkey.ss58_address
         )
         endpoints += [endpoint]
@@ -199,6 +200,7 @@ def test_axon_receptor_forward_works():
     assert receptors_states[endpoint.hotkey] == receptors_states[endpoint.hotkey].READY
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
+    print('assertions passed')
     axon.stop()
 
 def test_dendrite_call_time():
@@ -207,14 +209,14 @@ def test_dendrite_call_time():
         return torch.zeros([3, 3, bittensor.__network_dim__])
     
     axon = bittensor.axon (
-        port = 8080,
+        port = 8091,
         ip = '0.0.0.0',
         wallet = wallet,
     )
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
     axon.start()
     endpoints = []
-    for i in range(1000):
+    for i in range(100):
         wallet.create_new_hotkey( use_password=False, overwrite = True)
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
@@ -222,8 +224,8 @@ def test_dendrite_call_time():
             hotkey = wallet.hotkey.ss58_address,
             ip = '0.0.0.0', 
             ip_type = 4, 
-            port = 8080, 
-            modality = 0, 
+            port = 8091, 
+            modality = 2, 
             coldkey = wallet.coldkey.ss58_address
         )
         endpoints += [endpoint]
@@ -240,5 +242,5 @@ def test_dendrite_del():
     del dendrite_mock
 
 if __name__  == "__main__":
-    test_axon_receptor_forward_works()
+    test_dendrite_call_time()
 

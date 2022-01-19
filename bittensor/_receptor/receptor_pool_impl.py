@@ -241,8 +241,11 @@ class ReceptorPool ( torch.nn.Module ):
                     min_receptor_qps = next_receptor.stats.forward_qps.value
                     
             if receptor_to_remove != None:
-                bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
-                del self.receptors[ receptor_to_remove.endpoint.hotkey ]
+                try:
+                    bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
+                    del self.receptors[ receptor_to_remove.endpoint.hotkey ]
+                except KeyError:
+                    pass
             elif receptor_to_remove == None:
                 break
 
