@@ -190,7 +190,7 @@ class Neuron:
                     self.nucleus.to(rank)
                     self.nucleus = DDP(self.nucleus,  device_ids=[rank])
                 else:
-                    self.nucleus = DDP(self.nucleus)
+                    self.nucleus = DDP(self.nucleus, bucket_cap_mb = 100000)
                     self.nucleus.register_comm_hook(state=None, hook=self.clip_grad_hook)
                     
                 
