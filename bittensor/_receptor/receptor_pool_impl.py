@@ -123,7 +123,6 @@ class ReceptorPool ( torch.nn.Module ):
         request_futures = []
         for arg, request in zip(call_args, requests):
             receptor = arg[0]
-            receptor.semaphore.acquire()
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
         # ---- Collect the futures. ---- 
@@ -281,5 +280,6 @@ class ReceptorPool ( torch.nn.Module ):
                     max_processes = self.max_processes
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
-
+            
+        receptor.semaphore.acquire()
         return receptor
