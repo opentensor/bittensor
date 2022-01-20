@@ -462,4 +462,3 @@ class GenesisTextDataset( Dataset ):
         response = self.retrieve_directory(self.node_get, (('arg', self.mountain_hash),))
         for i in response.json()['Links']:
             self.dataset_hashes[i['Name'][:-4]]= i['Hash'] 
-

@@ -129,7 +129,7 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request in zip(call_args, request_futures):
             receptor = arg[0]
             results.append(receptor.handle_request_response(request = request))
-       
+      
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
 
@@ -208,6 +208,9 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request in zip(call_args, requests):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
+
+        for request_future in request_futures:
+            request_future.future.cancel()
 
         # ---- Return zeros ----
         backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 

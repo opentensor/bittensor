@@ -59,15 +59,15 @@ class Nucleus(nn.Module):
         self.embedding = nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
 
         # Local Model
-        local_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
-        local_hidden_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
+        local_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout, batch_first=True)
+        local_hidden_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout, batch_first=True )
         self.local_pos_encoder = PositionalEncoding(bittensor.__network_dim__, self.config.nucleus.dropout)
         self.local_encoder = TransformerEncoder( local_layers, self.config.nucleus.nlayers )
         self.local_hidden = TransformerEncoder( local_hidden_layers, self.config.nucleus.nlayers )
         self.local_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
         # Remote Model
-        remote_context_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout )
+        remote_context_layers = TransformerEncoderLayer( bittensor.__network_dim__, self.config.nucleus.nhead, self.config.nucleus.nhid, self.config.nucleus.dropout, batch_first=True )
         self.remote_hidden = TransformerEncoder( remote_context_layers, self.config.nucleus.nlayers )
         self.remote_decoder = nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
@@ -138,10 +138,6 @@ class Nucleus(nn.Module):
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         embedding = self.embedding(inputs)
 
-        # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        # local_encoder expects input shape = [sequence_len, batch_size, bittensor.__network_dim__]
-        embedding = embedding.transpose(0, 1)
-
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
         local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
@@ -151,7 +147,7 @@ class Nucleus(nn.Module):
         local_context = self.local_pos_encoder(local_context)
 
         # external expects output.local_context shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        output.local_context = local_context.transpose(0, 1)
+        output.local_context = local_context
 
         if training:
             # local_hidden: local model which learns a new projection from the local_context
@@ -163,8 +159,8 @@ class Nucleus(nn.Module):
             local_target = self.local_decoder(local_hidden)
 
             # external expects output shape = [batch_size, sequence_len, bittensor.__network_dim__]
-            output.local_hidden = local_hidden.transpose(0, 1)
-            output.local_target = local_target.transpose(0, 1)
+            output.local_hidden = local_hidden
+            output.local_target = local_target
 
             # local_target_loss: MLM loss between local_target and passed targets.
             # local_target_loss.shape = [1]
@@ -200,7 +196,7 @@ class Nucleus(nn.Module):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.remote_context = self.remote( inputs )
+        output.remote_context, output.query_uids = self.remote( inputs )
 
         # remote_hidden: projects from the remote_context
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -267,4 +263,4 @@ class Nucleus(nn.Module):
             self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
             self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
-        return output
+        return output, topk_uids[joining_uids]
