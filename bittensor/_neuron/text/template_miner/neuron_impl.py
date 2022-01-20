@@ -135,9 +135,17 @@ class Neuron:
         self, process_group: dist.ProcessGroup, bucket: dist.GradBucket
         ): # -> torch.futures.Future[torch.Tensor]:
         print("in all reduce bucket index", bucket.index())
-        total_norm = clip_grad_norm_(bucket.parameters(), 1)
+        
+        if bucket.index() == 0:
+            total_norm = clip_grad_norm_(bucket.parameters(), 1)
+            self.total_norm = total_norm
+            print("total norm", total_norm)
+        else:
+            clip_coef = 1 / (self.total_norm + 1e-6)
+            clip_coef_clamped = torch.clamp(clip_coef, max=1.0)
+            for p in bucket.parameters():
+                p.grad.detach().mul_(clip_coef_clamped.to(p.grad.device))
 
-        print("total norm", total_norm)
         flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
         tensor = torch.cat(flat_grads)
         bucket.set_buffer(tensor)
