@@ -22,12 +22,15 @@ Example:
     $ neurons.text.base_neuron_v1().run()
 
 """
-
+import os
 import pandas
 from pandas.core.frame import DataFrame
 import bittensor
 import math
 import torch
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
 import traceback
 import sys
 import wandb
@@ -44,38 +47,18 @@ import torch.nn as nn
 from functools import partial
 
 import torch.nn.functional as F
+from torch.multiprocessing import Manager
 
-class Neuron:
+
+class DDP_Neuron:
 
     def __init__( self, config: 'bittensor.config', nucleus: 'Nucleus'):
         r""" Initializes the neuron with the passed config.
         """
         self.config = config
+        self.world_size = config.neuron.world_size# torch.cuda.device_count()
         self.wallet = bittensor.wallet ( config = self.config )
-        self.subtensor = bittensor.subtensor ( config = self.config )
-        self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
-        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
-        self.dataset = bittensor.dataset ( config = self.config )
-        self.axon = bittensor.axon (
-            config = self.config,
-            wallet = self.wallet,
-            forward_text = self.forward_text,
-            backward_text = self.backward_text,
-            blacklist = self.blacklist,
-        )
-        self.device = torch.device( device = self.config.neuron.device )
-        self.nucleus = nucleus.to(self.device)
-        self.nucleus.metagraph = self.metagraph_callback
-        self.nucleus.dendrite = self.dendrite
-        self.optimizer = torch.optim.SGD(
-            [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
-            lr = self.config.neuron.learning_rate,
-            momentum = self.config.neuron.momentum,
-        )
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
-            step_size = 1.0,
-            gamma = 0.95
-        )
+        self.nucleus_base = nucleus
         self.stats = SimpleNamespace(
             global_step = 0,
             last_sync_block = 0,
@@ -86,29 +69,105 @@ class Neuron:
             remote_target_epoch_loss = math.inf,
             local_epoch_acc = 0,
             best_epoch_loss = math.inf,
-            scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device),
-            ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device)
+            scores = {},
+            ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False)
         )
-        # ---- Decay factor for fisher ema score 
+        # # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
 
     def __enter__(self):
         self.wallet.create()
-        self.subtensor.register( self.wallet )
-        self.axon.start().serve (
-            use_upnpc = self.config.neuron.use_upnpc, 
-            subtensor = self.subtensor
-        )
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
+        del self.dendrite
+        self.dataset.close()
         self.axon.stop()   
         print(exc_type, exc_value, exc_traceback)
     
-    def run( self ):
+    def init_process(self, rank):
+        os.environ['MASTER_ADDR'] = 'localhost'
+        os.environ['MASTER_PORT'] = '8865'
+        if 'cuda' in self.config.neuron.device:
+            backend = 'nccl'
+        else:
+            backend = 'gloo'
+
+        dist.init_process_group(backend, rank=rank, world_size=self.world_size)
+    
+    def cleanup(self):
+        dist.destroy_process_group()
+
+    def run_parallel( self ):
+        with Manager() as manager:
+            self.stats.scores = manager.dict()
+            mp.spawn(self.run,
+                args=(self.world_size,),
+                nprocs=self.world_size,
+                join=True
+            )
+
+    def init_bit(self, rank = 0):
+        if self.config.neuron.multiprocessing and self.config.neuron.device == 'cuda':
+            self.device = torch.device( device = f'cuda:{rank}' )
+        else:
+            self.device = torch.device( device = self.config.neuron.device )
+        
+        self.subtensor = bittensor.subtensor ( config = self.config )
+        self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
+        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
+        self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size, rank = rank)
+        # self.axon = bittensor.axon (
+        #     config = self.config,
+        #     wallet = self.wallet,
+        #     forward_text = self.forward_text,
+        #     backward_text = self.backward_text,
+        #     blacklist = self.blacklist,
+        # )
+        self.stats.ema_scores.to(self.device)
+        
+        if rank == 0 :
+            self.subtensor.register( self.wallet )
+            # self.axon.start().serve (
+            #     use_upnpc = self.config.neuron.use_upnpc, 
+            #     subtensor = self.subtensor
+            # )
+    def clip_grad_hook(
+        self, process_group: dist.ProcessGroup, bucket: dist.GradBucket
+        ): # -> torch.futures.Future[torch.Tensor]:
+        print("in all reduce bucket index", bucket.index())
+        
+        if bucket.index() == 0:
+            total_norm = clip_grad_norm_(bucket.parameters(), 1)
+            self.total_norm = total_norm
+            print("total norm", total_norm)
+        else:
+            clip_coef = 1 / (self.total_norm + 1e-6)
+            clip_coef_clamped = torch.clamp(clip_coef, max=1.0)
+            for p in bucket.parameters():
+                p.grad.detach().mul_(clip_coef_clamped.to(p.grad.device))
+
+        flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
+        tensor = torch.cat(flat_grads)
+        bucket.set_buffer(tensor)
+        group_to_use = process_group if process_group is not None else dist.group.WORLD
+
+        # Apply the division first to avoid overflow, especially for FP16.
+        tensor.div_(group_to_use.size())
+
+        return (
+            dist.all_reduce(tensor, group=group_to_use, async_op=True)
+            .get_future()
+            .then(lambda fut: fut.value()[0])
+        )
+
+    def run( self, rank = 0, world_size = 0):
         r""" Miner main loop.
         """
+
         # ---- Build Bittensor neuron ----
         with self:
+            self.init_bit(rank)
+            bittensor.logging.success( prefix = f'Finished initialization', sufix = f'Rank {rank}')
             if self.config.neuron.use_wandb:
                 bittensor.wandb(
                     config = self.config,
@@ -125,13 +184,37 @@ class Neuron:
                 self.save()
 
             try:
-                self.reload()
-                self.axon.check()
+                self.reload(rank)
             except Exception as e:
                 logger.error("Error when trying to reload model: {}".format(e))
                 self.save()
-                self.reload()
-                self.axon.check()
+                self.reload(rank)
+        
+            if self.config.neuron.multiprocessing:
+                self.init_process(rank)
+                bittensor.logging.success( prefix = 'Inited process group', sufix = '<blue>Rank: {}</blue>'.format( rank ))
+                if 'cuda' in self.config.neuron.device:
+                    self.nucleus.to(rank)
+                    self.nucleus = DDP(self.nucleus,  device_ids=[rank])
+                else:
+                    self.nucleus = DDP(self.nucleus, bucket_cap_mb = 1000000)
+                    self.nucleus.register_comm_hook(state=None, hook=self.clip_grad_hook)
+                    
+                
+                bittensor.logging.success( prefix = 'Enabled DDP', sufix = '<blue>Rank: {}</blue>'.format( rank ))
+
+            self.nucleus.metagraph = self.metagraph
+            self.nucleus.dendrite = self.dendrite
+            bittensor.logging.success( prefix = f'finished setting ddp dend and meta', sufix = f'Rank {rank}')
+
+            optimizer = torch.optim.SGD(
+                # [ {'params': nucleus_ddp.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
+                [ {'params': self.nucleus.parameters(), 'lr': self.config.neuron.learning_rate_chain} ],
+                lr = self.config.neuron.learning_rate,
+                momentum = self.config.neuron.momentum,
+            )
+
+            bittensor.logging.success( prefix = f'Initialized', sufix = f'Rank {rank}')
             
             self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 
@@ -146,6 +229,7 @@ class Neuron:
                     total_remote_target_epoch_loss = 0
                     total_local_epoch_acc = 0
                     batches_count = 0
+                    bittensor.logging.success( prefix = f'reseting stats to zeros', sufix = f'batches_count {batches_count}, Rank {rank}')
 
                     # ---- Run epoch ----
                     start_block = self.subtensor.get_current_block() + 1
@@ -154,30 +238,30 @@ class Neuron:
                     progress_bar = qqdm( block_steps, total=len(block_steps), desc=format_str('blue', f'Epoch:'))
                     progress_bar.set_bar = partial(progress_bar.set_bar,  element='#')
                     for block in progress_bar:
-
                         # --- Iterate over batches until the end of the block.
                         current_block = self.subtensor.get_current_block()
                         while block >= current_block:
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
-                            output = self.nucleus.remote_forward (
+                            output = self.nucleus.forward(
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
-                            
+                            bittensor.logging.success( prefix = f'Forward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
-                            scores = torch.nn.functional.normalize ( torch.relu( self.nucleus.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
-                            scores[output.query_uids] += 1e-6
-
-                            output.loss.backward() # Accumulates gradients on the nucleus.
-                            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+                            output.loss.backward(retain_graph = True) # Accumulates gradients on the nucleus.
+                            bittensor.logging.success( prefix = f'Backward pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+                            # clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                             
                             # ---- Apply and zero accumulated gradients.
-                            self.optimizer.step() 
-                            self.optimizer.zero_grad()
+                            optimizer.step() 
+                            optimizer.zero_grad()
+                            bittensor.logging.success( prefix = f'Optimizer pass', sufix = f'batches_count {batches_count}, Rank {rank}')
+
                             current_block = self.subtensor.get_current_block()
-                            
+
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
                             total_distillation_epoch_loss += output.distillation_loss.item()
@@ -186,45 +270,74 @@ class Neuron:
                             self.stats.epoch_data_size += inputs.nelement()
                             batches_count += 1
                             
+                            bittensor.logging.success( prefix = f'adding to local target epoch loss', sufix = f' {output.local_target_loss.item(), total_local_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'adding to distillation epoch loss', sufix = f' {output.distillation_loss.item(), total_distillation_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'adding to remote target epoch loss', sufix = f' {output.remote_target_loss.item(), total_remote_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'adding to local accuracy', sufix = f' {output.local_accuracy, total_local_epoch_acc}, Rank {rank}')
+                            
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
-                            chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
+                            output.scores = output.scores.detach()
+                            output.scores.requires_grad = False
+                            self.stats.scores[rank] = output.scores
+                            print(rank, output.scores, self.stats.scores)
+                                              
+                            chain_growth = max(output.scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
                                 self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, device = self.device)]), requires_grad=False)
-                            self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores
-                            self.stats.scores = scores
-
-
-                        # ---- Sync with metagraph if the current block >= last synced block + sync block time 
-                        current_block = self.subtensor.get_current_block()
-                        block_diff = current_block - self.stats.last_sync_block
-                        if block_diff >= self.config.neuron.sync_block_time:
-                            self.sync(current_block)                                                                                                                
-                            self.stats.last_sync_block = current_block
-                            self.stats.epoch_sync_count += 1
                             
-                        # ---- Update the epoch loss if it is the last iteration within epoch
+                            scores_avg =  sum(self.stats.scores.values())/len(self.stats.scores)
+                            print("avg", scores_avg[:20])
+                            self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores + (1 - self.fisher_ema_decay) * scores_avg
+                            
+                        # ---- Update the epoch loss if iVt is the last iteration within epoch
                         if block+1 == end_block :
-                            self.stats.local_target_epoch_loss = total_local_target_epoch_loss / batches_count
-                            self.stats.distillation_epoch_loss = total_distillation_epoch_loss / batches_count
-                            self.stats.remote_target_epoch_loss = total_remote_target_epoch_loss / batches_count
-                            self.stats.local_epoch_acc = total_local_epoch_acc / batches_count
+                            self.stats.local_target_epoch_loss = total_local_target_epoch_loss / (batches_count) 
+                            self.stats.distillation_epoch_loss = total_distillation_epoch_loss / (batches_count)
+                            self.stats.remote_target_epoch_loss = total_remote_target_epoch_loss / (batches_count)
+                            self.stats.local_epoch_acc = total_local_epoch_acc / (batches_count)
+                            bittensor.logging.success( prefix = f'getting avg of local target epoch loss', sufix = f' {self.stats.local_target_epoch_loss, total_local_target_epoch_loss, batches_count, self.world_size}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'getting avg of distillation epoch loss', sufix = f' {self.stats.distillation_epoch_loss, total_distillation_epoch_loss, batches_count, self.world_size}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'getting avg of remote_target epoch loss', sufix = f' {self.stats.remote_target_epoch_loss, total_remote_target_epoch_loss, batches_count, self.world_size}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'getting avg of local epoch acc', sufix = f' {self.stats.local_epoch_acc, total_local_epoch_acc, batches_count, self.world_size}, Rank {rank}')
 
-                        # ---- Block logs.
-                        self.logs (
-                            progress_bar,
-                            iteration = block-start_block,
-                            output = output,
-                        )
-                        self.stats.global_step += 1
+                        if rank == 0:
+                            # ---- Sync with metagraph if the current block >= last synced block + sync block time 
+                            current_block = self.subtensor.get_current_block()
+                            block_diff = current_block - self.stats.last_sync_block
+                            if block_diff >= self.config.neuron.sync_block_time:
+                                self.sync(current_block)                                                                                                                
+                                self.stats.last_sync_block = current_block
+                                self.stats.epoch_sync_count += 1
+                                
+
+                            # ---- Block logs.
+
+                            bittensor.logging.success( prefix = f'local target epoch loss', sufix = f' {self.stats.local_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'distillation epoch loss', sufix = f' {self.stats.distillation_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'remote target epoch loss', sufix = f' {self.stats.remote_target_epoch_loss}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'local epoch accuracy', sufix = f' {self.stats.local_epoch_acc}, Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            bittensor.logging.success( prefix = f'', sufix = f' Rank {rank}')
+                            self.logs (
+                                progress_bar,
+                                iteration = block-start_block,
+                                output = output,
+                            )
+                            self.stats.global_step += 1
+
+                    if rank == 0:
+                        # ---- Checkpoint state ----
+                        self.checkpoint()
 
                     # ---- Update params ----
                     self.epoch += 1
 
-                    # ---- Checkpoint state ----
-                    self.checkpoint()
-
                 except KeyboardInterrupt:
                     # --- User ended session ----
+                    self.cleanup()
                     break
 
                 except Exception as e:
@@ -250,7 +363,8 @@ class Neuron:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
-        output = self.nucleus.local_forward (
+        output = self.nucleus.forward (
+            forward_type = 'local',
             inputs = inputs_x.to( self.device )
         )
         return output.local_hidden
@@ -270,7 +384,9 @@ class Neuron:
         if self.config.neuron.accumulate_remote_gradients:
             with torch.enable_grad():
                 # ---- Set up inputs for gradient computations.
-                outputs_y = self.nucleus.local_forward( inputs = inputs_x.to( self.device ) ).local_context.to( self.device )
+                outputs_y = self.nucleus.forward(
+                    forward_type = 'local',
+                    inputs = inputs_x.to( self.device ) ).local_context.to( self.device )
                 # ---- The backward call will accumulate gradients on our parameters.
                 torch.autograd.backward (
                     tensors = [outputs_y],
@@ -341,11 +457,12 @@ class Neuron:
             logger.info('Initalizing with new model')
             return None
 
-    def reload( self ):
+    def reload( self, rank = 0 ):
         r""" Reloads/updates the training state from the disk.
         """
         # --- Load prev state.
         state_dict = self.get_saved_state()
+        self.nucleus = self.nucleus_base.to(self.device)
         
         # --- Loads and syncs metagraph.
         try:
@@ -361,45 +478,43 @@ class Neuron:
         self.stats.best_epoch_loss = state_dict['epoch_loss']
         self.stats.global_step = state_dict['global_step']
 
-        # --- Updates the shape of nucleus chain weights
-        chain_growth = max(0, self.metagraph.n.item() - state_dict['nucleus_state']['peer_weights'].shape[0])
-        self.nucleus.peer_weights = nn.Parameter(
-            torch.ones(
-                list(state_dict['nucleus_state']['peer_weights'].shape),
-                requires_grad=True
-            ).to(self.device)
-        )
-
         try:
             self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         except Exception as e:
             logger.exception('Failed to load nucleus state with error, updating the current state')
             state_dict['nucleus_state'] = self.nucleus.state_dict()
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
-
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True, device = self.device)]))
+        
         self.nucleus.to( self.device ) # Load nucleus
+        self.nucleus.device = self.device 
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
         self.nucleus.metagraph = self.metagraph_callback # Set local metagraph.
-        self.optimizer = torch.optim.SGD(
-            [{"params": self.nucleus.parameters()}],
-            lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
-            momentum = state_dict['optimizer_state']['param_groups'][0]['momentum'],
-        )
-        bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ))
+        if 'optimizer_state' in state_dict.keys():
+            self.optimizer = torch.optim.SGD(
+                [{"params": self.nucleus.parameters()}],
+                lr = state_dict['optimizer_state']['param_groups'][0]['lr'],
+                momentum = state_dict['optimizer_state']['param_groups'][0]['momentum'],
+            )
+        else:
+            self.optimizer = torch.optim.SGD(
+                [{"params": self.nucleus.parameters()}],
+                lr = self.config.neuron.learning_rate,
+                momentum = self.config.neuron.momentum,
+            )
 
+
+        bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ))
 
     def sync (self, current_block ):
         """ Miner sync with metagraph and update chain weight
         """
         # ---- Set weights on chain ----
+        bittensor.logging.success( 'Start syncing metagraph:', 'Block: {}'.format(current_block))
         self.set_peer_weights()
 
         # ---- Sync with metagraph ----
         self.metagraph.sync().save()
-        chain_growth = max(self.metagraph.n.item()- self.nucleus.peer_weights.shape[0], 0)
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
-        self.stats.scores = torch.nn.Parameter(torch.cat( [self.stats.scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
+        chain_growth = max(self.metagraph.n.item()- self.stats.ema_scores.shape[0], 0)
         self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
 
@@ -412,9 +527,10 @@ class Neuron:
                 'epoch_loss': self.stats.local_target_epoch_loss,
                 'global_step': self.stats.global_step,
                 'nucleus_state': self.nucleus.state_dict(), # Save nucleus state.
-                'optimizer_state': self.optimizer.state_dict(), # Save optimizer.
                 'network': self.subtensor.network # Save Network
             }
+            if hasattr(self, 'optimizer'):
+                state_dict['optimizer_state']= self.optimizer.state_dict() # Save optimizer.
             torch.save( state_dict, "{}/model.torch".format( self.config.neuron.full_path ) )
             bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( self.config.neuron.full_path ) )
         except Exception as e:
@@ -453,7 +569,7 @@ class Neuron:
         stake = self_neuron.stake
         rank = self_neuron.rank
         incentive = self_neuron.incentive
-        normalized_peer_weights = F.softmax (self.nucleus.peer_weights.detach(), dim=0)
+        # normalized_peer_weights = F.softmax (self.nucleus.state_dict()['module.peer_weights'], dim=0)
         current_block = self.subtensor.get_current_block()
 
         # ---- Progress bar log
@@ -475,9 +591,6 @@ class Neuron:
         # ---- Miner summary per peer for progress bar
         k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
         topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores, k, dim=0 )
-        for uid, ema_score in zip( topk_uids, topk_scores ) :
-            color =  'green' if self.stats.scores[uid] - ema_score > 0 else 'red'
-            info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
 
         progress_bar.set_infos( info )
 
@@ -500,19 +613,19 @@ class Neuron:
             # Build stats dataframe.
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = self.stats.ema_scores, filter_zeros = True),
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.peer_weights, filter_zeros = True),
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights, filter_zeros = True),
+                # bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.state_dict()['module.peer_weights'], filter_zeros = True),
+                # bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights, filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_{}_i'.format(self_uid), index = topk_uids, values = self.metagraph.W[ self_uid, : ], filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(self_uid), index = topk_uids, values = self.metagraph.W[ :, self_uid ], filter_zeros = True),
-                self.axon.to_dataframe( metagraph = self.metagraph ),
+                # self.axon.to_dataframe( metagraph = self.metagraph ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1)
             df['uid'] = df.index
             stats_data_table = wandb.Table( dataframe = df)
 
-            wandb_info_axon = self.axon.to_wandb()
+            # wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
-            wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
+            wandb.log( { **wandb_info, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': stats_data_table}, step = current_block)
             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time vs UID") } )
             wandb.log( { 'dendrite_query_times': wandb.plot.scatter( stats_data_table, "uid", "dendrite_query_time", title="Dendrite Query time vs UID") } )

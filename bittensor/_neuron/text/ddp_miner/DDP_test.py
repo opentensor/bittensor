@@ -9,6 +9,8 @@ import torch.multiprocessing as mp
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+from torch.nn.utils import clip_grad_norm_
+
 
 # On Windows platform, the torch.distributed package only
 # supports Gloo backend, FileStore and TcpStore.
@@ -38,11 +40,24 @@ class ToyModel(nn.Module):
         self.net1 = nn.Linear(10, 10)
         self.relu = nn.ReLU()
         self.net2 = nn.Linear(10, 5)
+        initrange = 0.1
+        self.net1.weight.data.uniform_(-initrange, initrange)
+        self.net2.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, x):
+        torch.use_deterministic_algorithms(True)
+        torch.manual_seed(0)
         return self.net2(self.relu(self.net1(x)))
 
+def noop(state: object, bucket: dist.GradBucket): # -> torch.futures.Future[torch.Tensor]
+    print("fkkkkkk")
+    fut = torch.futures.Future()
+    fut.set_result(bucket.buffer())
+    return fut
+
 def demo_basic(rank, world_size):
+    torch.use_deterministic_algorithms(True)
+    torch.manual_seed(0)
     print(f"Running basic DDP example on rank {rank}.")
     setup(rank, world_size)
 
@@ -51,6 +66,7 @@ def demo_basic(rank, world_size):
     # model = neuron()
     # ddp_model = DDP(model, device_ids=[rank])
     ddp_model = DDP(model)
+    ddp_model.register_comm_hook(state=None, hook=noop)
 
     loss_fn = nn.MSELoss()
     optimizer = optim.SGD(ddp_model.parameters(), lr=0.001)
@@ -60,16 +76,18 @@ def demo_basic(rank, world_size):
         outputs = ddp_model(torch.randn(20, 10))
         labels = torch.randn(20, 5)# .to(rank)
         loss_fn(outputs, labels).backward()
-        optimizer.step()
+        for n, p in ddp_model.named_parameters():
+            print(n, p.grad) 
+        # optimizer.step()
 
-        if rank == 0:
-            for i in range(5):
-                print(f"Running basic DDP example on rank {rank}.")
-                optimizer.zero_grad()
-                outputs = ddp_model(torch.randn(20, 10))
-                labels = torch.randn(20, 5)# .to(rank)
-                loss_fn(outputs, labels).backward()
-                optimizer.step()
+        # if rank == 0:
+        #     for i in range(5):
+        #         print(f"Running basic DDP example on rank {rank}.")
+        #         optimizer.zero_grad()
+        #         outputs = ddp_model(torch.randn(20, 10))
+        #         labels = torch.randn(20, 5)# .to(rank)
+        #         loss_fn(outputs, labels).backward()
+        #         optimizer.step()
 
     cleanup()
 

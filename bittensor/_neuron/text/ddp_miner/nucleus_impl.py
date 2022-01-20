@@ -73,17 +73,16 @@ class Nucleus(nn.Module):
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.noise_multiplier = self.config.nucleus.noise_multiplier
-        self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
-        self.init_weights()
+        self.peer_weights = nn.Parameter(torch.ones( [4000], dtype=torch.float32 , requires_grad=True))
         self.metagraph = None
         self.dendrite = None
 
-    def init_weights(self):
         initrange = 0.1
         self.remote_decoder.weight.data.uniform_(-initrange, initrange)
         self.local_decoder.weight.data.uniform_(-initrange, initrange)
+    # def init_weights(self):
 
-    def compute_scores ( self, loss ):
+    def compute_scores( self, loss ):
         """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
@@ -92,6 +91,20 @@ class Nucleus(nn.Module):
         peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
         validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
         return validator_scores
+
+    def forward(self, *input, **kwargs):
+        torch.use_deterministic_algorithms(True)
+        torch.manual_seed(0)
+        if 'forward_type' in kwargs and kwargs['forward_type'] == 'local':
+            del kwargs['forward_type']
+            return self.local_forward(**kwargs)
+
+        else:
+            if 'forward_type' in kwargs:
+                del kwargs['forward_type']
+            output = self.remote_forward(**kwargs) 
+            output.scores = torch.nn.functional.normalize ( torch.relu( self.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
+            return output
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
@@ -131,21 +144,22 @@ class Nucleus(nn.Module):
         #           predicting each token in the sequence.
         # src_mask.shape = [sequence_len, sequence_len]
         src_mask = torch.triu(torch.ones(sequence_len, sequence_len) * float('-inf'), diagonal=1)
-        src_mask = src_mask.to(self.config.neuron.device)
-
+        src_mask = src_mask.to(self.device)
+        output.mask = src_mask
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         embedding = self.embedding(inputs)
-
+        output.embedding = embedding
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
+        bittensor.logging.success( f"{self.device, next(self.parameters()).device}", sufix="" )
         local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
-
+        output.local_context1 = local_context
         # local_context: adding positional encoding to local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
         local_context = self.local_pos_encoder(local_context)
-
+        output.local_context2 = local_context
         # external expects output.local_context shape = [batch_size, sequence_len, bittensor.__network_dim__]
         output.local_context = local_context
 
@@ -232,13 +246,14 @@ class Nucleus(nn.Module):
         """
 
         # ---- Get active peers and their weights ---- 
-        active_uids = torch.where(self.metagraph().active > 0)[0]
+        active_uids = torch.tensor(list(range(1698, 1703)))# torch.where(self.metagraph().active > 0)[0]
         active_peer_weights = self.peer_weights[active_uids]
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
-        std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.config.nucleus.noise_offset
-        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
+        std = torch.std(active_peer_weights).item()
+        std = std if std and std > 0 else self.config.nucleus.noise_offset
+        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.device ) * self.noise_multiplier
         topk_weights, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
 
@@ -250,17 +265,36 @@ class Nucleus(nn.Module):
             endpoints = endpoints.to('cpu'),
             inputs = inputs
         )
+        # # ---- Join based on weights ----
+        # joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
+        # joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
+        # output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
+        # for index, joining_weight in enumerate( joining_weights ):
+        #     output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
         # ---- Join based on weights ----
-        joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-        joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.neuron.device )
-        for index, joining_weight in enumerate( joining_weights ):
-            output += responses[joining_uids[index]].to( self.config.neuron.device ) * joining_weight
+        joining_idx= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
+        joining_weights = F.softmax( topk_weights[joining_idx], dim = 0 ) 
+        topk_weights_normed = topk_weights
+        topk_weights_normed[joining_idx] = joining_weights
+        
+        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
+        failed_response = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
+        
+        for index, weight in enumerate( topk_weights_normed ):
+            if index in joining_idx:
+                output += responses[index].to( self.device ) * weight
+                # bittensor.logging.success(f"j0ining ", sufix = f"{index, }")
+            else:
+                output += failed_response.to( self.device ) * weight
+
+                # bittensor.logging.success(f"j0ining a failed one", sufix = f"{index, }")
+        
+        self.peer_weights.retain_grad()
 
         # ---- Punish peers with non-successful return ops ----
-        with torch.no_grad():
-            self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
-            self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
+        # with torch.no_grad():
+        #     self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
+        #     self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
-        return output, topk_uids[joining_uids]
+        return output, topk_uids[joining_idx]
