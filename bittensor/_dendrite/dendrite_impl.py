@@ -72,7 +72,7 @@ class Dendrite(torch.autograd.Function):
             config: 'bittensor.Config',
             wallet: 'bittensor.Wallet',
             receptor_pool: 'bittensor.ReceptorPool',
-            manager: 'BaseManager',
+            manager: 'BaseManager' = None,
     ):
         r""" Initializes a new Dendrite entry point.
             Args:

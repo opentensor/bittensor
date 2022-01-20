@@ -230,7 +230,6 @@ class ReceptorPool ( torch.nn.Module ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
         """
         with self.cull_mutex:
-            print('acquired mutex')
             # ---- Finally: Kill receptors over max allowed ----
             while len(self.receptors) > self.max_active_receptors:
                 min_receptor_qps = math.inf
@@ -245,6 +244,7 @@ class ReceptorPool ( torch.nn.Module ):
                 if receptor_to_remove != None:
                     try:
                         bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
+                        self.receptors[ receptor_to_remove.endpoint.hotkey ].close()
                         del self.receptors[ receptor_to_remove.endpoint.hotkey ]
                     except KeyError:
                         pass
@@ -264,7 +264,7 @@ class ReceptorPool ( torch.nn.Module ):
 
             # Change receptor address.
             if receptor.endpoint.ip != endpoint.ip or receptor.endpoint.port != endpoint.port:
-                del receptor
+                #receptor.close()
                 bittensor.logging.update_receptor_log( endpoint )
                 receptor = bittensor.receptor (
                     endpoint = endpoint, 
