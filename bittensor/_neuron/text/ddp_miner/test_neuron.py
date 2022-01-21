@@ -41,13 +41,14 @@ class NeuronDDP:
         torch.use_deterministic_algorithms(True)
         torch.manual_seed(0)
         self.world_size = 3
-        self.nucleus = bittensor.neurons.template_miner.nucleus()
-        self.config = bittensor.neurons.template_miner.neuron().config
-        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd2')
+        self.nucleus = bittensor.neurons.ddp_miner.nucleus()
+        self.config = bittensor.neurons.ddp_miner.neuron().config
+        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd3')
         self.wallet.create()
         
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( self.config.logging.logging_dir, self.config.wallet.name, self.config.wallet.hotkey, self.config.neuron.name ))
         self.config.neuron.full_path = os.path.expanduser(full_path)
+        print(self.config.neuron.full_path)
 
     def __exit__(self):
         del self.dendrite
@@ -56,6 +57,7 @@ class NeuronDDP:
     
     def reload(self):
         state_dict =  torch.load("{}/model.torch".format( self.config.neuron.full_path ))
+        bittensor.logging.success('reloading from path', sufix = f'{self.config.neuron.full_path}')
         self.nucleus.load_state_dict( state_dict['nucleus_state'], strict=False )
         self.nucleus.device = self.device 
         self.nucleus.dendrite = self.dendrite # Set local dendrite.
@@ -88,7 +90,7 @@ class NeuronDDP:
         )
 
     def get_data(self, rank):
-        inputs = torch.load(f'./bittensor/_neuron/text/template_miner/dataset_input{rank}.pt')
+        inputs = torch.load(f'./bittensor/_neuron/text/ddp_miner/dataset_input{rank}.pt')
         return inputs
 
     def allreduce_hook(
@@ -107,6 +109,8 @@ class NeuronDDP:
                 p.grad.detach().mul_(clip_coef_clamped.to(p.grad.device))
 
         flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
+        if bucket.index() != 0:
+            print(flat_grads)
         tensor = torch.cat(flat_grads)
         bucket.set_buffer(tensor)
         group_to_use = process_group if process_group is not None else dist.group.WORLD
@@ -154,14 +158,13 @@ class NeuronDDP:
 
         self.cleanup()
         return 
-
 class NeuronDDPSim:
     def __init__(self):
         torch.use_deterministic_algorithms(True)
         torch.manual_seed(0)
         self.world_size = 3
-        self.config = bittensor.neurons.template_miner.neuron().config
-        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd2')
+        self.config = bittensor.neurons.ddp_miner.neuron().config
+        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd3')
         self.wallet.create()
         self.device = torch.device( device = 'cpu' ) 
         self.subtensor = bittensor.subtensor ( config = self.config )
@@ -170,13 +173,13 @@ class NeuronDDPSim:
         self.dendrite.receptor_pool.forward = MagicMock(return_value = [torch.tensor([]), [2,2,2,2,2], [0]]) 
         self.subtensor.register( self.wallet )
 
-        self.nucleus = bittensor.neurons.template_miner.nucleus()
+        self.nucleus = bittensor.neurons.ddp_miner.nucleus()
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( self.config.logging.logging_dir, self.config.wallet.name, self.config.wallet.hotkey, self.config.neuron.name ))
         self.config.neuron.full_path = os.path.expanduser(full_path)
         self.reload()
 
     def get_data(self, rank):
-        inputs = torch.load(f'./bittensor/_neuron/text/template_miner/dataset_input{rank}.pt')
+        inputs = torch.load(f'./bittensor/_neuron/text/ddp_miner/dataset_input{rank}.pt')
         return inputs
 
     def reload(self):

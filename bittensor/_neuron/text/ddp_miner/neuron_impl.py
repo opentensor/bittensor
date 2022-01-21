@@ -50,7 +50,7 @@ import torch.nn.functional as F
 from torch.multiprocessing import Manager
 
 
-class DDP_Neuron:
+class Neuron:
 
     def __init__( self, config: 'bittensor.config', nucleus: 'Nucleus'):
         r""" Initializes the neuron with the passed config.
@@ -131,21 +131,20 @@ class DDP_Neuron:
             #     use_upnpc = self.config.neuron.use_upnpc, 
             #     subtensor = self.subtensor
             # )
-    def clip_grad_hook(
-        self, process_group: dist.ProcessGroup, bucket: dist.GradBucket
-        ): # -> torch.futures.Future[torch.Tensor]:
+    def clip_grad_hook( self, process_group: dist.ProcessGroup, bucket: dist.GradBucket ): # -> torch.futures.Future[torch.Tensor]:
         print("in all reduce bucket index", bucket.index())
         
-        if bucket.index() == 0:
+        if len(bucket.parameters()) > 70:
             total_norm = clip_grad_norm_(bucket.parameters(), 1)
             self.total_norm = total_norm
-            print("total norm", total_norm)
+            print("total norm", total_norm, bucket.index(), len(bucket.parameters()))
         else:
             clip_coef = 1 / (self.total_norm + 1e-6)
             clip_coef_clamped = torch.clamp(clip_coef, max=1.0)
             for p in bucket.parameters():
-                p.grad.detach().mul_(clip_coef_clamped.to(p.grad.device))
-
+                p.grad.detach().mul_(clip_coef_clamped)
+            print("reusing norm", self.total_norm, bucket.index(),len(bucket.parameters()))
+            
         flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
         tensor = torch.cat(flat_grads)
         bucket.set_buffer(tensor)
@@ -197,7 +196,7 @@ class DDP_Neuron:
                     self.nucleus.to(rank)
                     self.nucleus = DDP(self.nucleus,  device_ids=[rank])
                 else:
-                    self.nucleus = DDP(self.nucleus, bucket_cap_mb = 1000000)
+                    self.nucleus = DDP(self.nucleus, bucket_cap_mb = 10000000)
                     self.nucleus.register_comm_hook(state=None, hook=self.clip_grad_hook)
                     
                 
