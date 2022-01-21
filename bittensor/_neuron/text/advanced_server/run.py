@@ -129,8 +129,17 @@ def serve( config, gp_server):
         """
 
         # Check for stake
-        def stake_check():
-            uid =metagraph.hotkeys.index(pubkey)
+        def stake_check() -> bool:
+            # If we allow non-registered requests return False = not blacklisted.
+            is_registered = pubkey in metagraph.hotkeys
+            if not is_registered:
+                if config.neuron.blacklist_allow_non_registered:
+                    return False
+                else:
+                    return True
+
+            # Check stake.
+            uid = metagraph.hotkeys.index(pubkey)
             if request_type == bittensor.proto.RequestType.FORWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
                     return True

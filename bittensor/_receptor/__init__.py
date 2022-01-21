@@ -33,6 +33,7 @@ class receptor:
              max_processes: 'int' = 1,
              wallet: 'bittensor.Wallet' = None,
              external_ip: 'str' = None,
+             compression: str = None,
         ) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
@@ -50,8 +51,17 @@ class receptor:
         else:
             endpoint_str = endpoint.ip + ':' + str(endpoint.port)
 
+        # Determine the grpc compression algorithm
+        if compression == 'gzip':
+            compress_alg = grpc.Compression.Gzip
+        elif compression == 'deflate':
+            compress_alg = grpc.Compression.Deflate
+        else:
+            compress_alg = grpc.Compression.NoCompression
+
         channel = grpc.insecure_channel(
             endpoint_str,
+            compression= compress_alg,
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1),
                      ('grpc.keepalive_time_ms', 100000)])
@@ -73,6 +83,7 @@ class receptor_pool:
             thread_pool: ThreadPoolExecutor = None,
             max_worker_threads: int = 150,
             max_active_receptors: int = 500,
+            compression: str = None,
         ) -> 'bittensor.ReceptorPool':
         r""" Initializes a receptor grpc connection.
             Args:
@@ -92,5 +103,6 @@ class receptor_pool:
             wallet = wallet,
             thread_pool = thread_pool,
             max_worker_threads = max_worker_threads,
-            max_active_receptors = max_active_receptors
+            max_active_receptors = max_active_receptors,
+            compression = compression
         )

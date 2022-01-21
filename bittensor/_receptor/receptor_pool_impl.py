@@ -38,7 +38,8 @@ class ReceptorPool ( torch.nn.Module ):
         wallet: 'bittensor.Wallet',
         thread_pool: 'ThreadPoolExecutor',
         max_worker_threads: int,
-        max_active_receptors: int
+        max_active_receptors: int,
+        compression: str,
     ):
         super().__init__()
         self.wallet = wallet
@@ -48,6 +49,8 @@ class ReceptorPool ( torch.nn.Module ):
         self.receptors = {}
         self.cull_mutex = Lock()
         self.max_processes = 10
+        self.compression = compression
+        
         try:
             self.external_ip = str(net.get_external_ip())
         except Exception:
@@ -282,6 +285,7 @@ class ReceptorPool ( torch.nn.Module ):
                     wallet = self.wallet,
                     external_ip = self.external_ip,
                     max_processes = self.max_processes
+                    compression = self.compression
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
             

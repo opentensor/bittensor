@@ -38,6 +38,14 @@ class nucleus():
         if config == None: config = nucleus.config()
         return Nucleus( config )
 
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        parser.print_help()
+
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         r""" Add custom params to the parser.
@@ -76,35 +84,38 @@ class neuron:
         )
         return Neuron( config, neuron_nucleus )
 
-    @staticmethod
-    def config() -> 'bittensor.Config':
-        r""" Fills a config namespace object with defaults or information from the command line.
+    @classmethod   
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        r""" Fills a argparse object with defauls from the command line.
         """
-        # ---- Add neuron args.
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
-        parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
-        parser.add_argument('--neuron.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
-        parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
-        parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--neuron.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
-        parser.add_argument('--neuron.epoch_length', type=int, help='Iterations of training per epoch', default=100)
-        parser.add_argument('--neuron.batch_size_train', type=int, help='Training batch size.', default=2)
-        parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True)
-        parser.add_argument('--neuron.compute_remote_gradients', action='store_true', help='''Does the neuron compute and return gradients from backward queries.''', default=False)
-        parser.add_argument('--neuron.accumulate_remote_gradients', action='store_true', help='''Does the neuron accumulate remote gradients from backward queries.''', default=False)
-        parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=500 )
-        parser.add_argument('--neuron.name', type=str, help='Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name ', default='template_neuron')
-        parser.add_argument('--neuron.device', type=str, help='neuron default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--neuron.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
-        parser.add_argument('--neuron.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, black lists non-registered peers''', default=True)
-        parser.add_argument('--neuron.sync_block_time', type=int, help='How often the sync the neuron with metagraph, in terms of block time', default=100)
-        parser.add_argument('--neuron.no_restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
-        parser.add_argument('--neuron.use_wandb', action='store_true', help='''neuron activates its weights and biases powers''', default=False)
-        parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
-
+        try:
+            # ---- Add neuron args.
+            parser = argparse.ArgumentParser()
+            parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
+            parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
+            parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
+            parser.add_argument('--neuron.weight_decay', type=float, help='nucleus parameter weight decay.', default=0.25)
+            parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
+            parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
+            parser.add_argument('--neuron.n_epochs', type=int, help='Number of training epochs.', default=sys.maxsize )
+            parser.add_argument('--neuron.epoch_length', type=int, help='Iterations of training per epoch', default=100)
+            parser.add_argument('--neuron.batch_size_train', type=int, help='Training batch size.', default=2)
+            parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True)
+            parser.add_argument('--neuron.compute_remote_gradients', action='store_true', help='''Does the neuron compute and return gradients from backward queries.''', default=False)
+            parser.add_argument('--neuron.accumulate_remote_gradients', action='store_true', help='''Does the neuron accumulate remote gradients from backward queries.''', default=False)
+            parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=100 )
+            parser.add_argument('--neuron.name', type=str, help='Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name ', default='template_neuron')
+            parser.add_argument('--neuron.device', type=str, help='neuron default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+            parser.add_argument('--neuron.timeout', type=int, help='Number of seconds to wait for axon request', default=10)
+            parser.add_argument('--neuron.blacklist', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+            parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, black lists non-registered peers''', default=True)
+            parser.add_argument('--neuron.sync_block_time', type=int, help='How often the sync the neuron with metagraph, in terms of block time', default=100)
+            parser.add_argument('--neuron.no_restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
+            parser.add_argument('--neuron.use_wandb', action='store_true', help='''neuron activates its weights and biases powers''', default=False)
+            parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
         bittensor.logging.add_args( parser )
         bittensor.wallet.add_args( parser )
         bittensor.subtensor.add_args( parser )
@@ -114,10 +125,26 @@ class neuron:
         bittensor.axon.add_args( parser )
         bittensor.wandb.add_args( parser )
         nucleus.add_args( parser ) 
+
+    @classmethod   
+    def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser = parser )
         return bittensor.config( parser )
 
-    @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
+
+    @classmethod   
+    def check_config( cls, config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
         assert config.neuron.batch_size_train > 0, "batch_size_train must be a positive value"

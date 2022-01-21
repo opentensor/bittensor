@@ -19,7 +19,6 @@
 import argparse
 import os
 import copy
-
 import bittensor
 from . import dendrite_impl
 from .manager_server import ManagerServer
@@ -43,6 +42,7 @@ class dendrite:
             max_active_receptors: int = None,
             receptor_pool: 'bittensor.ReceptorPool' = None,
             multiprocess: bool = False,
+            compression: str = None,
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
             Args:
@@ -73,7 +73,7 @@ class dendrite:
         config.dendrite.max_worker_threads = max_worker_threads if max_worker_threads != None else config.dendrite.max_worker_threads
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
         config.dendrite.multiprocessing = multiprocess if multiprocess != None else config.dendrite.multiprocessing
-
+        config.dendrite.compression = compression if compression != None else config.dendrite.compression
         dendrite.check_config( config )
 
         if wallet == None:
@@ -83,7 +83,8 @@ class dendrite:
             receptor_pool = bittensor.receptor_pool( 
                 wallet = wallet,
                 max_worker_threads = config.dendrite.max_worker_threads,
-                max_active_receptors = config.dendrite.max_active_receptors
+                max_active_receptors = config.dendrite.max_active_receptors,
+                compression = config.dendrite.compression,
             )
         if config.dendrite.multiprocessing:
             try:
@@ -117,6 +118,15 @@ class dendrite:
         dendrite.add_args( parser )
         return bittensor.config( parser )
 
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
+
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         """ Accept specific arguments from parser
@@ -128,7 +138,7 @@ class dendrite:
             parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
             parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
             parser.add_argument('--dendrite.multiprocessing', dest='dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
-
+            parser.add_argument('--dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -144,6 +154,7 @@ class dendrite:
         defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
         defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_multiprocessing') if os.getenv('BT_DENDRITE_multiprocessing') != None else False
+        defaults.dendrite.compression = 'NoCompression'
 
 
     @classmethod   
