@@ -978,14 +978,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         result = make_substrate_call_with_retry()
         # Process the result.
         uid = int(result.value)
-        if uid == 0:
-            neuron = self.neuron_for_uid( uid, block)
-            if neuron.is_null:
-                return -1
-            else:
-                return uid
+        
+        neuron = self.neuron_for_uid( uid, block)
+        if neuron.is_null:
+            return -1
         else:
             return uid
+
 
     def is_hotkey_registered( self, ss58_hotkey: str, block: int = None) -> bool:
         r""" Returns true if the passed hotkey is registered on the chain.
