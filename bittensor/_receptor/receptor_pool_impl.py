@@ -284,7 +284,7 @@ class ReceptorPool ( torch.nn.Module ):
                     endpoint = endpoint, 
                     wallet = self.wallet,
                     external_ip = self.external_ip,
-                    max_processes = self.max_processes
+                    max_processes = self.max_processes,
                     compression = self.compression
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
