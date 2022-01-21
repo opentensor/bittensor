@@ -53,6 +53,19 @@ class logging:
             record_log: bool = None,
             logging_dir: str = None,
         ):
+        r""" Instantiate bittensor logging system backend.
+            Args:
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.logging.config()
+                debug (:obj:`bool`, `optional`):
+                    Turn on debug.
+                trace (:obj:`bool`, `optional`):
+                    Turn on trace.
+                record_log (:obj:`bool`, `optional`):
+                    If true, logs are saved to loggind dir.
+                logging_dir (:obj:`str`, `optional`):
+                    Directory where logs are sunk. 
+        """   
 
         cls.__has_been_inited__ = True
 
@@ -114,6 +127,15 @@ class logging:
         parser = argparse.ArgumentParser()
         logging.add_args( parser )
         return bittensor.config( parser )
+
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
