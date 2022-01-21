@@ -7,6 +7,7 @@ def test_axon():
 def test_dendrite():
     dendrite = bittensor.dendrite()
     dendrite.to_wandb()
+    del dendrite
 
 def test_metagraph():
     metagraph = bittensor.metagraph()
