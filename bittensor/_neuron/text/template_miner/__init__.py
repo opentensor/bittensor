@@ -84,7 +84,7 @@ class neuron:
         )
         return Neuron( config, neuron_nucleus )
 
-    @staticmethod
+    @classmethod   
     def add_args( cls, parser: argparse.ArgumentParser ):
         r""" Fills a argparse object with defauls from the command line.
         """
@@ -131,7 +131,7 @@ class neuron:
         """ Get config from the argument parser
         """
         parser = argparse.ArgumentParser()
-        cls.add_args( parser )
+        cls.add_args( parser = parser )
         return bittensor.config( parser )
 
     @classmethod   
@@ -143,8 +143,8 @@ class neuron:
         print (cls.__new__.__doc__)
         parser.print_help()
 
-    @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    @classmethod   
+    def check_config( cls, config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
         assert config.neuron.batch_size_train > 0, "batch_size_train must be a positive value"
