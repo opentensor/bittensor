@@ -179,13 +179,6 @@ class DDPNeuronTrain:
             self.save_nucleus()
             self.reload_nucleus(rank)
 
-        epoch_stats = SimpleNamespace(
-            total_local_target_epoch_loss = 0,
-            total_distillation_epoch_loss = 0,
-            total_remote_target_epoch_loss = 0,
-            total_local_epoch_acc = 0,
-            batches_count = 0,
-        )
 
         # --- Run until n_epochs ----
         while self.epoch < self.config.neuron.n_epochs:
@@ -193,6 +186,13 @@ class DDPNeuronTrain:
                 # --- Init epoch stat----
                 self.stats.epoch_data_size = 0
                 self.stats.epoch_sync_count = 0
+                epoch_stats = SimpleNamespace(
+                    total_local_target_epoch_loss = 0,
+                    total_distillation_epoch_loss = 0,
+                    total_remote_target_epoch_loss = 0,
+                    total_local_epoch_acc = 0,
+                    batches_count = 0,
+                )
 
                 # ---- Run epoch ----
                 start_block = self.subtensor.get_current_block() + 1
