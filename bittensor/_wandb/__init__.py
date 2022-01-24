@@ -59,7 +59,6 @@ class wandb:
         os.environ["WANDB_PROJECT"] = config.wandb.project if config.wandb.project != 'default' else str(cold_pubkey)[:8]
         os.environ["WANDB_TAGS"] = config.wandb.tags 
         os.environ["WANDB_RUN_GROUP"] = config.wandb.run_group if config.wandb.run_group != 'default' else str(hot_pubkey)[:8]
-        import pdb; pdb.set_trace()
         os.environ["WANDB_DIR"] = config.wandb.directory if config.wandb.directory != 'default' else root_dir
 
         wb.init(config = config, config_exclude_keys = ['wandb'])
