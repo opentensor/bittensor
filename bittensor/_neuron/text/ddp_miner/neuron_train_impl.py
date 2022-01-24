@@ -287,16 +287,16 @@ class DDPNeuronTrain:
         if torch.any(torch.isnan(output.local_target_loss)).item():
             bittensor.logging.success( prefix = f'got nan accuracy', sufix = f'')
             print(output, '\n\n\n\n\n\n\n\n\n\n\n\n')
-            
-            if not path.exists('output_error.pkl'):
-                out_dict = {}
+            out_dict = {}
 
-                for k,v in output.__dict__:
-                    out_dict[k] = str(v)
+            for k,v in output.__dict__:
+                out_dict[k] = str(v)
 
-                a_file = open("output_error.pkl", "wb")
-                pickle.dump(out_dict, a_file)
-                a_file.close()
+            a_file = open("output_error.pkl", "wb")
+            pickle.dump(out_dict, a_file)
+            a_file.close()
+
+            self.cleanup()
 
     def update_epoch_loss(self, epoch_stats):
         batches_count = epoch_stats.batches_count
