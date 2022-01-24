@@ -67,6 +67,15 @@ class metagraph:
         metagraph.add_args( parser )
         return bittensor.config( parser )
 
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
+
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         """ Add specific arguments from parser, 
