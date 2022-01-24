@@ -117,8 +117,8 @@ class GenesisTextDataset( Dataset ):
         save_dataset,
         max_datasets,
         no_tokenizer, 
-        world_size,
-        rank
+        world_size = 1,
+        rank = 0
     ):
         super().__init__()
         self.block_size = block_size
@@ -150,8 +150,8 @@ class GenesisTextDataset( Dataset ):
             
         self.data_queue = ThreadQueue(
             producer_target = self.dataloader,
-            producer_arg = (100,),
-            buffer_size = 1
+            producer_arg = (1000,),
+            buffer_size = 2
         )
 
     def close(self):
