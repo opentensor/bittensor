@@ -139,7 +139,6 @@ class DDPNeuronTrain:
                 bittensor.logging.success("clip grad norm, small bucket", sufix = f'p {p[:20]}')
             
         flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
-        bittensor.logging.success("clip grad norm", sufix = f' flat_grads {p[:20]}')
         tensor = torch.cat(flat_grads)
         bucket.set_buffer(tensor)
         group_to_use = process_group if process_group is not None else dist.group.WORLD
@@ -430,7 +429,7 @@ class DDPNeuronTrain:
         stake = self_neuron.stake
         rank = self_neuron.rank
         incentive = self_neuron.incentive
-        normalized_peer_weights = F.softmax (self.nucleus.state_dict()['module.peer_weights'], dim=0)
+        # normalized_peer_weights = F.softmax (self.nucleus.state_dict()['module.peer_weights'], dim=0)
         current_block = self.subtensor.get_current_block()
 
         # ---- Progress bar log
@@ -474,8 +473,8 @@ class DDPNeuronTrain:
             # Build stats dataframe.
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'fisher_ema_score', index = topk_uids, values = self.stats.ema_scores, filter_zeros = True),
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.state_dict()['module.peer_weights'], filter_zeros = True),
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights, filter_zeros = True),
+                # bittensor.utils.indexed_values_to_dataframe( prefix = 'raw_peer_weight', index = topk_uids, values = self.nucleus.state_dict()['module.peer_weights'], filter_zeros = True),
+                # bittensor.utils.indexed_values_to_dataframe( prefix = 'normalized_peer_weight', index = topk_uids, values = normalized_peer_weights, filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_{}_i'.format(self_uid), index = topk_uids, values = self.metagraph.W[ self_uid, : ], filter_zeros = True),
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(self_uid), index = topk_uids, values = self.metagraph.W[ :, self_uid ], filter_zeros = True),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
