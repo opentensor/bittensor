@@ -44,7 +44,6 @@ import torch.nn as nn
 from functools import partial
 
 import torch.nn.functional as F
-from .neuron_serve_impl import NeuronServe
 from .neuron_train_impl import DDPNeuronTrain
 from multiprocessing import Process
 class Neuron:
@@ -52,13 +51,8 @@ class Neuron:
         self.config = config
         self.wallet = bittensor.wallet ( config = self.config )
         self.trainer = DDPNeuronTrain(config, nucleus, self.wallet)
-        self.server = NeuronServe(config, self.wallet)
         self.wallet.create()
 
     def run(self):
         self.trainer.run_parallel()
         
-        # p1 = Process(target=self.server.run)
-        # p2 = Process(target=self.trainer.run_parallel)
-        # p1.start()
-        # p2.start()
