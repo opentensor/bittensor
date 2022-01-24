@@ -90,6 +90,7 @@ class neuron:
         """
         try:
             # ---- Add neuron args.
+            parser = argparse.ArgumentParser()
             parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
             parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
             parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
