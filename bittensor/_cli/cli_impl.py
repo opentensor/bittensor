@@ -382,7 +382,7 @@ class CLI:
         total_incentive = 0.0
         total_dividends = 0.0
         total_emission = 0     
-        for nn in tqdm(neurons):
+        for nn, hotwallet in tqdm(list(zip(neurons,all_hotkeys))):
             uid = nn.uid
             active = nn.active
             stake = nn.stake
@@ -394,6 +394,7 @@ class CLI:
             emission = int(nn.emission * 1000000000)
             last_update = int(block -  nn.last_update)
             row = [
+                hotwallet.hotkey_str,
                 str(uid), 
                 str(active), 
                 '{:.5f}'.format(stake),
@@ -421,6 +422,7 @@ class CLI:
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
+        table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)

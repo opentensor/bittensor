@@ -41,6 +41,26 @@ class dataset:
             world_size: int = 0,
             rank: int = 0
         ):
+        r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
+            Args:
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.dataset.config()
+                block_size (:obj:`int`, `optional`):
+                    Number of text items to pull for each example.
+                batch_size (:obj:`int`, `optional`):
+                    Batch size.
+                max_corpus_size (:obj:`int`, `optional`):
+                    Maximum amount of data to download from IPFS into memory for training.
+                num_workers (:obj:`int`, `optional`):
+                    Number of workers for data loader.
+                dataset_name (:obj:`list`, `optional`):
+                    Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, 
+                    Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).
+                save_dataset (:obj:`bool`, `optional`):
+                    Save the downloaded dataset or not.
+                no_tokenizer (:obj:`bool`, `optional`):
+                    To return non-tokenized text (EXPERIMENTAL, DO NOT USE)         
+        """   
         if config == None: 
             config = dataset.config()
         config = copy.deepcopy( config )
@@ -95,6 +115,15 @@ class dataset:
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
 
     @classmethod   
     def add_defaults(cls, defaults):

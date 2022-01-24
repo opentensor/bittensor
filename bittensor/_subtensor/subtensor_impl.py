@@ -310,33 +310,38 @@ To run a local node (See: docs/running_a_validator.md) \n
             pow_result = bittensor.utils.create_pow( self )
             with bittensor.__console__.status(":satellite: Registering...({}/10)".format(attempts)) as status:
                 with self.substrate as substrate:
-                    call = substrate.compose_call( 
-                        call_module='SubtensorModule',  
-                        call_function='register', 
-                        call_params={ 
-                            'block_number': pow_result['block_number'], 
-                            'nonce': pow_result['nonce'], 
-                            'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
-                            'hotkey': wallet.hotkey.ss58_address, 
-                            'coldkey': wallet.coldkeypub.ss58_address
-                        } 
-                    )
-                    extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-                    response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
-                    # We only wait here if we expect finalization.
-                    if not wait_for_finalization and not wait_for_inclusion:
-                        bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                        return True
-                    response.process_events()
-                    if not response.is_success:
-                        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                    try:
+                        call = substrate.compose_call( 
+                            call_module='SubtensorModule',  
+                            call_function='register', 
+                            call_params={ 
+                                'block_number': pow_result['block_number'], 
+                                'nonce': pow_result['nonce'], 
+                                'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
+                                'hotkey': wallet.hotkey.ss58_address, 
+                                'coldkey': wallet.coldkeypub.ss58_address
+                            } 
+                        )
+                        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+                        # We only wait here if we expect finalization.
+                        if not wait_for_finalization and not wait_for_inclusion:
+                            bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                            return True
+                        response.process_events()
+                        if not response.is_success:
+                            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                            attempts += 1
+                            if attempts > max_allowed_attempts: 
+                                bittensor.__console__.print( "[red]No more attempts.[/red]" )
+                                return False
+                            else:
+                                status.update( ":satellite: Registering...({}/10)".format(attempts))
+                                continue
+                    except:
                         attempts += 1
-                        if attempts > max_allowed_attempts: 
-                            bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                            return False
-                        else:
-                            status.update( ":satellite: Registering...({}/10)".format(attempts))
-                            continue
+                        status.update( ":satellite: Registering...({}/10)".format(attempts))
+                        continue
 
             if response.is_success:
                 with bittensor.__console__.status(":satellite: Checking Balance..."):
@@ -791,26 +796,32 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return False
 
         with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(self.network)):
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='set_weights',
-                    call_params = {'dests': weight_uids, 'weights': weight_vals}
-                )
-                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                    return True
+            try:
+                with self.substrate as substrate:
+                    call = substrate.compose_call(
+                        call_module='SubtensorModule',
+                        call_function='set_weights',
+                        call_params = {'dests': weight_uids, 'weights': weight_vals}
+                    )
+                    extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                    response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+                    # We only wait here if we expect finalization.
+                    if not wait_for_finalization and not wait_for_inclusion:
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                        return True
 
-                response.process_events()
-                if response.is_success:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                    bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.is_success) )
-                else:
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                    bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
+                    response.process_events()
+                    if response.is_success:
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                        bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.is_success) )
+                    else:
+                        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                        bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
+
+            except Exception as e:
+                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
+                bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(e) )
+                return False
 
         if response.is_success:
             bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( [float(v/4294967295) for v in weight_vals], weight_uids ))
@@ -978,12 +989,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         result = make_substrate_call_with_retry()
         # Process the result.
         uid = int(result.value)
-        if uid == 0:
-            neuron = self.neuron_for_uid( uid, block)
-            if neuron.is_null:
-                return -1
-            else:
-                return uid
+        neuron = self.neuron_for_uid( uid, block)
+        if neuron.is_null:
+            return -1
         else:
             return uid
 
