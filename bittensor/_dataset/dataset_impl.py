@@ -398,12 +398,6 @@ class GenesisTextDataset( Dataset ):
         del self.data_remained[:data_size]
 
         # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
-        if self.world_size > 0:
-            sampler = torch.utils.data.distributed.DistributedSampler(
-    	        self,
-    	        num_replicas=self.world_size,
-    	        rank=self.rank
-            )
         return DataLoader(self,
                     shuffle=True,
                     batch_size=self.batch_size,

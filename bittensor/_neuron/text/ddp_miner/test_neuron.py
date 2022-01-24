@@ -28,7 +28,7 @@ from torch.multiprocessing import Manager
 import copy
 
 from unittest.mock import MagicMock
-import neuron_impl
+import neuron_train_impl
 import copy
 from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
 from torch._six import inf
@@ -43,14 +43,14 @@ class NeuronDDP:
         self.world_size = 3
         self.nucleus = bittensor.neurons.ddp_miner.nucleus()
         self.config = bittensor.neurons.ddp_miner.neuron().config
-        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd3')
+        self.wallet = bittensor.wallet ( config = self.config, name = 'test4', hotkey = 'd4')
         self.wallet.create()
         
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( self.config.logging.logging_dir, self.config.wallet.name, self.config.wallet.hotkey, self.config.neuron.name ))
         self.config.neuron.full_path = os.path.expanduser(full_path)
         print(self.config.neuron.full_path)
 
-    def __exit__(self):
+    def close(self):
         del self.dendrite
         self.dataset.close()
         self.cleanup()
@@ -221,6 +221,7 @@ def test_grads_align():
     neuron_ddp = NeuronDDP()
     neuron_ddp.run_parallel()
     grads_ddp = torch.load('DDP_params_grad.pt')
+    neuron_ddp.close()
 
     neuron_ddp_sim = NeuronDDPSim()
     input1, output1, grads_ddp_sim = neuron_ddp_sim.run()
