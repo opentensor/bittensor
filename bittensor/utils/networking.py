@@ -151,29 +151,6 @@ class UPNPCException(Exception):
     """ Raised when trying to perform a port mapping on your router. """
 
 
-def upnpc_delete_port_map(external_port: int):
-    r""" Deletes a UPNPC created port mapping from your router.
-
-        Args: 
-            external_port (int, `required`):
-                The port to un-map from your router.
-
-        Raises:
-            UPNPCException (Exception):
-                Raised if UPNPC port map delete fails.
-    """
-    try:
-        logger.info('UPNPC: Deleting port map {}', external_port)
-        upnp = miniupnpc.UPnP()
-        upnp.discoverdelay = 200
-        upnp.discover()
-        upnp.selectigd()
-        upnp.deleteportmapping(external_port, 'TCP')
-        logger.info('UPNPC: Delete Success')
-
-    except Exception as e:
-        raise UPNPCException(e) from e
-
 def upnpc_create_port_map(port: int):
     r""" Creates a upnpc port map on your router from passed external_port to local port.
 
