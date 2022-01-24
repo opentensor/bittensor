@@ -51,12 +51,14 @@ class Neuron:
     def __init__( self, config: 'bittensor.config', nucleus: 'Nucleus'):
         self.config = config
         self.wallet = bittensor.wallet ( config = self.config )
-        self.server = NeuronServe(config, self.wallet)
         self.trainer = DDPNeuronTrain(config, nucleus, self.wallet)
+        self.server = NeuronServe(config, self.wallet)
         self.wallet.create()
 
     def run(self):
+        self.trainer.run_parallel()
+        
         # p1 = Process(target=self.server.run)
-        p2 = Process(target=self.trainer.run_parallel)
+        # p2 = Process(target=self.trainer.run_parallel)
         # p1.start()
-        p2.start()
+        # p2.start()

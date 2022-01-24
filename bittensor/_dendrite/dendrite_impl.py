@@ -191,7 +191,6 @@ class Dendrite(torch.autograd.Function):
                     Gradient results for each input.
 
         """
-        bittensor.logging.success("dendrite", sufix = f'backward')
         if ctx.does_requires_grad:
             grads_cpu = [x.cpu().clone().detach() for x in output_grads]
             input_grads, _, _ = ctx.receptor_pool.backward(

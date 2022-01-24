@@ -570,8 +570,6 @@ class Receptor(nn.Module):
                 request: (:obj:`Request`, required):
                     The request object holds all specifications and processing of the request.
         """
-        if backward:
-            bittensor.logging.success("receptor preprocess", sufix = f'backward')
         # ---- Setup forward request namespace, which will hold all the objects regarding the forward request ----
         request = Request(inputs = inputs, modality = modality, grads_dy = grads_dy, backward = backward)
 
@@ -597,8 +595,6 @@ class Receptor(nn.Module):
                 request: (:obj:`Request`, required):
                     The request object holds all specifications and processing of the request.
         """
-        if request.backward:
-            bittensor.logging.success("receptor make call", sufix = f'backward')
         # ---- Return if the previous statue was not finished. ----
         if (request.grpc_request == None) or (request.code != bittensor.proto.ReturnCode.Success):
             return request

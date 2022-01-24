@@ -50,6 +50,7 @@ class nucleus():
         parser.add_argument('--nucleus.punishment', type=float, help='The punishment on the chain weights that do not respond ', default=0.001 )
         parser.add_argument('--nucleus.noise_offset', type=float, help='Noise added to weights during each call.', default=0.001 )
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
+        parser.add_argument('--nucleus.max_n', type=int, help='The maxinum number of peers in the metagraph to consider', default=4000 )
 
     @staticmethod
     def config() -> 'bittensor.Config':
@@ -106,7 +107,6 @@ class neuron:
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
         parser.add_argument('--neuron.multiprocessing', action='store_true', help='Use multiprocessing or not', default=False )
         parser.add_argument('--neuron.world_size', type=int, help='The number of processes for multiprocessing', default=1 )
-        parser.add_argument('--neuron.max_n', type=int, help='The maxinum number of peers in the metagraph to consider', default=4000 )
 
 
         bittensor.logging.add_args( parser )

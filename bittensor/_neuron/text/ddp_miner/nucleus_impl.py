@@ -73,7 +73,7 @@ class Nucleus(nn.Module):
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.noise_multiplier = self.config.nucleus.noise_multiplier
-        self.peer_weights = nn.Parameter(torch.ones( [self.config.neuron.max_n], dtype=torch.float32 , requires_grad=True))
+        self.peer_weights = nn.Parameter(torch.ones( [self.config.nucleus.max_n], dtype=torch.float32 , requires_grad=True))
         self.metagraph = None
         self.dendrite = None
 
