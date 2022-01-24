@@ -48,6 +48,8 @@ from functools import partial
 
 import torch.nn.functional as F
 from torch.multiprocessing import Manager
+import pickle
+from os import path
 
 class DDPNeuronTrain:
     def __init__( self, config: 'bittensor.config', nucleus: 'Nucleus', wallet: 'bittensor.wallet'):
@@ -124,14 +126,20 @@ class DDPNeuronTrain:
         if len(bucket.parameters()) > 70:
             total_norm = clip_grad_norm_(bucket.parameters(), 1)
             self.total_norm = total_norm
-
+            bittensor.logging.success("clip grad norm, large bucket", sufix = f'total_norm {self.total_norm}')
         else:
+            bittensor.logging.success("clip grad norm, small bucket", sufix = f'total_norm {self.total_norm}')
             clip_coef = 1 / (self.total_norm + 1e-6)
+            bittensor.logging.success("clip grad norm, small bucket", sufix = f'clip coef {clip_coef}')
             clip_coef_clamped = torch.clamp(clip_coef, max=1.0)
+            bittensor.logging.success("clip grad norm, small bucket", sufix = f'clip coef clamped {clip_coef_clamped}')
+
             for p in bucket.parameters():
                 p.grad.detach().mul_(clip_coef_clamped)
+                bittensor.logging.success("clip grad norm, small bucket", sufix = f'p {p[:20]}')
             
         flat_grads = [ torch.reshape(p.grad, (-1,) ) for p in bucket.parameters()]
+        bittensor.logging.success("clip grad norm", sufix = f' flat_grads {p[:20]}')
         tensor = torch.cat(flat_grads)
         bucket.set_buffer(tensor)
         group_to_use = process_group if process_group is not None else dist.group.WORLD
@@ -275,6 +283,20 @@ class DDPNeuronTrain:
         bittensor.logging.success( prefix = f'adding to distillation epoch loss', sufix = f' {output.distillation_loss.item(), epoch_stats.total_distillation_epoch_loss}, Rank ')
         bittensor.logging.success( prefix = f'adding to remote target epoch loss', sufix = f' {output.remote_target_loss.item(), epoch_stats.total_remote_target_epoch_loss}, Rank ')
         bittensor.logging.success( prefix = f'adding to local accuracy', sufix = f' {output.local_accuracy, epoch_stats.total_local_epoch_acc}, Rank ')
+
+        if torch.any(torch.isnan(output.local_target_loss)).item():
+            bittensor.logging.success( prefix = f'got nan accuracy', sufix = f'')
+            print(output, '\n\n\n\n\n\n\n\n\n\n\n\n')
+            
+            if not path.exists('output_error.pkl'):
+                out_dict = {}
+
+                for k,v in output.__dict__:
+                    out_dict[k] = str(v)
+
+                a_file = open("output_error.pkl", "wb")
+                pickle.dump(out_dict, a_file)
+                a_file.close()
 
     def update_epoch_loss(self, epoch_stats):
         batches_count = epoch_stats.batches_count

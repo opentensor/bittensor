@@ -153,7 +153,6 @@ class Nucleus(nn.Module):
         output.embedding = embedding
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
-        bittensor.logging.success( f"{self.device, next(self.parameters()).device}", sufix="" )
         local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
         output.local_context1 = local_context
         # local_context: adding positional encoding to local_context.
@@ -180,9 +179,12 @@ class Nucleus(nn.Module):
             # local_target_loss.shape = [1]
             shift_logits = output.local_target[..., :-1, :].contiguous()
             shift_labels = inputs[..., 1:].contiguous()
+            output.shift_logits = shift_logits
+            output.shift_labels = shift_labels
             output.local_target_loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
 
             predictions = shift_logits.detach().max(2).indices
+            output.predictions = predictions
             output.local_accuracy = (predictions == shift_labels).sum().item() / predictions.nelement()
         return output
 
