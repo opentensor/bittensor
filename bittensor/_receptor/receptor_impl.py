@@ -458,7 +458,7 @@ class Receptor(nn.Module):
             return False, request
 
         # ---- Safe catch NaNs and replace with 0.0 ----
-        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
+        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
 
         # ---- Return ----
         request.code = request.response.return_code
