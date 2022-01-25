@@ -27,11 +27,11 @@ import bittensor
 import os
 
 from .nucleus_impl import server
-from .ddp_run import serve
+from .ddp_run import DDPServer
 
 class neuron:
 
-    def __init__(
+    def __new__(
         self, 
         config: 'bittensor.config' = None
     ):
@@ -45,9 +45,8 @@ class neuron:
 
         self.model = server(config=config)
         self.config = config
+        return DDPServer(self.config, self.model)
 
-    def run(self):
-        serve( self.config, self.model )
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):

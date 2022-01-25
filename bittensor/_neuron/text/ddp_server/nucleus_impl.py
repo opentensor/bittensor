@@ -222,6 +222,10 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to sync set weights', default=100)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=2)
+        parser.add_argument('--neuron.world_size', type=int, help='The number of processes for ddp.', default=1)
+        parser.add_argument('--neuron.address', type=str, help='The address for multiprocess communication', default='localhost')
+        parser.add_argument('--neuron.port', type=str, help='The port for multiprocess communication', default='8865')
+        parser.add_argument('--neuron.multiprocessing', action='store_true', help='Use multiprocessing or not', default=False )
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
