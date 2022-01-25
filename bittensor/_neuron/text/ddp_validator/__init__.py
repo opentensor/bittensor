@@ -107,6 +107,8 @@ class neuron:
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
         parser.add_argument('--neuron.multiprocessing', action='store_true', help='Use multiprocessing or not', default=False )
         parser.add_argument('--neuron.world_size', type=int, help='The number of processes for multiprocessing', default=1 )
+        parser.add_argument('--neuron.address', type=str, help='The address for multiprocess communication', default='localhost')
+        parser.add_argument('--neuron.port', type=str, help='The port for multiprocess communication', default='8865')
 
 
         bittensor.logging.add_args( parser )

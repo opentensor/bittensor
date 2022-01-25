@@ -78,12 +78,21 @@ class DDPNeuronTrain:
         self.fisher_ema_decay = 0.995
 
     def stop( self ):
+        r""" Stop the dendrite and dataset
+        """
         del self.dendrite
         self.dataset.close()
     
     def init_process(self, rank):
-        os.environ['MASTER_ADDR'] = 'localhost'
-        os.environ['MASTER_PORT'] = '8865'
+        r""" For each process, anchor them to the process group 
+        so that they know how to communication with each other.
+
+        Args:
+            rank (int):
+                rank (id) of the process.
+        """
+        os.environ['MASTER_ADDR'] = self.config.neuron.address
+        os.environ['MASTER_PORT'] = self.config.neuron.port
         if 'cuda' in self.config.neuron.device:
             backend = 'nccl'
         else:
@@ -92,6 +101,13 @@ class DDPNeuronTrain:
         dist.init_process_group(backend, rank=rank, world_size=self.world_size)
     
     def init_bit(self, rank = 0):
+        r""" Init bittensor modules .
+        
+        Args:
+            rank (int):
+                rank (id) of the process.
+        """
+
         if self.config.neuron.multiprocessing and self.config.neuron.device == 'cuda':
             self.device = torch.device( device = f'cuda:{rank}' )
         else:
@@ -113,9 +129,13 @@ class DDPNeuronTrain:
             self.subtensor.register( self.wallet )
     
     def cleanup(self):
+        r""" Kill the process.
+        """
         dist.destroy_process_group()
 
     def run_parallel( self ):
+        r""" Spawn multiple processes.
+        """
         with Manager() as manager:
             self.stats.scores = manager.dict()
             mp.spawn(self.run,
@@ -125,6 +145,8 @@ class DDPNeuronTrain:
             )
 
     def clip_grad_hook( self, process_group: dist.ProcessGroup, bucket: dist.GradBucket ): # -> torch.futures.Future[torch.Tensor]:
+        r""" Norm the gradient before all reduce.
+        """
         if len(bucket.parameters()) > 70:
             total_norm = clip_grad_norm_(bucket.parameters(), 1)
             self.total_norm = total_norm
@@ -209,10 +231,7 @@ class DDPNeuronTrain:
                         # ---- Forward pass ----
                         self.id = random.randint(1000, 9999)
                         inputs = next( self.dataset )
-                        output = self.nucleus.forward(
-                            inputs = inputs.to( self.device ),
-                            training = True,
-                        )
+                        output = self.nucleus.forward( inputs = inputs.to( self.device ), training = True)
 
                         # ---- Backward pass ----
                         output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
@@ -223,7 +242,7 @@ class DDPNeuronTrain:
                         self.optimizer.zero_grad()
 
                         # ---- Update stats and scores. 
-                        self.agg_epoch_stats(epoch_stats, output)
+                        epoch_stats = self.agg_epoch_stats(epoch_stats, output)
                         self.stats.epoch_data_size += inputs.nelement()
                         current_block = self.subtensor.get_current_block()
                         
@@ -250,19 +269,15 @@ class DDPNeuronTrain:
                     if rank == 0:
                         self.logs ( progress_bar, iteration = block-start_block, output = output)
 
-                    # ---- End of block.
-
                 if rank == 0:
                     self.checkpoint()
 
                 self.epoch += 1
-
-                # ---- End of epoch.
             
             except KeyboardInterrupt:
                 # --- User ended session ----
-                self.cleanup()
                 self.stop()
+                self.cleanup()
                 break
 
             except Exception as e:
@@ -275,12 +290,21 @@ class DDPNeuronTrain:
                     break
 
     def agg_epoch_stats(self, epoch_stats, output):
+        r""" Append the losses from output to the epoch stats.
+        Args:
+            epoch_stats: SimpleNamespace
+                Aggregate all the losses (local_target_loss/distillation_loss/remote_target_loss) as float
+
+            output: SimpleNamespace
+                output from the nucleus forward call. Which has all the hidden layers/losses.
+        """
         epoch_stats.total_local_target_epoch_loss += output.local_target_loss.item()
         epoch_stats.total_distillation_epoch_loss += output.distillation_loss.item()
         epoch_stats.total_remote_target_epoch_loss += output.remote_target_loss.item()
         epoch_stats.total_local_epoch_acc += output.local_accuracy
         epoch_stats.batches_count += 1
 
+        # ---- Temp debug logging.
         bittensor.logging.success( prefix = f'adding to local target epoch loss', sufix = f' {output.local_target_loss.item(), epoch_stats.total_local_target_epoch_loss}, Rank ')
         bittensor.logging.success( prefix = f'adding to distillation epoch loss', sufix = f' {output.distillation_loss.item(), epoch_stats.total_distillation_epoch_loss}, Rank ')
         bittensor.logging.success( prefix = f'adding to remote target epoch loss', sufix = f' {output.remote_target_loss.item(), epoch_stats.total_remote_target_epoch_loss}, Rank ')
@@ -299,8 +323,14 @@ class DDPNeuronTrain:
             a_file.close()
 
             self.cleanup()
+        return epoch_stats
 
     def update_epoch_loss(self, epoch_stats):
+        r""" Update self.stats with the averaged losses.
+        Args:
+            epoch_stats: SimpleNamespace
+                Aggregate all the losses (local_target_loss/distillation_loss/remote_target_loss) as float
+        """
         batches_count = epoch_stats.batches_count
         self.stats.local_target_epoch_loss = epoch_stats.total_local_target_epoch_loss / (batches_count) 
         self.stats.distillation_epoch_loss = epoch_stats.total_distillation_epoch_loss / (batches_count)
