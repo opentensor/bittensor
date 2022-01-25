@@ -742,7 +742,7 @@ class Dendrite(torch.autograd.Function):
         try:
             wandb_info = {
                 'dendrite/qps': self.stats.qps.get(),
-                'dendrite/total_requests' : self.receptor_pool.get_total_request(),
+                'dendrite/total_requests' : self.receptor_pool.get_total_requests(),
                 'dendrite/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
                 'dendrite/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
                 'dendrite/Total unique queries': len(self.stats.requests_per_pubkey.keys()),
