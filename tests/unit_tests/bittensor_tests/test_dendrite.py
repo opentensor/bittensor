@@ -259,15 +259,22 @@ def test_dendrite_multiple():
     endpoints = neuron_obj.to_tensor()
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
 
-    dend1 = bittensor.dendrite( wallet = wallet )
-    dend2 = bittensor.dendrite( wallet = wallet )
-    dend3 = bittensor.dendrite( wallet = wallet )
-    dend4 = bittensor.dendrite( wallet = wallet )
+    dend1 = bittensor.dendrite( wallet = wallet, multiprocess=True)
+    dend2 = bittensor.dendrite( wallet = wallet, multiprocess=True)
+    dend3 = bittensor.dendrite( wallet = wallet, multiprocess=True )
+    dend4 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     
-    dend1.forward_text( endpoints, x )
-    dend2.forward_text( endpoints, x )
-    dend3.forward_text( endpoints, x )
-    dend4.forward_text( endpoints, x )
+    out, ops, times = dend1.forward_text( endpoints, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+
+    out, ops, times = dend2.forward_text( endpoints, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+
+    out, ops, times = dend3.forward_text( endpoints, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+
+    out, ops, times = dend4.forward_text( endpoints, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     
     del dend1
     del dend2
