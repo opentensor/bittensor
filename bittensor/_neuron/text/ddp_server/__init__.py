@@ -27,7 +27,7 @@ import bittensor
 import os
 
 from .nucleus_impl import server
-from .run import serve
+from .ddp_run import serve
 
 class neuron:
 
