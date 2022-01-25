@@ -164,6 +164,7 @@ class dendrite:
         BaseManager.register('get_receptorpool')
         BaseManager.register('add_connection_count')
         BaseManager.register('deduct_connection_count')
+        BaseManager.register('total_request')
         manager = BaseManager(address=('', 4098), authkey=b'abracadabr')
         manager.connect()
         manager.add_connection_count()
