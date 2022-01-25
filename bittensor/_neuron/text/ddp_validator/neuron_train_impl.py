@@ -50,6 +50,8 @@ import torch.nn.functional as F
 from torch.multiprocessing import Manager
 import pickle
 from os import path
+import random
+import time
 
 class DDPNeuronTrain:
     def __init__( self, config: 'bittensor.config', nucleus: 'Nucleus', wallet: 'bittensor.wallet'):
@@ -126,13 +128,13 @@ class DDPNeuronTrain:
         if len(bucket.parameters()) > 70:
             total_norm = clip_grad_norm_(bucket.parameters(), 1)
             self.total_norm = total_norm
-            bittensor.logging.success("clip grad norm, large bucket", sufix = f'total_norm {self.total_norm}')
+            bittensor.logging.success("clip grad norm, large bucket", sufix = f'{self.id} total_norm {self.total_norm}')
         else:
-            bittensor.logging.success("clip grad norm, small bucket", sufix = f'total_norm {self.total_norm}')
+            bittensor.logging.success("clip grad norm, small bucket", sufix = f'{self.id} total_norm {self.total_norm}')
             clip_coef = 1 / (self.total_norm + 1e-6)
-            bittensor.logging.success("clip grad norm, small bucket", sufix = f'clip coef {clip_coef}')
+            bittensor.logging.success("clip grad norm, small bucket", sufix = f'{self.id} clip coef {clip_coef}')
             clip_coef_clamped = torch.clamp(clip_coef, max=1.0)
-            bittensor.logging.success("clip grad norm, small bucket", sufix = f'clip coef clamped {clip_coef_clamped}')
+            bittensor.logging.success("clip grad norm, small bucket", sufix = f'{self.id} clip coef clamped {clip_coef_clamped}')
 
             for p in bucket.parameters():
                 p.grad.detach().mul_(clip_coef_clamped)
@@ -205,6 +207,7 @@ class DDPNeuronTrain:
                     current_block = self.subtensor.get_current_block()
                     while block >= current_block:
                         # ---- Forward pass ----
+                        self.id = random.randint(1000, 9999)
                         inputs = next( self.dataset )
                         output = self.nucleus.forward(
                             inputs = inputs.to( self.device ),
