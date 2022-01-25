@@ -164,7 +164,7 @@ class dendrite:
         BaseManager.register('get_receptorpool')
         BaseManager.register('add_connection_count')
         BaseManager.register('deduct_connection_count')
-        BaseManager.register('total_request')
+        BaseManager.register('get_total_requests')
         manager = BaseManager(address=('', 4098), authkey=b'abracadabr')
         manager.connect()
         manager.add_connection_count()
@@ -180,7 +180,7 @@ class dendrite:
                 max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors
             )
-        ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state', 'total_request'])
+        ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state', 'get_total_requests'])
         manager = ManagerServer(address=('', 4098), authkey=b'abracadabr')
 
         return manager
