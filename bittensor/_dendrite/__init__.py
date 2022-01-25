@@ -179,7 +179,7 @@ class dendrite:
                 max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors
             )
-        ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state'])
+        ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state', 'total_request'])
         manager = ManagerServer(address=('', 4098), authkey=b'abracadabr')
 
         return manager

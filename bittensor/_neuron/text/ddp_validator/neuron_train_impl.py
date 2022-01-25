@@ -488,6 +488,7 @@ class DDPNeuronTrain:
         progress_bar.set_infos( info )
 
         # ---- wandb log if it is the end of epoch 
+        bittensor.logging.success('wandb log', sufix = f'{iteration}, {self.config.neuron.epoch_length}, {(iteration + 1) % (self.config.neuron.epoch_length )}')
         if self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
             # ---- Miner summary for wandb
             wandb_info = {
@@ -516,6 +517,7 @@ class DDPNeuronTrain:
             stats_data_table = wandb.Table( dataframe = df)
 
             wandb_info_dend = self.dendrite.to_wandb()
+            print(wandb_info_dend)
             wandb.log( { **wandb_info, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': stats_data_table}, step = current_block)
             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time vs UID") } )

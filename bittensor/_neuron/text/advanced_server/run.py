@@ -172,7 +172,6 @@ def serve( config, gp_server):
             return True
         else: 
             return False
-            
 
     # Create our axon server
     axon = bittensor.axon (
