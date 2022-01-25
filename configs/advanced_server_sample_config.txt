@@ -35,7 +35,7 @@ neuron.learning_rate: 0.01
 neuron.model_name: gpt2
 neuron.momentum: 0.8
 neuron.name: advanced_server
-neuron.no_restart: false
+neuron.no_restart: true
 neuron.padding: true
 neuron.pretrained: true
 

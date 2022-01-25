@@ -214,7 +214,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='advanced_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
-        parser.add_argument('--neuron.no_restart', action='store_true', help='if the model should restart', default=False)
+        parser.add_argument('--neuron.no_restart', type=bool, help='If True, train the neuron from the beginning', default=True)
         parser.add_argument('--neuron.blacklist.stake.forward', type=float, help='Amount of stake (tao) in order not to get blacklisted for forward requests', default=10)
         parser.add_argument('--neuron.blacklist.stake.backward', type=float, help='Amount of stake (tao) in order not to get blacklisted for backward requests', default=100)
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, black lists non-registered peers''', default=True)

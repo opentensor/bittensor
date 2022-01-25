@@ -26,7 +26,7 @@ neuron.learning_rate_chain: 1
 neuron.momentum: 0.8
 neuron.n_topk_peer_weights: 100
 neuron.name: template_miner
-neuron.no_restart: false
+neuron.no_restart: true
 neuron.topk: 20
 
 nucleus.dropout: 0.2

@@ -187,7 +187,7 @@ def serve( config, gp_server):
     dataset = bittensor.dataset(config=config)
 
     # load our old model
-    if config.neuron.no_restart != True:
+    if not config.neuron.no_restart :
         gp_server.load(config.neuron.full_path)
 
     if config.wandb.api_key != 'default':

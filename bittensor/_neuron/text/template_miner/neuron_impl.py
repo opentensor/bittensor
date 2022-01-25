@@ -121,7 +121,7 @@ class Neuron:
             self.epoch = 0   
 
             # ---- reloads previous run if not restart ----
-            if self.config.neuron.no_restart:
+            if not self.config.neuron.no_restart:
                 self.save()
 
             try:
