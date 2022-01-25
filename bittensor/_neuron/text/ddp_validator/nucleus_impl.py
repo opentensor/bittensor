@@ -267,12 +267,6 @@ class Nucleus(nn.Module):
             endpoints = endpoints.to('cpu'),
             inputs = inputs
         )
-        # # ---- Join based on weights ----
-        # joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-        # joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-        # output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.device )
-        # for index, joining_weight in enumerate( joining_weights ):
-        #     output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
         # ---- Join based on weights ----
         joining_idx= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
@@ -286,17 +280,9 @@ class Nucleus(nn.Module):
         for index, weight in enumerate( topk_weights_normed ):
             if index in joining_idx:
                 output += responses[index].to( self.device ) * weight
-                # bittensor.logging.success(f"j0ining ", sufix = f"{index, }")
             else:
                 output += failed_response.to( self.device ) * weight
 
-                # bittensor.logging.success(f"j0ining a failed one", sufix = f"{index, }")
-        
         self.peer_weights.retain_grad()
 
-        # ---- Punish peers with non-successful return ops ----
-        # with torch.no_grad():
-        #     self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
-        #     self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
-        
         return output, topk_uids[joining_idx]

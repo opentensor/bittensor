@@ -47,6 +47,7 @@ class ReceptorPool ( torch.nn.Module ):
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
         self.compression = compression
+        self.total_request = 0
         
         try:
             self.external_ip = str(net.get_external_ip())
@@ -118,6 +119,7 @@ class ReceptorPool ( torch.nn.Module ):
         # ---- Preprocessing for the forward function, get the request. ---- 
         requests = []
         for arg in call_args:
+            self.total_request += 1
             receptor, inputs, modality = arg
             requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
 

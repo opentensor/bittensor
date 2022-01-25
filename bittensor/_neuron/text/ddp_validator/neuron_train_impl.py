@@ -515,7 +515,6 @@ class DDPNeuronTrain:
             df['uid'] = df.index
             stats_data_table = wandb.Table( dataframe = df)
 
-            # wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
             wandb.log( { **wandb_info, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': stats_data_table}, step = current_block)
