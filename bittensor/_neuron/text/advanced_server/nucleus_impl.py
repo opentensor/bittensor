@@ -221,7 +221,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to sync set weights', default=100)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
-        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=2)
+        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=0)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
