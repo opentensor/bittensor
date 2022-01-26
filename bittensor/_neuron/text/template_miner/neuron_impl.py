@@ -479,6 +479,7 @@ class Neuron:
             color =  'green' if self.stats.scores[uid] - ema_score > 0 else 'red'
             info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
 
+
         progress_bar.set_infos( info )
 
         # ---- wandb log if it is the end of epoch 
@@ -512,7 +513,8 @@ class Neuron:
 
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
-            wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
+            wandb.log( info, step= current_block)
+            #wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': stats_data_table}, step = current_block)
             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time vs UID") } )
             wandb.log( { 'dendrite_query_times': wandb.plot.scatter( stats_data_table, "uid", "dendrite_query_time", title="Dendrite Query time vs UID") } )
