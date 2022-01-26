@@ -261,7 +261,7 @@ def test_dendrite_multiple():
 
     dend1 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     dend2 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend3 = bittensor.dendrite( wallet = wallet, multiprocess=True )
+    dend3 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     dend4 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     
     out, ops, times = dend1.forward_text( endpoints, x )
@@ -284,7 +284,7 @@ def test_dendrite_multiple():
 def forward(i):
     endpoints = neuron_obj.to_tensor()
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
-    dend = bittensor.dendrite(wallet = wallet)
+    dend = bittensor.dendrite(wallet = wallet,multiprocess=True)
     dend.forward_text( endpoints, x )
     del dend
 
@@ -298,4 +298,4 @@ def test_dendrite_del():
 
 if __name__ == "__main__":
     test_dendrite_multiprocessing()
-    test_dendrite_del()
+    test_dendrite_multiple()
