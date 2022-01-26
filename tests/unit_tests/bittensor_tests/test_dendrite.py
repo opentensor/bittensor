@@ -256,6 +256,7 @@ def test_dendrite_backoff():
     del _dendrite
 
 def test_dendrite_multiple():
+    bittensor.logging(debug=True)
     endpoints = neuron_obj.to_tensor()
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
 
@@ -276,10 +277,10 @@ def test_dendrite_multiple():
     out, ops, times = dend4.forward_text( endpoints, x )
     assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
     
-    del dend1
-    del dend2
-    del dend3
-    del dend4
+    dend1.__del__
+    dend2.__del__
+    dend3.__del__
+    dend4.__del__
     
 def forward(i):
     endpoints = neuron_obj.to_tensor()
@@ -297,5 +298,5 @@ def test_dendrite_del():
     del dendrite
 
 if __name__ == "__main__":
-    test_dendrite_multiprocessing()
+    #test_dendrite_multiprocessing()
     test_dendrite_multiple()
