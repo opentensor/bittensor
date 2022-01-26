@@ -5,3 +5,4 @@ omit =
   ./setup.py
   ./tests/*
   ./bittensor/_neuron/*
+  ./bittensor/_cli/__init__.py
