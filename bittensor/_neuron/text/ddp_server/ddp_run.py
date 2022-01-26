@@ -305,16 +305,14 @@ class DDPServer():
                 interation = 0
 
                 # --- Training step.
-                while end_block >= current_block:
-                    if current_block != self.subtensor.get_current_block():
-                        logger.info(f'Forward Started Rank: {rank}, Iter: {interation}')
-                        loss, _ = self.gp_server( next( self.dataset ).to( self.gp_server.device) )
-                        if interation > 0 : 
-                            losses += loss
-                        else:
-                            losses = loss
-                        interation += 1
-                        current_block = self.subtensor.get_current_block()
+                with self.gp_server.join():
+                    while (end_block >= current_block):
+                        if current_block != self.subtensor.get_current_block():
+                            logger.info(f'Forward Started Rank: {rank}, Iter: {interation}')
+                            loss, _ = self.gp_server( next( self.dataset ).to( self.gp_server.device) )
+                            losses = loss if interation == 0 else losses + loss
+                            interation += 1
+                            current_block = self.subtensor.get_current_block()
 
             
                 #Custom learning rate
