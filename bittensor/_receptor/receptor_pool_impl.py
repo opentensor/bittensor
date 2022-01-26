@@ -215,9 +215,13 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request in zip(call_args, requests):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
-
+            
         for request_future in request_futures:
             request_future.future.cancel()
+
+        for arg in call_args:
+            receptor = arg[0]
+            receptor.semaphore.release()
 
         # ---- Return zeros ----
         backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
@@ -287,7 +291,7 @@ class ReceptorPool ( torch.nn.Module ):
                     compression = self.compression
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
-            
+
         print(receptor.semaphore._value)  
         receptor.semaphore.acquire()
         return receptor
