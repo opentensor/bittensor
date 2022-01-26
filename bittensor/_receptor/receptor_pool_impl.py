@@ -252,7 +252,6 @@ class ReceptorPool ( torch.nn.Module ):
                     except KeyError:
                         pass
                 elif receptor_to_remove == None:
-                    print('Cant find things to cull')
                     break
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
@@ -289,5 +288,6 @@ class ReceptorPool ( torch.nn.Module ):
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
             
+        print(receptor.semaphore._value)  
         receptor.semaphore.acquire()
         return receptor
