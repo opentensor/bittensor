@@ -31,11 +31,6 @@ def create_axon(port):
     axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TEXT )
     axon.start()
 
-def first_dendrite_test(endpoints):
-    logging =bittensor.logging(debug=True)
-    dend = bittensor.dendrite(wallet=wallet,max_active_receptors=10,multiprocess=True)
-    responses, return_ops, query_times = dend.forward_text( endpoints=endpoints,inputs = inputs)
-    assert all(return_ops) == 1
 
 def dendrite_delay(i):
     dend = bittensor.dendrite(wallet=wallet,max_active_receptors=10,multiprocess=True)
@@ -62,7 +57,11 @@ def main():
             coldkey = wallet.coldkey.ss58_address
         )
         endpoints += [endpoint]
-    first_dendrite_test(endpoints)
+
+    logging =bittensor.logging(debug=True)
+    dend = bittensor.dendrite(wallet=wallet,max_active_receptors=10,multiprocess=True)
+    responses, return_ops, query_times = dend.forward_text( endpoints=endpoints,inputs = inputs)
+    assert all(return_ops) == 1
     
     N_processes = [1,2,3,4,5]
     N = len(N_processes)
