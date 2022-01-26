@@ -156,7 +156,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             ], axis = 1)
             df['uid'] = df.index
             wandb_dendrite = dendrite.to_wandb()
-            wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
+            wandb.log(info, step =current_block)
+            #wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # --- Save.
