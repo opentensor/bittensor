@@ -61,5 +61,6 @@ class ManagerServer(BaseManager):
 
         if self.connected_count == 0:
             logger.success(f'Manager Server: No one is connecting, killing this server {self.connected_count}')
+            self.close()
 
         return
