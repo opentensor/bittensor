@@ -222,10 +222,11 @@ class Nucleus(nn.Module):
         individ_loss = {}
 
         for index in range(len(output.total_uids)):
+            print(index,output.total_uids[index])
             remote_hidden_index = self.remote_hidden( output.responses[index].detach() )
             remote_target_index = self.remote_decoder( remote_hidden_index )
             shift_logits_index = remote_target_index[..., :-1, :].contiguous()
-            individ_loss[output.total_uids[index]] = self.loss_fct( shift_logits_index.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+            individ_loss[output.total_uids[index]] = self.loss_fct( shift_logits_index.view(-1, shift_logits_index.size(-1)), shift_labels.view(-1) ).item()
 
 
         return output,individ_loss
