@@ -455,7 +455,7 @@ class Neuron:
         incentive = self_neuron.incentive
         normalized_peer_weights = F.softmax (self.nucleus.peer_weights.detach(), dim=0)
         current_block = self.subtensor.get_current_block()
-
+        weights = {}
         # ---- Progress bar log
         info = {
             'Step': colored('{}'.format(self.stats.global_step), 'red'),
@@ -478,6 +478,7 @@ class Neuron:
         for uid, ema_score in zip( topk_uids, topk_scores ) :
             color =  'green' if self.stats.scores[uid] - ema_score > 0 else 'red'
             info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
+            weights[f'uid_{uid.item()}'] = ema_score
 
 
         progress_bar.set_infos( info )
@@ -508,13 +509,14 @@ class Neuron:
                 self.axon.to_dataframe( metagraph = self.metagraph ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1)
+
             df['uid'] = df.index
             stats_data_table = wandb.Table( dataframe = df)
 
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
-            wandb.log( info, step= current_block)
-            #wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
+            wandb.log( weights, step= current_block)
+            wandb.log( { **wandb_info, **wandb_info_axon, **wandb_info_dend }, step = current_block)
             wandb.log( { 'stats': stats_data_table}, step = current_block)
             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time vs UID") } )
             wandb.log( { 'dendrite_query_times': wandb.plot.scatter( stats_data_table, "uid", "dendrite_query_time", title="Dendrite Query time vs UID") } )
