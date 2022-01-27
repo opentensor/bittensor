@@ -88,7 +88,7 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
         
-    def forward(self, inputs,tokenizer=None):
+    def forward_lol(self, inputs,tokenizer=None):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
 
@@ -112,7 +112,7 @@ class server(torch.nn.Module):
 
         return loss, decoded_targets
     
-    def encode_forward(self,inputs,tokenizer=None):
+    def forward(self,inputs,tokenizer=None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units. 
              The response tensor should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 
@@ -143,6 +143,7 @@ class server(torch.nn.Module):
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
+            bittensor.logging.success('nucleus forward return')
         return encoded_hidden
 
     def remapping_token(self,input, old_tokenizer=None):

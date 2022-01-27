@@ -17,6 +17,7 @@ import threading
 import weakref
 
 from loguru import logger
+import bittensor
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -49,13 +50,14 @@ class _WorkItem(object):
             return
 
         try:
+            self.kwargs['future'] = self.future
             result = self.fn(*self.args, **self.kwargs)
         except BaseException as exc:
             self.future.set_exception(exc)
             # Break a reference cycle with the exception 'exc'
             self = None
-        else:
-            self.future.set_result(result)
+        # else:
+        #     # self.future.set_result(result)
 
 
 NULL_ENTRY = (sys.maxsize, _WorkItem(None, None, (), {}))
