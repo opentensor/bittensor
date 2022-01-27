@@ -220,7 +220,7 @@ class Neuron:
                             self.stats.remote_target_epoch_loss = total_remote_target_epoch_loss / batches_count
                             self.stats.local_epoch_acc = total_local_epoch_acc / batches_count
                             for key in list(total_losses_individ.keys()):
-                                self.total_losses_uid[key] = self.total_losses_uid[key] / batches_count
+                                self.total_losses_uid['individ_loss_{}'.format(key)] = self.total_losses_uid[key] / batches_count
 
                         # ---- Block logs.
                         self.logs (
@@ -491,7 +491,7 @@ class Neuron:
         for uid, ema_score in zip( topk_uids, topk_scores ) :
             color =  'green' if self.stats.scores[uid] - ema_score > 0 else 'red'
             info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
-            weights[f'uid_{uid.item()}'] = ema_score
+            weights[f'weight_uid_{uid.item()}'] = ema_score
 
 
         progress_bar.set_infos( info )
