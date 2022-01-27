@@ -184,10 +184,10 @@ class Neuron:
                             
 
                             for key in list(individual_losses.keys()):
-                                if key in self.total_losses_individ.keys():
-                                    self.total_losses_individ[key] += individual_losses[key]
+                                if key in total_losses_individ.keys():
+                                    total_losses_individ[key] += individual_losses[key]
                                 else:
-                                    self.total_losses_individ[key] = individual_losses[key]
+                                    total_losses_individ[key] = individual_losses[key]
 
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
