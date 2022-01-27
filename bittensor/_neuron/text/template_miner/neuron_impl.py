@@ -220,7 +220,7 @@ class Neuron:
                             self.stats.remote_target_epoch_loss = total_remote_target_epoch_loss / batches_count
                             self.stats.local_epoch_acc = total_local_epoch_acc / batches_count
                             for key in list(total_losses_individ.keys()):
-                                self.total_losses_uid['individ_loss_{}'.format(key)] = self.total_losses_uid[key] / batches_count
+                                self.total_losses_uid['individ_loss_{}'.format(key.item())] = total_losses_individ[key] / batches_count
 
                         # ---- Block logs.
                         self.logs (
