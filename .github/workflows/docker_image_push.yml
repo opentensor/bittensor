@@ -34,8 +34,6 @@ jobs:
       run: pytest ./tests/unit_tests --cov=. --cov-append --cov-config .coveragerc        
     - name: Run Integration Tests
       run: pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc          
-    - name: Run dataset tests
-      run: pytest ./tests/integration_tests/test_dataset_ipfs.py --cov=. --cov-append --cov-config .coveragerc        
     - name: Code Coverage
       run: codecov
     - name: Login to DockerHub
