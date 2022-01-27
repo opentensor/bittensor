@@ -196,7 +196,7 @@ class Nucleus(nn.Module):
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.remote_context, output.query_uids = self.remote( inputs )
+        output.remote_context, output.query_uids, output.responses, output.total_uids = self.remote( inputs )
 
         # remote_hidden: projects from the remote_context
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -219,7 +219,16 @@ class Nucleus(nn.Module):
             shift_labels = inputs[..., 1:].contiguous()
             output.remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
-        return output
+        individ_loss = {}
+
+        for index in range(len(output.total_uids)):
+            remote_hidden_index = self.remote_hidden( output.responses[index].detach() )
+            remote_target_index = self.remote_decoder( remote_hidden_index )
+            shift_logits_index = remote_target_index[..., :-1, :].contiguous()
+            individ_loss[output.total_uids[index]] = self.loss_fct( shift_logits_index.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+
+
+        return output,individ_loss
 
     def remote(self, inputs: torch.int64 ) -> torch.float32:
         """ Forwards the inputs through the network, selects the topk peers based on self.peer_weights.
@@ -263,4 +272,4 @@ class Nucleus(nn.Module):
             self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
             self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
-        return output, topk_uids[joining_uids]
+        return output, topk_uids[joining_uids], responses, topk_uids

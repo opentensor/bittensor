@@ -72,6 +72,9 @@ class Neuron:
             lr = self.config.neuron.learning_rate,
             momentum = self.config.neuron.momentum,
         )
+
+        self.total_losses_uid = {}
+
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
             step_size = 1.0,
             gamma = 0.95
@@ -160,7 +163,7 @@ class Neuron:
                         while block >= current_block:
                             # ---- Forward pass ----
                             inputs = next( self.dataset )
-                            output = self.nucleus.remote_forward (
+                            output, individual_losses = self.nucleus.remote_forward (
                                 inputs = inputs.to( self.device ),
                                 training = True,
                             )
@@ -178,6 +181,13 @@ class Neuron:
                             self.optimizer.zero_grad()
                             current_block = self.subtensor.get_current_block()
                             
+
+                            for key in list(individual_losses.keys()):
+                                if key in self.total_losses_uid.keys():
+                                    self.total_losses_uid[key] += individual_losses[key]
+                                else:
+                                    self.total_losses_uid[key] = individual_losses[key]
+
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
                             total_distillation_epoch_loss += output.distillation_loss.item()
