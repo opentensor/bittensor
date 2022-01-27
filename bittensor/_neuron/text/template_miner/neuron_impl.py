@@ -149,6 +149,7 @@ class Neuron:
                     total_remote_target_epoch_loss = 0
                     total_local_epoch_acc = 0
                     batches_count = 0
+                    total_losses_individ = {}
 
                     # ---- Run epoch ----
                     start_block = self.subtensor.get_current_block() + 1
@@ -183,10 +184,10 @@ class Neuron:
                             
 
                             for key in list(individual_losses.keys()):
-                                if key in self.total_losses_uid.keys():
-                                    self.total_losses_uid[key] += individual_losses[key]
+                                if key in self.total_losses_individ.keys():
+                                    self.total_losses_individ[key] += individual_losses[key]
                                 else:
-                                    self.total_losses_uid[key] = individual_losses[key]
+                                    self.total_losses_individ[key] = individual_losses[key]
 
                             # ---- Aggrigate outputs and losses 
                             total_local_target_epoch_loss += output.local_target_loss.item()
@@ -213,11 +214,13 @@ class Neuron:
                             self.stats.epoch_sync_count += 1
                             
                         # ---- Update the epoch loss if it is the last iteration within epoch
-                        if block+1 == end_block :
+                        if block + 1 == end_block :
                             self.stats.local_target_epoch_loss = total_local_target_epoch_loss / batches_count
                             self.stats.distillation_epoch_loss = total_distillation_epoch_loss / batches_count
                             self.stats.remote_target_epoch_loss = total_remote_target_epoch_loss / batches_count
                             self.stats.local_epoch_acc = total_local_epoch_acc / batches_count
+                            for key in list(total_losses_individ.keys()):
+                                self.total_losses_uid[key] = self.total_losses_uid[key] / batches_count
 
                         # ---- Block logs.
                         self.logs (
@@ -522,6 +525,9 @@ class Neuron:
 
             df['uid'] = df.index
             stats_data_table = wandb.Table( dataframe = df)
+
+
+            wandb.log(self.total_losses_uid, step = current_block)
 
             wandb_info_axon = self.axon.to_wandb()
             wandb_info_dend = self.dendrite.to_wandb()
