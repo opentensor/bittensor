@@ -58,22 +58,7 @@ class DDPAxonPipe():
         self.forward_q = forward_q
         self.events = events
         self.outputs = outputs
-        # self.stats = SimpleNamespace(
-        #     global_step = 0,
-        #     last_sync_block = 0,
-        #     epoch_data_size = 0,
-        #     epoch_sync_count = 0,
-        #     local_target_epoch_loss = math.inf,
-        #     distillation_epoch_loss = math.inf,
-        #     remote_target_epoch_loss = math.inf,
-        #     local_epoch_acc = 0,
-        #     best_epoch_loss = math.inf,
-        #     scores = {},
-        #     ema_scores = torch.nn.Parameter(torch.zeros(self.config.nucleus.max_n), requires_grad = False)
-        # )
-        # ---- Decay factor for fisher ema score 
-        # self.fisher_ema_decay = 0.995
-        # self.mutex = Lock()
+        self.log_time = 20
 
     def stop( self ):
         r""" Stop the dendrite and dataset
@@ -157,250 +142,97 @@ class DDPAxonPipe():
             )
 
         nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
+        uid = nn.uid
 
         # --- last sync block 
         last_sync_block = self.subtensor.get_current_block()
         last_set_block = last_sync_block
-
+        last_log_block = last_sync_block
+        last_log_time = time.time()
         # -- Main Training loop --
         try:
-            # data = next(self.dataset)
-
-            # --- creating our chain weights
-            chain_weights = torch.zeros(self.metagraph.n)
-            uid = nn.uid
-            chain_weights[uid] = 1 
-            # with self.gp_server.join():
-            bittensor.logging.success("axon pipe run", sufix = f'1 rank: {rank}')
             while True:
                 try:
-                    request_id, inputs_x = self.forward_q.get(0.05)
+                    request_id, inputs_x = self.forward_q.get()
                     if inputs_x != None:
-                        bittensor.logging.success("axon pipe got input", sufix = f'rank: {rank}')
                         output = self.gp_server.forward(inputs_x)
                         self.outputs[request_id] = output.detach()
                         self.events[request_id].set()
                 except:
                     pass
+                
+                # log if a certain time period had passed
+                # checking with time instead of block here to avoid frequent syncing from subtensor in a while loop
+                if time.time() - last_log_time > self.log_time:
+                    last_log_time = time.time()
+
+                    # ---- syncing metagraph for all rank
+                    current_block = self.subtensor.get_current_block()
+                    if current_block - last_sync_block > self.config.neuron.metagraph_sync:
+                        self.metagraph.sync()
+                        last_sync_block = current_block
+
+                    # ---- console logging and wandb logging for only rank 0                    
+                    if rank == 0:
+                    
+                        # ---- data
+                        wandb_data = {
+                            'block': current_block,
+                            'stake': nn.stake,
+                            'rank': nn.rank,
+                            'incentive': nn.incentive,
+                            'trust': nn.trust,
+                            'consensus': nn.consensus,
+                            'incentive': nn.incentive,
+                            'dividends': nn.dividends,
+                            'emission':  nn.emission,
+                        } 
+                        
+                        # ---- console logging
+                        bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
+
+                        
+                        # ---- wandb logging  
+                        if current_block - last_log_block > 10 and self.config.wandb.api_key != 'default':
+                            last_log_block = current_block
+
+                            # ---- Additional wandb data for metagraph
+                            df = pandas.concat( [
+                                bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.W[:, uid] ),
+                                bittensor.utils.indexed_values_to_dataframe( prefix = 's_i'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.S ),
+                            ], axis = 1)
+                            df['uid'] = df.index
+                            stats_data_table = wandb.Table( dataframe = df ) 
+                            wandb.log( { **wandb_data}, step = current_block )
+                            wandb.log( { 'stats': stats_data_table }, step = current_block )
+                            wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
+                            wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
+                            wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
+                        
+                        # ---- Set weight to maintain activity.
+                        if current_block - last_set_block > self.config.neuron.blocks_per_set_weights:
+                            try:
+                                last_set_block = current_block
+                                chain_weights = torch.zeros(self.metagraph.n)
+                                chain_weights [ uid ] = 1 
+                                did_set = self.subtensor.set_weights(
+                                    uids=self.metagraph.uids,
+                                    weights = chain_weights,
+                                    wait_for_inclusion = False,
+                                    wallet = self.wallet,
+                                )
+                                
+                                if did_set:
+                                    logger.success('Successfully set weights on the chain')
+                                else:
+                                    logger.error('Failed to set weights on chain. (Timeout)')
+                            
+                            except Exception as e:
+                                logger.error('Failure setting weights on chain with error: {}', e)
+
         except Exception as e:
-            print(e)
-
-        #         # --- Run 
-        #         current_block = self.subtensor.get_current_block()
-        #         end_block = current_block + self.config.neuron.blocks_per_epoch
-        #         interation = 0
-
-        #         # --- Training step.
-        #         # with self.gp_server.join():
-        #         while (end_block >= current_block):
-        #             if current_block != self.subtensor.get_current_block():
-        #                 logger.info(f'Forward Started Rank: {rank}, Iter: {interation}')
-        #                 loss, _ = self.gp_server( next( self.dataset ).to( self.gp_server.device) )
-        #                 losses = loss if interation == 0 else losses + loss
-        #                 interation += 1
-        #                 current_block = self.subtensor.get_current_block()
-
-        #         #Custom learning rate
-        #         # if self.gp_server.backward_gradients > 0:
-        #         #     self.optimizer.param_groups[0]['lr'] =  1/(self.gp_server.backward_gradients)
-        #         # else:
-        #         self.optimizer.param_groups[0]['lr'] =  0.1
-                
-        #         # --- Update parameters
-        #         # if interation != 0 or self.gp_server.backward_gradients != 0:
-        #         #     with self.mutex:
-        #         logger.info('Backpropagation Started')
-        #         if interation != 0:
-        #             losses.backward()
-        #         clip_grad_norm_(self.gp_server.parameters(), 1.0)
-                
-        #         self.optimizer.step()
-        #         self.optimizer.zero_grad()
-        #         logger.info('Backpropagation Successful: Model updated')
-
-        #         nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
-
-        #         self.gp_server.backward_gradients = 0
-        #         # --- logging data
-        #         wandb_data = {
-        #             'block': end_block,
-        #             'loss': losses.cpu().item()/interation,
-        #             'stake': nn.stake,
-        #             'rank': nn.rank,
-        #             'incentive': nn.incentive,
-        #             'trust': nn.trust,
-        #             'consensus': nn.consensus,
-        #             'incentive': nn.incentive,
-        #             'dividends': nn.dividends,
-        #             'emission':  nn.emission,
-        #         } 
-        #         bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
-
-        #         # Add additional wandb data for axon, metagraph etc.
-        #         if self.config.wandb.api_key != 'default':
-
-        #             df = pandas.concat( [
-        #                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.W[:, uid] ),
-        #                 bittensor.utils.indexed_values_to_dataframe( prefix = 's_i'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.S ),
-        #                 # axon.to_dataframe( metagraph = self.metagraph ),
-        #             ], axis = 1)
-        #             df['uid'] = df.index
-        #             stats_data_table = wandb.Table( dataframe = df ) 
-        #             # wandb_info_axon = axon.to_wandb()                
-        #             wandb.log( { **wandb_data }, step = current_block )
-        #             wandb.log( { 'stats': stats_data_table }, step = current_block )
-        #             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
-        #             wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
-        #             wandb
-        #         # --- Run 
-        #         current_block = self.subtensor.get_current_block()
-        #         end_block = current_block + self.config.neuron.blocks_per_epoch
-        #         interation = 0
-
-        #         # --- Training step.
-        #         # with self.gp_server.join():
-        #         while (end_block >= current_block):
-        #             if current_block != self.subtensor.get_current_block():
-        #                 logger.info(f'Forward Started Rank: {rank}, Iter: {interation}')
-        #                 loss, _ = self.gp_server( next( self.dataset ).to( self.gp_server.device) )
-        #                 losses = loss if interation == 0 else losses + loss
-        #                 interation += 1
-        #                 current_block = self.subtensor.get_current_block()
-
-        #         #Custom learning rate
-        #         # if self.gp_server.backward_gradients > 0:
-        #         #     self.optimizer.param_groups[0]['lr'] =  1/(self.gp_server.backward_gradients)
-        #         # else:
-        #         self.optimizer.param_groups[0]['lr'] =  0.1
-                
-        #         # --- Update parameters
-        #         # if interation != 0 or self.gp_server.backward_gradients != 0:
-        #         #     with self.mutex:
-        #         logger.info('Backpropagation Started')
-        #         if interation != 0:
-        #             losses.backward()
-        #         clip_grad_norm_(self.gp_server.parameters(), 1.0)
-                
-        #         self.optimizer.step()
-        #         self.optimizer.zero_grad()
-        #         logger.info('Backpropagation Successful: Model updated')
-
-        #         nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
-
-        #         self.gp_server.backward_gradients = 0
-        #         # --- logging data
-        #         wandb_data = {
-        #             'block': end_block,
-        #             'loss': losses.cpu().item()/interation,
-        #             'stake': nn.stake,
-        #             'rank': nn.rank,
-        #             'incentive': nn.incentive,
-        #             'trust': nn.trust,
-        #             'consensus': nn.consensus,
-        #             'incentive': nn.incentive,
-        #             'dividends': nn.dividends,
-        #             'emission':  nn.emission,
-        #         } 
-        #         bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
-
-        #         # Add additional wandb data for axon, metagraph etc.
-        #         if self.config.wandb.api_key != 'default':
-
-        #             df = pandas.concat( [
-        #                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.W[:, uid] ),
-        #                 bittensor.utils.indexed_values_to_dataframe( prefix = 's_i'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.S ),
-        #                 # axon.to_dataframe( metagraph = self.metagraph ),
-        #             ], axis = 1)
-        #             df['uid'] = df.index
-        #             stats_data_table = wandb.Table( dataframe = df ) 
-        #             # wandb_info_axon = axon.to_wandb()                
-        #             wandb.log( { **wandb_data }, step = current_block )
-        #             wandb.log( { 'stats': stats_data_table }, step = current_block )
-        #             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
-        #             wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
-        #             wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
-                    
-        #         # Save the model
-        #         # self.gp_server.save(self.config.neuron.full_path)
-                
-        #         if current_block - last_set_block > self.config.neuron.blocks_per_set_weights:
-                    
-        #             # --- Setting weights
-        #             try: 
-        #                 last_set_block = current_block
-        #                 # Set self weights to maintain activity.
-        #                 chain_weights = torch.zeros(self.metagraph.n)
-        #                 chain_weights [ uid ] = 1 
-        #                 did_set = self.subtensor.set_weights(
-        #                     uids=self.metagraph.uids,
-        #                     weights = chain_weights,
-        #                     wait_for_inclusion = False,
-        #                     wallet = self.wallet,
-        #                 )
-                        
-        #                 if did_set:
-        #                     logger.success('Successfully set weights on the chain')
-        #                 else:
-        #    )                 logger.error('Failed to set weights on chain. (Timeout)')
-        #             except Exception as e:
-        #                 logger.error('Failure setting weights on chain with error: {}', e)
-
-
-        #         if current_block - last_sync_block > self.config.neuron.metagraph_sync:
-        #             self.metagraph.sync()
-        #             last_sync_block = current_block
-
-
-        # except KeyboardInterrupt:
-        #     pass
-        #     # --- User ended session ----
-        #     # axon.stop()
-        # except Exception as e:
-        #     # --- Unknown error ----
-        #     logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
-
-        # """.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
-                    
-        #         # Save the model
-        #         # self.gp_server.save(self.config.neuron.full_path)
-                
-        #         if current_block - last_set_block > self.config.neuron.blocks_per_set_weights:
-                    
-        #             # --- Setting weights
-        #             try: 
-        #                 last_set_block = current_block
-        #                 # Set self weights to maintain activity.
-        #                 chain_weights = torch.zeros(self.metagraph.n)
-        #                 chain_weights [ uid ] = 1 
-        #                 did_set = self.subtensor.set_weights(
-        #                     uids=self.metagraph.uids,
-        #                     weights = chain_weights,
-        #                     wait_for_inclusion = False,
-        #                     wallet = self.wallet,
-        #                 )
-                        
-        #                 if did_set:
-        #                     logger.success('Successfully set weights on the chain')
-        #                 else:
-        #    )                 logger.error('Failed to set weights on chain. (Timeout)')
-        #             except Exception as e:
-        #                 logger.error('Failure setting weights on chain with error: {}', e)
-
-
-        #         if current_block - last_sync_block > self.config.neuron.metagraph_sync:
-        #             self.metagraph.sync()
-        #             last_sync_block = current_block
-
-
-        # except KeyboardInterrupt:
-        #     pass
-        #     # --- User ended session ----
-        #     # axon.stop()
-        # except Exception as e:
-        #     # --- Unknown error ----
-        #     logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
-
-        # """
+            # --- Unknown error ----
+            logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
 
 class DDPServer:
     def __init__( self, config: 'bittensor.config', gp_server):
@@ -421,7 +253,7 @@ class DDPServer:
         self.axon = bittensor.axon (
             wallet = self.wallet,
             forward_text = self.forward_text,
-            backward_text = self.backward_text,
+            backward_text = lambda x : None,
             # blacklist = self.blacklist,
             priority = self.priority
         ) 
@@ -460,31 +292,7 @@ class DDPServer:
         return result
 
     # Define our backward function.
-    def backward_text (inputs_x, grads_dy ):
-        r"""Backwards function that is called when the axon recieves a backwards request from other peers.
-            Updates the server parameters with gradients through the chain.
 
-            Args:
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs from previous forward call.
-                grads_dy ( :obj:`torch.Tensor`, `required`):
-                    torch grads of forward output.
-                    
-        """
-        # # -- normalized grads -- 
-        # grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
-        
-        # outputs_y = gp_server.encode_forward( inputs_x.to(gp_server.device) )
-        # with torch.autograd.set_detect_anomaly(True):
-        #     torch.autograd.backward (
-        #         tensors = [ outputs_y ],
-        #         grad_tensors = [ grads_dy.to(gp_server.device) ],
-        #         retain_graph=True
-        #     )
-        # logger.info('Backwards axon gradient applied')
-
-        # gp_server.backward_gradients += inputs_x.size(0)
-       
     def priority(self, pubkey:str, request_type:bittensor.proto.RequestType, inputs_x) -> float:
         r"""Calculates the priority on requests based on stake and size of input
 
@@ -557,8 +365,17 @@ class DDPServer:
 
     def run(self):
         # --  serve axon to the network.
-        self.axon.start().serve(subtensor = self.subtensor)
-        self.axon_pipe.run_parallel()
-        self.axon_pipe.forward_q = self.forward_q
+        try: 
+            self.axon.start().serve(subtensor = self.subtensor)
+            self.axon_pipe.run_parallel()
+            self.axon_pipe.forward_q = self.forward_q
+
+        except KeyboardInterrupt:
+            self.axon.stop()
+
+        except Exception as e:
+            # --- Unknown error ----
+            logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
+
 
 
