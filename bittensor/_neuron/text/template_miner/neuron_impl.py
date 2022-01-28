@@ -184,8 +184,8 @@ class Neuron:
                             
 
                             for key in list(individual_losses.keys()):
-                                if key in total_losses_individ.keys():
-                                    print('losses',key, individual_losses[key])
+                                print('losses',key, individual_losses[key])
+                                if key in list(total_losses_individ.keys()):
                                     total_losses_individ[key] += individual_losses[key]
                                 else:
                                     total_losses_individ[key] = individual_losses[key]
