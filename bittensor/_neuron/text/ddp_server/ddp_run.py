@@ -39,82 +39,14 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import time
-import queue
-from multiprocessing import Process, Queue
-import threading
+from multiprocessing import Process, Manager, Event 
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 torch.autograd.set_detect_anomaly(True) 
 
-class ProducerThread(threading.Thread):
-    r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
-    """
-    def __init__(self, queue, target, name=None):
-        r"""Initialization.
-        Args:
-            queue (:obj:`queue.Queue`, `required`)
-                The queue to be filled.
-                
-            target (:obj:`function`, `required`)
-                The target function to run when the queue is not full.
-
-            arg (:type:`tuple`, `required`)
-                The arguments to be passed to the target function.
-
-            name (:type:`str`, `optional`)
-                The name of this threading object. 
-        """
-        super(ProducerThread,self).__init__()
-        self.name = name
-        self.target = target
-        # self.arg = arg
-        self.queue = queue 
-        self._stop_event = threading.Event()
-
-    def run(self):
-        r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
-        """
-        while True and (not self.stopped()):
-            if not self.queue.full():
-                item = self.target()
-                self.queue.put(item)
-                time.sleep(10)
-        return
-
-    def stop(self):
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
-
-class QueueResolver():
-    r""" Manages the queue the producer thread that monitor and fills the queue.
-    """
-    def __init__(self, queue, target, buffer_size = 5):
-        """ Setup the queue and start the producer thread.
-        
-        Args:
-                
-            producer_target (:obj:`function`, `required`)
-                The target function to run when the queue is not full.
-
-            producer_arg (:type:`tuple`, `required`)
-                The arguments to be passed to the target function.
-
-            buffer_size (:type:`int`, `optional`)
-                The size of the queue.
-        """
-        self.buffer_size = buffer_size
-        self.queue = queue
-        self.producer = ProducerThread(name='producer', queue = self.queue, target = target)
-        self.producer.start()
-
-    def close(self):
-        self.producer.stop()
-        self.producer.join()
 class DDPAxonPipe():
-    def __init__( self, config: 'bittensor.config', gp_server, wallet: 'bittensor.wallet', forward_q, output_q):
+    def __init__( self, config: 'bittensor.config', gp_server, wallet: 'bittensor.wallet', forward_q, events, outputs):
         r""" Initializes the neuron with the passed config.
         """
         torch.autograd.set_detect_anomaly(True) 
@@ -124,7 +56,8 @@ class DDPAxonPipe():
         self.wallet = wallet
         self.world_size = config.neuron.world_size
         self.forward_q = forward_q
-        self.output_q = output_q
+        self.events = events
+        self.outputs = outputs
         # self.stats = SimpleNamespace(
         #     global_step = 0,
         #     last_sync_block = 0,
@@ -244,18 +177,17 @@ class DDPAxonPipe():
                 success = False 
                 while not success:
                     if not self.forward_q.empty() :
-                        future_id, inputs_x = self.forward_q.get()
+                        request_id, inputs_x = self.forward_q.get()
                         if inputs_x != None:
                             bittensor.logging.success("axon pipe got input", sufix = f'rank: {rank}')
                             output = self.gp_server.forward(inputs_x)
-                            self.output_q.put((future_id, output.detach()))
-                            print(output)
+                            self.outputs[request_id] = output.detach()
+                            self.events[request_id].set()
                             success = True
                     else:
                         time.sleep(2)
         except Exception as e:
             print(e)
-
 
         #         # --- Run 
         #         current_block = self.subtensor.get_current_block()
@@ -482,9 +414,13 @@ class DDPServer:
         self.config = config
         self.wallet = bittensor.wallet( config = config ).create().register()
         self.subtensor = bittensor.subtensor ( config = self.config )
+        
         ctx = mp.get_context('spawn')
         self.forward_q = ctx.Queue()
-        self.output_q = ctx.Queue()
+        
+        self.manager = Manager()
+        self.events = self.manager.dict()
+        self.outputs = self.manager.dict()
         
         self.axon = bittensor.axon (
             wallet = self.wallet,
@@ -494,33 +430,19 @@ class DDPServer:
             priority = self.priority
         ) 
     
-        self.axon_pipe = DDPAxonPipe(config, gp_server, self.wallet, self.forward_q, self.output_q)
+        self.axon_pipe = DDPAxonPipe(config, gp_server, self.wallet, self.forward_q, self.events, self.outputs )
         self.timecheck = {}
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.metagraph.sync()
         self.futures = {}
-        self.queue_resolve = QueueResolver(
-            queue = self.output_q,
-            target = self.qr,
-        )
 
-    def qr (self):           
-        while True:
-            success = False 
-            while not success:
-                output = None
-                if not self.forward_q.empty() :
-                    future_id, output = self.output_q.get()
-                    if output != None:
-                        self.futures[future_id].set_result(output)
-                        success = True
-            time.sleep(0.5)
+
 
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
     # Define our forward function.
-    def forward_text ( self, inputs_x, future = None ):
+    def forward_text ( self, inputs_x):
         r""" Forward function that is called when the axon recieves a forward request from other peers
             Args:
                 inputs_x ( :obj:`torch.Tensor`, `required`):
@@ -530,11 +452,18 @@ class DDPServer:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-        bittensor.logging.success('begining future', sufix = f'{id(future)}')
-        future_id = id(future)
-        self.futures[future_id] = future
-        self.forward_q.put( (future_id, inputs_x) )
-        return
+        bittensor.logging.success('begining future', sufix = f'{id(inputs_x)}')
+        request_id = id(inputs_x)
+        self.forward_q.put( (request_id, inputs_x) )
+        self.events[request_id] = self.manager.Event()
+        
+        if self.events[request_id].wait(12):
+            result = self.outputs[request_id]
+
+        del self.events[request_id]
+        del self.outputs[request_id]
+
+        return result
 
     
 
@@ -640,4 +569,5 @@ class DDPServer:
         self.axon.start().serve(subtensor = self.subtensor)
         self.axon_pipe.run_parallel()
         self.axon_pipe.forward_q = self.forward_q
+
 
