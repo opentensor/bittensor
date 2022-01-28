@@ -28,6 +28,13 @@ from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from types import SimpleNamespace
 
+# Mocking imports
+import os
+import random
+import time
+import subprocess
+from sys import platform   
+
 from loguru import logger
 logger = logger.opt(colors=True)
 
@@ -39,7 +46,8 @@ class Subtensor:
         self, 
         substrate: 'SubstrateInterface',
         network: str,
-        chain_endpoint: str
+        chain_endpoint: str,
+        _mock_subtensor_process: object = None
     ):
         r""" Initializes a subtensor chain interface.
             Args:
@@ -54,16 +62,32 @@ class Subtensor:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                _mock_subtensor_process (Used for testing):
+                    a subprocess where a mock chain is running.
         """
         self.network = network
         self.chain_endpoint = chain_endpoint
         self.substrate = substrate
+        # Exclusively used to mock a connection to our chain.
+        self._mock_subtensor_process = _mock_subtensor_process
 
     def __str__(self) -> str:
+        if self._mock_subtensor_process != None:
+            return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._mock_subtensor_process.pid)
         if self.network == self.chain_endpoint:
             return "Subtensor({})".format( self.chain_endpoint )
         else:
             return "Subtensor({}, {})".format( self.network, self.chain_endpoint )
+
+    def __del__(self):
+        if self._mock_subtensor_process != None:
+            try:
+                self._mock_subtensor_process.terminate()
+                self._mock_subtensor_process.kill()
+                os.system("kill %i" % self._mock_subtensor_process.pid)
+            except:
+                # Occasionally 
+                pass
 
     def __repr__(self) -> str:
         return self.__str__()
