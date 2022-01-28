@@ -140,7 +140,6 @@ class DDPAxonPipe():
         )
 
     def run(self, rank = 0, world_size = 0):
-        # load our old model
         # self.init_process(rank)
         self.init_bit(rank)
         if self.config.neuron.no_restart != True:
@@ -174,18 +173,15 @@ class DDPAxonPipe():
             # with self.gp_server.join():
             bittensor.logging.success("axon pipe run", sufix = f'1 rank: {rank}')
             while True:
-                success = False 
-                while not success:
-                    if not self.forward_q.empty() :
-                        request_id, inputs_x = self.forward_q.get()
-                        if inputs_x != None:
-                            bittensor.logging.success("axon pipe got input", sufix = f'rank: {rank}')
-                            output = self.gp_server.forward(inputs_x)
-                            self.outputs[request_id] = output.detach()
-                            self.events[request_id].set()
-                            success = True
-                    else:
-                        time.sleep(2)
+                try:
+                    request_id, inputs_x = self.forward_q.get(0.05)
+                    if inputs_x != None:
+                        bittensor.logging.success("axon pipe got input", sufix = f'rank: {rank}')
+                        output = self.gp_server.forward(inputs_x)
+                        self.outputs[request_id] = output.detach()
+                        self.events[request_id].set()
+                except:
+                    pass
         except Exception as e:
             print(e)
 
@@ -437,8 +433,6 @@ class DDPServer:
         self.metagraph.sync()
         self.futures = {}
 
-
-
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
     # Define our forward function.
@@ -465,8 +459,6 @@ class DDPServer:
 
         return result
 
-    
-
     # Define our backward function.
     def backward_text (inputs_x, grads_dy ):
         r"""Backwards function that is called when the axon recieves a backwards request from other peers.
@@ -482,15 +474,14 @@ class DDPServer:
         # # -- normalized grads -- 
         # grads_dy = grads_dy/(grads_dy.sum() + 0.00001)
         
-        # with mutex:
-        #     outputs_y = gp_server.encode_forward( inputs_x.to(gp_server.device) )
-        #     with torch.autograd.set_detect_anomaly(True):
-        #         torch.autograd.backward (
-        #             tensors = [ outputs_y ],
-        #             grad_tensors = [ grads_dy.to(gp_server.device) ],
-        #             retain_graph=True
-        #         )
-        #     logger.info('Backwards axon gradient applied')
+        # outputs_y = gp_server.encode_forward( inputs_x.to(gp_server.device) )
+        # with torch.autograd.set_detect_anomaly(True):
+        #     torch.autograd.backward (
+        #         tensors = [ outputs_y ],
+        #         grad_tensors = [ grads_dy.to(gp_server.device) ],
+        #         retain_graph=True
+        #     )
+        # logger.info('Backwards axon gradient applied')
 
         # gp_server.backward_gradients += inputs_x.size(0)
        
@@ -510,7 +501,7 @@ class DDPServer:
 
         return priority
 
-    def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
+    def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
             Args:
                 pubkey ( str, `required`):
@@ -522,23 +513,23 @@ class DDPServer:
         # Check for stake
         def stake_check() -> bool:
             # If we allow non-registered requests return False = not blacklisted.
-            is_registered = pubkey in metagraph.hotkeys
+            is_registered = pubkey in self.metagraph.hotkeys
             if not is_registered:
-                if config.neuron.blacklist_allow_non_registered:
+                if self.config.neuron.blacklist_allow_non_registered:
                     return False
                 else:
                     return True
 
             # Check stake.
-            uid = metagraph.hotkeys.index(pubkey)
+            uid = self.metagraph.hotkeys.index(pubkey)
             if request_type == bittensor.proto.RequestType.FORWARD:
-                if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
+                if self.metagraph.S[uid].item() < self.config.neuron.blacklist.stake.forward:
                     return True
                 else:
                     return False
 
             elif request_type == bittensor.proto.RequestType.BACKWARD:
-                if metagraph.S[uid].item() < config.neuron.blacklist.stake.backward:
+                if self.metagraph.S[uid].item() < self.config.neuron.blacklist.stake.backward:
                     return True
                 else:
                     return False
@@ -546,16 +537,16 @@ class DDPServer:
         # Check for time
         def time_check():
             current_time = datetime.now()
-            if pubkey in timecheck.keys():
-                prev_time = timecheck[pubkey]
-                if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
-                    timecheck[pubkey] = current_time
+            if pubkey in self.timecheck.keys():
+                prev_time = self.timecheck[pubkey]
+                if current_time - prev_time >= timedelta(seconds=self.config.neuron.blacklist.time):
+                    self.timecheck[pubkey] = current_time
                     return False
                 else:
-                    timecheck[pubkey] = current_time
+                    self.timecheck[pubkey] = current_time
                     return True
             else:
-                timecheck[pubkey] = current_time
+                self.timecheck[pubkey] = current_time
                 return False
 
         # Black list or not
