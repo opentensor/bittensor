@@ -3,7 +3,7 @@ import bittensor
 import torch
 import torch.nn.functional as F
 
-from transformers import AutoModel,AutoTokenizer,AutoConfig
+from transformers import AutoModel,AutoTokenizer,AutoConfig,XGLMTokenizer
 from torch.nn.utils.rnn import pad_sequence
 from loguru import logger; logger = logger.opt(colors=True)
 
@@ -54,7 +54,10 @@ class server(torch.nn.Module):
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
             self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
-            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
+            if ("xglm" in self.model_name):
+                self.tokenizer = XGLMTokenizer.from_pretrained(self.model_name)
+            else:
+                self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
         elif self.pretrained == False:
             model_config = AutoConfig.from_pretrained(self.model_name)
             model_config.vocab_size= bittensor.__vocab_size__
