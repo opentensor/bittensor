@@ -497,7 +497,7 @@ class Neuron:
             info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
             weights[f'weights/uid_{uid.item()}'] = ema_score
             peer_weights['peer_weights/uid_{}'.format(uid)]=self.nucleus.peer_weights.detach()[uid]
-
+            peer_weights['peer_grads/uid_{}'.format(uid)]=self.nucleus.peer_weights.grad[uid]
         progress_bar.set_infos( info )
 
         # ---- wandb log if it is the end of epoch 
