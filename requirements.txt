@@ -26,8 +26,8 @@ requests>=2.25.0
 scalecodec>=1.0.3
 termcolor
 torch==1.10
-git+https://github.com/huggingface/transformers # removed version to run on master
-sentencepiece # for xglm models
+git+https://github.com/huggingface/transformers#egg=transformers
+sentencepiece
 numpy
 wheel
 codecov
