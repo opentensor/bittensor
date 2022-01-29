@@ -27,6 +27,7 @@ scalecodec>=1.0.3
 termcolor
 torch==1.10
 transformers
+sentencepiece # for xglm models
 numpy
 wheel
 codecov
