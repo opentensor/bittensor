@@ -119,7 +119,7 @@ class Neuron:
                     hot_pubkey = self.wallet.hotkey.ss58_address,
                     root_dir = self.config.neuron.full_path
                 )
-                wandb.watch(self.nucleus.peer_weights,log_freq=100)
+                wandb.watch(self.nucleus,log_freq=100)
 
             # ---- Init run state ----
             self.epoch = 0   
