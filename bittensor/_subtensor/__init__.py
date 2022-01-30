@@ -19,6 +19,7 @@ import os
 
 import random
 import time
+import psutil
 import subprocess
 from sys import platform   
 
@@ -60,6 +61,8 @@ __type_registery__ = {
     }
 }
 
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
+
 class subtensor:
     """
     Handles interactions with the subtensor chain.
@@ -93,7 +96,7 @@ class subtensor:
         config = copy.deepcopy( config )
 
         # Returns a mocked connection with a background chain connection.
-        if _mock == True or network == 'mock':
+        if _mock == True or network == 'mock' or config.subtensor.network == 'mock':
             return subtensor.mock()
         
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
@@ -137,7 +140,11 @@ class subtensor:
         return subtensor_impl.Subtensor( 
             substrate = substrate,
             network = config.subtensor.network,
-            chain_endpoint = config.subtensor.chain_endpoint
+            chain_endpoint = config.subtensor.chain_endpoint,
+
+            # Non mocked, has no owned process for ref counting.
+            _is_mocked = False,
+            _owned_mock_subtensor_process = None,
         )
 
     @staticmethod   
@@ -208,17 +215,49 @@ class subtensor:
             return bittensor.__local_entrypoints__[0]
 
     @classmethod
-    def mock(cls) -> 'bittensor.Subtensor':
+    def global_mock_process_is_running(cle) -> bool:
+        r""" If subtensor is running a mock process this kills the mock.
+        """
+        for p in psutil.process_iter():
+            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
+                return True
+        return False
+
+    @classmethod
+    def kill_global_mock_process(self):
+        r""" Kills the global mocked subtensor process even if not owned.
+        """
+        for p in psutil.process_iter():
+            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME:
+                p.terminate()
+                p.kill()
+
+    @classmethod
+    def create_global_mock_process(self):
+        r""" Creates a global mocked subtensor process running in the backgroun with name GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME.
+        """
         try:
             operating_system = "OSX" if platform == "darwin" else "Linux"
             path = "./bin/chain/{}/node-subtensor".format(operating_system)
             port = int(bittensor.__mock_entrypoints__[0].split(':')[1])
             subprocess.Popen([path, 'purge-chain', '--dev', '-y'], close_fds=True, shell=False)    
-            _mock_subtensor_process = subprocess.Popen([path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-            print ('starting subtensor process with pid {}'.format(_mock_subtensor_process.pid))
-            time.sleep(2)
+            _mock_subtensor_process = subprocess.Popen( [path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+            print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))
+            return _mock_subtensor_process
         except Exception as e:
             raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(e) )
+
+    @classmethod
+    def mock(cls) -> 'bittensor.Subtensor':
+        r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
+            Optionall creates the background process if it does not exist.
+        """
+        if not cls.global_mock_process_is_running():
+            _owned_mock_subtensor_process = cls.create_global_mock_process()
+            time.sleep(3)
+        else:
+            _owned_mock_subtensor_process = None
+            print ('Mock subtensor already running.')
 
         endpoint = bittensor.__mock_entrypoints__[0]
         port = int(endpoint.split(':')[1])
@@ -233,6 +272,9 @@ class subtensor:
             substrate = substrate,
             network = 'mock',
             chain_endpoint = 'localhost:{}'.format(port),
-            _mock_subtensor_process = _mock_subtensor_process
+
+            # Is mocked, optionally has owned process for ref counting.
+            _is_mocked = True,
+            _owned_mock_subtensor_process = _owned_mock_subtensor_process
         )
         return subtensor
