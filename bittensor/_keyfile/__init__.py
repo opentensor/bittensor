@@ -21,7 +21,11 @@ from . import keyfile_impl
 class keyfile (object):
     """ Factory for a bittensor on device keypair
     """
-    def __new__( cls, path: str = None ) -> 'bittensor.Keyfile':
+    def __new__( 
+        cls, 
+        path: str = None,
+        _mock: bool = False
+    ) -> 'bittensor.Keyfile':
         r""" Initialize a bittensor on device keypair interface.
 
             Args:
@@ -29,4 +33,7 @@ class keyfile (object):
                     Path where this keypair is stored.
         """
         path = '~/.bittensor/wallets/default/coldkey' if path == None else path
-        return keyfile_impl.Keyfile( path = path )
+        if _mock:
+            return keyfile_impl.MockKeyfile( path = path )
+        else:
+            return keyfile_impl.Keyfile( path = path )

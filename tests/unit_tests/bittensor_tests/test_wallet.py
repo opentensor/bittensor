@@ -126,3 +126,35 @@ def test_wallet_transfer():
     # when not registered
     the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.remove_stake(subtensor = subtensor)
+
+
+def test_wallet_mock():
+    wallet = bittensor.wallet(_mock=True)
+    assert wallet.hotkey_file.exists_on_device()
+    assert wallet.coldkey_file.exists_on_device()
+    assert wallet.coldkeypub_file.exists_on_device()
+    assert wallet.hotkey
+    assert wallet.coldkey
+    assert wallet.coldkeypub
+
+
+def test_wallet_mock_from_config():
+    config = bittensor.wallet.config()
+    config.wallet.name = 'mock'
+    wallet = bittensor.wallet(config = config)
+    assert wallet.hotkey_file.exists_on_device()
+    assert wallet.coldkey_file.exists_on_device()
+    assert wallet.coldkeypub_file.exists_on_device()
+    assert wallet.hotkey
+    assert wallet.coldkey
+    assert wallet.coldkeypub
+
+
+def test_wallet_mock_from_name():
+    wallet = bittensor.wallet(name = 'mock')
+    assert wallet.hotkey_file.exists_on_device()
+    assert wallet.coldkey_file.exists_on_device()
+    assert wallet.coldkeypub_file.exists_on_device()
+    assert wallet.hotkey
+    assert wallet.coldkey
+    assert wallet.coldkeypub

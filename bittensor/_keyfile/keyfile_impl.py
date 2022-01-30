@@ -462,6 +462,65 @@ class Keyfile( object ):
         os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
 
 
+class MockKeyfile( object ):
+    """ Defines an interface to a mocked keyfile object (nothing is created on device) keypair is treated as non encrypted and the data is just the string version.
+    """
+    def __init__( self, path: str ):
+        self.path = os.path.expanduser(path)
+        self._mock_keypair = bittensor.Keypair.create_from_mnemonic( mnemonic = bittensor.Keypair.generate_mnemonic() )
+        self._mock_data = serialized_keypair_to_keyfile_data( self._mock_keypair )
+
+    def __str__(self):
+        if not self.exists_on_device():
+            return "Keyfile (empty, {})>".format( self.path )
+        if self.is_encrypted():
+            return "Keyfile (encrypted, {})>".format( self.path )
+        else:
+            return "Keyfile (decrypted, {})>".format( self.path )
+
+    def __repr__(self):
+        return self.__str__()
+
+    @property
+    def keypair( self ) -> 'bittensor.Keypair':
+        return self._mock_keypair
+
+    @property
+    def data( self ) -> bytes:
+        return bytes(self._mock_data)
+
+    @property
+    def keyfile_data( self ) -> bytes:
+        return bytes( self._mock_data) 
+
+    def set_keypair ( self, keypair: 'bittensor.Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
+        raise ValueError('Cannot set keypair on a mock keyfile')
+
+    def get_keypair(self, password: str = None) -> 'bittensor.Keypair':
+        return self._mock_keypair
+
+    def make_dirs( self ):
+        return
+
+    def exists_on_device( self ) -> bool:
+        return True
+
+    def is_readable( self ) -> bool:
+        return True
+
+    def is_writable( self ) -> bool:
+        return True
+
+    def is_encrypted ( self ) -> bool:
+        return False
+
+    def encrypt( self, password: str = None):
+        raise ValueError('Cannot encrypt a mock keyfile')
+
+    def decrypt( self, password: str = None):
+        return
+
+
 
 
 
