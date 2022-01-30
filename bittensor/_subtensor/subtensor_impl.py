@@ -28,6 +28,13 @@ from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from types import SimpleNamespace
 
+# Mocking imports
+import os
+import random
+import time
+import subprocess
+from sys import platform   
+
 from loguru import logger
 logger = logger.opt(colors=True)
 
@@ -39,7 +46,9 @@ class Subtensor:
         self, 
         substrate: 'SubstrateInterface',
         network: str,
-        chain_endpoint: str
+        chain_endpoint: str,
+        _is_mocked: bool,
+        _owned_mock_subtensor_process: object,
     ):
         r""" Initializes a subtensor chain interface.
             Args:
@@ -54,16 +63,44 @@ class Subtensor:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                _owned_mock_subtensor_process (Used for testing):
+                    a subprocess where a mock chain is running.
         """
         self.network = network
         self.chain_endpoint = chain_endpoint
         self.substrate = substrate
+        # Exclusively used to mock a connection to our chain.
+        self._owned_mock_subtensor_process = _owned_mock_subtensor_process
+        self._is_mocked = True
 
     def __str__(self) -> str:
-        if self.network == self.chain_endpoint:
+        if self._is_mocked != None and self._owned_mock_subtensor_process != None:
+            # Mocked and owns background process.
+            return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._owned_mock_subtensor_process.pid)
+        elif self._is_mocked != None and self._owned_mock_subtensor_process == None:
+            # Mocked but does not own process.
+            return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._owned_mock_subtensor_process.pid)
+        elif self.network == self.chain_endpoint:
+            # Connecting to chain endpoint without network known.
             return "Subtensor({})".format( self.chain_endpoint )
         else:
+            # Connecting to network with endpoint known.
             return "Subtensor({}, {})".format( self.network, self.chain_endpoint )
+
+    def __del__(self):
+        self.optionally_kill_owned_mock_instance()
+
+    def optionally_kill_owned_mock_instance(self):
+        r""" If this subtensor instance owns the mock process, it kills the process.
+        """
+        if self._owned_mock_subtensor_process != None:
+            try:
+                self._owned_mock_subtensor_process.terminate()
+                self._owned_mock_subtensor_process.kill()
+                os.system("kill %i" % self._owned_mock_subtensor_process.pid)
+            except:
+                # Occasionally 
+                pass
 
     def __repr__(self) -> str:
         return self.__str__()

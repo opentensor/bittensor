@@ -57,9 +57,10 @@ __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
 
-__registration_servers__ = [
-    'registration.opentensor.ai:5000'
+__mock_entrypoints__ = [
+    'localhost:27212'
 ]
+
 
 # ---- Config ----
 from bittensor._config import config as config
