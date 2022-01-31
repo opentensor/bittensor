@@ -105,26 +105,33 @@ class CLI:
         subtensor = bittensor.subtensor( config = self.config )
         dendrite = bittensor.dendrite( wallet = wallet )
 
-        wallet.hotkey
-        wallet.coldkeypub
         
         with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
-            endpoint = bittensor.endpoint.from_neuron( neuron )
-            if neuron.is_null:
-                registered = '[bold white]No[/bold white]'
-                stake = bittensor.Balance.from_tao( 0 )
-                emission = bittensor.Balance.from_rao( 0 )
-                latency = 'N/A'
-            else:
-                registered = '[bold white]Yes[/bold white]'
-                stake = bittensor.Balance.from_tao( neuron.stake )
-                emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
-                _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
-                latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+            
+            if self.config.wallet.hotkey == 'None':
+                wallet.coldkeypub
+                cold_balance = wallet.balance
+                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)
 
-            cold_balance = wallet.balance
-        bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__(), "latency:".ljust(15), latency ), highlight=True)
+            else:
+                wallet.hotkey
+                wallet.coldkeypub
+                neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
+                endpoint = bittensor.endpoint.from_neuron( neuron )
+                if neuron.is_null:
+                    registered = '[bold white]No[/bold white]'
+                    stake = bittensor.Balance.from_tao( 0 )
+                    emission = bittensor.Balance.from_rao( 0 )
+                    latency = 'N/A'
+                else:
+                    registered = '[bold white]Yes[/bold white]'
+                    stake = bittensor.Balance.from_tao( neuron.stake )
+                    emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
+                    _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
+                    latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+
+                cold_balance = wallet.balance
+                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__(), "latency:".ljust(15), latency ), highlight=True)
 
 
     def run_miner ( self ):
@@ -231,7 +238,7 @@ class CLI:
             except:
                 coldkeypub_str = '?'
 
-            wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str[:8]))
+            wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str))
             hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
@@ -245,7 +252,7 @@ class CLI:
                                 hotkey_str = '?'
                         except:
                             hotkey_str = '?'
-                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str[:8]))
+                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
             except:
                 pass
 
