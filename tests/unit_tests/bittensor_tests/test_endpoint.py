@@ -2,6 +2,7 @@ import bittensor
 import torch
 import random
 import sys
+import pytest
 
 test_wallet = bittensor.wallet (
     path = '/tmp/pytest',
@@ -38,83 +39,85 @@ def test_create_endpoint():
     assert endpoint.modality == 0
 
 def test_endpoint_fails_checks():
-    test_endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = -1,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 12345,
-        hotkey = test_wallet.hotkey.ss58_address,
-        coldkey = test_wallet.coldkey.ss58_address,
-        modality = 0
-    )
-    assert test_endpoint.check_format() == False
-    test_endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 4294967296,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 12345,
-        hotkey = test_wallet.hotkey.ss58_address,
-        coldkey = test_wallet.coldkey.ss58_address,
-        modality = 0
-    )
-    assert test_endpoint.check_format() == False
-    test_endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 0,
-        ip = '0.0.0.0',
-        ip_type = 5,
-        port = 12345,
-        hotkey = test_wallet.hotkey.ss58_address,
-        coldkey = test_wallet.coldkey.ss58_address,
-        modality = 0
-    )
-    assert test_endpoint.check_format() == False
-    test_endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 0,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 12345222,
-        hotkey = test_wallet.hotkey.ss58_address,
-        coldkey = test_wallet.coldkey.ss58_address,
-        modality = 0
-    )
-    assert test_endpoint.check_format() == False
-    test_endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 0,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 2142,
-        hotkey = test_wallet.hotkey.ss58_address + "sssd",
-        coldkey = test_wallet.coldkey.ss58_address,
-        modality = 0
-    )
-    assert test_endpoint.check_format() == False
-    test_endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 0,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 2142,
-        hotkey = test_wallet.hotkey.ss58_address,
-        coldkey = test_wallet.coldkey.ss58_address + "sssd",
-        modality = 0
-    )
-    assert test_endpoint.check_format() == False
-    test_endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 0,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 2142,
-        hotkey = test_wallet.hotkey.ss58_address,
-        coldkey = test_wallet.coldkey.ss58_address,
-        modality = 2
-    )
-    assert test_endpoint.check_format() == False
+    with pytest.raises(AssertionError):
+        test_endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = -1,
+            ip = '0.0.0.0',
+            ip_type = 4,
+            port = 12345,
+            hotkey = test_wallet.hotkey.ss58_address,
+            coldkey = test_wallet.coldkey.ss58_address,
+            modality = 0
+        )
+        assert test_endpoint.check_format() == False
+            
+        test_endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = 4294967296,
+            ip = '0.0.0.0',
+            ip_type = 4,
+            port = 12345,
+            hotkey = test_wallet.hotkey.ss58_address,
+            coldkey = test_wallet.coldkey.ss58_address,
+            modality = 0
+        )
+        assert test_endpoint.check_format() == False
+        test_endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = 0,
+            ip = '0.0.0.0',
+            ip_type = 5,
+            port = 12345,
+            hotkey = test_wallet.hotkey.ss58_address,
+            coldkey = test_wallet.coldkey.ss58_address,
+            modality = 0
+        )
+        assert test_endpoint.check_format() == False
+        test_endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = 0,
+            ip = '0.0.0.0',
+            ip_type = 4,
+            port = 12345222,
+            hotkey = test_wallet.hotkey.ss58_address,
+            coldkey = test_wallet.coldkey.ss58_address,
+            modality = 0
+        )
+        assert test_endpoint.check_format() == False
+        test_endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = 0,
+            ip = '0.0.0.0',
+            ip_type = 4,
+            port = 2142,
+            hotkey = test_wallet.hotkey.ss58_address + "sssd",
+            coldkey = test_wallet.coldkey.ss58_address,
+            modality = 0
+        )
+        assert test_endpoint.check_format() == False
+        test_endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = 0,
+            ip = '0.0.0.0',
+            ip_type = 4,
+            port = 2142,
+            hotkey = test_wallet.hotkey.ss58_address,
+            coldkey = test_wallet.coldkey.ss58_address + "sssd",
+            modality = 0
+        )
+        assert test_endpoint.check_format() == False
+        test_endpoint = bittensor.endpoint(
+            version = bittensor.__version_as_int__,
+            uid = 0,
+            ip = '0.0.0.0',
+            ip_type = 4,
+            port = 2142,
+            hotkey = test_wallet.hotkey.ss58_address,
+            coldkey = test_wallet.coldkey.ss58_address,
+            modality = 2
+        )
+        assert test_endpoint.check_format() == False
 
 
 def test_endpoint_to_tensor():

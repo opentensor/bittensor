@@ -41,6 +41,7 @@ class dendrite:
             max_worker_threads: int = None,
             max_active_receptors: int = None,
             receptor_pool: 'bittensor.ReceptorPool' = None,
+            multiprocess: bool = False,
             compression: str = None,
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
@@ -71,6 +72,7 @@ class dendrite:
         config.dendrite.requires_grad = requires_grad if requires_grad != None else config.dendrite.requires_grad
         config.dendrite.max_worker_threads = max_worker_threads if max_worker_threads != None else config.dendrite.max_worker_threads
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
+        config.dendrite.multiprocessing = multiprocess if multiprocess != None else config.dendrite.multiprocessing
         config.dendrite.compression = compression if compression != None else config.dendrite.compression
         dendrite.check_config( config )
 
@@ -84,22 +86,29 @@ class dendrite:
                 max_active_receptors = config.dendrite.max_active_receptors,
                 compression = config.dendrite.compression,
             )
-        try:
-            manager_client = dendrite.manager_connect()
-            logger.success('Receptor Pool Server Connected')
+        if config.dendrite.multiprocessing:
+            try:
+                manager_client = dendrite.manager_connect()
+                logger.success('Receptor Pool Server Connected')
+                
+            except:
+                dendrite.manager_serve(config, wallet, receptor_pool)
+                logger.success('Receptor Pool Server Started')
+                manager_client = dendrite.manager_connect()
+                logger.success('Receptor Pool Server Connected')
             
-        except:
-            dendrite.manager_serve(config, wallet, receptor_pool)
-            logger.success('Receptor Pool Server Started')
-            manager_client = dendrite.manager_connect()
-            logger.success('Receptor Pool Server Connected')
-        
-        return dendrite_impl.Dendrite ( 
-            config = config,
-            wallet = wallet, 
-            receptor_pool = manager_client.get_receptorpool(),
-            manager = manager_client,
-        )
+            return dendrite_impl.Dendrite ( 
+                config = config,
+                wallet = wallet, 
+                receptor_pool = manager_client.get_receptorpool(),
+                manager = manager_client,
+            )
+        else:
+            return dendrite_impl.Dendrite ( 
+                config = config,
+                wallet = wallet, 
+                receptor_pool = receptor_pool,
+            )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
@@ -128,6 +137,7 @@ class dendrite:
             parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default = bittensor.defaults.dendrite.timeout)
             parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
             parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
+            parser.add_argument('--dendrite.multiprocessing', dest='dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
             parser.add_argument('--dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -143,6 +153,7 @@ class dendrite:
         defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 500
         defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
+        defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_multiprocessing') if os.getenv('BT_DENDRITE_multiprocessing') != None else False
         defaults.dendrite.compression = 'NoCompression'
 
 

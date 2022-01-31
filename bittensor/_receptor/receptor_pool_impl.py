@@ -19,6 +19,7 @@
 
 import math
 from typing import Tuple, List
+from threading import Lock
 
 import torch
 from loguru import logger
@@ -46,6 +47,8 @@ class ReceptorPool ( torch.nn.Module ):
         self.max_worker_threads = max_worker_threads
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
+        self.cull_mutex = Lock()
+        self.max_processes = 10
         self.compression = compression
         self.total_requests = 0
         
@@ -136,7 +139,8 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request in zip(call_args, request_futures):
             receptor = arg[0]
             results.append(receptor.handle_request_response(request = request))
-      
+            receptor.semaphore.release()
+       
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
 
@@ -219,6 +223,10 @@ class ReceptorPool ( torch.nn.Module ):
         for request_future in request_futures:
             request_future.future.cancel()
 
+        for arg in call_args:
+            receptor = arg[0]
+            receptor.semaphore.release()
+
         # ---- Return zeros ----
         backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
         backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
@@ -232,20 +240,28 @@ class ReceptorPool ( torch.nn.Module ):
     def _destroy_receptors_over_max_allowed( self ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
         """
-
-        # ---- Finally: Kill receptors over max allowed ----
-        while len(self.receptors) > self.max_active_receptors:
-            min_receptor_qps = math.inf
-            receptor_to_remove = None
-            for next_receptor in self.receptors.values():
-                next_qps = next_receptor.stats.forward_qps.value
-                if min_receptor_qps > next_qps:
-                    receptor_to_remove = next_receptor
-                    min_receptor_qps = next_receptor.stats.forward_qps.value
-                    
-            if receptor_to_remove != None:
-                bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
-                del self.receptors[ receptor_to_remove.endpoint.hotkey ]
+        with self.cull_mutex:
+            # ---- Finally: Kill receptors over max allowed ----
+            while len(self.receptors) > self.max_active_receptors:
+                min_receptor_qps = math.inf
+                receptor_to_remove = None
+                for next_receptor in self.receptors.values():
+                    next_qps = next_receptor.stats.forward_qps.value
+                    sema_value = next_receptor.semaphore._value
+                    if (min_receptor_qps > next_qps) and (sema_value == self.max_processes):
+                        receptor_to_remove = next_receptor
+                        min_receptor_qps = next_receptor.stats.forward_qps.value
+                        
+                if receptor_to_remove != None:
+                    try:
+                        bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
+                        self.receptors[ receptor_to_remove.endpoint.hotkey ].close()
+                        del self.receptors[ receptor_to_remove.endpoint.hotkey ]
+                    except KeyError:
+                        pass
+                elif receptor_to_remove == None:
+                    print('Cant find things to cull')
+                    break
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
         r""" Finds or creates a receptor TCP connection associated with the passed Neuron Endpoint
@@ -259,11 +275,13 @@ class ReceptorPool ( torch.nn.Module ):
 
             # Change receptor address.
             if receptor.endpoint.ip != endpoint.ip or receptor.endpoint.port != endpoint.port:
-                del receptor
+                #receptor.close()
                 bittensor.logging.update_receptor_log( endpoint )
                 receptor = bittensor.receptor (
                     endpoint = endpoint, 
-                    wallet = self.wallet
+                    wallet = self.wallet,
+                    external_ip = self.external_ip,
+                    max_processes = self.max_processes
                 )            
                 self.receptors[ receptor.endpoint.hotkey ] = receptor
 
@@ -274,8 +292,10 @@ class ReceptorPool ( torch.nn.Module ):
                     endpoint = endpoint, 
                     wallet = self.wallet,
                     external_ip = self.external_ip,
+                    max_processes = self.max_processes,
                     compression = self.compression
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
-
+            
+        receptor.semaphore.acquire()
         return receptor

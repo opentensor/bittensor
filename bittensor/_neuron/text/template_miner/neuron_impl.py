@@ -101,7 +101,8 @@ class Neuron:
         )
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
-        self.axon.stop()   
+        self.axon.stop()
+        del self.dendrite
         print(exc_type, exc_value, exc_traceback)
     
     def run( self ):
