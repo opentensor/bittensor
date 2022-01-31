@@ -45,7 +45,7 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 torch.autograd.set_detect_anomaly(True) 
 
-class DDPAxonPipe():
+class DDPPipe():
     def __init__( self, config: 'bittensor.config', gp_server, wallet: 'bittensor.wallet', forward_q, events, outputs):
         r""" Initializes the neuron with the passed config.
         """
@@ -231,7 +231,7 @@ class DDPAxonPipe():
             # --- Unknown error ----
             logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
 
-class DDPServer:
+class Server:
     def __init__( self, config: 'bittensor.config', gp_server):
         r""" Initializes the neuron with the passed config.
         """
@@ -255,7 +255,7 @@ class DDPServer:
             priority = self.priority
         ) 
     
-        self.axon_pipe = DDPAxonPipe(config, gp_server, self.wallet, self.forward_q, self.events, self.outputs )
+        self.axon_pipe = DDPPipe(config, gp_server, self.wallet, self.forward_q, self.events, self.outputs )
         self.timecheck = {}
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )

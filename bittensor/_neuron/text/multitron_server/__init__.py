@@ -27,7 +27,7 @@ import bittensor
 import os
 
 from .nucleus_impl import server
-from .ddp_run import DDPServer
+from .ddp_run import Server
 
 class neuron:
 
@@ -45,7 +45,7 @@ class neuron:
 
         self.model = server(config=config)
         self.config = config
-        return DDPServer(self.config, self.model)
+        return Server(self.config, self.model)
 
 
     @staticmethod
