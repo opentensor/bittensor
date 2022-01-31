@@ -440,7 +440,6 @@ class DDPNeuronTrain:
         progress_bar.set_infos( info )
 
         # ---- wandb log if it is the end of epoch 
-        bittensor.logging.success('wandb log', sufix = f'{iteration}, {self.config.neuron.epoch_length}, {(iteration + 1) % (self.config.neuron.epoch_length )}')
         if self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
             # ---- Miner summary for wandb
             wandb_info = {
