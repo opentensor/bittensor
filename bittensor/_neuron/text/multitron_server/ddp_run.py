@@ -275,7 +275,6 @@ class Server:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """ 
-        bittensor.logging.success('begining future', sufix = f'{id(inputs_x)}')
         request_id = id(inputs_x)
         self.forward_q.put( (request_id, inputs_x) )
         self.events[request_id] = self.manager.Event()
