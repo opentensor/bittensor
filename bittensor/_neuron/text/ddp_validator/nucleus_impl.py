@@ -80,7 +80,6 @@ class Nucleus(nn.Module):
         initrange = 0.1
         self.remote_decoder.weight.data.uniform_(-initrange, initrange)
         self.local_decoder.weight.data.uniform_(-initrange, initrange)
-    # def init_weights(self):
 
     def compute_scores( self, loss ):
         """Computes salience scores for each peer in the network w.r.t the loss. 
@@ -145,7 +144,6 @@ class Nucleus(nn.Module):
         # src_mask.shape = [sequence_len, sequence_len]
         src_mask = torch.triu(torch.ones(sequence_len, sequence_len) * float('-inf'), diagonal=1)
         src_mask = src_mask.to(self.device)
-        output.mask = src_mask
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -154,11 +152,9 @@ class Nucleus(nn.Module):
         # local_context: hidden layer encoding of sequence with local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
         local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
-        output.local_context1 = local_context
         # local_context: adding positional encoding to local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
         local_context = self.local_pos_encoder(local_context)
-        output.local_context2 = local_context
         # external expects output.local_context shape = [batch_size, sequence_len, bittensor.__network_dim__]
         output.local_context = local_context
 
@@ -248,7 +244,7 @@ class Nucleus(nn.Module):
         """
 
         # ---- Get active peers and their weights ---- 
-        active_uids = torch.tensor(list(range(1698, 1703)))# torch.where(self.metagraph().active > 0)[0]
+        active_uids = torch.where(self.metagraph().active > 0)[0]
         active_peer_weights = self.peer_weights[active_uids]
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)

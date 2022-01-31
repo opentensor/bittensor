@@ -109,6 +109,7 @@ class neuron:
         parser.add_argument('--neuron.world_size', type=int, help='The number of processes for multiprocessing', default=1 )
         parser.add_argument('--neuron.address', type=str, help='The address for multiprocess communication', default='localhost')
         parser.add_argument('--neuron.port', type=str, help='The port for multiprocess communication', default='8865')
+        parser.add_argument('--neuron.DDP_timeout', type=int, help='The timeout for a processes getting stuck(in minutes).', default=180)
 
 
         bittensor.logging.add_args( parser )
