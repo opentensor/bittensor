@@ -462,3 +462,140 @@ class GenesisTextDataset( Dataset ):
         response = self.retrieve_directory(self.node_get, (('arg', self.mountain_hash),))
         for i in response.json()['Links']:
             self.dataset_hashes[i['Name'][:-4]]= i['Hash'] 
+
+
+class MockGenesisTextDataset( Dataset ):
+    def __init__(
+        self,
+        block_size,
+        batch_size,
+        max_corpus_size,
+        num_workers,
+        dataset_name,
+        data_dir,
+        save_dataset,
+        max_datasets,
+        no_tokenizer
+    ):
+        super().__init__()
+        self.block_size = block_size
+        self.batch_size = batch_size
+        self.max_corpus_size = max_corpus_size
+        self.num_workers = num_workers
+        self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
+        self.dataset_name = dataset_name
+        self.data_dir = data_dir
+        self.save_dataset = save_dataset
+        self.datafile_size_bound = 262158
+        self.max_datasets = max_datasets
+        self.__infinite_dataset_iterator = None
+        self.no_tokenizer = no_tokenizer
+
+        # Retrieve a random slice of the genesis dataset
+        self.data = []
+        self.data_remained = []
+            
+        self.data_queue = ThreadQueue(
+            producer_target = self.dataloader,
+            producer_arg = (1000,),
+            buffer_size = 2
+        )
+
+    def close(self):
+        pass
+
+    def construct_text_corpus(self, min_data_len = 0):         
+        data_corpus = []
+        total_dataset_len = 0
+        i = 0
+        while (total_dataset_len < min_data_len):
+            text = "lorem ipsum data is not here this is super fake but maybe you could still learn from it?"
+            text_list = text.split() 
+            data_corpus.extend(text_list)
+            total_dataset_len += len(text_list)
+            i += 1
+        return data_corpus
+
+    def dataloader(self, epoch_length = 100):
+        """ Creates a torch dataloader out of a subclass of this class.
+
+        Args:
+            epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset,
+            then a dataloader for the entire dataset is returned. Otherwise, a dataloader for a subset of the dataset of epoch_length
+            is returned. Defaults to None.
+
+        Returns:
+            torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
+        """
+        data_size = epoch_length * self.batch_size * self.block_size
+        
+        # Make sure the data remained is at least as big as data_size 
+        while len(self.data_remained) < (data_size) :
+            self.data_remained += self.construct_text_corpus(min_data_len = data_size)
+
+        self.data = self.data_remained[:data_size]
+        del self.data_remained[:data_size]
+
+        # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
+        return DataLoader(self,
+                    shuffle=True,
+                    batch_size=self.batch_size,
+                    num_workers=self.num_workers,
+                    drop_last=True)
+    
+    def set_dataset_iterator(self):
+        r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ . 
+        """
+        success = False 
+        while not success: 
+            if not self.data_queue.queue.empty() :
+                dataset = self.data_queue.queue.get()
+                if dataset:
+                    self.__infinite_dataset_iterator = iter([input for input in dataset])
+                    success = True
+            else:
+                time.sleep(2)
+
+        return
+
+    def __next__(self):
+        """Returns the next element from the dataset. 
+        """
+        if self.__infinite_dataset_iterator == None:
+            self.set_dataset_iterator()
+
+        try:
+            return next(self.__infinite_dataset_iterator)
+        
+        except StopIteration:
+            self.set_dataset_iterator()
+            return next(self.__infinite_dataset_iterator)
+
+    def __len__(self):
+        """Returns number of samples (blocks) of dataset
+
+        Returns:
+            length: int
+        """
+        if (self.data == None) or (self.block_size == None) or (self.block_size == 0):
+            return 0
+        return round( len(self.data) / self.block_size )
+
+    def __getitem__(self, idx):
+        """ Returns a block of sentences from text dataset.
+
+            Args:
+                idx: index of data input
+
+            Returns:
+                torch.tensor(dix)
+        """
+        start_idx = (idx * self.block_size) % len(self.data)
+        end_idx = start_idx + self.block_size
+        if self.no_tokenizer == False:
+            tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
+        elif self.no_tokenizer == True:
+            tokenized_text = " ".join(self.data[start_idx:end_idx])
+
+        return tokenized_text[:self.block_size]
+
