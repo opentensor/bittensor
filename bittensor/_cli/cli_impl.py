@@ -166,8 +166,8 @@ class CLI:
             bittensor.neurons.advanced_server.neuron().run()
         elif self.config.model == 'sgmoe_validator':
             bittensor.neurons.sgmoe_validator.neuron().run()
-        elif self.config.model == 'ddp_server':
-            bittensor.neurons.ddp_server.neuron().run()
+        elif self.config.model == 'multitron_server':
+            bittensor.neurons.multitron_server.neuron().run()
 
     def register( self ):
         r""" Register neuron.

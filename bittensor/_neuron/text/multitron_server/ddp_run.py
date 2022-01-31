@@ -18,7 +18,7 @@
 """ Advanced server neuron.
 
 Example:
-    $ python miners/text/ddp_server/main.py
+    $ python miners/text/multitron_server/main.py
 
 """
 from re import I
@@ -59,12 +59,12 @@ class DDPAxonPipe():
         self.events = events
         self.outputs = outputs
         self.log_time = 20
+        self.wandb_log_block = 15
 
     def stop( self ):
         r""" Stop the dendrite and dataset
         """
         del self.dendrite
-        # self.dataset.close()
     
     def init_process(self, rank):
         r""" For each process, anchor them to the process group 
@@ -81,7 +81,7 @@ class DDPAxonPipe():
         else:
             backend = 'gloo'
 
-        dist.init_process_group(backend, rank=rank, world_size=self.world_size)
+        dist.init_process_group(backend, rank=rank, world_size=self.world_size, timeout = datetime.timedelta(minute = self.config.neuron.DDP_timeout))
     
     def init_bit(self, rank = 0):
         r""" Init bittensor modules .
@@ -99,7 +99,6 @@ class DDPAxonPipe():
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.metagraph.sync()
-        # self.dataset = bittensor.dataset ( config = self.config)
         self.optimizer = torch.optim.SGD(
             [ {'params': self.gp_server.parameters() } ],
             lr = self.config.neuron.learning_rate,
@@ -125,12 +124,9 @@ class DDPAxonPipe():
         )
 
     def run(self, rank = 0, world_size = 0):
-        # self.init_process(rank)
         self.init_bit(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
-
-        # self.gp_server = DDP(self.gp_server, bucket_cap_mb = 10000000)
 
         if rank == 0 and self.config.wandb.api_key != 'default':
             # --- Init Wandb.
@@ -193,7 +189,8 @@ class DDPAxonPipe():
 
                         
                         # ---- wandb logging  
-                        if current_block - last_log_block > 10 and self.config.wandb.api_key != 'default':
+                        if current_block - last_log_block > self.wandb_log_block and self.config.wandb.api_key != 'default':
+                            nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
                             last_log_block = current_block
 
                             # ---- Additional wandb data for metagraph
@@ -254,7 +251,7 @@ class DDPServer:
             wallet = self.wallet,
             forward_text = self.forward_text,
             backward_text = lambda x : None,
-            # blacklist = self.blacklist,
+            blacklist = self.blacklist,
             priority = self.priority
         ) 
     
@@ -290,8 +287,6 @@ class DDPServer:
         del self.outputs[request_id]
 
         return result
-
-    # Define our backward function.
 
     def priority(self, pubkey:str, request_type:bittensor.proto.RequestType, inputs_x) -> float:
         r"""Calculates the priority on requests based on stake and size of input

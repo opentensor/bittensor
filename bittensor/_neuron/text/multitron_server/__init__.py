@@ -19,7 +19,7 @@
 
 Example:
     $ import neurons
-    $ neurons.text.ddp_server().run()
+    $ neurons.text.multitron_server().run()
 
 """
 

@@ -213,7 +213,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
         parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
         parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='ddp_server')
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='multitron_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
         parser.add_argument('--neuron.no_restart', action='store_true', help='if the model should restart', default=False)
         parser.add_argument('--neuron.blacklist.stake.forward', type=float, help='Amount of stake (tao) in order not to get blacklisted for forward requests', default=10)
@@ -227,6 +227,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.address', type=str, help='The address for multiprocess communication', default='localhost')
         parser.add_argument('--neuron.port', type=str, help='The port for multiprocess communication', default='8865')
         parser.add_argument('--neuron.multiprocessing', action='store_true', help='Use multiprocessing or not', default=False )
+        parser.add_argument('--neuron.DDP_timeout', type=int, help='The timeout for DDP process, in minute.', default=180 )
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
