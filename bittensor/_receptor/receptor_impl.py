@@ -21,6 +21,7 @@ import sys
 import time as clock
 from types import SimpleNamespace
 from typing import Tuple
+import threading
 
 import torch
 import uuid
@@ -103,6 +104,7 @@ class Receptor(nn.Module):
             endpoint: 'bittensor.Endpoint', 
             channel: 'grpc._Channel',
             stub: 'bittensor.grpc.BittensorStub',
+            max_processes: int,
         ):
         r""" Initializes a receptor grpc connection.
 
@@ -124,6 +126,7 @@ class Receptor(nn.Module):
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.receptor_uid = str(uuid.uuid1())
+        self.semaphore = threading.Semaphore(max_processes)
         self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
         self.stats = SimpleNamespace(
             forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -733,3 +736,6 @@ class Receptor(nn.Module):
             return self.state_dict[self.channel._channel.check_connectivity_state(True)]
         except ValueError:
             return "Channel closed"
+
+    def close(self):
+        self.__exit__()
