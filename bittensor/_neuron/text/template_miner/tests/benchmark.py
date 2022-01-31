@@ -21,15 +21,25 @@ def benchmark1():
     t = Thread(target = neuron.run)
     t.start()
     while t.is_alive():
-        print (graph)
-        if graph.n.item() != 1:
+
+        if neuron.wallet.hotkey.ss58_address in graph.hotkeys:
+            endpoint = graph.endpoint_objs[ graph.hotkeys.index( neuron.wallet.hotkey.ss58_address ) ]
+            print ( endpoint )
+            
+            if endpoint.ip != '0.0.0.0':
+                print ( 'registered and served ')
+                resp, qtime, codes = dendrite.forward_text( endpoints = endpoint, inputs = next( d ) )
+                print ( codes )
+
+            else:
+                print ( 'registered but not served')
+                graph.sync()
+                time.sleep(1)
+
+        else:
+            print ('not served.')
             graph.sync()
             time.sleep(1)
-            print ('waiting for subscription')
-        else:
-            print( graph.endpoint_objs[0] )
-            resp, qtime, codes = dendrite.forward_text( endpoints = graph.endpoint_objs[0], inputs = next( d ) )
-            print ( codes )
 
     t.join()
 
