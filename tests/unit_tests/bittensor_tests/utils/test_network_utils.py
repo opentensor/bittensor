@@ -1,10 +1,13 @@
 from bittensor import utils
 import unittest.mock as mock
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 import os 
 import requests
 import urllib
 import pytest
+import miniupnpc
+
+from bittensor.utils.networking import UPNPCException, upnpc_create_port_map
 
 def test_int_to_ip_zero():
     assert utils.networking.int_to_ip(0) == "0.0.0.0"
@@ -90,5 +93,25 @@ def test_get_external_ip_os_request_urllib_broken():
             with pytest.raises(Exception):
                 assert utils.networking.get_external_ip()
 
+def returnNoPortMapping():
+    return None
+
+@mock.patch('miniupnpc.UPnP')
+def test_upnpc_create_port_map(mocked_upnp):
+    port = 65535
+    mocked_upnp.discover = MagicMock(return_value = 1)
+    mocked_upnp.selectgid = MagicMock(return_value = 1)
+    mocked_upnp.lanaddr = MagicMock(return_value = '127.0.0.1')
+    mocked_upnp.selectigd = MagicMock(return_value = '127.0.0.1')
+    mocked_upnp.statusinfo = MagicMock(return_value = '200')
+    mocked_upnp.connectiontype = MagicMock(return_value = 'some_type')
+    mocked_upnp.getspecificportmapping = returnNoPortMapping
+    
+    with pytest.raises(UPNPCException):
+        upnpc_create_port_map(port=port)
+    
+
+
 if __name__ == "__main__":
     test_get_external_ip()
+    test_upnpc_create_port_map()

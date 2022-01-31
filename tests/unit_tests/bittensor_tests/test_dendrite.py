@@ -256,39 +256,64 @@ def test_dendrite_backoff():
     del _dendrite
 
 def test_dendrite_multiple():
-    endpoints = neuron_obj.to_tensor()
-    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
+    endpoint_obj = bittensor.endpoint(
+        version = bittensor.__version_as_int__,
+        uid = 0,
+        ip = '0.0.0.0',
+        ip_type = 4,
+        port = 12345,
+        hotkey = wallet.hotkey.ss58_address,
+        coldkey = wallet.coldkey.ss58_address,
+        modality = 0
+    )
+    x = torch.tensor( [ 1,2,3 ] )
 
-    dend1 = bittensor.dendrite( wallet = wallet )
-    dend2 = bittensor.dendrite( wallet = wallet )
-    dend3 = bittensor.dendrite( wallet = wallet )
-    dend4 = bittensor.dendrite( wallet = wallet )
-    
-    dend1.forward_text( endpoints, x )
-    dend2.forward_text( endpoints, x )
-    dend3.forward_text( endpoints, x )
-    dend4.forward_text( endpoints, x )
-    
-    del dend1
-    del dend2
-    del dend3
-    del dend4
-    
-def forward(i):
-    endpoints = neuron_obj.to_tensor()
-    x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
-    dend = bittensor.dendrite(wallet = wallet)
-    dend.forward_text( endpoints, x )
-    del dend
+    config = bittensor.dendrite.config()
+    receptor_pool = bittensor.receptor_pool( 
+        wallet = wallet,
+        max_worker_threads = config.dendrite.max_worker_threads,
+        max_active_receptors = config.dendrite.max_active_receptors,
+        compression = config.dendrite.compression,
+    )
 
-def test_dendrite_multiprocessing():
-    with Pool(5) as p:
-        p.map(forward, [0 ,1, 2, 3, 4, 5])
+    manager_server = bittensor.dendrite.manager_serve(config, wallet, receptor_pool)
 
-def test_dendrite_del():
-    global dendrite
-    del dendrite
+    dend1 = bittensor.dendrite( wallet = wallet, multiprocess=True)
+    dend2 = bittensor.dendrite( wallet = wallet, multiprocess=True)
+    dend3 = bittensor.dendrite( wallet = wallet, multiprocess=True)
+    dend4 = bittensor.dendrite( wallet = wallet, multiprocess=True)
+    
+    out, ops, times = dend1.forward_text( endpoint_obj, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+
+    out, ops, times = dend2.forward_text( endpoint_obj, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+
+    out, ops, times = dend3.forward_text( endpoint_obj, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+
+    out, ops, times = dend4.forward_text( endpoint_obj, x )
+    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+
+    assert len(receptor_pool.receptors) == 1 
+
+    assert manager_server.connected_count == 4
+
+    dend4.__del__()
+
+    assert manager_server.connected_count == 3
+
+    dend3.__del__()
+
+    assert manager_server.connected_count == 2
+
+    dend2.__del__()
+
+    assert manager_server.connected_count == 1
+
+    dend1.__del__()
+
+    assert manager_server.manager_thread.stopped()
 
 if __name__ == "__main__":
-    test_dendrite_multiprocessing()
-    test_dendrite_del()
+    test_dendrite_multiple()

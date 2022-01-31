@@ -36,7 +36,6 @@ class wandb:
             tags: tuple = None,
             run_group: str = None,
             directory: str = None,
-            offline: bool = None,
             cold_pubkey: str = None,
             hot_pubkey: str = None,
             root_dir: str = None
