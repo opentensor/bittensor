@@ -568,7 +568,7 @@ class cli:
             config.wallet.name = str(wallet_name)
 
         if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name (optional)", default = 'None')
             config.wallet.hotkey = str(hotkey)
 
     def check_stake_config( config: 'bittensor.Config' ):
