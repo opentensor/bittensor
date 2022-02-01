@@ -87,7 +87,7 @@ class Nucleus(nn.Module):
         """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
-        peer_weights_d1 = torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
+        peer_weights_d1 = -torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
         if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
         peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights,create_graph=True, retain_graph=True, allow_unused=True )[0]
         print(peer_weights_d2.size())
@@ -278,3 +278,4 @@ class Nucleus(nn.Module):
             self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
         return output, topk_uids[joining_uids], responses, topk_uids
+
