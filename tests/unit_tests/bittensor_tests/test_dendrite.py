@@ -257,8 +257,11 @@ def test_dendrite_backoff():
 
 def test_dendrite_to_df():
     dend = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend.to_dataframe()
+    dend.to_dataframe(bittensor.metagraph().sync())
     del dend
+
+def test_dend_del():
+    dendrite.__del__()
     
 def test_dendrite_multiple():
     endpoint_obj = bittensor.endpoint(
