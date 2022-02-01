@@ -57,9 +57,6 @@ def test_retrieve_cached_neurons():
     n = metagraph.retrieve_cached_neurons()
     assert len(n) >= 2000
     
-    n = metagraph.retrieve_cached_neurons(600000)
-    assert len(n) >= 2000
-
 def test_to_dataframe():
     df = metagraph.to_dataframe()
-    assert not df.empty()
+    assert not df.empty
