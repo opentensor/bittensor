@@ -173,7 +173,7 @@ class Neuron:
                             # ---- Backward pass ----
                             output.loss = output.local_target_loss + output.distillation_loss + output.remote_target_loss
 
-                            output.loss.backward(retain_graph=true) # Accumulates gradients on the nucleus.
+                            output.loss.backward(retain_graph=True) # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
 
                             scores = torch.nn.functional.normalize ( torch.relu( self.nucleus.compute_scores(output.remote_target_loss) ), p=1, dim = 0 )
