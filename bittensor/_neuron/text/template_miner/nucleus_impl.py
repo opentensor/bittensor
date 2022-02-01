@@ -90,6 +90,10 @@ class Nucleus(nn.Module):
         peer_weights_d1 = torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
         if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
         peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
+        second_order = (peer_weights_d2.detach() * (self.peer_weights.detach()**2)/2 )
+        first_order = (peer_weights_d1.detach()*self.peer_weights.detach())
+        for i, order in enumerate(first_order):
+            print(i,'first order ', order, 'second_order',second_order[i])
         validator_scores =  (peer_weights_d2.detach() * (self.peer_weights.detach()**2)/2 )+ (peer_weights_d1.detach()*self.peer_weights.detach())
         return validator_scores
 
@@ -220,12 +224,12 @@ class Nucleus(nn.Module):
             output.remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
         individ_loss = {}
-
-        for index in range(len(output.total_uids)):
-            remote_hidden_index = self.remote_hidden( output.responses[index].detach() )
-            remote_target_index = self.remote_decoder( remote_hidden_index ).detach() 
-            shift_logits_index = remote_target_index[..., :-1, :].contiguous()
-            individ_loss[output.total_uids[index]] = self.loss_fct( shift_logits_index.view(-1, shift_logits_index.size(-1)), shift_labels.view(-1) ).item()
+        with torch.no_grad():
+            for index in range(len(output.total_uids)):
+                remote_hidden_index = self.remote_hidden( output.responses[index].detach() )
+                remote_target_index = self.remote_decoder( remote_hidden_index ).detach() 
+                shift_logits_index = remote_target_index[..., :-1, :].contiguous()
+                individ_loss[output.total_uids[index]] = self.loss_fct( shift_logits_index.view(-1, shift_logits_index.size(-1)), shift_labels.view(-1) ).item()
 
 
         return output,individ_loss
