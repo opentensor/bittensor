@@ -82,6 +82,9 @@ class ThreadQueue():
         self.producer = ProducerThread(name='producer', queue = self.queue, target = producer_target, arg = producer_arg)
         self.producer.start()
 
+    def __del__(self):
+        self.close()
+
     def close(self):
         self.producer.stop()
         self.producer.join()
