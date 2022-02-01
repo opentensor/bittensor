@@ -73,7 +73,7 @@ class Nucleus(nn.Module):
 
         self.loss_fct = nn.CrossEntropyLoss()
         self.noise_multiplier = self.config.nucleus.noise_multiplier
-        self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True))
+        self.peer_weights = nn.Parameter(torch.ones( [0] , requires_grad=True)).retain_grad()
         self.init_weights()
         self.metagraph = None
         self.dendrite = None
