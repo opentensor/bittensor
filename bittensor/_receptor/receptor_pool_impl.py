@@ -292,6 +292,5 @@ class ReceptorPool ( torch.nn.Module ):
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
 
-        print(receptor.semaphore._value)  
         receptor.semaphore.acquire()
         return receptor

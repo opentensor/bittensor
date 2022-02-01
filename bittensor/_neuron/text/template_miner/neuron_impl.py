@@ -200,6 +200,9 @@ class Neuron:
                             self.stats.epoch_data_size += inputs.nelement()
                             batches_count += 1
                             
+                            for index, score in enumerate(scores):
+                                print('fisher score',index, score)
+
                             # ---- Expand ema_scores tensor if the chain grew and aggrigate the score
                             chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
