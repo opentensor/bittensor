@@ -76,7 +76,7 @@ class Neuron:
         self.total_losses_uid = {}
 
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
-            step_size = 1.0,
+            step_size = 100.0,
             gamma = 0.95
         )
         self.stats = SimpleNamespace(
