@@ -87,12 +87,12 @@ class Nucleus(nn.Module):
         """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
-        peer_weights_d1 = -torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
+        peer_weights_d1 = torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
         if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
-        peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights,create_graph=True, retain_graph=True, allow_unused=True )[0]
+        peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
         print(peer_weights_d2.size())
         second_order = (peer_weights_d2.detach() * (self.peer_weights.detach()**2)/2 )
-        first_order = (peer_weights_d1.detach()*self.peer_weights.detach())
+        first_order = (peer_weights_d1.detach()*-self.peer_weights.detach())
         for i, order in enumerate(first_order):
             print(i,'first order', order, 'second_order',second_order[i],'grad',self.peer_weights[i].grad)
         validator_scores =  (peer_weights_d2.detach() * (self.peer_weights.detach()**2)/2 )+ (peer_weights_d1.detach()*self.peer_weights.detach())
