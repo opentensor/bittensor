@@ -176,7 +176,7 @@ class Neuron:
                             output.loss.backward(retain_graph=True) # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
 
-                            scores =  torch.nn.functional.normalize (  self.nucleus.compute_scores(output.remote_target_loss) , p=1, dim = 0 )
+                            scores =  self.nucleus.compute_scores(output.remote_target_loss)
                             scores[output.query_uids] += 1e-6
 
 
@@ -503,7 +503,6 @@ class Neuron:
             info[f'uid_{uid.item()}'] = colored('{:.4f}'.format(ema_score), color)
             weights[f'weights/uid_{uid.item()}'] = ema_score
             peer_weights['peer_weights/uid_{}'.format(uid)]=self.nucleus.peer_weights.detach()[uid]
-            peer_weights['peer_grads/uid_{}'.format(uid)]=self.nucleus.peer_weights.grad[uid]
         progress_bar.set_infos( info )
 
         # ---- wandb log if it is the end of epoch 
