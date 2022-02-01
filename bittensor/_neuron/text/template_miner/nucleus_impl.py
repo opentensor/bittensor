@@ -89,7 +89,7 @@ class Nucleus(nn.Module):
         """
         peer_weights_d1 = torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
         if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
-        peer_weights_d2 = torch.autograd.grad(peer_weights_d1, self.peer_weights, retain_graph=True, allow_unused=True )[0]
+        peer_weights_d2 = torch.autograd.grad(peer_weights_d1, self.peer_weights,create_graph=True, retain_graph=True, allow_unused=True )[0]
         print(peer_weights_d2.size())
         peer_weights_d2 = peer_weights_d2.sum(dim=0)
         second_order = (peer_weights_d2.detach() * (self.peer_weights.detach()**2)/2 )
