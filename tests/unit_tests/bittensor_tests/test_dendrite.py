@@ -255,6 +255,11 @@ def test_dendrite_backoff():
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
     del _dendrite
 
+def test_dendrite_to_df():
+    dend = bittensor.dendrite( wallet = wallet, multiprocess=True)
+    dend.to_dataframe()
+    del dend
+    
 def test_dendrite_multiple():
     endpoint_obj = bittensor.endpoint(
         version = bittensor.__version_as_int__,
