@@ -43,9 +43,9 @@ class CLI:
         """ Execute the command from config 
         """
         if self.config.command == "run":
-            self.run_miner()
+            self.run_miner ()
         elif self.config.command == "transfer":
-            self.transfer()
+            self.transfer ()
         elif self.config.command == "register":
             self.register()
         elif self.config.command == "unstake":
