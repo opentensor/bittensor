@@ -95,7 +95,7 @@ class Nucleus(nn.Module):
         first_order = (peer_weights_d1.detach()*-self.peer_weights.detach())
         for i, order in enumerate(first_order):
             print(i,'first order', order, 'second_order',second_order[i],'grad',self.peer_weights[i].grad)
-        validator_scores =  (peer_weights_d2.detach() * (self.peer_weights.detach()**2)/2 )+ (peer_weights_d1.detach()*self.peer_weights.detach())
+        validator_scores =  second_order + first_order
         return validator_scores
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
