@@ -494,7 +494,8 @@ class MockKeyfile( object ):
         return bytes( self._mock_data) 
 
     def set_keypair ( self, keypair: 'bittensor.Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
-        raise ValueError('Cannot set keypair on a mock keyfile')
+        self._mock_keypair = keypair
+        self._mock_data = serialized_keypair_to_keyfile_data( self._mock_keypair )
 
     def get_keypair(self, password: str = None) -> 'bittensor.Keypair':
         return self._mock_keypair

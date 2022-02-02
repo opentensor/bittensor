@@ -37,3 +37,7 @@ class keyfile (object):
             return keyfile_impl.MockKeyfile( path = path )
         else:
             return keyfile_impl.Keyfile( path = path )
+
+    @classmethod
+    def mock(cls):
+        return keyfile(_mock=True)

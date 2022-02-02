@@ -18,7 +18,7 @@
 """ Benchmarking pytest fixture.
 
 Example:
-    $ python3 -m pytest -s benchmarks/benchmark_template_miner.py --nucleus.nhid 600
+    $ python3 -m pytest -s benchmarks/template_miner.py --nucleus.nhid 600
 
 """
 import sys

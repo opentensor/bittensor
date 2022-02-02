@@ -1,3 +1,20 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 from typing import DefaultDict
 from unittest import mock
 import bittensor
@@ -337,6 +354,7 @@ class TestSubtensor(unittest.TestCase):
 
 
 def test_subtensor_mock():
+    bittensor.subtensor.kill_global_mock_process()
     sub = bittensor.subtensor.mock()
     assert bittensor.subtensor.global_mock_process_is_running()
     assert sub._is_mocked == True
@@ -345,6 +363,7 @@ def test_subtensor_mock():
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_create_mock_process():
+    bittensor.subtensor.kill_global_mock_process()
     bittensor.subtensor.create_global_mock_process()
     assert bittensor.subtensor.global_mock_process_is_running()
     bittensor.subtensor.kill_global_mock_process()
@@ -361,6 +380,7 @@ def test_mock_from_mock_arg():
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_mock_from_network_arg():
+    bittensor.subtensor.kill_global_mock_process()
     sub = bittensor.subtensor(network='mock')
     assert sub.network == 'mock'
     assert bittensor.subtensor.global_mock_process_is_running()
@@ -370,6 +390,7 @@ def test_mock_from_network_arg():
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_create_from_config():
+    bittensor.subtensor.kill_global_mock_process()
     config = bittensor.subtensor.config()
     config.subtensor.network = 'mock'
     sub = bittensor.subtensor(config=config)
@@ -380,6 +401,7 @@ def test_create_from_config():
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_two_subtensor_ownership():
+    bittensor.subtensor.kill_global_mock_process()
     sub1 = bittensor.subtensor.mock()
     sub2 = bittensor.subtensor.mock()
     assert sub1._is_mocked == True

@@ -10,6 +10,7 @@ wandb/
 # benchmark results
 benchmarks/results/
 benchmarks/results/*
+!benchmarks/results
 
 # runs/data/models/logs/~
 data/
