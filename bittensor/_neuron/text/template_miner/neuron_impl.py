@@ -421,6 +421,11 @@ class Neuron:
         self.metagraph.sync().save()
         chain_growth = max(self.metagraph.n.item()- self.nucleus.peer_weights.shape[0], 0)
         self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
+        self.optimizer = torch.optim.SGD(
+            [{"params": self.nucleus.parameters()}],
+            lr = self.optimizer.state_dict()['param_groups'][0]['lr'],
+            momentum = self.optimizer.state_dict()['param_groups'][0]['momentum'],
+        )
         self.stats.scores = torch.nn.Parameter(torch.cat( [self.stats.scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
