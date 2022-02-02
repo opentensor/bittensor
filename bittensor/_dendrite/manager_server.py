@@ -49,6 +49,7 @@ class ManagerServer(BaseManager):
             self.server.stop_event.set()
             self.manager_thread.stop()
             self.manager_thread.join()
+        logger.success('Manager Server Closed')
     
     def add_connection_count(self):
         self.connected_count += 1
