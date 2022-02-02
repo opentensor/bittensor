@@ -110,7 +110,7 @@ class Nucleus(nn.Module):
         print('second order')
         print(peer_weights_d2)
         print(peer_weights_d2.size())
-        second_order = (peer_weights_d2.detach() * (self.peer_weights.detach()**2)/2 )
+        second_order = (peer_weights_d2.detach() * (torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2 ).sum(dim=1)
         first_order = (peer_weights_d1.detach()*-self.peer_weights.detach())
         for i, order in enumerate(first_order):
             print(i,'first order', order, 'second_order',second_order[i])
