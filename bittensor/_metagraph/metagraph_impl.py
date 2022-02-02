@@ -580,6 +580,7 @@ class Metagraph( torch.nn.Module ):
                 }
                 dataframe.loc[uid] = pandas.Series( v )
             dataframe['uid'] = dataframe.index
+            return dataframe
         except Exception as e:
             bittensor.logging.error('failed metagraph.to_dataframe()', str(e))
             return pandas.DataFrame()

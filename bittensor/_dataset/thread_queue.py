@@ -18,6 +18,7 @@
 import threading
 import time
 import queue
+from loguru import logger
 
 class ProducerThread(threading.Thread):
     r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
@@ -82,6 +83,10 @@ class ThreadQueue():
         self.producer = ProducerThread(name='producer', queue = self.queue, target = producer_target, arg = producer_arg)
         self.producer.start()
 
+    def __del__(self):
+        self.close()
+
     def close(self):
         self.producer.stop()
         self.producer.join()
+        logger.success('Dataset Thread Queue Closed')
