@@ -511,7 +511,8 @@ class Neuron:
         progress_bar.set_infos( info )
 
         combination_tensor = torch.zeros(2,27)
-        combination_tensor[0,:] = self.nucleus.peer_weights.detach().item()
+        print(self.nucleus.peer_weights.size())
+        combination_tensor[0,:] = self.nucleus.peer_weights.detach()
         combination_tensor[1,:] = self.stats.ema_scores
         print(torch.corrcoef(combination_tensor))
         peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[1,1]
