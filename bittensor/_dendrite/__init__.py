@@ -41,7 +41,7 @@ class dendrite:
             max_worker_threads: int = None,
             max_active_receptors: int = None,
             receptor_pool: 'bittensor.ReceptorPool' = None,
-            multiprocess: bool = False,
+            multiprocess: bool = None,
             compression: str = None,
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.

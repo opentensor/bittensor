@@ -72,15 +72,20 @@ class neuron:
         return self.metagraph
 
     def run(self):
-        run(self.config,
-            validator = self.nucleus,
-            subtensor = self.subtensor,
-            wallet = self.wallet,
-            metagraph = self.metagraph,
-            dataset = self.dataset,
-            device = self.device,
-            uid = self.uid,
-            dendrite = self.nucleus.dendrite)
+        try:
+            run(self.config,
+                validator = self.nucleus,
+                subtensor = self.subtensor,
+                wallet = self.wallet,
+                metagraph = self.metagraph,
+                dataset = self.dataset,
+                device = self.device,
+                uid = self.uid,
+                dendrite = self.nucleus.dendrite)
+
+        except KeyboardInterrupt:
+            self.dataset.close()
+            self.dendrite.__del__()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
