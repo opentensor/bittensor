@@ -117,8 +117,6 @@ class GenesisTextDataset( Dataset ):
         save_dataset,
         max_datasets,
         no_tokenizer, 
-        world_size = 1,
-        rank = 0
     ):
         super().__init__()
         self.block_size = block_size
@@ -133,8 +131,6 @@ class GenesisTextDataset( Dataset ):
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
         self.no_tokenizer = no_tokenizer
-        self.world_size = world_size
-        self.rank = rank
 
         # Retrieve a random slice of the genesis dataset
         self.data = []

@@ -86,15 +86,17 @@ class dendrite:
                 max_active_receptors = config.dendrite.max_active_receptors,
                 compression = config.dendrite.compression,
             )
+
         if config.dendrite.multiprocessing:
+            authkey = wallet.hotkey.ss58_address.encode('UTF-8')
             try:
-                manager_client = dendrite.manager_connect()
+                manager_client = dendrite.manager_connect(authkey = authkey)
                 logger.success('Receptor Pool Server Connected')
                 
             except:
-                dendrite.manager_serve(config, wallet, receptor_pool)
+                dendrite.manager_serve(config, wallet, receptor_pool, authkey = authkey)
                 logger.success('Receptor Pool Server Started')
-                manager_client = dendrite.manager_connect()
+                manager_client = dendrite.manager_connect(authkey = authkey)
                 logger.success('Receptor Pool Server Connected')
             
             return dendrite_impl.Dendrite ( 
@@ -169,20 +171,20 @@ class dendrite:
         bittensor.wallet.check_config( config )
 
     @classmethod
-    def manager_connect(cls):
+    def manager_connect(cls, authkey = b'abracadabra'):
         r"""Creates a custom manager class and connects it to the local server.
         """
         BaseManager.register('get_receptorpool')
         BaseManager.register('add_connection_count')
         BaseManager.register('deduct_connection_count')
         BaseManager.register('get_total_requests')
-        manager = BaseManager(address=('', 4098), authkey=b'abracadabr')
+        manager = BaseManager(address=('', 4098), authkey=authkey)
         manager.connect()
         manager.add_connection_count()
         return manager
 
     @classmethod
-    def manager_serve(cls, config, wallet, receptor_pool = None):
+    def manager_serve(cls, config, wallet, receptor_pool = None, authkey = b'abracadabra'):
         r"""Creates/Uses a receptor pool to create a local server for receptor pool
         """
         if receptor_pool == None:
@@ -192,6 +194,6 @@ class dendrite:
                 max_active_receptors = config.dendrite.max_active_receptors
             )
         ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state', 'get_total_requests'])
-        manager = ManagerServer(address=('', 4098), authkey=b'abracadabr')
+        manager = ManagerServer(address=('', 4098), authkey=authkey)
 
         return manager

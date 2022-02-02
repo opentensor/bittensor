@@ -38,8 +38,6 @@ class dataset:
             dataset_name: list = [],
             save_dataset: bool = None,
             no_tokenizer: bool = None,
-            world_size: int = 0,
-            rank: int = 0
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
             Args:
@@ -82,8 +80,6 @@ class dataset:
             save_dataset = config.dataset.save_dataset,
             max_datasets = config.dataset.max_datasets,
             no_tokenizer = config.dataset.no_tokenizer,
-            world_size = world_size,
-            rank = rank
         )
 
     @classmethod

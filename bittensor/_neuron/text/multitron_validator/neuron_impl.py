@@ -117,7 +117,7 @@ class DDPNeuronTrain:
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
-        self.dataset = bittensor.dataset ( config = self.config, world_size = self.world_size, rank = rank)
+        self.dataset = bittensor.dataset ( config = self.config )
         self.stats.ema_scores.to(self.device)
         self.optimizer = torch.optim.SGD(
             [ {'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
