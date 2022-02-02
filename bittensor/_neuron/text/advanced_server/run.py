@@ -323,6 +323,8 @@ def serve( config, gp_server):
     except KeyboardInterrupt:
         # --- User ended session ----
         axon.stop()
+        dataset.close()
+        
     except Exception as e:
         # --- Unknown error ----
         logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
