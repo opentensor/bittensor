@@ -29,6 +29,9 @@ from substrateinterface import SubstrateInterface
 
 from . import subtensor_impl
 
+from loguru import logger
+logger = logger.opt(colors=True)
+
 __type_registery__ = {
     "runtime_id": 2,
     "types": {
@@ -220,7 +223,7 @@ class subtensor:
         """
         for p in psutil.process_iter():
             if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
-                return True
+               return True
         return False
 
     @classmethod

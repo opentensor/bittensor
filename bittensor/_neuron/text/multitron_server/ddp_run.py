@@ -106,6 +106,7 @@ class DDPPipe():
         )
         
         if rank == 0 :
+            logger.success( self.subtensor )
             self.subtensor.register( self.wallet )
 
 
@@ -239,6 +240,7 @@ class Server:
         self.config = config
         self.wallet = bittensor.wallet( config = config ).create().register()
         self.subtensor = bittensor.subtensor ( config = self.config )
+        logger.success( self.subtensor )
         
         ctx = mp.get_context('spawn')
         self.forward_q = ctx.Queue()

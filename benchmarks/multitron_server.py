@@ -18,7 +18,7 @@
 """ Benchmarking pytest fixture.
 
 Example:
-    $ python3  benchmarks/advanced_server.py --neuron.model_name albert-base-v1
+    $ python3  benchmarks/multitron_server.py --neuron.model_name albert-base-v1
 
 """
 from benchmarks import QueryBenchmark
@@ -33,7 +33,7 @@ class Benchmark ( QueryBenchmark ):
     def miner_name() -> str:
         r""" Return miner name
         """
-        return 'advanced_server'
+        return 'multitron_server'
 
     @staticmethod
     def run_neuron( config ):
@@ -42,7 +42,7 @@ class Benchmark ( QueryBenchmark ):
                 config (bittensor.Config)
                     Run config
         """
-        bittensor.neurons.text.advanced_server.neuron( config ).run()
+        bittensor.neurons.text.multitron_server.neuron( config ).run()
 
     @staticmethod
     def config() -> 'bittensor.Config':
@@ -51,7 +51,7 @@ class Benchmark ( QueryBenchmark ):
                 config (bittensor.Config)
                     Run config.
         """
-        config = bittensor.neurons.text.advanced_server.neuron.config()
+        config = bittensor.neurons.text.multitron_server.neuron.config()
         config.neuron.blacklist.stake.forward = 0
         config.neuron.blacklist.stake.backward = 0
         config.neuron.blacklist_allow_non_registered = True

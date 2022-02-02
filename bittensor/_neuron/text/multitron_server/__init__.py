@@ -35,7 +35,7 @@ class neuron:
         self, 
         config: 'bittensor.config' = None
     ):
-        if config == None: config = server.config()
+        if config == None: config = neuron.config()
         config = config; 
         self.check_config( config )
         bittensor.logging (
@@ -47,6 +47,9 @@ class neuron:
         self.config = config
         return Server(self.config, self.model)
 
+    @staticmethod
+    def config ():
+        return server.config()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):

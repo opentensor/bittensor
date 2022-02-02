@@ -52,8 +52,10 @@ class QueryBenchmark:
         self.wallet = bittensor.wallet.mock()
         self.dendrite = bittensor.dendrite( wallet = self.wallet, multiprocess = False )
         self.console = Console()
-        self.log_dir = os.path.expanduser('{}/{}/{}/{}'.format( 'benchmarks/results/', 'mock', 'default', self.miner_name() ))
+        self.log_dir = os.path.expanduser('{}/{}/{}/{}/{}'.format( os.path.dirname(os.path.realpath(__file__)), '/results/', 'mock', 'default', self.miner_name() ))
         self.console.log( 'Logging to: [bold blue]{}[/bold blue]'.format( self.log_dir ) )
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
 
     @classmethod   
     def benchmark_config(cls) -> 'bittensor.Config':
