@@ -32,9 +32,11 @@ def jacobian(y, x, create_graph=False):
     jac = []                                                                                          
     flat_y = y.reshape(-1)                                                                            
     grad_y = torch.zeros_like(flat_y)                                                                 
-    for i in range(len(flat_y)):                                                                      
+    for i in range(len(flat_y)): 
+        print(i)                                                                   
         grad_y[i] = 1.                                                                                
         grad_x, = torch.autograd.grad(flat_y, x, grad_y, retain_graph=True, create_graph=create_graph)
+        print(grad_x)
         jac.append(grad_x.reshape(x.shape))                                                           
         grad_y[i] = 0.                                                                                
     return torch.stack(jac).reshape(y.shape + x.shape)       
