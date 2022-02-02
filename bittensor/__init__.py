@@ -25,6 +25,12 @@ __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])
 # Rich console.
 __console__ = Console()
 __use_console__ = True
+def turn_console_off():
+    from io import StringIO
+    __use_console__ = False
+    __console__ = Console(file=StringIO(), stderr=False)
+
+
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.

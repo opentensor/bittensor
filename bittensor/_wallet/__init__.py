@@ -27,6 +27,10 @@ from . import wallet_impl
 class wallet:
     """ Create and init wallet that stores hot and coldkey
     """
+    @classmethod
+    def mock(cls) -> 'bittensor.Wallet':
+        return wallet( name='mock' )
+
     def __new__(
             cls, 
             config: 'bittensor.Config' = None,

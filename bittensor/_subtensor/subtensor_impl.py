@@ -79,7 +79,7 @@ class Subtensor:
             return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._owned_mock_subtensor_process.pid)
         elif self._is_mocked != None and self._owned_mock_subtensor_process == None:
             # Mocked but does not own process.
-            return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._owned_mock_subtensor_process.pid)
+            return "MockSubtensor({})".format( self.chain_endpoint)
         elif self.network == self.chain_endpoint:
             # Connecting to chain endpoint without network known.
             return "Subtensor({})".format( self.chain_endpoint )

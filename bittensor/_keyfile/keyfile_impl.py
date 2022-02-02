@@ -467,7 +467,7 @@ class MockKeyfile( object ):
     """
     def __init__( self, path: str ):
         self.path = os.path.expanduser(path)
-        self._mock_keypair = bittensor.Keypair.create_from_mnemonic( mnemonic = bittensor.Keypair.generate_mnemonic() )
+        self._mock_keypair = bittensor.Keypair.create_from_mnemonic( mnemonic = 'arrive produce someone view end scout bargain coil slight festival excess struggle' )
         self._mock_data = serialized_keypair_to_keyfile_data( self._mock_keypair )
 
     def __str__(self):

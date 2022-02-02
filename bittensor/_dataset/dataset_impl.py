@@ -150,6 +150,9 @@ class GenesisTextDataset( Dataset ):
             buffer_size = 2
         )
 
+    def __del__(self):
+        self.close()
+
     def close(self):
         self.data_queue.close()
 
@@ -494,12 +497,6 @@ class MockGenesisTextDataset( Dataset ):
         # Retrieve a random slice of the genesis dataset
         self.data = []
         self.data_remained = []
-            
-        self.data_queue = ThreadQueue(
-            producer_target = self.dataloader,
-            producer_arg = (1000,),
-            buffer_size = 2
-        )
 
     def close(self):
         pass
@@ -516,6 +513,16 @@ class MockGenesisTextDataset( Dataset ):
             i += 1
         return data_corpus
 
+    def _fill_data(self, epoch_length:int = 100):
+        data_size = epoch_length * self.batch_size * self.block_size
+        
+        # Make sure the data remained is at least as big as data_size 
+        while len(self.data_remained) < (data_size) :
+            self.data_remained += self.construct_text_corpus(min_data_len = data_size)
+
+        self.data = self.data_remained[:data_size]
+        del self.data_remained[:data_size]
+
     def dataloader(self, epoch_length = 100):
         """ Creates a torch dataloader out of a subclass of this class.
 
@@ -527,48 +534,22 @@ class MockGenesisTextDataset( Dataset ):
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-        data_size = epoch_length * self.batch_size * self.block_size
-        
-        # Make sure the data remained is at least as big as data_size 
-        while len(self.data_remained) < (data_size) :
-            self.data_remained += self.construct_text_corpus(min_data_len = data_size)
-
-        self.data = self.data_remained[:data_size]
-        del self.data_remained[:data_size]
-
-        # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
+        self._fill_data(epoch_length)
         return DataLoader(self,
                     shuffle=True,
                     batch_size=self.batch_size,
                     num_workers=self.num_workers,
                     drop_last=True)
     
-    def set_dataset_iterator(self):
-        r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ . 
-        """
-        success = False 
-        while not success: 
-            if not self.data_queue.queue.empty() :
-                dataset = self.data_queue.queue.get()
-                if dataset:
-                    self.__infinite_dataset_iterator = iter([input for input in dataset])
-                    success = True
-            else:
-                time.sleep(2)
-
-        return
-
     def __next__(self):
         """Returns the next element from the dataset. 
         """
         if self.__infinite_dataset_iterator == None:
-            self.set_dataset_iterator()
-
+            self.__infinite_dataset_iterator = iter(list(self.dataloader()))
         try:
             return next(self.__infinite_dataset_iterator)
-        
         except StopIteration:
-            self.set_dataset_iterator()
+            self.__infinite_dataset_iterator = iter(list(self.dataloader()))
             return next(self.__infinite_dataset_iterator)
 
     def __len__(self):
