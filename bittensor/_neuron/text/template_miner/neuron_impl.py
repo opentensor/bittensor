@@ -509,8 +509,12 @@ class Neuron:
             weights[f'weights/uid_{uid.item()}'] = ema_score
             peer_weights['peer_weights/uid_{}'.format(uid)]=self.nucleus.peer_weights.detach()[uid]
         progress_bar.set_infos( info )
-        print(torch.corrcoef(torch.tensor([self.nucleus.peer_weights, self.stats.ema_scores])))
-        peer_weights['peer_weights/pearson'] = torch.corrcoef(torch.tensor([self.nucleus.peer_weights, self.stats.ema_scores]))[1,1]
+
+        combination_tensor = torch.zeros(2,27)
+        combination_tensor[0,:] = self.nucleus.peer_weights.detach().item()
+        combination_tensor[1,:] = self.stats.ema_scores
+        print(torch.corrcoef(combination_tensor))
+        peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[1,1]
 
 
         # ---- wandb log if it is the end of epoch 
