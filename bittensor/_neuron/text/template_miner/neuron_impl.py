@@ -68,7 +68,7 @@ class Neuron:
         self.nucleus.metagraph = self.metagraph_callback
         self.nucleus.dendrite = self.dendrite
         self.optimizer = torch.optim.SGD(
-            [ {'params':self.nucleus.parameters()},{'params': self.nucleus.peer_weights, 'lr': self.config.neuron.learning_rate_chain} ],
+            self.nucleus.parameters(),
             lr = self.config.neuron.learning_rate,
             momentum = self.config.neuron.momentum,
         )
