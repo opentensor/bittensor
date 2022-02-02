@@ -89,4 +89,4 @@ class ThreadQueue():
     def close(self):
         self.producer.stop()
         self.producer.join()
-        logger.success('Dataset thread Closed')
+        logger.success('Dataset Thread Queue Closed')
