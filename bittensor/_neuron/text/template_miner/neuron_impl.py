@@ -455,7 +455,7 @@ class Neuron:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
             inactive_uids = torch.where(self.metagraph.active == 0)[0]
             self.stats.ema_scores[inactive_uids] = 0
-            topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores , k = k )
+            topk_scores, topk_uids = bittensor.unbiased_topk( torch.relu(self.stats.ema_scores) , k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
             self.subtensor.set_weights(
@@ -509,6 +509,9 @@ class Neuron:
             weights[f'weights/uid_{uid.item()}'] = ema_score
             peer_weights['peer_weights/uid_{}'.format(uid)]=self.nucleus.peer_weights.detach()[uid]
         progress_bar.set_infos( info )
+        print(torch.corrcoef(torch.tensor([self.nucleus.peer_weights, self.stats.ema_scores])))
+        peer_weights['peer_weights/pearson'] = torch.corrcoef(torch.tensor([self.nucleus.peer_weights, self.stats.ema_scores]))[1,1]
+
 
         # ---- wandb log if it is the end of epoch 
         if self.config.neuron.use_wandb and ((iteration + 1) % (self.config.neuron.epoch_length ) == 0):
