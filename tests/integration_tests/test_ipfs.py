@@ -4,9 +4,9 @@ import json
 def test_ipfs_init():
     ipfs = bittensor.Ipfs()
 
-    assert ipfs.cat == 'http://ipfs.opentensor.ai/api/v0/cat' 
-    assert ipfs.node_get == 'http://ipfs.opentensor.ai/api/v0/object/get'
-    assert ipfs.ipns_resolve == 'http://ipfs.opentensor.ai/api/v0/name/resolve'
+    assert ipfs.cat == 'http://global.ipfs.opentensor.ai/api/v0/cat' 
+    assert ipfs.node_get == 'http://global.ipfs.opentensor.ai/api/v0/object/get'
+    assert ipfs.ipns_resolve == 'http://global.ipfs.opentensor.ai/api/v0/name/resolve'
 
     assert ipfs.mountain_hash == 'QmSdDg6V9dgpdAFtActs75Qfc36qJtm9y8a7yrQ1rHm7ZX'
     assert ipfs.latest_neurons_ipns == 'k51qzi5uqu5di1eoe0o91g32tbfsgikva6mvz0jw0414zhxzhiakana67shoh7'
