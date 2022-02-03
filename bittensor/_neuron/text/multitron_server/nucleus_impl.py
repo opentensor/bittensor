@@ -193,8 +193,8 @@ class server(torch.nn.Module):
         try:
             state_dict=  torch.load("{}/model.torch".format( path ))
             if self.pretrained == state_dict['model']:
-                self.pre_model.load_state_dict(state_dict['pretrained_model'], strict=False)
-                self.decoder.load_state_dict(state_dict['decoder'])
+                self.pre_model.load_state_dict(state_dict['pretrained_model'], strict=False, map_location=self.device)
+                self.decoder.load_state_dict(state_dict['decoder'], map_location = self.device)
                 if self.padding == False:
                     self.mapping.load_state_dict(state_dict['mapping'])
 
