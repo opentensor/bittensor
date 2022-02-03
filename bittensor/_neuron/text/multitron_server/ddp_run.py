@@ -135,7 +135,7 @@ class DDPPipe():
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
 
-        self.gp_server = DDP(self.gp_server, device_ids = [rank]) 
+        self.gp_server = DDP(self.gp_server) #, device_ids = [rank]) 
 
         if rank == 0 and self.config.wandb.api_key != 'default':
             # --- Init Wandb.
