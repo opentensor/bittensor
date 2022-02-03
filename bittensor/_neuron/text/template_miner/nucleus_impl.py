@@ -28,17 +28,24 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-def jacobian(y, x, create_graph=False):                                                               
+def jacobian(y, x, create_graph=False,hessian =False):                                                               
     jac = []                                                                                          
     flat_y = y.reshape(-1)                                                                            
     grad_y = torch.zeros_like(flat_y)                                                                 
     for i in range(len(flat_y)): 
-        print(flat_y[i])                                                                   
-        grad_y[i] = 1.                                                                                
-        grad_x, = torch.autograd.grad(flat_y, x, grad_y, retain_graph=True, create_graph=create_graph)
-        print(grad_x)
-        jac.append(grad_x.reshape(x.shape))                                                           
-        grad_y[i] = 0.                                                                                
+        if hessian ==True and flat_y[i].item() == 0:
+            grad_x = torch.zeros_like(x)
+            jac.append(grad_x.reshape(x.shape)) 
+            print('skipped')
+            pass
+        else:
+            print(flat_y[i])                                                                         
+            grad_y[i] = 1.
+            print(grad_y)                                                                             
+            grad_x, = torch.autograd.grad(flat_y, x, grad_y, retain_graph=True, create_graph=create_graph)
+            print(grad_x)
+            jac.append(grad_x.reshape(x.shape))                                                           
+            grad_y[i] = 0.                                                                                
     return torch.stack(jac).reshape(y.shape + x.shape)       
 class PositionalEncoding(nn.Module):
 
