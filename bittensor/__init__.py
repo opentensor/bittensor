@@ -18,7 +18,7 @@
 from rich.console import Console
 
 # Bittensor code and protocol version.
-__version__ = '2.0.3'
+__version__ = '2.0.4'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
