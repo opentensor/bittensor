@@ -102,7 +102,6 @@ class DDPPipe():
             self.device = torch.device( device = self.config.neuron.device )
         
         self.gp_server.device = self.device
-        self.gp_server.pre_model = self.gp_server.pre_model.to(self.device)
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.metagraph.sync()
