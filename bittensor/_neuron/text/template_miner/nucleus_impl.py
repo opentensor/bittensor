@@ -107,8 +107,6 @@ class Nucleus(nn.Module):
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
         peer_weights_d1 = jacobian(loss, self.peer_weights, create_graph=True)
-        peer_weights_old = torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-        print('new',peer_weights_d1,'old',peer_weights_old)
         if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
         peer_weights_d2 = jacobian(peer_weights_d1, self.peer_weights, hessian=True)
         second_order = (peer_weights_d2.detach() * (torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2 ).sum(dim=1)
