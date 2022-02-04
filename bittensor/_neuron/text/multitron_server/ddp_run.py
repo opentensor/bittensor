@@ -133,6 +133,9 @@ class DDPPipe():
         self.init_bit(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
+        
+        if self.config.neuron.autocast and self.config.neuron.device == 'cuda':
+            self.gp_server.pre_model = self.server.pre_model.half()
         self.gp_server = self.gp_server.to(self.device) 
 
         # --- Init Wandb.
