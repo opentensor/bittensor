@@ -133,7 +133,7 @@ class QueryBenchmark:
         r""" Starts mining process.
         """
         self.process = multiprocessing.Process( target=QueryBenchmark._run_background_process, args=(self.run_neuron, self.config))
-        self.process.daemon = True
+        self.process.daemon = False
         self.process.start()
         self.process.pid
 
@@ -225,7 +225,3 @@ class QueryBenchmark:
                 eval('self.' + func + "()")
                 self.console.log('Done\n')
         self.shutdown()
-
-        
-
-

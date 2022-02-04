@@ -377,6 +377,8 @@ class Server:
     def run(self):
         # --  serve axon to the network.
         try: 
+            self.wallet.create()
+            self.subtensor.register( self.wallet )
             self.axon.start().serve(subtensor = self.subtensor)
             self.axon_pipe.run_parallel()
             self.axon_pipe.forward_q = self.forward_q
