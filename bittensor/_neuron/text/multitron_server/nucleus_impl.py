@@ -87,7 +87,7 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
         
-    def forward_text(self, inputs,tokenizer=None):
+    def forward(self, inputs,tokenizer=None):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
 
@@ -103,7 +103,7 @@ class server(torch.nn.Module):
                     Decoded predictions of the next token in the sentence.
 
         """
-        decoded_targets = self.decoder(self.forward(inputs,tokenizer))
+        decoded_targets = self.decoder(self.encode_forward(inputs,tokenizer))
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()     
@@ -111,7 +111,7 @@ class server(torch.nn.Module):
 
         return loss, decoded_targets
     
-    def forward(self,inputs,tokenizer=None): # previously encode_forward
+    def encode_forward(self,inputs,tokenizer=None): 
         r""" Forward pass through the pretrained model and possible mappings between hidden units. 
              The response tensor should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 

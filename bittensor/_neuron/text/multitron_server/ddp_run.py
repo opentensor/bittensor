@@ -161,7 +161,7 @@ class DDPPipe():
                     request_id, inputs_x = self.forward_q.get()
                     if inputs_x != None:
                         inputs_x = inputs_x.to(self.device)
-                        output = self.gp_server.forward(inputs_x)
+                        output = self.gp_server.encode_forward(inputs_x)
                         output_clone = output.detach().clone().to(device = 'cpu')
                         self.outputs[request_id] = output_clone
                         self.events[request_id].set()
