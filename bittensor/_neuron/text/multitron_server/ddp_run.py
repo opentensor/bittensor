@@ -131,17 +131,12 @@ class DDPPipe():
         )
 
     def run(self, rank = 0, world_size = 0):
-        # torch.multiprocessing.set_start_method('spawn')
         self.init_bit(rank)
-        # self.init_process(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
 
-        print('danggg', rank, self.device)
         self.gp_server = self.gp_server.to(self.device) 
-        # self.gp_server = DDP(self.gp_server, device_ids = [rank]) 
-        print('danggg', rank)
-        # self.gp_server = seld.gp_server.to(self.device)
+        self.gp_server.token_remap = self.gp_server.token_remap.to(self.device)
 
         if rank == 0 and self.config.wandb.api_key != 'default':
             # --- Init Wandb.
@@ -162,6 +157,7 @@ class DDPPipe():
         last_log_time = time.time()
         # -- Main Training loop --
         try:
+            torch.cuda.empty_cache()
             while True:
                 try:
                     request_id, inputs_x = self.forward_q.get()
@@ -171,10 +167,10 @@ class DDPPipe():
                         output_clone = output.detach().clone().to(device = 'cpu')
                         self.outputs[request_id] = output_clone
                         self.events[request_id].set()
-                        del inputs_x
                         del output
                         del output_clone
-                        torch.cuda.empty_cache()
+                    del inputs_x
+                    torch.cuda.empty_cache()
                 except Exception as e:
                     bittensor.logging.success('got exception', sufix = f'rank: {rank}, {e}')
                     pass

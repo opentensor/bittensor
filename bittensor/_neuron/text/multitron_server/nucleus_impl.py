@@ -64,7 +64,6 @@ class server(torch.nn.Module):
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
-        # self.device = config.neuron.device
         self.padding = padding if padding != None else config.neuron.padding
         self.interpolate = interpolate if interpolate != None else config.neuron.interpolate
         self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
@@ -127,12 +126,9 @@ class server(torch.nn.Module):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
         sen_len = inputs.size()
-        inputs = self.token_remap(inputs,tokenizer).to(self.device)
+        inputs = self.token_remap(inputs,tokenizer)
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
-        print('in forward', inputs.device)
-
-        print('in forward', self.device , f'{ next(self.pre_model.parameters()).device}')
         if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
@@ -146,7 +142,6 @@ class server(torch.nn.Module):
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
-            # bittensor.logging.success('nucleus forward return')
 
         return encoded_hidden
 
