@@ -134,12 +134,10 @@ class DDPPipe():
         self.init_bit(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
-
         self.gp_server = self.gp_server.to(self.device) 
-        self.gp_server.token_remap = self.gp_server.token_remap.to(self.device)
 
+        # --- Init Wandb.
         if rank == 0 and self.config.wandb.api_key != 'default':
-            # --- Init Wandb.
             bittensor.wandb(
                 config = self.config,
                 cold_pubkey = self.wallet.coldkeypub.ss58_address,
