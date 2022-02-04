@@ -33,6 +33,7 @@ from loguru import logger; logger = logger.opt(colors=True)
 
 def serve( config, model ):
     config.to_defaults()
+    model= model.to(model.device)
 
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config)
@@ -56,7 +57,7 @@ def serve( config, model ):
     def forward_text ( inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
         """ 
-        return model.encode_forward( inputs_x )
+        return model.encode_forward( inputs_x.to(model.device))
 
 
     def backward_text ( inputs_x, grads_dy ):

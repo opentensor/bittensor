@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils.rnn import pad_sequence
-from loguru import logger; logger = logger.opt(colors=True)
+# from loguru import logger; logger = logger.opt(colors=True)
 
 class server(torch.nn.Module):
     def __init__(self, 
@@ -64,7 +64,7 @@ class server(torch.nn.Module):
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
-        self.device = config.neuron.device
+        # self.device = config.neuron.device
         self.padding = padding if padding != None else config.neuron.padding
         self.interpolate = interpolate if interpolate != None else config.neuron.interpolate
         self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
@@ -130,6 +130,9 @@ class server(torch.nn.Module):
         inputs = self.token_remap(inputs,tokenizer).to(self.device)
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
+        print('in forward', inputs.device)
+
+        print('in forward', self.device , f'{ next(self.pre_model.parameters()).device}')
         if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
@@ -143,7 +146,8 @@ class server(torch.nn.Module):
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
-            bittensor.logging.success('nucleus forward return')
+            # bittensor.logging.success('nucleus forward return')
+
         return encoded_hidden
 
     def remapping_token(self,input, old_tokenizer=None):
@@ -181,9 +185,10 @@ class server(torch.nn.Module):
             if self.padding == False:
                 state_dict['mapping'] = self.mapping.state_dict()
             torch.save( state_dict, "{}/model.torch".format( path) )
-            bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( path ) )
+            # bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( path ) )
+            print(f'Saved model: {path}/model.torch' )
         except Exception as e:
-            logger.exception('Failed to save model with error:{}', e)
+            print('Failed to save model with error:{}', e)
 
     def load(self, path):
         try:
@@ -194,11 +199,12 @@ class server(torch.nn.Module):
                 if self.padding == False:
                     self.mapping.load_state_dict(state_dict['mapping'])
 
-                bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
+                # bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
+                print( f'Reloaded model {path}/model.torch')
 
 
         except Exception as e:
-            logger.warning('No saved model found with error: {}', e)
+            print('No saved model found with error: {}', e)
 
     @staticmethod
     def config ():

@@ -52,7 +52,7 @@ class DDPPipe():
         torch.autograd.set_detect_anomaly(True) 
         self.config = config
         self.config.to_defaults()
-        self.gp_server = gp_server.to(gp_server.device)
+        self.gp_server = gp_server# .to(gp_server.device)
         self.wallet = wallet
         self.world_size = config.neuron.world_size
         self.forward_q = forward_q
@@ -81,7 +81,12 @@ class DDPPipe():
         else:
             backend = 'gloo'
 
-        dist.init_process_group(backend, rank=rank, world_size=self.world_size, timeout = datetime.timedelta(minute = self.config.neuron.DDP_timeout))
+        dist.init_process_group(
+                backend, 
+                rank=rank, 
+                world_size=self.world_size, 
+                # timeout = datetime.timedelta(minute = self.config.neuron.DDP_timeout)
+        )
     
     def init_bit(self, rank = 0):
         r""" Init bittensor modules .
@@ -96,6 +101,8 @@ class DDPPipe():
         else:
             self.device = torch.device( device = self.config.neuron.device )
         
+        self.gp_server.device = self.device
+        self.gp_server.pre_model = self.gp_server.pre_model.to(self.device)
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.metagraph.sync()
@@ -125,9 +132,17 @@ class DDPPipe():
         )
 
     def run(self, rank = 0, world_size = 0):
+        # torch.multiprocessing.set_start_method('spawn')
         self.init_bit(rank)
+        # self.init_process(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
+
+        print('danggg', rank, self.device)
+        self.gp_server = self.gp_server.to(self.device) 
+        # self.gp_server = DDP(self.gp_server, device_ids = [rank]) 
+        print('danggg', rank)
+        # self.gp_server = seld.gp_server.to(self.device)
 
         if rank == 0 and self.config.wandb.api_key != 'default':
             # --- Init Wandb.
@@ -152,10 +167,17 @@ class DDPPipe():
                 try:
                     request_id, inputs_x = self.forward_q.get()
                     if inputs_x != None:
+                        inputs_x = inputs_x.to(self.device)
                         output = self.gp_server.forward(inputs_x)
-                        self.outputs[request_id] = output.detach()
+                        output_clone = output.detach().clone().to(device = 'cpu')
+                        self.outputs[request_id] = output_clone
                         self.events[request_id].set()
-                except:
+                        del inputs_x
+                        del output
+                        del output_clone
+                        torch.cuda.empty_cache()
+                except Exception as e:
+                    bittensor.logging.success('got exception', sufix = f'rank: {rank}, {e}')
                     pass
                 
                 # log if a certain time period had passed
@@ -236,7 +258,6 @@ class Server:
     def __init__( self, config: 'bittensor.config', gp_server):
         r""" Initializes the neuron with the passed config.
         """
-        
         self.config = config
         self.wallet = bittensor.wallet( config = config ).create().register()
         self.subtensor = bittensor.subtensor ( config = self.config )
