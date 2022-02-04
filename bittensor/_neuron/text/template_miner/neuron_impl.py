@@ -34,7 +34,7 @@ import wandb
 from termcolor import colored
 from qqdm import qqdm, format_str
 from loguru import logger
-
+from scipy import stats
 from bittensor._metagraph import metagraph
 logger = logger.opt(colors=True)
 
@@ -454,8 +454,8 @@ class Neuron:
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
             inactive_uids = torch.where(self.metagraph.active == 0)[0]
-            self.stats.ema_scores[inactive_uids] = 0
-            topk_scores, topk_uids = bittensor.unbiased_topk( torch.relu(self.stats.ema_scores) , k = k )
+            self.stats.ema_scores[inactive_uids] = -1
+            topk_scores, topk_uids = bittensor.unbiased_topk( torch.sigmoid(self.stats.ema_scores) , k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
             self.subtensor.set_weights(
@@ -518,6 +518,7 @@ class Neuron:
         print(torch.corrcoef(combination_tensor))
         print('Pearson Correlation matrix')
         peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
+        peer_weights['peer_weights/pearson'] = stats.spearmanr(combination_tensor)[0]
 
 
         # ---- wandb log if it is the end of epoch 
