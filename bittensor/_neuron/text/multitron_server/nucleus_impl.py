@@ -64,7 +64,6 @@ class server(torch.nn.Module):
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
-        # self.device = config.neuron.device
         self.padding = padding if padding != None else config.neuron.padding
         self.interpolate = interpolate if interpolate != None else config.neuron.interpolate
         self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
@@ -88,7 +87,7 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
         
-    def forward_text(self, inputs,tokenizer=None):
+    def forward(self, inputs,tokenizer=None):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
 
@@ -104,7 +103,7 @@ class server(torch.nn.Module):
                     Decoded predictions of the next token in the sentence.
 
         """
-        decoded_targets = self.decoder(self.forward(inputs,tokenizer))
+        decoded_targets = self.decoder(self.encode_forward(inputs,tokenizer))
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()     
@@ -112,7 +111,7 @@ class server(torch.nn.Module):
 
         return loss, decoded_targets
     
-    def forward(self,inputs,tokenizer=None): # previously encode_forward
+    def encode_forward(self,inputs,tokenizer=None): 
         r""" Forward pass through the pretrained model and possible mappings between hidden units. 
              The response tensor should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 
@@ -130,9 +129,6 @@ class server(torch.nn.Module):
         inputs = self.token_remap(inputs,tokenizer).to(self.device)
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
-        print('in forward', inputs.device)
-
-        print('in forward', self.device , f'{ next(self.pre_model.parameters()).device}')
         if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
@@ -146,7 +142,6 @@ class server(torch.nn.Module):
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
-            # bittensor.logging.success('nucleus forward return')
 
         return encoded_hidden
 
