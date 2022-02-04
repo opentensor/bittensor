@@ -167,13 +167,14 @@ class DDPPipe():
                     request_id, inputs_x = self.forward_q.get()
                     if inputs_x != None:
                         inputs_x = inputs_x.to(self.device)
-                        bittensor.logging.success('got input', sufix = f'{rank, self.device}')
-                        bittensor.logging.success('got input', sufix = f'{rank, next(self.gp_server.pre_model.parameters()).device}')
-                        bittensor.logging.success('got input', sufix = f'{rank, next(self.gp_server.parameters()).device}')
                         output = self.gp_server.forward(inputs_x)
                         output_clone = output.detach().clone().to(device = 'cpu')
                         self.outputs[request_id] = output_clone
                         self.events[request_id].set()
+                        del inputs_x
+                        del output
+                        del output_clone
+                        torch.cuda.empty_cache()
                 except Exception as e:
                     bittensor.logging.success('got exception', sufix = f'rank: {rank}, {e}')
                     pass
