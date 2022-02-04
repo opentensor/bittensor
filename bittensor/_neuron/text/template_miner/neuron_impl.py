@@ -510,7 +510,7 @@ class Neuron:
             peer_weights['peer_weights/uid_{}'.format(uid)]=self.nucleus.peer_weights.detach()[uid]
         progress_bar.set_infos( info )
 
-        combination_tensor = torch.zeros(2,27)
+        combination_tensor = torch.zeros(2,self.nucleus.peer_weights.size()[0])
         print(self.nucleus.peer_weights.size())
         combination_tensor[0,:] = self.nucleus.peer_weights.detach()
         combination_tensor[1,:] = self.stats.ema_scores
