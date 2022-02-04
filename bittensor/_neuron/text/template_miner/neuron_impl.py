@@ -517,8 +517,11 @@ class Neuron:
         print(torch.corrcoef(combination_tensor))
         print(torch.corrcoef(combination_tensor))
         print('Pearson Correlation matrix')
+        spearmanr = stats.spearmanr(self.nucleus.peer_weights.detach(), self.stats.ema_scores)[0]
+        print(spearmanr)
+        print(spearmanr)
         peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
-        peer_weights['peer_weights/pearson'] = stats.spearmanr(combination_tensor)[0]
+        peer_weights['peer_weights/pearson'] = spearmanr
 
 
         # ---- wandb log if it is the end of epoch 
