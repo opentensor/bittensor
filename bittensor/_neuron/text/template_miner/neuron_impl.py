@@ -521,7 +521,7 @@ class Neuron:
         print(spearmanr)
         print(spearmanr)
         peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
-        peer_weights['peer_weights/pearson'] = spearmanr
+        peer_weights['peer_weights/spearson'] = spearmanr
 
 
         # ---- wandb log if it is the end of epoch 
