@@ -506,7 +506,7 @@ class Neuron:
         print(torch.corrcoef(combination_tensor))
         print(torch.corrcoef(combination_tensor))
         print('Pearson Correlation matrix')
-        spearmanr = stats.spearmanr(self.nucleus.peer_weights.detach(), self.stats.ema_scores)[0]
+        spearmanr = stats.spearmanr(self.nucleus.peer_weights.detach(), self.stats.ema_scores.detach())[0]
         print(spearmanr)
         print(spearmanr)
         peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
