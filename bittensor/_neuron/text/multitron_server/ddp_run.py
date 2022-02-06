@@ -276,7 +276,6 @@ class Server:
         self.timecheck = {}
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
-        self.metagraph.sync()
         self.futures = {}
 
     # Instantiate the model we are going to serve on the network.
@@ -291,7 +290,7 @@ class Server:
             Returns:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
-        """ 
+        """
         request_id = id(inputs_x)
         self.forward_q.put( (request_id, inputs_x) )
         self.events[request_id] = self.manager.Event()
@@ -315,6 +314,7 @@ class Server:
                 request_type ( bittensor.proto.RequestType, `required`):
                     the request type ('FORWARD' or 'BACKWARD').
         """        
+        print(self.metagraph.hotkeys)
         uid = self.metagraph.hotkeys.index(pubkey)
         priority = self.metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
 
@@ -379,6 +379,7 @@ class Server:
         try: 
             self.wallet.create()
             self.subtensor.register( self.wallet )
+            self.metagraph.sync()
             self.axon.start().serve(subtensor = self.subtensor)
             self.axon_pipe.run_parallel()
             self.axon_pipe.forward_q = self.forward_q
