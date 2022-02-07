@@ -28,7 +28,7 @@ import signal
 import bittensor
 import time
 import argparse
-import multiprocessing
+import multiprocessing as mp
 import bittensor
 from rich.console import Console
 from rich.progress import track
@@ -72,6 +72,7 @@ class QueryBenchmark:
             parser.add_argument('--batch_size', type=int, help='Batch size', default=10)
             parser.add_argument('--block_size', type=int, help='Block_size', default=10)
             parser.add_argument('--delay', type=int, help='Message delay', default=0)
+            parser.add_argument('--test_multiprocessing', action='store_true', help='Test with multiprocessing.', default=False)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -132,7 +133,7 @@ class QueryBenchmark:
     def startup(self):
         r""" Starts mining process.
         """
-        self.process = multiprocessing.Process( target=QueryBenchmark._run_background_process, args=(self.run_neuron, self.config))
+        self.process = mp.Process( target=QueryBenchmark._run_background_process, args=(self.run_neuron, self.config))
         self.process.daemon = False
         self.process.start()
         self.process.pid
@@ -172,6 +173,27 @@ class QueryBenchmark:
                 
         self.endpoint = endpoint
 
+    @staticmethod
+    def dend_forward(args):
+        r""" Handles the dendrite request for the multiproceeing case. 
+            Args:
+                wallet (bittensor.Wallet):
+                    The wallet for creating dendrite.
+                endpoint (bittensor.endpoint):
+                    The enpoint that was being benchmarked on.
+                inputs (tensor):
+                    The input tensor.
+                results (mp.manager.list):
+                    Where we can store a list of result across processes.
+        """
+        wallet, endpoint, inputs = args
+        dendrite = bittensor.dendrite( wallet = wallet, multiprocess = True )
+        _, codes, qtime = dendrite.forward_text( 
+            endpoints = endpoint, 
+            inputs = inputs 
+        )
+        return [ qtime.item(), codes.item(), time.time() ]
+
     def query_sequence( self, ncalls:int, batch_size:int, block_size:int ) -> pandas.DataFrame:
         r""" Queries the background neuron with passed parameters
             Args:
@@ -186,16 +208,21 @@ class QueryBenchmark:
                     (n, query_length, code, query_time) tuple
         """
         dataset = bittensor.dataset( _mock = True, batch_size = batch_size, block_size = block_size )
-        results = []
         start_time = time.time()
         self.console.log( 'Running:\n\tqueries: {}\n\tbatch size: {}\n\tblock_length: {}'.format( str(ncalls).ljust(20), str(batch_size).ljust(20), str(block_size).ljust(20)  ) )
-        for i in  track(range(ncalls), description="Querying endpoint..."):
-            _, codes, qtime = self.dendrite.forward_text( 
-                endpoints = self.endpoint, 
-                inputs = next( dataset ) 
-            )
-            results.append( [ qtime.item(), codes.item(), time.time() - start_time ])
-            time.sleep( self.conf.delay )
+
+        if self.conf.test_multiprocessing:
+            with mp.Pool(ncalls) as p:
+                results = p.map(self.dend_forward, [(self.wallet, self.endpoint, next( dataset ))]*ncalls)
+        else:
+            results = []
+            for i in  track(range(ncalls), description="Querying endpoint..."):
+                _, codes, qtime = self.dendrite.forward_text( 
+                    endpoints = self.endpoint, 
+                    inputs = next( dataset ) 
+                )
+                results.append( [ qtime.item(), codes.item(), time.time() - start_time ])
+                time.sleep( self.conf.delay )
         dataframe = pandas.DataFrame( data = results, columns = ['time', 'code', 'elapsed'] )
         return dataframe
 

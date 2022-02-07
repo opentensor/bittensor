@@ -381,9 +381,7 @@ class Server:
     def run(self):
         def serve_when_ready(serve_kwargs, pipe_ready):
             if pipe_ready.wait():
-                print('got the ready signal!!')
                 self.axon.start().serve(**serve_kwargs)
-                print('finished serving axon!!!')
 
         def sync_meta():
             while True:
