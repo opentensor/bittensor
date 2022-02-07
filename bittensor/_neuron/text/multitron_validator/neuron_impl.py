@@ -165,7 +165,7 @@ class DDPNeuronTrain:
         self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.config.nucleus.max_n).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 
         # ---- Reloads nucleus if not restart----
-        if not self.config.neuron.no_restart:
+        if self.config.neuron.restart:
             self.save_nucleus()
 
         try:
