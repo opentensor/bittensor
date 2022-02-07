@@ -40,6 +40,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import time
 from multiprocessing import Process, Manager, Event 
+from threading import Thread
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
@@ -121,16 +122,16 @@ class DDPPipe():
         """
         dist.destroy_process_group()
 
-    def run_parallel( self ):
+    def run_parallel( self, ready = None):
         r""" Spawn multiple processes.
         """
         mp.spawn(self.run,
-            args=(self.world_size,),
+            args=(self.world_size, ready),
             nprocs=self.world_size,
-            join=True,
+            daemon = True
         )
 
-    def run(self, rank = 0, world_size = 0):
+    def run(self, rank = 0, world_size = 0, ready= None):
         self.init_bit(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
@@ -155,6 +156,8 @@ class DDPPipe():
         last_log_block = last_sync_block
         last_log_time = time.time()
         # -- Main Training loop --
+        if ready != None and rank == 0 :
+            ready.set()
         try:
             torch.cuda.empty_cache()
             while True:
@@ -375,17 +378,26 @@ class Server:
             return False
 
     def run(self):
-        # --  serve axon to the network.
+        def serve_when_ready(serve_kwargs, pipe_ready):
+            if pipe_ready.wait():
+                print('got the ready signal!!')
+                self.axon.start().serve(**serve_kwargs)
+                print('finished serving axon!!!')
+            
         try: 
+
             self.wallet.create()
             self.subtensor.register( self.wallet )
             self.metagraph.sync()
-            self.axon.start().serve(subtensor = self.subtensor)
-            self.axon_pipe.run_parallel()
-            self.axon_pipe.forward_q = self.forward_q
+
+            pipe_ready = self.manager.Event()
+            axon_start_thread = Thread( target = serve_when_ready, args = ({'subtensor': self.subtensor}, pipe_ready))
+            axon_start_thread.start()
+            self.axon_pipe.run_parallel(ready = pipe_ready)
 
         except KeyboardInterrupt:
             self.axon.stop()
+            axon_start_thread.join()
 
         except Exception as e:
             # --- Unknown error ----
