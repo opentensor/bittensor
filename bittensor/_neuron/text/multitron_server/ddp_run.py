@@ -280,6 +280,8 @@ class Server:
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.futures = {}
+        self.last_sync_block = None
+        self.check_sync_time = 180
 
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
@@ -383,6 +385,14 @@ class Server:
                 print('got the ready signal!!')
                 self.axon.start().serve(**serve_kwargs)
                 print('finished serving axon!!!')
+
+        def sync_meta():
+            while True:
+                current_block = self.subtensor.get_current_block()
+                if (self.last_sync_block == None) or (current_block - self.last_sync_block > self.config.neuron.metagraph_sync):
+                    self.metagraph.sync()
+                    self.last_sync_block = current_block
+                time.sleep(self.check_sync_time)
             
         try: 
 
@@ -391,8 +401,10 @@ class Server:
             self.metagraph.sync()
 
             pipe_ready = self.manager.Event()
-            axon_start_thread = Thread( target = serve_when_ready, args = ({'subtensor': self.subtensor}, pipe_ready))
+            axon_start_thread = Thread( target = serve_when_ready, args = ({'subtensor': self.subtensor}, pipe_ready) )
+            meta_sync_thread = Thread( target = sync_meta, daemon = True )
             axon_start_thread.start()
+            meta_sync_thread.start()
             self.axon_pipe.run_parallel(ready = pipe_ready)
 
         except KeyboardInterrupt:
