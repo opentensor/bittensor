@@ -319,7 +319,6 @@ class Server:
                 request_type ( bittensor.proto.RequestType, `required`):
                     the request type ('FORWARD' or 'BACKWARD').
         """        
-        print(self.metagraph.hotkeys)
         uid = self.metagraph.hotkeys.index(pubkey)
         priority = self.metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
 
