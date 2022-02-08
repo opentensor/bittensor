@@ -144,6 +144,7 @@ class QueryBenchmark:
         """
         try:
             del self.dendrite
+            self.process.terminate()
             os.kill(self.process.pid, signal.SIGINT)
             self.process.join( 3 )
         except:
@@ -194,6 +195,7 @@ class QueryBenchmark:
             endpoints = endpoint, 
             inputs = inputs 
         )
+        dendrite.__del__()
         return [ qtime.item(), codes.item(), time.time() ]
 
     def query_sequence( self, ncalls:int, batch_size:int, block_size:int ) -> pandas.DataFrame:
