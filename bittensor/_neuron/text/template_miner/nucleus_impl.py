@@ -128,8 +128,9 @@ class Nucleus(nn.Module):
                 shift_logits = remote_target[..., :-1, :].contiguous()
                 shift_labels = inputs[..., 1:].contiguous()
                 partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
-                validator_scores[uid] = loss.item() - partial_remote_target_loss.item()
-
+                print(loss, partial_remote_target_loss)
+                validator_scores[uid] = loss - partial_remote_target_loss
+                
         print(validator_scores)
         return validator_scores
 
