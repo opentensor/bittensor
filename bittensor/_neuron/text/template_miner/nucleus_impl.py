@@ -109,7 +109,11 @@ class Nucleus(nn.Module):
         peer_weights_d1 = jacobian(loss, self.peer_weights, create_graph=True)
         if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
         peer_weights_d2 = jacobian(peer_weights_d1, self.peer_weights, hessian=True)
+        print((torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2)
+        print(peer_weights_d2.detach())
         second_order = (peer_weights_d2.detach() * (torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2 ).sum(dim=1)
+        print('second order')
+        print(second_order)
         first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
         validator_scores =  second_order + first_order
         return validator_scores

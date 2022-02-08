@@ -500,14 +500,10 @@ class Neuron:
         progress_bar.set_infos( info )
 
         combination_tensor = torch.zeros(2,self.nucleus.peer_weights.size()[0])
-        print(self.nucleus.peer_weights.size())
         combination_tensor[0,:] = self.nucleus.peer_weights.detach()
         combination_tensor[1,:] = self.stats.ema_scores
         print(torch.corrcoef(combination_tensor))
-        print(torch.corrcoef(combination_tensor))
-        print('Pearson Correlation matrix')
         spearmanr = stats.spearmanr(self.nucleus.peer_weights.detach(), self.stats.ema_scores.detach())[0]
-        print(spearmanr)
         print(spearmanr)
         peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
         peer_weights['peer_weights/spearson'] = spearmanr
