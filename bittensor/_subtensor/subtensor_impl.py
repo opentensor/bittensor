@@ -74,10 +74,10 @@ class Subtensor:
         self._is_mocked = _is_mocked
 
     def __str__(self) -> str:
-        if self._is_mocked != None and self._owned_mock_subtensor_process != None:
+        if self._is_mocked == True and self._owned_mock_subtensor_process != None:
             # Mocked and owns background process.
             return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._owned_mock_subtensor_process.pid)
-        elif self._is_mocked != None and self._owned_mock_subtensor_process == None:
+        elif self._is_mocked == True and self._owned_mock_subtensor_process == None:
             # Mocked but does not own process.
             return "MockSubtensor({})".format( self.chain_endpoint)
         elif self.network == self.chain_endpoint:
