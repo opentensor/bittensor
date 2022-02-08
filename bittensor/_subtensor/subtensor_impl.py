@@ -71,7 +71,7 @@ class Subtensor:
         self.substrate = substrate
         # Exclusively used to mock a connection to our chain.
         self._owned_mock_subtensor_process = _owned_mock_subtensor_process
-        self._is_mocked = True
+        self._is_mocked = _is_mocked
 
     def __str__(self) -> str:
         if self._is_mocked != None and self._owned_mock_subtensor_process != None:

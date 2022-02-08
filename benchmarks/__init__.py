@@ -224,7 +224,7 @@ class QueryBenchmark:
                 results_list = p.map(self.dend_forward, [(self.wallet, self.endpoint, dataset, round(self.conf.n_calls / self.conf.n_processes) )]*self.conf.n_processes)
             results = []
             for result in results_list:
-                results.append(result)
+                results += result
         else:
             results = []
             for i in  track(range(ncalls), description="Querying endpoint..."):
