@@ -73,6 +73,7 @@ class QueryBenchmark:
             parser.add_argument('--block_size', type=int, help='Block_size', default=10)
             parser.add_argument('--delay', type=int, help='Message delay', default=0)
             parser.add_argument('--test_multiprocessing', action='store_true', help='Test with multiprocessing.', default=False)
+            parser.add_argument('--n_processes', type=int, help='Number of process if --test_multiprocessing is True.', default=10)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -212,7 +213,7 @@ class QueryBenchmark:
         self.console.log( 'Running:\n\tqueries: {}\n\tbatch size: {}\n\tblock_length: {}'.format( str(ncalls).ljust(20), str(batch_size).ljust(20), str(block_size).ljust(20)  ) )
 
         if self.conf.test_multiprocessing:
-            with mp.Pool(ncalls) as p:
+            with mp.Pool(self.conf.n_processes) as p:
                 results = p.map(self.dend_forward, [(self.wallet, self.endpoint, next( dataset ))]*ncalls)
         else:
             results = []
