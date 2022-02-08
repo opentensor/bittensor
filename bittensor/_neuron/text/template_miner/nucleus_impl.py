@@ -313,6 +313,7 @@ class Nucleus(nn.Module):
     def joining_context(self, return_ops, topk_weights, responses):
         # ---- Join based on weights ----
         joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
+        print(joining_uids)
         joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
         output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__)).to( self.config.neuron.device )
         for index, joining_weight in enumerate( joining_weights ):
