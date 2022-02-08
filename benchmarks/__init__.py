@@ -143,7 +143,8 @@ class QueryBenchmark:
         r""" Terminates the mining process.
         """
         try:
-            del self.dendrite
+            
+            self.dendrite.__del__()
             self.process.terminate()
             os.kill(self.process.pid, signal.SIGINT)
             self.process.join( 3 )
@@ -189,14 +190,17 @@ class QueryBenchmark:
                 results (mp.manager.list):
                     Where we can store a list of result across processes.
         """
-        wallet, endpoint, inputs = args
+        wallet, endpoint, dataset, n = args
         dendrite = bittensor.dendrite( wallet = wallet, multiprocess = True )
-        _, codes, qtime = dendrite.forward_text( 
-            endpoints = endpoint, 
-            inputs = inputs 
-        )
-        dendrite.__del__()
-        return [ qtime.item(), codes.item(), time.time() ]
+        results = []
+        for i in range(n):
+            _, codes, qtime = dendrite.forward_text( 
+                endpoints = endpoint, 
+                inputs = next(dataset) 
+            )
+            results.append([ qtime.item(), codes.item(), time.time()])
+
+        return results
 
     def query_sequence( self, ncalls:int, batch_size:int, block_size:int ) -> pandas.DataFrame:
         r""" Queries the background neuron with passed parameters
@@ -217,7 +221,10 @@ class QueryBenchmark:
 
         if self.conf.test_multiprocessing:
             with mp.Pool(self.conf.n_processes) as p:
-                results = p.map(self.dend_forward, [(self.wallet, self.endpoint, next( dataset ))]*ncalls)
+                results_list = p.map(self.dend_forward, [(self.wallet, self.endpoint, dataset, round(self.conf.n_calls / self.conf.n_processes) )]*self.conf.n_processes)
+            results = []
+            for result in results_list:
+                results.append(result)
         else:
             results = []
             for i in  track(range(ncalls), description="Querying endpoint..."):
