@@ -103,6 +103,7 @@ class DDPPipe():
             self.device = torch.device( device = self.config.neuron.device )
         
         self.gp_server.device = self.device
+        self.gp_server = self.gp_server.to(self.device)
         self.subtensor = bittensor.subtensor ( config = self.config )
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.metagraph.sync()
@@ -116,6 +117,7 @@ class DDPPipe():
             logger.success( self.subtensor )
             self.subtensor.register( self.wallet )
 
+        bittensor.tokenizer()
 
     def cleanup(self):
         r""" Kill the process.
@@ -208,7 +210,7 @@ class DDPPipe():
                         bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
                         
-                        # ---- wandb logging  
+                        # ---- wandb logging
                         if current_block - last_log_block > self.wandb_log_block and self.config.wandb.api_key != 'default':
                             nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
                             last_log_block = current_block
