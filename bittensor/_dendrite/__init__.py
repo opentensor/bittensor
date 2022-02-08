@@ -98,8 +98,8 @@ class dendrite:
                     logger.success('Receptor Pool Server Started')
                     manager_client = dendrite.manager_connect()
                     logger.success('Receptor Pool Server Connected')
-                except:
-                    logger.success('why are you connecting')
+                except Exception as e:
+                    logger.success(e)
             
             return dendrite_impl.Dendrite ( 
                 config = config,

@@ -143,6 +143,7 @@ class QueryBenchmark:
         r""" Terminates the mining process.
         """
         try:
+            del self.dendrite
             os.kill(self.process.pid, signal.SIGINT)
             self.process.join( 3 )
         except:
