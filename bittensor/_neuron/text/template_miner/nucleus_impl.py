@@ -301,10 +301,11 @@ class Nucleus(nn.Module):
             self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
         self.partial_context = {}
-        for i, uid in enumerate(topk_uids):
-            partial_return_ops = return_ops.copy()
-            partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
-            self.partial_context[uid] = self.joining_context(partial_return_ops, topk_weights, responses)
+        with torch.no_grad():
+            for i, uid in enumerate(topk_uids):
+                partial_return_ops = return_ops.clone()
+                partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
+                self.partial_context[uid] = self.joining_context(partial_return_ops, topk_weights, responses)
 
         return output, topk_uids[joining_uids], responses, topk_uids
 
