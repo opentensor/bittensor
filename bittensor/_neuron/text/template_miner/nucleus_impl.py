@@ -111,7 +111,7 @@ class Nucleus(nn.Module):
         peer_weights_d2 = jacobian(peer_weights_d1, self.peer_weights, hessian=True)
         print((torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2)
         print(peer_weights_d2.detach())
-        second_order = (peer_weights_d2.detach() * (torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2 ).sum(dim=1)
+        second_order = (peer_weights_d2.detach() * (torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2 ).sum(dim=0)
         print('second order')
         print(second_order)
         first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
