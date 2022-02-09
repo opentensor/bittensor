@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 
 
-def joining_context(self, return_ops, topk_weights, responses):
+def joining_context(return_ops, topk_weights, responses):
     # ---- Join based on weights ----
     joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
     print(joining_uids)
