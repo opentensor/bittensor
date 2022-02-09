@@ -43,7 +43,8 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
     partial_context = {}
     with torch.no_grad():
         for i, uid in enumerate(topk_uids):
+            print(uid, i)
             partial_return_ops = return_ops.clone()
             partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
-            partial_context[uid], _ = joining_context(partial_return_ops, topk_weights, responses)
+            partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
     return partial_context
