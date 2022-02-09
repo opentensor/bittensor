@@ -137,7 +137,7 @@ class Neuron:
                 self.reload()
                 self.axon.check()
             
-            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
+            self.stats.ema_scores = torch.nn.Parameter(torch.zeros(self.metagraph.n.item()).to(self.device), requires_grad = False)
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:
@@ -499,9 +499,9 @@ class Neuron:
             peer_weights['peer_weights/uid_{}'.format(uid)]=self.nucleus.peer_weights.detach()[uid]
         progress_bar.set_infos( info )
 
-        combination_tensor = torch.zeros(2,self.nucleus.peer_weights.size()[0])
-        combination_tensor[0,:] = self.nucleus.peer_weights.detach()
-        combination_tensor[1,:] = self.stats.ema_scores
+        combination_tensor = torch.zeros(2,self.stats.ema_scores[self.stats.ema_scores>-10].size()[0])
+        combination_tensor[0,:] = self.nucleus.peer_weights.detach()[self.stats.ema_scores>-10]
+        combination_tensor[1,:] = self.stats.ema_scores[self.stats.ema_scores>-10]
         print(torch.corrcoef(combination_tensor))
         spearmanr = stats.spearmanr(self.nucleus.peer_weights.detach(), self.stats.ema_scores.detach())[0]
         print(spearmanr)
