@@ -75,7 +75,6 @@ class QueryBenchmark:
             parser.add_argument('--test_multiprocessing', action='store_true', help='Test with multiprocessing.', default=False)
             parser.add_argument('--n_processes', type=int, help='Number of process if --test_multiprocessing is True.', default=10)
             parser.add_argument('--restart_stats', action='store_true', help='If set, clean up old stats', default=False)
-            parser.add_argument('--run_sequence', action='store_true', help='If set, get config from yaml and run a sequence of test.', default=False)
 
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -237,14 +236,13 @@ class QueryBenchmark:
                 )
                 results.append( [ qtime.item(), codes.item(), time.time() - start_time ])
                 time.sleep( self.conf.delay )
-
         
         df = pd.DataFrame( data = results, columns = ['time', 'code', 'elapsed' ] )
         df['n_processes'] = self.conf.n_processes
         df['n_calls'] = self.conf.n_calls
         df['batch_size'] = self.conf.batch_size
         df['block_size'] = self.conf.block_size
-        df['world_size'] = self.conf.neuron.world_size
+        df['world_size'] = self.config.neuron.world_size
         return df
 
     def print_query_analysis( self, history ):
@@ -259,7 +257,7 @@ class QueryBenchmark:
         """
         stats = self.query_sequence( ncalls = self.conf.n_calls, batch_size = self.conf.batch_size, block_size = self.conf.block_size )
         self.print_query_analysis( stats )
-        if self.conf.restart:
+        if self.conf.restart_stats:
             stats.to_csv( self.log_dir + '/queries.csv' )
         else:
             history = pd.read_csv(self.log_dir + '/queries.csv' , index_col=0)
