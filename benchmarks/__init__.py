@@ -262,7 +262,7 @@ class QueryBenchmark:
         else:
             history = pd.read_csv(self.log_dir + '/queries.csv' , index_col=0)
             stats = pd.concat([history, stats])
-            stats = stats.reset_index()
+            stats = stats.reset_index(drop = True)
             stats.to_csv( self.log_dir + '/queries.csv' )
 
     def run(self):
