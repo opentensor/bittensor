@@ -61,7 +61,7 @@ def serve( config, gp_server):
         lr = config.neuron.learning_rate,
         momentum = config.neuron.momentum,
     )
-    
+    bittensor.tokenizer() 
     timecheck = {}
     # Define our forward function.
     def forward_text ( inputs_x ):

@@ -59,8 +59,6 @@ class DDPPipe():
         self.forward_q = forward_q
         self.events = events
         self.outputs = outputs
-        self.log_time = 20
-        self.wandb_log_block = 15
 
     def stop( self ):
         r""" Stop the dendrite and dataset
@@ -86,7 +84,6 @@ class DDPPipe():
                 backend, 
                 rank=rank, 
                 world_size=self.world_size, 
-                # timeout = datetime.timedelta(minute = self.config.neuron.DDP_timeout)
         )
     
     def init_bit(self, rank = 0):
@@ -181,7 +178,7 @@ class DDPPipe():
                 
                 # log if a certain time period had passed
                 # checking with time instead of block here to avoid frequent syncing from subtensor in a while loop
-                if time.time() - last_log_time > self.log_time:
+                if time.time() - last_log_time > self.config.neuron.console_log_time:
                     last_log_time = time.time()
 
                     # ---- syncing metagraph for all rank
@@ -211,7 +208,7 @@ class DDPPipe():
 
                         
                         # ---- wandb logging
-                        if current_block - last_log_block > self.wandb_log_block and self.config.wandb.api_key != 'default':
+                        if current_block - last_log_block > self.config.neuron.wandb_log_block_time and self.config.wandb.api_key != 'default':
                             nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
                             last_log_block = current_block
 
@@ -283,7 +280,6 @@ class Server:
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.futures = {}
         self.last_sync_block = None
-        self.check_sync_time = 180
 
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
@@ -391,7 +387,7 @@ class Server:
                 if (self.last_sync_block == None) or (current_block - self.last_sync_block > self.config.neuron.metagraph_sync):
                     self.metagraph.sync()
                     self.last_sync_block = current_block
-                time.sleep(self.check_sync_time)
+                time.sleep(self.config.neuron.check_sync_time)
             
         try: 
 
