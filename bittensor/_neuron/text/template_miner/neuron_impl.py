@@ -93,7 +93,7 @@ class Neuron:
             ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device)
         )
         # ---- Decay factor for fisher ema score 
-        self.fisher_ema_decay = 0.995
+        self.fisher_ema_decay = 0.999
 
     def __enter__(self):
         self.wallet.create()

@@ -27,26 +27,8 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from ..neuron_utilities import joining_context, jacobian, partial_contexts
 
-def jacobian(y, x, create_graph=False,hessian =False):                                                               
-    jac = []                                                                                          
-    flat_y = y.reshape(-1)                                                                            
-    grad_y = torch.zeros_like(flat_y)                                                                 
-    for i in range(len(flat_y)): 
-        if hessian ==True and flat_y[i].item() == 0:
-            grad_x = torch.zeros_like(x)
-            jac.append(grad_x.reshape(x.shape)) 
-            print('skipped')
-            pass
-        else:
-            print(flat_y[i].item())                                                                         
-            grad_y[i] = 1.
-            print(grad_y)                                                                             
-            grad_x, = torch.autograd.grad(flat_y, x, grad_y, retain_graph=True, create_graph=create_graph)
-            print(grad_x)
-            jac.append(grad_x.reshape(x.shape))                                                           
-            grad_y[i] = 0.                                                                                
-    return torch.stack(jac).reshape(y.shape + x.shape)       
 class PositionalEncoding(nn.Module):
 
     def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
@@ -105,19 +87,6 @@ class Nucleus(nn.Module):
     def compute_scores ( self, loss, inputs):
         """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
-        """
-        """
-        peer_weights_d1 = jacobian(loss, self.peer_weights, create_graph=True)
-        if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
-        peer_weights_d2 = jacobian(peer_weights_d1, self.peer_weights, hessian=True)
-        print((torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2)
-        print(peer_weights_d2.detach())
-        second_order = (peer_weights_d2.detach() * (torch.outer(-self.peer_weights.detach(),-self.peer_weights.detach()))/2 ).sum(dim=1)
-        print('second order')
-        print(second_order)
-        first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
-        validator_scores =  second_order + first_order
-
         """
         validator_scores = torch.zeros(self.peer_weights.size())
         with torch.no_grad():
@@ -293,31 +262,14 @@ class Nucleus(nn.Module):
             inputs = inputs
         )
 
-        output, joining_uids = self.joining_context(return_ops, topk_weights, responses)
+        output, joining_uids = joining_context(return_ops, topk_weights, responses)
 
         # ---- Punish peers with non-successful return ops ----
         with torch.no_grad():
             self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
             self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
         
-        self.partial_context = {}
-        with torch.no_grad():
-            for i, uid in enumerate(topk_uids):
-                partial_return_ops = return_ops.clone()
-                partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
-                self.partial_context[uid], _ = self.joining_context(partial_return_ops, topk_weights, responses)
-
+        self.partial_context = partial_contexts(return_ops, topk_uids, topk_weights, responses)
         return output, topk_uids[joining_uids], responses, topk_uids
 
 
-
-    def joining_context(self, return_ops, topk_weights, responses):
-        # ---- Join based on weights ----
-        joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-        print(joining_uids)
-        joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-        output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__)).to( self.config.neuron.device )
-        for index, joining_weight in enumerate( joining_weights ):
-            output += responses[joining_uids[index]].to( self.config.neuron.device ) * joining_weight
-        
-        return output, joining_uids
