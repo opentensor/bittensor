@@ -137,7 +137,7 @@ class Neuron:
                 self.reload()
                 self.axon.check()
             
-            self.stats.ema_scores = torch.nn.Parameter(torch.zeros(self.metagraph.n.item()).to(self.device), requires_grad = False)
+            self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device), requires_grad = False)
 
             # --- Run until n_epochs ----
             while self.epoch < self.config.neuron.n_epochs:

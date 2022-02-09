@@ -100,13 +100,13 @@ class Nucleus(nn.Module):
                 print(uid,loss, partial_remote_target_loss)
                 validator_scores[uid] =  (partial_remote_target_loss - loss.item())/loss.item()
                 
-        peer_weights_d1 = jacobian(loss, self.peer_weights)
-        first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
+        #peer_weights_d1 = jacobian(loss, self.peer_weights)
+        #first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
         print(validator_scores)
-        print(first_order)
-        validator_scores= validator_scores + first_order
-        print(validator_scores)
-        return validator_scores
+        #print(first_order)
+        #validator_scores= validator_scores + first_order
+        #print(validator_scores)
+        return F.relu(validator_scores)
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
