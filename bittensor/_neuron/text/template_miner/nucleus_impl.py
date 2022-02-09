@@ -88,7 +88,7 @@ class Nucleus(nn.Module):
         """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
-        validator_scores = torch.ones(self.peer_weights.size()) * -10
+        validator_scores = torch.zeros(self.peer_weights.size())
         with torch.no_grad():
             for uid in self.partial_context:
 
