@@ -23,7 +23,7 @@ Example:
 """
 import sys
 import os
-import pandas
+import pandas as pd
 import signal
 import bittensor
 import time
@@ -74,6 +74,9 @@ class QueryBenchmark:
             parser.add_argument('--delay', type=int, help='Message delay', default=0)
             parser.add_argument('--test_multiprocessing', action='store_true', help='Test with multiprocessing.', default=False)
             parser.add_argument('--n_processes', type=int, help='Number of process if --test_multiprocessing is True.', default=10)
+            parser.add_argument('--restart_stats', action='store_true', help='If set, clean up old stats', default=False)
+            parser.add_argument('--run_sequence', action='store_true', help='If set, get config from yaml and run a sequence of test.', default=False)
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -202,7 +205,7 @@ class QueryBenchmark:
 
         return results
 
-    def query_sequence( self, ncalls:int, batch_size:int, block_size:int ) -> pandas.DataFrame:
+    def query_sequence( self, ncalls:int, batch_size:int, block_size:int ) -> pd.DataFrame:
         r""" Queries the background neuron with passed parameters
             Args:
                 ncalls (int):
@@ -234,8 +237,15 @@ class QueryBenchmark:
                 )
                 results.append( [ qtime.item(), codes.item(), time.time() - start_time ])
                 time.sleep( self.conf.delay )
-        dataframe = pandas.DataFrame( data = results, columns = ['time', 'code', 'elapsed'] )
-        return dataframe
+
+        
+        df = pd.DataFrame( data = results, columns = ['time', 'code', 'elapsed' ] )
+        df['n_processes'] = self.conf.n_processes
+        df['n_calls'] = self.conf.n_calls
+        df['batch_size'] = self.conf.batch_size
+        df['block_size'] = self.conf.block_size
+        df['world_size'] = self.conf.neuron.world_size
+        return df
 
     def print_query_analysis( self, history ):
         r""" Prints analysis from the query trial.
@@ -247,9 +257,15 @@ class QueryBenchmark:
     def run_standard_benchmark(self):
         r""" Tests default query sizes
         """
-        history = self.query_sequence( ncalls = self.conf.n_calls, batch_size = self.conf.batch_size, block_size = self.conf.block_size )
-        self.print_query_analysis( history )
-        history.to_csv( self.log_dir + '/queries.csv' )
+        stats = self.query_sequence( ncalls = self.conf.n_calls, batch_size = self.conf.batch_size, block_size = self.conf.block_size )
+        self.print_query_analysis( stats )
+        if self.conf.restart:
+            stats.to_csv( self.log_dir + '/queries.csv' )
+        else:
+            history = pd.read_csv(self.log_dir + '/queries.csv' , index_col=0)
+            stats = pd.concat([history, stats])
+            stats = stats.reset_index()
+            stats.to_csv( self.log_dir + '/queries.csv' )
 
     def run(self):
         r""" Runs all funcs with benchmark_ prefix.
