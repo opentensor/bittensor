@@ -88,7 +88,7 @@ class Nucleus(nn.Module):
         """Computes salience scores for each peer in the network w.r.t the loss. 
         We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
         """
-        validator_scores = torch.zeros(self.peer_weights.size())
+        validator_scores = torch.ones(self.peer_weights.size()) * -10
         with torch.no_grad():
             for uid in self.partial_context:
 
@@ -102,10 +102,10 @@ class Nucleus(nn.Module):
                 
         peer_weights_d1 = jacobian(loss, self.peer_weights, create_graph=True)
         first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
-        validator_scores= F.softmax(validator_scores) + F.softmax(first_order)
+        validator_scores= validator_scores + first_order
         print(validator_scores)
         return validator_scores
-        
+
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
             Args:
