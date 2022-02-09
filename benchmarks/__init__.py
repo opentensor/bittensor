@@ -242,7 +242,7 @@ class QueryBenchmark:
         df['n_calls'] = self.conf.n_calls
         df['batch_size'] = self.conf.batch_size
         df['block_size'] = self.conf.block_size
-        df['world_size'] = self.config.neuron.world_size
+        df['world_size'] = self.config().neuron.world_size
         return df
 
     def print_query_analysis( self, history ):
