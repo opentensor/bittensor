@@ -499,11 +499,11 @@ class Neuron:
             peer_weights['peer_weights/uid_{}'.format(uid)]=self.nucleus.peer_weights.detach()[uid]
         progress_bar.set_infos( info )
 
-        combination_tensor = torch.zeros(2,self.stats.ema_scores[self.stats.ema_scores>-10].size()[0])
-        combination_tensor[0,:] = self.nucleus.peer_weights.detach()[self.stats.ema_scores>-10]
-        combination_tensor[1,:] = self.stats.ema_scores[self.stats.ema_scores>-10]
+        combination_tensor = torch.zeros(2,self.stats.ema_scores[self.stats.ema_scores>0].size()[0])
+        combination_tensor[0,:] = self.nucleus.peer_weights.detach()[self.stats.ema_scores>0]
+        combination_tensor[1,:] = self.stats.ema_scores[self.stats.ema_scores>0]
         print(torch.corrcoef(combination_tensor))
-        spearmanr = stats.spearmanr(self.nucleus.peer_weights.detach(), self.stats.ema_scores.detach())[0]
+        spearmanr = stats.spearmanr(combination_tensor[0,:], combination_tensor[1,:])[0]
         print(spearmanr)
         peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
         peer_weights['peer_weights/spearson'] = spearmanr
