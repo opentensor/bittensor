@@ -264,11 +264,7 @@ class Nucleus(nn.Module):
 
         output, joining_uids = joining_context(return_ops, topk_weights, responses)
 
-        # ---- Punish peers with non-successful return ops ----
-        with torch.no_grad():
-            self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
-            self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
-        
+
         self.partial_context = partial_contexts(return_ops, topk_uids, topk_weights, responses)
         return output, topk_uids[joining_uids], responses, topk_uids
 
