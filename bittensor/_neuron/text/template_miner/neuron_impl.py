@@ -176,7 +176,7 @@ class Neuron:
                             output.loss.backward(retain_graph=True) # Accumulates gradients on the nucleus.
                             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
 
-                            scores =  self.nucleus.compute_scores(output.remote_target_loss,inputs)
+                            scores =  self.nucleus.compute_scores(output.remote_target_loss ,inputs)
                             scores[output.query_uids] += 1e-6
 
 

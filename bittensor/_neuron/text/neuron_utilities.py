@@ -45,6 +45,10 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
         for i, uid in enumerate(topk_uids):
             print(uid, i)
             partial_return_ops = return_ops.clone()
-            partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
+            if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
+                print('No response')
+            else:
+                partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
             partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
+            print(partial_context[uid.item()].size())
     return partial_context
