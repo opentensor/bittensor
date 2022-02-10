@@ -116,7 +116,7 @@ class GenesisTextDataset( Dataset ):
         data_dir,
         save_dataset,
         max_datasets,
-        no_tokenizer
+        no_tokenizer, 
     ):
         super().__init__()
         self.block_size = block_size
@@ -224,7 +224,6 @@ class GenesisTextDataset( Dataset ):
                 logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
 
         return directories
-
 
     def extract_datafile_dir(self, directory):
         r"""

@@ -50,6 +50,7 @@ class ReceptorPool ( torch.nn.Module ):
         self.cull_mutex = Lock()
         self.max_processes = 10
         self.compression = compression
+        self.total_requests = 0
         
         try:
             self.external_ip = str(net.get_external_ip())
@@ -66,6 +67,8 @@ class ReceptorPool ( torch.nn.Module ):
         for receptor in self.receptors:
             receptor.__del__()
 
+    def get_total_requests(self):
+        return self.total_requests
     def get_receptors_state(self):
         r""" Return the state of each receptor.
             Returns:
@@ -121,6 +124,7 @@ class ReceptorPool ( torch.nn.Module ):
         # ---- Preprocessing for the forward function, get the request. ---- 
         requests = []
         for arg in call_args:
+            self.total_requests += 1
             receptor, inputs, modality = arg
             requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
 

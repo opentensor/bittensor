@@ -36,8 +36,8 @@ class dataset:
             max_corpus_size:int = None,
             num_workers: int = None,
             dataset_name: list = [],
-            save_dataset: bool=None,
-            no_tokenizer: bool=None
+            save_dataset: bool = None,
+            no_tokenizer: bool = None,
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
             Args:
@@ -79,7 +79,7 @@ class dataset:
             data_dir = config.dataset.data_dir,
             save_dataset = config.dataset.save_dataset,
             max_datasets = config.dataset.max_datasets,
-            no_tokenizer = config.dataset.no_tokenizer
+            no_tokenizer = config.dataset.no_tokenizer,
         )
 
     @classmethod

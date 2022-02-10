@@ -276,7 +276,7 @@ def test_dendrite_multiple():
         compression = config.dendrite.compression,
     )
 
-    manager_server = bittensor.dendrite.manager_serve(config, wallet, receptor_pool)
+    manager_server = bittensor.dendrite.manager_serve(config, wallet, receptor_pool, authkey = wallet.hotkey.ss58_address.encode('UTF-8'))
 
     dend1 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     dend2 = bittensor.dendrite( wallet = wallet, multiprocess=True)
