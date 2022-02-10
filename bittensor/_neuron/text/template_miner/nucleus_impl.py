@@ -106,7 +106,7 @@ class Nucleus(nn.Module):
         #validator_scores= validator_scores + first_order
         #print(validator_scores)
     
-        return F.relu(F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5) )
+        return F.leaky_relu(F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5), negative_slope=0.1)
 
     def decode_remote(self, context, inputs):
         remote_hidden = self.remote_hidden( context)
