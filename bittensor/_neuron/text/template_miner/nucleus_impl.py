@@ -102,7 +102,7 @@ class Nucleus(nn.Module):
         print(F.normalize(first_order, p = 2,dim=0))
         #validator_scores= validator_scores + first_order
         #print(validator_scores)
-        self.train()
+        
     
         return F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
 
@@ -213,6 +213,7 @@ class Nucleus(nn.Module):
                     Distillation loss between local_context and remote_context.
             )
         """
+        self.train()
         # Run local model
         output = self.local_forward( inputs, training )
 
