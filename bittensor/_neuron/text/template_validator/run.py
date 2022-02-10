@@ -91,8 +91,11 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             # --- Training step.
             current_block = subtensor.get_current_block()
             while block >= current_block:
-                loss, _ = validator( next( dataset ) )
-                val_score = validator.scores()
+
+                inputs = next( dataset )
+                loss, _ = validator( inputs )
+                val_score = validator.scores(loss,inputs)
+                
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)

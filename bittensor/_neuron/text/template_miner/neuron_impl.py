@@ -199,7 +199,7 @@ class Neuron:
                             chain_growth = max(scores.shape[0] - self.stats.ema_scores.shape[0], 0)
                             if chain_growth > 0:
                                 self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, device = self.device)]), requires_grad=False)
-                            self.stats.ema_scores = self.fisher_ema_decay * self.stats.ema_scores.detach() + (1 - self.fisher_ema_decay) * scores.detach()
+                            self.stats.ema_scores = F.relu(self.fisher_ema_decay * self.stats.ema_scores.detach() + (1 - self.fisher_ema_decay) * scores.detach())
                             self.stats.scores = scores.detach()
 
 
