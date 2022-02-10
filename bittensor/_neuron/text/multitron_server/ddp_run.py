@@ -22,6 +22,8 @@ Example:
 
 """
 from re import I
+
+from more_itertools import last
 import bittensor
 import torch
 import wandb
@@ -283,6 +285,7 @@ class Server:
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor )
         self.futures = {}
         self.last_sync_block = None
+        self.last_set_weight_block = None
 
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
@@ -384,30 +387,51 @@ class Server:
             if pipe_ready.wait():
                 self.axon.start().serve(**serve_kwargs)
 
-        def sync_meta():
+        def sync():
             while True:
                 current_block = self.subtensor.get_current_block()
                 if (self.last_sync_block == None) or (current_block - self.last_sync_block > self.config.neuron.metagraph_sync):
                     self.metagraph.sync()
-                    self.last_sync_block = current_block
+                    bittensor.logging.success('Metagraph synced', sufix = f'{self.last_sync_block} --> {current_block}')
+                    
+                    
+                if (self.last_set_weight_block == None) or (current_block - self.last_sync_block > self.config.neuron.blocks_per_set_weights):
+                    self.last_set_weight_block = current_block
+                    chain_weights = torch.zeros(self.metagraph.n)
+                    chain_weights [ self.uid ] = 1 
+                    did_set = self.subtensor.set_weights(
+                        uids=self.metagraph.uids,
+                        weights = chain_weights,
+                        wait_for_inclusion = False,
+                        wallet = self.wallet,
+                    )
+                    
+                    if did_set:
+                        logger.success('Successfully set weights on the chain')
+                    else:
+                        logger.error('Failed to set weights on chain. (Timeout)')
+                
                 time.sleep(self.config.neuron.check_sync_time)
             
         try: 
-
+            
             self.wallet.create()
             self.subtensor.register( self.wallet )
             self.metagraph.sync()
+            neuron = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
+            self.uid = neuron.uid
 
             pipe_ready = self.manager.Event()
             axon_start_thread = Thread( target = serve_when_ready, args = ({'subtensor': self.subtensor}, pipe_ready) )
-            meta_sync_thread = Thread( target = sync_meta, daemon = True )
+            sync_thread = Thread( target = sync )
             axon_start_thread.start()
-            meta_sync_thread.start()
+            sync_thread.start()
             self.axon_pipe.run_parallel(ready = pipe_ready)
 
         except KeyboardInterrupt:
             self.axon.stop()
             axon_start_thread.join()
+            sync_thread.join()
             self.axon_pipe.process_ctx.join(timeout = 1)
 
         except Exception as e:
