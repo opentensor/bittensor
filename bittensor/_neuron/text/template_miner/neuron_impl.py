@@ -501,7 +501,7 @@ class Neuron:
 
         combination_tensor = torch.zeros(2,self.stats.ema_scores[self.stats.ema_scores>0].size()[0])
         combination_tensor[0,:] = self.nucleus.peer_weights.detach()[self.stats.ema_scores>0]
-        combination_tensor[1,:] = self.stats.ema_scores[self.stats.ema_scores>0]
+        combination_tensor[1,:] = self.stats.ema_scores.detach()[self.stats.ema_scores>0]
         print(torch.corrcoef(combination_tensor))
         spearmanr = stats.spearmanr(combination_tensor[0,:], combination_tensor[1,:])[0]
         print(spearmanr)
