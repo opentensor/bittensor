@@ -173,6 +173,8 @@ class DDPPipe():
                     del inputs_x
                     torch.cuda.empty_cache()
                 except Exception as e:
+                    if inputs_x != None:
+                        del inputs_x
                     torch.cuda.empty_cache()
                     bittensor.logging.success('got exception', sufix = f'rank: {rank}, {e}')
                     pass
