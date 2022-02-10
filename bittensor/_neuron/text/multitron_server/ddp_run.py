@@ -23,7 +23,6 @@ Example:
 """
 from re import I
 
-from more_itertools import last
 import bittensor
 import torch
 import wandb
@@ -175,11 +174,15 @@ class DDPPipe():
                     del inputs_x
                     torch.cuda.empty_cache()
                 except Exception as e:
-                    if inputs_x != None:
-                        del inputs_x
-                    torch.cuda.empty_cache()
-                    bittensor.logging.success('got exception', sufix = f'rank: {rank}, {e}')
-                    pass
+                    logger.warning(e)
+                    if 'out of memory' in str(e):                    
+                        for p in self.gp_server.pre_model.parameters():
+                            if p.grad is not None:
+                                del p.grad                    
+                        if inputs_x != None:
+                            del inputs_x
+                        torch.cuda.empty_cache()
+                        bittensor.logging.success('cleaned memory', sufix = f'rank: {rank}, {e}')
                 
                 # log if a certain time period had passed
                 # checking with time instead of block here to avoid frequent syncing from subtensor in a while loop
@@ -300,6 +303,7 @@ class Server:
                 outputs (:obj:`torch.FloatTensor`):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
+        result = None
         request_id = id(inputs_x)
         self.forward_q.put( (request_id, inputs_x) )
         self.events[request_id] = self.manager.Event()
@@ -394,8 +398,7 @@ class Server:
                     self.metagraph.sync()
                     bittensor.logging.success('Metagraph synced', sufix = f'{self.last_sync_block} --> {current_block}')
                     
-                    
-                if (self.last_set_weight_block == None) or (current_block - self.last_sync_block > self.config.neuron.blocks_per_set_weights):
+                if (self.last_set_weight_block == None) or (current_block - self.last_set_weight_block > self.config.neuron.blocks_per_set_weights):
                     self.last_set_weight_block = current_block
                     chain_weights = torch.zeros(self.metagraph.n)
                     chain_weights [ self.uid ] = 1 
