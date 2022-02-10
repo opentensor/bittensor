@@ -91,10 +91,7 @@ class Nucleus(nn.Module):
         validator_scores = torch.zeros(self.peer_weights.size())
         with torch.no_grad():
             self.eval()
-            print(self.output.sum())
-            print('estimated loss',self.decode_remote( self.output, inputs ))
             for uid in self.partial_context:
-                print(self.partial_context[uid].sum())
                 partial_remote_target_loss = self.decode_remote( self.partial_context[uid], inputs )
                 print(uid,loss, partial_remote_target_loss)
                 validator_scores[uid] =  (partial_remote_target_loss - loss.item())/loss.item()
@@ -105,8 +102,9 @@ class Nucleus(nn.Module):
         print(F.normalize(first_order, p = 2,dim=0))
         #validator_scores= validator_scores + first_order
         #print(validator_scores)
+        self.train()
     
-        return F.leaky_relu(F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5), negative_slope=0.1)
+        return F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
 
     def decode_remote(self, context, inputs):
         remote_hidden = self.remote_hidden( context)
