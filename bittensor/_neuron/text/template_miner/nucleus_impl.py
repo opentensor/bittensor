@@ -90,9 +90,9 @@ class Nucleus(nn.Module):
         """
         validator_scores = torch.zeros(self.peer_weights.size())
         with torch.no_grad():
-            print('estimated loss',self.decode_remote( self.output, inputs ).item())
+            print('estimated loss',self.decode_remote( self.output, inputs ))
             for uid in self.partial_context:
-                partial_remote_target_loss = self.decode_remote( self.partial_context[uid], inputs ).item()
+                partial_remote_target_loss = self.decode_remote( self.partial_context[uid], inputs )
                 print(uid,loss, partial_remote_target_loss)
                 validator_scores[uid] =  (partial_remote_target_loss - loss.item())/loss.item()
                 
