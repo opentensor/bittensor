@@ -11,7 +11,7 @@ def joining_context(return_ops, topk_weights, responses):
     output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__))
     for index, joining_weight in enumerate( joining_weights ):
         output += responses[joining_uids[index]]* joining_weight
-    
+    print(output[0,:,0])
     return output, joining_uids
 
 def jacobian(y, x, create_graph=False,hessian =False):                                                               
