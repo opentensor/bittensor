@@ -77,7 +77,7 @@ class Neuron:
 
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer,
             step_size = 100.0,
-            gamma = 0.95
+            gamma = 0.99
         )
         self.stats = SimpleNamespace(
             global_step = 0,
@@ -93,7 +93,7 @@ class Neuron:
             ema_scores = torch.nn.Parameter(torch.zeros(0), requires_grad = False).to(self.device)
         )
         # ---- Decay factor for fisher ema score 
-        self.fisher_ema_decay = 0.99
+        self.fisher_ema_decay = 0.95
 
     def __enter__(self):
         self.wallet.create()
