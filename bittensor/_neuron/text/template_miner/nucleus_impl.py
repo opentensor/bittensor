@@ -90,13 +90,9 @@ class Nucleus(nn.Module):
         """
         validator_scores = torch.zeros(self.peer_weights.size())
         with torch.no_grad():
+            print('estimated loss',self.decode_remote( self.output, inputs ).item())
             for uid in self.partial_context:
-
-                remote_hidden = self.remote_hidden( self.partial_context[uid] )
-                remote_target = self.remote_decoder(remote_hidden)
-                shift_logits = remote_target[..., :-1, :].contiguous()
-                shift_labels = inputs[..., 1:].contiguous()
-                partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+                partial_remote_target_loss = self.decode_remote( self.partial_context[uid], inputs ).item()
                 print(uid,loss, partial_remote_target_loss)
                 validator_scores[uid] =  (partial_remote_target_loss - loss.item())/loss.item()
                 
@@ -106,7 +102,17 @@ class Nucleus(nn.Module):
         print(F.normalize(first_order, p = 2,dim=0))
         #validator_scores= validator_scores + first_order
         #print(validator_scores)
+    
         return F.relu(F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5) )
+
+    def decode_remote(self, context, inputs):
+        remote_hidden = self.remote_hidden( context)
+        remote_target = self.remote_decoder(remote_hidden)
+        shift_logits = remote_target[..., :-1, :].contiguous()
+        shift_labels = inputs[..., 1:].contiguous()
+        partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+
+        return partial_remote_target_loss
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
@@ -237,6 +243,7 @@ class Nucleus(nn.Module):
         return output
 
 
+
     def remote(self, inputs: torch.int64 ) -> torch.float32:
         """ Forwards the inputs through the network, selects the topk peers based on self.peer_weights.
         Args:
@@ -269,7 +276,7 @@ class Nucleus(nn.Module):
 
         output, joining_uids = joining_context(return_ops, topk_weights, responses)
 
-
+        self.output = output
         self.partial_context = partial_contexts(return_ops, topk_uids, topk_weights, responses)
         return output, topk_uids[joining_uids], responses, topk_uids
 
