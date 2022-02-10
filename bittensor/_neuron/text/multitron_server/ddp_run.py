@@ -124,10 +124,10 @@ class DDPPipe():
     def run_parallel( self, ready = None):
         r""" Spawn multiple processes.
         """
-        mp.spawn(self.run,
+        self.process_ctx = mp.spawn(self.run,
             args=(self.world_size, ready),
             nprocs=self.world_size,
-            daemon = True
+            join = False
         )
 
     def run(self, rank = 0, world_size = 0, ready= None):
@@ -408,6 +408,7 @@ class Server:
         except KeyboardInterrupt:
             self.axon.stop()
             axon_start_thread.join()
+            self.axon_pipe.process_ctx.join(timeout = 1)
 
         except Exception as e:
             # --- Unknown error ----
