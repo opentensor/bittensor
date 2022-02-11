@@ -85,7 +85,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         total_epoch_score = torch.zeros(metagraph.n.item(), device = device)
         total_epoch_loss = 0
         batch_count = 0
-        
+        k = min( config.neuron.n_topk_peer_weights,metagraph.n.item() )
+
         for block in progress:
             
             # --- Training step.
@@ -122,7 +123,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             peer_weights = {}
-            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, config.neuron.n_topk_peer_weights, dim=0)
+            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, k, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
@@ -134,7 +135,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         inactive_uids = torch.where(metagraph.active == 0)[0]
         ema_scores[inactive_uids] = 0
         # --- Set mechanism weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item())  )
+        
+        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores, k, dim=0 )
         subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
