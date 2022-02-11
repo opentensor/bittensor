@@ -41,7 +41,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import time
 from multiprocessing import Process, Manager, Event 
-from threading import Thread
+import threading 
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
@@ -255,7 +255,6 @@ class DDPPipe():
                                 logger.error('Failure setting weights on chain with error: {}', e)
 
         except KeyboardInterrupt:
-            logger.success('Keyboard Interuped')
             self.process_ctx.join(timeout = 1)
 
         except Exception as e:
@@ -395,8 +394,8 @@ class Server:
             if pipe_ready.wait():
                 self.axon.start().serve(**serve_kwargs)
 
-        def sync():
-            while True:
+        def sync(keyboard_interupt):
+            while not keyboard_interupt.is_set():
                 current_block = self.subtensor.get_current_block()
                 if (self.last_sync_block == None) or (current_block - self.last_sync_block > self.config.neuron.metagraph_sync):
                     self.metagraph.sync()
@@ -421,7 +420,6 @@ class Server:
                 time.sleep(self.config.neuron.check_sync_time)
             
         try: 
-            
             self.wallet.create()
             self.subtensor.register( self.wallet )
             self.metagraph.sync()
@@ -429,13 +427,19 @@ class Server:
             self.uid = neuron.uid
 
             pipe_ready = self.manager.Event()
-            axon_start_thread = Thread( target = serve_when_ready, args = ({'subtensor': self.subtensor}, pipe_ready) )
-            sync_thread = Thread( target = sync )
+            keyboard_interupt = threading.Event()
+            axon_start_thread = threading.Thread( target = serve_when_ready, args = ({'subtensor': self.subtensor}, pipe_ready) )
+            sync_thread = threading.Thread( target = sync, args = (keyboard_interupt, ))
             axon_start_thread.start()
             sync_thread.start()
             self.axon_pipe.run_parallel(ready = pipe_ready)
+            
+            # Just to keep this run function alive.
+            while True:
+                time.sleep(180)
 
         except KeyboardInterrupt:
+            keyboard_interupt.set()
             logger.success('Keyboard Interuped')
             self.axon_pipe.process_ctx.join(timeout = 1)
             logger.success('DDP Stopped')
