@@ -1,4 +1,5 @@
 import argparse
+from tkinter import W
 import bittensor
 import torch
 import torch.nn.functional as F
@@ -131,10 +132,15 @@ class server(torch.nn.Module):
         
         inputs = self.token_remap(inputs,tokenizer).to(self.device)
 
-        output = self.pre_model(inputs).detach()
-        pre_hidden = output.last_hidden_state
-        del output 
-        
+        output = None
+        try:
+            output = self.pre_model(inputs).detach()
+            pre_hidden = output.last_hidden_state
+            del output 
+        except:
+            if output != None:
+                del output
+            return None 
 
         if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
