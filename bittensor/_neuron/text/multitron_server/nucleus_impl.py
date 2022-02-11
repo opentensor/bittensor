@@ -1,5 +1,4 @@
 import argparse
-from tkinter import W
 import bittensor
 import torch
 import torch.nn.functional as F
