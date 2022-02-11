@@ -254,6 +254,10 @@ class DDPPipe():
                             except Exception as e:
                                 logger.error('Failure setting weights on chain with error: {}', e)
 
+        except KeyboardInterrupt:
+            logger.success('Keyboard Interuped')
+            self.process_ctx.join(timeout = 1)
+
         except Exception as e:
             # --- Unknown error ----
             logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
