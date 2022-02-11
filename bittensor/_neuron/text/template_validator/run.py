@@ -65,7 +65,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     global_step = 0
     best_loss = math.inf
     ema_score_decay = 0.995
-    ema_scores = torch.nn.Parameter(torch.ones(validator.peer_weights, device = device), requires_grad = False)
+    ema_scores = torch.nn.Parameter(torch.ones(metagraph.n.item()).to(device), requires_grad = False)
 
     while True:
         # --- Sync + reshape.      
