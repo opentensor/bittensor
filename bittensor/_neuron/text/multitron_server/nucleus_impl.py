@@ -61,6 +61,8 @@ class server(torch.nn.Module):
             self.pre_model = model if model != None else AutoModel.from_config(model_config)
             self.tokenizer = bittensor.tokenizer()
 
+        self.pre_model.eval()
+
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
@@ -127,12 +129,7 @@ class server(torch.nn.Module):
         """
         sen_len = inputs.size()
         
-        try:
-            inputs = self.token_remap(inputs,tokenizer).to(self.device)
-        except RuntimeError:
-            if inputs != None:
-                del inputs
-                return torch.tensor([])
+        inputs = self.token_remap(inputs,tokenizer).to(self.device)
 
         pre_hidden = self.pre_model(inputs).last_hidden_state
 
