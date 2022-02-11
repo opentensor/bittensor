@@ -3,6 +3,9 @@ import torch
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import torch.nn.functional as F
 import math
+from ..neuron_utilities import joining_context, jacobian, partial_contexts
+
+
 class Validator( torch.nn.Module ):
 
         def __init__(self, config, metagraph, dendrite, device):

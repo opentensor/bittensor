@@ -65,7 +65,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     global_step = 0
     best_loss = math.inf
     ema_score_decay = 0.995
-    ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
+    ema_scores = torch.nn.Parameter(torch.ones(validator.peer_weights, device = device), requires_grad = False)
 
     while True:
         # --- Sync + reshape.      
@@ -105,7 +105,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores.detach()
+                ema_scores = F.relu(ema_score_decay * ema_scores + (1 - ema_score_decay) * scores.detach())
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
@@ -121,12 +121,13 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Dividends': colored('{:.4f}'.format(metagraph.D[ uid ].item()), 'red'),
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
-            
+            peer_weights = {}
             topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
-            
+                peer_weights['peer_weights/uid_{}'.format(uid)]=validator.peer_weights.detach()[uid]
+                peer_weights[f'weights/uid_{uid.item()}'] = ema_score
             progress.set_infos( info )
         
         # --- End of epoch
@@ -160,7 +161,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             wandb_data_dend = dendrite.to_wandb()
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block)
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block)
-
+            wandb.log( peer_weights, step= current_block)
+            
         # --- Save.
         if best_loss > epoch_loss : 
             best_loss = epoch_loss

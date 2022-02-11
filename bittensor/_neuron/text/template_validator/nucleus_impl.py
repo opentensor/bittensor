@@ -22,6 +22,7 @@ class Validator( torch.nn.Module ):
 
 
         def forward ( self, inputs ):
+            self.train()
             # Apply model.
             query_hidden = self.query( inputs )
             encoded_hidden = self.encoder( query_hidden )
@@ -39,23 +40,29 @@ class Validator( torch.nn.Module ):
             """
             validator_scores = torch.zeros(self.peer_weights.size())
             with torch.no_grad():
+                self.eval()
+                print('estimated loss',self.decode_remote( self.output, inputs ))
+                estimate_loss = self.decode_remote( self.output, inputs )
                 for uid in self.partial_context:
-
-                    remote_hidden = self.encoder( self.partial_context[uid] )
-                    remote_target = self.decoder(remote_hidden)
-                    shift_logits = remote_target[..., :-1, :].contiguous()
-                    shift_labels = inputs[..., 1:].contiguous()
-                    partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+                    partial_remote_target_loss = self.decode_remote( self.partial_context[uid],inputs )
                     print(uid,loss, partial_remote_target_loss)
-                    validator_scores[uid] =  (partial_remote_target_loss - loss.item())/loss.item()
-                    
+                    validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss        
             peer_weights_d1 = jacobian(loss, self.peer_weights)
             first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
             print(F.normalize(validator_scores, p = 2,dim=0))
             print(F.normalize(first_order, p = 2,dim=0))
             #validator_scores= validator_scores + first_order
             #print(validator_scores)
-            return F.leaky_relu(F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5), negative_slope=0.1)
+            return F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
+
+        def decode_remote(self, context, inputs):
+            remote_hidden = self.encoder( context)
+            remote_target = self.decoder(remote_hidden)  
+            shift_logits = remote_target[..., :-1, :].contiguous()
+            shift_labels = inputs[..., 1:].contiguous()
+            partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+
+            return partial_remote_target_loss
 
         def query ( self, inputs ):
 
@@ -82,6 +89,7 @@ class Validator( torch.nn.Module ):
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
+            self.output = output.detach()
             # ---- Calculate masked peers ----
             self.partial_context = partial_contexts(return_ops, topk_uids, topk_weights, responses)
 
