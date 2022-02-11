@@ -47,15 +47,35 @@ class Validator( torch.nn.Module ):
             self.total_loss = self.loss + importance_loss
             return self.total_loss, decoded_targets, query_uids
 
-        def scores ( self ):
+        def scores ( self, loss, inputs ):
             """Computes salience scores for each peer in the network w.r.t the loss. 
             We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
             """
-            peer_weights_d1 = torch.autograd.grad(self.loss, self.total_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-            if peer_weights_d1 == None: return torch.ones_like( self.total_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
-            peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.total_weights, retain_graph=True, allow_unused=True )[0]
-            validator_scores =  peer_weights_d2 * (self.total_weights**2)/2  
-            return validator_scores
+            validator_scores = torch.zeros(self.peer_weights.size())
+            with torch.no_grad():
+                self.eval()
+                print('estimated loss',self.decode_remote( self.output, inputs ))
+                estimate_loss = self.decode_remote( self.output, inputs )
+                for uid in self.partial_context:
+                    partial_remote_target_loss = self.decode_remote( self.partial_context[uid],inputs )
+                    print(uid,loss, partial_remote_target_loss)
+                    validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss        
+            peer_weights_d1 = jacobian(loss, self.peer_weights)
+            first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
+            print(F.normalize(validator_scores, p = 2,dim=0))
+            print(F.normalize(first_order, p = 2,dim=0))
+            #validator_scores= validator_scores + first_order
+            #print(validator_scores)
+            return F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
+
+        def decode_remote(self, context, inputs):
+            remote_hidden = self.encoder( context)
+            remote_target = self.decoder(remote_hidden)  
+            shift_logits = remote_target[..., :-1, :].contiguous()
+            shift_labels = inputs[..., 1:].contiguous()
+            partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+
+            return partial_remote_target_loss
 
         def query ( self, inputs ):
 
@@ -80,6 +100,10 @@ class Validator( torch.nn.Module ):
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
+            self.output = output.detach()
+            # ---- Calculate masked peers ----
+            self.partial_context = partial_contexts(return_ops, query_uids, topk_weights, responses)
+            
             return output, query_uids[joining_uids]
 
         def sync_with_chain_state( self ):

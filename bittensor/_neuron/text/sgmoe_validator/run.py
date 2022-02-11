@@ -100,7 +100,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
+                ema_scores = F.relu((ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach())
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
@@ -171,6 +171,11 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             validator.sync_with_chain_state()
             chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
             ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
+            optimizer = torch.optim.SGD(
+                validator.parameters(),
+                lr = config.neuron.learning_rate,
+                momentum = config.neuron.momentum,
+            )
 
         epoch += 1
 
