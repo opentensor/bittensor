@@ -39,7 +39,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     config.to_defaults()
     validator = validator.to(device)
     optimizer = torch.optim.SGD(
-        [ {'params': validator.peer_weights, 'lr': config.neuron.learning_rate_chain} ],
+        validator.parameters(),
         lr = config.neuron.learning_rate,
         momentum = config.neuron.momentum,
     )
