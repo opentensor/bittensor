@@ -267,7 +267,8 @@ class Nucleus(nn.Module):
         std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.config.nucleus.noise_offset
         noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
         print(active_peer_weights, noise)
-        topk_weights, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
+        _, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
+        topk_weights = self.peer_weights[topk_uids]
         topk_uids = active_uids[topk_idx]
 
         # ---- Filter endpoints ----
