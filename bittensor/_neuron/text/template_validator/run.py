@@ -38,11 +38,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     print(config)
     config.to_defaults()
     validator = validator.to(device)
-    optimizer = torch.optim.SGD(
-        validator.parameters(),
-        lr = config.neuron.learning_rate,
-        momentum = config.neuron.momentum,
-    )
+
     if config.wandb.api_key != 'default':
         # Create wandb for telemetry.
         bittensor.wandb(
@@ -72,6 +68,13 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         metagraph.sync().save()
         chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
         validator.peer_weights = torch.nn.Parameter(torch.cat([validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True, device = device)]))
+
+        optimizer = torch.optim.SGD(
+            validator.parameters(),
+            lr = config.neuron.learning_rate,
+            momentum = config.neuron.momentum,
+        )
+        
         ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         # --- Run epoch.
