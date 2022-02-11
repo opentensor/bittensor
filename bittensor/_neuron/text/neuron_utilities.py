@@ -43,7 +43,7 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
     partial_context = {}
     with torch.no_grad():
         for i, uid in enumerate(topk_uids):
-            print(uid, i)
+            print(uid, i,topk_weights[i])
             partial_return_ops = return_ops.clone()
             if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
                 print('No response')
