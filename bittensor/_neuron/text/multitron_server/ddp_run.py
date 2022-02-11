@@ -432,14 +432,15 @@ class Server:
             self.axon_pipe.run_parallel(ready = pipe_ready)
 
         except KeyboardInterrupt:
+            logger.success('Keyboard Interuped')
+            self.axon_pipe.process_ctx.join(timeout = 1)
+            logger.success('DDP Stopped')
             self.axon.stop()
             logger.success('Axon Stopped')
             axon_start_thread.join()
             logger.success('Starting Thread Stopped')
             sync_thread.join()
             logger.success('Syncing Thread Stopped')
-            self.axon_pipe.process_ctx.join(timeout = 1)
-            logger.success('DDP Stopped')
 
         except Exception as e:
             # --- Unknown error ----
