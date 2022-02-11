@@ -126,8 +126,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
-                peer_weights['peer_weights/uid_{}'.format(uid)]=validator.peer_weights.detach()[uid]
-                peer_weights[f'weights/uid_{uid.item()}'] = ema_score
+                peer_weights['peer_weights/uid_{}'.format(idx)]=validator.peer_weights.detach()[idx]
+                peer_weights[f'weights/uid_{idx.item()}'] = ema_score
             progress.set_infos( info )
         
         # --- End of epoch
