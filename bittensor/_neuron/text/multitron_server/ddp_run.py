@@ -438,7 +438,7 @@ class Server:
             self.uid = neuron.uid
 
             pipe_ready = self.manager.Event()
-            keyboard_interupt = threading.Event()
+            keyboard_interupt = self.manager.Event()
             axon_start_thread = threading.Thread( target = serve_when_ready, args = ({'subtensor': self.subtensor}, pipe_ready) )
             sync_thread = threading.Thread( target = sync, args = (keyboard_interupt, ))
             axon_start_thread.start()
