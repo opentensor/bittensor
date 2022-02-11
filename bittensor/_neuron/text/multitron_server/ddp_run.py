@@ -122,16 +122,16 @@ class DDPPipe():
         """
         dist.destroy_process_group()
 
-    def run_parallel( self, ready = None):
+    def run_parallel( self, ready = None, keyboard_interupt = None):
         r""" Spawn multiple processes.
         """
         self.process_ctx = mp.spawn(self.run,
-            args=(self.world_size, ready),
+            args=(self.world_size, ready, keyboard_interupt),
             nprocs=self.world_size,
             join = False
         )
 
-    def run(self, rank = 0, world_size = 0, ready= None):
+    def run(self, rank = 0, world_size = 0, ready= None, keyboard_interupt = None):
         self.init_bit(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
@@ -160,7 +160,7 @@ class DDPPipe():
             ready.set()
         try:
             torch.cuda.empty_cache()
-            while True:
+            while keyboard_interupt == None or not keyboard_interupt.is_set():
                 try:
                     request_id, inputs_x = self.forward_q.get()
                     if inputs_x != None:
@@ -253,9 +253,6 @@ class DDPPipe():
                             
                             except Exception as e:
                                 logger.error('Failure setting weights on chain with error: {}', e)
-
-        except KeyboardInterrupt:
-            self.process_ctx.join(timeout = 1)
 
         except Exception as e:
             # --- Unknown error ----
@@ -391,10 +388,24 @@ class Server:
 
     def run(self):
         def serve_when_ready(serve_kwargs, pipe_ready):
+            r""" Start to serve Axon when DDP have started
+                Args:
+                    serve_kwargs(map):
+                        Arguments for serving axon.
+                    pipe_ready(manager.Event):
+                        The Event when the DDP is ready
+            """
             if pipe_ready.wait():
                 self.axon.start().serve(**serve_kwargs)
-
+            
+            return 
+        
         def sync(keyboard_interupt):
+            r""" Sync with metagraph and set weight to chain.
+                Args:
+                    keyboard_interupt(manager.Event):
+                        Whether we have tried to stop the program with keyboard_interupt.
+            """
             while not keyboard_interupt.is_set():
                 current_block = self.subtensor.get_current_block()
                 if (self.last_sync_block == None) or (current_block - self.last_sync_block > self.config.neuron.metagraph_sync):
@@ -432,7 +443,7 @@ class Server:
             sync_thread = threading.Thread( target = sync, args = (keyboard_interupt, ))
             axon_start_thread.start()
             sync_thread.start()
-            self.axon_pipe.run_parallel(ready = pipe_ready)
+            self.axon_pipe.run_parallel(ready = pipe_ready, keyboard_interupt = keyboard_interupt)
             
             # Just to keep this run function alive.
             while True:
