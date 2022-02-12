@@ -96,7 +96,7 @@ class Nucleus(nn.Module):
             for uid in self.partial_context:
                 partial_remote_target_loss = self.decode_remote( self.partial_context[uid], inputs )
                 print(uid,loss, partial_remote_target_loss, estimate_loss)
-                validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss
+                validator_scores[uid] =  (estimate_loss - partial_remote_target_loss )/estimate_loss
                 
         peer_weights_d1 = jacobian(loss, self.peer_weights)
         first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
