@@ -232,6 +232,11 @@ class DDPPipe():
                             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
                             wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
                             wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
+        
+        except KeyboardInterrupt:
+            if rank == 0:
+                wandb.finish()
+
         except Exception as e:
             # --- Unknown error ----
             logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
