@@ -31,6 +31,7 @@ import datetime
 import traceback
 import sys
 import os
+import wandb
 
 from loguru import logger; logger = logger.opt(colors=True)
 from torch.nn.utils import clip_grad_norm_
@@ -155,11 +156,15 @@ class DDPPipe():
         # -- Main Training loop --
         if ready != None and rank == 0 :
             ready.set()
+
+        if rank == 0:
+            wandb.init()
+
         try:
             torch.cuda.empty_cache()
             while True: 
                 try:
-                    request_id, inputs_x = self.forward_q.get()
+                    request_id, inputs_x = self.forward_q.get(timeput = self.config.neuron.console_log_time)
                     if inputs_x != None:
                         inputs_x = inputs_x.to(self.device)
                         output = self.gp_server.encode_forward(inputs_x)
@@ -194,7 +199,6 @@ class DDPPipe():
 
                     # ---- console logging and wandb logging for only rank 0                    
                     if rank == 0:
-                    
                         # ---- data
                         wandb_data = {
                             'block': current_block,
@@ -211,7 +215,6 @@ class DDPPipe():
                         # ---- console logging
                         bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
-                        
                         # ---- wandb logging
                         if current_block - last_log_block > self.config.neuron.wandb_log_block_time and self.config.wandb.api_key != 'default':
                             nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
@@ -229,28 +232,6 @@ class DDPPipe():
                             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
                             wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
                             wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
-                        
-                        # ---- Set weight to maintain activity.
-                        if current_block - last_set_block > self.config.neuron.blocks_per_set_weights:
-                            try:
-                                last_set_block = current_block
-                                chain_weights = torch.zeros(self.metagraph.n)
-                                chain_weights [ uid ] = 1 
-                                did_set = self.subtensor.set_weights(
-                                    uids=self.metagraph.uids,
-                                    weights = chain_weights,
-                                    wait_for_inclusion = False,
-                                    wallet = self.wallet,
-                                )
-                                
-                                if did_set:
-                                    logger.success('Successfully set weights on the chain')
-                                else:
-                                    logger.error('Failed to set weights on chain. (Timeout)')
-                            
-                            except Exception as e:
-                                logger.error('Failure setting weights on chain with error: {}', e)
-
         except Exception as e:
             # --- Unknown error ----
             logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
