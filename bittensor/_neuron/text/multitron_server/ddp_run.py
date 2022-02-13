@@ -61,10 +61,14 @@ class DDPPipe():
         self.events = events
         self.outputs = outputs
 
-    def stop( self ):
-        r""" Stop the dendrite and dataset
-        """
-        del self.dendrite
+        if self.config.wandb.api_key != 'default':
+            bittensor.wandb(
+                config = self.config,
+                cold_pubkey = self.wallet.coldkeypub.ss58_address,
+                hot_pubkey = self.wallet.hotkey.ss58_address,
+                root_dir = self.config.neuron.full_path
+            )
+
     
     def init_process(self, rank):
         r""" For each process, anchor them to the process group 
@@ -122,16 +126,16 @@ class DDPPipe():
         """
         dist.destroy_process_group()
 
-    def run_parallel( self, ready = None, keyboard_interupt = None):
+    def run_parallel( self, ready = None):
         r""" Spawn multiple processes.
         """
         self.process_ctx = mp.spawn(self.run,
-            args=(self.world_size, ready, keyboard_interupt),
+            args=(self.world_size, ready),
             nprocs=self.world_size,
-            join = False
+            join = True
         )
 
-    def run(self, rank = 0, world_size = 0, ready= None, keyboard_interupt = None):
+    def run(self, rank = 0, world_size = 0, ready= None):
         self.init_bit(rank)
         if self.config.neuron.no_restart != True:
             self.gp_server.load(self.config.neuron.full_path)
@@ -139,13 +143,6 @@ class DDPPipe():
         self.gp_server = self.gp_server.to(self.device) 
 
         # --- Init Wandb.
-        if rank == 0 and self.config.wandb.api_key != 'default':
-            bittensor.wandb(
-                config = self.config,
-                cold_pubkey = self.wallet.coldkeypub.ss58_address,
-                hot_pubkey = self.wallet.hotkey.ss58_address,
-                root_dir = self.config.neuron.full_path
-            )
 
         nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
         uid = nn.uid
@@ -160,7 +157,7 @@ class DDPPipe():
             ready.set()
         try:
             torch.cuda.empty_cache()
-            while keyboard_interupt == None or not keyboard_interupt.is_set():
+            while True: 
                 try:
                     request_id, inputs_x = self.forward_q.get()
                     if inputs_x != None:
@@ -409,6 +406,7 @@ class Server:
             while not keyboard_interupt.is_set():
                 current_block = self.subtensor.get_current_block()
                 if (self.last_sync_block == None) or (current_block - self.last_sync_block > self.config.neuron.metagraph_sync):
+                    self.last_sync_block = current_block
                     self.metagraph.sync()
                     bittensor.logging.success('Metagraph synced', sufix = f'{self.last_sync_block} --> {current_block}')
                     
@@ -443,24 +441,18 @@ class Server:
             sync_thread = threading.Thread( target = sync, args = (keyboard_interupt, ))
             axon_start_thread.start()
             sync_thread.start()
-            self.axon_pipe.run_parallel(ready = pipe_ready, keyboard_interupt = keyboard_interupt)
+            self.axon_pipe.run_parallel(ready = pipe_ready)
             
             # Just to keep this run function alive.
             while True:
-                time.sleep(180)
+                time.sleep(20)
 
         except KeyboardInterrupt:
             keyboard_interupt.set()
             logger.success('Keyboard Interuped')
-            self.axon_pipe.process_ctx.join(timeout = 1)
-            logger.success('DDP Stopped')
             self.axon.stop()
-            logger.success('Axon Stopped')
             axon_start_thread.join()
-            logger.success('Starting Thread Stopped')
             sync_thread.join()
-            logger.success('Syncing Thread Stopped')
-
         except Exception as e:
             # --- Unknown error ----
             logger.exception('Unknown exception: {} with traceback {}', e, traceback.format_exc())
