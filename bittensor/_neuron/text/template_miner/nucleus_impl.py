@@ -91,22 +91,16 @@ class Nucleus(nn.Module):
         validator_scores = torch.zeros(self.peer_weights.size())
         with torch.no_grad():
             self.eval()
-            print('estimated loss',self.decode_remote( self.output, inputs ))
             estimate_loss = self.decode_remote( self.output, inputs )
             for uid in self.partial_context:
                 partial_remote_target_loss = self.decode_remote( self.partial_context[uid], inputs )
-                print(uid,loss, partial_remote_target_loss, estimate_loss)
-                validator_scores[uid] =  (estimate_loss - partial_remote_target_loss )/estimate_loss
+                validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss
                 
         peer_weights_d1 = jacobian(loss, self.peer_weights)
         first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
-        print(F.normalize(validator_scores, p = 2,dim=0))
-        print(F.normalize(first_order, p = 2,dim=0))
-        #validator_scores= validator_scores + first_order
-        #print(validator_scores)
-        
+        validator_scores= F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)        
     
-        return F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
+        return validator_scores
 
     def decode_remote(self, context, inputs):
         remote_hidden = self.remote_hidden( context)

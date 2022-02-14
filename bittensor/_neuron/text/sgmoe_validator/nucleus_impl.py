@@ -18,7 +18,7 @@ class Validator( torch.nn.Module ):
             self.local_encoder = TransformerEncoder(self.c_layers, 1)
             self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
             self.loss_fct = torch.nn.CrossEntropyLoss()
-            self.peer_weights = torch.ones( [ metagraph().n.item() ] , requires_grad=False, device = device)
+            self.total_weights = torch.zeros( [ metagraph().n.item() ] , requires_grad=False, device = device)
             self.metagraph = metagraph
             self.dendrite = dendrite
             self.config = config
@@ -51,7 +51,7 @@ class Validator( torch.nn.Module ):
             """Computes salience scores for each peer in the network w.r.t the loss. 
             We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
             """
-            validator_scores = torch.zeros(self.total_weights.size())
+            validator_scores = torch.zeros(self.peer_weights.size())
             with torch.no_grad():
                 self.eval()
                 print('estimated loss',self.decode_remote( self.output, inputs ))
@@ -60,10 +60,8 @@ class Validator( torch.nn.Module ):
                     partial_remote_target_loss = self.decode_remote( self.partial_context[uid],inputs )
                     print(uid,loss, partial_remote_target_loss)
                     validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss        
-            peer_weights_d1 = jacobian(loss, self.total_weights)
-            first_order = (peer_weights_d1.detach()* -self.total_weights.detach())
-            print(F.normalize(validator_scores, p = 2,dim=0))
-            print(F.normalize(first_order, p = 2,dim=0))
+            peer_weights_d1 = jacobian(loss, self.peer_weights)
+            first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
             #validator_scores= validator_scores + first_order
             #print(validator_scores)
             return F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
@@ -155,17 +153,17 @@ class Validator( torch.nn.Module ):
             filtered_mean_weights = torch.mean(weights, axis = 0)
             noise = torch.normal( 0, torch.std(filtered_mean_weights).item(), size=( filtered_mean_weights.size())).to( self.config.neuron.device )
 
-            self.total_weights = torch.zeros(self.metagraph().n.item(), device = self.device)
+            self.peer_weights = torch.zeros(self.metagraph().n.item(), device = self.device)
             for i in range(len(active_uids)):
-                self.total_weights[active_uids[i]] = filtered_mean_weights[i] + noise[i]
-
+                self.peer_weights[active_uids[i]] = filtered_mean_weights[i] + noise[i]
+            
             # Get indices and values for uids with highest scores.
             # topk_weights: (torch.float64): scores of uids with highest scores.
             # topk_weights.shape = [ real_topk ]
             # topk_indices: (torch.LongTensor): indicies of uids with highest scores.
             # topk_indices.shape = [ real_topk ]
             real_topk = min( len(active_uids), self.config.neuron.topk )
-            topk_weights, topk_indices = torch.topk(self.total_weights[active_uids], real_topk, dim=0)
+            topk_weights, topk_indices = torch.topk(self.peer_weights[active_uids], real_topk, dim=0)
 
             # Get endpoint information for the highest scoring uids.
             # filtered_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
