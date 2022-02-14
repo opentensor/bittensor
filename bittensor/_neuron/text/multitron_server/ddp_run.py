@@ -94,12 +94,7 @@ class DDPPipe():
             rank (int):
                 rank (id) of the process.
         """
-
-        if self.config.neuron.multiprocessing and self.config.neuron.device == 'cuda':
-            self.device = torch.device( device = f'cuda:{rank}' )
-        else:
-            self.device = torch.device( device = self.config.neuron.device )
-        
+        self.device = torch.device( device = f'cuda:{rank}' )        
         self.gp_server.device = self.device
         self.gp_server = self.gp_server.to(self.device)
         self.subtensor = bittensor.subtensor ( config = self.config )
@@ -447,7 +442,7 @@ class Server:
             
             # Just to keep this run function alive.
             while True:
-                time.sleep(180)
+                time.sleep(20)
 
         except KeyboardInterrupt:
             keyboard_interupt.set()

@@ -232,7 +232,6 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.world_size', type=int, help='The number of processes for ddp.', default=1)
         parser.add_argument('--neuron.address', type=str, help='The address for multiprocess communication', default='localhost')
         parser.add_argument('--neuron.port', type=str, help='The port for multiprocess communication', default='8865')
-        parser.add_argument('--neuron.multiprocessing', action='store_true', help='Use multiprocessing or not', default=False )
         parser.add_argument('--neuron.console_log_time', type=int, help='How often to log in console, in second.', default=30)
         parser.add_argument('--neuron.wandb_log_block_time', type=int, help='How often to log in wandb, in block time.', default=20 )
         parser.add_argument('--neuron.check_sync_time', type=int, help='How often to check metagraph sync, in second.', default=180 )
