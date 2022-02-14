@@ -67,7 +67,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     global_step = 0
     best_loss = math.inf
     ema_score_decay = 0.995
-    ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
+    ema_scores = torch.nn.Parameter(torch.zeros_like(validator.total_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
 
     while True:
 
