@@ -96,6 +96,8 @@ class Dendrite(torch.autograd.Function):
     def __del__(self):
         if self.manager:
             self.manager.deduct_connection_count()
+        if bittensor != None:
+            bittensor.logging.success('Dendrite Deleted', sufix = '')
 
     @staticmethod
     def forward(

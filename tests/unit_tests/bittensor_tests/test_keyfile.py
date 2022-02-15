@@ -1,3 +1,20 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 import bittensor
 from unittest.mock import MagicMock
 import os
@@ -103,3 +120,15 @@ def test_overwriting():
     with pytest.raises(KeyFileError) as pytest_wrapped_e:
         with mock.patch('builtins.input', return_value = 'n'):
             keyfile.set_keypair(bob, encrypt=True, overwrite=False, password = 'thisisafakepassword')
+
+def test_keyfile_mock():
+    file = bittensor.keyfile( _mock = True )
+    assert file.exists_on_device()
+    assert not file.is_encrypted()
+    assert file.is_readable()
+    assert file.data
+    assert file.keypair
+    file.set_keypair( keypair = bittensor.Keypair.create_from_mnemonic( mnemonic = bittensor.Keypair.generate_mnemonic() ))
+
+def test_keyfile_mock_func():
+    file = bittensor.keyfile.mock()

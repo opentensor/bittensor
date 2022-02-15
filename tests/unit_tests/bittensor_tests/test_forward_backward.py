@@ -1,3 +1,20 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 from sys import version
 from bittensor._endpoint import endpoint
 import bittensor
@@ -9,16 +26,7 @@ import multiprocessing
 import time
 import warnings
 
-wallet =  bittensor.wallet (
-    path = '/tmp/pytest',
-    name = 'pytest',
-    hotkey = 'pytest',
-) 
-
-wallet.create_new_coldkey( use_password=False, overwrite = True)
-wallet.create_new_hotkey( use_password=False, overwrite = True)
-
-
+wallet = bittensor.wallet.mock()
 bittensor.logging(debug = True)
 dendrite = bittensor.dendrite(requires_grad=True)
 dendrite_no_grad = bittensor.dendrite(requires_grad=False)

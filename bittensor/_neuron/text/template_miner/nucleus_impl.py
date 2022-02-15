@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+from cmath import isnan
 import bittensor
 import math
 import torch
@@ -260,7 +261,6 @@ class Nucleus(nn.Module):
         real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
         std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.config.nucleus.noise_offset
         noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
-        print(active_peer_weights, noise)
         _, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
         topk_weights = self.peer_weights[topk_uids]  

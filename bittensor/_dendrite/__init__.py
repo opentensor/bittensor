@@ -41,7 +41,7 @@ class dendrite:
             max_worker_threads: int = None,
             max_active_receptors: int = None,
             receptor_pool: 'bittensor.ReceptorPool' = None,
-            multiprocess: bool = False,
+            multiprocess: bool = None,
             compression: str = None,
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
@@ -92,10 +92,13 @@ class dendrite:
                 logger.success('Receptor Pool Server Connected')
                 
             except:
-                dendrite.manager_serve(config, wallet, receptor_pool)
-                logger.success('Receptor Pool Server Started')
-                manager_client = dendrite.manager_connect()
-                logger.success('Receptor Pool Server Connected')
+                try:
+                    dendrite.manager_serve(config, wallet, receptor_pool)
+                    logger.success('Receptor Pool Server Started')
+                    manager_client = dendrite.manager_connect()
+                    logger.success('Receptor Pool Server Connected')
+                except Exception as e:
+                    logger.success(e)
             
             return dendrite_impl.Dendrite ( 
                 config = config,

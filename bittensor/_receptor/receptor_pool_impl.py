@@ -291,6 +291,6 @@ class ReceptorPool ( torch.nn.Module ):
                     compression = self.compression
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
-
+            
         receptor.semaphore.acquire()
         return receptor

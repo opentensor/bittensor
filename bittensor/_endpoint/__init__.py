@@ -63,6 +63,7 @@ class endpoint:
 
     @staticmethod
     def from_neuron( neuron: SimpleNamespace ) -> 'bittensor.Endpoint':
+        """
         endpoint.assert_format(
             version = neuron.version,
             uid = neuron.uid, 
@@ -73,6 +74,7 @@ class endpoint:
             modality = neuron.modality, 
             coldkey = neuron.coldkey
         )
+        """
         return endpoint_impl.Endpoint(
             version = neuron.version,
             uid = neuron.uid, 

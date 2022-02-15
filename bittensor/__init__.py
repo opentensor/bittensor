@@ -18,13 +18,19 @@
 from rich.console import Console
 
 # Bittensor code and protocol version.
-__version__ = '2.0.3'
+__version__ = '2.0.4'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
 # Rich console.
 __console__ = Console()
 __use_console__ = True
+def turn_console_off():
+    from io import StringIO
+    __use_console__ = False
+    __console__ = Console(file=StringIO(), stderr=False)
+
+
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -57,9 +63,10 @@ __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
 
-__registration_servers__ = [
-    'registration.opentensor.ai:5000'
+__mock_entrypoints__ = [
+    'localhost:27212'
 ]
+
 
 # ---- Config ----
 from bittensor._config import config as config

@@ -6,3 +6,5 @@ omit =
   ./tests/*
   ./bittensor/_neuron/*
   ./bittensor/_cli/__init__.py
+  ./bittensor/_cli/cli_impl.py
+  ./benchmarks/*
