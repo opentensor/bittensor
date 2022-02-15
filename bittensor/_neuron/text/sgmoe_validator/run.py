@@ -78,6 +78,9 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
         progress.set_bar = partial(progress.set_bar,  element='#')
 
+        k = min( config.neuron.n_topk_peer_weights,metagraph.n.item() )
+
+
         # --- Reset the epoch logs
         total_epoch_score = torch.zeros(metagraph.n.item(), device = device)
         total_epoch_loss = 0
@@ -119,12 +122,13 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Dividends': colored('{:.4f}'.format(metagraph.D[ uid ].item()), 'red'),
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
-            
-            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
+            peer_weights = {}
+            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, k, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
-            
+                peer_weights['peer_weights/uid_{}'.format(idx)]=validator.peer_weights.detach()[idx]
+                peer_weights[f'weights/uid_{idx.item()}'] = ema_score
             
             progress.set_infos( info )
         
@@ -132,7 +136,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         # --- Set mechanism weights.
         inactive_uids = torch.where(metagraph.active == 0)[0]
         ema_scores[inactive_uids] = 0
-        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = k)
         subtensor.set_weights(
             uids = topk_uids,
             weights = topk_scores,
