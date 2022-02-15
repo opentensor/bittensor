@@ -5,8 +5,7 @@ import torch.nn.functional as F
 
 from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils.rnn import pad_sequence
-
-from loguru import logger; logger = logger.opt(colors=True)
+# from loguru import logger; logger = logger.opt(colors=True)
 
 class server(torch.nn.Module):
     def __init__(self, 
@@ -62,17 +61,11 @@ class server(torch.nn.Module):
             self.pre_model = model if model != None else AutoModel.from_config(model_config)
             self.tokenizer = bittensor.tokenizer()
 
-        if self.config.neuron.training:
-            self.pre_model.train()
-        elif self.config.neuron.autocast and self.device == 'cuda':
-            self.pre_model.half()
-        else:
-            self.pre_model.eval()
+        self.pre_model.eval()
 
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
-        self.device = config.neuron.device
         self.padding = padding if padding != None else config.neuron.padding
         self.interpolate = interpolate if interpolate != None else config.neuron.interpolate
         self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
@@ -80,7 +73,7 @@ class server(torch.nn.Module):
         self.mapping_function= mapping_function
         self.token_remap = token_remap if token_remap != None else self.remapping_token
 
-        if self.config.neuron.padding == False:
+        if self.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
 
         self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
@@ -120,7 +113,7 @@ class server(torch.nn.Module):
 
         return loss, decoded_targets
     
-    def encode_forward(self,inputs,tokenizer=None):
+    def encode_forward(self,inputs,tokenizer=None): 
         r""" Forward pass through the pretrained model and possible mappings between hidden units. 
              The response tensor should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 
@@ -135,22 +128,18 @@ class server(torch.nn.Module):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
         sen_len = inputs.size()
-        inputs = self.token_remap(inputs,tokenizer).to(self.device)
-        if self.config.neuron.training:
-            pre_hidden = self.pre_model(inputs).last_hidden_state
-        elif self.config.neuron.autocast and self.device == 'cuda':
-            pre_hidden = self.pre_model(inputs).last_hidden_state
-        else:
-            with torch.no_grad():
-                pre_hidden = self.pre_model(inputs).last_hidden_state
         
-        if self.interpolate and sen_len[1] != pre_hidden.size()[1]:
+        inputs = self.token_remap(inputs,tokenizer).to(self.device)
+
+        with torch.no_grad():
+            pre_hidden = self.pre_model(inputs).last_hidden_state
+
+        if self.interpolate:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
             down = self.mapping_function(pre_hidden)
         else:
-            down = pre_hidden
-
+            raise Exception('interpolation off but no mapping function found. Please attach a mapping function')
 
         if self.padding:
             padding_l = (self.final_dim-self.pre_dimension)//2
@@ -158,6 +147,7 @@ class server(torch.nn.Module):
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
+
         return encoded_hidden
 
     def remapping_token(self,input, old_tokenizer=None):
@@ -195,9 +185,10 @@ class server(torch.nn.Module):
             if self.padding == False:
                 state_dict['mapping'] = self.mapping.state_dict()
             torch.save( state_dict, "{}/model.torch".format( path) )
-            bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( path ) )
+            # bittensor.logging.success(prefix='Saved model', sufix='<blue>{}/model.torch</blue>'.format( path ) )
+            print(f'Saved model: {path}/model.torch' )
         except Exception as e:
-            logger.exception('Failed to save model with error:{}', e)
+            print('Failed to save model with error:{}', e)
 
     def load(self, path):
         try:
@@ -208,11 +199,12 @@ class server(torch.nn.Module):
                 if self.padding == False:
                     self.mapping.load_state_dict(state_dict['mapping'])
 
-                bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
+                # bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
+                print( f'Reloaded model {path}/model.torch')
 
 
         except Exception as e:
-            logger.warning('No saved model found with error: {}', e)
+            print('No saved model found with error: {}', e)
 
     @staticmethod
     def config ():
@@ -227,17 +219,22 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
         parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
         parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='advanced_server')
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='multitron_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
-        parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
-        parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
-        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
-        parser.add_argument('--neuron.training',  action='store_true', help='if the model should be training (increases memory load)', default=False)
-        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
-        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
+        parser.add_argument('--neuron.no_restart', action='store_true', help='if the model should restart', default=False)
+        parser.add_argument('--neuron.blacklist.stake.forward', type=float, help='Amount of stake (tao) in order not to get blacklisted for forward requests', default=10)
+        parser.add_argument('--neuron.blacklist.stake.backward', type=float, help='Amount of stake (tao) in order not to get blacklisted for backward requests', default=100)
+        parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, black lists non-registered peers''', default=True)
         parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
-
+        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to sync set weights', default=100)
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
+        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=2)
+        parser.add_argument('--neuron.world_size', type=int, help='The number of processes for ddp.', default=1)
+        parser.add_argument('--neuron.address', type=str, help='The address for multiprocess communication', default='localhost')
+        parser.add_argument('--neuron.port', type=str, help='The port for multiprocess communication', default='8865')
+        parser.add_argument('--neuron.console_log_time', type=int, help='How often to log in console, in second.', default=30)
+        parser.add_argument('--neuron.wandb_log_block_time', type=int, help='How often to log in wandb, in block time.', default=20 )
+        parser.add_argument('--neuron.check_sync_time', type=int, help='How often to check metagraph sync, in second.', default=180 )
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )

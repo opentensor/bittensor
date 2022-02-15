@@ -172,6 +172,7 @@ class dendrite:
 
     @classmethod
     def manager_connect(cls, authkey = b'abracadabra'):
+
         r"""Creates a custom manager class and connects it to the local server.
         """
         BaseManager.register('get_receptorpool')
@@ -179,6 +180,7 @@ class dendrite:
         BaseManager.register('deduct_connection_count')
         BaseManager.register('get_total_requests')
         manager = BaseManager(address=('', 4098), authkey=authkey)
+
         manager.connect()
         manager.add_connection_count()
         return manager

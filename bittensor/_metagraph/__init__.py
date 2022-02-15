@@ -55,7 +55,7 @@ class metagraph:
             config = metagraph.config()
         config = copy.deepcopy(config)
         if subtensor == None:
-            subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint )
+            subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
         return metagraph_impl.Metagraph( subtensor = subtensor )
 
     @classmethod   
