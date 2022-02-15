@@ -35,8 +35,7 @@ class Validator( torch.nn.Module ):
             return self.loss, decoded_targets
 
         def scores ( self , loss, inputs  ):
-            """Computes salience scores for each peer in the network w.r.t the loss. 
-            We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
+            """Computes a mixture of greedy saliency and shapley scores for each peer in the network w.r.t the loss. 
             """
             validator_scores = torch.zeros(self.peer_weights.size())
             with torch.no_grad():

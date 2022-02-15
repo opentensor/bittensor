@@ -28,6 +28,7 @@ class Validator( torch.nn.Module ):
 
 
         def forward ( self, inputs ):
+            self.train()
             # Apply model.
             active_uids = torch.where(self.metagraph().active > 0)[0]
 
