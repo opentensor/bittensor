@@ -450,7 +450,7 @@ class Neuron:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
             inactive_uids = torch.where(self.metagraph.active == 0)[0]
             self.stats.ema_scores[inactive_uids] = 0
-            topk_scores, topk_uids = bittensor.unbiased_topk( torch.sigmoid(self.stats.ema_scores) , k = k )
+            topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores , k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
             self.subtensor.set_weights(
