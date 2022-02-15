@@ -87,7 +87,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         total_epoch_score = torch.zeros(metagraph.n.item(), device = device)
         total_epoch_loss = 0
         batch_count = 0
-        
+        peer_weights = {}
         for block in progress:
             
             # --- Training step.
@@ -124,7 +124,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Dividends': colored('{:.4f}'.format(metagraph.D[ uid ].item()), 'red'),
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
-            peer_weights = {}
+            
             topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, k, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'

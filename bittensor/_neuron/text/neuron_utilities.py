@@ -6,12 +6,10 @@ import torch.nn.functional as F
 def joining_context(return_ops, topk_weights, responses):
     # ---- Join based on weights ----
     joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-    print(joining_uids)
     joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
     output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__))
     for index, joining_weight in enumerate( joining_weights ):
         output += responses[joining_uids[index]]* joining_weight
-    print(output[0,:,0])
     return output, joining_uids
 
 def jacobian(y, x, create_graph=False,hessian =False):                                                               
@@ -43,12 +41,10 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
     partial_context = {}
     with torch.no_grad():
         for i, uid in enumerate(topk_uids):
-            print(uid, i,topk_weights[i])
             partial_return_ops = return_ops.clone()
             if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
-                print('No response')
+                pass
             else:
                 partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
             partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
-            print(partial_context[uid.item()].size())
     return partial_context
