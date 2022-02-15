@@ -21,6 +21,7 @@ import sys
 import time as clock
 from types import SimpleNamespace
 from typing import Tuple
+import threading
 
 import torch
 import uuid
@@ -103,6 +104,7 @@ class Receptor(nn.Module):
             endpoint: 'bittensor.Endpoint', 
             channel: 'grpc._Channel',
             stub: 'bittensor.grpc.BittensorStub',
+            max_processes: int,
         ):
         r""" Initializes a receptor grpc connection.
 
@@ -124,6 +126,7 @@ class Receptor(nn.Module):
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.receptor_uid = str(uuid.uuid1())
+        self.semaphore = threading.Semaphore(max_processes)
         self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
         self.stats = SimpleNamespace(
             forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -204,7 +207,6 @@ class Receptor(nn.Module):
         request = self.preprocess_request ( inputs = inputs, modality = modality)
         request = self.make_request_call(request, timeout = timeout)
         return self.handle_request_response(request)
-
 
     def backward(
             self, 
@@ -459,8 +461,8 @@ class Receptor(nn.Module):
             return False, request
 
         # ---- Safe catch NaNs and replace with 0.0 ----
-        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
-        
+        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
+
         # ---- Return ----
         request.code = request.response.return_code
         self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape), outputs = list(outputs.shape))
@@ -508,7 +510,7 @@ class Receptor(nn.Module):
             return False, request
 
         # ---- Safe catch NaNs and replace with 0.0 ----
-        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
+        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
    
         # ---- Return ----
         request.code = bittensor.proto.ReturnCode.Success
@@ -678,10 +680,10 @@ class Receptor(nn.Module):
         for fun in response_handling_funs:
             check, request = fun(request)
             if not check:
-                request.end_time = clock.time() - request.start_time
-                return request.zeros, request.code, clock.time() - request.start_time
+                request.end_time = clock.time()-request.start_time
+                return request.zeros, request.code, request.end_time
         
-        request.end_time = clock.time() - request.start_time
+        request.end_time = clock.time()-request.start_time
         return request.outputs if check else request.zeros, request.code, request.end_time
  
 
@@ -734,3 +736,6 @@ class Receptor(nn.Module):
             return self.state_dict[self.channel._channel.check_connectivity_state(True)]
         except ValueError:
             return "Channel closed"
+
+    def close(self):
+        self.__exit__()

@@ -19,9 +19,11 @@
 import argparse
 import os
 import copy
-
 import bittensor
 from . import dendrite_impl
+from .manager_server import ManagerServer
+from multiprocessing.managers import BaseManager
+from loguru import logger
 
 class dendrite:
     r""" This is the factory class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
@@ -39,6 +41,8 @@ class dendrite:
             max_worker_threads: int = None,
             max_active_receptors: int = None,
             receptor_pool: 'bittensor.ReceptorPool' = None,
+            multiprocess: bool = None,
+            compression: str = None,
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
             Args:
@@ -65,24 +69,50 @@ class dendrite:
             config = dendrite.config()
         config = copy.deepcopy(config)
         config.dendrite.timeout = timeout if timeout != None else config.dendrite.timeout
-        config.dendrite.ip = requires_grad if requires_grad != None else config.dendrite.requires_grad
+        config.dendrite.requires_grad = requires_grad if requires_grad != None else config.dendrite.requires_grad
         config.dendrite.max_worker_threads = max_worker_threads if max_worker_threads != None else config.dendrite.max_worker_threads
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
+        config.dendrite.multiprocessing = multiprocess if multiprocess != None else config.dendrite.multiprocessing
+        config.dendrite.compression = compression if compression != None else config.dendrite.compression
         dendrite.check_config( config )
 
         if wallet == None:
             wallet = bittensor.wallet( config = config )
+            
         if receptor_pool == None:
             receptor_pool = bittensor.receptor_pool( 
                 wallet = wallet,
                 max_worker_threads = config.dendrite.max_worker_threads,
-                max_active_receptors = config.dendrite.max_active_receptors
+                max_active_receptors = config.dendrite.max_active_receptors,
+                compression = config.dendrite.compression,
             )
-        return dendrite_impl.Dendrite ( 
-            config = config,
-            wallet = wallet, 
-            receptor_pool = receptor_pool 
-        )
+
+        if config.dendrite.multiprocessing:
+            try:
+                manager_client = dendrite.manager_connect()
+                logger.success('Receptor Pool Server Connected')
+                
+            except:
+                try:
+                    dendrite.manager_serve(config, wallet, receptor_pool)
+                    logger.success('Receptor Pool Server Started')
+                    manager_client = dendrite.manager_connect()
+                    logger.success('Receptor Pool Server Connected')
+                except Exception as e:
+                    logger.success(e)
+            
+            return dendrite_impl.Dendrite ( 
+                config = config,
+                wallet = wallet, 
+                receptor_pool = manager_client.get_receptorpool(),
+                manager = manager_client,
+            )
+        else:
+            return dendrite_impl.Dendrite ( 
+                config = config,
+                wallet = wallet, 
+                receptor_pool = receptor_pool,
+            )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
@@ -111,6 +141,8 @@ class dendrite:
             parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default = bittensor.defaults.dendrite.timeout)
             parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
             parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
+            parser.add_argument('--dendrite.multiprocessing', dest='dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
+            parser.add_argument('--dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -125,6 +157,9 @@ class dendrite:
         defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 500
         defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
+        defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_multiprocessing') if os.getenv('BT_DENDRITE_multiprocessing') != None else False
+        defaults.dendrite.compression = 'NoCompression'
+
 
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):
@@ -136,3 +171,30 @@ class dendrite:
         assert config.dendrite.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
         assert config.dendrite.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
         bittensor.wallet.check_config( config )
+
+    @classmethod
+    def manager_connect(cls):
+        r"""Creates a custom manager class and connects it to the local server.
+        """
+        BaseManager.register('get_receptorpool')
+        BaseManager.register('add_connection_count')
+        BaseManager.register('deduct_connection_count')
+        manager = BaseManager(address=('', 50000), authkey=b'abracadabra')
+        manager.connect()
+        manager.add_connection_count()
+        return manager
+
+    @classmethod
+    def manager_serve(cls, config, wallet, receptor_pool = None):
+        r"""Creates/Uses a receptor pool to create a local server for receptor pool
+        """
+        if receptor_pool == None:
+            receptor_pool = bittensor.receptor_pool( 
+                wallet = wallet,
+                max_worker_threads = config.dendrite.max_worker_threads,
+                max_active_receptors = config.dendrite.max_active_receptors
+            )
+        ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state'])
+        manager = ManagerServer(address=('', 50000), authkey=b'abracadabra')
+
+        return manager

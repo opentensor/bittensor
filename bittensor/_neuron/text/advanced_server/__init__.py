@@ -24,6 +24,7 @@ Example:
 """
 
 import bittensor
+import threading
 import os
 
 from .nucleus_impl import server
@@ -43,14 +44,18 @@ class neuron:
             logging_dir = config.neuron.full_path,
         )
 
-        self.model = server(config=config)
+        self.model = server( config = config ) 
         self.config = config
 
     def run(self):
         serve( self.config, self.model )
 
-    @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    @classmethod
+    def config(cls):
+        return server.config()
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
         bittensor.logging.check_config( config )

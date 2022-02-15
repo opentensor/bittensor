@@ -4,7 +4,18 @@
 *$py.class
 *.pyc
 
+# weigths and biases
 wandb/
+
+# benchmark results
+benchmarks/results/
+benchmarks/results/*
+!benchmarks/results
+
+*.csv
+*.torch
+*.pt
+*.log
 
 # runs/data/models/logs/~
 data/

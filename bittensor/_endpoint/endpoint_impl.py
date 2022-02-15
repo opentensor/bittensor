@@ -43,10 +43,7 @@ class Endpoint:
         self.port = port
         self.coldkey = coldkey
         self.modality = modality
-        if self.check_format():
-            # possibly throw a warning here.
-            pass
-            
+
 
     def assert_format( self ):
         """ Asserts that the endpoint has a valid format
