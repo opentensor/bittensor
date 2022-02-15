@@ -29,6 +29,8 @@ import pandas
 from termcolor import colored
 from functools import partial
 
+from scipy import stats
+
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
@@ -132,6 +134,16 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             
             progress.set_infos( info )
         
+
+        combination_tensor = torch.zeros(2,ema_scores[ema_scores>0].size()[0])
+        combination_tensor[0,:] = validator.total_weights.detach()[ema_scores>0]
+        combination_tensor[1,:] = ema_scores.detach()[ema_scores>0]
+        print(torch.corrcoef(combination_tensor))
+        spearmanr = stats.spearmanr(combination_tensor[0,:], combination_tensor[1,:])[0]
+        print(spearmanr)
+        peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
+        peer_weights['peer_weights/spearson'] = spearmanr
+
         # --- End of epoch
         # --- Set mechanism weights.
         inactive_uids = torch.where(metagraph.active == 0)[0]
