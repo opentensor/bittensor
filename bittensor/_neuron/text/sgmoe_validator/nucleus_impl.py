@@ -48,22 +48,17 @@ class Validator( torch.nn.Module ):
             return self.total_loss, decoded_targets, query_uids
 
         def scores ( self, loss, inputs ):
-            """Computes salience scores for each peer in the network w.r.t the loss. 
-            We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
+            """Computes a mixture of greedy saliency and shapley scores for each peer in the network w.r.t the loss. 
             """
             validator_scores = torch.zeros(self.peer_weights.size())
             with torch.no_grad():
                 self.eval()
-                print('estimated loss',self.decode_remote( self.output, inputs ))
                 estimate_loss = self.decode_remote( self.output, inputs )
                 for uid in self.partial_context:
                     partial_remote_target_loss = self.decode_remote( self.partial_context[uid],inputs )
-                    print(uid,loss, partial_remote_target_loss)
                     validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss        
             peer_weights_d1 = jacobian(loss, self.peer_weights)
             first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
-            #validator_scores= validator_scores + first_order
-            #print(validator_scores)
             return F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
 
         def decode_remote(self, context, inputs):

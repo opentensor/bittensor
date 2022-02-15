@@ -29,8 +29,6 @@ import pandas
 from termcolor import colored
 from functools import partial
 
-from scipy import stats
-
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
@@ -87,7 +85,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         total_epoch_score = torch.zeros(metagraph.n.item(), device = device)
         total_epoch_loss = 0
         batch_count = 0
-        peer_weights = {}
         for block in progress:
             
             # --- Training step.
@@ -108,7 +105,6 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 total_epoch_loss += loss.item()
                 ema_scores = F.relu((ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach())
                 validator.total_weights = (validator.total_weights.detach() * ema_score_decay) + (1 - ema_score_decay )*validator.peer_weights.detach()
-                print(validator.total_weights)
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
@@ -129,20 +125,10 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
-                peer_weights['peer_weights/uid_{}'.format(idx)]=validator.total_weights.detach()[idx]
-                peer_weights[f'weights/uid_{idx.item()}'] = ema_score
-            
+
             progress.set_infos( info )
         
 
-        combination_tensor = torch.zeros(2,ema_scores[ema_scores>0].size()[0])
-        combination_tensor[0,:] = validator.total_weights.detach()[ema_scores>0]
-        combination_tensor[1,:] = ema_scores.detach()[ema_scores>0]
-        print(torch.corrcoef(combination_tensor))
-        spearmanr = stats.spearmanr(combination_tensor[0,:], combination_tensor[1,:])[0]
-        print(spearmanr)
-        peer_weights['peer_weights/pearson'] = torch.corrcoef(combination_tensor)[0,1]
-        peer_weights['peer_weights/spearson'] = spearmanr
 
         # --- End of epoch
         # --- Set mechanism weights.
@@ -176,9 +162,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             df['uid'] = df.index
             wandb_dendrite = dendrite.to_wandb()
             #wandb.log(info, step =current_block)
-            wandb.log(peer_weights, step =current_block)
-            #wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
-            #wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+            wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
+            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # --- Save.
         if best_loss > epoch_loss : 
