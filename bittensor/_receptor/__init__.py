@@ -27,7 +27,14 @@ from . import receptor_impl
 class receptor:
     """ Create and init the receptor object, which encapsulates a grpc connection to an axon endpoint
     """
-    def __new__( cls, endpoint: 'bittensor.Endpoint', wallet: 'bittensor.Wallet' = None, external_ip: 'str' = None) -> 'bittensor.Receptor':
+    def __new__( 
+             cls,
+             endpoint: 'bittensor.Endpoint',
+             max_processes: 'int' = 1,
+             wallet: 'bittensor.Wallet' = None,
+             external_ip: 'str' = None,
+             compression: str = None,
+        ) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
                 endpoint (:obj:`bittensor.Endpoint`, `required`):
@@ -44,8 +51,17 @@ class receptor:
         else:
             endpoint_str = endpoint.ip + ':' + str(endpoint.port)
 
+        # Determine the grpc compression algorithm
+        if compression == 'gzip':
+            compress_alg = grpc.Compression.Gzip
+        elif compression == 'deflate':
+            compress_alg = grpc.Compression.Deflate
+        else:
+            compress_alg = grpc.Compression.NoCompression
+
         channel = grpc.insecure_channel(
             endpoint_str,
+            compression= compress_alg,
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1),
                      ('grpc.keepalive_time_ms', 100000)])
@@ -54,7 +70,8 @@ class receptor:
             endpoint = endpoint,
             channel = channel, 
             wallet = wallet,
-            stub = stub
+            stub = stub,
+            max_processes=max_processes
         )
 
 class receptor_pool:
@@ -66,6 +83,7 @@ class receptor_pool:
             thread_pool: ThreadPoolExecutor = None,
             max_worker_threads: int = 150,
             max_active_receptors: int = 500,
+            compression: str = None,
         ) -> 'bittensor.ReceptorPool':
         r""" Initializes a receptor grpc connection.
             Args:
@@ -85,5 +103,6 @@ class receptor_pool:
             wallet = wallet,
             thread_pool = thread_pool,
             max_worker_threads = max_worker_threads,
-            max_active_receptors = max_active_receptors
+            max_active_receptors = max_active_receptors,
+            compression = compression
         )

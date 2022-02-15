@@ -5,6 +5,7 @@ from bittensor._neuron.text.template_validator import neuron as template_validat
 from bittensor._neuron.text.sgmoe_validator import neuron as sgmoe_validator
 from bittensor._neuron.text.template_server import server as template_server
 from bittensor._neuron.text.advanced_server import server as advanced_server
+from bittensor._neuron.text.multitron_server import server as multitron_server
 
 def test_run_template_miner_config():
 

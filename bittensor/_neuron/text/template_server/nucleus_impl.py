@@ -135,7 +135,7 @@ class server(torch.nn.Module):
                     The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
         """
         sen_len = inputs.size()
-        inputs = self.token_remap(inputs,tokenizer)
+        inputs = self.token_remap(inputs,tokenizer).to(self.device)
         if self.config.neuron.training:
             pre_hidden = self.pre_model(inputs).last_hidden_state
         elif self.config.neuron.autocast and self.device == 'cuda':

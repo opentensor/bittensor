@@ -27,12 +27,17 @@ from . import wallet_impl
 class wallet:
     """ Create and init wallet that stores hot and coldkey
     """
+    @classmethod
+    def mock(cls) -> 'bittensor.Wallet':
+        return wallet( name='mock' )
+
     def __new__(
             cls, 
             config: 'bittensor.Config' = None,
             name: str = None,
             hotkey: str = None,
             path: str = None,
+            _mock: bool = False
         ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
@@ -45,6 +50,8 @@ class wallet:
                     The name of hotkey used to running the miner.
                 path (required=False, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
+                _mock (required=False, default=False):
+                    If true creates a mock wallet with random keys.
         """
         if config == None: 
             config = wallet.config()
@@ -53,10 +60,14 @@ class wallet:
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         config.wallet.path = path if path != None else config.wallet.path
         wallet.check_config( config )
+        # Allows mocking from the command line.
+        if config.wallet.name == 'mock':
+            _mock = True
         return wallet_impl.Wallet(
             name = config.wallet.name, 
             hotkey = config.wallet.hotkey, 
-            path = config.wallet.path
+            path = config.wallet.path,
+            _mock = _mock
         )
 
     @classmethod   
@@ -82,7 +93,7 @@ class wallet:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor''')
+            parser.add_argument('--wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
             parser.add_argument('--wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
             parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
         except argparse.ArgumentError:

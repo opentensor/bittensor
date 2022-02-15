@@ -72,17 +72,17 @@ class Dendrite(torch.autograd.Function):
             config: 'bittensor.Config',
             wallet: 'bittensor.Wallet',
             receptor_pool: 'bittensor.ReceptorPool',
+            manager: 'BaseManager' = None,
     ):
         r""" Initializes a new Dendrite entry point.
             Args:
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `required`):
                     bittensor receptor pool
         """
-        super().__init__()
         self.config = config
         self.wallet = wallet
         self.receptor_pool = receptor_pool
-
+        self.manager = manager
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
         self.stats = self._init_stats()
@@ -92,6 +92,12 @@ class Dendrite(torch.autograd.Function):
 
     def __repr__(self):
         return self.__str__()
+
+    def __del__(self):
+        if self.manager:
+            self.manager.deduct_connection_count()
+        if bittensor != None:
+            bittensor.logging.success('Dendrite Deleted', sufix = '')
 
     @staticmethod
     def forward(
@@ -152,7 +158,9 @@ class Dendrite(torch.autograd.Function):
             timeout=timeout
         )
         ctx.forward_codes = forward_codes
-        return (torch.tensor(forward_codes, dtype=torch.int64), torch.tensor(forward_times, dtype=torch.float32),
+        forward_times = [-1 if t is None else t for t in forward_times]
+        return (torch.tensor(forward_codes, dtype=torch.int64), 
+                torch.tensor(forward_times, dtype=torch.float32),
                 *forward_outputs)
 
     @staticmethod
