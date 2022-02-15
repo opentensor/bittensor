@@ -31,6 +31,7 @@ import torch
 import traceback
 import sys
 import wandb
+from threading import Thread
 from termcolor import colored
 from qqdm import qqdm, format_str
 from loguru import logger
@@ -92,6 +93,10 @@ class Neuron:
         # ---- Decay factor for fisher ema score 
         self.fisher_ema_decay = 0.995
 
+        # Vars for running in background
+        self._run_thread = None
+        self._should_run = False
+
     def __enter__(self):
         self.wallet.create()
         self.subtensor.register( self.wallet )
@@ -119,20 +124,24 @@ class Neuron:
                 )
 
             # ---- Init run state ----
-            self.epoch = 0   
-
-            # ---- reloads previous run if not restart ----
-            if self.config.neuron.restart:
-                self.save()
-
+            self.epoch = 0 
             try:
-                self.reload()
-                self.axon.check()
+
+                # ---- reloads previous run if not restart ----
+                if self.config.neuron.restart:
+                    self.save()
+
+                try:
+                    self.reload()
+                    self.axon.check()
+                except Exception as e:
+                    logger.error("Error when trying to reload model: {}".format(e))
+                    self.save()
+                    self.reload()
+                    self.axon.check()
+
             except Exception as e:
-                logger.error("Error when trying to reload model: {}".format(e))
-                self.save()
-                self.reload()
-                self.axon.check()
+                logger.success("Error when trying to reload model: {}".format(e))
             
             self.stats.ema_scores = torch.nn.Parameter(torch.ones(self.metagraph.n.item()).to(self.device) * (1 / self.metagraph.n.item()), requires_grad = False)
 

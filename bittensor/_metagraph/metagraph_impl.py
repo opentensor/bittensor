@@ -426,6 +426,7 @@ class Metagraph( torch.nn.Module ):
     def sync ( self, block: int = None, cached: bool = True ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
         """
+        logger.success(self.subtensor)
         if block == None:
             block = self.subtensor.get_current_block()
             if cached and self.subtensor.network in ("nakamoto", "local"):

@@ -19,24 +19,23 @@
 
 Example:
     $ import neurons
-    $ neurons.text.advanced_server().run()
+    $ neurons.text.multitron_server().run()
 
 """
 
 import bittensor
-import threading
 import os
 
 from .nucleus_impl import server
-from .run import serve
+from .ddp_run import Server
 
 class neuron:
 
-    def __init__(
+    def __new__(
         self, 
         config: 'bittensor.config' = None
     ):
-        if config == None: config = server.config()
+        if config == None: config = neuron.config()
         config = config; 
         self.check_config( config )
         bittensor.logging (
@@ -44,18 +43,16 @@ class neuron:
             logging_dir = config.neuron.full_path,
         )
 
-        self.model = server( config = config ) 
+        self.model = server(config=config)
         self.config = config
+        return Server(self.config, self.model)
 
-    def run(self):
-        serve( self.config, self.model )
-
-    @classmethod
-    def config(cls):
+    @staticmethod
+    def config ():
         return server.config()
 
-    @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    @staticmethod
+    def check_config( config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
         bittensor.logging.check_config( config )
@@ -67,5 +64,6 @@ class neuron:
         bittensor.wandb.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
+        assert config.neuron.device != 'cpu', "multitron_server must be ran on cuda device. Please consider mining with template_server or advanced_server instead."
         if not os.path.exists(config.neuron.full_path):
             os.makedirs(config.neuron.full_path)

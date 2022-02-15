@@ -69,6 +69,7 @@ class ReceptorPool ( torch.nn.Module ):
 
     def get_total_requests(self):
         return self.total_requests
+        
     def get_receptors_state(self):
         r""" Return the state of each receptor.
             Returns:

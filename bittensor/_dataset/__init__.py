@@ -36,8 +36,9 @@ class dataset:
             max_corpus_size:int = None,
             num_workers: int = None,
             dataset_name: list = [],
-            save_dataset: bool = None,
-            no_tokenizer: bool = None,
+            save_dataset: bool=None,
+            no_tokenizer: bool=None,
+            _mock:bool=None
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
             Args:
@@ -57,7 +58,9 @@ class dataset:
                 save_dataset (:obj:`bool`, `optional`):
                     Save the downloaded dataset or not.
                 no_tokenizer (:obj:`bool`, `optional`):
-                    To return non-tokenized text (EXPERIMENTAL, DO NOT USE)         
+                    To return non-tokenized text (EXPERIMENTAL, DO NOT USE)
+                _mock (:obj:`bool`, `optional`):
+                    For testing, if true the dataset if filled with fake text data.  
         """   
         if config == None: 
             config = dataset.config()
@@ -69,18 +72,36 @@ class dataset:
         config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
+        config.dataset._mock = _mock if _mock != None else config.dataset._mock
         dataset.check_config( config )
-        return dataset_impl.GenesisTextDataset(
-            block_size = config.dataset.block_size,
-            batch_size = config.dataset.batch_size,
-            max_corpus_size = config.dataset.max_corpus_size,
-            num_workers = config.dataset.num_workers,
-            dataset_name = config.dataset.dataset_name,
-            data_dir = config.dataset.data_dir,
-            save_dataset = config.dataset.save_dataset,
-            max_datasets = config.dataset.max_datasets,
-            no_tokenizer = config.dataset.no_tokenizer,
-        )
+        if config.dataset._mock:
+            return dataset_impl.MockGenesisTextDataset(
+                block_size = config.dataset.block_size,
+                batch_size = config.dataset.batch_size,
+                max_corpus_size = config.dataset.max_corpus_size,
+                num_workers = config.dataset.num_workers,
+                dataset_name = config.dataset.dataset_name,
+                data_dir = config.dataset.data_dir,
+                save_dataset = config.dataset.save_dataset,
+                max_datasets = config.dataset.max_datasets,
+                no_tokenizer = config.dataset.no_tokenizer
+            )
+        else:
+            return dataset_impl.GenesisTextDataset(
+                block_size = config.dataset.block_size,
+                batch_size = config.dataset.batch_size,
+                max_corpus_size = config.dataset.max_corpus_size,
+                num_workers = config.dataset.num_workers,
+                dataset_name = config.dataset.dataset_name,
+                data_dir = config.dataset.data_dir,
+                save_dataset = config.dataset.save_dataset,
+                max_datasets = config.dataset.max_datasets,
+                no_tokenizer = config.dataset.no_tokenizer
+            )
+
+    @classmethod
+    def mock(cls):
+        return dataset( _mock = True )
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
@@ -106,7 +127,7 @@ class dataset:
             parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
             parser.add_argument('--dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
             parser.add_argument('--dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
-
+            parser.add_argument('--dataset._mock', action='store_true', help='To turn on dataset mocking for testing purposes.', default=False)
 
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -128,7 +149,7 @@ class dataset:
         defaults.dataset = bittensor.Config()
         defaults.dataset.batch_size = os.getenv('BT_DATASET_BATCH_SIZE') if os.getenv('BT_DATASET_BATCH_SIZE') != None else 10
         defaults.dataset.block_size = os.getenv('BT_DATASET_BLOCK_SIZE') if os.getenv('BT_DATASET_BLOCK_SIZE') != None else 20
-        defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else 1e+4
+        defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else int(1e+4)
         defaults.dataset.num_workers = os.getenv('BT_DATASET_NUM_WORKERS') if os.getenv('BT_DATASET_NUM_WORKERS') != None else 0
         defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
         defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else '~/.bittensor/data/'
