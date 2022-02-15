@@ -176,8 +176,9 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             df['uid'] = df.index
             wandb_dendrite = dendrite.to_wandb()
             wandb.log(info, step =current_block)
+            wandb.log(peer_weights, step =current_block)
             #wandb.log( {**wandb_data, **wandb_dendrite}, step = current_block )
-            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+            #wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # --- Save.
         if best_loss > epoch_loss : 
