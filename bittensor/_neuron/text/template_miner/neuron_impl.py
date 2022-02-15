@@ -159,7 +159,6 @@ class Neuron:
                     total_remote_target_epoch_loss = 0
                     total_local_epoch_acc = 0
                     batches_count = 0
-                    total_losses_individ = {}
 
                     # ---- Run epoch ----
                     start_block = self.subtensor.get_current_block() + 1
@@ -226,8 +225,6 @@ class Neuron:
                             self.stats.distillation_epoch_loss = total_distillation_epoch_loss / batches_count
                             self.stats.remote_target_epoch_loss = total_remote_target_epoch_loss / batches_count
                             self.stats.local_epoch_acc = total_local_epoch_acc / batches_count
-                            for key in list(total_losses_individ.keys()):
-                                self.total_losses_uid['individ_loss/uid_{}'.format(key)] = total_losses_individ[key] / batches_count
 
                         # ---- Block logs.
                         self.logs (
@@ -452,7 +449,7 @@ class Neuron:
         try:
             k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
             inactive_uids = torch.where(self.metagraph.active == 0)[0]
-            self.stats.ema_scores[inactive_uids] = -1
+            self.stats.ema_scores[inactive_uids] = 0
             topk_scores, topk_uids = bittensor.unbiased_topk( torch.sigmoid(self.stats.ema_scores) , k = k )
             topk_uids = topk_uids.detach().to('cpu')
             topk_scores = topk_scores.detach().to('cpu')
