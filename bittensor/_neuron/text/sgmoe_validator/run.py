@@ -103,7 +103,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = F.relu((ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach())
+                ema_scores = F.relu((ema_score_decay * ema_scores.detach()) + (1 - ema_score_decay) * scores.detach())
                 validator.total_weights = (validator.total_weights.detach() * ema_score_decay) + (1 - ema_score_decay )*validator.peer_weights.detach()
                 current_block = subtensor.get_current_block()
 
