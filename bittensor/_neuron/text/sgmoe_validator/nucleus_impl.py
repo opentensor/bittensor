@@ -136,6 +136,7 @@ class Validator( torch.nn.Module ):
 
             # Active uids in the metagraph
             active_uids = torch.where(metagraph.active > 0)[0]
+            print(active_uids)
 
             # Get weights for uids.
             # weights: (torch.FloatTensor): weights for each filtered_uid
@@ -151,6 +152,7 @@ class Validator( torch.nn.Module ):
 
             self.peer_weights = torch.zeros(self.metagraph().n.item(), device = self.device)
             for i in range(len(active_uids)):
+                print(i)
                 self.peer_weights[active_uids[i]] = filtered_mean_weights[i] + noise[i]
             
             # Get indices and values for uids with highest scores.
