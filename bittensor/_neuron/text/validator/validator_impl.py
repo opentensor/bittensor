@@ -102,11 +102,23 @@ class Neuron:
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
+         
+        # === Setup ===
+        # Checks wallet and starts monitoring with wandb.
         with self:
+
+            # === Run ===
+            # Iterates through epochs.
             while True:
                 try:
+
+                    # === Epoch ===
+                    # Each epoch runs for blocks_per_epoch and resets
+                    # the model every epochs_until_reset.
                     self.run_epoch()
                     self.epoch += 1
+
+                # === Stops on interrupt otherwise restarts ===
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
@@ -127,11 +139,13 @@ class Neuron:
         # Reset the validator weights ever x epochs.
         self.metagraph.sync().save()
         epoch_steps = 0
-        epoch_scores = []
+        score_history = []
         if self.epoch % self.config.neuron.epochs_until_reset == 0:
             # Resetting the weights here.
             self.nucleus.reset_weights()
-            self.optimizer = torch.optim.SGD ( self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum )
+            self.optimizer = torch.optim.SGD ( 
+                self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
+            )
 
         # === Run Epoch ===
         # Each block length lasts blocks_per_epoch blocks.
@@ -140,22 +154,28 @@ class Neuron:
         start_block = self.subtensor.block
         while self.subtensor.block < start_block + self.config.neuron.blocks_per_epoch:
             # === Forward ===
+            # Forwards inputs through the network and returns the loss
+            # and endpoint scores using shapely approximation of salience.
             loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
 
             # === Backward ===
+            # Backwards gradients through model to train gating and remote endpoints.
             loss.backward()
 
             # === Apply gradients ===
+            # Applies local gradients to parameters.
             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
             self.optimizer.step()
             self.optimizer.zero_grad()    
 
-            # === Normalized scores ===
+            # === Normalize scores ===
+            # Updates moving averages and history.
             scores = scores / scores.sum()
-            epoch_scores.append( scores )
-            moving_avg_scores = torch.stack( epoch_scores ).mean(0)
+            score_history.append( scores )
+            moving_avg_scores = torch.stack( score_history ).mean(0)
 
             # === Logs + state update ===
+            # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
             zipped_scores = list( zip( self.metagraph.uids[ moving_avg_scores > 0.0 ].tolist() , moving_avg_scores [moving_avg_scores > 0.0 ].tolist() ) ) 
