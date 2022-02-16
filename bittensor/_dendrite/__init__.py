@@ -43,6 +43,7 @@ class dendrite:
             receptor_pool: 'bittensor.ReceptorPool' = None,
             multiprocess: bool = None,
             compression: str = None,
+            _mock:bool=None
         ) -> 'bittensor.Dendrite':
         r""" Creates a new Dendrite object from passed arguments.
             Args:
@@ -64,6 +65,8 @@ class dendrite:
                 receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`):
                     A bittensor receptor pool object which maintains a set of connections to other peers in the network and operates as
                     a normal torch.nn.Module. By default this object is created with the dendrite config.
+                _mock (:obj:`bool`, `optional`):
+                    For testing, if true the dendrite returns mocked outputs.
         """
         if config == None: 
             config = dendrite.config()
@@ -74,6 +77,7 @@ class dendrite:
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
         config.dendrite.multiprocessing = multiprocess if multiprocess != None else config.dendrite.multiprocessing
         config.dendrite.compression = compression if compression != None else config.dendrite.compression
+        config.dendrite._mock = _mock if _mock != None else config.dendrite._mock
         dendrite.check_config( config )
 
         if wallet == None:
@@ -86,7 +90,12 @@ class dendrite:
                 max_active_receptors = config.dendrite.max_active_receptors,
                 compression = config.dendrite.compression,
             )
-        if config.dendrite.multiprocessing:
+        if config.dendrite._mock:
+            return dendrite_impl.DendriteMock ( 
+                config = config,
+                wallet = wallet
+            )
+        elif config.dendrite.multiprocessing:
             try:
                 manager_client = dendrite.manager_connect()
                 logger.success('Receptor Pool Server Connected')
@@ -142,6 +151,7 @@ class dendrite:
             parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
             parser.add_argument('--dendrite.multiprocessing', dest='dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
             parser.add_argument('--dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
+            parser.add_argument('--dendrite._mock', action='store_true', help='To turn on dendrite mocking for testing purposes.', default=False)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
