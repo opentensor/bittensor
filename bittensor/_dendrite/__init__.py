@@ -86,7 +86,6 @@ class dendrite:
                 max_active_receptors = config.dendrite.max_active_receptors,
                 compression = config.dendrite.compression,
             )
-
         if config.dendrite.multiprocessing:
             try:
                 manager_client = dendrite.manager_connect()
