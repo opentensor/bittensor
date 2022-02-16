@@ -18,6 +18,7 @@
 import torch
 import pytest
 import bittensor
+from multiprocessing import Pool
 
 wallet = bittensor.wallet.mock()
 dendrite = bittensor.dendrite( wallet = wallet )
@@ -260,14 +261,7 @@ def test_dendrite_backoff():
     assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
     del _dendrite
 
-def test_dendrite_to_df():
-    dendrite.to_dataframe(bittensor.metagraph( subtensor = bittensor.subtensor.mock() ).sync())
-
-def test_dend_del():
-    dendrite.__del__()
-    
 def test_dendrite_multiple():
-    bittensor.logging( debug=True )
     endpoint_obj = bittensor.endpoint(
         version = bittensor.__version_as_int__,
         uid = 0,
@@ -325,7 +319,12 @@ def test_dendrite_multiple():
 
     dend1.__del__()
 
-    assert manager_server.manager_thread.stopped()
 
+def test_dendrite_to_df():
+    dendrite.to_dataframe(bittensor.metagraph( subtensor = bittensor.subtensor.mock() ).sync())
+
+def test_dend_del():
+    dendrite.__del__()
+    
 if __name__ == "__main__":
     test_dendrite_multiple()
