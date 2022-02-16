@@ -154,12 +154,11 @@ class DDPPipe():
         if ready != None and rank == 0 :
             ready.set()
 
-
         try:
             torch.cuda.empty_cache()
             while True: 
                 try:
-                    request_id, inputs_x = self.forward_q.get(timeput = self.config.neuron.console_log_time)
+                    request_id, inputs_x = self.forward_q.get(timeout = self.config.neuron.console_log_time)
                     if inputs_x != None:
                         inputs_x = inputs_x.to(self.device)
                         output = self.gp_server.encode_forward(inputs_x)
