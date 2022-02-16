@@ -86,12 +86,20 @@ class neuron:
         if config == None: config = cls.config()
         cls.check_config( config )
         config.to_defaults()
+        _mock = True if config.neuron._mock == True else None
+        if config.neuron._mock == True:
+            config.subtensor._mock = True
+            config.wallet._mock = True
+            config.dataset._mock = True
+            config.dendrite._mock = True
+            config.metagraph._mock = True
+            config.subtensor._mock = True
         print (config)
         bittensor.logging( config = config, logging_dir = config.neuron.full_path )
         wallet = bittensor.wallet ( config = config )
-        subtensor = bittensor.subtensor ( config = config )
+        subtensor = bittensor.subtensor ( config = config)
         metagraph = bittensor.metagraph ( config = config, subtensor = subtensor )        
-        dendrite = bittensor.dendrite ( config = config, wallet = wallet )
+        dendrite = bittensor.dendrite ( config = config, wallet = wallet)
         dataset = bittensor.dataset ( config = config )
         device = torch.device ( device = config.neuron.device )    
         nucleus_model = nucleus ( config = config, device = device ).to( device )
@@ -132,12 +140,13 @@ class neuron:
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100)
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
         parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=500 )
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
         parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = 1)
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True)
+        parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False)
 
     @classmethod
     def config ( cls ):
