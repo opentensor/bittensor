@@ -151,9 +151,7 @@ class Validator( torch.nn.Module ):
             noise = torch.normal( 0, torch.std(filtered_mean_weights).item(), size=( filtered_mean_weights.size())).to( self.config.neuron.device )
 
             self.peer_weights = torch.zeros(self.metagraph().n.item(), device = self.device)
-            for i in range(len(active_uids)):
-                print(i)
-                self.peer_weights[active_uids[i]] = filtered_mean_weights[i] + noise[i]
+            self.peer_weights[active_uids] = filtered_mean_weights + noise
             
             # Get indices and values for uids with highest scores.
             # topk_weights: (torch.float64): scores of uids with highest scores.
