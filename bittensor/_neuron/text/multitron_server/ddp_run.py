@@ -152,7 +152,7 @@ class DDPPipe():
         if ready != None and rank == 0 :
             ready.set()
 
-        if rank == 0:
+        if rank == 0 and self.config.neuron.use_wandb:
             wandb.init()
 
         try:
