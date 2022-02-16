@@ -99,7 +99,9 @@ class subtensor:
         config = copy.deepcopy( config )
 
         # Returns a mocked connection with a background chain connection.
-        if _mock == True or network == 'mock' or config.subtensor.network == 'mock':
+        config.subtensor._mock = _mock if _mock != None else config.subtensor._mock
+        if config.subtensor._mock == True or network == 'mock' or config.subtensor.network == 'mock':
+            config.subtensor._mock = True
             return subtensor.mock()
         
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
@@ -181,6 +183,7 @@ class subtensor:
             parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
+            parser.add_argument('--subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=False)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass

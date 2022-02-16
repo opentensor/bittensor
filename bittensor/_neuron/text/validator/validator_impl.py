@@ -73,13 +73,18 @@ class Neuron:
         """
         # === Wallet ===
         # Checks that the validator has a valid uid (is registered on the network.)
-        # If the wallet has not been registered. sys.exit()
-        if not self.wallet.is_registered( subtensor = self.subtensor ):
-            logger.critical( "You must register the validator's wallet before running, use: btcli register --wallet.name {} --wallet.hotkey {}", self.wallet.name, self.wallet.hotkey_str)
-            sys.exit(0)
+        # If the wallet has not been registered. sys.exit().
+        # If the network is mocked, we register.
+        if self.subtensor.network != 'mock':
+            if not self.wallet.is_registered( subtensor = self.subtensor ):
+                logger.critical( "You must register the validator's wallet before running, use: btcli register --wallet.name {} --wallet.hotkey {}", self.wallet.name, self.wallet.hotkey_str)
+                sys.exit(0)
+        else:
+            self.wallet.register( subtensor = self.subtensor )
 
         # === UID ===
-        # Get our uid from the chain.
+        # Get our uid from the chain. 
+        # At this point we should have a uid because we are already registered.
         self.uid = self.wallet.get_uid( subtensor = self.subtensor )    
 
         # === Monitoring ===
@@ -144,7 +149,7 @@ class Neuron:
             self.global_step += 1
             self.epoch_scores += scores.sum( 0 )
             print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', self.subtensor.block - start_block, '/', self.config.neuron.blocks_per_epoch )
-            print( '\t scores: \n\t', scores.sum( 0 ) )
+            print( 'scores:\n', pandas.DataFrame( scores.detach().sum(0) ).describe() ) 
 
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.

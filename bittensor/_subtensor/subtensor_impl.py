@@ -985,8 +985,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             uid ( int ):
                 The uid of the neuron to query for.
-            ss58_hotkey ( str ):
-                The hotkey to query for a neuron.
+            block ( int ):
+                The neuron at a particular block
         Returns:
             neuron (dict(NeuronMetadata)):
                 neuron object associated with uid or None if it does not exist.

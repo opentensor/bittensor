@@ -37,7 +37,7 @@ class wallet:
             name: str = None,
             hotkey: str = None,
             path: str = None,
-            _mock: bool = False
+            _mock: bool = None
         ) -> 'bittensor.Wallet':
         r""" Init bittensor wallet object containing a hot and coldkey.
 
@@ -59,9 +59,11 @@ class wallet:
         config.wallet.name = name if name != None else config.wallet.name
         config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         config.wallet.path = path if path != None else config.wallet.path
+        config.wallet._mock = _mock if _mock != None else config.wallet._mock
         wallet.check_config( config )
         # Allows mocking from the command line.
-        if config.wallet.name == 'mock':
+        if config.wallet.name == 'mock' or config.wallet._mock:
+            config.wallet._mock = True
             _mock = True
         return wallet_impl.Wallet(
             name = config.wallet.name, 
@@ -96,6 +98,7 @@ class wallet:
             parser.add_argument('--wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
             parser.add_argument('--wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
             parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
+            parser.add_argument('--wallet._mock', action='store_true', help='To turn on wallet mocking for testing purposes.', default=False)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
