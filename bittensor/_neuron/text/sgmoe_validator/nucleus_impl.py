@@ -136,7 +136,6 @@ class Validator( torch.nn.Module ):
 
             # Active uids in the metagraph
             active_uids = torch.where(metagraph.active > 0)[0]
-            print(active_uids)
 
             # Get weights for uids.
             # weights: (torch.FloatTensor): weights for each filtered_uid
