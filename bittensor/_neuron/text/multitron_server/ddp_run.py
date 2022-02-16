@@ -70,7 +70,9 @@ class DDPPipe():
                 root_dir = self.config.neuron.full_path
             )
 
-    
+        if self.config.neuron.use_wandb:
+          wandb.init()
+
     def init_process(self, rank):
         r""" For each process, anchor them to the process group 
         so that they know how to communication with each other.
@@ -152,8 +154,6 @@ class DDPPipe():
         if ready != None and rank == 0 :
             ready.set()
 
-        if rank == 0 and self.config.neuron.use_wandb:
-            wandb.init()
 
         try:
             torch.cuda.empty_cache()

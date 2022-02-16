@@ -235,6 +235,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.console_log_time', type=int, help='How often to log in console, in second.', default=30)
         parser.add_argument('--neuron.wandb_log_block_time', type=int, help='How often to log in wandb, in block time.', default=20 )
         parser.add_argument('--neuron.check_sync_time', type=int, help='How often to check metagraph sync, in second.', default=180 )
+        parser.add_argument('--neuron.use_wandb', action='store_true', help='''neuron activates its weights and biases powers''', default=False)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
