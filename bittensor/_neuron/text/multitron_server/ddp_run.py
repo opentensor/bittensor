@@ -25,13 +25,11 @@ from re import I
 
 import bittensor
 import torch
-import wandb
 import pandas
 import datetime
 import traceback
 import sys
 import os
-import wandb
 
 from loguru import logger; logger = logger.opt(colors=True)
 from torch.nn.utils import clip_grad_norm_
@@ -62,15 +60,8 @@ class DDPPipe():
         self.events = events
         self.outputs = outputs
 
-        if self.config.wandb.api_key != 'default':
-            bittensor.wandb(
-                config = self.config,
-                cold_pubkey = self.wallet.coldkeypub.ss58_address,
-                hot_pubkey = self.wallet.hotkey.ss58_address,
-                root_dir = self.config.neuron.full_path
-            )
 
-    
+
     def init_process(self, rank):
         r""" For each process, anchor them to the process group 
         so that they know how to communication with each other.
@@ -93,7 +84,7 @@ class DDPPipe():
         )
     
     def init_bit(self, rank = 0):
-        r""" Init bittensor modules .
+        r""" Init bittensor modules after spawning process.
         
         Args:
             rank (int):
@@ -138,8 +129,6 @@ class DDPPipe():
         
         self.gp_server = self.gp_server.to(self.device) 
 
-        # --- Init Wandb.
-
         nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
         uid = nn.uid
 
@@ -152,14 +141,11 @@ class DDPPipe():
         if ready != None and rank == 0 :
             ready.set()
 
-        if rank == 0:
-            wandb.init()
-
         try:
             torch.cuda.empty_cache()
             while True: 
                 try:
-                    request_id, inputs_x = self.forward_q.get(timeput = self.config.neuron.console_log_time)
+                    request_id, inputs_x = self.forward_q.get(timeout = self.config.neuron.console_log_time)
                     if inputs_x != None:
                         inputs_x = inputs_x.to(self.device)
                         output = self.gp_server.encode_forward(inputs_x)
@@ -192,10 +178,10 @@ class DDPPipe():
                         self.metagraph.sync()
                         last_sync_block = current_block
 
-                    # ---- console logging and wandb logging for only rank 0                    
+                    # ---- console logging                    
                     if rank == 0:
                         # ---- data
-                        wandb_data = {
+                        data = {
                             'block': current_block,
                             'stake': nn.stake,
                             'rank': nn.rank,
@@ -208,29 +194,7 @@ class DDPPipe():
                         } 
                         
                         # ---- console logging
-                        bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
-
-                        # ---- wandb logging
-                        if current_block - last_log_block > self.config.neuron.wandb_log_block_time and self.config.wandb.api_key != 'default':
-                            nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
-                            last_log_block = current_block
-
-                            # ---- Additional wandb data for metagraph
-                            df = pandas.concat( [
-                                bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.W[:, uid] ),
-                                bittensor.utils.indexed_values_to_dataframe( prefix = 's_i'.format(nn.uid), index = self.metagraph.uids, values = self.metagraph.S ),
-                            ], axis = 1)
-                            df['uid'] = df.index
-                            stats_data_table = wandb.Table( dataframe = df ) 
-                            wandb.log( { **wandb_data}, step = current_block )
-                            wandb.log( { 'stats': stats_data_table }, step = current_block )
-                            wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
-                            wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
-                            wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
-        
-        except KeyboardInterrupt:
-            if rank == 0:
-                wandb.finish()
+                        bittensor.__console__.print('[green]Current Status:[/green]', data)
 
         except Exception as e:
             # --- Unknown error ----
