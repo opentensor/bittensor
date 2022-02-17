@@ -87,7 +87,6 @@ def joining_context(return_ops, topk_weights, responses):
         output += responses[joining_uids[index]]* joining_weight
     return output, joining_uids
 
-
 def partial_contexts(return_ops, topk_uids, topk_weights, responses):
     """
     Creates the partial contexts which are used to calculate the shapley scores 
