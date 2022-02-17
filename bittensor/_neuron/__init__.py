@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from .text import template_miner,template_server,advanced_server,core_validator,sgmoe_validator, multitron_server
+from .text import template_miner,template_server,advanced_server,core_validator, multitron_server
 
 __all_neurons__ =  { 'text_template_miner': template_miner.neuron, 
                      'text_core_validator': core_validator.neuron,
