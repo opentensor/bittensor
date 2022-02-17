@@ -50,10 +50,10 @@ class nucleus:
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200)
-        parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
-        parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
+        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default = 20 )
+        parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200 )
+        parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
+        parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
 
     @classmethod
@@ -136,13 +136,13 @@ class neuron:
         parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False )
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100 )
-        parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=500 )
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default = 1000 )
+        parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = 10 )
+        parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default = 250 )
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = 1)
-        parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True)
-        parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False)
+        parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
+        parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
+        parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
 
     @classmethod
     def config ( cls ):
