@@ -21,11 +21,9 @@ __all_neurons__ =  { 'text_template_miner': template_miner.neuron,
                      'text_core_validator': core_validator.neuron,
                      'text_template_server':template_server.neuron,
                      'text_advanced_server':advanced_server.neuron,
-                     'sgmoe_validator':sgmoe_validator.neuron,
                      'multitron_server': multitron_server}
 __text_neurons__ =  { 'template_miner': template_miner.neuron, 
-                     'template_validator': core_validator.neuron,
+                     'core_validator': core_validator.neuron,
                      'template_server':template_server.neuron,
                      'advanced_server':advanced_server.neuron,
-                     'sgmoe_validator':sgmoe_validator.neuron,
                      'multitron_server': multitron_server}

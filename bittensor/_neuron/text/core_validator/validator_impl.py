@@ -354,8 +354,7 @@ class Nucleus( torch.nn.Module ):
         # onto the targets.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
-        joining_weights = torch.ones(routing_weights.size())
-        responses_hidden, _ = joining_context( return_ops, joining_weights, query_responses) 
+        responses_hidden, _ = joining_context( return_ops, routing_weights, query_responses) 
         target_loss = get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
@@ -365,7 +364,7 @@ class Nucleus( torch.nn.Module ):
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
         # TODO(const, eugene): We are not filtering by non successful responses.
-        masked_contexts = partial_contexts(return_ops, routing_uids, joining_weights,  query_responses)
+        masked_contexts = partial_contexts(return_ops, routing_uids, routing_weights,  query_responses)
         shapely_scores = torch.zeros( (metagraph.n.item()) )
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():

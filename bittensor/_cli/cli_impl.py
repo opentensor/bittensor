@@ -171,8 +171,6 @@ class CLI:
             bittensor.neurons.core_validator.neuron().run()
         elif self.config.model == 'advanced_server':
             bittensor.neurons.advanced_server.neuron().run()
-        elif self.config.model == 'sgmoe_validator':
-            bittensor.neurons.sgmoe_validator.neuron().run()
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
 
