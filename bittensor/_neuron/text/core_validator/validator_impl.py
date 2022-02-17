@@ -324,7 +324,7 @@ class Nucleus( torch.nn.Module ):
         # query_responses.shape = real_topk * [ batch_size, sequence_len, __network_dim__ ]
         # return_ops: (torch.int64): Return ops.
         # return_ops.shape = [ real_topk ]
-        query_responses, _, _ = dendrite.forward_text ( 
+        query_responses, return_ops, times = dendrite.forward_text ( 
             endpoints = routing_endpoints, 
             inputs = inputs
         )
@@ -332,21 +332,6 @@ class Nucleus( torch.nn.Module ):
         # Onto the correct device.
         for response in query_responses:
             response.to( self.device )
-
-        # === Join responses based on join_weights ===
-        # This function joins the responses into a unique tensor by using the weights
-        # to join.
-        # joined_responses: (torch.float64): responses joined using softmaxed weights.
-        # joined_responses.shape = [ batch_size, sequence_len, __network_dim__ ]
-        def join_responses( responses, weights ) -> torch.FloatTensor:
-            # responses: (List[torch.float64]): n * [ batch_size, sequence_len, __network_dim__ ]
-            #   tensors to join
-            # weights: (torch.float64): [n]
-            #   weights to use for joining the responses.
-            joined_responses = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__))
-            for idx in range( len(responses) ): 
-                joined_responses += responses [ idx ] * weights[ idx ]
-            return joined_responses
 
         # === Compute loss given joined responses ===
         # This function computes target loss for next token prediction given 
@@ -369,7 +354,8 @@ class Nucleus( torch.nn.Module ):
         # onto the targets.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
-        responses_hidden, _ = joining_context( return_ops, routing_weights, query_responses) 
+        joining_weights = torch.ones(routing_weights.size())
+        responses_hidden, _ = joining_context( return_ops, joining_weights, query_responses) 
         target_loss = get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
@@ -379,7 +365,7 @@ class Nucleus( torch.nn.Module ):
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
         # TODO(const, eugene): We are not filtering by non successful responses.
-        masked_contexts = partial_contexts(return_ops, routing_uids, routing_weights,  query_responses)
+        masked_contexts = partial_contexts(return_ops, routing_uids, joining_weights,  query_responses)
         shapely_scores = torch.zeros( (metagraph.n.item()) )
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
