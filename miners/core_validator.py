@@ -24,4 +24,4 @@ Example:
 
 import bittensor
 if __name__ == "__main__":
-    template = bittensor.neurons.validator.neuron().run()
+    template = bittensor.neurons.core_validator.neuron().run()

@@ -211,17 +211,28 @@ class Nucleus( torch.nn.Module ):
     """
     def __init__(self, config, device):
         super(Nucleus, self).__init__()
-        self.embedding = torch.nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
-        self.layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout, batch_first=True)
-        self.encoder = TransformerEncoder( self.layers, config.nucleus.nlayers )
-        self.c_layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout, batch_first=True)
-        self.local_encoder = TransformerEncoder(self.c_layers, 1)
-        self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
-        self.loss_fct = torch.nn.CrossEntropyLoss()
         self.config = config
         self.device = device
+
+        # Token embeddings project int64 tokens onto representations.
+        self.token_embedding = torch.nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
+        
+        # Routing encoder, projects token embeddings onto context for routing inputs.
+        self.routing_encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout, batch_first=True)
+        self.routing_encoder = TransformerEncoder(self.routing_encoder_layers, 1)
+
+        # Encoder projects response representations onto hidden units.
+        self.encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout, batch_first=True)
+        self.encoder = TransformerEncoder( self.encoder_layers, config.nucleus.nlayers )
+
+        # Decoder which projects hidden unit representations on to the token dimension.
+        self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
+
+        # Crosss entropy loss for NTP.    
+        self.loss_fct = torch.nn.CrossEntropyLoss()
+    
+        # SGMOE Gates: Instantiating the gates per expert.
         self.gates = {}
-        # Instantiating the gates per expert.
         for uid in range(2000):
             self.gates[uid] = torch.nn.Linear( bittensor.__network_dim__, 1, bias=True).to( self.device )
 
@@ -229,14 +240,14 @@ class Nucleus( torch.nn.Module ):
         r""" Resets the validator weights.
         """
         # === Resets all the weights using xavier initialization. ===
-        torch.nn.init.xavier_uniform_ ( self.embedding.weight )
+        torch.nn.init.xavier_uniform_ ( self.token_embedding.weight )
         torch.nn.init.xavier_uniform_ ( self.decoder.weight )
         def init_xavier( component ):
             try:
                 torch.nn.init.xavier_uniform_( component.weight )
             except: pass
+        self.routing_encoder.apply( init_xavier )
         self.encoder.apply( init_xavier )
-        self.local_encoder.apply( init_xavier )
         for uid in range(2000):
             torch.nn.init.xavier_uniform_( self.gates[uid].weight )
 
@@ -265,7 +276,7 @@ class Nucleus( torch.nn.Module ):
         # this context can be used as input to the gates in the next step.
         # routing_context: (torch.FloatTensor): context tensor which is used to select endpoints.
         # routing_context.shape = [ batch size, __network_dim__ ]
-        routing_context = self.local_encoder( self.embedding( inputs ) )* math.sqrt( bittensor.__network_dim__ )
+        routing_context = self.routing_encoder( self.token_embedding( inputs ) )* math.sqrt( bittensor.__network_dim__ )
 
         # === Get weights for uids. ===
         # We iterate over each of the network uids and compute a querying score for each
@@ -293,7 +304,7 @@ class Nucleus( torch.nn.Module ):
         # topk_routing_weights.shape = [ real_topk ]
         # topk_routing_uids: (torch.LongTensor): uids with highest scores.
         # topk_routing_uids.shape = [ real_topk ]
-        real_topk = min( len( metagraph.uids.tolist() ), self.config.neuron.topk )
+        real_topk = min( len( metagraph.uids.tolist() ), self.config.nucleus.topk )
         routing_weights, routing_uids = torch.topk( routing_weights, real_topk, dim=0)
         routing_weights = routing_weights / routing_weights.sum()
         # TODO(const, eugene): We are not using a softmax here. Will this hurt?
@@ -312,7 +323,7 @@ class Nucleus( torch.nn.Module ):
         # query_responses.shape = real_topk * [ batch_size, sequence_len, __network_dim__ ]
         # return_ops: (torch.int64): Return ops.
         # return_ops.shape = [ real_topk ]
-        query_responses, return_ops, _ = dendrite.forward_text ( 
+        query_responses, _, _ = dendrite.forward_text ( 
             endpoints = routing_endpoints, 
             inputs = inputs
         )
@@ -354,7 +365,7 @@ class Nucleus( torch.nn.Module ):
 
         # === Compute global loss ===
         # Computes the global training loss for the nucleus by decoding all the responses
-        # onto the targets. Also adds an additional importance loss.
+        # onto the targets.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
         # TODO(const, eugene): We are not filtering by non successful responses.

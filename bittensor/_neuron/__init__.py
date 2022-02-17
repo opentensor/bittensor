@@ -15,21 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-# Bittensor neurons
-__version__ = '0.0.0'
-version_split = __version__.split(".")
-__version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
-
-from .text import template_miner,template_server,advanced_server,validator,sgmoe_validator, multitron_server
+from .text import template_miner,template_server,advanced_server,core_validator,sgmoe_validator, multitron_server
 
 __all_neurons__ =  { 'text_template_miner': template_miner.neuron, 
-                     'text_template_validator': validator.neuron,
+                     'text_core_validator': core_validator.neuron,
                      'text_template_server':template_server.neuron,
                      'text_advanced_server':advanced_server.neuron,
                      'sgmoe_validator':sgmoe_validator.neuron,
                      'multitron_server': multitron_server}
 __text_neurons__ =  { 'template_miner': template_miner.neuron, 
-                     'template_validator': validator.neuron,
+                     'template_validator': core_validator.neuron,
                      'template_server':template_server.neuron,
                      'advanced_server':advanced_server.neuron,
                      'sgmoe_validator':sgmoe_validator.neuron,
