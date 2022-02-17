@@ -51,6 +51,8 @@ class ReceptorPool ( torch.nn.Module ):
         self.max_processes = 10
         self.compression = compression
         self.total_requests = 0
+
+
         
         try:
             self.external_ip = str(net.get_external_ip())
@@ -69,7 +71,6 @@ class ReceptorPool ( torch.nn.Module ):
 
     def get_total_requests(self):
         return self.total_requests
-        
     def get_receptors_state(self):
         r""" Return the state of each receptor.
             Returns:
