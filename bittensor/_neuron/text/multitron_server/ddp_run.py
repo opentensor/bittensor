@@ -70,8 +70,6 @@ class DDPPipe():
                 root_dir = self.config.neuron.full_path
             )
 
-        if self.config.neuron.use_wandb:
-          wandb.init()
 
     def init_process(self, rank):
         r""" For each process, anchor them to the process group 
@@ -95,7 +93,7 @@ class DDPPipe():
         )
     
     def init_bit(self, rank = 0):
-        r""" Init bittensor modules .
+        r""" Init bittensor modules after spawning process.
         
         Args:
             rank (int):
@@ -116,6 +114,9 @@ class DDPPipe():
         if rank == 0 :
             logger.success( self.subtensor )
             self.subtensor.register( self.wallet )
+
+        if rank == 0 and self.config.neuron.use_wandb:
+          wandb.init()
 
         bittensor.tokenizer()
 
@@ -210,7 +211,7 @@ class DDPPipe():
                         bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
 
                         # ---- wandb logging
-                        if current_block - last_log_block > self.config.neuron.wandb_log_block_time and self.config.wandb.api_key != 'default':
+                        if (current_block - last_log_block > self.config.neuron.wandb_log_block_time) and self.config.wandb.api_key != 'default':
                             nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
                             last_log_block = current_block
 
@@ -221,12 +222,14 @@ class DDPPipe():
                             ], axis = 1)
                             df['uid'] = df.index
                             stats_data_table = wandb.Table( dataframe = df ) 
-                            wandb.log( { **wandb_data}, step = current_block )
+                            wandb.log( wandb_data, step = current_block )
                             wandb.log( { 'stats': stats_data_table }, step = current_block )
                             wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
                             wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
                             wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
-        
+
+                            bittensor.__console__.print('[green]Logged to wandb at block[/green]', current_block)
+
         except KeyboardInterrupt:
             if rank == 0:
                 wandb.finish()
