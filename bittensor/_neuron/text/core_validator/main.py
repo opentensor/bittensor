@@ -19,8 +19,8 @@
 """ Main Validator script.
 
 Example:
-    $ python3 bittensor/_neurons/text/validator/main.py ...
+    $ python3 bittensor/_neurons/text/core_validator/main.py ...
 """
 import bittensor
 if __name__ == "__main__":
-    bittensor.neurons.validator.neuron().run()
+    bittensor.neurons.core_validator.neuron().run()

@@ -31,7 +31,6 @@ import torch
 
 from .validator_impl import Neuron, Nucleus
 
-
 class nucleus:
     """ Validator Nucleus.
     
@@ -56,7 +55,6 @@ class nucleus:
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default=2)
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2)
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.001)
 
     @classmethod
     def config ( cls ):
@@ -134,13 +132,11 @@ class neuron:
     @classmethod
     def add_args( cls, parser ):
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='template_miner')
-        parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False)
-        parser.add_argument('--neuron.topk', type=int, help='the number of peers queried during each remote forward call', default=20)
-        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=1)
-        parser.add_argument('--neuron.learning_rate_chain', type=float, help='Training initial learning rate.', default=1)
-        parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_validator')
+        parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False )
+        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
+        parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=100 )
         parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Maximum number of weights to submit to chain', default=500 )
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
