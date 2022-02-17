@@ -31,6 +31,7 @@ import traceback
 from rich import print
 from rich.console import Console
 from rich.traceback import install
+from ..neuron_utilities import joining_context, partial_contexts
 
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
@@ -69,6 +70,8 @@ class Neuron:
         r""" Close down neuron.
         """
         print(exc_type, exc_value, exc_traceback)
+        self.dataset.close()
+        self.dendrite.__del__()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -127,6 +130,7 @@ class Neuron:
                     print( 'Unknown exception: {}', e )
                     if not self.config.neuron.restart_on_failure:
                         break
+
 
     def run_epoch( self ):
         r""" Runs a validator epoch. We apply batches until the epoch length is exhausted.
@@ -295,9 +299,6 @@ class Nucleus( torch.nn.Module ):
         # topk_routing_uids.shape = [ real_topk ]
         real_topk = min( len( metagraph.uids.tolist() ), self.config.neuron.topk )
         routing_weights, routing_uids = torch.topk( routing_weights, real_topk, dim=0)
-        routing_weights = routing_weights / routing_weights.sum()
-        # TODO(const, eugene): We are not using a softmax here. Will this hurt?
-        # TODO(const, eugene): We are also not filtering by non active uids.
 
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
@@ -357,8 +358,7 @@ class Nucleus( torch.nn.Module ):
         # onto the targets. Also adds an additional importance loss.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
-        # TODO(const, eugene): We are not filtering by non successful responses.
-        responses_hidden = join_responses( query_responses, routing_weights) 
+        responses_hidden, _ = joining_context( return_ops, routing_weights, query_responses) 
         target_loss = get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
@@ -368,22 +368,19 @@ class Nucleus( torch.nn.Module ):
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
         # TODO(const, eugene): We are not filtering by non successful responses.
+        masked_contexts = partial_contexts(return_ops, routing_uids, routing_weights,  query_responses)
         shapely_scores = torch.zeros( (metagraph.n.item()) )
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
+            unmasked_loss = get_target_loss(responses_hidden, inputs)
             # Iterate over all responses creating a masked context.
-            for index in range ( len( query_responses) ):
-                # Create mask by zeroing out the response at index.
-                masked_responses = []
-                for (idx, r) in enumerate(query_responses):
-                    if idx != index: masked_responses.append( r )
-                    else: masked_responses.append( torch.zeros_like( query_responses[index] ) )                    
-                responses_hidden = join_responses( masked_responses, routing_weights ) 
-                masked_loss = get_target_loss ( responses_hidden, inputs )
-                shapely_score = target_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}'.format( routing_uids[ index ].item(), routing_weights[ index ].item(), shapely_score.item() ))
-                shapely_scores[ routing_uids[ index ] ] = shapely_score
+            for uid in masked_contexts:
+                # Create mask by zeroing out the response at index.              
+                masked_loss = get_target_loss ( masked_contexts[uid], inputs )
+                shapely_score = unmasked_loss - masked_loss
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}'.format( uid, uid, shapely_score.item() ))
+                shapely_scores[ uid ] = shapely_score
 
 
         # === Done ===
