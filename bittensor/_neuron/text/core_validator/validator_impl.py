@@ -43,39 +43,6 @@ logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
 
-class PositionalEncoding(nn.Module):
-    r""" Positional Encoder which adds information based on the relative position of each token
-    
-    """
-    def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-
-        # === Create position matrix ===
-        # Creates a positional matrix with alternating frequencies 
-        # pe: (torch.FloatTensor) positional encoding matrix
-        # pe.shape: [1, max_len, network_dim]
-        pe = torch.zeros(1, max_len, d_model)
-        pe[0, :, 0::2] = torch.sin(position * div_term)
-        pe[0, : , 1::2] = torch.cos(position * div_term)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x: torch.tensor) -> torch.tensor:
-        """
-        Args:
-            x: Tensor, shape [batch_size, seq_len, embedding_dim]
-        """
-        # === Positional Encoding ===
-        # Inject some information of the relative position of the token in the sequence.
-        #  Finally, Dropout is applied to tokens
-        # x: (torch.FloatTensor) input sequence tokens with position information injected
-        # x.shape: [batch_size, seq_len, network_dim]
-        x = x + self.pe[0, :x.size(1)]
-        return self.dropout(x)
-
 class Neuron:
     """ Neuron class which drives the training of the validator.
     
@@ -214,6 +181,7 @@ class Neuron:
 
             # === Normalize scores ===
             # Updates moving averages and history.
+            scores = torch.sqrt( torch.clamp_(scores, 0) )
             scores = torch.nn.functional.normalize ( scores , p=2, dim = 0 ) # Normalized step scores.
             score_history.append( scores ) # Save score history.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
@@ -252,7 +220,6 @@ class Neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
-        print (moving_avg_scores.tolist())
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
@@ -280,6 +247,38 @@ class Neuron:
                 xname = "steps"
             )}, step = current_block)
 
+class PositionalEncoding(nn.Module):
+    r""" Positional Encoder which adds information based on the relative position of each token
+    
+    """
+    def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+
+        # === Create position matrix ===
+        # Creates a positional matrix with alternating frequencies 
+        # pe: (torch.FloatTensor) positional encoding matrix
+        # pe.shape: [1, max_len, network_dim]
+        pe = torch.zeros(1, max_len, d_model)
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, : , 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.tensor) -> torch.tensor:
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, embedding_dim]
+        """
+        # === Positional Encoding ===
+        # Inject some information of the relative position of the token in the sequence.
+        #  Finally, Dropout is applied to tokens
+        # x: (torch.FloatTensor) input sequence tokens with position information injected
+        # x.shape: [batch_size, seq_len, network_dim]
+        x = x + self.pe[0, :x.size(1)]
+        return self.dropout(x)
 
 class Nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
