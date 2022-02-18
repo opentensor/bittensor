@@ -190,6 +190,8 @@ class Neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
+        moving_avg_scores = torch.sqrt( torch.sqrt( moving_avg_scores ) ) # Pulls down the concentration towards a single peer.
+        moving_avg_scores = moving_avg_scores / moving_avg_scores.sum()
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
