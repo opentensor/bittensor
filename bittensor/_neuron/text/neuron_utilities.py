@@ -1,19 +1,20 @@
 import bittensor
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 def update_metagraph_peerweight(metagraph, peer_weights):
-    old_hotkeys = metagraph.hotkeys()
+    old_hotkeys = metagraph.hotkeys
     metagraph.sync()
-    new_hotkeys = metagraph.hotkeys()
+    new_hotkeys = metagraph.hotkeys
     peer_weight_mean = torch.mean(peer_weights)
-    for i, old_hotkey, new_hotkey in enumerate(zip(old_hotkeys, new_hotkeys)):
+    for i, (old_hotkey, new_hotkey) in enumerate(zip(old_hotkeys, new_hotkeys)):
         if old_hotkey != new_hotkey:
+            print(i, old_hotkey, '-->', new_hotkey)
             peer_weights[i] = peer_weight_mean
 
     return peer_weights
-
-
+    
 def joining_context(return_ops, topk_weights, responses):
     """
     Joins response embbedings depending on the return codes 
