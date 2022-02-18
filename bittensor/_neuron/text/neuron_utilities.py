@@ -95,7 +95,7 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
             return_ops  (:type:`pytorch.LongTensor`, `required`), shape = [n]:
                 The return codes of dendrite call return ops.
             topk_uids (:type:`pytorch.LongTensor`, `required`), shape = [n]:
-                The topk weights selected for joining                
+                The topk uids selected for joining                
             topk_weights  (:type:`pytorch.FloatTensor`, `required`), shape = [n]:
                 The topk weights selected for joining
             responses  (:type:`pytorch.FloatTensor`, `required`), shape = [n]:

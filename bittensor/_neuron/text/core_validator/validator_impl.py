@@ -33,6 +33,7 @@ from rich import print
 from rich.console import Console
 from rich.traceback import install
 from ..neuron_utilities import joining_context, partial_contexts
+import torch.nn as nn
 
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
@@ -41,6 +42,27 @@ from loguru import logger
 logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
+
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.tensor) -> torch.tensor:
+        """
+        Args:
+            x: Tensor, shape [seq_len, batch_size, embedding_dim]
+        """
+        x = x + self.pe[:x.size(0)]
+        return self.dropout(x)
 
 class Neuron:
     """ Neuron class which drives the training of the validator.
@@ -180,7 +202,7 @@ class Neuron:
 
             # === Normalize scores ===
             # Updates moving averages and history.
-            scores = scores / scores.sum() # Normalized step scores.
+            scores = torch.nn.functional.normalize ( scores , p=2, dim = 0 ) # Normalized step scores.
             score_history.append( scores ) # Save score history.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
             moving_avg_scores = moving_avg_scores / moving_avg_scores.sum() # Normalize moving average.
@@ -269,6 +291,9 @@ class Nucleus( torch.nn.Module ):
         # Decoder which projects hidden unit representations on to the token dimension.
         self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
 
+        # Positional Encoding
+        self.local_pos_encoder = PositionalEncoding(bittensor.__network_dim__, self.config.nucleus.dropout)
+
         # Crosss entropy loss for NTP.    
         self.loss_fct = torch.nn.CrossEntropyLoss()
     
@@ -315,9 +340,25 @@ class Nucleus( torch.nn.Module ):
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
         # this context can be used as input to the gates in the next step.
+        # embedding: retrieve learned representation vectors for input vocabulary tokens.
+        # inputs.shape = [batch_size, sequence_len]
+        # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        embedding =  self.token_embedding( inputs )* math.sqrt( bittensor.__network_dim__ )
+
+        # src_mask: attention mask adds -inf to positions not allowed to attend, preventing forward-looking when
+        #           predicting each token in the sequence.
+        # src_mask.shape = [sequence_len, sequence_len]
+        src_mask = torch.triu(torch.ones(embedding.size(1), embedding.size(1)) * float('-inf'), diagonal=1)
+        src_mask = src_mask.to(self.config.neuron.device)
+
+
+        # pos_embedding: adding positional encoding to embedding.
+        # pos_embedding.shape = [sequence_len, batch_size, bittensor.__network_dim__]
+        pos_embedding = self.local_pos_encoder(embedding)
+
         # routing_context: (torch.FloatTensor): context tensor which is used to select endpoints.
         # routing_context.shape = [ batch size, __network_dim__ ]
-        routing_context = self.routing_encoder( self.token_embedding( inputs ) )* math.sqrt( bittensor.__network_dim__ )
+        routing_context = self.routing_encoder( pos_embedding, mask = src_mask )
 
         # === Get weights for uids. ===
         # We iterate over each of the network uids and compute a querying score for each
@@ -325,18 +366,17 @@ class Nucleus( torch.nn.Module ):
         # routing_weights: (torch.FloatTensor): score per example, per endpoint.
         # routing_weights.shape = [ batch size, __network_n__ ]
         # The gates act over the last embedding of the routing_context.
-        routing_weights = torch.cat( [ self.gates[ uid ](routing_context[:,-1,:]) for uid in metagraph.uids.tolist() ], axis = 1)
+        active_uids = torch.where(metagraph.active > 0)[0]
+        active_routing_weights = torch.cat( [ self.gates[ uid ](routing_context[:,-1,:]) for uid in active_uids.tolist() ], axis = 1)
 
         # === Normalize routing_weights across batch dimension and add noise. ===
         # We are summing across the batch dimension to create a per-batch score per endpoint.
         # The resulting routing_weights tensor is a score per expert.
         # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
         # routing_weights.shape = [ n_filtered ]
-        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
+        batchwise_routing_weights = torch.mean(active_routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
-        routing_weights = torch.zeros( metagraph.n.item(), device = self.device)
-        for i in range(len(metagraph.uids.tolist())):
-            routing_weights[metagraph.uids[i]] = batchwise_routing_weights[i] + noisy_routing_weights[i]
+        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
 
         # === Get indices and values for uids with highest scores ===
         # We are taking the topk routing weights and returning their uids.
@@ -345,14 +385,14 @@ class Nucleus( torch.nn.Module ):
         # topk_routing_weights.shape = [ real_topk ]
         # topk_routing_uids: (torch.LongTensor): uids with highest scores.
         # topk_routing_uids.shape = [ real_topk ]
-        real_topk = min( len( metagraph.uids.tolist() ), self.config.nucleus.topk )
-        routing_weights, routing_uids = torch.topk( routing_weights, real_topk, dim=0)
+        real_topk = min( len( active_uids ), self.config.nucleus.topk )
+        top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, real_topk, dim=0)
 
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
         # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
         # len(neurons) == real_topk
-        routing_endpoints = [ metagraph.endpoints[ uid ] for uid in metagraph.uids[routing_uids] ]
+        routing_endpoints = [ metagraph.endpoints[ uid ] for uid in active_uids[routing_uids] ]
 
         # === Query the endpoints ===
         # Makes the dendrite call into the network returning the representations 
@@ -380,7 +420,12 @@ class Nucleus( torch.nn.Module ):
             #   Hidden units which are encoded and decoded onto targets for loss computation.
             # targets: (torch.float64): [n]
             #   Token targets,
-            encoded_hidden = self.encoder( hidden )
+
+            src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
+            src_mask = src_mask.to(self.config.neuron.device)
+
+            encoded_hidden = self.encoder( hidden, mask = src_mask )
+
             decoded_targets = self.decoder( encoded_hidden )
             shift_logits = decoded_targets[..., :-1, :].contiguous()
             shift_labels = targets[..., 1:].contiguous()
@@ -391,30 +436,32 @@ class Nucleus( torch.nn.Module ):
         # onto the targets.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
-        responses_hidden, _ = joining_context( return_ops, routing_weights, query_responses) 
+        responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
         target_loss = get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
+
+        importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
+        target_loss =  target_loss +  importance_loss
 
         # === Compute shapely scores ===
         # Computes shapely scores for each endpoint by masking the response and
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
-        # TODO(const, eugene): We are not filtering by non successful responses.
-        masked_contexts = partial_contexts(return_ops, routing_uids, routing_weights,  query_responses)
+        masked_contexts = partial_contexts(return_ops, active_uids[routing_uids], top_k_routing_weights,  query_responses)
         shapely_scores = torch.zeros( (metagraph.n.item()) )
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
             unmasked_loss = get_target_loss(responses_hidden, inputs)
             # Iterate over all responses creating a masked context.
-            for uid in masked_contexts:
+            for i,uid in enumerate(masked_contexts):
                 # Create mask by zeroing out the response at index.              
                 masked_loss = get_target_loss ( masked_contexts[uid], inputs )
                 shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}'.format( uid, uid, shapely_score.item() ))
-                shapely_scores[ uid ] = shapely_score
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item() ))
+                shapely_scores[ uid ] = -shapely_score
 
-
+        
         # === Done ===
-        return target_loss, -shapely_scores
+        return target_loss, shapely_scores
