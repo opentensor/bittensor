@@ -391,7 +391,7 @@ class CLI:
         total_dividends = 0.0
         total_emission = 0     
         for nn, hotwallet in tqdm(list(zip(neurons,all_hotkeys))):
-            if nn.is_null: # skip unregistered neurons
+            if nn.is_null: # skip unregistered hotkeys
                 continue
             uid = nn.uid
             active = nn.active
