@@ -24,6 +24,7 @@ Example:
 import sys
 import bittensor
 import torch
+import time
 import wandb
 import math
 import pandas
@@ -65,6 +66,7 @@ class Neuron:
         self.device = device
         self.global_step = 0
         self.epoch = 0
+        self.using_wandb = self.config.wandb.api_key != 'default'
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
@@ -94,7 +96,7 @@ class Neuron:
 
         # === Monitoring ===
         # Optionally set up wandb logging.
-        if self.config.wandb.api_key != 'default':
+        if self.using_wandb:
             bittensor.wandb(
                 config = self.config,
                 cold_pubkey = self.wallet.coldkeypub.ss58_address,
@@ -156,7 +158,10 @@ class Neuron:
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
         start_block = self.subtensor.block
+        current_block = start_block
         while self.subtensor.block < start_block + self.config.neuron.blocks_per_epoch:
+            start_time = time.time()
+
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
@@ -174,24 +179,44 @@ class Neuron:
 
             # === Normalize scores ===
             # Updates moving averages and history.
-            scores = scores / scores.sum()
-            score_history.append( scores )
-            moving_avg_scores = torch.stack( score_history ).mean(0)
-
+            scores = scores / scores.sum() # Normalized step scores.
+            score_history.append( scores ) # Save score history.
+            moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
+            moving_avg_scores = moving_avg_scores / moving_avg_scores.sum() # Normalize moving average.
+        
             # === Logs + state update ===
             # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
+            current_block = self.subtensor.block
             zipped_scores = list( zip( self.metagraph.uids[ moving_avg_scores > 0.0 ].tolist() , moving_avg_scores [moving_avg_scores > 0.0 ].tolist() ) ) 
             sorted_mvg_scores = sorted(zipped_scores, key=lambda x: x[1])
-            print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', self.subtensor.block - start_block, '/', self.config.neuron.blocks_per_epoch )
+            print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', self.config.neuron.blocks_per_epoch )
             print( 'scores:\n', sorted_mvg_scores)
+            if self.using_wandb:
+                step_stats = pandas.DataFrame( moving_avg_scores ).describe()
+                wandb.log(
+                    {  
+                        'loss': loss.item(),
+                        'time': time.time() - start_time,
+                        'global_step': self.global_step,
+                        'scount': step_stats[0]['count'], 
+                        'smax': step_stats[0]['max'], 
+                        'smean': step_stats[0]['mean'], 
+                        'sstd': step_stats[0]['std'], 
+                        'smin': step_stats[0]['min'], 
+                        's25%': step_stats[0]['25%'], 
+                        's50%': step_stats[0]['50%'], 
+                        's75%': step_stats[0]['75%'], 
+                    }, 
+                    step = current_block
+                )
+
 
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
         moving_avg_scores = torch.sqrt( torch.sqrt( moving_avg_scores ) ) # Pulls down the concentration towards a single peer.
-        moving_avg_scores = moving_avg_scores / moving_avg_scores.sum()
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
@@ -201,7 +226,7 @@ class Neuron:
 
         # === Wandb Logs ===
         # Optionally send validator logs to wandb.
-        if self.config.wandb.api_key != 'default':
+        if self.using_wandb:
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = topk_uids, values = moving_avg_scores ),
