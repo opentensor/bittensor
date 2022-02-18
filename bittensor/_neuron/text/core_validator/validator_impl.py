@@ -288,7 +288,8 @@ class Nucleus( torch.nn.Module ):
         # routing_weights: (torch.FloatTensor): score per example, per endpoint.
         # routing_weights.shape = [ batch size, __network_n__ ]
         # The gates act over the last embedding of the routing_context.
-        routing_weights = torch.cat( [ self.gates[ uid ](routing_context[:,-1,:]) for uid in metagraph.uids.tolist() ], axis = 1)
+        active_uids = torch.where(metagraph.active > 0)[0]
+        routing_weights = torch.cat( [ self.gates[ uid ](routing_context[:,-1,:]) for uid in active_uids.tolist() ], axis = 1)
 
         # === Normalize routing_weights across batch dimension and add noise. ===
         # We are summing across the batch dimension to create a per-batch score per endpoint.
