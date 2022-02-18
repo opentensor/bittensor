@@ -156,13 +156,15 @@ class Nucleus(nn.Module):
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         embedding = self.embedding(inputs)
 
-        # local_context: hidden layer encoding of sequence with local_context.
-        # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
-        local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
 
         # local_context: adding positional encoding to local_context.
         # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
-        local_context = self.local_pos_encoder(local_context)
+        embedding = self.local_pos_encoder(embedding)
+
+
+        # local_context: hidden layer encoding of sequence with local_context.
+        # local_context.shape = [sequence_len, batch_size, bittensor.__network_dim__]
+        local_context = self.local_encoder(embedding, mask=src_mask) * math.sqrt(bittensor.__network_dim__)
 
         # external expects output.local_context shape = [batch_size, sequence_len, bittensor.__network_dim__]
         output.local_context = local_context
