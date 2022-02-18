@@ -33,6 +33,8 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from loguru import logger; logger = logger.opt(colors=True)
+from ..neuron_utilities import update_metagraph_peerweight
+
 def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid, dendrite):
     
     print(config)
@@ -170,7 +172,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
         if current_block - last_sync_block > config.neuron.metagraph_sync:
-            metagraph.sync()
+            validator.peer_weights = update_metagraph_peerweight(metagraph, validator.peer_weights)
             last_sync_block = current_block
             validator.sync_with_chain_state()
             chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))

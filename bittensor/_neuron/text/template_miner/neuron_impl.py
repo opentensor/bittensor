@@ -44,6 +44,7 @@ import torch.nn as nn
 from functools import partial
 
 import torch.nn.functional as F
+from ..neuron_utilities import update_metagraph_peerweight
 
 class Neuron:
 
@@ -366,11 +367,11 @@ class Neuron:
         
         # --- Loads and syncs metagraph.
         try:
-            self.metagraph.sync().save()
+            self.nucleus.peer_weights = update_metagraph_peerweight(self.metagraph, self.neucleus.peer_weights)
             self.stats.last_sync_block= self.subtensor.get_current_block()
         except Exception as e:
             logger.error('Error in loading metagraph: {}'.format(e))
-            self.metagraph.sync().save()
+            self.nucleus.peer_weights = update_metagraph_peerweight(self.metagraph, self.neucleus.peer_weights)
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
