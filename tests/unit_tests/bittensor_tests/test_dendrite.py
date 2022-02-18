@@ -289,7 +289,8 @@ def test_dendrite_multiple():
         compression = config.dendrite.compression,
     )
 
-    manager_server = bittensor.dendrite.manager_serve(config, wallet, receptor_pool)
+    authkey = wallet.hotkey.ss58_address.encode('UTF-8')
+    manager_server = bittensor.dendrite.manager_serve(config, wallet, receptor_pool, authkey = authkey)
 
     dend1 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     dend2 = bittensor.dendrite( wallet = wallet, multiprocess=True)
@@ -329,4 +330,5 @@ def test_dendrite_multiple():
     assert manager_server.manager_thread.stopped()
 
 if __name__ == "__main__":
+    bittensor.logging(debug = True)
     test_dendrite_multiple()
