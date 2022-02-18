@@ -72,7 +72,8 @@ class CLI:
             self.set_weights()
         elif self.config.command == "inspect":
             self.inspect()
-
+        elif self.config.command == "query":
+            self.query()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -97,6 +98,22 @@ class CLI:
         """
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
+
+    def query ( self ):
+        r""" Query an endpoint and get query time.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        subtensor = bittensor.subtensor( config = self.config )
+        dendrite = bittensor.dendrite( wallet = wallet )
+        stats = {}
+        for uid in self.config.uids:
+            neuron = subtensor.neuron_for_uid( uid )
+            endpoint = bittensor.endpoint.from_neuron( neuron )
+            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
+            latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
+            stats[uid] = latency
+        print (stats)
 
     def inspect ( self ):
         r""" Inspect a cold, hot pair.

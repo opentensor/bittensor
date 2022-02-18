@@ -117,6 +117,30 @@ class cli:
         bittensor.wallet.add_args( inspect_parser )
         bittensor.subtensor.add_args( inspect_parser )
 
+        query_parser = cmd_parsers.add_parser(
+            'query', 
+            help='''Query a uid with your current wallet'''
+        )
+        query_parser.add_argument(
+            "-u", '--uids',
+            type=list, 
+            nargs='+',
+            dest='uid', 
+            choices=list(range(2000)), 
+            help='''Uids to query'''
+        )
+        query_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set protect the generated bittensor key with a password.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( query_parser )
+        bittensor.subtensor.add_args( query_parser )
+        bittensor.dendrite.add_args( query_parser )
+        bittensor.logging.add_args( query_parser )
+
         weights_parser = cmd_parsers.add_parser(
             'weights', 
             help='''Weights commands'''
@@ -452,6 +476,8 @@ class cli:
             cli.check_set_weights_config( config )
         elif config.command == "inspect":
             cli.check_inspect_config( config )
+        elif config.command == "query":
+            cli.check_query_config( config )
 
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -538,6 +564,25 @@ class cli:
             else:
                 config.unstake_all = True
 
+    def check_query_config( config: 'bittensor.Config' ):
+        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+                  
+        if not config.uids:
+            prompt = Prompt.ask("Enter uids to query [i.e. 0 10 1999]", default = 'All')
+            if prompt == 'All':
+                config.uids = list( range(2000) )
+            else:
+                try:
+                    config.uids = [int(el) for el in prompt.split(' ')]
+                except Exception as e:
+                    console.print(":cross_mark:[red] Failed to parse uids[/red] [bold white]{}[/bold white], must be space separated list of ints".format(prompt))
+                    sys.exit()
 
     def check_set_weights_config( config: 'bittensor.Config' ):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:

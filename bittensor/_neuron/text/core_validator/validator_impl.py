@@ -146,6 +146,7 @@ class Neuron:
         self.metagraph.sync().save()
         epoch_steps = 0
         score_history = []
+        moving_avg_history = []
         if self.epoch % self.config.neuron.epochs_until_reset == 0:
             # Resetting the weights here.
             self.nucleus.reset_weights()
@@ -183,6 +184,7 @@ class Neuron:
             score_history.append( scores ) # Save score history.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
             moving_avg_scores = moving_avg_scores / moving_avg_scores.sum() # Normalize moving average.
+            moving_avg_history.append( moving_avg_scores ) # Save score history.
         
             # === Logs + state update ===
             # Prints step logs to screen.
@@ -216,7 +218,7 @@ class Neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
-        moving_avg_scores = torch.sqrt( torch.sqrt( moving_avg_scores ) ) # Pulls down the concentration towards a single peer.
+        print (moving_avg_scores.tolist())
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
@@ -227,14 +229,22 @@ class Neuron:
         # === Wandb Logs ===
         # Optionally send validator logs to wandb.
         if self.using_wandb:
-            wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
+            # Logging history to wandb.
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = topk_uids, values = moving_avg_scores ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1); df['uid'] = df.index
             wandb_data_dend = self.dendrite.to_wandb()
-            wandb.log( { **wandb_data, **wandb_data_dend }, step = self.subtensor.block )
-            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = self.subtensor.block )
+            wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
+            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+            wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
+            wandb.log( {'scores:': wandb.plot.line_series (
+                xs = list( range ( len ( moving_avg_history ) ) ), 
+                ys = torch.transpose( torch.stack( moving_avg_history ), 0, 1).tolist(),
+                keys = self.metagraph.uids.tolist(),
+                title = "Epoch scores",
+                xname = "steps"
+            )}, step = current_block)
 
 
 class Nucleus( torch.nn.Module ):
