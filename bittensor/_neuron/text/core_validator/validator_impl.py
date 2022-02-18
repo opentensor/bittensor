@@ -43,26 +43,7 @@ logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
 
-class PositionalEncoding(nn.Module):
 
-    def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        pe = torch.zeros(max_len, 1, d_model)
-        pe[:, 0, 0::2] = torch.sin(position * div_term)
-        pe[:, 0, 1::2] = torch.cos(position * div_term)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x: torch.tensor) -> torch.tensor:
-        """
-        Args:
-            x: Tensor, shape [seq_len, batch_size, embedding_dim]
-        """
-        x = x + self.pe[:x.size(0)]
-        return self.dropout(x)
 
 class Neuron:
     """ Neuron class which drives the training of the validator.
@@ -201,7 +182,8 @@ class Neuron:
             self.optimizer.zero_grad()    
 
             # === Normalize scores ===
-            # Updates moving averages and history.
+            # Updates moving averages and history.}
+            scores = torch.sqrt( (scores - scores.min()) / (scores.max() - scores.min()) )
             scores = torch.nn.functional.normalize ( scores , p=2, dim = 0 ) # Normalized step scores.
             score_history.append( scores ) # Save score history.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
@@ -240,7 +222,6 @@ class Neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
-        print (moving_avg_scores.tolist())
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
@@ -267,6 +248,27 @@ class Neuron:
                 title = "Epoch scores",
                 xname = "steps"
             )}, step = current_block)
+
+
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.tensor) -> torch.tensor:
+        """
+        Args:
+            x: Tensor, shape [seq_len, batch_size, embedding_dim]
+        """
+        x = x + self.pe[:x.size(0)]
+        return self.dropout(x)
 
 
 class Nucleus( torch.nn.Module ):
