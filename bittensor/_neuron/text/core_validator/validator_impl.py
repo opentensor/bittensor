@@ -351,7 +351,6 @@ class Nucleus( torch.nn.Module ):
         src_mask = torch.triu(torch.ones(embedding.size(1), embedding.size(1)) * float('-inf'), diagonal=1)
         src_mask = src_mask.to(self.config.neuron.device)
 
-
         # pos_embedding: adding positional encoding to embedding.
         # pos_embedding.shape = [sequence_len, batch_size, bittensor.__network_dim__]
         pos_embedding = self.local_pos_encoder(embedding)
@@ -420,12 +419,9 @@ class Nucleus( torch.nn.Module ):
             #   Hidden units which are encoded and decoded onto targets for loss computation.
             # targets: (torch.float64): [n]
             #   Token targets,
-
             src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
             src_mask = src_mask.to(self.config.neuron.device)
-
             encoded_hidden = self.encoder( hidden, mask = src_mask )
-
             decoded_targets = self.decoder( encoded_hidden )
             shift_logits = decoded_targets[..., :-1, :].contiguous()
             shift_labels = targets[..., 1:].contiguous()
