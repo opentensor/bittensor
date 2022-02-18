@@ -167,7 +167,7 @@ class CLI:
             bittensor.neurons.template_miner.neuron().run()
         elif self.config.model == 'template_server':
             bittensor.neurons.template_server.neuron().run()
-        elif self.config.model == 'template_validator':
+        elif self.config.model == 'core_validator':
             bittensor.neurons.core_validator.neuron().run()
         elif self.config.model == 'advanced_server':
             bittensor.neurons.advanced_server.neuron().run()
