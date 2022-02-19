@@ -367,11 +367,11 @@ class Neuron:
         
         # --- Loads and syncs metagraph.
         try:
-            self.nucleus.peer_weights = update_metagraph_peerweight(self.metagraph, self.nucleus.peer_weights)
+            update_metagraph_peerweight(self.metagraph, self.nucleus)
             self.stats.last_sync_block= self.subtensor.get_current_block()
         except Exception as e:
             logger.error('Error in loading metagraph: {}'.format(e))
-            self.nucleus.peer_weights = update_metagraph_peerweight(self.metagraph, self.nucleus.peer_weights)
+            update_metagraph_peerweight(self.metagraph, self.nucleus)
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
@@ -414,7 +414,7 @@ class Neuron:
         self.set_peer_weights()
 
         # ---- Sync with metagraph ----
-        self.nucleus.peer_weights = update_metagraph_peerweight(metagraph, self.nucleus.peer_weights).to(self.device)
+        update_metagraph_peerweight(metagraph, self.nucleus)
         self.optimizer = torch.optim.SGD(
             [{"params": self.nucleus.parameters()}],
             lr = self.optimizer.state_dict()['param_groups'][0]['lr'],

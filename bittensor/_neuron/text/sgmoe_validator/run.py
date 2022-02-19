@@ -172,7 +172,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
         if current_block - last_sync_block > config.neuron.metagraph_sync:
-            validator.peer_weights = update_metagraph_peerweight(metagraph, validator.peer_weights)
+            update_metagraph_peerweight(metagraph, validator)
             last_sync_block = current_block
             validator.sync_with_chain_state()
             chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
