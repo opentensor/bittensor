@@ -380,7 +380,7 @@ class CLI:
             for wallet in tqdm(all_hotkeys):
                 nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
                 if not nn.is_null:
-                    neurons.append( nn )
+                    neurons.append( (nn,wallet) )
             balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         TABLE_DATA = []  
@@ -391,7 +391,7 @@ class CLI:
         total_incentive = 0.0
         total_dividends = 0.0
         total_emission = 0     
-        for nn, hotwallet in tqdm(list(zip(neurons,all_hotkeys))):
+        for nn, hotwallet in tqdm(neurons):
             uid = nn.uid
             active = nn.active
             stake = nn.stake
