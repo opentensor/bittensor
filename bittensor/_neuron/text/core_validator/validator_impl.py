@@ -183,7 +183,7 @@ class Neuron:
 
             # === Normalize scores ===
             # Updates moving averages and history.
-            scores = torch.sqrt( torch.clamp_(scores, 0) )
+            scores = torch.sqrt( torch.sqrt( torch.sqrt( torch.clamp_(scores, 0) ) ) )
             scores = torch.nn.functional.normalize ( scores , p=2, dim = 0 ) # Normalized step scores.
             score_history.append( scores ) # Save score history.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
