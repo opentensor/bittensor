@@ -43,8 +43,6 @@ logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
 
-
-
 class Neuron:
     """ Neuron class which drives the training of the validator.
     
@@ -187,7 +185,7 @@ class Neuron:
             scores = torch.nn.functional.normalize ( scores , p=2, dim = 0 ) # Normalized step scores.
             score_history.append( scores ) # Save score history.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
-            moving_avg_scores = moving_avg_scores / moving_avg_scores.sum() # Normalize moving average.
+            moving_avg_scores = torch.nn.functional.normalize ( moving_avg_scores , p=2, dim = 0 ) # Normalize moving average.
             moving_avg_history.append( moving_avg_scores ) # Save score history.
         
             # === Logs + state update ===
@@ -249,27 +247,38 @@ class Neuron:
                 xname = "steps"
             )}, step = current_block)
 
-
 class PositionalEncoding(nn.Module):
-
+    r""" Positional Encoder which adds information based on the relative position of each token
+    
+    """
     def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
+
         position = torch.arange(max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        pe = torch.zeros(max_len, 1, d_model)
-        pe[:, 0, 0::2] = torch.sin(position * div_term)
-        pe[:, 0, 1::2] = torch.cos(position * div_term)
+
+        # === Create position matrix ===
+        # Creates a positional matrix with alternating frequencies 
+        # pe: (torch.FloatTensor) positional encoding matrix
+        # pe.shape: [1, max_len, network_dim]
+        pe = torch.zeros(1, max_len, d_model)
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, : , 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe)
 
     def forward(self, x: torch.tensor) -> torch.tensor:
         """
         Args:
-            x: Tensor, shape [seq_len, batch_size, embedding_dim]
+            x: Tensor, shape [batch_size, seq_len, embedding_dim]
         """
-        x = x + self.pe[:x.size(0)]
+        # === Positional Encoding ===
+        # Inject some information of the relative position of the token in the sequence.
+        #  Finally, Dropout is applied to tokens
+        # x: (torch.FloatTensor) input sequence tokens with position information injected
+        # x.shape: [batch_size, seq_len, network_dim]
+        x = x + self.pe[0, :x.size(1)]
         return self.dropout(x)
-
 
 class Nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
@@ -346,15 +355,20 @@ class Nucleus( torch.nn.Module ):
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         embedding =  self.token_embedding( inputs )* math.sqrt( bittensor.__network_dim__ )
-
-        # src_mask: attention mask adds -inf to positions not allowed to attend, preventing forward-looking when
-        #           predicting each token in the sequence.
+        
+        # === Create an attention mask ===
+        # The attention mask will mask out parts of the context
+        # This prevents cheating and forward-looking when predicting each token in the sequence.
+        # src_mask: (torch.FloatTensor) attention mask adds -inf to positions not allowed to attend
         # src_mask.shape = [sequence_len, sequence_len]
         src_mask = torch.triu(torch.ones(embedding.size(1), embedding.size(1)) * float('-inf'), diagonal=1)
         src_mask = src_mask.to(self.config.neuron.device)
 
-        # pos_embedding: adding positional encoding to embedding.
-        # pos_embedding.shape = [sequence_len, batch_size, bittensor.__network_dim__]
+        # === Apply the positional encoding to help select endpoints ===
+        # The positional encoder provides information based on the relative postion of each token 
+        # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
+        # pos_embedding: (torch.FloatTensor) positional encoded embedding.
+        # pos_embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         pos_embedding = self.local_pos_encoder(embedding)
 
         # routing_context: (torch.FloatTensor): context tensor which is used to select endpoints.
@@ -438,6 +452,12 @@ class Nucleus( torch.nn.Module ):
         target_loss = get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
+        # === Compute Importance loss ===
+        # Computes the importance loss based on the stardard error of batchwise_routing_weights
+        # This ensures that gates do not converge onto a few experts
+        # importance_loss: (torch.float64) the importance loss based on the stardard error
+        # target_loss: (torch.float64): the total loss (global training loss + importance loss)
+        # target_loss.shape = [ 1 ]
         importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
         target_loss =  target_loss +  importance_loss
 
