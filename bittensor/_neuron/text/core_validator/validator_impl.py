@@ -181,12 +181,10 @@ class Neuron:
 
             # === Normalize scores ===
             # Updates moving averages and history.
-            scores = torch.sqrt( torch.sqrt( torch.sqrt( torch.clamp_(scores, 0) ) ) )
-            scores = torch.nn.functional.normalize ( scores , p=2, dim = 0 ) # Normalized step scores.
-            score_history.append( scores ) # Save score history.
+            score_history.append( torch.nn.functional.normalize ( scores - scores.min(), p=1, dim = 0 ) ) # Normalized step scores.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
             moving_avg_scores = torch.nn.functional.normalize ( moving_avg_scores , p=2, dim = 0 ) # Normalize moving average.
-            moving_avg_history.append( moving_avg_scores ) # Save score history.
+            moving_avg_scores = bittensor.utils.weight_utils.normalize_with_max_value( max_value = ( 10 / self.config.neuron.n_topk_peer_weights ), t = moving_avg_scores )
         
             # === Logs + state update ===
             # Prints step logs to screen.
@@ -198,23 +196,11 @@ class Neuron:
             print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', self.config.neuron.blocks_per_epoch )
             print( 'scores:\n', sorted_mvg_scores)
             if self.using_wandb:
-                step_stats = pandas.DataFrame( moving_avg_scores ).describe()
-                wandb.log(
-                    {  
-                        'loss': loss.item(),
-                        'time': time.time() - start_time,
-                        'global_step': self.global_step,
-                        'scount': step_stats[0]['count'], 
-                        'smax': step_stats[0]['max'], 
-                        'smean': step_stats[0]['mean'], 
-                        'sstd': step_stats[0]['std'], 
-                        'smin': step_stats[0]['min'], 
-                        's25%': step_stats[0]['25%'], 
-                        's50%': step_stats[0]['50%'], 
-                        's75%': step_stats[0]['75%'], 
-                    }, 
-                    step = current_block
-                )
+                # Log to wandb our top n_topk_peer_weights weights.
+                wlogs = {}
+                for i, w in list(zip(moving_avg_scores.sort()[1].tolist(), moving_avg_scores.sort()[0].tolist()) )[ :self.config.neuron.n_topk_peer_weights ]:
+                    wlogs['w_{}'.format( i )] = w
+                wandb.log( **wlogs, step = current_block )
 
 
         # === Set weights ===
