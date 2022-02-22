@@ -225,13 +225,6 @@ class Neuron:
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
-            wandb.log( {'scores:': wandb.plot.line_series (
-                xs = list( range ( len ( moving_avg_history ) ) ), 
-                ys = torch.transpose( torch.stack( moving_avg_history ), 0, 1).tolist(),
-                keys = self.metagraph.uids.tolist(),
-                title = "Epoch scores",
-                xname = "steps"
-            )}, step = current_block)
 
 class PositionalEncoding(nn.Module):
     r""" Positional Encoder which adds information based on the relative position of each token
