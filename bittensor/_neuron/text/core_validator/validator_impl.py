@@ -196,11 +196,8 @@ class Neuron:
             print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', self.config.neuron.blocks_per_epoch )
             print( 'scores:\n', sorted_mvg_scores)
             if self.using_wandb:
-                # Log to wandb our top n_topk_peer_weights weights.
-                wlogs = {}
                 for i, w in list(zip(moving_avg_scores.sort()[1].tolist(), moving_avg_scores.sort()[0].tolist()) )[ :self.config.neuron.n_topk_peer_weights ]:
-                    wlogs['w_{}'.format( i )] = w
-                wandb.log( **wlogs, step = current_block )
+                    wandb.log( {'w_{}'.format( i ): w }, step = current_block )
 
 
         # === Set weights ===
