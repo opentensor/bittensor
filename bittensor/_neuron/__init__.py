@@ -28,12 +28,14 @@ __all_neurons__ =  { 'text_template_miner': template_miner.neuron,
                      'text_template_server':template_server.neuron,
                      'text_advanced_server':advanced_server.neuron,
                      'sgmoe_validator':sgmoe_validator.neuron,
-                     'multitron_validator': multitron_validator.neuron
-                     }
-                     'multitron_server': multitron_server}
+                     'multitron_validator': multitron_validator.neuron,
+                     'multitron_server': multitron_server.neuron}
+
 __text_neurons__ =  { 'template_miner': template_miner.neuron, 
                      'template_validator': template_validator.neuron,
                      'template_server':template_server.neuron,
                      'advanced_server':advanced_server.neuron,
                      'sgmoe_validator':sgmoe_validator.neuron,
-                     'multitron_server': multitron_server}
+                     'multitron_validator': multitron_validator.neuron,
+                     'multitron_server': multitron_server.neuron
+                     }

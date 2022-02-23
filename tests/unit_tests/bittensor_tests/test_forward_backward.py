@@ -26,7 +26,6 @@ import multiprocessing
 import time
 import warnings
 
-
 wallet = bittensor.wallet.mock()
 bittensor.logging(debug = True)
 dendrite = bittensor.dendrite(requires_grad=True)

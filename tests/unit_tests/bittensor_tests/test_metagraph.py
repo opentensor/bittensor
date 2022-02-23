@@ -81,4 +81,3 @@ def test_to_dataframe():
 def test_sync_from_mock():
     g = bittensor.metagraph( subtensor = bittensor.subtensor.mock() )
     g.sync()
-

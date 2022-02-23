@@ -103,7 +103,6 @@ class dataset:
     def mock(cls):
         return dataset( _mock = True )
 
-
     @classmethod
     def config(cls) -> 'bittensor.Config':
         """ Get config from the argument parser 
