@@ -36,7 +36,6 @@ def normalize_with_max_value( max_value:float, t: torch.FloatTensor ):
                 Normalized max_value tensor.
 
     """
-    print (t.sort()[0])
     assert t.min() >= 0, "passed tensor must be normalized between (0,1) and sum to 1."
     assert t.max() <= 1.0, "passed tensor must be normalized between (0,1) and sum to 1."
     assert len(t) >= 1/max_value, "passed kappa must high enough to faciliate possible values which sum to 1."

@@ -122,7 +122,6 @@ class Neuron:
                     # Each epoch runs for blocks_per_epoch and resets
                     # the model every epochs_until_reset.
                     self.run_epoch()
-                    self.epoch += 1
 
                 # === Stops on interrupt otherwise restarts ===
                 except KeyboardInterrupt:
@@ -191,19 +190,22 @@ class Neuron:
             epoch_steps += 1
             self.global_step += 1
             current_block = self.subtensor.block
-            zipped_scores = list( zip( self.metagraph.uids[ moving_avg_scores > 0.0 ].tolist() , moving_avg_scores [moving_avg_scores > 0.0 ].tolist() ) ) 
-            sorted_mvg_scores = sorted(zipped_scores, key=lambda x: x[1])
             print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', self.config.neuron.blocks_per_epoch )
-            print( 'scores:\n', sorted_mvg_scores)
             if self.using_wandb:
-                for i, w in list(zip(moving_avg_scores.sort()[1].tolist(), moving_avg_scores.sort()[0].tolist()) )[ :self.config.neuron.n_topk_peer_weights ]:
+                topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
+                for i, w in list(zip(topk_uids.tolist(), topk_scores.tolist()) )[ :self.config.neuron.n_topk_peer_weights ]:
                     wandb.log( {'w_{}'.format( i ): w }, step = current_block )
 
+        # Iterate epochs.
+        self.epoch += 1
 
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
+        moving_avg_scores = torch.nn.functional.normalize ( moving_avg_scores , p=2, dim = 0 )
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
+        topk_scores = bittensor.utils.weight_utils.normalize_with_max_value( max_value = ( 10 / self.config.neuron.n_topk_peer_weights ), t = topk_scores )
+        print( 'scores:\n', topk_scores.sort()[0])
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
@@ -215,7 +217,7 @@ class Neuron:
         if self.using_wandb:
             # Logging history to wandb.
             df = pandas.concat( [
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = topk_uids, values = moving_avg_scores ),
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = topk_uids, values = torch.zeros( self.metagraph.n ).scatter( dim = 0, src = topk_scores, index = topk_uids ) ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1); df['uid'] = df.index
             wandb_data_dend = self.dendrite.to_wandb()
