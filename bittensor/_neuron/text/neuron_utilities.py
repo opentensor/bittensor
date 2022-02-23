@@ -5,6 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 def update_metagraph_peerweight(metagraph, nucleus, device):
+    r"""
+    Check for the change in hotkey before and after metagraph sync, 
+    update the peer_weight of nucleus accordingingly.
+        Args:
+            metagraph (:obj:`bittensor.metagraph`, `required`):
+                The metagraph to sync.
+            nucleus (:obj:`bittensor.neuron.text.nucleus`, `required`):
+                The nn.Module class that needs the peerweight to be updated.
+            device (:type:`torch.device`)
+                The device where peer_weight should be stored. 
+    """ 
     old_hotkeys = metagraph.hotkeys
     metagraph.sync()
     new_hotkeys = metagraph.hotkeys
