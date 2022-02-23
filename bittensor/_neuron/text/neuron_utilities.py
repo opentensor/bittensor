@@ -1,8 +1,33 @@
+from numpy import zeros_like
 import bittensor
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
-
+def update_metagraph_peerweight(metagraph, nucleus, device):
+    r"""
+    Check for the change in hotkey before and after metagraph sync, 
+    update the peer_weight of nucleus accordingingly.
+        Args:
+            metagraph (:obj:`bittensor.metagraph`, `required`):
+                The metagraph to sync.
+            nucleus (:obj:`bittensor.neuron.text.nucleus`, `required`):
+                The nn.Module class that needs the peerweight to be updated.
+            device (:type:`torch.device`)
+                The device where peer_weight should be stored. 
+    """ 
+    old_hotkeys = metagraph.hotkeys
+    metagraph.sync()
+    new_hotkeys = metagraph.hotkeys
+    peer_weight_mean = torch.mean(nucleus.peer_weights)
+    chain_growth = max(metagraph.n.item() - nucleus.peer_weights.shape[0], 0)
+    nucleus.peer_weights = nn.Parameter(torch.cat([nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(device)]))
+    
+    for i, (old_hotkey, new_hotkey) in enumerate(zip(old_hotkeys, new_hotkeys)):
+        if old_hotkey != new_hotkey:
+            with torch.no_grad():
+                nucleus.peer_weights[i] = peer_weight_mean
+    
 def joining_context(return_ops, topk_weights, responses):
     """
     Joins response embbedings depending on the return codes 
@@ -47,10 +72,9 @@ def jacobian(y, x, create_graph=False,hessian =False):
                 The jacobian matrix which contains the partial differentials 
     
     """
-                                                                  
     jac = []                                                                                          
     flat_y = y.reshape(-1)                                                                            
-    grad_y = torch.zeros_like(flat_y)                                                                 
+    grad_y = torch.zeros_like(flat_y)
     for i in range(len(flat_y)): 
         if hessian ==True and flat_y[i].item() == 0:
             grad_x = torch.zeros_like(x)
@@ -58,7 +82,10 @@ def jacobian(y, x, create_graph=False,hessian =False):
             pass
         else:
             grad_y[i] = 1.
-            grad_x, = torch.autograd.grad(flat_y, x, grad_y, retain_graph=True, create_graph=create_graph)
+            try:
+                grad_x, = torch.autograd.grad(flat_y, x, grad_y, retain_graph=True, create_graph=create_graph)
+            except Exception as e:
+                return torch.zeros(y.shape + x.shape)
             jac.append(grad_x.reshape(x.shape))                                                           
             grad_y[i] = 0.                                                                                
     return torch.stack(jac).reshape(y.shape + x.shape)     
