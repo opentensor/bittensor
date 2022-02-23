@@ -9,19 +9,11 @@ def update_metagraph_peerweight(metagraph, nucleus, device):
     metagraph.sync()
     new_hotkeys = metagraph.hotkeys
     peer_weight_mean = torch.mean(nucleus.peer_weights)
-    
     chain_growth = max(metagraph.n.item() - nucleus.peer_weights.shape[0], 0)
     nucleus.peer_weights = nn.Parameter(torch.cat([nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(device)]))
     
     for i, (old_hotkey, new_hotkey) in enumerate(zip(old_hotkeys, new_hotkeys)):
         if old_hotkey != new_hotkey:
-            print(i, old_hotkey, '-->', new_hotkey)
-            print(i, old_hotkey, '-->', new_hotkey)
-            print(i, old_hotkey, '-->', new_hotkey)
-            print(i, old_hotkey, '-->', new_hotkey)
-            print(i, old_hotkey, '-->', new_hotkey)
-            print(i, old_hotkey, '-->', new_hotkey)
-            print(i, old_hotkey, '-->', new_hotkey)
             with torch.no_grad():
                 nucleus.peer_weights[i] = peer_weight_mean
     
