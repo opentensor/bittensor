@@ -22,30 +22,22 @@ import torch
 
 U32_MAX = 4294967295
 
-def normalize_with_max_value( max_value:float, t: torch.FloatTensor ):
-    r""" Normalizes the tensor t so that the max value is less than max_value
-        WARNING!!! Calling this function can cause an infinite loop is max_value normalization 
-        Is not possible given the size of t and max_value passed.
+def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ):
+    r""" Normalizes the tensor x so that sum(x) = 1 and the max value is at most multiple times larger than the min value.
         Args:
-            max_value: float:
-                Max value of normalized tensor
-            t (:obj:`torch.FloatTensor`):
+            x (:obj:`torch.FloatTensor`):
                 Tensor to be max_value normalized.
+            multiple: float:
+                Max value is multiple times larger than the min after normalization.     
         Returns:
-            t (:obj:`torch.FloatTensor`):
-                Normalized max_value tensor.
-
+            x (:obj:`torch.FloatTensor`):
+                Normalized x tensor.
     """
-    assert t.min() >= 0, "passed tensor must be normalized between (0,1) and sum to 1."
-    assert t.max() <= 1.0, "passed tensor must be normalized between (0,1) and sum to 1."
-    assert len(t) >= 1/max_value, "passed kappa must high enough to faciliate possible values which sum to 1."
-    t = t + torch.ones_like(t) * 0.0000001 # Fixes potential infinite loops.
-    t = torch.sqrt( t )
-    t = t / t.sum()
-    if t.max() < max_value:
-        return t
-    else:
-        normalize_with_max_value( max_value, t )
+    shift = 1 / ( multiple - 1 )
+    x = x - x.min()
+    x = x / x.sum()
+    y = (torch.tanh(x * len(x)) + shift)/(torch.tanh( x * len(x) ) + shift).sum()
+    return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ):
     r""" Converts weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)

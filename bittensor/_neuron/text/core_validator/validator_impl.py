@@ -146,7 +146,6 @@ class Neuron:
         self.metagraph.sync().save()
         epoch_steps = 0
         score_history = []
-        moving_avg_history = []
         if self.epoch % self.config.neuron.epochs_until_reset == 0:
             # Resetting the weights here.
             self.nucleus.reset_weights()
@@ -180,10 +179,8 @@ class Neuron:
 
             # === Normalize scores ===
             # Updates moving averages and history.
-            score_history.append( torch.nn.functional.normalize ( scores - scores.min(), p=1, dim = 0 ) ) # Normalized step scores.
+            score_history.append( scores ) # Normalized step scores.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
-            moving_avg_scores = torch.nn.functional.normalize ( moving_avg_scores , p=2, dim = 0 ) # Normalize moving average.
-            moving_avg_scores = bittensor.utils.weight_utils.normalize_with_max_value( max_value = ( 10 / self.config.neuron.n_topk_peer_weights ), t = moving_avg_scores )
         
             # === Logs + state update ===
             # Prints step logs to screen.
@@ -192,7 +189,9 @@ class Neuron:
             current_block = self.subtensor.block
             print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', self.config.neuron.blocks_per_epoch )
             if self.using_wandb:
-                for i, w in list(zip(moving_avg_scores.sort()[1].tolist(), moving_avg_scores.sort()[0].tolist()) )[ :self.config.neuron.n_topk_peer_weights ]:
+                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
+                step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = 10 )
+                for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
                     wandb.log( {'w_{}'.format( i ): w }, step = current_block )
 
         # Iterate epochs.
@@ -201,10 +200,9 @@ class Neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
-        moving_avg_scores = torch.nn.functional.normalize ( moving_avg_scores , p=2, dim = 0 )
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
-        topk_scores = bittensor.utils.weight_utils.normalize_with_max_value( max_value = ( 5 / self.config.neuron.n_topk_peer_weights ), t = topk_scores )
-        print( 'scores:\n', topk_scores.sort()[0])
+        topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = 10 )
+        print( 'scores:\n', topk_scores.sort()[0], topk_scores.sum(), topk_scores.min(), topk_scores.max(), topk_scores.max()/topk_scores.min() )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
@@ -436,7 +434,7 @@ class Nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): the total loss (global training loss + importance loss)
         # target_loss.shape = [ 1 ]
         importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
-        target_loss =  target_loss +  importance_loss
+        target_loss =  target_loss + importance_loss
 
         # === Compute shapely scores ===
         # Computes shapely scores for each endpoint by masking the response and
