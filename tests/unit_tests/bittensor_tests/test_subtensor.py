@@ -414,6 +414,20 @@ def test_two_subtensor_ownership():
     del ( sub1 )
     assert not bittensor.subtensor.global_mock_process_is_running()
 
+def test_subtensor_mock_functions():
+    bittensor.subtensor.kill_global_mock_process()
+    sub = bittensor.subtensor.mock()
+    assert bittensor.subtensor.global_mock_process_is_running()
+    sub.n
+    sub.total_issuance
+    sub.total_stake
+    sub.immunity_period
+    sub.rho
+    sub.kappa
+    sub.blocks_per_epoch
+    sub.blocks_since_epoch
+    sub.max_allowed_uids
+
 test_subtensor_mock()
 test_create_mock_process()
 test_mock_from_mock_arg()
