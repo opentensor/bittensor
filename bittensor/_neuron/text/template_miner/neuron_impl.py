@@ -44,6 +44,7 @@ import torch.nn as nn
 from functools import partial
 
 import torch.nn.functional as F
+from ..neuron_utilities import update_metagraph_peerweight
 
 class Neuron:
 
@@ -366,11 +367,11 @@ class Neuron:
         
         # --- Loads and syncs metagraph.
         try:
-            self.metagraph.sync().save()
+            update_metagraph_peerweight(self.metagraph, self.nucleus, self.device)
             self.stats.last_sync_block= self.subtensor.get_current_block()
         except Exception as e:
             logger.error('Error in loading metagraph: {}'.format(e))
-            self.metagraph.sync().save()
+            update_metagraph_peerweight(self.metagraph, self.nucleus, self.device)
 
         # ---- Load training state.
         self.epoch = state_dict['epoch']
@@ -413,14 +414,13 @@ class Neuron:
         self.set_peer_weights()
 
         # ---- Sync with metagraph ----
-        self.metagraph.sync().save()
-        chain_growth = max(self.metagraph.n.item()- self.nucleus.peer_weights.shape[0], 0)
-        self.nucleus.peer_weights = nn.Parameter(torch.cat([self.nucleus.peer_weights, torch.ones([chain_growth],dtype=torch.float32,requires_grad=True).to(self.device)]))
+        update_metagraph_peerweight(metagraph, self.nucleus, self.device)
         self.optimizer = torch.optim.SGD(
             [{"params": self.nucleus.parameters()}],
             lr = self.optimizer.state_dict()['param_groups'][0]['lr'],
             momentum = self.optimizer.state_dict()['param_groups'][0]['momentum'],
         )
+        chain_growth = max(self.metagraph.n.item()- self.stats.scores.shape[0], 0)
         self.stats.scores = torch.nn.Parameter(torch.cat( [self.stats.scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         self.stats.ema_scores = torch.nn.Parameter(torch.cat( [self.stats.ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False).to(self.device)]))
         bittensor.logging.success( 'Synced metagraph:', 'Block: {}'.format(current_block))
