@@ -1105,8 +1105,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Process the result.
         uid = int(result.value)
         
-        neuron = self.neuron_for_uid( uid, block)
-        if neuron.is_null:
+        neuron = self.neuron_for_uid( uid, block )
+        if neuron.hotkey != ss58_hotkey:
             return -1
         else:
             return uid
