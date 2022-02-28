@@ -201,6 +201,32 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
+    def min_allowed_weights (self) -> int:
+        r""" Returns min allowed number of weights.
+        Returns:
+            min_allowed_weights (int):
+                Min number of weights allowed to be set.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MinAllowedWeights').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def max_allowed_min_max_ratio(self) -> int:
+        r""" Returns the chains max_allowed_min_max_ratio
+        Returns:
+            max_allowed_min_max_ratio (int):
+                The max ratio allowed between the min and max.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedMaxMinRatio').value
+        return make_substrate_call_with_retry()
+
+    @property
     def n (self) -> int:
         r""" Returns total number of neurons on the chain.
         Returns:

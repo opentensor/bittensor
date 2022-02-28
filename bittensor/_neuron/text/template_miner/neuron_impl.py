@@ -447,15 +447,18 @@ class Neuron:
         """
 
         try:
-            k = min( self.config.neuron.n_topk_peer_weights, self.metagraph.n.item() )
-            inactive_uids = torch.where(self.metagraph.active == 0)[0]
-            self.stats.ema_scores[inactive_uids] = 0
-            topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores , k = k )
-            topk_uids = topk_uids.detach().to('cpu')
-            topk_scores = topk_scores.detach().to('cpu')
+            # Get chain requirments.
+            n_topk_peer_weights = self.subtensor.min_allowed_weights
+            max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+
+            # Take topk and normalize.
+            topk_scores, topk_uids = bittensor.unbiased_topk( self.stats.ema_scores , k = n_topk_peer_weights )
+            topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
+
+            # Set weights.
             self.subtensor.set_weights(
-                uids = topk_uids,
-                weights = topk_scores,
+                uids = topk_uids.detach().to('cpu'),
+                weights = topk_scores.detach().to('cpu'),
                 wait_for_inclusion = False,
                 wallet = self.wallet,
             )

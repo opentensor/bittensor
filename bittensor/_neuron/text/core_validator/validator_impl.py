@@ -145,6 +145,8 @@ class Neuron:
         # Reset the validator weights ever x epochs.
         self.metagraph.sync().save()
         epoch_steps = 0
+        n_topk_peer_weights = self.subtensor.min_allowed_weights
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
         score_history = []
         if self.epoch % self.config.neuron.epochs_until_reset == 0:
             # Resetting the weights here.
@@ -189,8 +191,8 @@ class Neuron:
             current_block = self.subtensor.block
             print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', self.config.neuron.blocks_per_epoch )
             if self.using_wandb:
-                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
-                step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = 10 )
+                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
+                step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
                     wandb.log( {'w_{}'.format( i ): w }, step = current_block )
 
@@ -200,8 +202,8 @@ class Neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = min(self.config.neuron.n_topk_peer_weights, self.metagraph.n.item())  )
-        topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = 10 )
+        topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
+        topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
         print( 'scores:\n', topk_scores.sort()[0], topk_scores.sum(), topk_scores.min(), topk_scores.max(), topk_scores.max()/topk_scores.min() )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
