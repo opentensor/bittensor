@@ -183,7 +183,7 @@ class subtensor:
             parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
-            parser.add_argument('--subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=False)
+            parser.add_argument('--subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock )
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -195,6 +195,7 @@ class subtensor:
         defaults.subtensor = bittensor.Config()
         defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
+        defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):

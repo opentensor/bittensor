@@ -118,6 +118,7 @@ def test_overview( setup_chain ):
         config.subtensor.network = "local"
         config.subtensor.chain_endpoint = "localhost:{}".format(port)
         config.no_prompt = True
+
         cli = bittensor.cli(config)
         cli.run()
 
@@ -131,6 +132,7 @@ def test_register( setup_chain ):
     config.subtensor.network = "local"
     config.subtensor.chain_endpoint = "localhost:{}".format(port)
     config.no_prompt = True
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -140,13 +142,14 @@ def test_stake( setup_chain ):
     
     config = construct_config()
 
-    config.command = "stake"#, "unstake", "transfer"]
+    config.command = "stake"
     config.amount = 1
     config.subtensor.network = "local"
     config.stake_all = False
     config.subtensor.chain_endpoint = "localhost:{}".format(port)
     config.model = "template_miner"
     config.no_prompt = True
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -166,6 +169,7 @@ def test_unstake( setup_chain ):
     config.subtensor.chain_endpoint = "localhost:{}".format(port)
     config.model = "template_miner"
     config.no_prompt = True
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -185,6 +189,7 @@ def test_new_coldkey( setup_chain ):
     config.n_words = 12
     config.use_password = False
     config.no_prompt = True
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -204,6 +209,7 @@ def test_new_hotkey( setup_chain ):
     config.n_words = 12
     config.use_password = False
     config.no_prompt = True
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -224,6 +230,7 @@ def test_regen_coldkey( setup_chain ):
     config.n_words = 12
     config.use_password = False
     config.no_prompt = True
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -243,6 +250,7 @@ def test_regen_hotkey( setup_chain ):
     config.n_words = 12
     config.use_password = False
     config.no_prompt = True
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -257,6 +265,7 @@ def test_metagraph( setup_chain ):
     config.subtensor.network = "local"
     config.no_prompt = True
     config.subtensor.chain_endpoint = "localhost:{}".format(port)
+
     cli = bittensor.cli(config)
     cli.run()
 
@@ -271,6 +280,7 @@ def test_weights( setup_chain ):
     config.subtensor.network = "local"
     config.no_prompt = True
     config.subtensor.chain_endpoint = "localhost:{}".format(port)
+
     cli = bittensor.cli(config)
     cli.run()
 
