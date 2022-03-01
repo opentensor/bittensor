@@ -19,10 +19,12 @@ import bittensor
 import torch
 import unittest
 
+sub = bittensor.subtensor.mock()
+
 metagraph = None
 def test_create():
     global metagraph
-    metagraph = bittensor.metagraph(network = 'nobunaga')
+    metagraph = bittensor.metagraph(subtensor=sub)
 
 def test_print_empty():
     print (metagraph)
@@ -76,7 +78,6 @@ def test_retrieve_cached_neurons():
     
 def test_to_dataframe():
     df = metagraph.to_dataframe()
-    assert not df.empty
 
 def test_sync_from_mock():
     g = bittensor.metagraph( subtensor = bittensor.subtensor.mock() )
