@@ -50,7 +50,6 @@ class config:
 
         # 2. Optionally check for --strict 
         strict = '--strict-parsing' in parser.parse_known_args()[1]
-        print (strict, parser.parse_known_args())
             
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)

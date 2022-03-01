@@ -188,6 +188,33 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
+    def batch_size (self) -> 'bittensor.Balance':
+        r""" Returns the chain default batch size.
+        Returns:
+            batch_size (int):
+                Chain default batch size.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BatchSize').value
+        return make_substrate_call_with_retry()
+
+
+    @property
+    def sequence_length (self) -> 'bittensor.Balance':
+        r""" Returns the chain default sequence length.
+        Returns:
+            sequence_length (int):
+                Chain default sequence length.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'SequenceLength').value
+        return make_substrate_call_with_retry()
+
+    @property
     def total_stake (self) -> 'bittensor.Balance':
         r""" Returns total stake on the chain.
         Returns:
@@ -239,6 +266,54 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return substrate.query(  module='SubtensorModule', storage_function = 'N').value
         return make_substrate_call_with_retry()
 
+    @property
+    def max_n (self) -> int:
+        r""" Returns maximum number of neuron positions on the graph.
+        Returns:
+            max_n (int):
+                Maximum number of neuron positions on the graph.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedUids').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def block (self) -> int:
+        r""" Returns current chain block.
+        Returns:
+            block (int):
+                Current chain block.
+        """
+        return self.get_current_block()
+
+    @property
+    def blocks_since_epoch (self) -> int:
+        r""" Returns blocks since last epoch.
+        Returns:
+            blocks_since_epoch (int):
+                blocks_since_epoch 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksSinceLastStep').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def blocks_per_epoch (self) -> int:
+        r""" Returns blocks per chain epoch.
+        Returns:
+            blocks_per_epoch (int):
+                blocks_per_epoch 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksPerStep').value
+        return make_substrate_call_with_retry()
+
     def get_n (self, block: int = None) -> int:
         r""" Returns total number of neurons on the chain.
         Returns:
@@ -255,14 +330,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def block (self) -> int:
-        r""" Returns current chain block.
-        Returns:
-            block (int):
-                Current chain block.
-        """
-        return self.get_current_block()
 
     def serve_axon (
         self,
