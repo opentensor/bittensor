@@ -126,7 +126,7 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
             topk_weights  (:type:`pytorch.FloatTensor`, `required`), shape = [n]:
                 The topk weights selected for joining
             responses  (:type:`pytorch.FloatTensor`, `required`), shape = [n]:
-                The embeddings that sent by the peers
+                The embeddings that sent by the wwwwwpeers
 
         Returns:
             partial_context (:type:`Dictionary``, `required):

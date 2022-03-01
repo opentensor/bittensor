@@ -33,6 +33,7 @@ def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ) -> 'torch.
             x (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
+    x = x + torch.rand_like( x ) * 0.0000001
     shift = 1 / ( multiple - 1 )
     x = x - x.min()
     x = x / x.sum()
