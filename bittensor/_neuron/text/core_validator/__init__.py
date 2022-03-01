@@ -97,7 +97,7 @@ class neuron:
         parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False )
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = 1000 )
         parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = 10 )
         parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Number of weights to set on chain', default = 250 )
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
@@ -209,10 +209,7 @@ class neuron:
         # === Setup Dataset ===
         # Create the dataset with chain determined 
         # batch size and sequence length.
-        self.dataset = bittensor.dataset ( 
-            batch_size = self.subtensor.batch_size, 
-            block_size = self.subtensor.sequence_length
-        )
+        self.dataset = bittensor.dataset ( config = self.config )
 
         # === Reset Model ===
         # Every n epochs we reset the model and start the 
@@ -220,7 +217,7 @@ class neuron:
         if self.epoch % self.config.neuron.epochs_until_reset == 0:
             # Resetting model here.
             self.nucleus = nucleus ( config = self.config, device = self.device ).to( self.device )
-            optimizer = torch.optim.SGD ( 
+            self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
             )
 
@@ -244,8 +241,8 @@ class neuron:
             # === Apply gradients ===
             # Applies local gradients to parameters.
             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-            optimizer.step()
-            optimizer.zero_grad()    
+            self.optimizer.step()
+            self.optimizer.zero_grad()    
 
             # === Normalize scores ===
             # Updates moving averages and history.
