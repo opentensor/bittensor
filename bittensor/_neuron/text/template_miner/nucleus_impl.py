@@ -28,6 +28,7 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from ..neuron_utilities import joining_context, jacobian, partial_contexts
 
 class PositionalEncoding(nn.Module):
 
@@ -84,15 +85,31 @@ class Nucleus(nn.Module):
         self.remote_decoder.weight.data.uniform_(-initrange, initrange)
         self.local_decoder.weight.data.uniform_(-initrange, initrange)
 
-    def compute_scores ( self, loss ):
-        """Computes salience scores for each peer in the network w.r.t the loss. 
-        We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
+    def compute_scores ( self, loss, inputs):
+        """Computes a mixture of greedy saliency and shapley scores for each peer in the network w.r.t the loss. 
         """
-        peer_weights_d1 = torch.autograd.grad(loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-        if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
-        peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
-        validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
+        validator_scores = torch.zeros(self.peer_weights.size())
+        with torch.no_grad():
+            self.eval()
+            estimate_loss = self.decode_remote( self.output, inputs )
+            for uid in self.partial_context:
+                partial_remote_target_loss = self.decode_remote( self.partial_context[uid], inputs )
+                validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss
+                
+        peer_weights_d1 = jacobian(loss, self.peer_weights)
+        first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
+        validator_scores= F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)        
+    
         return validator_scores
+
+    def decode_remote(self, context, inputs):
+        remote_hidden = self.remote_hidden( context)
+        remote_target = self.remote_decoder(remote_hidden)
+        shift_logits = remote_target[..., :-1, :].contiguous()
+        shift_labels = inputs[..., 1:].contiguous()
+        partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+
+        return partial_remote_target_loss
 
     def local_forward(self, inputs: torch.LongTensor, training: bool = True) -> SimpleNamespace:
         """ Forward pass through local transformer model of nucleus.
@@ -192,12 +209,13 @@ class Nucleus(nn.Module):
                     Distillation loss between local_context and remote_context.
             )
         """
+        self.train()
         # Run local model
         output = self.local_forward( inputs, training )
 
         # remote_context: joined responses from a dendrite.forward_text call.
         # remote_context.shape = [batch_size, sequence_len (or block_size), bittensor.__network_dim__]
-        output.remote_context, output.query_uids = self.remote( inputs )
+        output.remote_context, output.query_uids, output.responses, output.total_uids = self.remote( inputs )
 
         # remote_hidden: projects from the remote_context
         # remote_hidden.shape = [batch_size, sequence_len, bittensor.__vocab_size__]
@@ -222,6 +240,8 @@ class Nucleus(nn.Module):
 
         return output
 
+
+
     def remote(self, inputs: torch.int64 ) -> torch.float32:
         """ Forwards the inputs through the network, selects the topk peers based on self.peer_weights.
         Args:
@@ -238,10 +258,11 @@ class Nucleus(nn.Module):
 
         # ---- Topk Weights ---- (TODO: check if the gaussians are enough disrupt the chain weights)
         real_topk = min( self.config.nucleus.topk, self.metagraph().n.item(), len(active_uids))
-        std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() and not torch.std(active_peer_weights).isnan() else self.config.nucleus.noise_offset
-        noise = torch.normal( 0, std, size=( active_peer_weights.size() ) ).to( self.config.neuron.device ) * self.noise_multiplier
-        topk_weights, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
+        std = torch.std(active_peer_weights).item() if torch.std(active_peer_weights).item() else self.config.nucleus.noise_offset
+        noise = torch.normal( 0, std, size=( active_peer_weights.size())).to( self.config.neuron.device ) * self.noise_multiplier
+        _, topk_idx = bittensor.unbiased_topk(active_peer_weights + noise , real_topk, dim=0)
         topk_uids = active_uids[topk_idx]
+        topk_weights = self.peer_weights[topk_uids]  
 
         # ---- Filter endpoints ----
         endpoints = self.metagraph().endpoints[ topk_uids ]
@@ -252,16 +273,10 @@ class Nucleus(nn.Module):
             inputs = inputs
         )
 
-        # ---- Join based on weights ----
-        joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-        joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-        output = torch.zeros( (inputs.shape[0], inputs.shape[1], bittensor.__network_dim__)).to( self.config.neuron.device )
-        for index, joining_weight in enumerate( joining_weights ):
-            output += responses[joining_uids[index]].to( self.config.neuron.device ) * joining_weight
+        output, joining_uids = joining_context(return_ops, topk_weights, responses)
 
-        # ---- Punish peers with non-successful return ops ----
-        with torch.no_grad():
-            self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -=  self.config.nucleus.punishment
-            self.peer_weights[self.peer_weights < -1] = -1 #lower bound for chain weights
-        
-        return output, topk_uids[joining_uids]
+        self.output = output
+        self.partial_context = partial_contexts(return_ops, topk_uids, topk_weights, responses)
+        return output, topk_uids[joining_uids], responses, topk_uids
+
+

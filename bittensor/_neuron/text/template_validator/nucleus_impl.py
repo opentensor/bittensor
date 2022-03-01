@@ -2,6 +2,8 @@ import bittensor
 import torch
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import torch.nn.functional as F
+from ..neuron_utilities import joining_context, jacobian, partial_contexts
+
 
 class Validator( torch.nn.Module ):
 
@@ -20,6 +22,7 @@ class Validator( torch.nn.Module ):
 
 
         def forward ( self, inputs ):
+            self.train()
             # Apply model.
             query_hidden = self.query( inputs )
             encoded_hidden = self.encoder( query_hidden )
@@ -31,15 +34,31 @@ class Validator( torch.nn.Module ):
             self.loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
             return self.loss, decoded_targets
 
-        def scores ( self ):
-            """Computes salience scores for each peer in the network w.r.t the loss. 
-            We use a simplified fishers information score. score_i = hessian_ii * peer_weight_i^2
+        def scores ( self , loss, inputs  ):
+            """Computes a mixture of greedy saliency and shapley scores for each peer in the network w.r.t the loss. 
             """
-            peer_weights_d1 = torch.autograd.grad(self.loss, self.peer_weights, create_graph=True, retain_graph=True, allow_unused=True)[0]
-            if peer_weights_d1 == None: return torch.ones_like( self.peer_weights ) * (1 / self.metagraph().n.item()) # None if no grad w.r.t the chain weights.
-            peer_weights_d2 = torch.autograd.grad(peer_weights_d1.sum(), self.peer_weights, retain_graph=True, allow_unused=True )[0]
-            validator_scores =  peer_weights_d2 * (self.peer_weights**2)/2  
+            validator_scores = torch.zeros(self.peer_weights.size())
+            with torch.no_grad():
+                self.eval()
+                estimate_loss = self.decode_remote( self.output, inputs )
+
+                for uid in self.partial_context:
+                    partial_remote_target_loss = self.decode_remote( self.partial_context[uid],inputs )
+                    validator_scores[uid] =  (partial_remote_target_loss - estimate_loss)/estimate_loss 
+                           
+            peer_weights_d1 = jacobian(loss, self.peer_weights)
+            first_order = (peer_weights_d1.detach()* -self.peer_weights.detach())
+            validator_scores= F.normalize(validator_scores, p = 2,dim=0)*(0.5) + F.normalize(first_order, p = 2,dim=0)*(0.5)
             return validator_scores
+
+        def decode_remote(self, context, inputs):
+            remote_hidden = self.encoder( context)
+            remote_target = self.decoder(remote_hidden)  
+            shift_logits = remote_target[..., :-1, :].contiguous()
+            shift_labels = inputs[..., 1:].contiguous()
+            partial_remote_target_loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+
+            return partial_remote_target_loss
 
         def query ( self, inputs ):
 
@@ -66,9 +85,8 @@ class Validator( torch.nn.Module ):
             for index, joining_weight in enumerate( joining_weights ): 
                 output += responses[joining_uids[index]].to( self.device ) * joining_weight
 
-            # ---- Punish peers with non-successful return ops ----
-            with torch.no_grad():
-                self.peer_weights[topk_uids[(return_ops != bittensor.proto.ReturnCode.Success)]] -= self.config.nucleus.punishment
-                self.peer_weights[ self.peer_weights < -1 ] = -1 # lower bound for chain weights 
+            self.output = output.detach()
+            # ---- Calculate masked peers ----
+            self.partial_context = partial_contexts(return_ops, topk_uids, topk_weights, responses)
 
             return output

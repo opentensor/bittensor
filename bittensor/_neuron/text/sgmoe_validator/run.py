@@ -33,6 +33,8 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from loguru import logger; logger = logger.opt(colors=True)
+from ..neuron_utilities import update_metagraph_peerweight
+
 def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid, dendrite):
     
     print(config)
@@ -67,7 +69,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     global_step = 0
     best_loss = math.inf
     ema_score_decay = 0.995
-    ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
+    ema_scores = torch.nn.Parameter(torch.zeros_like(validator.total_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
 
     while True:
 
@@ -78,18 +80,21 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         progress = qqdm( blocks, total=len(blocks), desc=format_str('white', f'Epoch'))
         progress.set_bar = partial(progress.set_bar,  element='#')
 
+        k = min( config.neuron.n_topk_peer_weights,metagraph.n.item() )
+
+
         # --- Reset the epoch logs
         total_epoch_score = torch.zeros(metagraph.n.item(), device = device)
         total_epoch_loss = 0
         batch_count = 0
-        
         for block in progress:
             
             # --- Training step.
             current_block = subtensor.get_current_block()
             while block >= current_block:
-                loss, _, query_uids = validator( next( dataset ) )
-                val_score = validator.scores()
+                inputs =  next( dataset )
+                loss, _, query_uids = validator( inputs )
+                val_score = validator.scores(loss, inputs)
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 scores[query_uids] += 1e-6
                 loss.backward()
@@ -100,7 +105,8 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = (ema_score_decay * ema_scores) + (1 - ema_score_decay) * scores.detach()
+                ema_scores = F.relu((ema_score_decay * ema_scores.detach()) + (1 - ema_score_decay) * scores.detach())
+                validator.total_weights = (validator.total_weights.detach() * ema_score_decay) + (1 - ema_score_decay )*validator.peer_weights.detach()
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
@@ -117,19 +123,20 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
             
-            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
+            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, k, dim=0)
             for idx, ema_score in zip(topk_idx, topk_scores) :
                 color =  'green' if scores[idx] - ema_score > 0 else 'red'
                 info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
-            
-            
+
             progress.set_infos( info )
         
+
+
         # --- End of epoch
         # --- Set mechanism weights.
         inactive_uids = torch.where(metagraph.active == 0)[0]
         ema_scores[inactive_uids] = 0
-        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = min(config.neuron.n_topk_peer_weights, metagraph.n.item()))
+        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores.detach().to('cpu'), k = k)
         subtensor.set_weights(
             uids = topk_uids,
             weights = topk_scores,
@@ -165,11 +172,16 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             torch.save( { 'validator': validator.state_dict() }, "{}/validator.torch".format( config.neuron.full_path ))
 
         if current_block - last_sync_block > config.neuron.metagraph_sync:
-            metagraph.sync()
+            update_metagraph_peerweight(metagraph, validator, device)
             last_sync_block = current_block
             validator.sync_with_chain_state()
             chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
             ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
+            optimizer = torch.optim.SGD(
+                validator.parameters(),
+                lr = config.neuron.learning_rate,
+                momentum = config.neuron.momentum,
+            )
 
         epoch += 1
 

@@ -221,7 +221,7 @@ class ReceptorPool ( torch.nn.Module ):
         for arg, request in zip(call_args, requests):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
-
+            
         for request_future in request_futures:
             request_future.future.cancel()
 
@@ -262,7 +262,6 @@ class ReceptorPool ( torch.nn.Module ):
                     except KeyError:
                         pass
                 elif receptor_to_remove == None:
-                    print('Cant find things to cull')
                     break
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':

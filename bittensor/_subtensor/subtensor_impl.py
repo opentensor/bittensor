@@ -213,6 +213,84 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return substrate.query(  module='SubtensorModule', storage_function = 'N').value
         return make_substrate_call_with_retry()
 
+    @property
+    def max_allowed_uids (self) -> int:
+        r""" Returns the total network size (maximum allowed uids.)
+        Returns:
+            max_allowed_uids (int):
+                Total allowed uids
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedUids').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def immunity_period(self) -> int:
+        r""" Blocks until a uid can be deregistered after registering
+        Returns:
+            immunity_period (int):
+                Blocks until a uid can be deregistered after registering
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ImmunityPeriod').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def blocks_per_epoch(self) -> int:
+        r""" Current epoch length on the chain.
+        Returns:
+            blocks_per_epoch (int):
+                Current epoch length on the chain.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksPerStep').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def blocks_since_epoch(self) -> int:
+        r""" Blocks progressed since last epoch.
+        Returns:
+            blocks_since_epoch (int):
+                Blocks progressed since last epoch.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksSinceLastStep').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def rho(self) -> int:
+        r""" Consensus mechanism temperature.
+        Returns:
+            rho (int):
+                Consensus mechanism temperature.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Rho').value 
+        return make_substrate_call_with_retry()
+
+    @property
+    def kappa(self) -> int:
+        r""" Consensus mechanism shift term.
+        Returns:
+            kappa (int):
+                Consensus mechanism shift term.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Kappa').value
+        return make_substrate_call_with_retry()
+
     def get_n (self, block: int = None) -> int:
         r""" Returns total number of neurons on the chain.
         Returns:
@@ -1027,8 +1105,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Process the result.
         uid = int(result.value)
         
-        neuron = self.neuron_for_uid( uid, block)
-        if neuron.is_null:
+        neuron = self.neuron_for_uid( uid, block )
+        if neuron.hotkey != ss58_hotkey:
             return -1
         else:
             return uid

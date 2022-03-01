@@ -33,16 +33,13 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from qqdm import qqdm, format_str
 from loguru import logger; logger = logger.opt(colors=True)
+from ..neuron_utilities import update_metagraph_peerweight
 
 def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid, dendrite):
     print(config)
     config.to_defaults()
     validator = validator.to(device)
-    optimizer = torch.optim.SGD(
-        [ {'params': validator.peer_weights, 'lr': config.neuron.learning_rate_chain} ],
-        lr = config.neuron.learning_rate,
-        momentum = config.neuron.momentum,
-    )
+
     if config.wandb.api_key != 'default':
         # Create wandb for telemetry.
         bittensor.wandb(
@@ -65,13 +62,19 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
     global_step = 0
     best_loss = math.inf
     ema_score_decay = 0.995
-    ema_scores = torch.nn.Parameter(torch.zeros_like(validator.peer_weights, device = device) * (1 / metagraph.n.item()), requires_grad = False)
+    ema_scores = torch.nn.Parameter(torch.ones(metagraph.n.item()).to(device), requires_grad = False)
 
     while True:
         # --- Sync + reshape.      
-        metagraph.sync().save()
-        chain_growth = max(0, metagraph.n.item() - torch.numel( validator.peer_weights ))
-        validator.peer_weights = torch.nn.Parameter(torch.cat([validator.peer_weights, torch.ones([chain_growth], dtype=torch.float32, requires_grad=True, device = device)]))
+        update_metagraph_peerweight(metagraph, validator, device)
+
+        optimizer = torch.optim.SGD(
+            validator.parameters(),
+            lr = config.neuron.learning_rate,
+            momentum = config.neuron.momentum,
+        )
+        
+        chain_growth = max(0, metagraph.n.item() - torch.numel( ema_scores ))
         ema_scores = torch.nn.Parameter(torch.cat([ema_scores, torch.zeros([chain_growth], dtype=torch.float32, requires_grad=False, device = device)]))
 
         # --- Run epoch.
@@ -85,14 +88,18 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
         total_epoch_score = torch.zeros(metagraph.n.item(), device = device)
         total_epoch_loss = 0
         batch_count = 0
-        
+        k = min( config.neuron.n_topk_peer_weights,metagraph.n.item() )
+
         for block in progress:
             
             # --- Training step.
             current_block = subtensor.get_current_block()
             while block >= current_block:
-                loss, _ = validator( next( dataset ) )
-                val_score = validator.scores()
+
+                inputs = next( dataset )
+                loss, _ = validator( inputs )
+                val_score = validator.scores(loss,inputs)
+                
                 scores = torch.nn.functional.normalize ( torch.relu( val_score ), p=1, dim = 0 )
                 loss.backward()
                 clip_grad_norm_(validator.parameters(), config.neuron.clip_gradients)
@@ -102,7 +109,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 batch_count += 1
                 total_epoch_score += scores.detach()
                 total_epoch_loss += loss.item()
-                ema_scores = ema_score_decay * ema_scores + (1 - ema_score_decay) * scores.detach()
+                ema_scores = F.relu(ema_score_decay * ema_scores.detach() + (1 - ema_score_decay) * scores.detach())
                 current_block = subtensor.get_current_block()
 
             # --- Step logs.
@@ -118,19 +125,15 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
                 'Dividends': colored('{:.4f}'.format(metagraph.D[ uid ].item()), 'red'),
                 'Current Block': colored('{}'.format(block), 'yellow')
             }
-            
-            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, 5, dim=0)
-            for idx, ema_score in zip(topk_idx, topk_scores) :
-                color =  'green' if scores[idx] - ema_score > 0 else 'red'
-                info[f'uid_{idx.item()}'] = colored('{:.4f}'.format(ema_score), color) 
-            
+            topk_scores, topk_idx = bittensor.unbiased_topk(ema_scores, k, dim=0)
             progress.set_infos( info )
         
         # --- End of epoch
         inactive_uids = torch.where(metagraph.active == 0)[0]
         ema_scores[inactive_uids] = 0
         # --- Set mechanism weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores, k = min(config.neuron.n_topk_peer_weights, metagraph.n.item())  )
+        
+        topk_scores, topk_uids = bittensor.unbiased_topk( ema_scores, k, dim=0 )
         subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
@@ -157,7 +160,7 @@ def run( config , validator, subtensor, wallet, metagraph, dataset, device, uid,
             wandb_data_dend = dendrite.to_wandb()
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block)
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block)
-
+            
         # --- Save.
         if best_loss > epoch_loss : 
             best_loss = epoch_loss
