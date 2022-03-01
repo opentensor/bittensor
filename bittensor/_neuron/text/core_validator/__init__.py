@@ -271,7 +271,7 @@ class neuron:
         # We use the mean of the epoch weights.
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
-        print( 'scores:\n', topk_scores.sort()[0], topk_scores.sum(), topk_scores.min(), topk_scores.max(), topk_scores.max()/topk_scores.min() )
+        print( 'scores:\n\t', topk_scores.sort()[0], '\nsum:\n\t', topk_scores.sum(), '\nmin:\n\t', topk_scores.min(), '\nmax:\n\t', topk_scores.max(), '\nmax/min:\n\t', topk_scores.max()/topk_scores.min() )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
