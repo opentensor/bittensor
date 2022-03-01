@@ -16,12 +16,25 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+import argparse
 import pytest
 
 def test_loaded_config():
     with pytest.raises(NotImplementedError):
         bittensor.Config(loaded_config=True)
 
+def test_strict():
+    parser = argparse.ArgumentParser()
+    bittensor.dendrite.add_args( parser )
+    bittensor.logging.add_args( parser )
+    bittensor.wallet.add_args( parser )
+    bittensor.subtensor.add_args( parser )
+    bittensor.metagraph.add_args( parser )
+    bittensor.dataset.add_args( parser )
+    bittensor.axon.add_args( parser )
+    bittensor.wandb.add_args( parser )
+    bittensor.config( parser, strict=False)
+    bittensor.config( parser, strict=True)
 
 def construct_config():
     defaults = bittensor.Config()

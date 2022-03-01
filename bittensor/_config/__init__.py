@@ -37,7 +37,17 @@ class config:
         """ In place of YAMLError
         """
 
-    def __new__( cls, parser: ArgumentParser = None):
+    def __new__( cls, parser: ArgumentParser = None, strict: bool = False ):
+        r""" Translates the passed parser into a nested Bittensor config.
+        Args:
+            parser (argparse.Parser):
+                Command line parser object.
+            strict (bool):
+                If true, the command line arguments are strictly parsed.
+        Returns:
+            config (bittensor.Config):
+                Nested config object created from parser arguments.
+        """
         if parser == None:
             parser = ArgumentParser()
 
@@ -48,8 +58,7 @@ class config:
             config_file_path = None
             
         # 1.2 Optionally check for --strict 
-        strict = '--strict-parsing' in parser.parse_known_args()[1]
-        print (strict, parser.parse_known_args())
+        strict = '--strict-parsing' in parser.parse_known_args()[1] or strict
             
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
