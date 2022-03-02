@@ -17,11 +17,8 @@
 
 import bittensor
 import torch
-import unittest
-
 
 bittensor.subtensor.kill_global_mock_process()
-bittensor.subtensor.create_global_mock_process()
 sub = bittensor.subtensor.mock()
 
 metagraph = None

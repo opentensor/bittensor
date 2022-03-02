@@ -247,6 +247,7 @@ class subtensor:
             operating_system = "OSX" if platform == "darwin" else "Linux"
             path = "./bin/chain/{}/node-subtensor".format(operating_system)
             port = int(bittensor.__mock_entrypoints__[0].split(':')[1])
+            print(port)
             subprocess.Popen([path, 'purge-chain', '--dev', '-y'], close_fds=True, shell=False)    
             _mock_subtensor_process = subprocess.Popen( [path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))
