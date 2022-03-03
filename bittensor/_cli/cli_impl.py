@@ -79,25 +79,25 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey)   
 
     def create_new_hotkey ( self ):
         r""" Creates a new hotke under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)   
 
     def regen_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False )
+        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
 
     def regen_hotkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
+        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
 
     def query ( self ):
         r""" Query an endpoint and get query time.
