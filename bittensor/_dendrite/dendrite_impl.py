@@ -96,8 +96,10 @@ class Dendrite(torch.autograd.Function):
     def __del__(self):
         if self.manager:
             self.manager.deduct_connection_count()
+
         if bittensor != None:
             bittensor.logging.success('Dendrite Deleted', sufix = '')
+
 
     @staticmethod
     def forward(
@@ -743,7 +745,7 @@ class Dendrite(torch.autograd.Function):
         try:
             wandb_info = {
                 'dendrite/qps': self.stats.qps.get(),
-                'dendrite/total_requests' : self.stats.total_requests,
+                'dendrite/total_requests' : self.receptor_pool.get_total_requests(),
                 'dendrite/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
                 'dendrite/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
                 'dendrite/Total unique queries': len(self.stats.requests_per_pubkey.keys()),
