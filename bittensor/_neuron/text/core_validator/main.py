@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-
-import bittensor 
-if __name__ == '__main__':
-    bittensor.cli().run()
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -20,3 +15,12 @@ if __name__ == '__main__':
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
+""" Main Validator script.
+
+Example:
+    $ python3 bittensor/_neurons/text/core_validator/main.py ...
+"""
+import bittensor
+if __name__ == "__main__":
+    bittensor.neurons.core_validator.neuron().run()
