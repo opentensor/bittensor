@@ -247,7 +247,7 @@ class cli:
         )
         regen_coldkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.''',
         )
@@ -257,6 +257,12 @@ class cli:
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
+        )
+        regen_coldkey_parser.add_argument(
+            '--overwrite_coldkey',
+            default=False,
+            action='store_false',
+            help='''Overwrite the old coldkey with the newly generated coldkey'''
         )
         bittensor.wallet.add_args( regen_coldkey_parser )
 
@@ -277,7 +283,7 @@ class cli:
         )
         regen_hotkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -287,6 +293,13 @@ class cli:
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
+        )
+        regen_hotkey_parser.add_argument(
+            '--overwrite_hotkey',
+            dest='overwrite_hotkey',
+            action='store_true',
+            default=False,
+            help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( regen_hotkey_parser )
 
@@ -308,7 +321,7 @@ class cli:
         )
         new_coldkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -319,6 +332,13 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
+        new_coldkey_parser.add_argument(
+            '--overwrite_coldkey',
+            action='store_false',
+            default=False,
+            help='''Overwrite the old coldkey with the newly generated coldkey'''
+        )
+        
         bittensor.wallet.add_args( new_coldkey_parser )
 
 
@@ -339,7 +359,7 @@ class cli:
         )
         new_hotkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -349,6 +369,12 @@ class cli:
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
+        )
+        new_hotkey_parser.add_argument(
+            '--overwrite_hotkey',
+            action='store_false',
+            default=False,
+            help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( new_hotkey_parser )
 
@@ -449,7 +475,6 @@ class cli:
             type=str, 
             required=False
         )
-        
 
         return bittensor.config( parser )
 

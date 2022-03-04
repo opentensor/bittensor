@@ -21,6 +21,7 @@ import os
 import copy
 import bittensor
 from . import dendrite_impl
+from . import dendrite_mock
 from .manager_server import ManagerServer
 from multiprocessing.managers import BaseManager
 from loguru import logger
@@ -91,7 +92,7 @@ class dendrite:
                 compression = config.dendrite.compression,
             )
         if config.dendrite._mock:
-            return dendrite_impl.DendriteMock ( 
+            return dendrite_mock.DendriteMock ( 
                 config = config,
                 wallet = wallet
             )

@@ -213,6 +213,84 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return substrate.query(  module='SubtensorModule', storage_function = 'N').value
         return make_substrate_call_with_retry()
 
+    @property
+    def max_allowed_uids (self) -> int:
+        r""" Returns the total network size (maximum allowed uids.)
+        Returns:
+            max_allowed_uids (int):
+                Total allowed uids
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedUids').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def immunity_period(self) -> int:
+        r""" Blocks until a uid can be deregistered after registering
+        Returns:
+            immunity_period (int):
+                Blocks until a uid can be deregistered after registering
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ImmunityPeriod').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def blocks_per_epoch(self) -> int:
+        r""" Current epoch length on the chain.
+        Returns:
+            blocks_per_epoch (int):
+                Current epoch length on the chain.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksPerStep').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def blocks_since_epoch(self) -> int:
+        r""" Blocks progressed since last epoch.
+        Returns:
+            blocks_since_epoch (int):
+                Blocks progressed since last epoch.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksSinceLastStep').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def rho(self) -> int:
+        r""" Consensus mechanism temperature.
+        Returns:
+            rho (int):
+                Consensus mechanism temperature.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Rho').value 
+        return make_substrate_call_with_retry()
+
+    @property
+    def kappa(self) -> int:
+        r""" Consensus mechanism shift term.
+        Returns:
+            kappa (int):
+                Consensus mechanism shift term.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Kappa').value
+        return make_substrate_call_with_retry()
+
     def get_n (self, block: int = None) -> int:
         r""" Returns total number of neurons on the chain.
         Returns:
@@ -575,6 +653,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                 return True
+        
+        return False
 
     def transfer(
             self, 
@@ -677,6 +757,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
                 return True
+        
+        return False
 
     def unstake (
             self, 
@@ -787,6 +869,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
+        
+        return False
                 
     def set_weights(
             self, 
@@ -865,8 +949,8 @@ To run a local node (See: docs/running_a_validator.md) \n
             message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
             logger.debug('Set weights:'.ljust(20) +  message)
             return True
-        else:
-            return False
+        
+        return False
 
     def get_balance(self, address: str, block: int = None) -> Balance:
         r""" Returns the token balance for the passed ss58_address address

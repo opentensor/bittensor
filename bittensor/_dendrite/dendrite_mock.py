@@ -1,4 +1,5 @@
-""" Implementation of class dendrite, which quries endpoints with tensors.
+
+""" Implementation of mock class dendrite, which quries endpoints with tensors.
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -32,15 +33,9 @@ from transformers.utils.logging import enable_explicit_format
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
 import bittensor.utils.stats as stat_utils
-import bittensor.utils.codes as codes
-
-import wandb
-
-logger = logger.opt(colors=True)
 
 # dummy tensor that triggers autograd 
 DUMMY = torch.empty(0, requires_grad=True)
-
 
 # Helper function for filling nill (zero) responses on failures.
 def nill_response_for(inputs):
@@ -51,54 +46,30 @@ def nill_response_for(inputs):
     return torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
 
-class Dendrite(torch.autograd.Function):
-    r""" This is the implementation class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
-    which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
-    results or zeros. The operation is fully differentiable with a torch computation graph such that calls to loss.backward() produce Backward calls on
-    the passed endpoints.
+class DendriteMock(torch.autograd.Function):
 
-    Args:
-        config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.dendrite.config()):
-            config namespace object created by calling bittensor.dendrite.config()
-        wallet (:obj:`bittensor.Wallet`, `optional`, defaults to bittensor.wallet( name = 'default', hotkey = 'default')):
-            A bittensor wallet object containing a pair of cryptographic keys, the hot and coldkey, used for signing messages
-            on the wire.
-        receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`, defaults to bittensor.receptor_pool()):
-            A bittensor receptor pool object which maintains a set of connections to other peers in the network and operates as
-            a normal torch.nn.Module. By default this object is created with the dendrite config.
+    r""" Mocked Dendrite returns random results 50% of the time.
     """
 
     def __init__(
             self,
             config: 'bittensor.Config',
             wallet: 'bittensor.Wallet',
-            receptor_pool: 'bittensor.ReceptorPool',
-            manager: 'BaseManager' = None,
     ):
-        r""" Initializes a new Dendrite entry point.
-            Args:
-                receptor_pool (:obj:`bittensor.ReceptorPool`, `required`):
-                    bittensor receptor pool
+        r""" Initializes a new Mock Dendrite entry point.
         """
         self.config = config
         self.wallet = wallet
-        self.receptor_pool = receptor_pool
-        self.manager = manager
-        # ---- Dendrite stats
-        # num of time we have sent request to a peer, received successful respond, and the respond time
         self.stats = self._init_stats()
 
     def __str__(self):
-        return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
+        return "MockDendrite({})".format(self.wallet.hotkey.ss58_address)
 
     def __repr__(self):
         return self.__str__()
 
     def __del__(self):
-        if self.manager:
-            self.manager.deduct_connection_count()
-        if bittensor != None:
-            bittensor.logging.success('Dendrite Deleted', sufix = '')
+        pass
 
     @staticmethod
     def forward(
@@ -149,15 +120,22 @@ class Dendrite(torch.autograd.Function):
                 outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`n_endpoints * (batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
                         Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
         """
-        ctx.receptor_pool = dendrite.receptor_pool
         ctx.endpoints, ctx.inputs, ctx.modality, ctx.timeout, ctx.does_requires_grad = endpoints, inputs, modality, timeout, requires_grad
         inputs = [x.cpu().clone().detach() for x in inputs]
-        forward_outputs, forward_codes, forward_times = ctx.receptor_pool.forward(
-            endpoints=endpoints,
-            inputs=inputs,
-            modality=modality,
-            timeout=timeout
-        )
+
+        # MOCK response generator.        
+        forward_outputs = []
+        forward_codes = []
+        forward_times = []
+        for tensor in inputs:
+            if random.random() < 0.5:
+                forward_outputs.append( torch.randn( list(tensor.shape) + [bittensor.__network_dim__], dtype=torch.float32) )
+                forward_codes.append( 1 )
+                forward_times.append( 0 )
+            else:
+                forward_outputs.append( torch.zeros( list(tensor.shape) + [bittensor.__network_dim__], dtype=torch.float32) )
+                forward_codes.append( 1 )
+                forward_times.append( 0 )
         ctx.forward_codes = forward_codes
         forward_times = [-1 if t is None else t for t in forward_times]
         return (torch.tensor(forward_codes, dtype=torch.int64), 
@@ -195,13 +173,12 @@ class Dendrite(torch.autograd.Function):
         """
         if ctx.does_requires_grad:
             grads_cpu = [x.cpu().clone().detach() for x in output_grads]
-            input_grads, _, _ = ctx.receptor_pool.backward(
-                endpoints=ctx.endpoints,
-                inputs_x=ctx.inputs,
-                grads_dy=grads_cpu,
-                modality=ctx.modality,
-                timeout=ctx.timeout,
-            )
+            input_grads = []
+            for idx, tensor in enumerate( ctx.inputs ):
+                if ctx.forward_codes[idx]:
+                    input_grads.append( torch.randn( list(tensor.shape) + [bittensor.__network_dim__], dtype=torch.float32) )
+                else:
+                    input_grads.append( torch.zeros( list(tensor.shape) + [bittensor.__network_dim__], dtype=torch.float32) )
             return (None, None, None, None, None, None, *input_grads)
         else:
             input_grads = [nill_response_for(inp) for inp in ctx.inputs]
@@ -247,7 +224,7 @@ class Dendrite(torch.autograd.Function):
         """
         timeout = timeout if timeout is not None else self.config.dendrite.timeout
         requires_grad = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
-        forward_response = Dendrite.apply(
+        forward_response = DendriteMock.apply(
             self,
             DUMMY,
             endpoints,
@@ -731,7 +708,6 @@ class Dendrite(torch.autograd.Function):
         except Exception as e:
             bittensor.logging.error( prefix='failed dendrite.to_dataframe()', sufix=str(e) )
             return pandas.DataFrame()
-
 
     def to_wandb( self ):
         r""" Return a dictionary of dendrite stats as wandb logging info.

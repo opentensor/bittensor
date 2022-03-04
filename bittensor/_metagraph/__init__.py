@@ -23,6 +23,7 @@ import copy
 
 import bittensor
 from . import metagraph_impl
+from . import metagraph_mock
 
 class metagraph:
     """ create and init metagraph, 
@@ -59,7 +60,7 @@ class metagraph:
         config = copy.deepcopy(config)
         config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
         if config.metagraph._mock:
-            return metagraph_impl.MockMetagraph()
+            return metagraph_mock.MockMetagraph()
         if subtensor == None:
             subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
         return metagraph_impl.Metagraph( subtensor = subtensor )
