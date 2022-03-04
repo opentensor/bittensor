@@ -41,7 +41,7 @@ neuron.momentum: 0.8
 neuron.n_epochs: 9223372036854775807
 neuron.n_topk_peer_weights: 100
 neuron.name: template_neuron
-neuron.no_restart: false
+neuron.no_restart: true
 neuron.restart_on_failure: true
 neuron.sync_block_time: 100
 neuron.timeout: 10

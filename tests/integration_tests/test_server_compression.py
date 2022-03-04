@@ -229,7 +229,9 @@ serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.M
 inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
 
 
+
 wallet = bittensor.wallet.mock()
+
 
 """
 Grpc server/client compression tests

@@ -394,8 +394,12 @@ class CLI:
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
             for wallet in tqdm(all_hotkeys):
                 nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
+<<<<<<< HEAD
                 if not nn.is_null:
                     neurons.append( (nn, wallet) )
+=======
+                neurons.append( nn )
+>>>>>>> 2e25b97cde42932344aad0bbe405f723147b4365
             balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         TABLE_DATA = []  
@@ -406,7 +410,13 @@ class CLI:
         total_incentive = 0.0
         total_dividends = 0.0
         total_emission = 0     
+<<<<<<< HEAD
         for nn, hotwallet in tqdm(neurons):
+=======
+        for nn, hotwallet in tqdm(list(zip(neurons,all_hotkeys))):
+            if nn.is_null: # skip unregistered hotkeys
+                continue
+>>>>>>> 2e25b97cde42932344aad0bbe405f723147b4365
             uid = nn.uid
             active = nn.active
             stake = nn.stake
@@ -446,7 +456,7 @@ class CLI:
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
-        table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]HOTKEY NAME",  str(total_neurons), footer_style = "overline white", style='bold white')
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
