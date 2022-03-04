@@ -172,7 +172,6 @@ def serve( config, gp_server):
             return True
         else: 
             return False
-            
 
     # Create our axon server
     axon = bittensor.axon (
@@ -187,7 +186,7 @@ def serve( config, gp_server):
     dataset = bittensor.dataset(config=config)
 
     # load our old model
-    if config.neuron.no_restart != True:
+    if not config.neuron.restart :
         gp_server.load(config.neuron.full_path)
 
     if config.wandb.api_key != 'default':

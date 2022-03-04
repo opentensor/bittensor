@@ -132,8 +132,8 @@ class Neuron:
             try:
 
                 # ---- reloads previous run if not restart ----
-                if self.config.neuron.no_restart:
-                    self.save()
+                if self.config.neuron.restart:
+                  self.save()
 
                 try:
                     self.reload()
