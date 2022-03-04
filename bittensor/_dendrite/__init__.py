@@ -97,6 +97,7 @@ class dendrite:
                 wallet = wallet
             )
         elif config.dendrite.multiprocessing:
+            authkey = wallet.hotkey.ss58_address.encode('UTF-8')
             try:
                 manager_client = dendrite.manager_connect(authkey = authkey)
                 logger.success('Receptor Pool Server Connected')
