@@ -1,4 +1,5 @@
 # The MIT License (MIT)
+# The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
@@ -74,6 +75,8 @@ class CLI:
             self.inspect()
         elif self.config.command == "query":
             self.query()
+        elif self.config.command == "help":
+            self.help()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -190,6 +193,24 @@ class CLI:
             bittensor.neurons.advanced_server.neuron().run()
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
+
+    def help ( self ):
+        self.config.to_defaults()
+
+        sys.argv = [sys.argv[0], '--help']
+
+        # Run miner.
+        if self.config.model == 'template_miner':
+            bittensor.neurons.template_miner.neuron().run()
+        elif self.config.model == 'template_server':
+            bittensor.neurons.template_server.neuron().run()
+        elif self.config.model == 'core_validator':
+            bittensor.neurons.core_validator.neuron().run()
+        elif self.config.model == 'advanced_server':
+            bittensor.neurons.advanced_server.neuron().run()
+        elif self.config.model == 'multitron_server':
+            bittensor.neurons.multitron_server.neuron().run()
+
 
     def register( self ):
         r""" Register neuron.
