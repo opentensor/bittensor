@@ -125,6 +125,7 @@ class TestCli(unittest.TestCase):
         cli.run()
 
     def test_stake( self ):
+        wallet = TestCli.generate_wallet()
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         config = self.config
         config.subtensor.network = "local"
@@ -133,6 +134,7 @@ class TestCli(unittest.TestCase):
         config.command = "stake"
         config.amount = 0.5
         config.stake_all = False
+        config.no_password = True
         
         config.model = "template_miner"
 
@@ -142,6 +144,7 @@ class TestCli(unittest.TestCase):
 
     def test_unstake( self ):
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
+        wallet = TestCli.generate_wallet()
         config = self.config
         config.command = "unstake"
         config.amount = 1
@@ -158,7 +161,6 @@ class TestCli(unittest.TestCase):
 
     def test_new_coldkey( self ):
         
-
         config = self.config
         config.wallet.name = "new_coldkey_testwallet"
 

@@ -17,68 +17,67 @@
 
 import bittensor
 import torch
+import unittest
 
-bittensor.subtensor.kill_global_mock_process()
-sub = bittensor.subtensor.mock()
 
-metagraph = None
-def test_create():
-    global metagraph
-    metagraph = bittensor.metagraph(subtensor=sub)
-
-def test_print_empty():
-    print (metagraph)
-
-def test_sync():
-    metagraph.sync()
-    metagraph.sync(600000)
-
-def test_load_sync_save():
-    metagraph.sync()
-    metagraph.save()
-    metagraph.load()
-    metagraph.save()
-
-def test_factory():
-    metagraph.load().sync().save()
-
-def test_forward():
-    row = torch.ones( (metagraph.n), dtype = torch.float32 )
-    for i in range( metagraph.n ):
-        metagraph(i, row)
-    metagraph.sync()
-    row = torch.ones( (metagraph.n), dtype = torch.float32 )
-    for i in range( metagraph.n ):
-        metagraph(i, row)
-
-def test_state_dict():
-    metagraph.load()
-    state = metagraph.state_dict()
-    assert 'uids' in state
-    assert 'stake' in state
-    assert 'last_update' in state
-    assert 'block' in state
-    assert 'tau' in state
-    assert 'weights' in state
-    assert 'endpoints' in state
-
-def test_properties():
-    metagraph.hotkeys
-    metagraph.coldkeys
-    metagraph.endpoints
-    metagraph.R
-    metagraph.T
-    metagraph.S
-    metagraph.D
-    metagraph.C
-
-def test_retrieve_cached_neurons():
-    n = metagraph.retrieve_cached_neurons()
-    assert len(n) >= 2000
+class TestMetagraph(unittest.TestCase):
     
-def test_to_dataframe():
-    df = metagraph.to_dataframe()
+    def setUp(self):
+        bittensor.subtensor.kill_global_mock_process()
+        sub = bittensor.subtensor.mock()
+        self.metagraph = bittensor.metagraph(subtensor=sub)
 
-def test_sync_from_mock():
-    g = bittensor.metagraph( subtensor = bittensor.subtensor.mock() )
-    g.sync()
+    def test_print_empty(self):
+        print (self.metagraph)
+
+    def test_sync(self):
+        self.metagraph.sync()
+        self.metagraph.sync(0)
+
+    def test_load_sync_save(self):
+        self.metagraph.sync()
+        self.metagraph.save()
+        self.metagraph.load()
+        self.metagraph.save()
+
+    def test_factory(self):
+        self.metagraph.load().sync().save()
+
+    def test_forward(self):
+        metagraph = self.metagraph
+        row = torch.ones( (metagraph.n), dtype = torch.float32 )
+        for i in range( metagraph.n ):
+            metagraph(i, row)
+        metagraph.sync()
+        row = torch.ones( (metagraph.n), dtype = torch.float32 )
+        for i in range( metagraph.n ):
+            metagraph(i, row)
+
+    def test_state_dict(self):
+        self.metagraph.load()
+        state = self.metagraph.state_dict()
+        assert 'uids' in state
+        assert 'stake' in state
+        assert 'last_update' in state
+        assert 'block' in state
+        assert 'tau' in state
+        assert 'weights' in state
+        assert 'endpoints' in state
+
+    def test_properties(self):
+        metagraph = self.metagraph
+        metagraph.hotkeys
+        metagraph.coldkeys
+        metagraph.endpoints
+        metagraph.R
+        metagraph.T
+        metagraph.S
+        metagraph.D
+        metagraph.C
+
+    def test_retrieve_cached_neurons(self):
+        n = self.metagraph.retrieve_cached_neurons()
+        assert len(n) >= 2000
+        
+    def test_to_dataframe(self):
+        df = self.metagraph.to_dataframe()

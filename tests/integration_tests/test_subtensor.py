@@ -21,6 +21,7 @@ import bittensor
 import pytest
 import psutil  
 import unittest
+import time
 from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
@@ -412,6 +413,7 @@ def test_two_subtensor_ownership():
     del( sub2 )
     assert bittensor.subtensor.global_mock_process_is_running()
     del ( sub1 )
+    time.sleep(2)
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_subtensor_mock_functions():
