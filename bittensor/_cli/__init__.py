@@ -246,7 +246,6 @@ class cli:
         )
         regen_coldkey_parser.add_argument(
             '--overwrite_coldkey',
-            type='bool',
             default=False,
             action='store_false',
             help='''Overwrite the old coldkey with the newly generated coldkey'''
@@ -321,7 +320,6 @@ class cli:
         )
         new_coldkey_parser.add_argument(
             '--overwrite_coldkey',
-            type='bool',
             action='store_false',
             default=False,
             help='''Overwrite the old coldkey with the newly generated coldkey'''
@@ -360,7 +358,6 @@ class cli:
         )
         new_hotkey_parser.add_argument(
             '--overwrite_hotkey',
-            type='bool',
             action='store_false',
             default=False,
             help='''Overwrite the old hotkey with the newly generated hotkey'''

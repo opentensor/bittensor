@@ -1,23 +1,10 @@
-import os
-import random
-import subprocess
-import sys
-import time
 from types import SimpleNamespace
-import pytest
 import bittensor
 
 from substrateinterface.base import Keypair
-from _pytest.fixtures import fixture
-from sys import platform   
-from loguru import logger
 import unittest
 from unittest.mock import MagicMock
-import unittest.mock as mock
 from substrateinterface.exceptions import SubstrateRequestException
-
-from bittensor._neuron.text.advanced_server import neuron
-
 
 class TestCli(unittest.TestCase):
 
@@ -265,6 +252,9 @@ class TestCli(unittest.TestCase):
         config.n_words = 12
         config.use_password = False
 
+
+        config.overwrite_hotkey = True
+
         # First create a new hotkey
         config.command = "new_hotkey"
         cli = bittensor.cli(config)
@@ -272,7 +262,7 @@ class TestCli(unittest.TestCase):
         
         # Now set the weights
         config.command = "set_weights"
-        cli = bittensor.cli(config)
+        cli.config = config
         cli.run()
 
     def test_inspect( self ):
@@ -283,18 +273,25 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.n_words = 12
         config.use_password = False
+        config.overwrite_coldkey = True
+        config.overwrite_hotkey = True
 
         # First create a new coldkey
         config.command = "new_coldkey"
         cli = bittensor.cli(config)
         cli.run()
 
+        # Now let's give it a hotkey
+        config.command = "new_hotkey"
+        cli.config = config
+        cli.run()
+
         # Now inspect it
         cli.config.command = "inspect"
-        #cli = bittensor.cli(config)
+        cli.config = config
         cli.run()
 
         cli.config.command = "list"
-        #cli = bittensor.cli(config)
+        cli.config = config
         cli.run()
 
