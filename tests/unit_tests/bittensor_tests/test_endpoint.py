@@ -18,7 +18,6 @@
 import bittensor 
 import torch
 import random
-import sys
 import pytest
 
 test_wallet = bittensor.wallet.mock()
