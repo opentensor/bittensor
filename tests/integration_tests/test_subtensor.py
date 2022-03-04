@@ -26,7 +26,7 @@ from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
 
-class TestSubtensorNobunaga(unittest.TestCase):
+class TestSubtensor(unittest.TestCase):
     def setUp(self):
         self.subtensor = bittensor.subtensor( network = 'nobunaga' )
         self.wallet = bittensor.wallet()
