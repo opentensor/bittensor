@@ -219,7 +219,7 @@ class neuron:
         if self.epoch % self.config.neuron.epochs_until_reset == 0:
             # Resetting model here.
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
-            optimizer = torch.optim.SGD ( 
+            self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
             )
 
@@ -243,8 +243,8 @@ class neuron:
             # === Apply gradients ===
             # Applies local gradients to parameters.
             clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-            optimizer.step()
-            optimizer.zero_grad()    
+            self.optimizer.step()
+            self.optimizer.zero_grad()    
 
             # === Normalize scores ===
             # Updates moving averages and history.
