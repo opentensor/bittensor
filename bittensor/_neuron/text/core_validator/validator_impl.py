@@ -159,7 +159,6 @@ class Neuron:
         # Here we run until blocks_per_epochs have progressed.
         start_block = self.subtensor.block
         current_block = start_block
-        decay = 0.99
         while self.subtensor.block < start_block + self.config.neuron.blocks_per_epoch:
             start_time = time.time()
 
