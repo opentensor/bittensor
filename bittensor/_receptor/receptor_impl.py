@@ -267,7 +267,7 @@ class Receptor(nn.Module):
             return False, request
         
         # ---- Check endpoint----
-        if self.endpoint.uid == -1:
+        if self.endpoint.hotkey  == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX':
             request.code = bittensor.proto.ReturnCode.EmptyRequest
             request.message = 'Bad endpoint.'            
             self.request_log(request = request, is_response = False, inputs = list(request.inputs.shape))

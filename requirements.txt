@@ -1,7 +1,7 @@
 argparse
 base58>=2.0.1
 certifi>=2020.11.8
-cryptography==3.1.1
+cryptography>=3.1.1
 idna>=2.10
 google-api-python-client
 grpcio==1.42.0
