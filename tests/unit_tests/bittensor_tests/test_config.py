@@ -25,6 +25,7 @@ def test_loaded_config():
 
 def test_strict():
     parser = argparse.ArgumentParser()
+    parser.add_argument("arg", help="Required positional argument")
     bittensor.dendrite.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.wallet.add_args( parser )
@@ -51,3 +52,8 @@ def construct_config():
 def test_to_defaults():
     config = construct_config()
     config.to_defaults()
+
+if __name__  == "__main__":
+    test_loaded_config()
+    test_strict()
+    test_to_defaults()

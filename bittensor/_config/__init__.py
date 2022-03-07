@@ -74,7 +74,7 @@ class config:
         if not strict:
             params = parser.parse_known_args()[0]
         else:
-            params = parser.parse_args()[0]
+            params = parser.parse_args()
         _config = config_impl.Config()
 
         # Splits params on dot syntax i.e neuron.axon_port            
