@@ -23,6 +23,7 @@ import copy
 
 import bittensor
 from . import metagraph_impl
+from . import metagraph_mock
 
 class metagraph:
     """ create and init metagraph, 
@@ -34,6 +35,7 @@ class metagraph:
             subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
             chain_endpoint: str = None,
+            _mock:bool=None
         ) -> 'bittensor.Metagraph':
         r""" Creates a new bittensor.Metagraph object from passed arguments.
             Args:
@@ -50,10 +52,15 @@ class metagraph:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                _mock (:obj:`bool`, `optional`):
+                    For testing, if true the metagraph returns mocked outputs.
         """      
         if config == None: 
             config = metagraph.config()
         config = copy.deepcopy(config)
+        config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
+        if config.metagraph._mock:
+            return metagraph_mock.MockMetagraph()
         if subtensor == None:
             subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
         return metagraph_impl.Metagraph( subtensor = subtensor )
@@ -82,6 +89,7 @@ class metagraph:
         which is the identical to subtensor  
         """
         try:
+            parser.add_argument('--metagraph._mock', action='store_true', help='To turn on metagraph mocking for testing purposes.', default=False)
             bittensor.subtensor.add_args( parser )
         except argparse.ArgumentError:
             # re-parsing arguments.

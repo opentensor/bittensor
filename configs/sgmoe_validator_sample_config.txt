@@ -27,7 +27,7 @@ neuron.metagraph_sync: 5000
 neuron.momentum: 0.8
 neuron.n_topk_peer_weights: 100
 neuron.name: sgmoe_validator
-neuron.no_restart: false
+neuron.no_restart: true
 neuron.topk: 20
 
 nucleus.dropout: 0.2
