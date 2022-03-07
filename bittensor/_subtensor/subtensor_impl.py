@@ -162,6 +162,32 @@ To run a local node (See: docs/running_a_validator.md) \n
                     return False
 
     @property
+    def rho (self) -> int:
+        r""" Incentive mechanism rho parameter.
+        Returns:
+            rho (int):
+                Incentive mechanism rho parameter.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Rho').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def kappa (self) -> int:
+        r""" Incentive mechanism kappa parameter.
+        Returns:
+            kappa (int):
+                Incentive mechanism kappa parameter.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Kappa').value
+        return make_substrate_call_with_retry()
+
+    @property
     def difficulty (self) -> int:
         r""" Returns registration difficulty from the chain.
         Returns:
@@ -188,30 +214,56 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
-    def batch_size (self) -> 'bittensor.Balance':
-        r""" Returns the chain default batch size.
+    def validator_batch_size (self) -> int:
+        r""" Returns the chain default validator batch size.
         Returns:
             batch_size (int):
-                Chain default batch size.
+                Chain default validator batch size.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'BatchSize').value
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorBatchSize').value
         return make_substrate_call_with_retry()
 
 
     @property
-    def sequence_length (self) -> 'bittensor.Balance':
-        r""" Returns the chain default sequence length.
+    def validator_sequence_length (self) -> int:
+        r""" Returns the chain default validator sequence length.
         Returns:
             sequence_length (int):
-                Chain default sequence length.
+                Chain default validator sequence length.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'SequenceLength').value
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorSequenceLength').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_epochs_per_reset (self) -> int:
+        r""" Epochs passed before the validator resets its weights.
+        Returns:
+            validator_epochs_per_reset (int):
+                Epochs passed before the validator resets its weights.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochsPerReset').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_epoch_length (self) -> int:
+        r""" Default validator epoch length.
+        Returns:
+            validator_epoch_length (int):
+                Default validator epoch length. 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochLen').value
         return make_substrate_call_with_retry()
 
     @property
@@ -668,6 +720,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                 return True
+        
+        return False
 
     def transfer(
             self, 
@@ -770,6 +824,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
                 return True
+        
+        return False
 
     def unstake (
             self, 
@@ -880,6 +936,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
+        
+        return False
                 
     def set_weights(
             self, 
@@ -958,8 +1016,8 @@ To run a local node (See: docs/running_a_validator.md) \n
             message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
             logger.debug('Set weights:'.ljust(20) +  message)
             return True
-        else:
-            return False
+        
+        return False
 
     def get_balance(self, address: str, block: int = None) -> Balance:
         r""" Returns the token balance for the passed ss58_address address

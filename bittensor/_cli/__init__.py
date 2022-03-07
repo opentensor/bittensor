@@ -71,6 +71,7 @@ class cli:
         
         run_parser = cmd_parsers.add_parser(
             'run', 
+            add_help=False,
             help='''Run the miner.'''
         )
         run_parser.add_argument(
@@ -84,7 +85,7 @@ class cli:
             '--model', 
             type=str, 
             choices= list(bittensor.neurons.__text_neurons__.keys()), 
-            default='template_miner', 
+            default='None', 
             help='''Miners available through bittensor.neurons'''
         )
         bittensor.subtensor.add_args( run_parser )
@@ -102,6 +103,19 @@ class cli:
             default=False,
         )
         bittensor.subtensor.add_args( metagraph_parser )
+
+
+        help_parser = cmd_parsers.add_parser(
+            'help', 
+            add_help=False,
+            help='''Displays the help '''
+        )
+        help_parser.add_argument(
+            '--model', 
+            type=str, 
+            choices= list(bittensor.neurons.__text_neurons__.keys()), 
+            default='None', 
+        )
 
         inspect_parser = cmd_parsers.add_parser(
             'inspect', 
@@ -166,8 +180,8 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
-        parser.add_argument ("--uids", type=int, required=False, nargs='*', action='store', help="Uids to set.")
-        parser.add_argument ("--weights", type=float, required=False, nargs='*', action='store', help="Weights to set.")
+        set_weights_parser.add_argument ("--uids", type=int, required=False, nargs='*', action='store', help="Uids to set.")
+        set_weights_parser.add_argument ("--weights", type=float, required=False, nargs='*', action='store', help="Weights to set.")
         bittensor.wallet.add_args( set_weights_parser )
         bittensor.subtensor.add_args( set_weights_parser )
 
@@ -233,7 +247,7 @@ class cli:
         )
         regen_coldkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.''',
         )
@@ -243,6 +257,12 @@ class cli:
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
+        )
+        regen_coldkey_parser.add_argument(
+            '--overwrite_coldkey',
+            default=False,
+            action='store_false',
+            help='''Overwrite the old coldkey with the newly generated coldkey'''
         )
         bittensor.wallet.add_args( regen_coldkey_parser )
 
@@ -263,7 +283,7 @@ class cli:
         )
         regen_hotkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -273,6 +293,13 @@ class cli:
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
+        )
+        regen_hotkey_parser.add_argument(
+            '--overwrite_hotkey',
+            dest='overwrite_hotkey',
+            action='store_true',
+            default=False,
+            help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( regen_hotkey_parser )
 
@@ -294,7 +321,7 @@ class cli:
         )
         new_coldkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -305,6 +332,13 @@ class cli:
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
         )
+        new_coldkey_parser.add_argument(
+            '--overwrite_coldkey',
+            action='store_false',
+            default=False,
+            help='''Overwrite the old coldkey with the newly generated coldkey'''
+        )
+        
         bittensor.wallet.add_args( new_coldkey_parser )
 
 
@@ -325,7 +359,7 @@ class cli:
         )
         new_hotkey_parser.add_argument(
             '--no_password', 
-            dest='use_password', 
+            dest='no_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -335,6 +369,12 @@ class cli:
             action='store_true', 
             help='''Set protect the generated bittensor key with a password.''',
             default=False,
+        )
+        new_hotkey_parser.add_argument(
+            '--overwrite_hotkey',
+            action='store_false',
+            default=False,
+            help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( new_hotkey_parser )
 
@@ -435,12 +475,6 @@ class cli:
             type=str, 
             required=False
         )
-        
-
-        # Hack to print formatted help
-        if len(sys.argv) == 1:
-            parser.print_help()
-            sys.exit(0)
 
         return bittensor.config( parser )
 
@@ -478,6 +512,8 @@ class cli:
             cli.check_inspect_config( config )
         elif config.command == "query":
             cli.check_query_config( config )
+        elif config.command == "help":
+            cli.check_help_config(config)
 
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -709,10 +745,11 @@ class cli:
             config.wallet.hotkey = str(hotkey)
 
         # Check Miner
-        if config.model == 'template_miner' and not config.no_prompt:
+        if config.model == 'None' and not config.no_prompt:
             model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'template_miner')
             config.model = model
-        
-
                 
-                
+    def check_help_config( config: 'bittensor.Config'):
+        if config.model == 'None':
+            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'template_miner')
+            config.model = model

@@ -183,7 +183,7 @@ class subtensor:
             parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
-            parser.add_argument('--subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=False)
+            parser.add_argument('--subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -195,6 +195,7 @@ class subtensor:
         defaults.subtensor = bittensor.Config()
         defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
+        defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
@@ -246,6 +247,7 @@ class subtensor:
             operating_system = "OSX" if platform == "darwin" else "Linux"
             path = "./bin/chain/{}/node-subtensor".format(operating_system)
             port = int(bittensor.__mock_entrypoints__[0].split(':')[1])
+            print(port)
             subprocess.Popen([path, 'purge-chain', '--dev', '-y'], close_fds=True, shell=False)    
             _mock_subtensor_process = subprocess.Popen( [path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))

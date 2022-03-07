@@ -1,4 +1,5 @@
-""" Maintains chain state as a torch.nn.Module.
+
+""" Maintains mocked chain state as a torch.nn.Module.
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -22,21 +23,16 @@ import os
 from typing import List
 from loguru import logger
 
-import ast
 import pandas
-import torch.nn.functional as f
 import torch
-import pickle
-import json
 
 import bittensor
 import bittensor.utils.networking as net
-import bittensor.utils.weight_utils as weight_utils
 
 RAOPERTAO = 1000000000
 U64MAX = 18446744073709551615
 
-class Metagraph( torch.nn.Module ):
+class MockMetagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
         Interface:
@@ -62,12 +58,41 @@ class Metagraph( torch.nn.Module ):
                 Tokenized endpoint information.
 
     """
-    def __init__( self, subtensor ):
+    def __init__( self ):
         r""" Initializes a new Metagraph torch chain interface object.
         """
-        super(Metagraph, self).__init__()
-        self.subtensor = subtensor
-        self.clear()
+        super(MockMetagraph, self).__init__()
+        tn = torch.tensor( 2000, dtype=torch.int64 )
+        tblock = torch.tensor( 0, dtype=torch.int64 )
+        tuids = torch.tensor( list( range( 2000 )), dtype=torch.int64 )
+        tactive = torch.tensor( [ 1 for _ in range (2000)], dtype=torch.int64 )
+        tstake = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
+        tranks = torch.tensor(  [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
+        ttrust = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
+        tconsensus = torch.tensor( [1.0 for _ in range (2000) ], dtype=torch.float32 )
+        tincentive = torch.tensor( [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
+        temission = torch.tensor( [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
+        tdividends = torch.tensor( [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
+        tlast_update = torch.tensor( [0 for _ in range (2000) ], dtype=torch.int64 )
+        tbonds = torch.tensor( [ [1 for _ in range (2000) ] for _ in range (2000) ], dtype=torch.int64 )
+        tweights = torch.tensor( [ [1.0/2000 for _ in range (2000) ] for _ in range (2000) ], dtype=torch.float32 )
+        self._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range (2000) ]
+        tendpoints = torch.tensor( [ end.to_tensor().tolist() for end in self._endpoint_objs ], dtype=torch.int64 )
+        self.n = torch.nn.Parameter( tn, requires_grad=False )
+        self.block = torch.nn.Parameter( tblock, requires_grad=False )
+        self.uids = torch.nn.Parameter( tuids, requires_grad=False )
+        self.stake = torch.nn.Parameter( tstake, requires_grad=False )
+        self.ranks = torch.nn.Parameter( tranks, requires_grad=False )
+        self.trust = torch.nn.Parameter( ttrust, requires_grad=False )
+        self.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
+        self.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
+        self.emission = torch.nn.Parameter( temission, requires_grad=False )
+        self.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
+        self.active = torch.nn.Parameter( tactive, requires_grad=False )
+        self.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
+        self.weights = torch.nn.Parameter( tweights, requires_grad=False )
+        self.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
+        self.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
 
     def clear( self ) -> 'Metagraph':
         r""" Erases Metagraph state.
@@ -97,79 +122,7 @@ class Metagraph( torch.nn.Module ):
         uid: int, 
         row_weight: torch.FloatTensor 
     ) -> torch.FloatTensor:
-        """
-        Returns a dividend vector for a change in weights by computing the full incenvite function.
-            Args:
-                uid (int):
-                    uid to set weights.
-                row_weights: (torch.FloatTensor, shape =(n)):
-                    normalized row to replace at uid.
-            Returns:
-                dividends (torch.FloatTensor):
-                    Dividends for the entire network.
-        """
-
-        # Return if there are no neurons.
-        if self.n.item() == 0:
-            return torch.tensor([], dtype=torch.float32)
-
-        # Raise if the passed weights are badly shaped.
-        if torch.numel( row_weight ) != self.n.item():
-            raise ValueError('Passed weight update must have the dimension of a row in W. Got {}, expected {}', row_weight.size(), self.n.item())
-
-        # Reshape to fit weights.
-        row_weight = row_weight.view( self.n )
-
-        # Normalize row.
-        if torch.abs( torch.sum( row_weight ) - 1 ) > 0.0001:
-            row_weight = f.normalize(row_weight, p=1, dim=0)
-        
-        # Raise if the passed weights are badly shaped.
-        if uid >= self.n.item():
-            raise ValueError('Passed uid does not exist in the graph. Got {} > {}', uid, self.n.item())
-
-        weight = self.W.detach().clone()
-        weight[uid,:] = row_weight
-        
-        # Compute ranks.
-        S = self.S.view(self.n, 1)
-        Wt = torch.transpose(weight, 0, 1)
-        R = torch.matmul(Wt, S).view(self.n)
-
-        # Compute trust.
-        T  = torch.matmul((Wt != 0).float(), S).view(self.n)
-
-        # Compute consensus.
-        rho = 10
-        kappa = 0.5
-        # Return if there is no stake.
-        if torch.sum( self.S )  == 0:
-            C = torch.sigmoid( rho * (T - kappa) ).view(self.n)
-        else:
-            C = torch.sigmoid( rho * (T / torch.sum(S) - kappa) ).view(self.n)
-
-        # Compute incentive.
-        Incentive = (R * C).view(self.n)
-        print (Incentive)
-
-        # Compute emission.
-        if torch.sum(Incentive) == 0:
-            Inflation = torch.zeros( (self.n.item()), dtype=torch.float32 ).view(self.n)
-        else:
-            Inflation = (self.tau * Incentive).view(self.n)
-        print (Inflation)
-
-        # Compute bonds.
-        B = self.B.detach().clone().float()
-        B_norm = f.normalize(B, p=1, dim=1)
-        print (B_norm)
-
-        # Dividends
-        D = torch.matmul( B_norm.view(self.n, self.n), Inflation.view(self.n, 1) ).view(self.n) + 0.5 * Inflation.view(self.n)
-        print (D)
-
-        # Return dividends.
-        return D.view(self.n)
+       pass
 
     @property
     def S(self) -> torch.FloatTensor:
@@ -310,7 +263,7 @@ class Metagraph( torch.nn.Module ):
         """
         try:
             if network == None:
-                network = self.subtensor.network
+                network = 'mock'
             metagraph_path = '~/.bittensor/' + str(network) + '.pt'
             metagraph_path = os.path.expanduser(metagraph_path)
             if os.path.isfile(metagraph_path):
@@ -328,8 +281,8 @@ class Metagraph( torch.nn.Module ):
                     Name of state_dict, defaults to kusanagi
         """
         if network == None:
-            network = self.subtensor.network
-        return self.save_to_path( path = '~/.bittensor/', filename = str(network) + '.pt')
+            network = 'mock'
+        return self.save_to_path( path = '~/.bittensor/', filename = 'mock.pt')
 
     def load_from_path(self, path:str ) -> 'Metagraph':
         r""" Loads this metagraph object with state_dict under the specified path.
@@ -379,187 +332,7 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    def retrieve_cached_neurons( self, block: int = None ):
-        """
-            Retrieves cached metagraph syncs from IPFS. 
-        """
-        ipfs = bittensor.Ipfs()
-        ipns_hash = ipfs.latest_neurons_ipns
-        ipfs_hash = ipfs.cat
-        
-        if block != None:
-            ipns_hash = ipfs.historical_neurons_ipns
-            ipfs_hash = ipfs.node_get
-        
-        try:
-            # Ping IPNS for latest IPFS hash
-            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
-
-            # Extract IPFS hash from IPNS response
-            ipfs_path = ast.literal_eval(ipns_resolve.text)
-        except Exception as e:
-            logger.error("Error detected in metagraph sync: {} with sample text {}".format(e,ipns_resolve.text))
-
-            # Try Again
-            # Ping IPNS for latest IPFS hash
-            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
-
-            # Extract IPFS hash from IPNS response
-            ipfs_path = ast.literal_eval(ipns_resolve.text)
-
-        ipfs_resolved_hash = ipfs_path['Path'].split("ipfs/")[1]
-        ipfs_response = ipfs.retrieve_directory(ipfs_hash, (('arg', ipfs_resolved_hash),))
-
-        # Extract all neuron sync hashes
-        if block != None:
-            historical_neurons = json.loads(ipfs_response.content)['Links']
-            # Find the one that corresponds to our block
-            sync_data = next(item for item in historical_neurons if item["Name"] == "nakamoto-{}.pkl".format(block))
-            # Retrieve Neuron contents
-            ipfs_response = ipfs.retrieve_directory(ipfs.cat, (('arg', sync_data['Hash']),))
-
-        # Unpickle the response
-        neurons = pickle.loads(ipfs_response.content)
-
-        return neurons
-
     def sync ( self, block: int = None, cached: bool = True ) -> 'Metagraph':
-        r""" Synchronizes this metagraph with the chain state.
-        """
-        logger.success(self.subtensor)
-        if block == None:
-            block = self.subtensor.get_current_block()
-            if cached and self.subtensor.network in ("nakamoto", "local"):
-                if bittensor.__use_console__:
-                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        try:
-                            neurons = self.retrieve_cached_neurons( )
-                        except:
-                            # For some reason IPFS cache is down, fallback on regular sync
-                            logger.warning("IPFS cache may be down, falling back to regular sync")
-                            neurons = self.subtensor.neurons()
-                        n_total = len(neurons)
-                else:
-                    try:
-                        neurons = self.retrieve_cached_neurons( )
-                    except:
-                        # For some reason IPFS cache is down, fallback on regular sync
-                        logger.warning("IPFS cache may be down, falling back to regular sync")
-                        neurons = self.subtensor.neurons()
-                    n_total = len(neurons)
-            else:
-                neurons = self.subtensor.neurons( block = block )
-                n_total = len(neurons)
-        else:
-            if cached and self.subtensor.network in ("nakamoto", "local"):
-                if bittensor.__use_console__:
-                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        try:
-                            neurons = self.retrieve_cached_neurons( block = block )
-                        except:
-                            # For some reason IPFS cache is down, fallback on regular sync
-                            logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                            neurons = self.subtensor.neurons( block = block )
-                        n_total = len(neurons)
-                else:
-                    try:
-                        neurons = self.retrieve_cached_neurons( block = block )
-                    except:
-                        # For some reason IPFS cache is down, fallback on regular sync
-                        logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                        neurons = self.subtensor.neurons( block = block )
-                    n_total = len(neurons)
-            else:
-                neurons = self.subtensor.neurons( block = block )
-                n_total = len(neurons)
-
-        # Fill arrays.
-        uids = [ i for i in range(n_total) ]
-        active = [ 0 for _ in range(n_total) ]
-        stake = [ 0 for _ in range(n_total) ]
-        ranks = [ 0 for _ in range(n_total) ]
-        trust = [ 0 for _ in range(n_total) ]
-        consensus = [ 0 for _ in range(n_total) ]
-        incentive = [ 0 for _ in range(n_total) ]
-        emission = [ 0 for _ in range(n_total) ]
-        dividends = [ 0 for _ in range(n_total) ]
-        last_updates = [ -1 for _ in range(n_total) ]
-        endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
-        weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
-        bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
-        self._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
-        for n in neurons:
-            uids[n.uid] = n.uid 
-            active[n.uid] = n.active
-            stake[n.uid] = n.stake 
-            ranks[n.uid] = n.rank
-            trust[n.uid] = n.trust
-            consensus[n.uid] = n.consensus
-            incentive[n.uid] = n.incentive
-            dividends[n.uid] = n.dividends
-            emission[n.uid] = n.emission
-            last_updates[n.uid] = n.last_update
-            endpoint =  bittensor.endpoint(
-                version = int(n.version),
-                uid = int(n.uid), 
-                hotkey = str(n.hotkey), 
-                ip_type = int(n.ip_type), 
-                ip = str(n.ip), 
-                port = int(n.port), 
-                modality = int(n.modality), 
-                coldkey = str(n.coldkey) 
-            )
-            self._endpoint_objs[n.uid] = endpoint 
-            endpoints[n.uid] = endpoint.to_tensor().tolist()
-            if len(n.weights) > 0:
-                w_uids, w_weights = zip(*n.weights)
-                weights[n.uid] = weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
-            else:
-                weights[n.uid] = [0] * n_total
-            if len(n.bonds) > 0:
-                b_uids, b_bonds = zip(*n.bonds)
-                bonds[n.uid] = weight_utils.convert_bond_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
-            else:
-                bonds[n.uid] = [0] * n_total
-
-        # Set tensors.
-        tn = torch.tensor( n_total, dtype=torch.int64 )
-        tblock = torch.tensor( block, dtype=torch.int64 )
-        tuids = torch.tensor( uids, dtype=torch.int64 )
-        tactive = torch.tensor( active, dtype=torch.int64 )
-        tstake = torch.tensor( stake, dtype=torch.float32 )
-        tranks = torch.tensor( ranks, dtype=torch.float32 )
-        ttrust = torch.tensor( trust, dtype=torch.float32 )
-        tconsensus = torch.tensor( consensus, dtype=torch.float32 )
-        tincentive = torch.tensor( incentive, dtype=torch.float32 )
-        temission = torch.tensor( emission, dtype=torch.float32 )
-        tdividends = torch.tensor( dividends, dtype=torch.float32 )
-        tlast_update = torch.tensor( last_updates, dtype=torch.int64 )
-        tbonds = torch.tensor( bonds, dtype=torch.int64 )
-        tweights = torch.tensor( weights, dtype=torch.float32 )
-        tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
-
-        # Normalize bond ownership.
-        tbonds = torch.nn.functional.normalize( tbonds.float(), p=1, dim=0, eps=1e-12 ) * 0.5 + torch.eye( tn ) * 0.5
-
-        # Set params.
-        self.n = torch.nn.Parameter( tn, requires_grad=False )
-        self.block = torch.nn.Parameter( tblock, requires_grad=False )
-        self.uids = torch.nn.Parameter( tuids, requires_grad=False )
-        self.stake = torch.nn.Parameter( tstake, requires_grad=False )
-        self.ranks = torch.nn.Parameter( tranks, requires_grad=False )
-        self.trust = torch.nn.Parameter( ttrust, requires_grad=False )
-        self.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
-        self.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
-        self.emission = torch.nn.Parameter( temission, requires_grad=False )
-        self.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
-        self.active = torch.nn.Parameter( tactive, requires_grad=False )
-        self.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
-        self.weights = torch.nn.Parameter( tweights, requires_grad=False )
-        self.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
-        self.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
-            
-        # For contructor.
         return self
 
     def to_dataframe(self):
@@ -595,7 +368,7 @@ class Metagraph( torch.nn.Module ):
         return wandb_info
             
     def __str__(self):
-        return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.subtensor.network)
+        return "MockMetagraph({}, {})".format(self.n.item(), self.block.item())
         
     def __repr__(self):
         return self.__str__()

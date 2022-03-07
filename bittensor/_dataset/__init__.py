@@ -24,6 +24,7 @@ import copy
 
 import bittensor
 from . import dataset_impl
+from . import dataset_mock
 
 class dataset:
     """ Create and init the GenesisTextDataset class, which handles dataloading from ipfs
@@ -75,7 +76,7 @@ class dataset:
         config.dataset._mock = _mock if _mock != None else config.dataset._mock
         dataset.check_config( config )
         if config.dataset._mock:
-            return dataset_impl.MockGenesisTextDataset(
+            return dataset_mock.MockGenesisTextDataset(
                 block_size = config.dataset.block_size,
                 batch_size = config.dataset.batch_size,
                 max_corpus_size = config.dataset.max_corpus_size,

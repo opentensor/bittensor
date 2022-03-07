@@ -201,7 +201,8 @@ class neuron:
         # === Get Epoch chain params ===
         # These parameters are subject to change
         # via sudo key or democracy pallet.
-        blocks_per_epoch = self.subtensor.blocks_per_epoch if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+        blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+        epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
         n_topk_peer_weights = self.subtensor.min_allowed_weights
         max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
@@ -209,14 +210,14 @@ class neuron:
         # Create the dataset with chain determined 
         # batch size and sequence length.
         self.dataset = bittensor.dataset ( 
-            batch_size = self.subtensor.batch_size, 
-            block_size = self.subtensor.sequence_length
+            batch_size = self.subtensor.validator_batch_size, 
+            block_size = self.subtensor.validator_sequence_length
         )
 
         # === Reset Model ===
         # Every n epochs we reset the model and start the 
         # validation process again.
-        if self.epoch % self.config.neuron.epochs_until_reset == 0:
+        if self.epoch % epochs_until_reset == 0:
             # Resetting model here.
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 

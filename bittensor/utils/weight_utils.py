@@ -22,7 +22,7 @@ import torch
 
 U32_MAX = 4294967295
 
-def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ):
+def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ) -> 'torch.FloatTensor':
     r""" Normalizes the tensor x so that sum(x) = 1 and the max value is at most multiple times larger than the min value.
         Args:
             x (:obj:`torch.FloatTensor`):
@@ -33,13 +33,14 @@ def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ):
             x (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
+    x = x + torch.rand_like( x ) * 0.0000001
     shift = 1 / ( multiple - 1 )
     x = x - x.min()
     x = x / x.sum()
     y = (torch.tanh(x * len(x)) + shift)/(torch.tanh( x * len(x) ) + shift).sum()
     return y
 
-def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ):
+def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':
     r""" Converts weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)
         Args:
             n: int:
@@ -48,13 +49,16 @@ def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: Li
                 Tensor of uids as destinations for passed weights.
             weights (:obj:`List[int],`):
                 Tensor of weights.
+        Returns:
+            row_weights ( torch.FloatTensor ):
+                Converted row weights.
     """
     row_weights = torch.zeros( [ n ], dtype=torch.float32 )
     for uid_j, wij in list(zip( uids, weights )):
         row_weights[ uid_j ] = float( wij ) / float(U32_MAX)
     return row_weights
 
-def convert_bond_uids_and_vals_to_tensor( n: int, uids: List[int], bonds: List[int] ):
+def convert_bond_uids_and_vals_to_tensor( n: int, uids: List[int], bonds: List[int] ) -> 'torch.LongTensor':
     r""" Converts bond and uids from chain representation into a torch tensor.
         Args:
             n: int:
@@ -63,6 +67,9 @@ def convert_bond_uids_and_vals_to_tensor( n: int, uids: List[int], bonds: List[i
                 Tensor of uids as destinations for passed bonds.
             bonds (:obj:`List[int],`):
                 Tensor of bonds.
+        Returns:
+            row_bonds ( torch.FloatTensor ):
+                Converted row bonds.
     """
     row_bonds = torch.zeros( [ n ], dtype=torch.int64 )
     for uid_j, bij in list(zip( uids, bonds )):
@@ -76,6 +83,11 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
                 Tensor of uids as destinations for passed weights.
             weights (:obj:`torch.FloatTensor,`):
                 Tensor of weights.
+        Returns:
+            weight_uids (List[int]):
+                Uids as a list.
+            weight_vals (List[int]):
+                Weights as a list.
     """
     # Checks.
     weights = weights.tolist()

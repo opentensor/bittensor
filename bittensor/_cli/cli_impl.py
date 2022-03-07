@@ -1,4 +1,5 @@
 # The MIT License (MIT)
+# The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
@@ -74,30 +75,48 @@ class CLI:
             self.inspect()
         elif self.config.command == "query":
             self.query()
+        elif self.config.command == "help":
+            self.help()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey)   
 
     def create_new_hotkey ( self ):
         r""" Creates a new hotke under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)   
 
     def regen_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False )
+        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
 
     def regen_hotkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
+        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
+
+    def query ( self ):
+        r""" Query an endpoint and get query time.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        subtensor = bittensor.subtensor( config = self.config )
+        dendrite = bittensor.dendrite( wallet = wallet )
+        stats = {}
+        for uid in self.config.uids:
+            neuron = subtensor.neuron_for_uid( uid )
+            endpoint = bittensor.endpoint.from_neuron( neuron )
+            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
+            latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
+            stats[uid] = latency
+        print (stats)
 
     def query ( self ):
         r""" Query an endpoint and get query time.
@@ -127,7 +146,7 @@ class CLI:
             
             if self.config.wallet.hotkey == 'None':
                 wallet.coldkeypub
-                cold_balance = wallet.balance
+                cold_balance = wallet.get_balance( subtensor = subtensor )
                 bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)
 
             else:
@@ -190,6 +209,24 @@ class CLI:
             bittensor.neurons.advanced_server.neuron().run()
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
+
+    def help ( self ):
+        self.config.to_defaults()
+
+        sys.argv = [sys.argv[0], '--help']
+
+        # Run miner.
+        if self.config.model == 'template_miner':
+            bittensor.neurons.template_miner.neuron().run()
+        elif self.config.model == 'template_server':
+            bittensor.neurons.template_server.neuron().run()
+        elif self.config.model == 'core_validator':
+            bittensor.neurons.core_validator.neuron().run()
+        elif self.config.model == 'advanced_server':
+            bittensor.neurons.advanced_server.neuron().run()
+        elif self.config.model == 'multitron_server':
+            bittensor.neurons.multitron_server.neuron().run()
+
 
     def register( self ):
         r""" Register neuron.
@@ -446,7 +483,7 @@ class CLI:
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
-        table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]HOTKEY NAME",  str(total_neurons), footer_style = "overline white", style='bold white')
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
