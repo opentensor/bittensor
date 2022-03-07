@@ -21,6 +21,7 @@ import bittensor
 import pytest
 import psutil  
 import unittest
+import time
 from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
@@ -412,6 +413,7 @@ def test_two_subtensor_ownership():
     del( sub2 )
     assert bittensor.subtensor.global_mock_process_is_running()
     del ( sub1 )
+    time.sleep(2)
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_subtensor_mock_functions():
@@ -432,50 +434,3 @@ test_mock_from_mock_arg()
 test_mock_from_network_arg()
 test_create_from_config()
 test_two_subtensor_ownership()
-# def test_stake( 
-#     assert(type(subtensor.get_stake_for_uid(0)) == bittensor.utils.balance.Balance)
-# def test_weight_uids( ):
-#     weight_uids = subtensor.weight_uids_for_uid(0)
-#     assert(type(weight_uids) == list)
-#     assert(type(weight_uids[0]) == int)
-
-# def test_weight_vals( ):
-#     weight_vals = subtensor.weight_vals_for_uid(0)
-#     assert(type(weight_vals) == list)
-#     assert(type(weight_vals[0]) == int)
-
-# def test_last_emit( ):
-#     last_emit = subtensor.get_last_emit_data_for_uid(0)
-#     assert(type(last_emit) == int)
-
-# def test_get_active():
-#     active = subtensor.get_active()
-#     assert (type(active) == list)
-#     assert (type(active[0][0]) == str)
-#     assert (type(active[0][1]) == int)
-
-# def test_get_stake():
-#     stake = subtensor.get_stake()
-#     assert (type(stake) == list)
-#     assert (type(stake[0][0]) == int)
-#     assert (type(stake[0][1]) == int)
-
-# def test_get_last_emit():
-#     last_emit = subtensor.get_stake()
-#     assert (type(last_emit) == list)
-#     assert (type(last_emit[0][0]) == int)
-#     assert (type(last_emit[0][1]) == int)
-
-# def test_get_weight_vals():
-#     weight_vals = subtensor.get_weight_vals()
-#     assert (type(weight_vals) == list)
-#     assert (type(weight_vals[0][0]) == int)
-#     assert (type(weight_vals[0][1]) == list)
-#     assert (type(weight_vals[0][1][0]) == int)
-
-# def test_get_weight_uids():
-#     weight_uids = subtensor.get_weight_vals()
-#     assert (type(weight_uids) == list)
-#     assert (type(weight_uids[0][0]) == int)
-#     assert (type(weight_uids[0][1]) == list)
-#     assert (type(weight_uids[0][1][0]) == int)

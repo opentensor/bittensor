@@ -15,16 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from sys import version
 from bittensor._endpoint import endpoint
 import bittensor
 import torch
 import pytest
 from unittest.mock import MagicMock
 from torch.autograd import Variable
-import multiprocessing
 import time
-import warnings
 
 wallet = bittensor.wallet.mock()
 bittensor.logging(debug = True)

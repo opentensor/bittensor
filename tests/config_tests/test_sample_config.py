@@ -1,8 +1,7 @@
 import os, sys
 
 from bittensor._neuron.text.template_miner import neuron as template_miner
-from bittensor._neuron.text.template_validator import neuron as template_validator
-from bittensor._neuron.text.sgmoe_validator import neuron as sgmoe_validator
+from bittensor._neuron.text.core_validator import neuron as core_validator
 from bittensor._neuron.text.template_server import server as template_server
 from bittensor._neuron.text.advanced_server import server as advanced_server
 from bittensor._neuron.text.multitron_server import server as multitron_server
@@ -18,29 +17,16 @@ def test_run_template_miner_config():
     assert config['dendrite']['requires_grad'] == True
     assert config['nucleus']['punishment'] == 0.001
 
-def test_run_template_validator_config():
+def test_run_core_validator_config():
 
     PATH = '/tests/config_tests/template_validator_sample_config.txt'
     sys.argv = [sys.argv[0], '--config', PATH]
-    config = template_validator.config()
+    config = core_validator.config()
 
     assert config['dataset']['batch_size'] == 10
     assert config['dendrite']['requires_grad'] == True
     assert config['logging']['logging_dir'] == '~/.bittensor/miners'
     assert config['neuron']['clip_gradients'] == 1.0
-
-
-def test_run_sgmoe_validator_config():
-
-    PATH = '/tests/config_tests/sgmoe_validator_sample_config.txt'
-    sys.argv = [sys.argv[0], '--config', PATH]
-    config = sgmoe_validator.config()
-
-    assert config['dataset']['batch_size'] == 10
-    assert config['dendrite']['requires_grad'] == True
-    assert config['logging']['logging_dir'] == '~/.bittensor/miners'
-    assert config['neuron']['clip_gradients'] == 1.0
-
 
 def test_run_template_server_config():
 
@@ -68,7 +54,5 @@ def test_run_advanced_server_config():
 
 if __name__ == "__main__":
     test_run_template_miner_config()
-    test_run_template_validator_config()
-    test_run_sgmoe_validator_config()
     test_run_template_server_config()
     test_run_advanced_server_config()

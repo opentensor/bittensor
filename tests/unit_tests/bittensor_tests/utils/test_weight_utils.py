@@ -32,3 +32,44 @@ def test_convert_weight_and_uids():
         uids = torch.tensor(list(range(10))) 
         weights = torch.rand(10)
         weight_utils.convert_weights_and_uids_for_emit( uids, weights )
+
+def test_normalize_with_min_max():
+    weights = torch.rand(10)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 10 )
+    assert wn.max() / wn.min() <= 11
+
+    weights = torch.rand(2)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 10 )
+    assert wn.max() / wn.min() <= 11
+
+    weights = torch.randn(10)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 10 )
+    assert wn.max() / wn.min() <= 11
+
+    weights = torch.eye(10)[0]
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 10 )
+    assert wn.max() / wn.min() <= 11
+
+    weights = torch.zeros(10)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 10 )
+    assert wn.max() / wn.min() <= 11
+
+    weights = torch.rand(10)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 2 )
+    assert wn.max() / wn.min() <= 3
+
+    weights = torch.rand(2)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 2 )
+    assert wn.max() / wn.min() <= 3
+
+    weights = torch.randn(10)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 2 )
+    assert wn.max() / wn.min() <= 3
+
+    weights = torch.eye(10)[0]
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 2 )
+    assert wn.max() / wn.min() <= 3
+
+    weights = torch.zeros(10)
+    wn = weight_utils.normalize_max_multiple( weights, multiple = 2 )
+    assert wn.max() / wn.min() <= 3

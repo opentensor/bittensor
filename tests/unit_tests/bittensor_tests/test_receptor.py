@@ -55,7 +55,7 @@ def test_print():
 def test_dummy_forward():
     endpoint = bittensor.endpoint.dummy()
     dummy_receptor = bittensor.receptor ( endpoint= endpoint, wallet=wallet)
-    assert dummy_receptor.endpoint.uid == -1
+    assert dummy_receptor.endpoint.uid == 0
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, ops, time = dummy_receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
     assert ops == bittensor.proto.ReturnCode.EmptyRequest
@@ -64,7 +64,7 @@ def test_dummy_forward():
 def test_dummy_backward():
     endpoint = bittensor.endpoint.dummy()
     dummy_receptor = bittensor.receptor ( endpoint= endpoint, wallet=wallet)
-    assert dummy_receptor.endpoint.uid == -1
+    assert dummy_receptor.endpoint.uid == 0
 
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     grads = torch.ones((x.size(0),x.size(1),bittensor.__network_dim__))
