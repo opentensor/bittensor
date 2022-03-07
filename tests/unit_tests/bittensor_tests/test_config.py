@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from multiprocessing.sharedctypes import Value
 import bittensor
 import argparse
 import pytest
@@ -26,6 +27,9 @@ def test_loaded_config():
 def test_strict():
     parser = argparse.ArgumentParser()
     parser.add_argument("arg", help="Required positional argument")
+    parser.add_argument("--cov")
+    #parser.add_argument("--cov-append")
+    #parser.add_argument("--cov-config")
     bittensor.dendrite.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.wallet.add_args( parser )
