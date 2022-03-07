@@ -139,7 +139,7 @@ class endpoint:
 
     @staticmethod
     def dummy():
-        return endpoint_impl.Endpoint(uid=-1,version=0, hotkey = "", ip_type = 4, ip = '0.0.0.0', port = 0, modality= 0, coldkey = "")
+        return endpoint_impl.Endpoint(uid=0, version=0, hotkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", ip_type = 4, ip = '0.0.0.0', port = 0, modality= 0, coldkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
     @staticmethod
     def assert_format(

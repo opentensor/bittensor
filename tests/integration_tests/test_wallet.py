@@ -19,13 +19,6 @@ import bittensor
 from unittest.mock import MagicMock
 import os
 import shutil
-from pytest import fixture
-import subprocess
-from loguru import logger
-import time
-import sys
-from sys import platform   
-
 from bittensor.utils.balance import Balance
 
 

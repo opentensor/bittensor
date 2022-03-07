@@ -653,6 +653,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                 return True
+        
+        return False
 
     def transfer(
             self, 
@@ -755,6 +757,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
                 return True
+        
+        return False
 
     def unstake (
             self, 
@@ -865,6 +869,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
+        
+        return False
                 
     def set_weights(
             self, 
@@ -943,8 +949,8 @@ To run a local node (See: docs/running_a_validator.md) \n
             message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
             logger.debug('Set weights:'.ljust(20) +  message)
             return True
-        else:
-            return False
+        
+        return False
 
     def get_balance(self, address: str, block: int = None) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
@@ -1063,8 +1069,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             uid ( int ):
                 The uid of the neuron to query for.
-            ss58_hotkey ( str ):
-                The hotkey to query for a neuron.
+            block ( int ):
+                The neuron at a particular block
         Returns:
             neuron (dict(NeuronMetadata)):
                 neuron object associated with uid or None if it does not exist.
