@@ -34,7 +34,12 @@ class neuron:
 
     def __init__(
         self, 
-        config: 'bittensor.config' = None
+        config: 'bittensor.config' = None,
+        subtensor: 'bittensor.subtensor' = None,
+        dataset: 'bittensor.dataset' = None,
+        wallet: 'bittensor.wallet' = None,
+        axon: 'bittensor.axon' = None,
+        metagraph: 'bittensor.metagraph' = None,
     ):
         if config == None: config = server.config()
         config = config; 
@@ -47,8 +52,20 @@ class neuron:
         self.model = server( config = config ) 
         self.config = config
 
+        self.subtensor = subtensor
+        self.dataset = dataset
+        self.wallet = wallet
+        self.axon = axon
+        self.metagraph = metagraph
+
     def run(self):
-        serve( self.config, self.model )
+        serve( 
+            self.config, 
+            self.model,
+            subtensor=self.subtensor, 
+            wallet = self.wallet, 
+            metagraph=self.metagraph, 
+            axon= self.axon)
 
     @classmethod
     def config(cls):

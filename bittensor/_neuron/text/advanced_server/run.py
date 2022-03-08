@@ -36,19 +36,32 @@ from datetime import datetime,timedelta
 from threading import Lock
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
-def serve( config, gp_server):
+def serve( 
+    config, 
+    gp_server= None, 
+    subtensor = None,
+    wallet = None, 
+    metagraph = None,
+    axon = None
+):
     config.to_defaults()
 
     # Create Subtensor connection
-    subtensor = bittensor.subtensor(config = config)
+    subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
 
-    # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet( config = config ).create().register()
+    if wallet == None:
+        # Load/Create our bittensor wallet.
+        wallet = bittensor.wallet( config = config ).create().register(subtensor=subtensor) 
+    else:
+        wallet.register(subtensor=subtensor)
 
-    # Load/Sync/Save our metagraph.
-    metagraph = bittensor.metagraph ( 
-        subtensor = subtensor
-    ).load().sync().save()
+    if metagraph == None:
+        # Load/Sync/Save our metagraph.
+        metagraph = bittensor.metagraph ( 
+            subtensor = subtensor
+        ).load().sync().save()
+    else: 
+        metagraph.load().sync().save()
 
     # Instantiate the model we are going to serve on the network.
     # Creating a threading lock for updates to the model
@@ -173,14 +186,15 @@ def serve( config, gp_server):
         else: 
             return False
 
-    # Create our axon server
-    axon = bittensor.axon (
-        wallet = wallet,
-        forward_text = forward_text,
-        backward_text = backward_text,
-        blacklist = blacklist,
-        priority = priority
-    ) 
+    if axon == None: 
+        # Create our axon server
+        axon = bittensor.axon (
+            wallet = wallet,
+            forward_text = forward_text,
+            backward_text = backward_text,
+            blacklist = blacklist,
+            priority = priority
+        ) 
 
     # Training Data
     dataset = bittensor.dataset(config=config)
