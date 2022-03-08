@@ -23,6 +23,7 @@ Example:
 """
 import sys
 import argparse
+import time
 import bittensor
 import torch
 import os
@@ -70,7 +71,8 @@ class neuron:
         self.metagraph = bittensor.metagraph ( config = config, subtensor = self.subtensor )        
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
         self.device = torch.device ( device = self.config.neuron.device )    
-        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
+        self.nucleus = None # Created during epoch
+        self.dataset = None # Created during epoch
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -190,29 +192,27 @@ class neuron:
             Occasionally the validator nucleus is completely reset to ensure we dont converge to far.
             At the end of the epoch we set weights on the chain and optionally log to wandb.
         """
+        # === Get params for Epoch ===
+        current_block = self.subtensor.block
+        batch_size = self.subtensor.validator_batch_size 
+        sequence_length = self.subtensor.validator_sequence_length
+        n_topk_peer_weights = self.subtensor.min_allowed_weights
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+        epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        # === Logs ===
+        print ( '\nEpoch:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
+                '\n\t max_allowed_ratio:', max_allowed_ratio, '\n\t blocks_per_epoch:', blocks_per_epoch, '\n\t epochs_until_reset:', epochs_until_reset, 
+                '\n\t until_reset:', self.epoch % epochs_until_reset, '\n\t current_block:', current_block, '\n')
+        if self.config.using_wandb:
+            wandb.log( {    'batch_size': batch_size, 'sequence_length': sequence_length, 'n_topk_peer_weights': n_topk_peer_weights, 
+                            'max_allowed_ratio': max_allowed_ratio, 'blocks_per_epoch': blocks_per_epoch, 'epochs_until_reset': epochs_until_reset, }, step = current_block )
 
         # === Reset Epochs with new params. ===
         # Pulls new default validator training parameters and resets 
         # the model and dataset for the following epoch.
         if self.epoch % epochs_until_reset == 0:
-            
-            # === Pull validator parameters for the epoch ===
-            batch_size = self.subtensor.validator_batch_size 
-            sequence_length = self.subtensor.validator_sequence_length
-            n_topk_peer_weights = self.subtensor.min_allowed_weights
-            max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
-            blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
-            epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
-            wandb.log( 
-                {
-                    'batch_size': batch_size,
-                    'sequence_length': sequence_length,
-                    'n_topk_peer_weights': n_topk_peer_weights,
-                    'max_allowed_ratio': max_allowed_ratio,
-                    'blocks_per_epoch': max_allowed_ratio,
-                    'epochs_until_reset': max_allowed_ratio,
-                }, step = self.subtensor.block 
-            )
+            print ('\n\n=== Reset ===\n\n')
             # === Setup Dataset ===
             # Create the dataset with chain determined batch size and sequence length.
             self.dataset = bittensor.dataset ( batch_size = batch_size, block_size = sequence_length )
@@ -230,9 +230,9 @@ class neuron:
         self.metagraph.sync().save() # Reset metagraph.
         epoch_steps = 0
         score_history = []
-        start_block = self.subtensor.block
-        current_block = start_block
+        start_block = current_block
         while self.subtensor.block < start_block + blocks_per_epoch:
+            start_time = time.time()
 
             # === Forward ===
             # Forwards inputs through the network and returns the loss
@@ -249,18 +249,23 @@ class neuron:
             self.optimizer.step()
             self.optimizer.zero_grad()    
 
-            # === Normalize scores ===
+            # === Scoring ===
             # Updates moving averages and history.
             score_history.append( scores ) # Normalized step scores.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
         
-            # === Logs + state update ===
+            # === State update ===
             # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
             current_block = self.subtensor.block
-            print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', blocks_per_epoch )
+            step_time = time.time() - start_time
+
+            # === Logs ===
+            print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t step:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
+                   '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
             if self.config.using_wandb:
+                wandb.log( { 'epoch': self.epoch, 'global_step': self.global_step, 'loss': loss.item(), 'time': step_time }, step = current_block )
                 step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
                 step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
@@ -274,7 +279,8 @@ class neuron:
         # We use the mean of the epoch weights.
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
-        print( 'scores:\n\t', topk_scores.sort()[0], '\nsum:\n\t', topk_scores.sum(), '\nmin:\n\t', topk_scores.min(), '\nmax:\n\t', topk_scores.max(), '\nmax/min:\n\t', topk_scores.max()/topk_scores.min() )
+        print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].item(), '\n\t sum:', topk_scores.sum().item(), 
+                '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', topk_scores.max().item()/topk_scores.min().item() )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
