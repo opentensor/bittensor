@@ -85,9 +85,7 @@ class dataset:
                 data_dir = config.dataset.data_dir,
                 save_dataset = config.dataset.save_dataset,
                 max_datasets = config.dataset.max_datasets,
-                no_tokenizer = config.dataset.no_tokenizer,
-                buffer_size = config.dataset.buffer_size
-
+                no_tokenizer = config.dataset.no_tokenizer
             )
         else:
             return dataset_impl.GenesisTextDataset(
