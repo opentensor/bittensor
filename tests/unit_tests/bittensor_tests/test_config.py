@@ -26,10 +26,10 @@ def test_loaded_config():
 
 def test_strict():
     parser = argparse.ArgumentParser()
-    parser.add_argument("arg", help="Required positional argument")
-    parser.add_argument("--cov")
-    #parser.add_argument("--cov-append")
-    #parser.add_argument("--cov-config")
+    parser.add_argument("arg", help="Dummy Args")
+    parser.add_argument("--cov", help="Dummy Args")
+    parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
+    parser.add_argument("--cov-config",  help="Dummy Args")
     bittensor.dendrite.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.wallet.add_args( parser )
