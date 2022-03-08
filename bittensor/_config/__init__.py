@@ -37,16 +37,28 @@ class config:
         """ In place of YAMLError
         """
 
-    def __new__( cls, parser: ArgumentParser = None):
+    def __new__( cls, parser: ArgumentParser = None, strict: bool = False ):
+        r""" Translates the passed parser into a nested Bittensor config.
+        Args:
+            parser (argparse.Parser):
+                Command line parser object.
+            strict (bool):
+                If true, the command line arguments are strictly parsed.
+        Returns:
+            config (bittensor.Config):
+                Nested config object created from parser arguments.
+        """
         if parser == None:
             parser = ArgumentParser()
 
-        # 1. Optionally load defaults if the --config is set.
+        # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
-
         except Exception as e:
             config_file_path = None
+            
+        # 1.2 Optionally check for --strict 
+        strict = '--strict-parsing' in parser.parse_known_args()[1] or strict
             
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
@@ -59,7 +71,10 @@ class config:
                 print('Error in loading: {} using default parser settings'.format(e))
 
         # 2. Continue with loading in params.
-        params = parser.parse_known_args()[0]
+        if not strict:
+            params = parser.parse_known_args()[0]
+        else:
+            params = parser.parse_args()
         _config = config_impl.Config()
 
         # Splits params on dot syntax i.e neuron.axon_port            
