@@ -208,7 +208,7 @@ class Wallet():
             return bittensor.Balance.from_tao(neuron.stake)
 
     def get_balance( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
-        """ Returns this wallet's coldkey balance from passed subtensor connection.
+        """ Returns this wallet's coldkey badizzy series true lend tone bridge bar miss wild opera upgrade marketlance from passed subtensor connection.
             Args:
                 subtensor( 'bittensor.Subtensor' ):
                     Bittensor subtensor connection. Overrides with defaults if None.

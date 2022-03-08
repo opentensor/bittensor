@@ -98,7 +98,7 @@ class neuron:
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
-        parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = 10 )
+        parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = -1 )
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
@@ -190,35 +190,34 @@ class neuron:
             Occasionally the validator nucleus is completely reset to ensure we dont converge to far.
             At the end of the epoch we set weights on the chain and optionally log to wandb.
         """
-            
-        # === Setup Epoch ===
-        # Reset epoch scores history.
-        # Reset the validator weights ever x epochs.
-        self.metagraph.sync().save()
-        epoch_steps = 0
-        score_history = []
 
-        # === Get Epoch chain params ===
-        # These parameters are subject to change
-        # via sudo key or democracy pallet.
-        blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
-        epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
-        n_topk_peer_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
-
-        # === Setup Dataset ===
-        # Create the dataset with chain determined 
-        # batch size and sequence length.
-        self.dataset = bittensor.dataset ( 
-            batch_size = self.subtensor.validator_batch_size, 
-            block_size = self.subtensor.validator_sequence_length
-        )
-
-        # === Reset Model ===
-        # Every n epochs we reset the model and start the 
-        # validation process again.
+        # === Reset Epochs with new params. ===
+        # Pulls new default validator training parameters and resets 
+        # the model and dataset for the following epoch.
         if self.epoch % epochs_until_reset == 0:
-            # Resetting model here.
+            
+            # === Pull validator parameters for the epoch ===
+            batch_size = self.subtensor.validator_batch_size 
+            sequence_length = self.subtensor.validator_sequence_length
+            n_topk_peer_weights = self.subtensor.min_allowed_weights
+            max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+            blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+            epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+            wandb.log( 
+                {
+                    'batch_size': batch_size,
+                    'sequence_length': sequence_length,
+                    'n_topk_peer_weights': n_topk_peer_weights,
+                    'max_allowed_ratio': max_allowed_ratio,
+                    'blocks_per_epoch': max_allowed_ratio,
+                    'epochs_until_reset': max_allowed_ratio,
+                }, step = self.subtensor.block 
+            )
+            # === Setup Dataset ===
+            # Create the dataset with chain determined batch size and sequence length.
+            self.dataset = bittensor.dataset ( batch_size = batch_size, block_size = sequence_length )
+
+            # === Resetting model here ===
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
@@ -228,6 +227,9 @@ class neuron:
         # Each block length lasts blocks_per_epoch blocks.
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
+        self.metagraph.sync().save() # Reset metagraph.
+        epoch_steps = 0
+        score_history = []
         start_block = self.subtensor.block
         current_block = start_block
         while self.subtensor.block < start_block + blocks_per_epoch:
