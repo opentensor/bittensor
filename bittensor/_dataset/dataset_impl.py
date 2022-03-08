@@ -50,7 +50,7 @@ class Dataset():
 
     @staticmethod
     def requests_retry_session(
-            retries=10,
+            retries=1,
             backoff_factor=0.5,
             status_forcelist=(104, 500, 502, 504),
             session=None,
@@ -81,7 +81,7 @@ class Dataset():
         session.mount('https://', adapter)
         return session
 
-    def retrieve_directory(self, address: str, params = None, action: str = 'post'):
+    def retrieve_directory(self, address: str, params = None, action: str = 'post', timeout : int = 180):
         r"""Connects to Pinata IPFS gateway and retrieves directory.
 
         Returns:
@@ -90,9 +90,9 @@ class Dataset():
         session = requests.Session()
         session.params.update(params)
         if action == 'get':
-            response = Dataset.requests_retry_session(session=session).get(address)
+            response = Dataset.requests_retry_session(session=session).get(address, timeout=timeout)
         elif action == 'post':
-            response = Dataset.requests_retry_session(session=session).post(address)
+            response = Dataset.requests_retry_session(session=session).post(address, timeout=timeout)
         return response
 
     def __len__(self):
@@ -117,6 +117,7 @@ class GenesisTextDataset( Dataset ):
         save_dataset,
         max_datasets,
         no_tokenizer, 
+        buffer_size
     ):
         super().__init__()
         self.block_size = block_size
@@ -147,7 +148,7 @@ class GenesisTextDataset( Dataset ):
         self.data_queue = ThreadQueue(
             producer_target = self.dataloader,
             producer_arg = (1000,),
-            buffer_size = 2
+            buffer_size = buffer_size
         )
 
     def __del__(self):
