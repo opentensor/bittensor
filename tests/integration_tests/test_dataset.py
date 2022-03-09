@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+from unittest.mock import MagicMock
 
 logging = bittensor.logging()
 
@@ -46,5 +47,13 @@ def test_mock_function():
     next(dataset)
     dataset.close()
 
+def test_fail_IPFS_server():
+    dataset = bittensor.dataset()
+    next(dataset)
+    dataset.requests_retry_session = MagicMock(return_value = None)
+    assert dataset.construct_text_corpus() == []
+    
+    
+
 if __name__ == "__main__":
-    test_construct_text_corpus()
+    test_fail_IPFS_server()

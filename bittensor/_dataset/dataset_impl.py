@@ -67,7 +67,6 @@ class Dataset():
         Returns:
             requests.Session(): A Requests Session object set up for retries and backoff.
         """
-
         session = session or requests.Session()
         retry = Retry(
             total=retries,
@@ -99,9 +98,9 @@ class Dataset():
         session.params.update(params)
         try:
             if action == 'get':
-                response = Dataset.requests_retry_session(session=session).get(address, timeout=timeout)
+                response = self.requests_retry_session(session=session).get(address, timeout=timeout)
             elif action == 'post':
-                response = Dataset.requests_retry_session(session=session).post(address, timeout=timeout)
+                response = self.requests_retry_session(session=session).post(address, timeout=timeout)
         except Exception as E:
             logger.error(f"Exception when retrieving directory {params} from IPFS, {E}")
             return None
