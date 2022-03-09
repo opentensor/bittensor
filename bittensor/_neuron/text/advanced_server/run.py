@@ -49,14 +49,14 @@ def serve(
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
 
+    # Load/Create our bittensor wallet.
     if wallet == None:
-        # Load/Create our bittensor wallet.
         wallet = bittensor.wallet( config = config ).create().register(subtensor=subtensor) 
     else:
         wallet.register(subtensor=subtensor)
 
+    # Load/Sync/Save our metagraph.
     if metagraph == None:
-        # Load/Sync/Save our metagraph.
         metagraph = bittensor.metagraph ( 
             subtensor = subtensor
         ).load().sync().save()

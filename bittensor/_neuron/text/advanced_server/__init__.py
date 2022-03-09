@@ -31,7 +31,30 @@ from .nucleus_impl import server
 from .run import serve
 
 class neuron:
+    r"""
+    Creates a bittensor neuron that specializes in the serving. The advanced server miner
+    trains itself while accepting requests from the bittensor network. Huggingface NLP
+    models are being served and by default serves the GPT2 base model.
 
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            dataset (:obj:bittensor.dataset , `optional`):
+                bittensor dataset 
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            axon (:obj:bittensor.axon, `optional`):
+                bittensor axon object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nobunaga')
+            >>> server = bittensor.neuron.test.advanced_server.neuron(subtensor=subtensor)
+            >>> server.run()
+    """
     def __init__(
         self, 
         config: 'bittensor.config' = None,

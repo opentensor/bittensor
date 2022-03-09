@@ -29,10 +29,36 @@ from .nucleus_impl import server
 from .run import serve
 
 class neuron:
+    r"""
+    Creates a bittensor neuron that specializes in the serving. The template server miner
+    serves a NLP model from huggingface on the bittensor network. By default, the model does 
+    not train itself and thus requires less memory to run. 
 
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            axon (:obj:bittensor.axon, `optional`):
+                bittensor axon object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nobunaga')
+            >>> server = bittensor.neuron.test.template_server.neuron(subtensor=subtensor)
+            >>> server.run()
+    """
     def __init__(
         self, 
-        config: 'bittensor.config' = None
+        config: 'bittensor.config' = None,
+        subtensor: 'bittensor.subtensor' = None,
+        wallet: 'bittensor.wallet' = None,
+        axon: 'bittensor.axon' = None,
+        metagraph: 'bittensor.metagraph' = None,
+
     ):
         if config == None: config = server.config()
         config = config; 
@@ -45,8 +71,25 @@ class neuron:
         self.model = server(config = config)
         self.config = config
 
+        self.subtensor = subtensor
+        self.wallet = wallet
+        self.axon = axon
+        self.metagraph = metagraph
+
     def run(self):
-        serve(self.config,self.model)
+        serve(
+            self.config,
+            self.model,
+            subtensor = self.subtensor,
+            wallet = self.wallet,
+            axon = self.axon,
+            metagraph= self.metagraph,
+        )
+
+
+    @classmethod
+    def config(cls):
+        return server.config()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
