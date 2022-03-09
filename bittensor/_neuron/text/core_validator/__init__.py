@@ -131,14 +131,8 @@ class neuron:
         r""" Sanity checks and begin validator.
         """
         # === Wallet ===
-        # Checks that the validator has a valid uid (is registered on the network.)
-        # If the wallet has not been registered. sys.exit().
-        # If the network is mocked, we register.
-       # if self.subtensor.network != 'mock':
-       #     if not self.wallet.is_registered( subtensor = self.subtensor ):
-        #        print( "You must register the validator's wallet before running, use: btcli register --wallet.name {} --wallet.hotkey {}", self.wallet.name, self.wallet.hotkey_str)
-        #        sys.exit(0)
-        #else:
+        # Connects wallett to network. 
+        # NOTE: This registration step should likely be solved offline first.
         self.wallet.register( subtensor = self.subtensor )
 
         # === UID ===
@@ -192,7 +186,8 @@ class neuron:
             Occasionally the validator nucleus is completely reset to ensure we dont converge to far.
             At the end of the epoch we set weights on the chain and optionally log to wandb.
         """
-        # === Get params for Epoch ===
+        # === Get params for epoch ===
+        # Pulling the latest chain parameters.
         current_block = self.subtensor.block
         batch_size = self.subtensor.validator_batch_size 
         sequence_length = self.subtensor.validator_sequence_length
@@ -206,18 +201,16 @@ class neuron:
                 '\n\t until_reset:', self.epoch % epochs_until_reset, '\n\t current_block:', current_block, '\n')
         if self.config.using_wandb:
             wandb.log( {    'batch_size': batch_size, 'sequence_length': sequence_length, 'n_topk_peer_weights': n_topk_peer_weights, 
-                            'max_allowed_ratio': max_allowed_ratio, 'blocks_per_epoch': blocks_per_epoch, 'epochs_until_reset': epochs_until_reset, }, step = current_block )
+                            'max_allowed_ratio': max_allowed_ratio, 'blocks_per_epoch': blocks_per_epoch, 'epochs_until_reset': epochs_until_reset, 
+                }, step = current_block )
 
         # === Reset Epochs with new params. ===
         # Pulls new default validator training parameters and resets 
         # the model and dataset for the following epoch.
         if self.epoch % epochs_until_reset == 0:
             print ('\n\n=== Reset ===\n\n')
-            # === Setup Dataset ===
-            # Create the dataset with chain determined batch size and sequence length.
-            self.dataset = bittensor.dataset ( batch_size = batch_size, block_size = sequence_length )
-
-            # === Resetting model here ===
+            # === Resetting model + dataset ===
+            self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
@@ -230,7 +223,8 @@ class neuron:
         self.metagraph.sync().save() # Reset metagraph.
         epoch_steps = 0
         score_history = []
-        start_block = current_block
+        moving_avg_scores = torch.ones_like( self.metagraph.S )
+        start_block = self.subtensor.block
         while self.subtensor.block < start_block + blocks_per_epoch:
             start_time = time.time()
 

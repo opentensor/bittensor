@@ -150,7 +150,7 @@ class dataset:
         defaults.dataset = bittensor.Config()
         defaults.dataset.batch_size = os.getenv('BT_DATASET_BATCH_SIZE') if os.getenv('BT_DATASET_BATCH_SIZE') != None else 10
         defaults.dataset.block_size = os.getenv('BT_DATASET_BLOCK_SIZE') if os.getenv('BT_DATASET_BLOCK_SIZE') != None else 20
-        defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else int(1e+4)
+        defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else int(1e+2)
         defaults.dataset.num_workers = os.getenv('BT_DATASET_NUM_WORKERS') if os.getenv('BT_DATASET_NUM_WORKERS') != None else 0
         defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
         defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else '~/.bittensor/data/'
