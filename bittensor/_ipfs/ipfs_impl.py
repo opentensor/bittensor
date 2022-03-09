@@ -22,7 +22,7 @@ class Ipfs():
 
     @staticmethod
     def requests_retry_session(
-            retries=10,
+            retries=5,
             backoff_factor=0.5,
             status_forcelist=(104, 500, 502, 504),
             session=None,
