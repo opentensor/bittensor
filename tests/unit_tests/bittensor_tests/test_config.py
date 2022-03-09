@@ -15,13 +15,31 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from multiprocessing.sharedctypes import Value
 import bittensor
+import argparse
 import pytest
 
 def test_loaded_config():
     with pytest.raises(NotImplementedError):
         bittensor.Config(loaded_config=True)
 
+def test_strict():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("arg", help="Dummy Args")
+    parser.add_argument("--cov", help="Dummy Args")
+    parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
+    parser.add_argument("--cov-config",  help="Dummy Args")
+    bittensor.dendrite.add_args( parser )
+    bittensor.logging.add_args( parser )
+    bittensor.wallet.add_args( parser )
+    bittensor.subtensor.add_args( parser )
+    bittensor.metagraph.add_args( parser )
+    bittensor.dataset.add_args( parser )
+    bittensor.axon.add_args( parser )
+    bittensor.wandb.add_args( parser )
+    bittensor.config( parser, strict=False)
+    bittensor.config( parser, strict=True)
 
 def construct_config():
     defaults = bittensor.Config()
@@ -38,3 +56,8 @@ def construct_config():
 def test_to_defaults():
     config = construct_config()
     config.to_defaults()
+
+if __name__  == "__main__":
+    test_loaded_config()
+    test_strict()
+    test_to_defaults()

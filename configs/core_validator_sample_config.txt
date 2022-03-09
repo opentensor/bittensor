@@ -18,27 +18,25 @@ logging.logging_dir: ~/.bittensor/miners
 logging.record_log: false
 logging.trace: false
 
-neuron.blocks_per_epoch: 100
-neuron.clip_gradients: 1.0
-neuron.device: cpu
-neuron.learning_rate: 1
-neuron.learning_rate_chain: 1
-neuron.momentum: 0.8
-neuron.n_topk_peer_weights: 100
-neuron.name: template_miner
-neuron.no_restart: true
-neuron.topk: 20
+neuron.name = core_validator
+neuron.learning_rate = 0.1 
+neuron.momentum = 0.8 
+neuron.blocks_per_epoch = 1000 
+neuron.epochs_until_reset = 10 
+neuron.n_topk_peer_weights = 250 
+neuron.device = cpu
+neuron.clip_gradients = 1.0 
+neuron.restart_on_failure = True
+neuron._mock = False
 
 nucleus.dropout: 0.2
+nucleus.importance: 0.01
 nucleus.nhead: 2
 nucleus.nhid: 200
 nucleus.nlayers: 2
-nucleus.noise_multiplier: 1.0
-nucleus.punishment: 0
-nucleus.topk: 20
 
 subtensor.chain_endpoint: null
-subtensor.network: nakamoto
+subtensor.network: local
 
 wallet.hotkey: default
 wallet.name: default
