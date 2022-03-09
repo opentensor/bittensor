@@ -96,7 +96,6 @@ class neuron:
     def add_args( cls, parser ):
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_validator')
-        parser.add_argument('--neuron.no_restart', action='store_true', help='resume previous trial.', default=False )
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )

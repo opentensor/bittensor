@@ -124,7 +124,7 @@ class DDPPipe():
 
     def run(self, rank = 0, world_size = 0, ready= None):
         self.init_bit(rank)
-        if self.config.neuron.no_restart != True:
+        if self.config.neuron.restart == False:
             self.gp_server.load(self.config.neuron.full_path)
         
         self.gp_server = self.gp_server.to(self.device) 
