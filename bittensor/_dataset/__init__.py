@@ -97,7 +97,8 @@ class dataset:
                 data_dir = config.dataset.data_dir,
                 save_dataset = config.dataset.save_dataset,
                 max_datasets = config.dataset.max_datasets,
-                no_tokenizer = config.dataset.no_tokenizer
+                no_tokenizer = config.dataset.no_tokenizer,
+                num_batches = config.dataset.num_batches
             )
 
     @classmethod
@@ -128,6 +129,7 @@ class dataset:
             parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
             parser.add_argument('--dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
             parser.add_argument('--dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
+            parser.add_argument('--dataset.num_batches', type=int, help='The number of data to download each time(measured by the number of batches).', default=1000)
             parser.add_argument('--dataset._mock', action='store_true', help='To turn on dataset mocking for testing purposes.', default=False)
 
         except argparse.ArgumentError:

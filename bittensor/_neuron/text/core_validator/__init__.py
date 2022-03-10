@@ -94,7 +94,6 @@ class neuron:
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_validator')
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
@@ -525,7 +524,7 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): the total loss (global training loss + importance loss)
         # target_loss.shape = [ 1 ]
         importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
-        target_loss =  target_loss + importance_loss
+        loss = target_loss + importance_loss
 
         # === Compute shapely scores ===
         # Computes shapely scores for each endpoint by masking the response and
@@ -546,6 +545,5 @@ class nucleus( torch.nn.Module ):
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item() ))
                 shapely_scores[ uid ] = -shapely_score
 
-        
         # === Done ===
-        return target_loss, shapely_scores
+        return loss, shapely_scores
