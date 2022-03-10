@@ -50,7 +50,7 @@ class Dataset():
 
     @staticmethod
     def requests_retry_session(
-            retries=10,
+            retries=1,
             backoff_factor=0.5,
             status_forcelist=(104, 500, 502, 504),
             session=None,
@@ -67,7 +67,6 @@ class Dataset():
         Returns:
             requests.Session(): A Requests Session object set up for retries and backoff.
         """
-
         session = session or requests.Session()
         retry = Retry(
             total=retries,
@@ -81,18 +80,31 @@ class Dataset():
         session.mount('https://', adapter)
         return session
 
-    def retrieve_directory(self, address: str, params = None, action: str = 'post'):
-        r"""Connects to Pinata IPFS gateway and retrieves directory.
-
+    def retrieve_directory(self, address: str, params = None, action: str = 'post', timeout : int = 180):
+        r"""Connects to IPFS gateway and retrieves directory.
+        Args:
+            address: (:type:`str`, required):
+                The target address of the request. 
+            params: (:type:`tuple`, optional):
+                The arguments of the request. eg. (('arg', dataset_hash),)
+            action: (:type:`str`, optional):
+                POST or GET.
+            timeout: (:type:`int`, optional):
+                Timeout for getting the server's response. 
         Returns:
             dict: A dictionary of the files inside of the genesis_datasets and their hashes.
         """
         session = requests.Session()
         session.params.update(params)
-        if action == 'get':
-            response = Dataset.requests_retry_session(session=session).get(address)
-        elif action == 'post':
-            response = Dataset.requests_retry_session(session=session).post(address)
+        try:
+            if action == 'get':
+                response = self.requests_retry_session(session=session).get(address, timeout=timeout)
+            elif action == 'post':
+                response = self.requests_retry_session(session=session).post(address, timeout=timeout)
+        except Exception as E:
+            logger.error(f"Exception when retrieving directory {params} from IPFS, {E}")
+            return None
+
         return response
 
     def __len__(self):
@@ -117,6 +129,7 @@ class GenesisTextDataset( Dataset ):
         save_dataset,
         max_datasets,
         no_tokenizer, 
+        num_batches
     ):
         super().__init__()
         self.block_size = block_size
@@ -146,7 +159,7 @@ class GenesisTextDataset( Dataset ):
             
         self.data_queue = ThreadQueue(
             producer_target = self.dataloader,
-            producer_arg = (1000,),
+            producer_arg = (num_batches,),
             buffer_size = 2
         )
 
@@ -182,8 +195,8 @@ class GenesisTextDataset( Dataset ):
             logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
             response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
             
-            if response.status_code != 200:
-                logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
+            if (response == None) or (response.status_code != 200):
+                logger.warning("Ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
             
             else:
                 # --- Get the directory links if there is valid response, else check on another dataset_hash 
@@ -216,7 +229,7 @@ class GenesisTextDataset( Dataset ):
                 logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(key))
                 dataset_hash = self.dataset_hashes[key] 
                 response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
-                if response.status_code != 200:
+                if (response == None) or (response.status_code != 200):
                     logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(key))
                 
                 else:
@@ -247,9 +260,8 @@ class GenesisTextDataset( Dataset ):
         # --- Else, the directory leads to more directories, return a random data file within the directories.
         else:
             response = self.retrieve_directory(self.node_get, (('arg', directory['Hash']),))
-            
             # --- Return none if the request failed.
-            if response.status_code != 200:
+            if (response == None) or (response.status_code != 200):
                 logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(directory))
                 return None
             
@@ -265,7 +277,7 @@ class GenesisTextDataset( Dataset ):
                     
                     return self.extract_datafile_dir(random_sub_directory)
                 else:
-                    logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(dir_hash))
+                    logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(directory))
         return None
 
     def get_text(self, file):
@@ -298,7 +310,7 @@ class GenesisTextDataset( Dataset ):
         if text == None:
             response = self.retrieve_directory(self.node_get, (('arg', file_hash),))
 
-            if response.status_code != 200:
+            if (response == None) or (response.status_code != 200):
                 logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
             else:
                 text = response.text
@@ -461,7 +473,10 @@ class GenesisTextDataset( Dataset ):
 
     def build_hash_table(self):
         self.dataset_hashes = {}
-        response = self.retrieve_directory(self.node_get, (('arg', self.mountain_hash),))
+        response = None
+        while response == None:
+            response = self.retrieve_directory(self.node_get, (('arg', self.mountain_hash),))
+        
         for i in response.json()['Links']:
             self.dataset_hashes[i['Name'][:-4]]= i['Hash'] 
 
