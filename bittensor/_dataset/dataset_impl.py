@@ -277,6 +277,37 @@ class GenesisTextDataset( Dataset ):
         else:
             return hashes 
 
+    def get_hashes_from_dataset(self, keys: list):
+        r""" Getting directories with names that matches keys.
+        Where a directory could be leading to a data file or a directory file.
+
+        Args:
+            keys (:type:`list`, `required`): 
+                The list of ipfs dataset names specified by the user to be included in the dataset.
+
+        Returns:
+            directories (:type:`list`, `required`)
+                A list of directory.
+                    directory: Map{ Name: str, Hash: str, Size: int }: 
+                        A random directory that lead to a datafile.
+        """
+        directories = []
+        for key in keys:
+            
+            if key in self.dataset_hashes.keys():
+                logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(key))
+                dataset_meta = {'Name': key, 'Hash': self.dataset_hashes[key]}  
+                sub_directories = self.get_dataset(dataset_meta)
+
+                if sub_directories != None:           
+                    directories += sub_directories()
+                    logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(key))
+            
+            else:
+                logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
+
+        return directories
+
     def get_random_hashes_from_dataset(self):
         r""" Getting directories from a random dataset_hash
         Where a directory could be leading to a data file or a directory file 
@@ -307,37 +338,6 @@ class GenesisTextDataset( Dataset ):
         if len(directories) == 0:
             directories = None
         
-        return directories
-
-    def get_hashes_from_dataset(self, keys: list):
-        r""" Getting directories with names that matches keys.
-        Where a directory could be leading to a data file or a directory file.
-
-        Args:
-            keys (:type:`list`, `required`): 
-                The list of ipfs dataset names specified by the user to be included in the dataset.
-
-        Returns:
-            directories (:type:`list`, `required`)
-                A list of directory.
-                    directory: Map{ Name: str, Hash: str, Size: int }: 
-                        A random directory that lead to a datafile.
-        """
-        directories = []
-        for key in keys:
-            
-            if key in self.dataset_hashes.keys():
-                logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(key))
-                dataset_meta = {'Name': key, 'Hash': self.dataset_hashes[key]}  
-                sub_directories = self.get_dataset(dataset_meta)
-
-                if sub_directories != None:           
-                    directories += sub_directories()
-                    logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(key))
-            
-            else:
-                logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
-
         return directories
 
     def get_root_text_hash(self, file_meta):
