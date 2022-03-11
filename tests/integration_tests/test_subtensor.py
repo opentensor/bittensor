@@ -417,7 +417,7 @@ def test_two_subtensor_ownership():
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_subtensor_mock_functions():
-    sub = bittensor.subtensor()
+    sub = bittensor.subtensor.mock()
     sub.n
     sub.total_issuance
     sub.total_stake
@@ -426,7 +426,14 @@ def test_subtensor_mock_functions():
     sub.kappa
     sub.blocks_per_epoch
     sub.blocks_since_epoch
-    sub.max_allowed_uids
+    sub.max_n
+    sub.max_allowed_min_max_ratio
+    sub.min_allowed_weights
+    sub.validator_epoch_length
+    sub.validator_epochs_per_reset
+    sub.validator_sequence_length
+    sub.validator_batch_size
+    sub.difficulty
 
 test_subtensor_mock()
 test_create_mock_process()
