@@ -33,6 +33,9 @@ import bittensor
 from rich.console import Console
 from rich.progress import track
 
+from bittensor._wallet import wallet
+from testing.mock_subtensor import subtensor_mock
+
 # Turns off console output.
 bittensor.turn_console_off()
 
@@ -44,12 +47,13 @@ class QueryBenchmark:
     def __init__(self):
         r""" Start up benchmark background processes.
         """
-        bittensor.subtensor.kill_global_mock_process()
+        subtensor_mock.kill_global_mock_process()
         self.conf = QueryBenchmark.benchmark_config()
-        bittensor.logging( config = self.conf )
-        self.subtensor = bittensor.subtensor.mock()
+        bittensor.logging( config = self.conf ) 
+        #self.subtensor = bittensor.subtensor.mock()
+        self.subtensor = subtensor_mock.mock()
         self.graph = bittensor.metagraph( subtensor = self.subtensor )
-        self.wallet = bittensor.wallet.mock()
+        self.wallet = wallet_mock.mock()
         self.dendrite = bittensor.dendrite( wallet = self.wallet, multiprocess = False )
         self.console = Console()
         self.log_dir = os.path.expanduser('{}/{}/{}/{}/{}'.format( os.path.dirname(os.path.realpath(__file__)), '/results/', 'mock', 'default', self.miner_name() ))
@@ -114,8 +118,7 @@ class QueryBenchmark:
         """
         raise NotImplementedError
 
-    @staticmethod
-    def _run_background_process( run_neuron_func, config_func):
+    def _run_background_process(self, run_neuron_func, config_func):
         r""" Pulls the config and starts the subclass static run method.
             Args:
                 run_neuron_func (Callable):
@@ -131,12 +134,12 @@ class QueryBenchmark:
         config.logging.logging_dir = 'benchmarks/results/'
         if not config.logging.debug:
             sys.stdout = open(os.devnull, 'w')
-        run_neuron_func ( config )
+        run_neuron_func ( config, self.subtensor,self.graph, self.wallet) 
 
     def startup(self):
         r""" Starts mining process.
         """
-        self.process = mp.Process( target=QueryBenchmark._run_background_process, args=(self.run_neuron, self.config))
+        self.process = mp.Process( target=self._run_background_process, args=(self.run_neuron, self.config))
         self.process.daemon = False
         self.process.start()
         self.process.pid
@@ -280,3 +283,18 @@ class QueryBenchmark:
                 eval('self.' + func + "()")
                 self.console.log('Done\n')
         self.shutdown()
+
+class wallet_mock( bittensor.wallet): 
+    
+    @classmethod
+    def mock(cls):
+        config = cls.config()
+        cls.check_config( config )
+        config.wallet._mock = True
+        config.wallet.name = "mock"
+        return bittensor.Wallet(
+            name = config.wallet.name, 
+            hotkey = config.wallet.hotkey, 
+            path = config.wallet.path,
+            _mock = True
+        )
