@@ -174,52 +174,69 @@ class GenesisTextDataset( Dataset ):
         self.data_queue.close()
 
     def get_text(self , file_meta):
-        # --- Load text from path
-        text = None
+        r""" Either load a file from disk or download it from IPFS
+        Args:
+            file_meta (dict of str: int):
+                Specify the details of the file in the format of {'Name': , 'Hash':}.
 
-        if text != None:
-            return text
-
-        # --- If couldnt load from path, download text.
-        elif text == None:
-            response = self.get_ipfs_file(self.text_dir, file_meta)
-            if (response != None) and (response.status_code == 200):
-                text = response.text
-            else:
-                logger.warning("Failed to get text, ignoring it:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
-
+        Return:
+            text (str):
+                The text that we get from the file (from disk or IPFS).     
+        """
+        response = self.get_ipfs_file(self.text_dir, file_meta)
+        if (response != None) and (response.status_code == 200):
+            text = response.text
+        else:
+            logger.warning("Failed to get text".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
 
         return text 
 
     def get_dataset(self , file_meta):
+        r""" Either load a dataset, which is a list of hashes, from disk or download it from IPFS
+        Args:
+            file_meta (dict of str: int):
+                Specify the details of the dataset in the format of {'Name': , 'Hash':}.
+
+        Return:
+            hashes (list):
+                The hashes from the dataset downloaded from disk or IPFS.     
+        """
         # --- Load text from path
         logger.success( f"Getting dataset: {file_meta['Name']}" )
         
-        text = None
-        text = self.load_hash(file_meta)
+        hashes = None
+        hashes = self.load_hash(file_meta)
 
-        if text != None:
-            return json.loads (text)
+        if hashes != None:
+            return json.loads(hashes)
 
         # --- If couldnt load from path, download text.
-        elif text == None:
+        elif hashes == None:
             response = self.get_ipfs_file(self.dataset_dir, file_meta)
             if (response != None) and (response.status_code == 200):
-                text = response.json()
+                hashes = response.json()
 
                 # --- Save text if the save_dataset flag is on.
                 if self.save_dataset:
                     self.save_hash(file_meta, json.dumps(response.json()) )
             else:
-                logger.warning("Failed to get dataset, ignoring it:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
+                logger.warning("Failed to get dataset".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
                 return None
 
-        if text == None:
+        if hashes == None:
             return None
         else:
-            return text 
+            return hashes 
 
     def load_hash(self, file_meta):
+        r""" Load a hash from disk.
+
+        Args:
+            file_meta (dict of str: int):
+                Specify the details of the dataset in the format of {'Name': , 'Hash':}.
+                
+        """
+
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Hash']))
         if os.path.exists(full_path):
             try:
