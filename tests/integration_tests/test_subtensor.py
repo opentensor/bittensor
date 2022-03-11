@@ -417,7 +417,7 @@ def test_two_subtensor_ownership():
     assert not bittensor.subtensor.global_mock_process_is_running()
 
 def test_subtensor_mock_functions():
-    sub = bittensor.subtensor()
+    sub = bittensor.subtensor.mock()
     sub.n
     sub.total_issuance
     sub.total_stake
