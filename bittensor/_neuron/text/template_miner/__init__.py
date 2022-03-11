@@ -304,7 +304,10 @@ class neuron:
         if self.epoch % epochs_until_reset == 0:
             print ('\n\n=== Reset ===\n\n')
             # === Resetting model + dataset ===
-            self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
+            if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
+                self.dataset.close()
+                self.dataset.__del__()
+                self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )  
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
