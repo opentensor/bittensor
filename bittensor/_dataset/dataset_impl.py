@@ -41,8 +41,8 @@ class Dataset():
     def __init__(self):
         
         # Used to retrieve directory contentx
-        self.cat = 'http://global.ipfs.opentensor.ai/api/v0/cat' 
-        self.node_get = 'http://global.ipfs.opentensor.ai/api/v0/object/get'
+        self.dataset_dir = 'http://global.ipfs.opentensor.ai/api/v0/cat' 
+        self.text_dir = 'http://global.ipfs.opentensor.ai/api/v0/object/get'
         self.mountain_hash = 'QmSdDg6V9dgpdAFtActs75Qfc36qJtm9y8a7yrQ1rHm7ZX'
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
@@ -80,7 +80,7 @@ class Dataset():
         session.mount('https://', adapter)
         return session
 
-    def retrieve_directory(self, address: str, params = None, action: str = 'post', timeout : int = 180):
+    def get_ipfs_file(self, address: str, file_meta: dict, action: str = 'post', timeout : int = 180):
         r"""Connects to IPFS gateway and retrieves directory.
         Args:
             address: (:type:`str`, required):
@@ -95,14 +95,17 @@ class Dataset():
             dict: A dictionary of the files inside of the genesis_datasets and their hashes.
         """
         session = requests.Session()
-        session.params.update(params)
+        session.params.update((('arg', file_meta['Hash']), ))
+        
         try:
             if action == 'get':
                 response = self.requests_retry_session(session=session).get(address, timeout=timeout)
             elif action == 'post':
                 response = self.requests_retry_session(session=session).post(address, timeout=timeout)
+            logger.success( f"Loaded from IPFS: {file_meta['Name']}" )
+
         except Exception as E:
-            logger.error(f"Exception when retrieving directory {params} from IPFS, {E}")
+            logger.error(f"Failed to get from IPFS {file_meta['Name']} {E}")
             return None
 
         return response
@@ -169,6 +172,86 @@ class GenesisTextDataset( Dataset ):
     def close(self):
         self.data_queue.close()
 
+    def get_text(self , file_meta):
+        # --- Load text from path
+        text = None
+
+        if text != None:
+            return text
+
+        # --- If couldnt load from path, download text.
+        elif text == None:
+            response = self.get_ipfs_file(self.text_dir, file_meta)
+            if (response != None) and (response.status_code == 200):
+                text = response.text
+            else:
+                logger.warning("Failed to get text, ignoring it:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
+
+
+        return text 
+
+    def get_dataset(self , file_meta):
+        # --- Load text from path
+        logger.success( f"Getting dataset: {file_meta['Name']}" )
+        
+        text = None
+        text = self.load_hash(file_meta)
+
+        if text != None:
+            print(text)
+            print(text)
+            print(text)
+            print(text)
+            return text.json()
+
+        # --- If couldnt load from path, download text.
+        elif text == None:
+            response = self.get_ipfs_file(self.dataset_dir, file_meta)
+            if (response != None) and (response.status_code == 200):
+                text = response.json()
+
+                # --- Save text if the save_dataset flag is on.
+                if self.save_dataset:
+                    self.save_hash(file_meta, response.text)
+            else:
+                logger.warning("Failed to get dataset, ignoring it:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
+                return None
+
+        if text == None:
+            return None
+        else:
+            return text 
+
+
+    def load_hash(self, file_meta):
+        full_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Hash']))
+        if os.path.exists(full_path):
+            try:
+                with open(full_path, mode='r') as f:
+                    text = f.read()
+
+                logger.success("Loaded from disk:".ljust(20) + "<blue>{}</blue>".format(full_path, file_meta['Name']))
+            except Exception:
+                pass
+
+            return text
+        else:
+            return None
+
+    def save_hash(self, file_meta, text):
+        full_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Hash']))
+        try:
+            with open(full_path, mode = 'w+') as f:
+                print(text)
+                f.write(text)
+                logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
+            return True
+        
+        except Exception as E:
+            print(E)
+            logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
+            return False
+
     def get_random_directories(self):
         r""" Getting directories from a random dataset_hash
         Where a directory could be leading to a data file or a directory file 
@@ -188,20 +271,13 @@ class GenesisTextDataset( Dataset ):
         random.shuffle(dataset_hashes_order)
         
         while i < self.max_datasets:
-            
-            dataset_key = list(self.dataset_hashes.keys())[dataset_hashes_order[i]]
-            dataset_hash = self.dataset_hashes[dataset_key]
+            dataset_meta = list(self.dataset_hashes.items())[dataset_hashes_order[i]]
+            dataset_meta = {'Name': dataset_meta[0], 'Hash': dataset_meta[1]}
+
+            sub_directories = self.get_dataset(dataset_meta)            
+            if sub_directories != None:
+                directories += sub_directories
             i += 1
-            logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
-            response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
-            
-            if (response == None) or (response.status_code != 200):
-                logger.warning("Ignoring directory:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
-            
-            else:
-                # --- Get the directory links if there is valid response, else check on another dataset_hash 
-                directories += response.json()
-                logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(dataset_key))
                 
         if len(directories) == 0:
             directories = None
@@ -227,15 +303,13 @@ class GenesisTextDataset( Dataset ):
             
             if key in self.dataset_hashes.keys():
                 logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(key))
-                dataset_hash = self.dataset_hashes[key] 
-                response = self.retrieve_directory(self.cat, (('arg', dataset_hash),))
-                if (response == None) or (response.status_code != 200):
-                    logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(key))
-                
-                else:
-                    # --- Get the directory links if there is valid response, else check on another dataset_hash 
-                    directories += response.json()
+                dataset_meta = {'Name': key, 'Hash': self.dataset_hashes[key]}  
+                sub_directories = self.get_dataset(dataset_meta)
+
+                if sub_directories != None:           
+                    directories += sub_directories()
                     logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(key))
+            
             else:
                 logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
 
@@ -259,7 +333,7 @@ class GenesisTextDataset( Dataset ):
 
         # --- Else, the directory leads to more directories, return a random data file within the directories.
         else:
-            response = self.retrieve_directory(self.node_get, (('arg', directory['Hash']),))
+            response = self.get_ipfs_file(self.text_dir, directory)
             # --- Return none if the request failed.
             if (response == None) or (response.status_code != 200):
                 logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(directory))
@@ -279,53 +353,6 @@ class GenesisTextDataset( Dataset ):
                 else:
                     logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(directory))
         return None
-
-    def get_text(self, file):
-        r"""
-        Load the text data from disk if it is already in the the data_dir,
-        else download it from IPFS and save it
-
-        Args:
-            file: Map{ Name: str, Hash: str, Size: int }
-                The directory to get text file from.
-        Returns:
-            text: str: 
-                The text data.
-        """
-        text = None
-        file_name = file['Name']
-        file_hash = file['Hash']
-        full_path = os.path.expanduser(os.path.join(self.data_dir, file_name))
-
-        # --- Load text from path
-        if os.path.exists(full_path):
-            try:
-                with open(full_path, mode='r') as f:
-                    text = f.read()
-                logger.success("Loaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
-            except Exception:
-                logger.warning("Load failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
-
-        # --- If couldnt load from path, download text.
-        if text == None:
-            response = self.retrieve_directory(self.node_get, (('arg', file_hash),))
-
-            if (response == None) or (response.status_code != 200):
-                logger.warning("Failed to retrieve file, ignoring file:".ljust(20) + "<blue>{}</blue>".format(file_name))
-            else:
-                text = response.text
-                logger.success("Downloaded:".ljust(20) + "<blue>{}</blue>".format(file_name))
-                
-                # --- Save text if the save_dataset flag is on.
-                if self.save_dataset:
-                    try:
-                        with open(full_path, mode = 'w+') as f:
-                            f.write(text)
-                            logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_name))
-                    except Exception:
-                        logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_name))
-
-        return text
 
     def construct_text_corpus(self, min_data_len = 0):
         """ Main function for generating the text data.
@@ -475,8 +502,9 @@ class GenesisTextDataset( Dataset ):
         self.dataset_hashes = {}
         response = None
         while response == None:
-            response = self.retrieve_directory(self.node_get, (('arg', self.mountain_hash),))
-        
+            response = self.get_ipfs_file(self.text_dir,  {'Name': 'mountain', 'Hash': self.mountain_hash})
+
+        print(response)
         for i in response.json()['Links']:
             self.dataset_hashes[i['Name'][:-4]]= i['Hash'] 
 
