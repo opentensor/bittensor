@@ -427,6 +427,13 @@ def test_subtensor_mock_functions():
     sub.blocks_per_epoch
     sub.blocks_since_epoch
     sub.max_n
+    sub.max_allowed_min_max_ratio
+    sub.min_allowed_weights
+    sub.validator_epoch_length
+    sub.validator_epochs_per_reset
+    sub.validator_sequence_length
+    sub.validator_batch_size
+    sub.difficulty
 
 test_subtensor_mock()
 test_create_mock_process()
