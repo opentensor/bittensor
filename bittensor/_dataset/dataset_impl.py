@@ -32,6 +32,7 @@ from loguru import logger
 import bittensor
 from .thread_queue import ThreadQueue
 import time
+import json
 
 logger = logger.opt(colors=True)
 
@@ -198,11 +199,7 @@ class GenesisTextDataset( Dataset ):
         text = self.load_hash(file_meta)
 
         if text != None:
-            print(text)
-            print(text)
-            print(text)
-            print(text)
-            return text.json()
+            return json.loads (text)
 
         # --- If couldnt load from path, download text.
         elif text == None:
@@ -212,7 +209,7 @@ class GenesisTextDataset( Dataset ):
 
                 # --- Save text if the save_dataset flag is on.
                 if self.save_dataset:
-                    self.save_hash(file_meta, response.text)
+                    self.save_hash(file_meta, json.dumps(response.json()) )
             else:
                 logger.warning("Failed to get dataset, ignoring it:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
                 return None
@@ -222,7 +219,6 @@ class GenesisTextDataset( Dataset ):
         else:
             return text 
 
-
     def load_hash(self, file_meta):
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Hash']))
         if os.path.exists(full_path):
@@ -230,7 +226,7 @@ class GenesisTextDataset( Dataset ):
                 with open(full_path, mode='r') as f:
                     text = f.read()
 
-                logger.success("Loaded from disk:".ljust(20) + "<blue>{}</blue>".format(full_path, file_meta['Name']))
+                logger.success("Loaded from disk:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
             except Exception:
                 pass
 
@@ -242,7 +238,6 @@ class GenesisTextDataset( Dataset ):
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Hash']))
         try:
             with open(full_path, mode = 'w+') as f:
-                print(text)
                 f.write(text)
                 logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
             return True
@@ -366,11 +361,12 @@ class GenesisTextDataset( Dataset ):
                 Contents of the text data.
         """
         try:
-            logger.success("Retrieving a dataset files from the IPFS gateway...")
+            logger.success("Constructing text corpus...")
 
             # --- Get directories from a random dataset_hash
             if self.dataset_name == 'default':
                 directories = self.get_random_directories()
+            
             else:
                 directories = self.get_directories(self.dataset_name)
             data_corpus = []
@@ -432,8 +428,11 @@ class GenesisTextDataset( Dataset ):
         while len(self.data_remained) < (data_size) :
             self.data_remained += self.construct_text_corpus(min_data_len = data_size)
 
+        print("finished constructing text corpus")
         self.data = self.data_remained[:data_size]
+        print("finished copying data")
         del self.data_remained[:data_size]
+        print("finished deeting data")
 
         # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
         return DataLoader(self,
@@ -446,12 +445,18 @@ class GenesisTextDataset( Dataset ):
         r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ . 
         """
         success = False 
-        while not success: 
+        while not success:
+            print('waiting for avail data...')
             if not self.data_queue.queue.empty() :
+                print("queue not empty")
                 dataset = self.data_queue.queue.get()
+                print("got dataset from queue")
                 if dataset:
+
+                    print("there is dataset")
                     self.__infinite_dataset_iterator = iter([input for input in dataset])
                     success = True
+                    print("got the dataset from queue! ")
             else:
                 time.sleep(2)
 
@@ -504,7 +509,6 @@ class GenesisTextDataset( Dataset ):
         while response == None:
             response = self.get_ipfs_file(self.text_dir,  {'Name': 'mountain', 'Hash': self.mountain_hash})
 
-        print(response)
         for i in response.json()['Links']:
             self.dataset_hashes[i['Name'][:-4]]= i['Hash'] 
 
