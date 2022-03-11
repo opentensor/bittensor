@@ -139,7 +139,7 @@ class cli:
             "-u", '--uids',
             type=list, 
             nargs='+',
-            dest='uid', 
+            dest='uids', 
             choices=list(range(2000)), 
             help='''Uids to query'''
         )

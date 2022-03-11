@@ -105,6 +105,7 @@ class CLI:
     def query ( self ):
         r""" Query an endpoint and get query time.
         """
+        bittensor.logging( config = self.config )
         wallet = bittensor.wallet(config = self.config)
         subtensor = bittensor.subtensor( config = self.config )
         dendrite = bittensor.dendrite( wallet = wallet )
