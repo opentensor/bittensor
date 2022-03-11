@@ -77,7 +77,6 @@ class neuron:
             wallet = self.wallet,
             priority = self.priority,
             forward_text = self.forward_text,
-            backward_text = self.backward_text,
             blacklist = self.blacklist,
         )
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length )
@@ -158,27 +157,6 @@ class neuron:
         ).to( self.device )
         return outputs_y
 
-    # ---- Axon Backward call ----
-    def backward_text ( self, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ):
-        r""" Subscribed to an axon servicing endpoint: Processes backward messages from the wire.
-            Arguments reflect an RPC backward request from another miner in the network. No response
-            needed for tokenized text inputs (uint64s have no gradient).
-
-            Args:
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs from previous forward call.
-                grads_dy ( :obj:`torch.Tensor`, `required`):
-                    torch grads of forward output.                    
-        """
-        if self.config.neuron.accumulate_remote_gradients:
-            with torch.enable_grad():
-                # ---- Set up inputs for gradient computations.
-                outputs_y = self.nucleus( inputs_x.to( self.device ), self.metagraph, self.dendrite, is_inference = True ).to( self.device )
-                # ---- The backward call will accumulate gradients on our parameters.
-                torch.autograd.backward (
-                    tensors = [outputs_y],
-                    grad_tensors = [grads_dy.to( self.device )]
-                )
     
     def priority(self, pubkey:str, request_type:bittensor.proto.RequestType, inputs_x: torch.FloatTensor) -> float:
         r"""Return the request priority based on stake and size of input. 
@@ -323,10 +301,13 @@ class neuron:
         # === Reset Epochs with new params. ===
         # Pulls new default validator training parameters and resets 
         # the model and dataset for the following epoch.
-        if self.epoch % epochs_until_reset == 1:
+        if self.epoch % epochs_until_reset == 0:
             print ('\n\n=== Reset ===\n\n')
             # === Resetting model + dataset ===
-            self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
+            if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
+                self.dataset.close()
+                self.dataset.__del__()
+                self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )  
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
