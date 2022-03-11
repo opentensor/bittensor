@@ -1,4 +1,5 @@
 
+from socket import timeout
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import requests
@@ -22,7 +23,7 @@ class Ipfs():
 
     @staticmethod
     def requests_retry_session(
-            retries=10,
+            retries=1,
             backoff_factor=0.5,
             status_forcelist=(104, 500, 502, 504),
             session=None,
@@ -53,7 +54,7 @@ class Ipfs():
         session.mount('https://', adapter)
         return session
 
-    def retrieve_directory(self, address: str, params = None, action: str = 'post'):
+    def retrieve_directory(self, address: str, params = None, action: str = 'post', timeout: int = 180):
         r"""Connects to Pinata IPFS gateway and retrieves directory.
 
         Returns:
@@ -62,7 +63,7 @@ class Ipfs():
         session = requests.Session()
         session.params.update(params)
         if action == 'get':
-            response = Ipfs.requests_retry_session(session=session).get(address)
+            response = Ipfs.requests_retry_session(session=session).get(address, timeout=timeout)
         elif action == 'post':
-            response = Ipfs.requests_retry_session(session=session).post(address)
+            response = Ipfs.requests_retry_session(session=session).post(address, timeout=timeout)
         return response

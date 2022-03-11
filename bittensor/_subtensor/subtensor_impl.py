@@ -162,6 +162,32 @@ To run a local node (See: docs/running_a_validator.md) \n
                     return False
 
     @property
+    def rho (self) -> int:
+        r""" Incentive mechanism rho parameter.
+        Returns:
+            rho (int):
+                Incentive mechanism rho parameter.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Rho').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def kappa (self) -> int:
+        r""" Incentive mechanism kappa parameter.
+        Returns:
+            kappa (int):
+                Incentive mechanism kappa parameter.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Kappa').value
+        return make_substrate_call_with_retry()
+
+    @property
     def difficulty (self) -> int:
         r""" Returns registration difficulty from the chain.
         Returns:
@@ -188,6 +214,72 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
+    def immunity_period (self) -> int:
+        r""" Returns the chain registration immunity_period
+        Returns:
+            immunity_period (int):
+                Chain registration immunity_period
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ImmunityPeriod').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_batch_size (self) -> int:
+        r""" Returns the chain default validator batch size.
+        Returns:
+            batch_size (int):
+                Chain default validator batch size.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorBatchSize').value
+        return make_substrate_call_with_retry()
+
+
+    @property
+    def validator_sequence_length (self) -> int:
+        r""" Returns the chain default validator sequence length.
+        Returns:
+            sequence_length (int):
+                Chain default validator sequence length.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorSequenceLength').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_epochs_per_reset (self) -> int:
+        r""" Epochs passed before the validator resets its weights.
+        Returns:
+            validator_epochs_per_reset (int):
+                Epochs passed before the validator resets its weights.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochsPerReset').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_epoch_length (self) -> int:
+        r""" Default validator epoch length.
+        Returns:
+            validator_epoch_length (int):
+                Default validator epoch length. 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochLen').value
+        return make_substrate_call_with_retry()
+
+    @property
     def total_stake (self) -> 'bittensor.Balance':
         r""" Returns total stake on the chain.
         Returns:
@@ -198,6 +290,32 @@ To run a local node (See: docs/running_a_validator.md) \n
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
+        return make_substrate_call_with_retry()
+
+    @property
+    def min_allowed_weights (self) -> int:
+        r""" Returns min allowed number of weights.
+        Returns:
+            min_allowed_weights (int):
+                Min number of weights allowed to be set.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MinAllowedWeights').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def max_allowed_min_max_ratio(self) -> int:
+        r""" Returns the chains max_allowed_min_max_ratio
+        Returns:
+            max_allowed_min_max_ratio (int):
+                The max ratio allowed between the min and max.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedMaxMinRatio').value
         return make_substrate_call_with_retry()
 
     @property
@@ -214,11 +332,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
-    def max_allowed_uids (self) -> int:
-        r""" Returns the total network size (maximum allowed uids.)
+    def max_n (self) -> int:
+        r""" Returns maximum number of neuron positions on the graph.
         Returns:
-            max_allowed_uids (int):
-                Total allowed uids
+            max_n (int):
+                Maximum number of neuron positions on the graph.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
@@ -227,37 +345,20 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
-    def immunity_period(self) -> int:
-        r""" Blocks until a uid can be deregistered after registering
+    def block (self) -> int:
+        r""" Returns current chain block.
         Returns:
-            immunity_period (int):
-                Blocks until a uid can be deregistered after registering
+            block (int):
+                Current chain block.
         """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'ImmunityPeriod').value
-        return make_substrate_call_with_retry()
+        return self.get_current_block()
 
     @property
-    def blocks_per_epoch(self) -> int:
-        r""" Current epoch length on the chain.
-        Returns:
-            blocks_per_epoch (int):
-                Current epoch length on the chain.
-        """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksPerStep').value
-        return make_substrate_call_with_retry()
-
-    @property
-    def blocks_since_epoch(self) -> int:
-        r""" Blocks progressed since last epoch.
+    def blocks_since_epoch (self) -> int:
+        r""" Returns blocks since last epoch.
         Returns:
             blocks_since_epoch (int):
-                Blocks progressed since last epoch.
+                blocks_since_epoch 
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
@@ -266,29 +367,16 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
-    def rho(self) -> int:
-        r""" Consensus mechanism temperature.
+    def blocks_per_epoch (self) -> int:
+        r""" Returns blocks per chain epoch.
         Returns:
-            rho (int):
-                Consensus mechanism temperature.
+            blocks_per_epoch (int):
+                blocks_per_epoch 
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'Rho').value 
-        return make_substrate_call_with_retry()
-
-    @property
-    def kappa(self) -> int:
-        r""" Consensus mechanism shift term.
-        Returns:
-            kappa (int):
-                Consensus mechanism shift term.
-        """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'Kappa').value
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksPerStep').value
         return make_substrate_call_with_retry()
 
     def get_n (self, block: int = None) -> int:
@@ -307,14 +395,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def block (self) -> int:
-        r""" Returns current chain block.
-        Returns:
-            block (int):
-                Current chain block.
-        """
-        return self.get_current_block()
 
     def serve_axon (
         self,

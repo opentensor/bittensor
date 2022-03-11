@@ -105,6 +105,23 @@ class CLI:
     def query ( self ):
         r""" Query an endpoint and get query time.
         """
+        bittensor.logging( config = self.config )
+        wallet = bittensor.wallet(config = self.config)
+        subtensor = bittensor.subtensor( config = self.config )
+        dendrite = bittensor.dendrite( wallet = wallet )
+        stats = {}
+        for uid in self.config.uids:
+            neuron = subtensor.neuron_for_uid( uid )
+            endpoint = bittensor.endpoint.from_neuron( neuron )
+            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
+            latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
+            stats[uid] = latency
+        print (stats)
+
+    def query ( self ):
+        r""" Query an endpoint and get query time.
+        """
         wallet = bittensor.wallet(config = self.config)
         subtensor = bittensor.subtensor( config = self.config )
         dendrite = bittensor.dendrite( wallet = wallet )
@@ -130,7 +147,7 @@ class CLI:
             
             if self.config.wallet.hotkey == 'None':
                 wallet.coldkeypub
-                cold_balance = wallet.balance
+                cold_balance = wallet.get_balance( subtensor = subtensor )
                 bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)
 
             else:
