@@ -18,7 +18,7 @@
 """ The bittensor base validator
 
 Example:
-    $ python miners/text/validator.py --logging.debug
+    $ python3 miners/text/core_validator.py --logging.debug
 
 """
 import sys
