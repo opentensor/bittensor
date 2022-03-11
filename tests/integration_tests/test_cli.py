@@ -141,24 +141,6 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-
-    def test_unstake( self ):
-        bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
-        wallet = TestCli.generate_wallet()
-        config = self.config
-        config.command = "unstake"
-        config.amount = 1
-        config.subtensor.network = "local"
-        config.unstake_all = False
-        config.dest = "no_prompt"
-        config.subtensor._mock = True
-        config.model = "template_miner"
-        config.no_prompt = True
-
-        cli = bittensor.cli(config)
-        with self.assertRaises(SubstrateRequestException):
-            cli.run()
-
     def test_new_coldkey( self ):
         
         config = self.config
