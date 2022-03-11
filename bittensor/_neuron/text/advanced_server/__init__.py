@@ -33,8 +33,9 @@ from .run import serve
 class neuron:
     r"""
     Creates a bittensor neuron that specializes in the serving. The advanced server miner
-    trains itself while accepting requests from the bittensor network. Huggingface NLP
-    models are being served and by default serves the GPT2 base model.
+    trains itself while accepting requests from the bittensor network. This is done by accumulating
+    gradients over the wire and applying them in a single step. Blacklist features are enabled in 
+    advanced servers to determine who can apply gradients. 
 
     Args: 
             config (:obj:`bittensor.Config`, `optional`): 
@@ -51,7 +52,7 @@ class neuron:
                 bittensor metagraph object
 
     Examples:: 
-            >>> subtensor = bittensor.subtensor(network='nobunaga')
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
             >>> server = bittensor.neuron.test.advanced_server.neuron(subtensor=subtensor)
             >>> server.run()
     """

@@ -47,7 +47,7 @@ class neuron:
                 bittensor metagraph object
 
     Examples:: 
-            >>> subtensor = bittensor.subtensor(network='nobunaga')
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
             >>> server = bittensor.neuron.test.template_server.neuron(subtensor=subtensor)
             >>> server.run()
     """
