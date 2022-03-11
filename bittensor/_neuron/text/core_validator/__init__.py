@@ -71,8 +71,8 @@ class neuron:
         self.metagraph = bittensor.metagraph ( config = config, subtensor = self.subtensor )        
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
         self.device = torch.device ( device = self.config.neuron.device )    
-        self.nucleus = None # Created during epoch
-        self.dataset = None # Created during epoch
+        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
+        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length )
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -209,7 +209,11 @@ class neuron:
         if self.epoch % epochs_until_reset == 0:
             print ('\n\n=== Reset ===\n\n')
             # === Resetting model + dataset ===
-            self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
+            if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
+                self.dataset.close()
+                self.dataset.__del__()
+                self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
+
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
