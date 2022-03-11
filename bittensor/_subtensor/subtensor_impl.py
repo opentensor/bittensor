@@ -214,6 +214,19 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
+    def immunity_period (self) -> int:
+        r""" Returns the chain registration immunity_period
+        Returns:
+            immunity_period (int):
+                Chain registration immunity_period
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ImmunityPeriod').value
+        return make_substrate_call_with_retry()
+
+    @property
     def validator_batch_size (self) -> int:
         r""" Returns the chain default validator batch size.
         Returns:

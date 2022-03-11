@@ -426,7 +426,7 @@ def test_subtensor_mock_functions():
     sub.kappa
     sub.blocks_per_epoch
     sub.blocks_since_epoch
-    sub.max_allowed_uids
+    sub.max_n
 
 test_subtensor_mock()
 test_create_mock_process()
