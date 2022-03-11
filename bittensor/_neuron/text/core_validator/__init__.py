@@ -40,37 +40,77 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
+
 logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
 
 class neuron:
-    """ Neuron class which drives the training of the validator.
+    r"""
+    Creates a bittensor neuron that specializes validating other peers. The core validator
+    finetunes on the bittensor network with a mixture of experts model and shapely scoring.
+    The validator's main jobs are to identify important/useful peers in the network and correctly
+    weight them. To achieve this, the validator will send requests to different peers on the network
+    and evalute their responses.
+
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            dataset (:obj:bittensor.dataset , `optional`):
+                bittensor dataset 
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+            dendrite (:obj:bittensor.dendrite, `optional`):
+                bittensor dendrite object
+            dataset (:obj:bittensor.dendrite, `optional`):
+                bittensor dendrite object
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> validator = bittensor.neuron.test.core_validator.neuron(subtensor=subtensor)
+            >>> validator.run()
     """
-    def __init__( self, config: 'bittensor.Config' = None ):
+    def __init__( 
+        self, 
+        config: 'bittensor.Config' = None,
+        wallet: 'bittensor.Wallet' = None,
+        subtensor: 'bittensor.Subtensor' = None,
+        metagraph: 'bittensor.Metagraph' = None,
+        dendrite: 'bittensor.Dendrite' = None,
+        dataset: 'bittensor.dataset' = None
+    ):
 
         # === Set up Config ===
         if config == None: config = neuron.config()
         self.config = config
         neuron.check_config( self.config )
         self.config.to_defaults()
-        if self.config.neuron._mock == True:
-            self.config.subtensor._mock = True
-            self.config.wallet._mock = True
-            self.config.dataset._mock = True
-            self.config.dendrite._mock = True
-            self.config.metagraph._mock = True
-            self.config.subtensor._mock = True
         print ( self.config )
 
         # === Create Bittensor objects ===
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
-        self.wallet = bittensor.wallet ( config = self.config )
-        self.subtensor = bittensor.subtensor ( config = self.config )
-        self.metagraph = bittensor.metagraph ( config = config, subtensor = self.subtensor )        
-        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
+        self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
+        self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
+        self.metagraph = bittensor.metagraph ( config = config, subtensor = self.subtensor ) if metagraph == None else metagraph
+        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet ) if dendrite == None else dendrite
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device ).to( self.device )
+
+
+        # === Get Epoch chain params ===
+        # These parameters are subject to change
+        # via sudo key or democracy pallet.
+        blocks_per_epoch = self.config.neuron.blocks_per_epoch
+        max_allowed_ratio = 10
+        n_topk_peer_weights = self.config.neuron.n_topk_peer_weights
+
+        # === Setup Dataset ===
+        # Create the dataset with chain determined 
+        # batch size and sequence length.
+        self.dataset = bittensor.dataset ( config = self.config ) if dataset == None else dataset
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -135,8 +175,9 @@ class neuron:
         # If the network is mocked, we register.
         if self.subtensor.network != 'mock':
             if not self.wallet.is_registered( subtensor = self.subtensor ):
+                self.wallet.register( subtensor = self.subtensor )
                 print( "You must register the validator's wallet before running, use: btcli register --wallet.name {} --wallet.hotkey {}", self.wallet.name, self.wallet.hotkey_str)
-                sys.exit(0)
+                
         else:
             self.wallet.register( subtensor = self.subtensor )
 
@@ -205,12 +246,7 @@ class neuron:
         blocks_per_epoch = self.config.neuron.blocks_per_epoch
         max_allowed_ratio = 10
         n_topk_peer_weights = self.config.neuron.n_topk_peer_weights
-
-        # === Setup Dataset ===
-        # Create the dataset with chain determined 
-        # batch size and sequence length.
-        self.dataset = bittensor.dataset ( config = self.config )
-
+        
         # === Reset Model ===
         # Every n epochs we reset the model and start the 
         # validation process again.
