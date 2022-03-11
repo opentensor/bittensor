@@ -87,7 +87,6 @@ class neuron:
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_validator')
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
@@ -101,6 +100,7 @@ class neuron:
         parser.add_argument('--neuron.blacklist.stake.backward', type=float, help='Amount of stake (tao) in order not to get blacklisted for backward requests', default=100)
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, black lists non-registered peers''', default=True)
         parser.add_argument('--neuron.use_upnpc', action='store_true', help='''neuron attempts to port forward axon using upnpc.''', default=False)
+        parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
 
     @classmethod
     def config ( cls ):
@@ -396,6 +396,7 @@ class neuron:
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
             wallet = self.wallet,
+            wait_for_finalization = self.config.neuron.wait_for_finalization,
         )
 
         # === Wandb Logs ===

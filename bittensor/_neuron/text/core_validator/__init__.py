@@ -103,6 +103,7 @@ class neuron:
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
+        parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
 
     @classmethod
     def config ( cls ):
@@ -277,6 +278,7 @@ class neuron:
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
             wallet = self.wallet,
+            wait_for_finalization = self.config.neuron.wait_for_finalization,
         )
 
         # === Wandb Logs ===
