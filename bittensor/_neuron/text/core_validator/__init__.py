@@ -444,7 +444,7 @@ class nucleus( torch.nn.Module ):
         # routing_context.shape = [ batch size, __network_dim__ ]
         routing_context = self.routing_encoder( pos_embedding, mask = src_mask )
 
-       # === Get weights for uids. ===
+        # === Get weights for uids. ===
         # We iterate over each of the network uids and compute a querying score for each
         # using the gating function. This returns a score per endpoint per example.
         # routing_weights: (torch.FloatTensor): score per example, per endpoint.
@@ -468,7 +468,6 @@ class nucleus( torch.nn.Module ):
         # topk_routing_weights.shape = [ self.config.nucleus.topk ]
         # topk_routing_uids: (torch.LongTensor): uids with highest scores.
         # topk_routing_uids.shape = [ self.config.nucleus.topk ]
-        print (len(noisy_routing_weights), self.config.nucleus.topk)
         top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, self.config.nucleus.topk, dim=0)
 
         # === Get endpoint information for the highest scoring uids ===
