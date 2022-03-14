@@ -461,6 +461,7 @@ class nucleus( torch.nn.Module ):
     
         # SGMOE Gates: Instantiating the gates per expert.
         self.gates = torch.nn.Linear( bittensor.__network_dim__, self.max_n, bias=True ).to( self.device )
+        self.reset_weights()
 
     @classmethod
     def add_args( cls, parser ):
@@ -491,6 +492,7 @@ class nucleus( torch.nn.Module ):
         # === Resets all the weights using xavier initialization. ===
         torch.nn.init.xavier_uniform_ ( self.token_embedding.weight )
         torch.nn.init.xavier_uniform_ ( self.decoder.weight )
+        torch.nn.init.xavier_uniform_( self.gates.weight )
         def init_xavier( component ):
             try:
                 torch.nn.init.xavier_uniform_( component.weight )
@@ -662,7 +664,7 @@ class nucleus( torch.nn.Module ):
                 # Create mask by zeroing out the response at index.              
                 masked_loss = get_target_loss ( masked_contexts[uid], inputs )
                 shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item() ))
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i] ))
                 shapely_scores[ uid ] = -shapely_score
 
     
