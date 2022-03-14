@@ -574,14 +574,14 @@ class nucleus( torch.nn.Module ):
         # routing_weights: (torch.FloatTensor): score per example, per endpoint.
         # routing_weights.shape = [ batch size, __network_n__ ]
         # The gates act over the last embedding of the routing_context.
-        routing_weights = self.gates( routing_context )
+        routing_weights = self.gates( routing_context[:,-1,:] )
 
         # === Normalize routing_weights across batch dimension and add noise. ===
         # We are summing across the batch dimension to create a per-batch score per endpoint.
         # The resulting routing_weights tensor is a score per expert.
         # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
         # routing_weights.shape = [ n_filtered ]
-        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
+        batchwise_routing_weights = torch.mean(routing_weights.T, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
 
@@ -597,25 +597,25 @@ class nucleus( torch.nn.Module ):
         # We are taking the topk routing weights and returning their uids.
         # First we ensure topk is smaller than the network size then use the torch.topk.
         # topk_routing_weights: (torch.float64): scores of uids with highest scores.
-        # topk_routing_weights.shape = [ real_topk ]
+        # topk_routing_weights.shape = [ self.config.nucleus.topk ]
         # topk_routing_uids: (torch.LongTensor): uids with highest scores.
-        # topk_routing_uids.shape = [ real_topk ]
-        real_topk = min( len( metagraph.n ), self.config.nucleus.topk )
-        top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, real_topk, dim=0)
+        # topk_routing_uids.shape = [ self.config.nucleus.topk ]
+        print (len(noisy_routing_weights), self.config.nucleus.topk)
+        top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, self.config.nucleus.topk, dim=0)
 
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
         # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
-        # len(neurons) == real_topk
+        # len(neurons) == self.config.nucleus.topk
         routing_endpoints = [ metagraph.endpoints[ uid ] for uid in routing_uids ]
 
         # === Query the endpoints ===
         # Makes the dendrite call into the network returning the representations 
         # for each of the endpoints. The return ops can be used to filter weights and outputs.
         # query_responses: (List[torch.float64]): responses from each endpoint.
-        # query_responses.shape = real_topk * [ batch_size, sequence_len, __network_dim__ ]
+        # query_responses.shape = self.config.nucleus.topk * [ batch_size, sequence_len, __network_dim__ ]
         # return_ops: (torch.int64): Return ops.
-        # return_ops.shape = [ real_topk ]
+        # return_ops.shape = [ self.config.nucleus.topk ]
         responses, return_ops, times = dendrite.forward_text ( 
             endpoints = routing_endpoints, 
             inputs = inputs
@@ -664,7 +664,7 @@ class nucleus( torch.nn.Module ):
                 # Create mask by zeroing out the response at index.              
                 masked_loss = get_target_loss ( masked_contexts[uid], inputs )
                 shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i] ))
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
 
     
