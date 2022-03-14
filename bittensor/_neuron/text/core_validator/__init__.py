@@ -101,14 +101,6 @@ class neuron:
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length )
 
-
-        # === Get Epoch chain params ===
-        # These parameters are subject to change
-        # via sudo key or democracy pallet.
-        blocks_per_epoch = self.config.neuron.blocks_per_epoch
-        max_allowed_ratio = 10
-        n_topk_peer_weights = self.config.neuron.n_topk_peer_weights
-
         # === Setup Dataset ===
         # Create the dataset with chain determined 
         # batch size and sequence length.
