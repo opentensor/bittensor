@@ -581,7 +581,7 @@ class nucleus( torch.nn.Module ):
         # The resulting routing_weights tensor is a score per expert.
         # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
         # routing_weights.shape = [ n_filtered ]
-        batchwise_routing_weights = torch.mean(routing_weights.T, axis = 0)
+        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
 
