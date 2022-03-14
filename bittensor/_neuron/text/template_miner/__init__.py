@@ -290,7 +290,7 @@ class neuron:
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
         # === Logs ===
-        print ( '\Era:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
+        print ( '\nEra:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
                 '\n\t max_allowed_ratio:', max_allowed_ratio, '\n\t blocks_per_epoch:', blocks_per_epoch, '\n\t epochs_until_reset:', epochs_until_reset, 
                 '\n\t until_reset:', self.epoch % epochs_until_reset, '\n\t current_block:', current_block, '\n')
         if self.config.using_wandb:
@@ -460,9 +460,7 @@ class nucleus( torch.nn.Module ):
         self.loss_fct = torch.nn.CrossEntropyLoss()
     
         # SGMOE Gates: Instantiating the gates per expert.
-        self.gates = {}
-        for uid in range( self.max_n ):
-            self.gates[uid] = torch.nn.Linear( bittensor.__network_dim__, 1, bias=True).to( self.device )
+        self.gates = torch.nn.Linear( bittensor.__network_dim__, self.max_n, bias=True ).to( self.device )
 
     @classmethod
     def add_args( cls, parser ):
@@ -574,15 +572,14 @@ class nucleus( torch.nn.Module ):
         # routing_weights: (torch.FloatTensor): score per example, per endpoint.
         # routing_weights.shape = [ batch size, __network_n__ ]
         # The gates act over the last embedding of the routing_context.
-        active_uids = torch.where(metagraph.active > 0)[0]
-        active_routing_weights = torch.cat( [ self.gates[ uid ](routing_context[:,-1,:]) for uid in active_uids.tolist() ], axis = 1)
+        routing_weights = self.gates( routing_context )
 
         # === Normalize routing_weights across batch dimension and add noise. ===
         # We are summing across the batch dimension to create a per-batch score per endpoint.
         # The resulting routing_weights tensor is a score per expert.
         # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
         # routing_weights.shape = [ n_filtered ]
-        batchwise_routing_weights = torch.mean(active_routing_weights, axis = 0)
+        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
 
@@ -601,14 +598,14 @@ class nucleus( torch.nn.Module ):
         # topk_routing_weights.shape = [ real_topk ]
         # topk_routing_uids: (torch.LongTensor): uids with highest scores.
         # topk_routing_uids.shape = [ real_topk ]
-        real_topk = min( len( active_uids ), self.config.nucleus.topk )
+        real_topk = min( len( metagraph.n ), self.config.nucleus.topk )
         top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, real_topk, dim=0)
 
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
         # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
         # len(neurons) == real_topk
-        routing_endpoints = [ metagraph.endpoints[ uid ] for uid in active_uids[routing_uids] ]
+        routing_endpoints = [ metagraph.endpoints[ uid ] for uid in routing_uids ]
 
         # === Query the endpoints ===
         # Makes the dendrite call into the network returning the representations 
@@ -654,7 +651,7 @@ class nucleus( torch.nn.Module ):
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
-        masked_contexts = partial_contexts(return_ops, active_uids[routing_uids], top_k_routing_weights,  responses)
+        masked_contexts = partial_contexts(return_ops, routing_uids, top_k_routing_weights,  responses)
         shapely_scores = torch.zeros( (metagraph.n.item()) )
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
