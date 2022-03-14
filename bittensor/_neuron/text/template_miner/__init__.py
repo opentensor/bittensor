@@ -653,7 +653,7 @@ class nucleus( torch.nn.Module ):
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
-        masked_contexts = partial_contexts(return_ops, routing_uids, top_k_routing_weights,  responses)
+        masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  responses)
         shapely_scores = torch.zeros( (metagraph.n.item()) )
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
