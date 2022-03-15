@@ -361,7 +361,7 @@ def test_subtensor_mock():
     assert sub._is_mocked == True
     assert sub._owned_mock_subtensor_process != None
     del(sub)
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    assert not mock_subtensor.global_mock_process_is_running()
 
 def test_create_mock_process():
     mock_subtensor.kill_global_mock_process()
