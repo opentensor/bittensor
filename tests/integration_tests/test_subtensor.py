@@ -356,7 +356,7 @@ class TestSubtensor(unittest.TestCase):
 
 def test_subtensor_mock():
     mock_subtensor.kill_global_mock_process()
-    sub = bittensor.subtensor.mock()
+    sub = bittensor.subtensor(_mock=True)
     assert mock_subtensor.global_mock_process_is_running()
     assert sub._is_mocked == True
     assert sub._owned_mock_subtensor_process != None
@@ -403,8 +403,8 @@ def test_create_from_config():
 
 def test_two_subtensor_ownership():
     mock_subtensor.kill_global_mock_process()
-    sub1 = bittensor.subtensor.mock()
-    sub2 = bittensor.subtensor.mock()
+    sub1 = bittensor.subtensor(_mock=True)
+    sub2 = bittensor.subtensor(_mock=True)
     assert sub1._is_mocked == True
     assert sub2._is_mocked == True
     assert sub1._owned_mock_subtensor_process != None
@@ -417,7 +417,7 @@ def test_two_subtensor_ownership():
     assert not mock_subtensor.global_mock_process_is_running()
 
 def test_subtensor_mock_functions():
-    sub = bittensor.subtensor.mock()
+    sub = bittensor.subtensor(_mock=True)
     sub.n
     sub.total_issuance
     sub.total_stake
