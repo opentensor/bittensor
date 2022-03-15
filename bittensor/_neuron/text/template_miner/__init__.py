@@ -290,12 +290,12 @@ class neuron:
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
         # === Logs ===
-        print ( '\nEpoch:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
+        print ( '\Era:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
                 '\n\t max_allowed_ratio:', max_allowed_ratio, '\n\t blocks_per_epoch:', blocks_per_epoch, '\n\t epochs_until_reset:', epochs_until_reset, 
                 '\n\t until_reset:', self.epoch % epochs_until_reset, '\n\t current_block:', current_block, '\n')
         if self.config.using_wandb:
-            wandb.log( {    'batch_size': batch_size, 'sequence_length': sequence_length, 'n_topk_peer_weights': n_topk_peer_weights, 
-                            'max_allowed_ratio': max_allowed_ratio, 'blocks_per_epoch': blocks_per_epoch, 'epochs_until_reset': epochs_until_reset, 
+            wandb.log( {    'era/batch_size': batch_size, 'era/sequence_length': sequence_length, 'era/n_topk_peer_weights': n_topk_peer_weights, 
+                            'era/max_allowed_ratio': max_allowed_ratio, 'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset, 
                 }, step = current_block )
 
         # === Reset Epochs with new params. ===
@@ -354,10 +354,10 @@ class neuron:
             step_time = time.time() - start_time
 
             # === Logs ===
-            print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t step:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
+            print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t epoch_steps:', epoch_steps, '\n\t step:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
                    '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
             if self.config.using_wandb:
-                wandb.log( { 'epoch': self.epoch, 'global_step': self.global_step, 'loss': loss.item(), 'time': step_time }, step = current_block )
+                wandb.log( { 'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps, 'epoch/global_step': self.global_step, 'epoch/loss': loss.item(), 'epoch/time': step_time }, step = current_block )
                 step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
                 step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
