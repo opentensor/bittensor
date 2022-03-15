@@ -55,7 +55,6 @@ class Subtensor:
                 network (default='nakamoto', type=str)
                     The subtensor network flag. The likely choices are:
                             -- nobunaga (staging network)
-                            -- akatsuki (testing network)
                             -- nakamoto (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
@@ -101,7 +100,6 @@ Check that your internet connection is working and the chain endpoints are avail
 The subtensor.network should likely be one of the following choices:
     -- local - (your locally running node)
     -- nobunaga - (staging)
-    -- akatsuki - (testing)
     -- nakamoto - (main)
 Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
 To run a local node (See: docs/running_a_validator.md) \n
