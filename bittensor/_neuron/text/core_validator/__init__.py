@@ -89,6 +89,13 @@ class neuron:
         self.config = config
         neuron.check_config( self.config )
         self.config.to_defaults()
+        if self.config.neuron._mock == True:
+            self.config.subtensor._mock = True
+            self.config.wallet._mock = True
+            self.config.dataset._mock = True
+            self.config.dendrite._mock = True
+            self.config.metagraph._mock = True
+            self.config.subtensor._mock = True
         print ( self.config )
 
         # === Create Bittensor objects ===

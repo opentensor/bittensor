@@ -34,7 +34,7 @@ from rich.console import Console
 from rich.progress import track
 
 from bittensor._wallet import wallet
-from testing.mock_subtensor import subtensor_mock
+from bittensor._subtensor.subtensor_mock import mock_subtensor
 
 # Turns off console output.
 bittensor.turn_console_off()
@@ -47,14 +47,13 @@ class QueryBenchmark:
     def __init__(self):
         r""" Start up benchmark background processes.
         """
-        subtensor_mock.kill_global_mock_process()
+        mock_subtensor.kill_global_mock_process()
         self.conf = QueryBenchmark.benchmark_config()
         bittensor.logging( config = self.conf ) 
-        #self.subtensor = bittensor.subtensor.mock()
-        self.subtensor = subtensor_mock.mock()
-        self.graph = bittensor.metagraph( subtensor = self.subtensor )
-        self.wallet = wallet_mock.mock()
-        self.dendrite = bittensor.dendrite( wallet = self.wallet, multiprocess = False )
+        self.subtensor = bittensor.subtensor(_mock=True)
+        self.graph = bittensor.metagraph( subtensor = self.subtensor , _mock=True)
+        self.wallet = bittensor.wallet(_mock=True)
+        self.dendrite = bittensor.dendrite( wallet = self.wallet, multiprocess = False, _mock=True )
         self.console = Console()
         self.log_dir = os.path.expanduser('{}/{}/{}/{}/{}'.format( os.path.dirname(os.path.realpath(__file__)), '/results/', 'mock', 'default', self.miner_name() ))
         self.console.log( 'Logging to: [bold blue]{}[/bold blue]'.format( self.log_dir ) )
