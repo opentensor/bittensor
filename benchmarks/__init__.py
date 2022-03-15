@@ -282,18 +282,3 @@ class QueryBenchmark:
                 eval('self.' + func + "()")
                 self.console.log('Done\n')
         self.shutdown()
-
-class wallet_mock( bittensor.wallet): 
-    
-    @classmethod
-    def mock(cls):
-        config = cls.config()
-        cls.check_config( config )
-        config.wallet._mock = True
-        config.wallet.name = "mock"
-        return bittensor.Wallet(
-            name = config.wallet.name, 
-            hotkey = config.wallet.hotkey, 
-            path = config.wallet.path,
-            _mock = True
-        )
