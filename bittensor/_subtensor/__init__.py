@@ -68,8 +68,11 @@ __type_registery__ = {
 GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
 
 class subtensor:
-    """
-    Handles interactions with the subtensor chain.
+    """Factory Class for both bittensor.Subtensor and Mock_Subtensor Classes
+
+    The Subtensor class handles interactions with the substrate subtensor chain.
+    By default, the Subtensor class connects to the Nakamoto which serves as the main bittensor network.
+    
     """
     
     def __new__(
@@ -86,7 +89,6 @@ class subtensor:
                 network (default='nakamoto', type=str)
                     The subtensor network flag. The likely choices are:
                             -- nakamoto (main network)
-                            -- akatsuki (testing network)
                             -- nobunaga (staging network)
                             -- mock (mock network for testing.)
                     If this option is set it overloads subtensor.chain_endpoint with 
@@ -170,7 +172,6 @@ class subtensor:
             parser.add_argument('--subtensor.network', default = bittensor.defaults.subtensor.network, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- nobunaga (staging network)
-                                        -- akatsuki (testing network)
                                         -- nakamoto (master network)
                                         -- local (local running network)
                                         -- mock (creates a mock connection (for testing))
@@ -204,9 +205,6 @@ class subtensor:
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoints__[0]
-        elif network == "akatsuki":
-            # Testing network.
-            return bittensor.__akatsuki_entrypoints__[0]
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoints__[0]

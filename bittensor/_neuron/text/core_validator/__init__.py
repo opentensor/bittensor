@@ -71,7 +71,7 @@ class neuron:
                 bittensor dendrite object
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> validator = bittensor.neuron.test.core_validator.neuron(subtensor=subtensor)
+            >>> validator = bittensor.neuron.text.core_validator.neuron(subtensor=subtensor)
             >>> validator.run()
     """
     def __init__( 

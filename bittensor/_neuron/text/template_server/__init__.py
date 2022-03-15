@@ -48,7 +48,7 @@ class neuron:
 
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> server = bittensor.neuron.test.template_server.neuron(subtensor=subtensor)
+            >>> server = bittensor.neuron.text.template_server.neuron(subtensor=subtensor)
             >>> server.run()
     """
     def __init__(
