@@ -148,6 +148,7 @@ class GenesisTextDataset( Dataset ):
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
         self.no_tokenizer = no_tokenizer
+        self.IPFS_fails = 0
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -235,9 +236,12 @@ class GenesisTextDataset( Dataset ):
         response = self.get_ipfs_file(self.text_dir, file_meta)
         if (response != None) and (response.status_code == 200):
             text = response.text
+            self.IPFS_fails = 0
+            
         else:
             logger.warning("Failed to get text".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
-
+            self.IPFS_fails += 1
+            
         return text 
 
     def get_dataset(self , file_meta):
@@ -263,12 +267,14 @@ class GenesisTextDataset( Dataset ):
         else:
             response = self.get_ipfs_file(self.dataset_dir, file_meta)
             if (response != None) and (response.status_code == 200):
+                self.IPFS_fails = 0
                 hashes = response.json()
 
                 # --- Save text if the save_dataset flag is on.
                 if self.save_dataset:
                     self.save_hash(file_meta, json.dumps(response.json()) )
             else:
+                self.IPFS_fails += 1
                 logger.warning("Failed to get dataset".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
                 return None
 
@@ -291,53 +297,47 @@ class GenesisTextDataset( Dataset ):
                     directory: Map{ Name: str, Hash: str, Size: int }: 
                         A random directory that lead to a datafile.
         """
-        directories = []
-        for key in keys:
-            
-            if key in self.dataset_hashes.keys():
-                logger.success("Loading dataset:".ljust(20) + "<blue>{}</blue>".format(key))
-                dataset_meta = {'Name': key, 'Hash': self.dataset_hashes[key]}  
+        def get_hashes(dataset_meta):
+
+            if self.IPFS_fails > 10:
+                sub_directories = json.loads(self.load_hash(dataset_meta))
+            else:
                 sub_directories = self.get_dataset(dataset_meta)
 
-                if sub_directories != None:           
-                    directories += sub_directories()
-                    logger.success("Loaded dataset:".ljust(20) + "<blue>{}</blue>".format(key))
-            
-            else:
-                logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
-
-        return directories
-
-    def get_random_hashes_from_dataset(self):
-        r""" Getting directories from a random dataset_hash
-        Where a directory could be leading to a data file or a directory file 
-
-            Returns:
-                directories (:type:`list`, `required`)
-                    A list of directory.
-                        directory: Map{ Name: str, Hash: str, Size: int }: 
-                            A random directory that lead to a datafile.
-        """
-        
-        # --- Getting directories from a random dataset hash.
-        # --- directories: List[ Map{Name: str, Hash: str, Size: int} ]
-        i = 0
-        directories = [] 
-        dataset_hashes_order = list(range(len(self.dataset_hashes)))
-        random.shuffle(dataset_hashes_order)
-        
-        while i < self.max_datasets:
-            dataset_meta = list(self.dataset_hashes.items())[dataset_hashes_order[i]]
-            dataset_meta = {'Name': dataset_meta[0], 'Hash': dataset_meta[1]}
-
-            sub_directories = self.get_dataset(dataset_meta)            
             if sub_directories != None:
-                directories += sub_directories
-            i += 1
-                
-        if len(directories) == 0:
-            directories = None
+                return sub_directories
+            else:
+                return []
         
+        directories = []
+        self.IPFS_fails = 0
+        
+        if self.dataset_name == 'default':
+            i = 0
+            dataset_hashes = list(self.dataset_hashes.items())
+            random.shuffle(dataset_hashes)
+            
+            for dataset_hash in dataset_hashes: 
+                dataset_meta = {'Name': dataset_hash[0], 'Hash': dataset_hash[1]}
+                directories += get_hashes(dataset_meta)
+                i += 1
+                if i >= self.max_datasets:
+                    break
+                    
+        else:
+            for key in keys:
+                if key in self.dataset_hashes.keys():
+                    dataset_meta = {'Name': key, 'Hash': self.dataset_hashes[key]}  
+                    directories += get_hashes(dataset_meta)
+
+                else:
+                    logger.error('Incorrect dataset name:'.ljust(20) + " <red>{}</red>.".format(key)+' Must be one of the following {}'.format(bittensor.__datasets__))
+
+        if len(directories) == 0:
+            logger.error('Could not get any directory.')
+            directories = None
+          
+        self.IPFS_fails = 0
         return directories
 
     def get_root_text_hash(self, file_meta):
@@ -394,11 +394,9 @@ class GenesisTextDataset( Dataset ):
             logger.success("Constructing text corpus...")
 
             # --- Get directories from a random dataset_hash
-            if self.dataset_name == 'default':
-                directories = self.get_random_hashes_from_dataset()
             
-            else:
-                directories = self.get_hashes_from_dataset(self.dataset_name)
+            directories = self.get_hashes_from_dataset(self.dataset_name)
+
             data_corpus = []
 
             # --- Generate a random order of the directories
