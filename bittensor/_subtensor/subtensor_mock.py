@@ -140,15 +140,9 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         if self._is_mocked == True and self._owned_mock_subtensor_process != None:
             # Mocked and owns background process.
             return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._owned_mock_subtensor_process.pid)
-        elif self._is_mocked == True and self._owned_mock_subtensor_process == None:
+        else:
             # Mocked but does not own process.
             return "MockSubtensor({})".format( self.chain_endpoint)
-        elif self.network == self.chain_endpoint:
-            # Connecting to chain endpoint without network known.
-            return "Subtensor({})".format( self.chain_endpoint )
-        else:
-            # Connecting to network with endpoint known.
-            return "Subtensor({}, {})".format( self.network, self.chain_endpoint )
 
     def __del__(self):
         self.optionally_kill_owned_mock_instance()
