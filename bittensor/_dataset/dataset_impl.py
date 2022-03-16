@@ -335,8 +335,7 @@ class GenesisTextDataset( Dataset ):
             if sub_directories != None:
                 return sub_directories
 
-            else:
-                return []
+            return []
         
         directories = []
         self.IPFS_fails = 0
