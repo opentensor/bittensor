@@ -162,8 +162,8 @@ def test_solve_for_difficulty_fast_registered_already():
     # tests if the registration stops after the first block of nonces
     for _ in range(10):
         workblocks_before_is_registered = random.randint(2, 10)
-        # return True each work block but return False after a random number of blocks
-        is_registered_return_values = [True for _ in range(workblocks_before_is_registered)] + [False] + [True, True]
+        # return False each work block but return True after a random number of blocks
+        is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [False, False]
 
         block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
         subtensor = MagicMock()
@@ -173,6 +173,7 @@ def test_solve_for_difficulty_fast_registered_already():
         subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
         wallet = MagicMock()
         wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+        assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
 
         # all arugments should return None to indicate an early return
         a, b, c, d, e = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
