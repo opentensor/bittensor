@@ -26,6 +26,7 @@ from types import SimpleNamespace
 from typing import Union
 from substrateinterface import Keypair
 from termcolor import colored
+from rich.prompt import Prompt
 import bittensor
 
 def display_mnemonic_msg( keypair : Keypair, key_type : str ):
@@ -243,8 +244,14 @@ class Wallet():
         """
         # Get chain connection.
         if subtensor == None: subtensor = bittensor.subtensor()
-        subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
-        
+
+        success = False
+        while success == False:
+            success, message = subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
+            if success == False and message == 'AlreadyRegistered':
+                self.hotkey_str = Prompt.ask("Enter new hotkey name: ")
+                self.create()
+
         return self
 
     def add_stake( self, 

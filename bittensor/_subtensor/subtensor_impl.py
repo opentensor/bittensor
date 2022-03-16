@@ -490,11 +490,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
             if not neuron.is_null:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
-                return True
+                return True, 'Success'
 
         if prompt:
             if not Confirm.ask("Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]".format( wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, self.network ) ):
-                return False
+                return False, 'UserPermissionFalse'
 
         # Attempt rolling registration.
         attempts = 0
@@ -522,14 +522,20 @@ To run a local node (See: docs/running_a_validator.md) \n
                         # We only wait here if we expect finalization.
                         if not wait_for_finalization and not wait_for_inclusion:
                             bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                            return True
+                            return True, 'Success'
+
                         response.process_events()
                         if not response.is_success:
                             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
                             attempts += 1
+                            
+                            if response.error_message == 'AlreadyRegistered':
+                                bittensor.__console__.print( "[red]The wallet hotkey is already in our network, yet it is not longer active. Please try again with another hotkey.[/red]" )
+                                return False, response.error_message
+
                             if attempts > max_allowed_attempts: 
                                 bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                                return False
+                                return False, 'ReachedMaxAttempts'
                             else:
                                 status.update( ":satellite: Registering...({}/10)".format(attempts))
                                 continue
@@ -542,7 +548,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 with bittensor.__console__.status(":satellite: Checking Balance..."):
                     neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
-                    return True
+                    return True, 'Success'
 
     def serve (
             self, 
