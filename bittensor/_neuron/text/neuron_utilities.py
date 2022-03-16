@@ -137,6 +137,7 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
     with torch.no_grad():
         for i, uid in enumerate(topk_uids):
             partial_return_ops = return_ops.clone()
+            # --- Only mask peers that successfully
             if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
                 pass
             else:
