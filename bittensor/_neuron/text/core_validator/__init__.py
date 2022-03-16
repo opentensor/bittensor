@@ -18,11 +18,12 @@
 """ The bittensor base validator
 
 Example:
-    $ python miners/text/validator.py --logging.debug
+    $ python3 miners/text/core_validator.py --logging.debug
 
 """
 import sys
 import argparse
+import time
 import bittensor
 import torch
 import os
@@ -70,7 +71,8 @@ class neuron:
         self.metagraph = bittensor.metagraph ( config = config, subtensor = self.subtensor )        
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
         self.device = torch.device ( device = self.config.neuron.device )    
-        self.nucleus = nucleus ( config = self.config, device = self.device ).to( self.device )
+        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
+        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length )
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -92,17 +94,16 @@ class neuron:
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_validator')
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.1 )
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = 1000 )
-        parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = 10 )
-        parser.add_argument('--neuron.n_topk_peer_weights', type=int, help='Number of weights to set on chain', default = 250 )
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
+        parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = -1 )
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
+        parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
 
     @classmethod
     def config ( cls ):
@@ -129,15 +130,9 @@ class neuron:
         r""" Sanity checks and begin validator.
         """
         # === Wallet ===
-        # Checks that the validator has a valid uid (is registered on the network.)
-        # If the wallet has not been registered. sys.exit().
-        # If the network is mocked, we register.
-        if self.subtensor.network != 'mock':
-            if not self.wallet.is_registered( subtensor = self.subtensor ):
-                print( "You must register the validator's wallet before running, use: btcli register --wallet.name {} --wallet.hotkey {}", self.wallet.name, self.wallet.hotkey_str)
-                sys.exit(0)
-        else:
-            self.wallet.register( subtensor = self.subtensor )
+        # Connects wallett to network. 
+        # NOTE: This registration step should likely be solved offline first.
+        self.wallet.register( subtensor = self.subtensor )
 
         # === UID ===
         # Get our uid from the chain. 
@@ -190,32 +185,36 @@ class neuron:
             Occasionally the validator nucleus is completely reset to ensure we dont converge to far.
             At the end of the epoch we set weights on the chain and optionally log to wandb.
         """
-            
-        # === Setup Epoch ===
-        # Reset epoch scores history.
-        # Reset the validator weights ever x epochs.
-        self.metagraph.sync().save()
-        epoch_steps = 0
-        score_history = []
+        # === Get params for epoch ===
+        # Pulling the latest chain parameters.
+        current_block = self.subtensor.block
+        batch_size = self.subtensor.validator_batch_size 
+        sequence_length = self.subtensor.validator_sequence_length
+        n_topk_peer_weights = self.subtensor.min_allowed_weights
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+        epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        # === Logs ===
+        print ( '\Era:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
+                '\n\t max_allowed_ratio:', max_allowed_ratio, '\n\t blocks_per_epoch:', blocks_per_epoch, '\n\t epochs_until_reset:', epochs_until_reset, 
+                '\n\t until_reset:', self.epoch % epochs_until_reset, '\n\t current_block:', current_block, '\n')
+        if self.config.using_wandb:
+            wandb.log( {    'era/batch_size': batch_size, 'era/sequence_length': sequence_length, 'era/n_topk_peer_weights': n_topk_peer_weights, 
+                            'era/max_allowed_ratio': max_allowed_ratio, 'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset, 
+                }, step = current_block )
 
-        # === Get Epoch chain params ===
-        # These parameters are subject to change
-        # via sudo key or democracy pallet.
-        blocks_per_epoch = self.config.neuron.blocks_per_epoch
-        max_allowed_ratio = 10
-        n_topk_peer_weights = self.config.neuron.n_topk_peer_weights
+        # === Reset Epochs with new params. ===
+        # Pulls new default validator training parameters and resets 
+        # the model and dataset for the following epoch.
+        if self.epoch % epochs_until_reset == 0:
+            print ('\n\n=== Reset ===\n\n')
+            # === Resetting model + dataset ===
+            if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
+                self.dataset.close()
+                self.dataset.__del__()
+                self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
 
-        # === Setup Dataset ===
-        # Create the dataset with chain determined 
-        # batch size and sequence length.
-        self.dataset = bittensor.dataset ( config = self.config )
-
-        # === Reset Model ===
-        # Every n epochs we reset the model and start the 
-        # validation process again.
-        if self.epoch % self.config.neuron.epochs_until_reset == 0:
-            # Resetting model here.
-            self.nucleus = nucleus ( config = self.config, device = self.device ).to( self.device )
+            self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
             )
@@ -224,9 +223,13 @@ class neuron:
         # Each block length lasts blocks_per_epoch blocks.
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
+        self.metagraph.sync().save() # Reset metagraph.
+        epoch_steps = 0
+        score_history = []
+        moving_avg_scores = torch.ones_like( self.metagraph.S )
         start_block = self.subtensor.block
-        current_block = start_block
         while self.subtensor.block < start_block + blocks_per_epoch:
+            start_time = time.time()
 
             # === Forward ===
             # Forwards inputs through the network and returns the loss
@@ -243,22 +246,27 @@ class neuron:
             self.optimizer.step()
             self.optimizer.zero_grad()    
 
-            # === Normalize scores ===
+            # === Scoring ===
             # Updates moving averages and history.
             score_history.append( scores ) # Normalized step scores.
             moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
         
-            # === Logs + state update ===
+            # === State update ===
             # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
             current_block = self.subtensor.block
-            print( '\n\t epoch:', self.epoch, '\t step:', self.global_step, '\t blocks:', current_block - start_block, '/', blocks_per_epoch )
+            step_time = time.time() - start_time
+
+            # === Logs ===
+            print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t epoch_steps:', epoch_steps, '\n\t global_steps:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
+                   '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
             if self.config.using_wandb:
+                wandb.log( { 'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps, 'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(), 'epoch/time': step_time }, step = current_block )
                 step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
                 step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
-                    wandb.log( {'w_{}'.format( i ): w }, step = current_block )
+                    wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
 
         # Iterate epochs.
         self.epoch += 1
@@ -268,11 +276,13 @@ class neuron:
         # We use the mean of the epoch weights.
         topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
-        print( 'scores:\n\t', topk_scores.sort()[0], '\nsum:\n\t', topk_scores.sum(), '\nmin:\n\t', topk_scores.min(), '\nmax:\n\t', topk_scores.max(), '\nmax/min:\n\t', topk_scores.max()/topk_scores.min() )
+        print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
+                '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
             wallet = self.wallet,
+            wait_for_finalization = self.config.neuron.wait_for_finalization,
         )
 
         # === Wandb Logs ===
@@ -324,10 +334,11 @@ class PositionalEncoding(nn.Module):
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
     """
-    def __init__( self, config, device ):
+    def __init__( self, config, device, subtensor ):
         super(nucleus, self).__init__()
         self.config = config
         self.device = device
+        self.max_n = subtensor.max_n 
 
         # Token embeddings project int64 tokens onto representations.
         self.token_embedding = torch.nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
@@ -351,7 +362,7 @@ class nucleus( torch.nn.Module ):
     
         # SGMOE Gates: Instantiating the gates per expert.
         self.gates = {}
-        for uid in range( 2000 ):
+        for uid in range( self.max_n ):
             self.gates[uid] = torch.nn.Linear( bittensor.__network_dim__, 1, bias=True).to( self.device )
 
     @classmethod
@@ -385,7 +396,7 @@ class nucleus( torch.nn.Module ):
             except: pass
         self.routing_encoder.apply( init_xavier )
         self.encoder.apply( init_xavier )
-        for uid in range( 2000 ):
+        for uid in range( self.max_n ):
             torch.nn.init.xavier_uniform_( self.gates[uid].weight )
 
     def forward ( 
@@ -519,7 +530,7 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): the total loss (global training loss + importance loss)
         # target_loss.shape = [ 1 ]
         importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
-        target_loss =  target_loss + importance_loss
+        loss = target_loss + importance_loss
 
         # === Compute shapely scores ===
         # Computes shapely scores for each endpoint by masking the response and
@@ -540,6 +551,5 @@ class nucleus( torch.nn.Module ):
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item() ))
                 shapely_scores[ uid ] = -shapely_score
 
-        
         # === Done ===
-        return target_loss, shapely_scores
+        return loss, shapely_scores

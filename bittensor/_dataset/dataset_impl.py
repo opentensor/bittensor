@@ -540,6 +540,8 @@ class GenesisTextDataset( Dataset ):
         del self.data_remained[:data_size]
         print("finished deeting data")
 
+        print ('\n\n=== Downloading finished ===\n\n')
+
         # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
         return DataLoader(self,
                     shuffle=True,

@@ -129,7 +129,7 @@ class dataset:
             parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
             parser.add_argument('--dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
             parser.add_argument('--dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
-            parser.add_argument('--dataset.num_batches', type=int, help='The number of data to download each time(measured by the number of batches).', default=1000)
+            parser.add_argument('--dataset.num_batches', type=int, help='The number of data to download each time(measured by the number of batches).', default=bittensor.defaults.dataset.num_batches)
             parser.add_argument('--dataset._mock', action='store_true', help='To turn on dataset mocking for testing purposes.', default=False)
 
         except argparse.ArgumentError:
@@ -152,12 +152,13 @@ class dataset:
         defaults.dataset = bittensor.Config()
         defaults.dataset.batch_size = os.getenv('BT_DATASET_BATCH_SIZE') if os.getenv('BT_DATASET_BATCH_SIZE') != None else 10
         defaults.dataset.block_size = os.getenv('BT_DATASET_BLOCK_SIZE') if os.getenv('BT_DATASET_BLOCK_SIZE') != None else 20
-        defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else int(1e+4)
+        defaults.dataset.max_corpus_size = os.getenv('BT_DATASET_MAX_CORPUS_SIZE') if os.getenv('BT_DATASET_MAX_CORPUS_SIZE') != None else int(1e+2)
         defaults.dataset.num_workers = os.getenv('BT_DATASET_NUM_WORKERS') if os.getenv('BT_DATASET_NUM_WORKERS') != None else 0
         defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
         defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else '~/.bittensor/data/'
         defaults.dataset.save_dataset = os.getenv('BT_DATASET_SAVE_DATASET') if os.getenv('BT_DATASET_SAVE_DATASET') != None else False
         defaults.dataset.max_datasets = os.getenv('BT_DATASET_max_datasets') if os.getenv('BT_DATASET_max_datasets') != None else 3
+        defaults.dataset.num_batches = os.getenv('BT_DATASET_num_batches') if os.getenv('BT_DATASET_num_batches') != None else 500
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
