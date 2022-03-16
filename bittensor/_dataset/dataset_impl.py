@@ -247,7 +247,6 @@ class GenesisTextDataset( Dataset ):
             return True
         
         except Exception as E:
-            print(E)
             logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
             return False
 
@@ -529,11 +528,8 @@ class GenesisTextDataset( Dataset ):
         while len(self.data_remained) < (data_size) :
             self.data_remained += self.construct_text_corpus(min_data_len = data_size)
 
-        print("finished constructing text corpus")
         self.data = self.data_remained[:data_size]
-        print("finished copying data")
         del self.data_remained[:data_size]
-        print("finished deeting data")
 
         print ('\n\n=== Downloading finished ===\n\n')
 
@@ -549,17 +545,11 @@ class GenesisTextDataset( Dataset ):
         """
         success = False 
         while not success:
-            print('waiting for avail data...')
             if not self.data_queue.queue.empty() :
-                print("queue not empty")
                 dataset = self.data_queue.queue.get()
-                print("got dataset from queue")
                 if dataset:
-
-                    print("there is dataset")
                     self.__infinite_dataset_iterator = iter([input for input in dataset])
                     success = True
-                    print("got the dataset from queue! ")
             else:
                 time.sleep(2)
 
@@ -630,9 +620,6 @@ class GenesisTextDataset( Dataset ):
             name = i['Name'][:-4]
             dataset_meta = {'Name': name, 'Hash': i['Hash'], 'Size': self.get_folder_size(name) }
             self.dataset_hashes[name] = dataset_meta
-
-
-        print(self.dataset_hashes)
 
 class MockGenesisTextDataset( Dataset ):
     def __init__(
