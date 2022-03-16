@@ -327,8 +327,8 @@ class GenesisTextDataset( Dataset ):
 
             if self.IPFS_fails > 10:
                 sub_directories = json.loads(self.load_hash(dataset_meta))
-                for h in hashes:
-                    h['Folder'] = dataset_meta['Name']
+                for sub_directory in sub_directories:
+                    sub_directory['Folder'] = dataset_meta['Name']
             else:
                 sub_directories = self.get_dataset(dataset_meta)
 
@@ -366,7 +366,6 @@ class GenesisTextDataset( Dataset ):
             logger.error('Could not get any directory from IPFS or local.')
             directories = None
           
-        self.IPFS_fails = 0
         return directories
 
     def get_root_text_hash(self, file_meta):
@@ -410,9 +409,9 @@ class GenesisTextDataset( Dataset ):
                     logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(file_meta))
         return None
 
-    def get_text_from_local(self, keys):
+    def get_text_from_local(self, min_data_len):
 
-        folders = os.listdir(self.data_dir)
+        folders = os.listdir( os.path.expanduser (self.data_dir))
         if self.dataset_name == 'default':
             folders_avail = folders
             random.shuffle(folders_avail)
@@ -426,12 +425,13 @@ class GenesisTextDataset( Dataset ):
 
         files = [] 
         for folder in folders_avail:
-            file_names = os.listdir(os.path.expanduser(self.data_dir, self.folder))
+            file_names = os.listdir(os.path.expanduser(os.path.join(self.data_dir, folder)))
             sub_files = [{'Folder': folder, 'Hash': file_name} for file_name in file_names]
             files += sub_files
 
         random.shuffle(files)
         data_corpus = []
+        total_dataset_len = 0
 
         for text_file in files:
             # --- Get text from the datafile directory
@@ -444,14 +444,12 @@ class GenesisTextDataset( Dataset ):
             if text != None:
                 text_list = text.split() 
                 data_corpus.extend(text_list)
-                total_dataset_size += int(random_datafile_dir['Size'])
                 total_dataset_len += len(text_list)
-            i += 1
             
-            if (total_dataset_len > min_data_len) or self.IPFS_fails > 10:
+            if (total_dataset_len > min_data_len) :
                 break
-        return data_corpus
 
+        return data_corpus
 
     def construct_text_corpus(self, min_data_len = 0):
         """ Main function for generating the text data.
@@ -464,6 +462,7 @@ class GenesisTextDataset( Dataset ):
             text: str: 
                 Contents of the text data.
         """
+        self.IPFS_fails = 0
         try:
             logger.success("Constructing text corpus...")
 
@@ -493,12 +492,13 @@ class GenesisTextDataset( Dataset ):
 
                     except: 
                         text = None
-
+                    
                     if text != None:
                         text_list = text.split() 
                         data_corpus.extend(text_list)
                         total_dataset_size += int(random_datafile_dir['Size'])
                         total_dataset_len += len(text_list)
+
                     i += 1
                     
                     if (total_dataset_len > min_data_len) or self.IPFS_fails > 10:
@@ -512,7 +512,8 @@ class GenesisTextDataset( Dataset ):
 
 
         if len(data_corpus) == 0:
-            self.get_text_from_local(self.dataset_name)
+            logger.error("Fail to construct any text from IPFS, getting from local instead.")
+            data_corpus = self.get_text_from_local(min_data_len)
 
         return data_corpus
 
@@ -609,15 +610,31 @@ class GenesisTextDataset( Dataset ):
         return tokenized_text[:self.block_size]
 
     def build_hash_table(self):
+        self.IPFS_fails = 0
         self.dataset_hashes = {}
         response = None
-        while response == None:
-            response = self.get_ipfs_file(self.text_dir,  {'Name': 'mountain', 'Hash': self.mountain_hash})
 
-        for i in response.json()['Links']:
+        mountain_meta = {'Name': 'mountain', 'Folder': 'meta_data', 'Hash': self.mountain_hash}
+        
+        while response == None:
+            self.IPFS_fails += 1
+            response = self.get_ipfs_file(self.text_dir, mountain_meta)
+            
+            if response:
+                dataset_hashes = response.json()['Links']
+                if self.save_dataset:
+                    self.save_hash(mountain_meta, json.dumps(dataset_hashes) )
+            
+            if self.IPFS_fails > 10 and response == None:
+                dataset_hashes = json.loads(self.load_hash(mountain_meta))
+                break
+
+        for i in dataset_hashes:
             name = i['Name'][:-4]
             dataset_meta = {'Name': name, 'Hash': i['Hash'], 'Size': self.get_folder_size(name) }
-            self.dataset_hashes[name] = dataset_meta  
+            self.dataset_hashes[name] = dataset_meta
+
+
         print(self.dataset_hashes)
 
 class MockGenesisTextDataset( Dataset ):

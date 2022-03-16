@@ -49,9 +49,10 @@ def test_mock_function():
 
 def test_fail_IPFS_server():
     dataset = bittensor.dataset()
-    next(dataset)
     dataset.requests_retry_session = MagicMock(return_value = None)
-    assert dataset.construct_text_corpus() == []
+    next(dataset)
+    next(dataset)
+    next(dataset)
     dataset.close()
     
 if __name__ == "__main__":
