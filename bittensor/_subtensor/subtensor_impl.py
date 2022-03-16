@@ -504,8 +504,17 @@ To run a local node (See: docs/running_a_validator.md) \n
             # Solve latest POW.
             pow_result = bittensor.utils.create_pow( self, wallet )
             with bittensor.__console__.status(":satellite: Registering...({}/10)".format(attempts)) as status:
+                # verify wallet not already registered
+                if (wallet.is_registered( self )):
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                    return True
+                    
                 with self.substrate as substrate:
                     try:
+                        if pow_result is None:
+                            # might be registered already
+                            raise "Failed registration attempt"
+                        
                         call = substrate.compose_call( 
                             call_module='SubtensorModule',  
                             call_function='register', 

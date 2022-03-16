@@ -133,7 +133,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update
         best.raw = struct.pack("d", float('inf'))
         best_seal = multiprocessing.Array('h', 32, lock=True) # short array should hold bytes (0, 256)
         with multiprocessing.Pool(processes=num_processes, initializer=initProcess_, initargs=(solve_, found_solution, best, best_seal)) as pool:
-            while found_solution.value == -1: # no solution found
+            # while no solution found and wallet has not been registered
+            while found_solution.value == -1 and not wallet.is_registered(subtensor):
                 result = pool.starmap(solve_, iterable=[(nonce, block_bytes, difficulty, block_hash, block_number, limit) for nonce in range(update_interval)])
                 nonce += update_interval
                 itrs_per_sec = update_interval / (time.time() - start_time)
@@ -146,7 +147,10 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update
                 block_bytes = block_hash.encode('utf-8')[2:]
                 with best_seal.get_lock():
                     status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, difficulty, int(itrs_per_sec), block_hash.encode('utf-8'), binascii.hexlify(bytes(best_seal) or bytes(0)) ))
-            # exited while, found_solution contains the nonce
+            # exited while, found_solution contains the nonce or wallet is registered
+            if found_solution.value == -1: # didn't find solution
+                return None, None, None, None, None
+
             nonce, block_number, block_hash, difficulty, seal = result[found_solution.value]
             return nonce, block_number, block_hash, difficulty, seal
 
@@ -177,9 +181,9 @@ def solve_(nonce, block_bytes, difficulty, block_hash, block_number, limit):
                     solve_.best_seal[i] = seal[i]
     return None
 
-def create_pow( subtensor ):
-    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor )
-    return {
+def create_pow( subtensor, wallet ):
+    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet )
+    return None if nonce is None else {
         'nonce': nonce, 
         'difficulty': difficulty,
         'block_number': block_number, 

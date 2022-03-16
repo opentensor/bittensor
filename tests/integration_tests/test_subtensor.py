@@ -22,6 +22,7 @@ import pytest
 import psutil  
 import unittest
 import time
+import random
 from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
@@ -352,6 +353,24 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_uid_for_hotkey = MagicMock(return_value = -1) 
         register= self.subtensor.is_hotkey_registered('mock')
         assert register == False
+
+    def test_registration_multiprocessed_already_registered( self ):
+        workblocks_before_is_registered = random.randint(5, 10)
+        # return False each work block but return True after a random number of blocks
+        is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [True, False]
+        # this should pass the initial False check in the subtensor class and then return True because the neuron is already registered
+
+        wallet = MagicMock()
+        wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+
+        mock_neuron = MagicMock()
+        mock_neuron.is_null = True
+        self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
+
+        # should return True
+        assert self.subtensor.register(wallet=wallet,)
+        # calls until True and once again before exiting subtensor class
+        assert wallet.is_registered.call_count == workblocks_before_is_registered + 2      
 
 
 def test_subtensor_mock():
