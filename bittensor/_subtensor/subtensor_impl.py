@@ -484,6 +484,9 @@ To run a local node (See: docs/running_a_validator.md) \n
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
+
+            message (str):
+                The error message or 'Success'.
         """
 
         with bittensor.__console__.status(":satellite: Checking Account..."):
