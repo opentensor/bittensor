@@ -502,7 +502,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         while True:
             
             # Solve latest POW.
-            pow_result = bittensor.utils.create_pow( self )
+            pow_result = bittensor.utils.create_pow( self, wallet )
             with bittensor.__console__.status(":satellite: Registering...({}/10)".format(attempts)) as status:
                 with self.substrate as substrate:
                     try:

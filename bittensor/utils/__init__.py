@@ -10,8 +10,7 @@ import time
 import torch
 import numbers
 import pandas
-import sys
-from typing import Tuple, List, Union, Optional
+from typing import Any, Tuple, List, Union, Optional
 
 
 def indexed_values_to_dataframe ( 
@@ -98,12 +97,14 @@ def solve_for_difficulty( block_hash, difficulty ):
             break
     return nonce, seal
 
-def solve_for_difficulty_fast( subtensor, num_processes: int = 5, update_interval: int = 100000 ) -> None:
+def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update_interval: int = 100000 ) -> Tuple[int, int, Any, int, Any]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
         subtensor
             Subtensor to connect to for block information and to submit.
+        wallet:
+            Wallet to use for registration.
         num_processes: int
             Number of processes to use.
         update_interval: int
