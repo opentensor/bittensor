@@ -247,7 +247,7 @@ class Wallet():
 
         success, message = subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
-        # If the registration is unsuccessful because of the key already exist in the network,
+        # If the registration is unsuccessful because the key already exist in the network,
         # Create and register the wallet again with a new hotkey name.  
         if success == False and message == 'AlreadyRegistered':
             self.hotkey_str = Prompt.ask("Enter new hotkey name: ")
