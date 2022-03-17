@@ -27,7 +27,15 @@ from . import dataset_impl
 from . import dataset_mock
 
 class dataset:
-    """ Create and init the GenesisTextDataset class, which handles dataloading from ipfs
+    """ Factory class for the GenesisTextDataset class or the mocked GenesisTextDataset
+    The GenesisTextDataset downloads text data from the bittensor mountain dataset. 
+    The class makes http requests to bittensor's IPFS backend server which contains the full dataset.
+    By default, the GenesisTextDataset class will return a fully functioning pytorch dataloader.
+
+    Examples:: 
+            >>> dataset = bittensor.dataset(batch_size = 10, block_size=20)
+            >>> # data.shape[batch_size, block_size]
+            >>> data = next(dataset)
     """
     def __new__(
             cls,

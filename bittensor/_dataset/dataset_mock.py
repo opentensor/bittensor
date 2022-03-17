@@ -60,6 +60,9 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
     def close(self):
         pass
 
+    def __del__(self):
+        self.close()
+
     def construct_text_corpus(self, min_data_len = 0):         
         data_corpus = []
         total_dataset_len = 0

@@ -23,7 +23,7 @@ import os
 
 import bittensor
 from . import wallet_impl
-
+from . import wallet_mock
 class wallet:
     """ Create and init wallet that stores hot and coldkey
     """
@@ -65,11 +65,18 @@ class wallet:
         if config.wallet.name == 'mock' or config.wallet._mock:
             config.wallet._mock = True
             _mock = True
+
+            return wallet_mock.Wallet_mock(
+                name = config.wallet.name, 
+                hotkey = config.wallet.hotkey, 
+                path = config.wallet.path,
+                _mock = True,
+            )
+
         return wallet_impl.Wallet(
             name = config.wallet.name, 
             hotkey = config.wallet.hotkey, 
             path = config.wallet.path,
-            _mock = _mock
         )
 
     @classmethod   
