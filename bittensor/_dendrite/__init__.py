@@ -27,10 +27,13 @@ from multiprocessing.managers import BaseManager
 from loguru import logger
 
 class dendrite:
-    r""" This is the factory class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
-    which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
-    results or zeros. The operation is fully differentiable with a torch computation graph such that calls to loss.backward() produce Backward calls on
-    the passed endpoints.
+    r""" This is the factory class for a bittensor.dendrite() or the mocked dendrite class.
+    
+    The dendrite class operates as a normal torch autograd friendly operation which accepts a list of bittensor.endpoints and a list of torch tensors. 
+    The passed endpoints are queried with the passed inputs and either return results or zeros. The operation is fully differentiable with a torch 
+    computation graph such that calls to loss.backward() produce Backward calls on the passed endpoints.
+
+    
     """
 
     def __new__(

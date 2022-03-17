@@ -56,9 +56,9 @@ def serve(
     if metagraph == None:
         metagraph = bittensor.metagraph ( 
             subtensor = subtensor
-        ).load().sync().save()
-    else: 
-        metagraph.load().sync().save()
+        )
+    
+    metagraph.load().sync().save()
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(

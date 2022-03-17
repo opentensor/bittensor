@@ -73,12 +73,11 @@ class wallet:
                 _mock = True,
             )
 
-        else:
-            return wallet_impl.Wallet(
-                name = config.wallet.name, 
-                hotkey = config.wallet.hotkey, 
-                path = config.wallet.path,
-            )
+        return wallet_impl.Wallet(
+            name = config.wallet.name, 
+            hotkey = config.wallet.hotkey, 
+            path = config.wallet.path,
+        )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':

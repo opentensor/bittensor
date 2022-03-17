@@ -429,7 +429,7 @@ class Metagraph( torch.nn.Module ):
         logger.success(self.subtensor)
         if block == None:
             block = self.subtensor.get_current_block()
-            if cached and self.subtensor.network in ("nakamoto", "local", "endpoint"):
+            if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
                         try:
@@ -451,7 +451,7 @@ class Metagraph( torch.nn.Module ):
                 neurons = self.subtensor.neurons( block = block )
                 n_total = len(neurons)
         else:
-            if cached and self.subtensor.network in ("nakamoto", "local", "endpoint"):
+            if cached and self.subtensor.network in ("nakamoto", "local"):
                 if bittensor.__use_console__:
                     with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
                         try:

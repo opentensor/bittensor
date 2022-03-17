@@ -32,7 +32,7 @@ from .run import serve
 
 class neuron:
     r"""
-    Creates a bittensor neuron that specializes in the serving. The advanced server miner
+    Creates a bittensor neuron that specializes in serving the bittensor network. The advanced server 
     trains itself while accepting requests from the bittensor network. This is done by accumulating
     gradients over the wire and applying them in a single step. Blacklist features are enabled in 
     advanced servers to determine who can apply gradients. 

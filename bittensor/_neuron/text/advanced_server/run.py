@@ -183,8 +183,8 @@ def serve(
         # Black list or not
         if stake_check() or time_check():
             return True
-        else: 
-            return False
+
+        return False
 
     if axon == None: 
         # Create our axon server
