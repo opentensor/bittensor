@@ -39,6 +39,7 @@ class dataset:
             dataset_name: list = [],
             save_dataset: bool=None,
             no_tokenizer: bool=None,
+            num_batches: int = None,
             _mock:bool=None
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
@@ -73,6 +74,7 @@ class dataset:
         config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
+        config.dataset.num_batches = num_batches if num_batches != None else config.dataset.num_batches
         config.dataset._mock = _mock if _mock != None else config.dataset._mock
         dataset.check_config( config )
         if config.dataset._mock:
@@ -157,8 +159,8 @@ class dataset:
         defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
         defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else '~/.bittensor/data/'
         defaults.dataset.save_dataset = os.getenv('BT_DATASET_SAVE_DATASET') if os.getenv('BT_DATASET_SAVE_DATASET') != None else False
-        defaults.dataset.max_datasets = os.getenv('BT_DATASET_max_datasets') if os.getenv('BT_DATASET_max_datasets') != None else 3
-        defaults.dataset.num_batches = os.getenv('BT_DATASET_num_batches') if os.getenv('BT_DATASET_num_batches') != None else 500
+        defaults.dataset.max_datasets = os.getenv('BT_DATASET_MAX_DATASETS') if os.getenv('BT_DATASET_MAX_DATASETS') != None else 3
+        defaults.dataset.num_batches = os.getenv('BT_DATASET_NUM_BATCHES') if os.getenv('BT_DATASET_NUM_BATCHES') != None else 500
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
