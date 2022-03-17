@@ -43,7 +43,6 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         super().__init__()
         self.block_size = block_size
         self.batch_size = batch_size
-        self.max_corpus_size = max_corpus_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset_name = dataset_name
