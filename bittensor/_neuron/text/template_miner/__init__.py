@@ -498,8 +498,7 @@ class nucleus( torch.nn.Module ):
             except: pass
         self.routing_encoder.apply( init_xavier )
         self.encoder.apply( init_xavier )
-        for uid in range( self.max_n ):
-            torch.nn.init.xavier_uniform_( self.gates[uid].weight )
+        torch.nn.init.xavier_uniform_( self.gates.weight )
 
     def forward ( 
         self, 
