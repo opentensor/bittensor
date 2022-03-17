@@ -84,7 +84,7 @@ class dataset:
                 data_dir = config.dataset.data_dir,
                 save_dataset = config.dataset.save_dataset,
                 max_datasets = config.dataset.max_datasets,
-                no_tokenizer = config.dataset.no_tokenizer
+                no_tokenizer = config.dataset.no_tokenizer,
                 num_batches = config.dataset.num_batches
             )
         else:
