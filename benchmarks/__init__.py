@@ -33,6 +33,9 @@ import bittensor
 from rich.console import Console
 from rich.progress import track
 
+from bittensor._wallet import wallet
+from bittensor._subtensor.subtensor_mock import mock_subtensor
+
 # Turns off console output.
 bittensor.turn_console_off()
 
@@ -44,13 +47,13 @@ class QueryBenchmark:
     def __init__(self):
         r""" Start up benchmark background processes.
         """
-        bittensor.subtensor.kill_global_mock_process()
+        mock_subtensor.kill_global_mock_process()
         self.conf = QueryBenchmark.benchmark_config()
-        bittensor.logging( config = self.conf )
-        self.subtensor = bittensor.subtensor.mock()
-        self.graph = bittensor.metagraph( subtensor = self.subtensor )
-        self.wallet = bittensor.wallet.mock()
-        self.dendrite = bittensor.dendrite( wallet = self.wallet, multiprocess = False )
+        bittensor.logging( config = self.conf ) 
+        self.subtensor = bittensor.subtensor(_mock=True)
+        self.graph = bittensor.metagraph( subtensor = self.subtensor , _mock=True)
+        self.wallet = bittensor.wallet(_mock=True)
+        self.dendrite = bittensor.dendrite( wallet = self.wallet, multiprocess = False, _mock=True )
         self.console = Console()
         self.log_dir = os.path.expanduser('{}/{}/{}/{}/{}'.format( os.path.dirname(os.path.realpath(__file__)), '/results/', 'mock', 'default', self.miner_name() ))
         self.console.log( 'Logging to: [bold blue]{}[/bold blue]'.format( self.log_dir ) )
@@ -114,8 +117,7 @@ class QueryBenchmark:
         """
         raise NotImplementedError
 
-    @staticmethod
-    def _run_background_process( run_neuron_func, config_func):
+    def _run_background_process(self, run_neuron_func, config_func):
         r""" Pulls the config and starts the subclass static run method.
             Args:
                 run_neuron_func (Callable):
@@ -131,12 +133,12 @@ class QueryBenchmark:
         config.logging.logging_dir = 'benchmarks/results/'
         if not config.logging.debug:
             sys.stdout = open(os.devnull, 'w')
-        run_neuron_func ( config )
+        run_neuron_func ( config, self.subtensor,self.graph, self.wallet) 
 
     def startup(self):
         r""" Starts mining process.
         """
-        self.process = mp.Process( target=QueryBenchmark._run_background_process, args=(self.run_neuron, self.config))
+        self.process = mp.Process( target=self._run_background_process, args=(self.run_neuron, self.config))
         self.process.daemon = False
         self.process.start()
         self.process.pid

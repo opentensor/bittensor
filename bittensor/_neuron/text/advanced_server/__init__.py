@@ -31,10 +31,39 @@ from .nucleus_impl import server
 from .run import serve
 
 class neuron:
+    r"""
+    Creates a bittensor neuron that specializes in serving the bittensor network. The advanced server 
+    trains itself while accepting requests from the bittensor network. This is done by accumulating
+    gradients over the wire and applying them in a single step. Blacklist features are enabled in 
+    advanced servers to determine who can apply gradients. 
 
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            dataset (:obj:bittensor.dataset , `optional`):
+                bittensor dataset 
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            axon (:obj:bittensor.axon, `optional`):
+                bittensor axon object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> server = bittensor.neuron.text.advanced_server.neuron(subtensor=subtensor)
+            >>> server.run()
+    """
     def __init__(
         self, 
-        config: 'bittensor.config' = None
+        config: 'bittensor.config' = None,
+        subtensor: 'bittensor.subtensor' = None,
+        dataset: 'bittensor.dataset' = None,
+        wallet: 'bittensor.wallet' = None,
+        axon: 'bittensor.axon' = None,
+        metagraph: 'bittensor.metagraph' = None,
     ):
         if config == None: config = server.config()
         config = config; 
@@ -47,8 +76,20 @@ class neuron:
         self.model = server( config = config ) 
         self.config = config
 
+        self.subtensor = subtensor
+        self.dataset = dataset
+        self.wallet = wallet
+        self.axon = axon
+        self.metagraph = metagraph
+
     def run(self):
-        serve( self.config, self.model )
+        serve( 
+            self.config, 
+            self.model,
+            subtensor=self.subtensor, 
+            wallet = self.wallet, 
+            metagraph=self.metagraph, 
+            axon= self.axon)
 
     @classmethod
     def config(cls):
