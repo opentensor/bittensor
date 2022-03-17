@@ -210,9 +210,7 @@ class neuron:
             print ('\n\n=== Reset ===\n\n')
             # === Resetting model + dataset ===
             if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
-                self.dataset.close()
-                self.dataset.__del__()
-                self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
+                self.dataset.set_data_size(batch_size, sequence_length)
 
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 

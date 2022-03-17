@@ -103,7 +103,7 @@ class Dataset():
                 response = self.requests_retry_session(session=session).get(address, timeout=timeout)
             elif action == 'post':
                 response = self.requests_retry_session(session=session).post(address, timeout=timeout)
-            logger.success( f"Loaded from IPFS: {file_meta['Name']}" )
+            logger.success("Loaded from IPFS:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
 
         except Exception as E:
             logger.error(f"Failed to get from IPFS {file_meta['Name']} {E}")
@@ -151,10 +151,11 @@ class GenesisTextDataset( Dataset ):
         self.IPFS_fails = 0
         self.backup_dataset_cap_size = 5e7 # set 50MB limit per folder
         self.IPFS_fails_max = 10
+        self.num_batches = num_batches
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
-        self.data_remained = []
+        self.data_reserved = []
 
         # Used to refresh corpus if we've exhausted the whole dataset
         self.refresh_corpus = True
@@ -165,8 +166,8 @@ class GenesisTextDataset( Dataset ):
             os.makedirs(os.path.expanduser(data_dir))
             
         self.data_queue = ThreadQueue(
-            producer_target = self.dataloader,
-            producer_arg = (num_batches,),
+            producer_target = self.reserve_multiple_data,
+            producer_arg = (self.num_batches, ),
             buffer_size = 2
         )
 
@@ -243,7 +244,6 @@ class GenesisTextDataset( Dataset ):
             with open(full_path, mode = 'w+') as f:
                 f.write(text)
                 logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
-                logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(full_path ))
             return True
         
         except Exception as E:
@@ -462,8 +462,6 @@ class GenesisTextDataset( Dataset ):
         """
         self.IPFS_fails = 0
         try:
-            logger.success("Constructing text corpus...")
-
             # --- Get directories from a random dataset_hash
             directories = list(self.get_hashes_from_dataset())
             data_corpus = []
@@ -511,27 +509,79 @@ class GenesisTextDataset( Dataset ):
 
         return data_corpus
 
+    def reserve_multiple_data(self, epoch_length = 100, multiples = 2):
+        r""" Make sure the reserved data meet the multiple, 
+        If not, then keep constructing text corpus.
+        Arg:
+            epoch_length (int, optional): 
+                A dataloader for a subset of the dataset of epoch_length is returned.
+            
+            multiples (int, optional):
+                The number of dataloader that the data_reserved should be able to create.
+
+        Return: 
+            success (bool):
+                If we have got the data ready.
+        """
+        logger.success(f"Reserving data with multiples: {multiples}")
+        data_size = epoch_length * self.batch_size * self.block_size
+        
+        while len(self.data_reserved) < data_size * multiples :
+            self.data_reserved += self.construct_text_corpus(min_data_len = data_size)
+
+        logger.success(f"Dataset download completed, {multiples} copy of data reserved")
+        return True
+
+    def set_data_size(self, batch_size, block_size):
+        r""" Update the size of data (batch_size, block_size) that we need.
+
+        Args: 
+            batch_size(int, required):
+                The batch_size of data that should be produced by dataloader.
+
+            block_size(int, required):
+                The block_size of data that should be produced by dataloader. 
+        """
+        def check_valid(size):
+            r""" Check if the size is a valid positive intiget, if not, return False.
+            """
+            if size <= 0 or (not isinstance(size, int)):
+                return False
+            else:
+                return True
+
+        old_batch_size = self.batch_size
+        old_block_size = self.block_size
+        
+        if check_valid(batch_size):
+            self.batch_size = batch_size
+        
+        if check_valid(block_size):
+            self.block_size = block_size
+
+        # empty the queue
+        while not self.data_queue.queue.empty():
+            self.data_queue.queue.get()
+
+        # empty the dataset_iterator with the old sizing
+        self.__infinite_dataset_iterator = iter([])
+
+        logger.success(f"Updated data size: batch_size: {old_batch_size} --> {self.batch_size}, block_size: {old_block_size} --> {self.block_size}")
+
     def dataloader(self, epoch_length = 100):
-        """ Creates a torch dataloader out of a subclass of this class.
+        r""" Creates a torch dataloader out of a subclass of this class.
 
         Args:
-            epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset,
-            then a dataloader for the entire dataset is returned. Otherwise, a dataloader for a subset of the dataset of epoch_length
-            is returned. Defaults to None.
+            epoch_length (int, optional): 
+                A dataloader for a subset of the dataset of epoch_length is returned.
 
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
+        logger.success(f"Getting a new Dataloader")
         data_size = epoch_length * self.batch_size * self.block_size
-        
-        # Make sure the data remained is at least as big as data_size 
-        while len(self.data_remained) < (data_size) :
-            self.data_remained += self.construct_text_corpus(min_data_len = data_size)
-
-        self.data = self.data_remained[:data_size]
-        del self.data_remained[:data_size]
-
-        print ('\n\n=== Downloading finished ===\n\n')
+        self.data = self.data_reserved[:data_size]
+        del self.data_reserved[:data_size]
 
         # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
         return DataLoader(self,
@@ -546,7 +596,8 @@ class GenesisTextDataset( Dataset ):
         success = False 
         while not success:
             if not self.data_queue.queue.empty() :
-                dataset = self.data_queue.queue.get()
+                ready = self.data_queue.queue.get() # the queue stores a bool ready signal
+                dataset = self.dataloader(self.num_batches)
                 if dataset:
                     self.__infinite_dataset_iterator = iter([input for input in dataset])
                     success = True
@@ -650,7 +701,7 @@ class MockGenesisTextDataset( Dataset ):
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
-        self.data_remained = []
+        self.data_reserved = []
 
     def close(self):
         pass
@@ -671,11 +722,11 @@ class MockGenesisTextDataset( Dataset ):
         data_size = epoch_length * self.batch_size * self.block_size
         
         # Make sure the data remained is at least as big as data_size 
-        while len(self.data_remained) < (data_size) :
-            self.data_remained += self.construct_text_corpus(min_data_len = data_size)
+        while len(self.data_reserved) < (data_size) :
+            self.data_reserved += self.construct_text_corpus(min_data_len = data_size)
 
-        self.data = self.data_remained[:data_size]
-        del self.data_remained[:data_size]
+        self.data = self.data_reserved[:data_size]
+        del self.data_reserved[:data_size]
 
     def dataloader(self, epoch_length = 100):
         """ Creates a torch dataloader out of a subclass of this class.

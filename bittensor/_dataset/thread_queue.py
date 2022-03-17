@@ -50,7 +50,7 @@ class ProducerThread(threading.Thread):
         """
         while True and (not self.stopped()):
             if not self.queue.full():
-                item = self.target(*self.arg)
+                item = self.target(*self.arg, self.queue.qsize()+1 )
                 self.queue.put(item)
                 time.sleep(10)
         return
