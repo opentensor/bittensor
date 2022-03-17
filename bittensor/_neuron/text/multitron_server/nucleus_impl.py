@@ -242,5 +242,6 @@ class server(torch.nn.Module):
         bittensor.wandb.add_args(parser)
         bittensor.prioritythreadpool.add_args( parser )
         bittensor.dataset.add_args( parser )
+        bittensor.metagraph.add_args( parser )
         return bittensor.config( parser )
     
