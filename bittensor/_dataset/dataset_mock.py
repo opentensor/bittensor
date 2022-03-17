@@ -32,13 +32,13 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         self,
         block_size,
         batch_size,
-        max_corpus_size,
         num_workers,
         dataset_name,
         data_dir,
         save_dataset,
         max_datasets,
-        no_tokenizer
+        no_tokenizer,
+        num_batches
     ):
         super().__init__()
         self.block_size = block_size

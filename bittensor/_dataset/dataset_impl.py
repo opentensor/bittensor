@@ -126,7 +126,6 @@ class GenesisTextDataset( Dataset ):
         self,
         block_size,
         batch_size,
-        max_corpus_size,
         num_workers,
         dataset_name,
         data_dir,
@@ -138,7 +137,6 @@ class GenesisTextDataset( Dataset ):
         super().__init__()
         self.block_size = block_size
         self.batch_size = batch_size
-        self.max_corpus_size = max_corpus_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset_name = dataset_name
@@ -454,7 +452,7 @@ class GenesisTextDataset( Dataset ):
         1. Get directories from a random dataset_hash (dataset_hash is the result from calling pin/ls).
         2. Pick a random directory and get the directory that would lead to a datafile.    
         3. Get text from the directory.
-        4. Repeat 2,3 until we have reached the max_corpus_size
+        4. Repeat 2,3 until we have reached the min data length
 
         Returns:
             text: str: 
@@ -677,18 +675,17 @@ class MockGenesisTextDataset( Dataset ):
         self,
         block_size,
         batch_size,
-        max_corpus_size,
         num_workers,
         dataset_name,
         data_dir,
         save_dataset,
         max_datasets,
-        no_tokenizer
+        no_tokenizer,
+        num_batches
     ):
         super().__init__()
         self.block_size = block_size
         self.batch_size = batch_size
-        self.max_corpus_size = max_corpus_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset_name = dataset_name
