@@ -586,5 +586,8 @@ class nucleus( torch.nn.Module ):
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
 
+        # Ensures that the nonresponsive peers are not rewarded
+        shapely_scores[shapely_scores == 0]  = shapely_scores.min()
+
         # === Done ===
         return loss, shapely_scores
