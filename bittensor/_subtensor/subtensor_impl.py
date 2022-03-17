@@ -54,8 +54,9 @@ class Subtensor:
             Args:
                 substrate (:obj:`SubstrateInterface`, `required`): 
                     substrate websocket client.
-                network (default='nakamoto', type=str)
+                network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
+                            -- local (local running network)
                             -- nobunaga (staging network)
                             -- akatsuki (testing network)
                             -- nakamoto (main network)
