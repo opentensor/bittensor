@@ -106,12 +106,8 @@ class neuron:
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet ) if dendrite == None else dendrite
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
-        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length )
+        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
 
-        # === Setup Dataset ===
-        # Create the dataset with chain determined 
-        # batch size and sequence length.
-        self.dataset = bittensor.dataset ( config = self.config ) if dataset == None else dataset
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
