@@ -14,6 +14,8 @@ from substrateinterface.base import Keypair
 from _pytest.fixtures import fixture
 from loguru import logger
 
+from unittest.mock import MagicMock
+
 
 
 @fixture(scope="function")
@@ -137,3 +139,47 @@ def test_solve_for_difficulty():
     nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 10)
     assert nonce == 2
     assert seal == b'\x8a\xa5\x0fA\xb1\n\xd0\xdea\x7f\x86rWq1\xa5|\x18\xd0\xc7\x81\xf4\x81\x03\xf9P\xc8\x19\xb9\x1f-\xcf'
+
+def test_solve_for_difficulty_fast():
+    block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+    subtensor = MagicMock()
+    subtensor.get_current_block = MagicMock( return_value=1 )
+    subtensor.difficulty = 1
+    subtensor.substrate = MagicMock()
+    subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
+    wallet = MagicMock()
+    wallet.is_registered = MagicMock( return_value=False )
+
+    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+
+    assert bittensor.utils.seal_meets_difficulty(seal, 1)
+    
+    subtensor.difficulty = 10
+    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+    assert bittensor.utils.seal_meets_difficulty(seal, 10)
+    
+def test_solve_for_difficulty_fast_registered_already():
+    # tests if the registration stops after the first block of nonces
+    for _ in range(10):
+        workblocks_before_is_registered = random.randint(2, 10)
+        # return False each work block but return True after a random number of blocks
+        is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [False, False]
+
+        block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        subtensor = MagicMock()
+        subtensor.get_current_block = MagicMock( return_value=1 )
+        subtensor.difficulty = 2560000000 # set high to make solving take a long time
+        subtensor.substrate = MagicMock()
+        subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
+        wallet = MagicMock()
+        wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+
+        # all arugments should return None to indicate an early return
+        a, b, c, d, e = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+        assert a is None
+        assert b is None
+        assert c is None
+        assert d is None
+        assert e is None
+        # called every time until True
+        assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
