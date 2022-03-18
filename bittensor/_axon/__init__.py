@@ -34,7 +34,15 @@ import bittensor
 from . import axon_impl
 
 class axon:
-    """ Create and init Axon, whcih services Forward and Backward requests from other neurons.
+    """ The factor class for bittensor.Axon object
+    The Axon acts a grpc server for the bittensor network and allows for communication between neurons.
+    By default, the grpc server follows the bittensor protocol and transports forward and backwards requests
+    between validators and servers. 
+    
+    Examples:: 
+            >>> axon = bittensor.axon(config=config)
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> axon.serve(subtensor=subtensor)
     """
 
     def __new__(
