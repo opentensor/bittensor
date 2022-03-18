@@ -139,7 +139,7 @@ def solve_for_difficulty_fast( subtensor ):
                 while block_hash == None:
                     block_hash = subtensor.substrate.get_block_hash( block_number)
                 block_bytes = block_hash.encode('utf-8')[2:]
-                status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, int(itrs_per_sec), difficulty, block_hash.encode('utf-8'), binascii.hexlify(best_seal) ))
+                status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, difficulty, int(itrs_per_sec), block_hash.encode('utf-8'), binascii.hexlify(best_seal) ))
       
 
 def create_pow( subtensor ):
