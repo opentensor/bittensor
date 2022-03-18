@@ -52,7 +52,7 @@ __nakamoto_entrypoints__ = [
 ]
 
 __nobunaga_entrypoints__ = [
-    'staging.nobunaga.opentensor.ai'
+    'staging.nobunaga.opentensor.ai:9944'
 ]
 
 __local_entrypoints__ = [
