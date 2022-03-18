@@ -375,7 +375,7 @@ class TestSubtensor(unittest.TestCase):
             wallet = MagicMock()
             wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
-            self.subtensor.difficulty=1
+            self.subtensor.difficulty= 5000
             self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
             self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
 
