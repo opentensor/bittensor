@@ -5,11 +5,12 @@ from substrateinterface.base import Keypair
 import unittest
 from unittest.mock import MagicMock
 from substrateinterface.exceptions import SubstrateRequestException
+from bittensor._subtensor.subtensor_mock import mock_subtensor
 
 class TestCli(unittest.TestCase):
 
     def setUp(self):
-        bittensor.subtensor.kill_global_mock_process()
+        mock_subtensor.kill_global_mock_process()
         self.config = TestCli.construct_config()
         # Mocked objects
         self.mock_neuron = TestCli._neuron_dict_to_namespace(
