@@ -18,13 +18,14 @@
 import bittensor
 import torch
 import unittest
+from bittensor._subtensor.subtensor_mock import mock_subtensor
 
 
 class TestMetagraph(unittest.TestCase):
     
     def setUp(self):
-        bittensor.subtensor.kill_global_mock_process()
-        sub = bittensor.subtensor.mock()
+        mock_subtensor.kill_global_mock_process()
+        sub = bittensor.subtensor(_mock=True)
         self.metagraph = bittensor.metagraph(subtensor=sub)
 
     def test_print_empty(self):

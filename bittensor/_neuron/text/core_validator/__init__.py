@@ -41,14 +41,48 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
+
 logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
 
 class neuron:
-    """ Neuron class which drives the training of the validator.
+    r"""
+    Creates a bittensor neuron that specializes validating other peers. The core validator
+    finetunes on the bittensor network with a mixture of experts model and shapely scoring.
+    The validator's main jobs are to identify important/useful peers in the network and correctly
+    weight them. To achieve this, the validator will send requests to different peers on the network
+    and evalute their responses.
+
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            dataset (:obj:bittensor.dataset , `optional`):
+                bittensor dataset 
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+            dendrite (:obj:bittensor.dendrite, `optional`):
+                bittensor dendrite object
+            dataset (:obj:bittensor.dendrite, `optional`):
+                bittensor dendrite object
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> validator = bittensor.neuron.text.core_validator.neuron(subtensor=subtensor)
+            >>> validator.run()
     """
-    def __init__( self, config: 'bittensor.Config' = None ):
+    def __init__( 
+        self, 
+        config: 'bittensor.Config' = None,
+        wallet: 'bittensor.Wallet' = None,
+        subtensor: 'bittensor.Subtensor' = None,
+        metagraph: 'bittensor.Metagraph' = None,
+        dendrite: 'bittensor.Dendrite' = None,
+        dataset: 'bittensor.dataset' = None
+    ):
 
         # === Set up Config ===
         if config == None: config = neuron.config()
@@ -66,13 +100,14 @@ class neuron:
 
         # === Create Bittensor objects ===
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
-        self.wallet = bittensor.wallet ( config = self.config )
-        self.subtensor = bittensor.subtensor ( config = self.config )
-        self.metagraph = bittensor.metagraph ( config = config, subtensor = self.subtensor )        
-        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet )
+        self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
+        self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
+        self.metagraph = bittensor.metagraph ( config = config, subtensor = self.subtensor ) if metagraph == None else metagraph
+        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet ) if dendrite == None else dendrite
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
-        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length )
+        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
+
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
