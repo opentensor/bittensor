@@ -51,12 +51,8 @@ __nakamoto_entrypoints__ = [
     "Atreus-08415f7175fce085.elb.us-east-2.amazonaws.com"
 ]
 
-__akatsuki_entrypoints__ = [
-    "test.akatsuki.opentensor.ai:9944"
-]
-
 __nobunaga_entrypoints__ = [
-    'staging.nobunaga.opentensor.ai:9944'
+    'staging.nobunaga.opentensor.ai'
 ]
 
 __local_entrypoints__ = [

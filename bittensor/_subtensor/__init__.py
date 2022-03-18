@@ -207,9 +207,6 @@ class subtensor:
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoints__[0]
-        elif network == "akatsuki":
-            # Testing network.
-            return bittensor.__akatsuki_entrypoints__[0]
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoints__[0]
