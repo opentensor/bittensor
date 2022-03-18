@@ -578,7 +578,11 @@ class GenesisTextDataset( Dataset ):
         """
         logger.success(f"Getting a new Dataloader")
         data_size = epoch_length * self.batch_size * self.block_size
+        if len(self.data_reserved) < data_size:
+            self.reserve_multiple_data(self.num_batches, 1)
+
         self.data = self.data_reserved[:data_size]
+
         del self.data_reserved[:data_size]
 
         # Datalaoder calls self._getitem_ functions until the self.data uses up, and group the result by batch size
