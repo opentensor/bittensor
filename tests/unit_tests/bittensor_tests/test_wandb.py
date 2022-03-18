@@ -27,5 +27,5 @@ def test_dendrite():
     del dendrite
 
 def test_metagraph():
-    metagraph = bittensor.metagraph()
+    metagraph = bittensor.metagraph( subtensor = bittensor.subtensor.mock())
     metagraph.to_wandb()
