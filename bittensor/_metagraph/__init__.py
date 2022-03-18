@@ -26,8 +26,15 @@ from . import metagraph_impl
 from . import metagraph_mock
 
 class metagraph:
-    """ create and init metagraph, 
-    which maintains chain state as a torch.nn.module.
+    """ Factory class for the bittensor.Metagraph class or the MockMetagraph
+    The Metagraph object serves as the main storage unit for the chain state. 
+    By default, it stores all chain information as a torch.nn.Module which can be
+    synced using a subtensor connection.
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> metagraph = bittensor.metagraph(subtensor=subtensor)
+            >>> metagraph.sync()
     """
     def __new__(
             cls, 
@@ -46,7 +53,6 @@ class metagraph:
                 network (default='nakamoto', type=str)
                     The subtensor network flag. The likely choices are:
                             -- nobunaga (staging network)
-                            -- akatsuki (testing network)
                             -- nakamoto (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.

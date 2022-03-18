@@ -53,7 +53,6 @@ class Wallet():
         name:str,
         path:str,
         hotkey:str,
-        _mock:bool
     ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
@@ -63,8 +62,6 @@ class Wallet():
                     The name of hotkey used to running the miner.
                 path (required=True, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
-                _mock (required=True, default=False):
-                    If true creates a mock wallet with random keys.
         """
         self.name = name
         self.path = path
@@ -72,11 +69,6 @@ class Wallet():
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
-
-        # For mocking.
-        self._is_mock = _mock
-        self._mocked_coldkey_keyfile = None
-        self._mocked_hotkey_keyfile = None
 
     def __str__(self):
         return "Wallet ({}, {}, {})".format(self.name, self.hotkey_str, self.path)
@@ -364,36 +356,22 @@ class Wallet():
 
     @property
     def hotkey_file(self) -> 'bittensor.Keyfile':
-        if self._is_mock:
-            if self._mocked_hotkey_keyfile == None:
-                self._mocked_hotkey_keyfile = bittensor.keyfile(path='MockedHotkey', _mock = True)
-            return self._mocked_hotkey_keyfile
-        else:
-            wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
-            hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
-            return bittensor.keyfile( path = hotkey_path )
+
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
+        hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
+        return bittensor.keyfile( path = hotkey_path )
 
     @property
     def coldkey_file(self) -> 'bittensor.Keyfile':
-        if self._is_mock:
-            if self._mocked_coldkey_keyfile == None:
-                self._mocked_coldkey_keyfile = bittensor.keyfile(path='MockedColdkey', _mock = True)
-            return self._mocked_coldkey_keyfile
-        else:
-            wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
-            coldkey_path = os.path.join(wallet_path, "coldkey")
-            return bittensor.keyfile( path = coldkey_path )
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
+        coldkey_path = os.path.join(wallet_path, "coldkey")
+        return bittensor.keyfile( path = coldkey_path )
 
     @property
     def coldkeypub_file(self) -> 'bittensor.Keyfile':
-        if self._is_mock:
-            if self._mocked_coldkey_keyfile == None:
-                self._mocked_coldkey_keyfile = bittensor.keyfile(path='MockedColdkeyPub', _mock = True)
-            return self._mocked_coldkey_keyfile
-        else:
-            wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
-            coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
-            return bittensor.Keyfile( path = coldkeypub_path )
+        wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
+        coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
+        return bittensor.Keyfile( path = coldkeypub_path )
 
     def set_hotkey(self, keypair: 'bittensor.Keypair', encrypt: bool = False, overwrite: bool = False) -> 'bittensor.Keyfile':
         self._hotkey = keypair

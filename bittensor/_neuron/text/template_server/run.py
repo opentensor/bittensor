@@ -31,20 +31,34 @@ import datetime
 from threading import Lock
 from loguru import logger; logger = logger.opt(colors=True)
 
-def serve( config, model ):
+def serve( 
+        config, 
+        model,
+        subtensor = None,
+        wallet = None,
+        axon= None,
+        metagraph = None,
+    ):
     config.to_defaults()
     model= model.to(model.device)
 
     # Create Subtensor connection
-    subtensor = bittensor.subtensor(config = config)
+    subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
 
     # Load/Create our bittensor wallet.
-    wallet = bittensor.wallet( config = config ).create().register()
+    if wallet == None:
+        wallet = bittensor.wallet( config = config ).create().register(subtensor=subtensor) 
+    else:
+        wallet.register(subtensor=subtensor)
+
 
     # Load/Sync/Save our metagraph.
-    metagraph = bittensor.metagraph ( 
-        subtensor = bittensor.subtensor( config = config )
-    ).load().sync().save()
+    if metagraph == None:
+        metagraph = bittensor.metagraph ( 
+            subtensor = subtensor
+        )
+    
+    metagraph.load().sync().save()
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -77,11 +91,12 @@ def serve( config, model ):
                         optimizer.zero_grad()
 
     # Create our axon server and subscribe it to the network.
-    axon = bittensor.axon (
-        wallet = wallet,
-        forward_text = forward_text,
-        backward_text = backward_text,
-    ).start().serve(subtensor=subtensor)
+    if axon == None:
+        axon = bittensor.axon (
+            wallet = wallet,
+            forward_text = forward_text,
+            backward_text = backward_text,
+        ).start().serve(subtensor=subtensor)
 
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
