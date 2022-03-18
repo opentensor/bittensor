@@ -426,7 +426,7 @@ class GenesisTextDataset( Dataset ):
         files = [] 
         for folder in folders_avail:
             file_names = os.listdir(os.path.expanduser(os.path.join(self.data_dir, folder)))
-            sub_files = [{'Folder': folder, 'Hash': file_name} for file_name in file_names]
+            sub_files = [{'Name': file_name,'Folder': folder, 'Hash': file_name} for file_name in file_names]
             files += sub_files
 
         random.shuffle(files)
