@@ -25,7 +25,7 @@ import time
 from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
-
+from bittensor._subtensor.subtensor_mock import mock_subtensor
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
         self.subtensor = bittensor.subtensor( network = 'nobunaga' )
@@ -355,69 +355,69 @@ class TestSubtensor(unittest.TestCase):
 
 
 def test_subtensor_mock():
-    bittensor.subtensor.kill_global_mock_process()
-    sub = bittensor.subtensor.mock()
-    assert bittensor.subtensor.global_mock_process_is_running()
+    mock_subtensor.kill_global_mock_process()
+    sub = bittensor.subtensor(_mock=True)
+    assert mock_subtensor.global_mock_process_is_running()
     assert sub._is_mocked == True
     assert sub._owned_mock_subtensor_process != None
     del(sub)
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    assert not mock_subtensor.global_mock_process_is_running()
 
 def test_create_mock_process():
-    bittensor.subtensor.kill_global_mock_process()
-    bittensor.subtensor.create_global_mock_process()
-    assert bittensor.subtensor.global_mock_process_is_running()
-    bittensor.subtensor.kill_global_mock_process()
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    mock_subtensor.kill_global_mock_process()
+    mock_subtensor.create_global_mock_process()
+    assert mock_subtensor.global_mock_process_is_running()
+    mock_subtensor.kill_global_mock_process()
+    assert not mock_subtensor.global_mock_process_is_running()
 
 def test_mock_from_mock_arg():
     sub = bittensor.subtensor(_mock=True)
-    assert bittensor.subtensor.global_mock_process_is_running()
+    assert mock_subtensor.global_mock_process_is_running()
     assert sub._is_mocked == True
     assert sub._owned_mock_subtensor_process != None
     sub.optionally_kill_owned_mock_instance()
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    assert not mock_subtensor.global_mock_process_is_running()
     del(sub)
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    assert not mock_subtensor.global_mock_process_is_running()
 
 def test_mock_from_network_arg():
-    bittensor.subtensor.kill_global_mock_process()
+    mock_subtensor.kill_global_mock_process()
     sub = bittensor.subtensor(network='mock')
     assert sub.network == 'mock'
-    assert bittensor.subtensor.global_mock_process_is_running()
+    assert mock_subtensor.global_mock_process_is_running()
     assert sub._is_mocked == True
     assert sub._owned_mock_subtensor_process != None
     sub.__del__()
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    assert not mock_subtensor.global_mock_process_is_running()
 
 def test_create_from_config():
-    bittensor.subtensor.kill_global_mock_process()
+    mock_subtensor.kill_global_mock_process()
     config = bittensor.subtensor.config()
     config.subtensor.network = 'mock'
     sub = bittensor.subtensor(config=config)
-    assert bittensor.subtensor.global_mock_process_is_running()
+    assert mock_subtensor.global_mock_process_is_running()
     assert sub._is_mocked == True
     assert sub._owned_mock_subtensor_process != None
     del(sub)
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    assert not mock_subtensor.global_mock_process_is_running()
 
 def test_two_subtensor_ownership():
-    bittensor.subtensor.kill_global_mock_process()
-    sub1 = bittensor.subtensor.mock()
-    sub2 = bittensor.subtensor.mock()
+    mock_subtensor.kill_global_mock_process()
+    sub1 = bittensor.subtensor(_mock=True)
+    sub2 = bittensor.subtensor(_mock=True)
     assert sub1._is_mocked == True
     assert sub2._is_mocked == True
     assert sub1._owned_mock_subtensor_process != None
     assert sub2._owned_mock_subtensor_process == None
-    assert bittensor.subtensor.global_mock_process_is_running()
+    assert mock_subtensor.global_mock_process_is_running()
     del( sub2 )
-    assert bittensor.subtensor.global_mock_process_is_running()
+    assert mock_subtensor.global_mock_process_is_running()
     del ( sub1 )
     time.sleep(2)
-    assert not bittensor.subtensor.global_mock_process_is_running()
+    assert not mock_subtensor.global_mock_process_is_running()
 
 def test_subtensor_mock_functions():
-    sub = bittensor.subtensor.mock()
+    sub = bittensor.subtensor(_mock=True)
     sub.n
     sub.total_issuance
     sub.total_stake
