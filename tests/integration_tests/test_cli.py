@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import MagicMock
 from substrateinterface.exceptions import SubstrateRequestException
 from bittensor._subtensor.subtensor_mock import mock_subtensor
+from unittest.mock import patch
 
 class TestCli(unittest.TestCase):
 
@@ -115,18 +116,18 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    """
     def test_register( self ):
+
         config = self.config
         config.subtensor._mock = True
         config.command = "register"
         config.subtensor.network = "mock"
         config.no_prompt = True
 
-        cli = bittensor.cli(config)
-        cli.run()
-    """
-    
+        with patch('bittensor.Subtensor.register', return_value=True):
+            cli = bittensor.cli(config)
+            cli.run()
+
     def test_stake( self ):
         wallet = TestCli.generate_wallet()
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
@@ -282,3 +283,8 @@ class TestCli(unittest.TestCase):
         cli.config = config
         cli.run()
 
+
+if __name__ == "__main__":
+    cli = TestCli()
+    cli.setUp()
+    cli.test_register()
