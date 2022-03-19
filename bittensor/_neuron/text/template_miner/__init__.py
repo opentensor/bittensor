@@ -664,6 +664,8 @@ class nucleus( torch.nn.Module ):
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
 
+        # Ensures that the nonresponsive peers are not rewarded
+        shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
     
         # distillation_loss : distillation loss between local_context and remote_context
         # distillation_loss.shape = [1]
