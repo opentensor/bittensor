@@ -358,7 +358,7 @@ class Receptor(nn.Module):
         """
         try:
             request.response = request.future.result()
-            self.stats.forward_bytes_in.update(sys.getsizeof(request.response))
+            self.stats.forward_bytes_in.update(request.response.ByteSize())
             self.stats.forward_elapsed_time.update((clock.time()-request.start_time))
             
         # ---- Catch GRPC Errors ----
@@ -606,7 +606,7 @@ class Receptor(nn.Module):
         try:
             if not request.backward:
                 self.stats.forward_qps.update(1)
-                self.stats.forward_bytes_out.update(sys.getsizeof(request.grpc_request))
+                self.stats.forward_bytes_out.update(request.grpc_request.ByteSize())
                 request.future = self.stub.Forward.future(request = request.grpc_request, 
                                 timeout = timeout,
                                 metadata = (
@@ -618,7 +618,7 @@ class Receptor(nn.Module):
                 request.future.add_done_callback(lambda z : self.handle_request_response(request))
             else:
                 self.stats.backward_qps.update(1)
-                self.stats.backward_bytes_out.update(sys.getsizeof(request.grpc_request))
+                self.stats.backward_bytes_out.update(request.grpc_request.ByteSize())
                 request.future = self.stub.Backward.future(request = request.grpc_request, 
                                 timeout = timeout,
                                 metadata = (

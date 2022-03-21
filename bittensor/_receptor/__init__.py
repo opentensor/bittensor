@@ -25,7 +25,9 @@ import bittensor
 from . import receptor_impl
 
 class receptor:
-    """ Create and init the receptor object, which encapsulates a grpc connection to an axon endpoint
+    """ Factory class for the bittensor.Receptor Class.
+
+    The Receptor class contains the main tcp connection that is used for communication between miners
     """
     def __new__( 
              cls,
@@ -75,7 +77,13 @@ class receptor:
         )
 
 class receptor_pool:
-    """ Create and init the receptor_pool object, which manage a pool of grpc connections 
+    """ Factory class for the bittensor.ReceptorPool Class.
+
+    The ReceptorPool contains the main thread pool executor and all of receptors for a miners.
+    By default, the receptor pool will manage the number of receptors that are currently in use
+    and remove ones that are stale. During multiprocess, the ReceptorPool is shared across multiple devices
+    to reduce the number of tcp connections.
+    
     """
     def __new__( 
             cls, 
