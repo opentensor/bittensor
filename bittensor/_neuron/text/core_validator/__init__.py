@@ -245,9 +245,7 @@ class neuron:
             print ('\n\n=== Reset ===\n\n')
             # === Resetting model + dataset ===
             if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
-                self.dataset.close()
-                self.dataset.__del__()
-                self.dataset = bittensor.dataset ( config = self.config, batch_size = batch_size, block_size = sequence_length )
+                self.dataset.set_data_size(batch_size, sequence_length)
 
             self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
             self.optimizer = torch.optim.SGD ( 
@@ -582,6 +580,9 @@ class nucleus( torch.nn.Module ):
                 shapely_score = unmasked_loss - masked_loss
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
+
+        # Ensures that the nonresponsive peers are not rewarded
+        shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
 
         # === Done ===
         return loss, shapely_scores
