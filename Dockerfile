@@ -30,5 +30,6 @@ WORKDIR /bittensor
 RUN pip install --upgrade numpy pandas setuptools "tqdm>=4.27,<4.50.0" wheel
 RUN pip install -r requirements.txt
 RUN pip install -e .
+RUN pip install .
 
 EXPOSE 8091
