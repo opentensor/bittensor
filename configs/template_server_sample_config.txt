@@ -11,7 +11,7 @@ dataset.batch_size: 10
 dataset.block_size: 20
 dataset.data_dir: ~/.bittensor/data/
 dataset.dataset_name: default
-dataset.max_corpus_size: 10000.0
+dataset.num_batches: 500
 dataset.max_datasets: 3
 dataset.no_tokenizer: false
 dataset.num_workers: 0
@@ -34,7 +34,7 @@ neuron.learning_rate: 0.01
 neuron.model_name: gpt2
 neuron.momentum: 0.8
 neuron.name: advanced_server
-neuron.no_restart: true
+neuron.restart: false
 neuron.padding: true
 neuron.pretrained: true
 

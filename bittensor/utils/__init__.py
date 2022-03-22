@@ -1,4 +1,6 @@
 import binascii
+import multiprocessing
+import ctypes
 import struct
 import hashlib
 import math
@@ -8,7 +10,7 @@ import time
 import torch
 import numbers
 import pandas
-from typing import Tuple, List, Union, Optional
+from typing import Any, Tuple, List, Union, Optional
 
 
 def indexed_values_to_dataframe ( 
@@ -95,8 +97,24 @@ def solve_for_difficulty( block_hash, difficulty ):
             break
     return nonce, seal
 
-
-def solve_for_difficulty_fast( subtensor ):
+def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update_interval: int = 100000 ) -> Tuple[int, int, Any, int, Any]:
+    """
+    Solves the POW for registration using multiprocessing.
+    Args:
+        subtensor
+            Subtensor to connect to for block information and to submit.
+        wallet:
+            Wallet to use for registration.
+        num_processes: int
+            Number of processes to use.
+        update_interval: int
+            Number of nonces to solve before updating block information.
+    Note: 
+    - We should modify the number of processes based on user input.
+    - We can also modify the update interval to do smaller blocks of work,
+        while still updating the block information after a different number of nonces,
+        to increase the transparency of the process while still keeping the speed.
+    """
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty
     block_hash = subtensor.substrate.get_block_hash( block_number )
@@ -104,33 +122,21 @@ def solve_for_difficulty_fast( subtensor ):
         block_hash = subtensor.substrate.get_block_hash( block_number )
     block_bytes = block_hash.encode('utf-8')[2:]
     
-    meets = False
     nonce = -1
     limit = int(math.pow(2,256) - 1)
-    best = math.inf
-    update_interval = 100000
     start_time = time.time()
 
     console = bittensor.__console__
-    with console.status("Solving") as status:
-        while not meets:
-            nonce += 1 
-
-            # Create seal.
-            nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-            pre_seal = nonce_bytes + block_bytes
-            seal = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
-
-            seal_number = int.from_bytes(seal, "big")
-            product = seal_number * difficulty
-            if product - limit < best:
-                best = product - limit
-                best_seal = seal
-
-            if product < limit:
-                return nonce, block_number, block_hash, difficulty, seal
-
-            if nonce % update_interval == 0:
+    with console.status("Solving") as status:        
+        found_solution = multiprocessing.Value('q', -1, lock=False) # int
+        best = multiprocessing.Value(ctypes.c_char_p, lock=True) # byte array to get around int size of ctypes
+        best.raw = struct.pack("d", float('inf'))
+        best_seal = multiprocessing.Array('h', 32, lock=True) # short array should hold bytes (0, 256)
+        with multiprocessing.Pool(processes=num_processes, initializer=initProcess_, initargs=(solve_, found_solution, best, best_seal)) as pool:
+            # while no solution found and wallet has not been registered
+            while found_solution.value == -1 and not wallet.is_registered(subtensor):
+                result = pool.starmap(solve_, iterable=[(nonce, block_bytes, difficulty, block_hash, block_number, limit) for nonce in range(update_interval)])
+                nonce += update_interval
                 itrs_per_sec = update_interval / (time.time() - start_time)
                 start_time = time.time()
                 difficulty = subtensor.difficulty
@@ -139,12 +145,45 @@ def solve_for_difficulty_fast( subtensor ):
                 while block_hash == None:
                     block_hash = subtensor.substrate.get_block_hash( block_number)
                 block_bytes = block_hash.encode('utf-8')[2:]
-                status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, int(itrs_per_sec), difficulty, block_hash.encode('utf-8'), binascii.hexlify(best_seal) ))
-      
+                with best_seal.get_lock():
+                    status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, difficulty, int(itrs_per_sec), block_hash.encode('utf-8'), binascii.hexlify(bytes(best_seal) or bytes(0)) ))
+            # exited while, found_solution contains the nonce or wallet is registered
+            if found_solution.value == -1: # didn't find solution
+                return None, None, None, None, None
 
-def create_pow( subtensor ):
-    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor )
-    return {
+            nonce, block_number, block_hash, difficulty, seal = result[found_solution.value]
+            return nonce, block_number, block_hash, difficulty, seal
+
+def initProcess_(f, found_solution, best, best_seal):
+    f.found = found_solution
+    f.best = best
+    f.best_seal = best_seal
+
+def solve_(nonce, block_bytes, difficulty, block_hash, block_number, limit):
+    # Create seal.
+    nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
+    pre_seal = nonce_bytes + block_bytes
+    seal = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
+  
+    seal_number = int.from_bytes(seal, "big")
+    product = seal_number * difficulty
+
+    if product < limit:
+        solve_.found.value = nonce
+        return (nonce, block_number, block_hash, difficulty, seal)
+    with solve_.best.get_lock():
+        best_value_as_d = struct.unpack('d', solve_.best.raw)[0]
+        if (product - limit) < best_value_as_d:
+            
+            with solve_.best_seal.get_lock():
+                solve_.best.raw = struct.pack('d', product - limit)
+                for i in range(32):
+                    solve_.best_seal[i] = seal[i]
+    return None
+
+def create_pow( subtensor, wallet ):
+    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet )
+    return None if nonce is None else {
         'nonce': nonce, 
         'difficulty': difficulty,
         'block_number': block_number, 

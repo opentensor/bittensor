@@ -36,13 +36,13 @@ class Benchmark ( QueryBenchmark ):
         return 'advanced_server'
 
     @staticmethod
-    def run_neuron( config ):
+    def run_neuron( config , subtensor, metagraph, wallet ):
         r""" To be implemented in the subclass, runs the neuron.
             Args:
                 config (bittensor.Config)
                     Run config
         """
-        bittensor.neurons.text.advanced_server.neuron( config ).run()
+        bittensor.neurons.text.advanced_server.neuron( config,subtensor=subtensor, metagraph=metagraph,wallet=wallet).run()
 
     @staticmethod
     def config() -> 'bittensor.Config':

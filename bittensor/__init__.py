@@ -43,16 +43,12 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
-__networks__ = [ 'local', 'nobunaga', 'akatsuki', 'nakamoto']
+__networks__ = [ 'local', 'nobunaga', 'nakamoto']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
 __nakamoto_entrypoints__ = [
     "entrypointnetworkloadbalancer-21fe5fbdc08425ca.elb.us-east-2.amazonaws.com:9944"
-]
-
-__akatsuki_entrypoints__ = [
-    "test.akatsuki.opentensor.ai:9944"
 ]
 
 __nobunaga_entrypoints__ = [

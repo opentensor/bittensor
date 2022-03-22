@@ -27,10 +27,13 @@ from multiprocessing.managers import BaseManager
 from loguru import logger
 
 class dendrite:
-    r""" This is the factory class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
-    which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
-    results or zeros. The operation is fully differentiable with a torch computation graph such that calls to loss.backward() produce Backward calls on
-    the passed endpoints.
+    r""" This is the factory class for a bittensor.dendrite() or the mocked dendrite class.
+    
+    The dendrite class operates as a normal torch autograd friendly operation which accepts a list of bittensor.endpoints and a list of torch tensors. 
+    The passed endpoints are queried with the passed inputs and either return results or zeros. The operation is fully differentiable with a torch 
+    computation graph such that calls to loss.backward() produce Backward calls on the passed endpoints.
+
+    
     """
 
     def __new__(
@@ -162,7 +165,7 @@ class dendrite:
         """
         defaults.dendrite = bittensor.Config()
         defaults.dendrite.max_worker_threads = os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') if os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') != None else 150
-        defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 500
+        defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 2000
         defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
         defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_multiprocessing') if os.getenv('BT_DENDRITE_multiprocessing') != None else False

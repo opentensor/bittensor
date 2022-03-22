@@ -32,18 +32,17 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         self,
         block_size,
         batch_size,
-        max_corpus_size,
         num_workers,
         dataset_name,
         data_dir,
         save_dataset,
         max_datasets,
-        no_tokenizer
+        no_tokenizer,
+        num_batches
     ):
         super().__init__()
         self.block_size = block_size
         self.batch_size = batch_size
-        self.max_corpus_size = max_corpus_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
         self.dataset_name = dataset_name
@@ -60,6 +59,9 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
 
     def close(self):
         pass
+
+    def __del__(self):
+        self.close()
 
     def construct_text_corpus(self, min_data_len = 0):         
         data_corpus = []
