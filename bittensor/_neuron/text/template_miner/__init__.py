@@ -274,7 +274,6 @@ class neuron:
                     if not self.config.neuron.restart_on_failure:
                         break
 
-
     def run_epoch( self ):
         r""" Runs a miner-validator epoch. We apply batches until the epoch length is exhausted.
             Occasionally the validator nucleus is completely reset to ensure we dont converge to far.
