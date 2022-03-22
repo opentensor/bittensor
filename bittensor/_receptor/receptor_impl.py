@@ -30,6 +30,7 @@ import torch.nn as nn
 import grpc
 from loguru import logger
 from grpc import _common
+import torch.nn.functional as F
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -453,7 +454,7 @@ class Receptor(nn.Module):
         if  (
             outputs.size(0) != request.inputs.size(0) or
             outputs.size(1) != request.inputs.size(1) or 
-            outputs.size(2) != bittensor.__network_dim__
+            outputs.size(2) <= bittensor.__network_dim__
             ):
             request.code = bittensor.proto.ReturnCode.ResponseShapeException
             request.message = "output.shape:{} does not match inputs:{}".format(outputs.shape, request.inputs.shape)
@@ -462,6 +463,11 @@ class Receptor(nn.Module):
 
         # ---- Safe catch NaNs and replace with 0.0 ----
         request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
+
+        # ---- Pad out embedding dimensions ----
+        if outputs.size(2) < bittensor.__network_dim__:
+            padding_r = (bittensor.__network_dim__-outputs.size(2)) 
+            request.outputs = F.pad(request.outputs, (0, padding_r),  "constant", 0)
 
         # ---- Return ----
         request.code = request.response.return_code
