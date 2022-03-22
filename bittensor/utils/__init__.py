@@ -132,7 +132,6 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update
         best = multiprocessing.Value(ctypes.c_char_p, lock=True) # byte array to get around int size of ctypes
         best.raw = struct.pack("d", float('inf'))
         best_seal = multiprocessing.Array('h', 32, lock=True) # short array should hold bytes (0, 256)
-        best_seal.raw = struct.pack("h", [0]*32)
         
         with multiprocessing.Pool(processes=num_processes, initializer=initProcess_, initargs=(solve_, found_solution, best, best_seal)) as pool:
             # while no solution found and wallet has not been registered
@@ -149,12 +148,12 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update
                 block_bytes = block_hash.encode('utf-8')[2:]
                 with best_seal.get_lock():
                     status.update(f"""
-                        Solving\n  
-                        Nonce: [bold white]{nonce}[/bold white]\n  
-                        Difficulty: [bold white]{difficulty}[/bold white]\n  
-                        Iters: [bold white]{int(itrs_per_sec)}/s[/bold white]\n
-                        Block: [bold white]{block_number}[/bold white]\n  
-                        Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]\n  
+                        Solving 
+                        Nonce: [bold white]{nonce}[/bold white]  
+                        Difficulty: [bold white]{difficulty}[/bold white]  
+                        Iters: [bold white]{int(itrs_per_sec)}/s[/bold white]
+                        Block: [bold white]{block_number}[/bold white]
+                        Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]  
                         Best: [bold white]{binascii.hexlify(bytes(best_seal) or bytes(0))}[/bold white]""")
             
             # exited while, found_solution contains the nonce or wallet is registered
