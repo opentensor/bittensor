@@ -689,9 +689,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.stats.qps.event()
         self.stats.total_requests += 1
         self.stats.total_in_bytes += request.ByteSize()
-        self.stats.total_out_bytes += response.ByteSize()
         self.stats.avg_in_bytes_per_second.event( float(request.ByteSize()) )
-        self.stats.avg_out_bytes_per_second.event( float(response.ByteSize())) 
+        
         pubkey = request.hotkey
         if pubkey not in self.stats.requests_per_pubkey:
             self.stats.requests_per_pubkey[ pubkey ] = 0
@@ -707,7 +706,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.stats.successes_per_pubkey[ pubkey ] += 1 if code == 1 else 0
         self.stats.query_times_per_pubkey[ pubkey ].event( float(time) )
         self.stats.avg_in_bytes_per_pubkey[ pubkey ].event( float(request.ByteSize())) 
-        self.stats.avg_out_bytes_per_pubkey[ pubkey ].event( float(response.ByteSize())) 
+
+        if response != None:
+            self.stats.total_out_bytes += response.ByteSize()
+            self.stats.avg_out_bytes_per_second.event( float(response.ByteSize())) 
+            self.stats.avg_out_bytes_per_pubkey[ pubkey ].event( float(response.ByteSize())) 
+
+
         self.stats.qps_per_pubkey[ pubkey ].event()    
         try:
             if bittensor.proto.ReturnCode.Name( code ) in self.stats.codes_per_pubkey[ pubkey ].keys():

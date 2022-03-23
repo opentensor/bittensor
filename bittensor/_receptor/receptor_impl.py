@@ -454,7 +454,7 @@ class Receptor(nn.Module):
         if  (
             outputs.size(0) != request.inputs.size(0) or
             outputs.size(1) != request.inputs.size(1) or 
-            outputs.size(2) <= bittensor.__network_dim__
+            outputs.size(2) > bittensor.__network_dim__
             ):
             request.code = bittensor.proto.ReturnCode.ResponseShapeException
             request.message = "output.shape:{} does not match inputs:{}".format(outputs.shape, request.inputs.shape)
