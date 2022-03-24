@@ -809,6 +809,10 @@ To run a local node (See: docs/running_a_validator.md) \n
                 response.process_events()
                 if response.is_success:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    block_hash = response.block_hash
+                    bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
+                    explorer_url = "https://explorer.nakamoto.opentensor.ai/#/explorer/query/{block_hash}".format( block_hash = block_hash )
+                    bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
                 else:
                     bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 
