@@ -11,7 +11,7 @@ dataset.batch_size: 10
 dataset.block_size: 20
 dataset.data_dir: ~/.bittensor/data/
 dataset.dataset_name: default
-dataset.max_corpus_size: 10000.0
+dataset.num_batches: 500
 dataset.max_datasets: 3
 dataset.no_tokenizer: false
 dataset.num_workers: 0

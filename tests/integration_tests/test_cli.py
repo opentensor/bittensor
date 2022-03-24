@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import MagicMock
 from substrateinterface.exceptions import SubstrateRequestException
 from bittensor._subtensor.subtensor_mock import mock_subtensor
+from unittest.mock import patch
 
 class TestCli(unittest.TestCase):
 
@@ -109,27 +110,29 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.command = "overview"
         config.subtensor._mock = True
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.no_prompt = True
 
         cli = bittensor.cli(config)
         cli.run()
 
     def test_register( self ):
+
         config = self.config
         config.subtensor._mock = True
         config.command = "register"
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.no_prompt = True
 
-        cli = bittensor.cli(config)
-        cli.run()
+        with patch('bittensor.Subtensor.register', return_value=True):
+            cli = bittensor.cli(config)
+            cli.run()
 
     def test_stake( self ):
         wallet = TestCli.generate_wallet()
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         config = self.config
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.no_prompt = True
         config.subtensor._mock = True
         config.command = "stake"
@@ -167,7 +170,7 @@ class TestCli(unittest.TestCase):
         config.wallet.name = "new_hotkey_testwallet"
         config.command = "new_hotkey"
         config.amount = 1
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.dest = "no_prompt"
         config.subtensor._mock = True
         config.model = "template_miner"
@@ -184,7 +187,7 @@ class TestCli(unittest.TestCase):
         config.wallet.name = "regen_coldkey_testwallet"
         config.command = "regen_coldkey"
         config.amount = 1
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.dest = "no_prompt"
         config.subtensor._mock = True
         config.model = "template_miner"
@@ -202,7 +205,7 @@ class TestCli(unittest.TestCase):
         config.wallet.name = "regen_hotkey_testwallet"
         config.command = "regen_hotkey"
         config.amount = 1
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.subtensor._mock = True
         config.model = "template_miner"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
@@ -218,7 +221,7 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.wallet.name = "metagraph_testwallet"
         config.command = "metagraph"
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.no_prompt = True
         config.subtensor._mock = True
 
@@ -229,7 +232,7 @@ class TestCli(unittest.TestCase):
 
         config = self.config
         config.wallet.name = "set_weights_testwallet"
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.no_prompt = True
         config.uids = [1, 2, 3, 4]
         config.weights = [0.25, 0.25, 0.25, 0.25]
@@ -253,7 +256,7 @@ class TestCli(unittest.TestCase):
     def test_inspect( self ):
         config = self.config
         config.wallet.name = "inspect_testwallet"
-        config.subtensor.network = "local"
+        config.subtensor.network = "mock"
         config.no_prompt = True
         config.subtensor._mock = True
         config.n_words = 12
@@ -280,3 +283,8 @@ class TestCli(unittest.TestCase):
         cli.config = config
         cli.run()
 
+
+if __name__ == "__main__":
+    cli = TestCli()
+    cli.setUp()
+    cli.test_register()
