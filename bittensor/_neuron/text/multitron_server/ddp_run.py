@@ -217,7 +217,7 @@ class Server:
         self.outputs = self.manager.dict()
         
         self.axon = bittensor.axon (
-            config = config,
+            config = self.config,
             wallet = self.wallet,
             forward_text = self.forward_text,
             backward_text = lambda x : None,
