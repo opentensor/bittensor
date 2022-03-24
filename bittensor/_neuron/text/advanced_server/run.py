@@ -128,7 +128,8 @@ def serve(
                     the request type ('FORWARD' or 'BACKWARD').
         """        
         uid = metagraph.hotkeys.index(pubkey)
-        priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
+        input_size = inputs_x.element_size() * inputs_x.nelement()
+        priority = metagraph.S[uid].item()/ input_size
 
         return priority
 

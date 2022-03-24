@@ -47,7 +47,8 @@ class server(torch.nn.Module):
                     Custom function that maps between tokenizers (defaults to self.remapping_token)
         """
         super(server, self).__init__()
-        if config == None: config = server.config()
+        if config == None: 
+            raise Exception('No Config Given: Config Required')
         self.config = config;print(config)
         
         #setting up pretrained model
@@ -214,38 +215,4 @@ class server(torch.nn.Module):
         except Exception as e:
             logger.warning('No saved model found with error: {}', e)
 
-    @staticmethod
-    def config ():
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
-        parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
-        parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
-        parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-        parser.add_argument('--neuron.model_name', type=str, help='pretrained model from hugging face',default='gpt2')
-        parser.add_argument('--neuron.pretrained', action='store_false', help='if the model should be pretrained',default=True)
-        parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
-        parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
-        parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='advanced_server')
-        parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
-        parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
-        parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
-        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
-        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
-        parser.add_argument('--neuron.training',  action='store_true', help='if the model should be training (increases memory load)', default=False)
-        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
-        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
-        parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
-
-
-        bittensor.wallet.add_args( parser )
-        bittensor.axon.add_args( parser )
-        bittensor.subtensor.add_args( parser )
-        bittensor.logging.add_args( parser )
-        bittensor.wandb.add_args(parser)
-        bittensor.prioritythreadpool.add_args( parser )
-        bittensor.dataset.add_args( parser )
-        bittensor.metagraph.add_args( parser )
-        return bittensor.config( parser )
     

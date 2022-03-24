@@ -270,7 +270,8 @@ class Server:
                     the request type ('FORWARD' or 'BACKWARD').
         """        
         uid = self.metagraph.hotkeys.index(pubkey)
-        priority = self.metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
+        input_size = inputs_x.element_size() * inputs_x.nelement()
+        priority = self.metagraph.S[uid].item()/ input_size
 
         return priority
 

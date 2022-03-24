@@ -675,7 +675,8 @@ class Dendrite(torch.autograd.Function):
         self.stats.qps.event()
         self.stats.total_requests += 1
         total_in_bytes_per_second = 0
-        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(requests)) )
+        request_size = len(requests) *requests[0].element_size() * requests[0].nelement()
+        self.stats.avg_out_bytes_per_second.event( float(request_size) )
         for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops.tolist(), query_times.tolist())):
             pubkey = e_i.hotkey
 
@@ -689,13 +690,16 @@ class Dendrite(torch.autograd.Function):
                 self.stats.avg_out_bytes_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
                 self.stats.qps_per_pubkey[pubkey] = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 )
 
+            resp_i_size = resp_i.element_size() * resp_i.nelement()
+            req_i_size = req_i.element_size() * req_i.nelement()
+
             self.stats.requests_per_pubkey[pubkey] += 1
             self.stats.successes_per_pubkey[pubkey] += 1 if code_i == 1 else 0
             self.stats.query_times_per_pubkey[pubkey].event( float(time_i) )
-            self.stats.avg_in_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(resp_i)) )
-            self.stats.avg_out_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(req_i)) )
+            self.stats.avg_in_bytes_per_pubkey[pubkey].event( float(resp_i_size) )
+            self.stats.avg_out_bytes_per_pubkey[pubkey].event( float(req_i_size) )
             self.stats.qps_per_pubkey[pubkey].event()
-            total_in_bytes_per_second += sys.getsizeof(resp_i) if code_i == 1 else 0 
+            total_in_bytes_per_second += resp_i_size if code_i == 1 else 0 
             try:
                 if bittensor.proto.ReturnCode.Name(code_i) in self.stats.codes_per_pubkey[pubkey].keys():
                     self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code_i)] += 1
