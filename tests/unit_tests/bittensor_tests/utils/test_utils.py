@@ -168,7 +168,7 @@ def test_solve_for_difficulty_fast_registered_already():
         block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
         subtensor = MagicMock()
         subtensor.get_current_block = MagicMock( return_value=1 )
-        subtensor.difficulty = 100000000000000000000000000 # set high to make solving take a long time
+        subtensor.difficulty = 1000000000# set high to make solving take a long time
         subtensor.substrate = MagicMock()
         subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
         wallet = MagicMock()

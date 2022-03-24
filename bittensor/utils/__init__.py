@@ -167,6 +167,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 10, updat
         
         # exited while, found_solution contains the nonce or wallet is registered
         if found_solution.value == -1: # didn't find solution
+            status.stop()
             return None, None, None, None, None
         
         nonce, block_number, block_hash, difficulty, seal = result[ math.floor( (found_solution.value-old_nonce) / update_interval) ]
