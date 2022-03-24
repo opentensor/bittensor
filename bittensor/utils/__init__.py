@@ -123,8 +123,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update
         block_hash = subtensor.substrate.get_block_hash( block_number )
     block_bytes = block_hash.encode('utf-8')[2:]
     
-    limit = int(math.pow(2,64) - 1)
-    nonce_limit = int(math.pow(2,256) - 1)
+    limit = int(math.pow(2,256) - 1)
+    nonce_limit = int(math.pow(2,64) - 1)
     nonce = random.randint( 0, nonce_limit )
     start_time = time.time()
 
