@@ -581,8 +581,15 @@ class nucleus( torch.nn.Module ):
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
 
+        print(shapely_scores.min())
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
+        
 
+        grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
+        print(grad)
+
+        for i,uid in enumerate(masked_contexts):
+            print(i, uid, shapely_scores[ uid ], grad[uid]) 
         # === Done ===
         return loss, shapely_scores
