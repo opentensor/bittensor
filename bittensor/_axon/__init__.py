@@ -327,6 +327,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         except Exception as e:
             self.message = str(e)
+            print('failed')
             return self._deny
 
 
@@ -363,6 +364,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r""" Calls the vertification of the signature and raises an error if failed
         """
         if self.vertification(meta):
+            print('signed')
             pass
         else:
             raise Exception('Incorrect Signature')
@@ -371,6 +373,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r""" Checks the header and version in the metadata
         """
         if meta[0] == self._valid_metadata:
+            print('meta checked')
             pass
         else:
             raise Exception('Incorrect Metadata format')
@@ -380,7 +383,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         variable_length_messages = meta[1].value.split('bitxx')
         pubkey = variable_length_messages[1]
-        
+        print(pubkey)
         if self.blacklist == None:
             pass
         #TODO: Turn on blacklisting
