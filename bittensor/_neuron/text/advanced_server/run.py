@@ -233,6 +233,13 @@ def serve(
         axon.start().serve(subtensor = subtensor)
         
         while True:
+            
+            # --- Check registration and optionally re-register
+            nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+            if not wallet.is_registered( subtensor = subtensor ):
+                wallet.register( subtensor = subtensor )
+                nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+
             # --- Run 
             current_block = subtensor.get_current_block()
             end_block = current_block + config.neuron.blocks_per_epoch

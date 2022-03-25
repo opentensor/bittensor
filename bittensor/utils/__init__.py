@@ -132,6 +132,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update
         best = multiprocessing.Value(ctypes.c_char_p, lock=True) # byte array to get around int size of ctypes
         best.raw = struct.pack("d", float('inf'))
         best_seal = multiprocessing.Array('h', 32, lock=True) # short array should hold bytes (0, 256)
+        
         with multiprocessing.Pool(processes=num_processes, initializer=initProcess_, initargs=(solve_, found_solution, best, best_seal)) as pool:
             # while no solution found and wallet has not been registered
             while found_solution.value == -1 and not wallet.is_registered(subtensor):
@@ -146,7 +147,15 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = 5, update
                     block_hash = subtensor.substrate.get_block_hash( block_number)
                 block_bytes = block_hash.encode('utf-8')[2:]
                 with best_seal.get_lock():
-                    status.update("Solving\n  Nonce: [bold white]{}[/bold white]\n  Difficulty: [bold white]{}[/bold white]\n  Iters: [bold white]{}/s[/bold white]\n  Block: [bold white]{}[/bold white]\n  Best: [bold white]{}[/bold white]".format( nonce, difficulty, int(itrs_per_sec), block_hash.encode('utf-8'), binascii.hexlify(bytes(best_seal) or bytes(0)) ))
+                    status.update(f"""
+                        Solving 
+                        Nonce: [bold white]{nonce}[/bold white]  
+                        Difficulty: [bold white]{difficulty}[/bold white]  
+                        Iters: [bold white]{int(itrs_per_sec)}/s[/bold white]
+                        Block: [bold white]{block_number}[/bold white]
+                        Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]  
+                        Best: [bold white]{binascii.hexlify(bytes(best_seal) or bytes(0))}[/bold white]""")
+            
             # exited while, found_solution contains the nonce or wallet is registered
             if found_solution.value == -1: # didn't find solution
                 return None, None, None, None, None
@@ -171,7 +180,10 @@ def solve_(nonce, block_bytes, difficulty, block_hash, block_number, limit):
     if product < limit:
         solve_.found.value = nonce
         return (nonce, block_number, block_hash, difficulty, seal)
+
     with solve_.best.get_lock():
+        if not hasattr(solve_.best, 'raw'):
+            solve_.best.raw = struct.pack("d", float('inf'))
         best_value_as_d = struct.unpack('d', solve_.best.raw)[0]
         if (product - limit) < best_value_as_d:
             
