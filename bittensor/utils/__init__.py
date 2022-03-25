@@ -160,6 +160,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
             block_bytes = block_hash.encode('utf-8')[2:]
             with best_seal.get_lock():
                 message = f"""Solving 
+                    time spent: {time.time() - start_time}
                     Nonce: [bold white]{nonce}[/bold white]
                     Difficulty: [bold white]{difficulty}[/bold white]
                     Iters: [bold white]{int(itrs_per_sec)}/s[/bold white]
