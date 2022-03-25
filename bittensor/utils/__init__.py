@@ -116,7 +116,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
         to increase the transparency of the process while still keeping the speed.
     """
     if num_processes == None:
-        num_processes = round(multiprocessing.cpu_count() / 2 )
+        num_processes = multiprocessing.cpu_count()
         
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty
