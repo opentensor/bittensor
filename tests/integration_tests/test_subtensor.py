@@ -372,7 +372,7 @@ class TestSubtensor(unittest.TestCase):
 
         with patch('bittensor.Subtensor.difficulty'):
 
-            wallet = MagicMock()
+            wallet = bittensor.wallet(_mock=True)
             wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
             self.subtensor.difficulty= 1
@@ -437,7 +437,6 @@ class TestSubtensor(unittest.TestCase):
             bittensor.utils.create_pow = MagicMock(return_value=None)
             wallet = bittensor.wallet(_mock=True)
             wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
-            self.subtensor.difficulty= 1
 
             self.subtensor.get_current_block = MagicMock(side_effect=current_block)
             self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
