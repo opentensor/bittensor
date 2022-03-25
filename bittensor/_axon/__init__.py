@@ -385,9 +385,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
         pubkey = variable_length_messages[1]
         print(pubkey)
         if self.blacklist == None:
+            print('passed')
             pass
         #TODO: Turn on blacklisting
         elif self.blacklist(pubkey,int(meta[3].value)):
+            print('blacklisted')
             raise Exception('Black listed')
         else:
             pass
