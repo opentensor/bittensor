@@ -107,6 +107,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (bittensor.proto.TensorMessage): 
                     proto response carring the nucleus forward output or None under failure.
         """
+        print('forward_received')
         tensor, code, time, message = self._forward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
@@ -136,6 +137,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (:obj:`bittensor.proto.TensorMessage`): 
                     proto response carring the nucleus backward output or None under failure.
         """
+        print('backward_received')
         tensor, code, time, message = self._backward( request )
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
