@@ -24,9 +24,12 @@ Example:
 import sys
 import argparse
 import time
+from types import SimpleNamespace
 import bittensor
 import torch
 import os
+import queue
+import threading
 import wandb
 import math
 import pandas
@@ -34,7 +37,7 @@ import traceback
 from rich import print
 from rich.console import Console
 from rich.traceback import install
-from ..neuron_utilities import joining_context, partial_contexts
+from ..neuron_utilities import joining_context, partial_contexts, ProducerThread
 import torch.nn as nn
 
 from torch.nn.utils import clip_grad_norm_
@@ -107,7 +110,11 @@ class neuron:
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
-
+        
+        # === Create thread queue ===
+        buffer_size = 20 # TODO
+        self.forward_queue = queue.Queue(buffer_size)
+        self.forward_thread = ProducerThread(name='producer', queue = self.forward_queue)
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -153,6 +160,9 @@ class neuron:
         bittensor.dataset.add_args( parser )
         bittensor.wandb.add_args(parser)
         return bittensor.config( parser )
+    
+    def __del__(self):
+        self.__exit__()
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
@@ -160,6 +170,8 @@ class neuron:
         print(exc_type, exc_value, exc_traceback)
         self.dataset.close()
         self.dendrite.__del__()
+        self.forward_queue.stop()
+        self.forward_queue.join()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -183,11 +195,18 @@ class neuron:
                 hot_pubkey = self.wallet.hotkey.ss58_address,
                 root_dir = self.config.neuron.full_path
             )
+
+    def fill_forward_queue(self):
+        print("filling")
+        return self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
         
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
-         
+        self.metagraph.sync().save() # Reset metagraph.
+        self.forward_thread.target = self.fill_forward_queue
+        self.forward_thread.start()
+
         # === Setup ===
         # Checks wallet and starts monitoring with wandb.
         with self:
@@ -267,8 +286,13 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
-
+            # loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
+            print('waiting from queue')
+            state_dict = self.forward_queue.get()
+            print('got from queue', time.time() - start_time); start_time = time.time()
+            loss, scores = self.nucleus.compute_shapely_scores(state_dict)
+            print('finished shapely', time.time() - start_time); start_time = time.time()
+            
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
             loss.backward()
@@ -301,6 +325,7 @@ class neuron:
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
                     wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
 
+            print('next please! ', time.time() - start_time); start_time = time.time()
         # Iterate epochs.
         self.epoch += 1
 
@@ -431,6 +456,24 @@ class nucleus( torch.nn.Module ):
         self.encoder.apply( init_xavier )
         torch.nn.init.xavier_uniform_( self.gates.weight )
 
+    # === Compute loss given joined responses ===
+    # This function computes target loss for next token prediction given 
+    # the joined responses as a hidden unit input.
+    # target_loss: (torch.float64): loss after decoding responses to targets.
+    # target_loss.shape = [ 1 ]
+    def get_target_loss ( self, hidden, targets ):
+        # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
+        #   Hidden units which are encoded and decoded onto targets for loss computation.
+        # targets: (torch.float64): [n]
+        #   Token targets,
+        src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
+        src_mask = src_mask.to(self.config.neuron.device)
+        encoded_hidden = self.encoder( hidden, mask = src_mask )
+        decoded_targets = self.decoder( encoded_hidden )
+        shift_logits = decoded_targets[..., :-1, :].contiguous()
+        shift_labels = targets[..., 1:].contiguous()
+        return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
+
     def forward ( 
         self, 
         inputs: torch.FloatTensor,
@@ -526,31 +569,13 @@ class nucleus( torch.nn.Module ):
         for response in query_responses:
             response.to( self.device )
 
-        # === Compute loss given joined responses ===
-        # This function computes target loss for next token prediction given 
-        # the joined responses as a hidden unit input.
-        # target_loss: (torch.float64): loss after decoding responses to targets.
-        # target_loss.shape = [ 1 ]
-        def get_target_loss ( hidden, targets ):
-            # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
-            #   Hidden units which are encoded and decoded onto targets for loss computation.
-            # targets: (torch.float64): [n]
-            #   Token targets,
-            src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
-            src_mask = src_mask.to(self.config.neuron.device)
-            encoded_hidden = self.encoder( hidden, mask = src_mask )
-            decoded_targets = self.decoder( encoded_hidden )
-            shift_logits = decoded_targets[..., :-1, :].contiguous()
-            shift_labels = targets[..., 1:].contiguous()
-            return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
-
         # === Compute global loss ===
         # Computes the global training loss for the nucleus by decoding all the responses
         # onto the targets.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
         responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
-        target_loss = get_target_loss ( responses_hidden, inputs )
+        target_loss = self.get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
         # === Compute Importance loss ===
@@ -561,28 +586,53 @@ class nucleus( torch.nn.Module ):
         # target_loss.shape = [ 1 ]
         importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
         loss = target_loss + importance_loss
+        
+        state_dict = SimpleNamespace(
+            inputs = inputs,
+            batchwise_routing_weights = batchwise_routing_weights,
+            routing_uids = routing_uids,
+            query_responses = query_responses,
+            return_ops = return_ops,
+            responses_hidden = responses_hidden,
+            loss = loss,
+            n = metagraph.n.item()
+        )
+        
+        return state_dict
 
+    def compute_shapely_scores(self, state_dict):
+        
         # === Compute shapely scores ===
         # Computes shapely scores for each endpoint by masking the response and
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
-        masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
-        shapely_scores = torch.zeros( (metagraph.n.item()) )
+        masked_contexts = partial_contexts(
+            state_dict.return_ops, 
+            state_dict.routing_uids, 
+            state_dict.batchwise_routing_weights[state_dict.routing_uids],  
+            state_dict.query_responses
+            )
+        shapely_scores = torch.zeros( state_dict.n )
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
-            unmasked_loss = get_target_loss(responses_hidden, inputs)
+            unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
             # Iterate over all responses creating a masked context.
             for i,uid in enumerate(masked_contexts):
                 # Create mask by zeroing out the response at index.              
-                masked_loss = get_target_loss ( masked_contexts[uid], inputs )
+                masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
                 shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
+                # print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( 
+                #     uid, 
+                #     state_dict.batchwise_routing_weights[state_dict.routing_uids][i], 
+                #     -shapely_score.item(), 
+                #     state_dict.return_ops[i], 
+                #     state_dict.query_responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
 
         # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
+        shapely_scores[state_dict.routing_uids[ state_dict.return_ops != 1 ]]  = shapely_scores.min().item()
 
         # === Done ===
-        return loss, shapely_scores
+        return state_dict.loss, shapely_scores

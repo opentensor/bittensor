@@ -1,5 +1,7 @@
 from numpy import zeros_like
 import bittensor
+import threading
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -144,3 +146,43 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
                 partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
             partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
     return partial_context
+    
+class ProducerThread(threading.Thread):
+    r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
+    """
+    def __init__(self, queue, target=None, name=None):
+        r"""Initialization.
+        Args:
+            queue (:obj:`queue.Queue`, `required`)
+                The queue to be filled.
+                
+            target (:obj:`function`, `required`)
+                The target function to run when the queue is not full.
+
+            arg (:type:`tuple`, `required`)
+                The arguments to be passed to the target function.
+
+            name (:type:`str`, `optional`)
+                The name of this threading object. 
+        """
+        super(ProducerThread,self).__init__()
+        self.name = name
+        self.target = target
+        self.queue = queue 
+        self._stop_event = threading.Event()
+
+    def run(self):
+        r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
+        """
+        while True and (not self.stopped()):
+            if not self.queue.full():
+                item = self.target()
+                self.queue.put(item)
+                time.sleep(0.2)
+        return
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
