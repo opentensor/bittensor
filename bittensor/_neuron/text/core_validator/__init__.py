@@ -492,6 +492,7 @@ class nucleus( torch.nn.Module ):
         # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
         # routing_weights.shape = [ n_filtered ]
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
+        batchwise_routing_weights[914] += 100
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
 
@@ -586,10 +587,14 @@ class nucleus( torch.nn.Module ):
         shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
         
 
-        grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
-        print(grad)
+        #grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
+        grad = None
+        if grad == None:
+            grad = torch.zeros( (metagraph.n.item()) )
 
         for i,uid in enumerate(masked_contexts):
             print(i, uid, shapely_scores[ uid ], grad[uid]) 
+            if uid == 914:
+                print("-------- FOUND FOUND FOUND --------")
         # === Done ===
         return loss, shapely_scores
