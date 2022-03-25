@@ -230,6 +230,7 @@ class TestSubtensor(unittest.TestCase):
                 self.is_success = True
             def process_events(self):
                 return True
+            block_hash: str = '0x'
 
         neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
@@ -248,6 +249,7 @@ class TestSubtensor(unittest.TestCase):
                 self.is_success = True
             def process_events(self):
                 return True
+            block_hash: str = '0x'
 
         neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 

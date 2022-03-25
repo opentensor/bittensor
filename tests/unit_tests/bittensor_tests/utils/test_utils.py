@@ -168,14 +168,14 @@ def test_solve_for_difficulty_fast_registered_already():
         block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
         subtensor = MagicMock()
         subtensor.get_current_block = MagicMock( return_value=1 )
-        subtensor.difficulty = 2560000000 # set high to make solving take a long time
+        subtensor.difficulty = 100000000000# set high to make solving take a long time
         subtensor.substrate = MagicMock()
         subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
         wallet = MagicMock()
         wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
         # all arugments should return None to indicate an early return
-        a, b, c, d, e = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+        a, b, c, d, e = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes = 1, update_interval = 1000)
         assert a is None
         assert b is None
         assert c is None
@@ -183,3 +183,7 @@ def test_solve_for_difficulty_fast_registered_already():
         assert e is None
         # called every time until True
         assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
+
+
+if __name__ == "__main__":
+    test_solve_for_difficulty_fast_registered_already()
