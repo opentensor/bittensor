@@ -168,9 +168,10 @@ class neuron:
                     torch inputs to be forward processed.
                 request_type ( bittensor.proto.RequestType, `required`):
                     the request type ('FORWARD' or 'BACKWARD').
-        """        
+        """  
+        input_size = inputs_x.element_size() * inputs_x.nelement()      
         # Priority = stake / request_size 
-        priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
+        priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / input_size
         return priority
 
     def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
