@@ -494,8 +494,10 @@ class nucleus( torch.nn.Module ):
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
-        noisy_routing_weights[914] += 2
+        noisy_routing_weights[914] += 10
+
         
+
         # === Get indices and values for uids with highest scores ===
         # We are taking the topk routing weights and returning their uids.
         # First we ensure topk is smaller than the network size then use the torch.topk.
@@ -505,6 +507,7 @@ class nucleus( torch.nn.Module ):
         # topk_routing_uids.shape = [ self.config.nucleus.topk ]
         top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, self.config.nucleus.topk, dim=0)
 
+        print(top_k_routing_weights)
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
         # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
