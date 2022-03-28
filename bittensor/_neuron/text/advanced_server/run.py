@@ -126,9 +126,13 @@ def serve(
                     torch inputs to be forward processed.
                 request_type ( bittensor.proto.RequestType, `required`):
                     the request type ('FORWARD' or 'BACKWARD').
-        """        
-        uid = metagraph.hotkeys.index(pubkey)
-        priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
+        """
+        try:        
+            uid = metagraph.hotkeys.index(pubkey)
+            priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
+        
+        except:
+            return 0
 
         return priority
 
