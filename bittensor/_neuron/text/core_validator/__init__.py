@@ -39,11 +39,12 @@ from rich.console import Console
 from rich.traceback import install
 from ..neuron_utilities import joining_context, partial_contexts, ProducerThread
 import torch.nn as nn
-
+import random
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
+import cProfile
 
 logger = logger.opt( colors=True )
 console = Console()
@@ -170,8 +171,8 @@ class neuron:
         print(exc_type, exc_value, exc_traceback)
         self.dataset.close()
         self.dendrite.__del__()
-        self.forward_queue.stop()
-        self.forward_queue.join()
+        self.forward_thread.stop()
+        self.forward_thread.join()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -197,9 +198,31 @@ class neuron:
             )
 
     def fill_forward_queue(self):
-        print("filling")
-        return self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
+        start = time.time()
+        print("fill: start forward")
+        data = next( self.dataset )
         
+        print("fill: got data", time.time()  - start)
+
+        result = self.nucleus( data , self.metagraph, self.dendrite )
+        print("fill: finished forward", time.time() - start)
+
+        if random.randint(0,10) % 2 == 0: 
+            print("fill: start backward", time.time() - start)
+            # === Backward ===
+            # Backwards gradients through model to train gating and remote endpoints.
+            loss = result.loss
+            loss.backward()
+
+            # === Apply gradients ===
+            # Applies local gradients to parameters.
+            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+            self.optimizer.step()
+            self.optimizer.zero_grad()    
+            print("fill: finished backward", time.time() - start)
+
+        return result
+
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
@@ -232,7 +255,6 @@ class neuron:
                     print( 'Unknown exception: {}', e )
                     if not self.config.neuron.restart_on_failure:
                         break
-
 
     def run_epoch( self ):
         r""" Runs a validator epoch. We apply batches until the epoch length is exhausted.
@@ -287,22 +309,12 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             # loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
-            print('waiting from queue')
+            print('run: waiting from queue')
             state_dict = self.forward_queue.get()
-            print('got from queue', time.time() - start_time); start_time = time.time()
+            print('run: got from queue', time.time() - start_time); start_time = time.time()
             loss, scores = self.nucleus.compute_shapely_scores(state_dict)
-            print('finished shapely', time.time() - start_time); start_time = time.time()
+            print('run: finished shapely', time.time() - start_time); start_time = time.time()
             
-            # === Backward ===
-            # Backwards gradients through model to train gating and remote endpoints.
-            loss.backward()
-
-            # === Apply gradients ===
-            # Applies local gradients to parameters.
-            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-            self.optimizer.step()
-            self.optimizer.zero_grad()    
-
             # === Scoring ===
             # Updates moving averages and history.
             score_history.append( scores ) # Normalized step scores.
@@ -607,30 +619,38 @@ class nucleus( torch.nn.Module ):
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
+        start_time = time.time()
         masked_contexts = partial_contexts(
             state_dict.return_ops, 
             state_dict.routing_uids, 
             state_dict.batchwise_routing_weights[state_dict.routing_uids],  
             state_dict.query_responses
             )
+        print('shapely: got masked_contect', time.time() - start_time)
         shapely_scores = torch.zeros( state_dict.n )
         # Turn off gradient computation for shapely scores.
-        with torch.no_grad():
-            self.eval()
-            unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
-            # Iterate over all responses creating a masked context.
-            for i,uid in enumerate(masked_contexts):
-                # Create mask by zeroing out the response at index.              
-                masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
-                shapely_score = unmasked_loss - masked_loss
-                # print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( 
-                #     uid, 
-                #     state_dict.batchwise_routing_weights[state_dict.routing_uids][i], 
-                #     -shapely_score.item(), 
-                #     state_dict.return_ops[i], 
-                #     state_dict.query_responses[i].sum()))
-                shapely_scores[ uid ] = -shapely_score
 
+        with cProfile.Profile() as pr:
+            with torch.no_grad():
+                self.eval()
+                unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
+                print('shapely: got unmasked_loss', time.time() - start_time)
+                print('shapely: masked_contexts', masked_contexts)
+                # Iterate over all responses creating a masked context.
+                for i,uid in enumerate(masked_contexts):
+                    # Create mask by zeroing out the response at index.              
+                    masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
+                    shapely_score = unmasked_loss - masked_loss
+                    # print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( 
+                    #     uid, 
+                    #     state_dict.batchwise_routing_weights[state_dict.routing_uids][i], 
+                    #     -shapely_score.item(), 
+                    #     state_dict.return_ops[i], 
+                    #     state_dict.query_responses[i].sum()))
+                    shapely_scores[ uid ] = -shapely_score
+        
+            print('shapely: got scores', time.time() - start_time)
+            pr.print_stats()
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[state_dict.routing_uids[ state_dict.return_ops != 1 ]]  = shapely_scores.min().item()
 
