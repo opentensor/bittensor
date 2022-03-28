@@ -117,7 +117,7 @@ def serve(
     # Create our axon server and subscribe it to the network.
     if axon == None:
         axon = bittensor.axon (
-            config = config
+            config = config,
             wallet = wallet,
             forward_text = forward_text,
             backward_text = backward_text,
