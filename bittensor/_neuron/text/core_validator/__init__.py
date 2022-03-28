@@ -578,7 +578,7 @@ class nucleus( torch.nn.Module ):
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
         masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
-        shapely_scores = torch.zeros( (metagraph.n.item()) )
+        shapely_scores = torch.ones( (metagraph.n.item()) ) * -1
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
@@ -593,7 +593,7 @@ class nucleus( torch.nn.Module ):
 
         print(shapely_scores.min())
         # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
+        shapely_scores[routing_uids[ return_ops != 1 ]]  = -1
         
 
         #grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
