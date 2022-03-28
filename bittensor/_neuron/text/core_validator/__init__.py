@@ -587,11 +587,11 @@ class nucleus( torch.nn.Module ):
 
         print(shapely_scores.min())
         # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
+        shapely_scores[routing_uids[ return_ops != 1 ]]  = -1
         
 
-        grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
-        #grad = None
+        #grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
+        grad = None
         if grad == None:
             grad = torch.zeros( (metagraph.n.item()) )
 
@@ -600,6 +600,5 @@ class nucleus( torch.nn.Module ):
             if uid == 914:
                 print("-------- FOUND FOUND FOUND --------")
         
-        shapely_scores = 0.5*(shapely_scores) + 0.5*(grad)
         # === Done ===
         return loss, shapely_scores
