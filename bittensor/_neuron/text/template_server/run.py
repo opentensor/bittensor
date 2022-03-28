@@ -100,16 +100,18 @@ def serve(
                     the request type ('FORWARD' or 'BACKWARD').
         """
         # Check for registrations
-        def registration_check() -> bool:
-            # If we allow non-registered requests return False = not blacklisted.
-            is_registered = pubkey in metagraph.hotkeys
-            if not is_registered:
-                if config.neuron.blacklist_allow_non_registered:
-                    return False
-                
-                return True
 
-            return False
+        is_registered = pubkey in metagraph.hotkeys
+        if not is_registered:
+            if config.neuron.blacklist_allow_non_registered:
+                return False
+            
+            return True
+
+        return False
+
+        
+
   
 
     # Create our axon server and subscribe it to the network.
