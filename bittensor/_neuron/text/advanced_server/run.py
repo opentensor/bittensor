@@ -151,9 +151,8 @@ def serve(
             is_registered = pubkey in metagraph.hotkeys
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
-                    return False
-                else:
                     return True
+                    
 
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
