@@ -593,7 +593,7 @@ class nucleus( torch.nn.Module ):
 
         print(shapely_scores.min())
         # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[routing_uids[ return_ops != 1 ]]  = -1
+        shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
         
 
         #grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
