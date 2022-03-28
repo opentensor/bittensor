@@ -105,9 +105,9 @@ def serve(
             is_registered = pubkey in metagraph.hotkeys
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
-                    return True
+                    return False
                 
-            return False
+            return True
   
 
     # Create our axon server and subscribe it to the network.
