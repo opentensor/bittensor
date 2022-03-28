@@ -107,12 +107,15 @@ def serve(
                 if config.neuron.blacklist_allow_non_registered:
                     return False
                 
-            return True
+                return True
+
+            return False
   
 
     # Create our axon server and subscribe it to the network.
     if axon == None:
         axon = bittensor.axon (
+            config = config
             wallet = wallet,
             forward_text = forward_text,
             backward_text = backward_text,
