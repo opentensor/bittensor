@@ -509,6 +509,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                             response.process_events()
                             if not response.is_success:
                                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                                time.sleep(1)
                                 continue
                             
                             elif response.is_success:
