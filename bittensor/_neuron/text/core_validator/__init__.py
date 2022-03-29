@@ -410,7 +410,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.1)
+        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.5)
 
     @classmethod
     def config ( cls ):
@@ -578,7 +578,10 @@ class nucleus( torch.nn.Module ):
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
         masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
+
+        # This sets non queried peers as if non-responsive
         shapely_scores = torch.ones( (metagraph.n.item()) ) * -1
+
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
@@ -591,20 +594,8 @@ class nucleus( torch.nn.Module ):
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
 
-        print(shapely_scores.min())
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[routing_uids[ return_ops != 1 ]]  = -1
-        
-
-        #grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
-        grad = None
-        if grad == None:
-            grad = torch.zeros( (metagraph.n.item()) )
-
-        for i,uid in enumerate(masked_contexts):
-            print(i, uid, shapely_scores[ uid ], grad[uid]) 
-            if uid == 914:
-                print("-------- FOUND FOUND FOUND --------")
         
         # === Done ===
         return loss, shapely_scores
