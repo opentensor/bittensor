@@ -109,9 +109,6 @@ def serve(
             return True
 
         return False
-
-        
-
   
 
     # Create our axon server and subscribe it to the network.
