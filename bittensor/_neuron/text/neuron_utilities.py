@@ -5,6 +5,10 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from concurrent.futures import Future
+import queue
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 
 def update_metagraph_peerweight(metagraph, nucleus, device):
     r"""
@@ -147,10 +151,10 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
             partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
     return partial_context
     
-class ProducerThread(threading.Thread):
+class ThreadQueue(threading.Thread):
     r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
     """
-    def __init__(self, queue, target=None, name=None):
+    def __init__(self, buffer_size, target=None, name=None):
         r"""Initialization.
         Args:
             queue (:obj:`queue.Queue`, `required`)
@@ -165,21 +169,23 @@ class ProducerThread(threading.Thread):
             name (:type:`str`, `optional`)
                 The name of this threading object. 
         """
-        super(ProducerThread,self).__init__()
+        super(ThreadQueue,self).__init__()
         self.name = name
         self.target = target
-        self.queue = queue 
+        self.queue = queue.Queue(buffer_size)
         self._stop_event = threading.Event()
 
     def run(self):
         r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
         """
-        while True and (not self.stopped()):
-            if not self.queue.full():
-                item = self.target()
-                self.queue.put(item)
-                time.sleep(0.2)
-        return
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            while True and (not self.stopped()):
+                if not self.queue.full():
+                    fut = Future()
+                    executor.submit(self.target, fut)
+                    self.queue.put(fut)
+                    time.sleep(5)
+            return
 
     def stop(self):
         self._stop_event.set()

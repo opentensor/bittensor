@@ -37,7 +37,7 @@ import traceback
 from rich import print
 from rich.console import Console
 from rich.traceback import install
-from ..neuron_utilities import joining_context, partial_contexts, ProducerThread
+from ..neuron_utilities import joining_context, partial_contexts, ThreadQueue
 import torch.nn as nn
 import random
 from torch.nn.utils import clip_grad_norm_
@@ -45,6 +45,7 @@ import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 import cProfile
+from threading import Lock
 
 logger = logger.opt( colors=True )
 console = Console()
@@ -113,9 +114,10 @@ class neuron:
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
         
         # === Create thread queue ===
-        buffer_size = 20 # TODO
-        self.forward_queue = queue.Queue(buffer_size)
-        self.forward_thread = ProducerThread(name='producer', queue = self.forward_queue)
+        buffer_size = 3 # TODO
+        self.forward_thread_queue = ThreadQueue(name='producer', buffer_size = buffer_size)
+        self.mutex = Lock()
+        self.loss = None
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -171,8 +173,8 @@ class neuron:
         print(exc_type, exc_value, exc_traceback)
         self.dataset.close()
         self.dendrite.__del__()
-        self.forward_thread.stop()
-        self.forward_thread.join()
+        self.forward_thread_queue.stop()
+        self.forward_thread_queue.join()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -197,38 +199,48 @@ class neuron:
                 root_dir = self.config.neuron.full_path
             )
 
-    def fill_forward_queue(self):
+    def forward(self, future):
+        idx = random.randint(0,100)
         start = time.time()
-        print("fill: start forward")
+        print(f"fill {idx} : start forward")
         data = next( self.dataset )
         
-        print("fill: got data", time.time()  - start)
+        print(f"fill {idx}: got data", time.time()  - start)
 
         result = self.nucleus( data , self.metagraph, self.dendrite )
-        print("fill: finished forward", time.time() - start)
+        print(f"fill {idx}: finished forward", time.time() - start)
 
-        if random.randint(0,10) % 2 == 0: 
-            print("fill: start backward", time.time() - start)
-            # === Backward ===
-            # Backwards gradients through model to train gating and remote endpoints.
-            loss = result.loss
-            loss.backward()
+        # === Backward ===
+        # Backwards gradients through model to train gating and remote endpoints.
+        if self.loss == None:
+            self.loss = result.loss
+        else:
+            self.loss += result.loss
+
+        print(f"fill {idx}: mutex", self.mutex.locked()) 
+        with self.mutex:
+            print(f"fill {idx}: start backward", time.time() - start)
+            self.loss.backward()
+
+        # if random.randint(0,10) % 2 == 0: 
 
             # === Apply gradients ===
             # Applies local gradients to parameters.
-            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-            self.optimizer.step()
-            self.optimizer.zero_grad()    
+            # clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+            # self.optimizer.step()
+            # self.optimizer.zero_grad()    
             print("fill: finished backward", time.time() - start)
 
-        return result
+        future.set_result(result)
+        print(f"fill {idx}: set result", time.time() - start)
+        return
 
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
         self.metagraph.sync().save() # Reset metagraph.
-        self.forward_thread.target = self.fill_forward_queue
-        self.forward_thread.start()
+        self.forward_thread_queue.target = self.forward
+        self.forward_thread_queue.start()
 
         # === Setup ===
         # Checks wallet and starts monitoring with wandb.
@@ -304,16 +316,18 @@ class neuron:
         start_block = self.subtensor.block
         while self.subtensor.block < start_block + blocks_per_epoch:
             start_time = time.time()
+            idx = random.randint(0,100)
 
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             # loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
-            print('run: waiting from queue')
-            state_dict = self.forward_queue.get()
-            print('run: got from queue', time.time() - start_time); start_time = time.time()
+            print(f'====> run {idx}: waiting from queue')
+            state_dict = self.forward_thread_queue.queue.get().result()
+
+            print(f'====> run {idx}: got from queue', time.time() - start_time); start_time = time.time()
             loss, scores = self.nucleus.compute_shapely_scores(state_dict)
-            print('run: finished shapely', time.time() - start_time); start_time = time.time()
+            print(f'====> run {idx}: finished shapely', time.time() - start_time); start_time = time.time()
             
             # === Scoring ===
             # Updates moving averages and history.
@@ -635,7 +649,6 @@ class nucleus( torch.nn.Module ):
                 self.eval()
                 unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
                 print('shapely: got unmasked_loss', time.time() - start_time)
-                print('shapely: masked_contexts', masked_contexts)
                 # Iterate over all responses creating a masked context.
                 for i,uid in enumerate(masked_contexts):
                     # Create mask by zeroing out the response at index.              
@@ -650,7 +663,6 @@ class nucleus( torch.nn.Module ):
                     shapely_scores[ uid ] = -shapely_score
         
             print('shapely: got scores', time.time() - start_time)
-            pr.print_stats()
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[state_dict.routing_uids[ state_dict.return_ops != 1 ]]  = shapely_scores.min().item()
 
