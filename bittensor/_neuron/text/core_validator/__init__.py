@@ -500,8 +500,6 @@ class nucleus( torch.nn.Module ):
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
-        noisy_routing_weights[914] += 10
-
         
 
         # === Get indices and values for uids with highest scores ===
