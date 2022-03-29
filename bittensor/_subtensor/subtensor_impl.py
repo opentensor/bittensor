@@ -475,12 +475,13 @@ To run a local node (See: docs/running_a_validator.md) \n
             with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:
 
                 # pow failed
-                if pow_result is None:
+                if not pow_result:
                     # might be registered already
                     if (wallet.is_registered( self )):
                         bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
                         return True
                     
+                # pow successful, proceed to submit pow to chain for registration
                 else:
                     #check if pow result is still valid
                     while pow_result['block_number'] >= self.get_current_block() - 3:
@@ -512,7 +513,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                                 time.sleep(1)
                                 continue
                             
-                            elif response.is_success:
+                            # Successful registration, final check for neuron and pubkey
+                            else:
                                 bittensor.__console__.print(":satellite: Checking Balance...")
                                 neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
                                 bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
