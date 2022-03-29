@@ -291,12 +291,6 @@ class neuron:
             current_block = self.subtensor.block
             step_time = time.time() - start_time
 
-            step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = 50 )
-            print(step_topk_scores, step_topk_uids)
-            step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
-            for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
-                print( 'weights/w_{}'.format( i ), w )
-
             # === Logs ===
             print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t epoch_steps:', epoch_steps, '\n\t global_steps:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
                    '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
@@ -500,9 +494,6 @@ class nucleus( torch.nn.Module ):
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
-        noisy_routing_weights[914] += 10
-
-        
 
         # === Get indices and values for uids with highest scores ===
         # We are taking the topk routing weights and returning their uids.
@@ -513,7 +504,6 @@ class nucleus( torch.nn.Module ):
         # topk_routing_uids.shape = [ self.config.nucleus.topk ]
         top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, self.config.nucleus.topk, dim=0)
 
-        print(top_k_routing_weights)
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
         # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
