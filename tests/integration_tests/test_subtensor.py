@@ -31,11 +31,8 @@ from bittensor._subtensor.subtensor_mock import mock_subtensor
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
         self.subtensor = bittensor.subtensor( network = 'nobunaga' )
-        self.wallet = bittensor.wallet()
+        self.wallet = bittensor.wallet(_mock=True)
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        self.wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
-        self.wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
-        self.wallet.set_hotkey(Keypair.create_from_mnemonic(Keypair.generate_mnemonic()), encrypt=False, overwrite=True)
         self.mock_neuron = self.subtensor._neuron_dict_to_namespace(
             dict({
                 "version":1,
