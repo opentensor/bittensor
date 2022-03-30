@@ -111,7 +111,7 @@ def joining_context(return_ops, topk_weights, responses):
     joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
     output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__))
     for index, joining_weight in enumerate( joining_weights ):
-        output += responses[joining_uids[index]]* joining_weight
+        output += responses[joining_uids[index]] * joining_weight
     return output, joining_uids
 
 def partial_contexts(return_ops, topk_uids, topk_weights, responses,single=False):
@@ -150,9 +150,9 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses,single=False
                 partial_return_ops = return_ops.clone()
                 partial_return_ops[:] = bittensor.proto.ReturnCode.NoReturn
                 # --- Only mask peers that successfully
-                if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
+                if return_ops[i] != bittensor.proto.ReturnCode.Success:
                     pass
                 else:
                     partial_return_ops[i] = bittensor.proto.ReturnCode.Success
-                partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)        
+                partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)  
     return partial_context

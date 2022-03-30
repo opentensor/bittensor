@@ -258,8 +258,7 @@ class neuron:
         # Here we run until blocks_per_epochs have progressed.
         self.metagraph.sync().save() # Reset metagraph.
         epoch_steps = 0
-        score_history = []
-        moving_avg_scores = torch.ones_like( self.metagraph.S )
+        moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
         start_block = self.subtensor.block
         while self.subtensor.block < start_block + blocks_per_epoch:
             start_time = time.time()
@@ -267,7 +266,7 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
+            loss, scores, uids = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
@@ -281,8 +280,7 @@ class neuron:
 
             # === Scoring ===
             # Updates moving averages and history.
-            score_history.append( scores ) # Normalized step scores.
-            moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
+            moving_avg_scores[uids] = moving_avg_scores[uids]*(0.99) + scores*(0.01)
         
             # === State update ===
             # Prints step logs to screen.
@@ -291,7 +289,7 @@ class neuron:
             current_block = self.subtensor.block
             step_time = time.time() - start_time
 
-            step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = 50 )
+            step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
             print(step_topk_scores, step_topk_uids)
             step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
             for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
@@ -405,7 +403,7 @@ class nucleus( torch.nn.Module ):
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default = 50 )
+        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default = 20 )
         parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200 )
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
@@ -511,7 +509,6 @@ class nucleus( torch.nn.Module ):
         # topk_routing_uids.shape = [ self.config.nucleus.topk ]
         top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, self.config.nucleus.topk, dim=0)
 
-        print(top_k_routing_weights)
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
         # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
@@ -576,36 +573,28 @@ class nucleus( torch.nn.Module ):
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
         masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
-        masked_context_single = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses, single = True)
         # This sets non queried peers as if non-responsive
-        shapely_scores = torch.ones( (metagraph.n.item()) ) * -1
+        shapely_scores = torch.zeros( routing_uids.size())
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
             unmasked_loss = get_target_loss(responses_hidden, inputs)
             # Iterate over all responses creating a masked context.
-            for i,uid in enumerate(masked_contexts):
+            for i,uid in enumerate(routing_uids):
                 # Create mask by zeroing out the response at index.              
-                masked_loss = get_target_loss ( masked_contexts[uid], inputs )
-                masked_single_loss = get_target_loss ( masked_context_single[uid], inputs )
+                masked_loss = get_target_loss ( masked_contexts[uid.item()], inputs )
+                #masked_single_loss = get_target_loss ( masked_context_single[uid.item()], inputs )
                 shapely_score = unmasked_loss - masked_loss
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
-                shapely_scores[ uid ] = -shapely_score
+                shapely_scores[i] = -shapely_score
 
-        print(shapely_scores.min())
         # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[routing_uids[ return_ops != 1 ]]  = -1
+        shapely_scores[return_ops != 1 ]  = -1
         
-
-        #grad, = torch.autograd.grad(target_loss, batchwise_routing_weights, retain_graph=True, create_graph=True, allow_unused=True)
-        grad = None
-        if grad == None:
-            grad = torch.zeros( (metagraph.n.item()) )
-
-        for i,uid in enumerate(masked_contexts):
-            print(i, uid, shapely_scores[ uid ], grad[uid]) 
+        for i,uid in enumerate(routing_uids):
+            print(i, uid, shapely_scores[ i ]) 
             if uid == 914:
                 print("-------- FOUND FOUND FOUND --------")
         
         # === Done ===
-        return loss, shapely_scores
+        return loss, shapely_scores, routing_uids
