@@ -97,7 +97,7 @@ def solve_for_difficulty( block_hash, difficulty ):
             break
     return nonce, seal
 
-def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, update_interval: int = 500000 ) -> Tuple[int, int, Any, int, Any]:
+def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, update_interval: int = 5000000 ) -> Tuple[int, int, Any, int, Any]:
     """
     Solves the POW for registration using multiprocessing.
     Args:

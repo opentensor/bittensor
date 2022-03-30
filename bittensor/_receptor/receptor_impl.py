@@ -442,6 +442,7 @@ class Receptor(nn.Module):
             outputs = request.response.tensors[0]
             deserializer = bittensor.serializer(  outputs.serializer )
             outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
+            print(outputs.sum())
 
         except Exception as e:
             request.code = bittensor.proto.ReturnCode.ResponseDeserializationException

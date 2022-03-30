@@ -576,6 +576,8 @@ class nucleus( torch.nn.Module ):
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
         masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
+        masked_context_single = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses, single = True)
+        # This sets non queried peers as if non-responsive
         shapely_scores = torch.ones( (metagraph.n.item()) ) * -1
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():

@@ -114,7 +114,7 @@ def joining_context(return_ops, topk_weights, responses):
         output += responses[joining_uids[index]]* joining_weight
     return output, joining_uids
 
-def partial_contexts(return_ops, topk_uids, topk_weights, responses):
+def partial_contexts(return_ops, topk_uids, topk_weights, responses,single=False):
     """
     Creates the partial contexts which are used to calculate the shapley scores 
 
@@ -134,13 +134,25 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
     
     """
     partial_context = {}
-    with torch.no_grad():
-        for i, uid in enumerate(topk_uids):
-            partial_return_ops = return_ops.clone()
-            # --- Only mask peers that successfully
-            if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
-                pass
-            else:
-                partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
-            partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
+    if not single:
+        with torch.no_grad():
+            for i, uid in enumerate(topk_uids):
+                partial_return_ops = return_ops.clone()
+                # --- Only mask peers that successfully
+                if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
+                    pass
+                else:
+                    partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
+                partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
+    else:
+        with torch.no_grad():
+            for i, uid in enumerate(topk_uids):
+                partial_return_ops = return_ops.clone()
+                partial_return_ops[:] = bittensor.proto.ReturnCode.NoReturn
+                # --- Only mask peers that successfully
+                if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
+                    pass
+                else:
+                    partial_return_ops[i] = bittensor.proto.ReturnCode.Success
+                partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)        
     return partial_context
