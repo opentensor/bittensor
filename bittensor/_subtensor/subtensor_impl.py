@@ -437,6 +437,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
+        max_allowed_attempts: int = 3
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -467,61 +468,67 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return False
 
         # Attempt rolling registration.
-        attempts = 0
-        max_allowed_attempts = 10
+        attempts = 1
         while True:
-            
             # Solve latest POW.
             pow_result = bittensor.utils.create_pow( self, wallet )
-            with bittensor.__console__.status(":satellite: Registering...({}/10)".format(attempts)) as status:
-                # verify wallet not already registered
-                if (wallet.is_registered( self )):
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
-                    return True
-                    
-                with self.substrate as substrate:
-                    try:
-                        if pow_result is None:
-                            # might be registered already
-                            raise "Failed registration attempt"
-                        
-                        call = substrate.compose_call( 
-                            call_module='SubtensorModule',  
-                            call_function='register', 
-                            call_params={ 
-                                'block_number': pow_result['block_number'], 
-                                'nonce': pow_result['nonce'], 
-                                'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
-                                'hotkey': wallet.hotkey.ss58_address, 
-                                'coldkey': wallet.coldkeypub.ss58_address
-                            } 
-                        )
-                        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-                        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
-                        # We only wait here if we expect finalization.
-                        if not wait_for_finalization and not wait_for_inclusion:
-                            bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                            return True
-                        response.process_events()
-                        if not response.is_success:
-                            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                            attempts += 1
-                            if attempts > max_allowed_attempts: 
-                                bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                                return False
-                            else:
-                                status.update( ":satellite: Registering...({}/10)".format(attempts))
-                                continue
-                    except:
-                        attempts += 1
-                        status.update( ":satellite: Registering...({}/10)".format(attempts))
-                        continue
+            with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:
 
-            if response.is_success:
-                with bittensor.__console__.status(":satellite: Checking Balance..."):
-                    neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
-                    return True
+                # pow failed
+                if not pow_result:
+                    # might be registered already
+                    if (wallet.is_registered( self )):
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                        return True
+                    
+                # pow successful, proceed to submit pow to chain for registration
+                else:
+                    #check if pow result is still valid
+                    while pow_result['block_number'] >= self.get_current_block() - 3:
+                        with self.substrate as substrate:
+                            # create extrinsic call
+                            call = substrate.compose_call( 
+                                call_module='SubtensorModule',  
+                                call_function='register', 
+                                call_params={ 
+                                    'block_number': pow_result['block_number'], 
+                                    'nonce': pow_result['nonce'], 
+                                    'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
+                                    'hotkey': wallet.hotkey.ss58_address, 
+                                    'coldkey': wallet.coldkeypub.ss58_address
+                                } 
+                            )
+                            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+                            
+                            # We only wait here if we expect finalization.
+                            if not wait_for_finalization and not wait_for_inclusion:
+                                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                                return True
+                            
+                            # process if registration successful, try again if pow is still valid
+                            response.process_events()
+                            if not response.is_success:
+                                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                                time.sleep(1)
+                                continue
+                            
+                            # Successful registration, final check for neuron and pubkey
+                            else:
+                                bittensor.__console__.print(":satellite: Checking Balance...")
+                                neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                                bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                                return True
+
+                #Failed registration, retry pow
+                attempts += 1
+                if attempts > max_allowed_attempts: 
+                    bittensor.__console__.print( "[red]No more attempts.[/red]" )
+                    return False
+                else:
+                    status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
+                    continue
+
 
     def serve (
             self, 
