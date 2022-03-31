@@ -570,19 +570,64 @@ class nucleus( torch.nn.Module ):
         masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
         shapely_scores = torch.zeros( (metagraph.n.item()) )
         # Turn off gradient computation for shapely scores.
+        start_time = time.time()
         with torch.no_grad():
             self.eval()
             unmasked_loss = get_target_loss(responses_hidden, inputs)
             # Iterate over all responses creating a masked context.
             for i,uid in enumerate(masked_contexts):
-                # Create mask by zeroing out the response at index.              
+                # Create mask by zeroing out the response at index.
                 masked_loss = get_target_loss ( masked_contexts[uid], inputs )
                 shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
+                # print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
                 shapely_scores[ uid ] = -shapely_score
+
+            count_zeros = 0            
+            for score in shapely_scores:
+                if score == 0:
+                    count_zeros += 1
+                else:
+                    print(score)
+            
+            print("finished original shapely in: ", count_zeros, time.time() - start_time); start_time = time.time()
+            
+            joint_masked_contexts = torch.cat(list(masked_contexts.values()))
+            masked_losses = self.get_target_loss_fast ( joint_masked_contexts, inputs )
+            
+            new_shapely_scores = torch.zeros( (metagraph.n.item()) )
+            for uid, masked_loss in zip( masked_contexts.keys(), masked_losses):
+                new_shapely_scores[uid] = -(unmasked_loss - masked_loss)
+
+            for s1, s2 in zip( shapely_scores, new_shapely_scores):
+                if abs(s1.item() - s2.item()) > 0.0000005:
+                    print( abs(s1.item() - s2.item()), s1.item(), s2.item())
+
+            print("finished new in: ", time.time() - start_time)
 
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
 
         # === Done ===
         return loss, shapely_scores
+
+    def get_target_loss_fast ( self, hidden, targets ):
+        # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
+        #   Hidden units which are encoded and decoded onto targets for loss computation.
+        # targets: (torch.float64): [n]
+        #   Token targets,
+        losses = []
+        batch_size = targets.size(0)
+        n_losses = int(hidden.size(0) / targets.size(0))
+        src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
+        src_mask = src_mask.to(self.config.neuron.device)
+        encoded_hidden = self.encoder( hidden, mask = src_mask )
+        decoded_targets = self.decoder( encoded_hidden )
+        shift_logits = decoded_targets[..., :-1, :].contiguous()
+        shift_labels = targets[..., 1:].contiguous()
+
+        for i in range(n_losses):
+            logits = shift_logits[i*batch_size: (i+1)*batch_size, : , :]
+            loss = self.loss_fct( logits.view(-1, logits.size(-1)), shift_labels.view(-1) )
+            losses.append(loss)
+
+        return losses # self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
