@@ -39,6 +39,9 @@ class TestCli(unittest.TestCase):
                 "is_null":False
             })
         )
+    
+    def shutdown(self):
+         mock_subtensor.kill_global_mock_process()
 
     @staticmethod
     def construct_config():

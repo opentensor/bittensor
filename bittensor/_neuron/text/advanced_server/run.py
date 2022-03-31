@@ -192,6 +192,7 @@ def serve(
     if axon == None: 
         # Create our axon server
         axon = bittensor.axon (
+            config = config,
             wallet = wallet,
             forward_text = forward_text,
             backward_text = backward_text,
