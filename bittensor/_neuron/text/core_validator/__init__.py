@@ -406,7 +406,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=1)
+        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=2)
 
     @classmethod
     def config ( cls ):
@@ -495,7 +495,7 @@ class nucleus( torch.nn.Module ):
         # routing_weights.shape = [ n_filtered ]
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
-        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
+        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights*2
         
 
         # === Get indices and values for uids with highest scores ===
