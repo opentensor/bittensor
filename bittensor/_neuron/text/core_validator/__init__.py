@@ -532,6 +532,10 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): loss after decoding responses to targets.
         # target_loss.shape = [ 1 ]
         def get_target_loss ( hidden, targets ):
+            # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
+            #   Hidden units which are encoded and decoded onto targets for loss computation.
+            # targets: (torch.float64): [n]
+            #   Token targets,
             losses = []
             batch_size = targets.size(0)
             n_losses = int(hidden.size(0) / targets.size(0))
