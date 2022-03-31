@@ -212,7 +212,6 @@ class neuron:
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
-        self.metagraph.sync().save() # Reset metagraph.
         self.forward_thread_queue.start()
 
         # === Setup ===
@@ -293,7 +292,6 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            # loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
             forward_results = self.forward_thread_queue.get()
             loss, scores = self.nucleus.compute_shapely_scores(forward_results)
 
@@ -618,7 +616,6 @@ class nucleus( torch.nn.Module ):
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
-        start_time = time.time()
         masked_contexts = partial_contexts(
             state_dict.return_ops, 
             state_dict.routing_uids, 
