@@ -290,10 +290,8 @@ class neuron:
             step_time = time.time() - start_time
 
             step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
-            print(step_topk_scores, step_topk_uids)
+            print(step_topk_scores[step_topk_scores > -1]], step_topk_uids[step_topk_scores > -1]], (step_topk_scores > -1]).sum())
             step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
-            for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
-                print( 'weights/w_{}'.format( i ), w )
 
             # === Logs ===
             print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t epoch_steps:', epoch_steps, '\n\t global_steps:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
@@ -408,7 +406,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.5)
+        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=1)
 
     @classmethod
     def config ( cls ):
