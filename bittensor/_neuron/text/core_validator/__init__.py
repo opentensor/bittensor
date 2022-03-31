@@ -115,7 +115,7 @@ class neuron:
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
         
         # === Create thread queue ===
-        buffer_size = 3 # TODO
+        buffer_size = 5 # TODO
         self.forward_thread_queue = ThreadQueue(name='producer', buffer_size = buffer_size)
         self.loss = None
         self.mutex = Lock()
@@ -356,9 +356,8 @@ class neuron:
                 # self.optimizer.step()
                 # self.optimizer.zero_grad()    
                 print('run: the queue is empty! finished backward')
-                time.sleep(20)
                 self.forward_thread_queue.cont()
-                self.forward_thread_queue = ThreadQueue(name='producer', buffer_size = 3)
+                self.forward_thread_queue = ThreadQueue(name='producer', buffer_size = 5)
                 self.forward_thread_queue.target = self.forward
                 self.forward_thread_queue.start()
         # Iterate epochs.
