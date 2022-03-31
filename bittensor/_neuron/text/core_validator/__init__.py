@@ -290,7 +290,7 @@ class neuron:
             step_time = time.time() - start_time
 
             step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
-            print(step_topk_scores[step_topk_scores > -1], step_topk_uids[step_topk_scores > -1], (step_topk_scores > -1]).sum())
+            print(step_topk_scores[step_topk_scores > -1], step_topk_uids[step_topk_scores > -1], (step_topk_scores > -1).sum())
             step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
 
             # === Logs ===
