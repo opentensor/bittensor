@@ -408,7 +408,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.1)
+        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.5)
 
     @classmethod
     def config ( cls ):
