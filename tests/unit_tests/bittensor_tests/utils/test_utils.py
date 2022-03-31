@@ -66,6 +66,10 @@ def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
     if not hotkey:
         hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
 
+    wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
+    wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)    
+    wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
+    
     return wallet
 
 def setup_subtensor( port:int ):
