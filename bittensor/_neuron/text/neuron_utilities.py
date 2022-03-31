@@ -151,11 +151,10 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
             partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
     return partial_context
     
-# class ThreadQueue():
 class ThreadQueue(threading.Thread):
     r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
     """
-    def __init__(self, buffer_size, target=None, name=None):
+    def __init__(self, buffer_size, target=None):
         r"""Initialization.
         Args:
             queue (:obj:`queue.Queue`, `required`)
@@ -171,7 +170,6 @@ class ThreadQueue(threading.Thread):
                 The name of this threading object. 
         """
         super(ThreadQueue,self).__init__()
-        self.name = name
         self.target = target
         self.buffer_size = buffer_size
         self.queue = queue.Queue(buffer_size)
@@ -183,43 +181,23 @@ class ThreadQueue(threading.Thread):
         self.submitted_count -= 1
 
     def run(self):
-        r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
+        r""" Once this thread object start(), 
+        run the following which kick start multiple target functions,
+        the results of the target function would be punt into the queue. 
         """
         count = 0
         self.submitted_count = 0
         with ThreadPoolExecutor(max_workers=3) as executor:
-            # while True and (not self.stopped()) :
-                # Once the queue is empty, and allowed to continue(cont), submit the work to fill the queue.
-            while ( self.queue.qsize() + self.submitted_count < self.buffer_size) and (not self.paused()):
-                print("getting new future")
-                future = executor.submit(self.target, count)
+            while ( self.queue.qsize() + self.submitted_count < self.buffer_size):
+                future = executor.submit(self.target)
                 future.add_done_callback(self.future_call_back)
                 count += 1
                 self.submitted_count += 1
-
-            # if (self.queue.qsize() + self.submitted_count >= self.buffer_size):
-            #     print("paused", self.queue.qsize(), self.submitted_count, self.buffer_size)
-            #     if not self.paused(): self.pause()
                 time.sleep(2)
             return
 
     def is_empty(self):
         return self.queue.qsize() + self.submitted_count == 0
-    
-    def stop(self):
-        self._stop_event.set()
-
-    def stopped(self):
-        return self._stop_event.is_set()
-    
-    def cont(self):
-        self._pause_event.clear()
-    
-    def pause(self):
-        self._pause_event.set()
-
-    def paused(self):
-        return self._pause_event.is_set()
 
     def get(self):
         return self.queue.get()

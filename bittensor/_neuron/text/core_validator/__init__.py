@@ -21,7 +21,6 @@ Example:
     $ python3 miners/text/core_validator.py --logging.debug
 
 """
-from ntpath import join
 import sys
 import argparse
 import time
@@ -29,8 +28,6 @@ from types import SimpleNamespace
 import bittensor
 import torch
 import os
-import queue
-import threading
 import wandb
 import math
 import pandas
@@ -115,10 +112,9 @@ class neuron:
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
         
         # === Create thread queue ===
-        buffer_size = 5 # TODO
-        self.forward_thread_queue = ThreadQueue(name='producer', buffer_size = buffer_size)
+        self.forward_thread_queue = ThreadQueue(buffer_size = self.config.neuron.forward_buffer_size, target = self.forward)
         self.loss = None
-        self.mutex = Lock()
+        self.loss_agg_mutex = Lock()
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -150,6 +146,7 @@ class neuron:
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
+        parser.add_argument('--neuron.forward_buffer_size', type=int, help='''How much forward request before a backward call.''', default=5)
 
     @classmethod
     def config ( cls ):
@@ -174,7 +171,6 @@ class neuron:
         print(exc_type, exc_value, exc_traceback)
         self.dataset.close()
         self.dendrite.__del__()
-        self.forward_thread_queue.stop()
         self.forward_thread_queue.join()
 
     def __enter__(self):
@@ -200,37 +196,24 @@ class neuron:
                 root_dir = self.config.neuron.full_path
             )
 
-    def forward(self, idx = 0):
-
-        print(f"\t\tforward {idx}: start")
-        start_time = time.time()
-
-        data = next( self.dataset )
-        print(f"\t\tforward {idx}: got data", time.time() - start_time)
-
-        try: 
-            result = self.nucleus( data , self.metagraph, self.dendrite )
-        except Exception as E:
-            print(E)
-
-        print(f"\t\tforward {idx}: got forward", time.time() - start_time)
-        with self.mutex:
+    def forward(self):
+        r""" Run the nucleus forward request
+        This function is supposed to be ran multi-threaded.
+        """
+        result = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
+        with self.loss_agg_mutex:
             if self.loss == None:
                 self.loss = result.loss
             else:
-                pass
-                # self.loss += result.loss
+                self.loss += result.loss
 
-        print(f"forward {idx}: put to queue ======>, {self.forward_thread_queue.queue.qsize() + 1}, {time.time() - start_time}")
         return result
 
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
         self.metagraph.sync().save() # Reset metagraph.
-        self.forward_thread_queue.target = self.forward
         self.forward_thread_queue.start()
-        self.forward_thread_queue.cont()
 
         # === Setup ===
         # Checks wallet and starts monitoring with wandb.
@@ -311,11 +294,8 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             # loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
-            print(f"run: waiting from queue {time.time() - start_time}")
-            state_dict = self.forward_thread_queue.get()
-            print(f"run: got from queue <====== remaining: {self.forward_thread_queue.queue.qsize()}, {time.time() - start_time}")
-            loss, scores = self.nucleus.compute_shapely_scores(state_dict)
-            print('run: finished shapely: ', time.time() - start_time)
+            forward_results = self.forward_thread_queue.get()
+            loss, scores = self.nucleus.compute_shapely_scores(forward_results)
 
             # === Scoring ===
             # Updates moving averages and history.
@@ -339,12 +319,8 @@ class neuron:
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
                     wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
 
-            print('this batch took: ', time.time() - start_time)
-            # Do the backward request when the queue is empty.  
+            # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.is_empty():
-
-                print('run: the queue is empty! doing backward')
-
                 # === Backward ===
                 # Backwards gradients through model to train gating and remote endpoints.
                 self.loss.backward()
@@ -352,13 +328,12 @@ class neuron:
 
                 # === Apply gradients ===
                 # Applies local gradients to parameters.
-                # clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-                # self.optimizer.step()
-                # self.optimizer.zero_grad()    
-                print('run: the queue is empty! finished backward')
-                self.forward_thread_queue.cont()
-                self.forward_thread_queue = ThreadQueue(name='producer', buffer_size = 5)
-                self.forward_thread_queue.target = self.forward
+                clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+                self.optimizer.step()
+                self.optimizer.zero_grad()    
+                
+                # === Get another round of forward requests ===
+                self.forward_thread_queue = ThreadQueue(buffer_size = self.config.neuron.forward_buffer_size, target = self.forward)
                 self.forward_thread_queue.start()
         # Iterate epochs.
         self.epoch += 1
@@ -530,7 +505,6 @@ class nucleus( torch.nn.Module ):
                 scores (torch.FloatTensor, [ metagraph.n ]):
                     Scores per endpoint for this batch.
         """        
-        print('nucleus forward')
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
         # this context can be used as input to the gates in the next step.
@@ -597,12 +571,10 @@ class nucleus( torch.nn.Module ):
         # query_responses.shape = self.config.nucleus.topk * [ batch_size, sequence_len, __network_dim__ ]
         # return_ops: (torch.int64): Return ops.
         # return_ops.shape = [ self.config.nucleus.topk ]
-        print('nucleus forward: waiting for dend forward')
         query_responses, return_ops, times = dendrite.forward_text ( 
             endpoints = routing_endpoints, 
             inputs = inputs
         )
-        print('nucleus forward: got dend forward')
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
         for response in query_responses:
@@ -665,15 +637,8 @@ class nucleus( torch.nn.Module ):
                     # Create mask by zeroing out the response at index.              
                     masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
                     shapely_score = unmasked_loss - masked_loss
-                    # print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( 
-                    #     uid, 
-                    #     state_dict.batchwise_routing_weights[state_dict.routing_uids][i], 
-                    #     -shapely_score.item(), 
-                    #     state_dict.return_ops[i], 
-                    #     state_dict.query_responses[i].sum()))
                     shapely_scores[ uid ] = -shapely_score
         
-            print('shapely: got scores', time.time() - start_time)
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[state_dict.routing_uids[ state_dict.return_ops != 1 ]]  = shapely_scores.min().item()
 
