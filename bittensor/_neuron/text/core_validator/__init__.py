@@ -532,23 +532,6 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): loss after decoding responses to targets.
         # target_loss.shape = [ 1 ]
         def get_target_loss ( hidden, targets ):
-            # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
-            #   Hidden units which are encoded and decoded onto targets for loss computation.
-            # targets: (torch.float64): [n]
-            #   Token targets,
-            src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
-            src_mask = src_mask.to(self.config.neuron.device)
-            encoded_hidden = self.encoder( hidden, mask = src_mask )
-            decoded_targets = self.decoder( encoded_hidden )
-            shift_logits = decoded_targets[..., :-1, :].contiguous()
-            shift_labels = targets[..., 1:].contiguous()
-            return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
-        
-        def get_joint_target_losses ( self, hidden, targets ):
-            # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
-            #   Hidden units which are encoded and decoded onto targets for loss computation.
-            # targets: (torch.float64): [n]
-            #   Token targets,
             losses = []
             batch_size = targets.size(0)
             n_losses = int(hidden.size(0) / targets.size(0))
@@ -572,7 +555,7 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
         responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
-        target_loss = get_target_loss ( responses_hidden, inputs )
+        target_loss = get_target_loss ( responses_hidden, inputs )[0]
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
         # === Compute Importance loss ===
@@ -594,9 +577,9 @@ class nucleus( torch.nn.Module ):
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
-            unmasked_loss = get_target_loss(responses_hidden, inputs)
+            unmasked_loss = get_target_loss(responses_hidden, inputs)[0]
             joint_masked_contexts = torch.cat(list(masked_contexts.values()))
-            masked_losses = get_joint_target_losses ( joint_masked_contexts, inputs )
+            masked_losses = get_target_loss ( joint_masked_contexts, inputs )
             
             for uid, masked_loss in zip( masked_contexts.keys(), masked_losses):
                 shapely_scores[uid] = -(unmasked_loss - masked_loss)
