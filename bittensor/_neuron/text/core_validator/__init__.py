@@ -238,6 +238,13 @@ class neuron:
                             'era/max_allowed_ratio': max_allowed_ratio, 'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset, 
                 }, step = current_block )
 
+        # === Run Epoch ===
+        # Each block length lasts blocks_per_epoch blocks.
+        # This gives us a consistent network wide timer.
+        # Here we run until blocks_per_epochs have progressed.
+        self.metagraph.sync().save() # Reset metagraph.
+        epoch_steps = 0
+
         # === Reset Epochs with new params. ===
         # Pulls new default validator training parameters and resets 
         # the model and dataset for the following epoch.
@@ -254,14 +261,6 @@ class neuron:
 
             # === Reset Scores ===
             self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
-
-
-        # === Run Epoch ===
-        # Each block length lasts blocks_per_epoch blocks.
-        # This gives us a consistent network wide timer.
-        # Here we run until blocks_per_epochs have progressed.
-        self.metagraph.sync().save() # Reset metagraph.
-        epoch_steps = 0
 
         # Checks if moving avg has been initiated
         if self.moving_avg_scores == None:
