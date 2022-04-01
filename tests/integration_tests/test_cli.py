@@ -81,7 +81,7 @@ class TestCli(unittest.TestCase):
         wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
         wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)    
         wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
-        
+
         return wallet
 
     def test_check_configs(self):
@@ -133,6 +133,7 @@ class TestCli(unittest.TestCase):
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         config = self.config
         config.subtensor.network = "mock"
+        config.wallet._mock = True
         config.no_prompt = True
         config.subtensor._mock = True
         config.command = "stake"
@@ -287,4 +288,4 @@ class TestCli(unittest.TestCase):
 if __name__ == "__main__":
     cli = TestCli()
     cli.setUp()
-    cli.test_register()
+    cli.test_stake()
