@@ -132,7 +132,8 @@ def serve(
             priority = metagraph.S[uid].item()/ sys.getsizeof(inputs_x)
         
         except:
-            return 0
+            # zero priority for those who are not registered.
+            priority =  0
 
         return priority
 
