@@ -411,6 +411,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
+        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
 
     @classmethod
     def config ( cls ):
@@ -499,7 +500,7 @@ class nucleus( torch.nn.Module ):
         # routing_weights.shape = [ n_filtered ]
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
-        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights*2
+        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights * self.config.nucleus.noise_multiplier
         
 
         # === Get indices and values for uids with highest scores ===
@@ -573,7 +574,7 @@ class nucleus( torch.nn.Module ):
         # Computes shapely scores for each endpoint by masking the response and
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
-        # shapely_scores.shape = [ metagraph.n ]
+        # shapely_scores.shape = [ nucleus.topk ]
         masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
         # This sets non queried peers as if non-responsive
         shapely_scores = torch.zeros( routing_uids.size())
