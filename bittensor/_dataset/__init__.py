@@ -122,21 +122,22 @@ class dataset:
         return bittensor.config( parser )
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser ):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Accept specific arguments from parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--dataset.batch_size', type=int, help='Batch size.', default = bittensor.defaults.dataset.batch_size)
-            parser.add_argument('--dataset.block_size', type=int, help='Number of text items to pull for each example..', default = bittensor.defaults.dataset.block_size)
-            parser.add_argument('--dataset.num_workers',  type=int, help='Number of workers for data loader.', default = bittensor.defaults.dataset.num_workers)
-            parser.add_argument('--dataset.dataset_name', type=str, required=False, nargs='*', action='store', help='Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).',
+            parser.add_argument('--' + prefix_str + 'dataset.batch_size', type=int, help='Batch size.', default = bittensor.defaults.dataset.batch_size)
+            parser.add_argument('--' + prefix_str + 'dataset.block_size', type=int, help='Number of text items to pull for each example..', default = bittensor.defaults.dataset.block_size)
+            parser.add_argument('--' + prefix_str + 'dataset.num_workers',  type=int, help='Number of workers for data loader.', default = bittensor.defaults.dataset.num_workers)
+            parser.add_argument('--' + prefix_str + 'dataset.dataset_name', type=str, required=False, nargs='*', action='store', help='Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).',
                                                                     default = bittensor.defaults.dataset.dataset_name)
-            parser.add_argument('--dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
-            parser.add_argument('--dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
-            parser.add_argument('--dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
-            parser.add_argument('--dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
-            parser.add_argument('--dataset.num_batches', type=int, help='The number of data to download each time(measured by the number of batches).', default=bittensor.defaults.dataset.num_batches)
-            parser.add_argument('--dataset._mock', action='store_true', help='To turn on dataset mocking for testing purposes.', default=False)
+            parser.add_argument('--' + prefix_str + 'dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
+            parser.add_argument('--' + prefix_str + 'dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
+            parser.add_argument('--' + prefix_str + 'dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
+            parser.add_argument('--' + prefix_str + 'dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
+            parser.add_argument('--' + prefix_str + 'dataset.num_batches', type=int, help='The number of data to download each time(measured by the number of batches).', default=bittensor.defaults.dataset.num_batches)
+            parser.add_argument('--' + prefix_str + 'dataset._mock', action='store_true', help='To turn on dataset mocking for testing purposes.', default=False)
 
         except argparse.ArgumentError:
             # re-parsing arguments.

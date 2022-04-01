@@ -98,14 +98,15 @@ class wallet:
         parser.print_help()
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser ):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Accept specific arguments from parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
-            parser.add_argument('--wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
-            parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
-            parser.add_argument('--wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
+            parser.add_argument('--' + prefix_str + 'wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
+            parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
+            parser.add_argument('--' + prefix_str + 'wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
+            parser.add_argument('--' + prefix_str + 'wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
