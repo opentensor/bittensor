@@ -543,13 +543,22 @@ class nucleus( torch.nn.Module ):
             #   Hidden units which are encoded and decoded onto targets for loss computation.
             # targets: (torch.float64): [n]
             #   Token targets,
+            losses = []
+            batch_size = targets.size(0)
+            n_losses = int(hidden.size(0) / targets.size(0))
             src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
             src_mask = src_mask.to(self.config.neuron.device)
             encoded_hidden = self.encoder( hidden, mask = src_mask )
             decoded_targets = self.decoder( encoded_hidden )
             shift_logits = decoded_targets[..., :-1, :].contiguous()
             shift_labels = targets[..., 1:].contiguous()
-            return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
+
+            for i in range(n_losses):
+                logits = shift_logits[i*batch_size: (i+1)*batch_size, : , :]
+                loss = self.loss_fct( logits.view(-1, logits.size(-1)), shift_labels.view(-1) )
+                losses.append(loss)
+
+            return losses 
 
         # === Compute global loss ===
         # Computes the global training loss for the nucleus by decoding all the responses
@@ -557,7 +566,7 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
         responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
-        target_loss = get_target_loss ( responses_hidden, inputs )
+        target_loss = get_target_loss ( responses_hidden, inputs )[0]
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
         # === Compute Importance loss ===
@@ -580,15 +589,14 @@ class nucleus( torch.nn.Module ):
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
-            unmasked_loss = get_target_loss(responses_hidden, inputs)
-            # Iterate over all responses creating a masked context.
-            for i,uid in enumerate(routing_uids):
-                # Create mask by zeroing out the response at index.              
-                masked_loss = get_target_loss ( masked_contexts[uid.item()], inputs )
-                #masked_single_loss = get_target_loss ( masked_context_single[uid.item()], inputs )
-                shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
-                shapely_scores[i] = -shapely_score
+            unmasked_loss = get_target_loss(responses_hidden, inputs)[0]
+            joint_masked_contexts = torch.cat(list(masked_contexts.values()))
+            masked_losses = get_target_loss ( joint_masked_contexts, inputs )
+            
+            for i, uid,  in enumerate(routing_uids):
+                masked_loss= masked_losses[i]
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -(unmasked_loss - masked_loss), return_ops[i], query_responses[i].sum()))
+                shapely_scores[i] = -(unmasked_loss - masked_loss)
 
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[return_ops != 1 ]  = -1
