@@ -322,7 +322,7 @@ def test_dendrite_multiple():
 
 
 def test_dendrite_to_df():
-    dendrite.to_dataframe(bittensor.metagraph( subtensor = bittensor.subtensor(_mock=True) ).sync())
+    dendrite.to_dataframe(bittensor.metagraph(_mock=True).sync())
 
 def test_dend_del():
     dendrite.__del__()
