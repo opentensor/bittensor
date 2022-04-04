@@ -135,7 +135,6 @@ class axon:
             server = grpc.server( thread_pool,
                                   interceptors=(AuthInterceptor(blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
-                                  compression=compress_alg,
                                   options = [('grpc.keepalive_time_ms', 100000),
                                              ('grpc.keepalive_timeout_ms', 500000)]
                                 )
@@ -200,7 +199,7 @@ class axon:
             parser.add_argument('--axon.backward_timeout', type=int,
                 help='Number of seconds to wait for backward axon request', default=20)
             parser.add_argument('--axon.forward_timeout', type=int,
-                help='Number of seconds to wait for forward axon request', default=10)
+                help='Number of seconds to wait for forward axon request', default=bittensor.__blocktime__)
             parser.add_argument('--axon.priority.max_workers', type = int,
                 help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
             parser.add_argument('--axon.priority.maxsize', type=int, 
@@ -383,7 +382,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         
         if self.blacklist == None:
             pass
-        #TODO: Turn on blacklisting
         elif self.blacklist(pubkey,int(meta[3].value)):
             raise Exception('Black listed')
         else:
