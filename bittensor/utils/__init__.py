@@ -5,6 +5,7 @@ import struct
 import hashlib
 import math
 import bittensor
+import random
 import rich
 import time
 import torch
@@ -125,8 +126,9 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
         block_hash = subtensor.substrate.get_block_hash( block_number )
     block_bytes = block_hash.encode('utf-8')[2:]
     
-    nonce = 0
     limit = int(math.pow(2,256)) - 1
+    nonce_limit = int(math.pow(2,64)) - 1
+    nonce = random.randint( 0, nonce_limit )
     start_time = time.time()
 
     console = bittensor.__console__
@@ -150,6 +152,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
             result = pool.starmap(solve_, iterable=iterable)
             old_nonce = nonce
             nonce += update_interval*num_processes
+            nonce = nonce % nonce_limit
             itrs_per_sec = update_interval*num_processes / (time.time() - start_time)
             start_time = time.time()
             difficulty = subtensor.difficulty
