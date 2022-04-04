@@ -166,7 +166,7 @@ class dendrite:
         defaults.dendrite = bittensor.Config()
         defaults.dendrite.max_worker_threads = os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') if os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') != None else 150
         defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 2000
-        defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__
+        defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__ + 2
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
         defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_multiprocessing') if os.getenv('BT_DENDRITE_multiprocessing') != None else False
         defaults.dendrite.compression = 'NoCompression'
