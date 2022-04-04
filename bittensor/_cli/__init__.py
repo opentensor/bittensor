@@ -241,6 +241,7 @@ class cli:
         regen_coldkey_parser.add_argument(
             "--seed", 
             required=False,  
+            default=None,
             help='Seed hex string used to regen your key i.e. 0x1234...'
         )
         regen_coldkey_parser.add_argument(
