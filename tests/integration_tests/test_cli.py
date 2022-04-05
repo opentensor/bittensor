@@ -95,6 +95,7 @@ class TestCli(unittest.TestCase):
         config.dest = "no_prompt"
         config.amount = 1
         config.mnemonic = "this is a mnemonic"
+        config.seed = None
         config.uids = [1,2,3]
         config.weights = [0.25, 0.25, 0.25, 0.25]
 
