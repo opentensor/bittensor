@@ -216,7 +216,7 @@ class cli:
         )
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
-            help='''Regenerates a coldkey from a passed mnemonic'''
+            help='''Regenerates a coldkey from a passed value'''
         )
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
@@ -237,6 +237,12 @@ class cli:
             required=False, 
             nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...'
+        )
+        regen_coldkey_parser.add_argument(
+            "--seed", 
+            required=False,  
+            default=None,
+            help='Seed hex string used to regen your key i.e. 0x1234...'
         )
         regen_coldkey_parser.add_argument(
             '--use_password', 
@@ -726,8 +732,13 @@ class cli:
         if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name")
             config.wallet.name = str(wallet_name)
-        if config.mnemonic == None:
-            config.mnemonic = Prompt.ask("Enter mnemonic")
+        if config.mnemonic == None and config.seed == None:
+            prompt_answer = Prompt.ask("Enter mnemonic or seed")
+            print(prompt_answer)
+            if prompt_answer.startswith("0x"):
+                config.seed = prompt_answer
+            else:
+                config.mnemonic = prompt_answer
 
     def check_run_config( config: 'bittensor.Config' ):
 
