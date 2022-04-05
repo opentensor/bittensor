@@ -138,7 +138,7 @@ class subtensor:
             config.subtensor.network = bittensor.defaults.subtensor.network
            
         substrate = SubstrateInterface(
-            address_type = 42,
+            ss58_format = 42,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
             url = "ws://{}".format(config.subtensor.chain_endpoint),
