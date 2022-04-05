@@ -23,7 +23,7 @@ import json
 import requests
 from types import SimpleNamespace
 
-from typing import Union
+from typing import Union, Optional
 from substrateinterface import Keypair
 from termcolor import colored
 import bittensor
@@ -542,11 +542,13 @@ class Wallet():
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
-    def regen_coldkey( self, mnemonic: Union[list, str], use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regen_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -555,13 +557,15 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
         """
-        self.regenerate_coldkey(mnemonic, use_password, overwrite)
+        self.regenerate_coldkey(mnemonic, seed, use_password, overwrite)
 
-    def regenerate_coldkey( self, mnemonic: Union[list, str], use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -570,11 +574,18 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
         """
-        if isinstance( mnemonic, str): mnemonic = mnemonic.split()
-        if len(mnemonic) not in [12,15,18,21,24]:
-            raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
-        keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-        display_mnemonic_msg( keypair, "coldkey" )
+        if mnemonic is None and seed is None:
+            raise ValueError("Must pass either mnemonic or seed")
+        if mnemonic is not None:
+            if isinstance( mnemonic, str): mnemonic = mnemonic.split()
+            if len(mnemonic) not in [12,15,18,21,24]:
+                raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
+            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))   
+            display_mnemonic_msg( keypair, "coldkey" )
+        else:
+            # seed is not None
+            keypair = Keypair.create_from_seed(seed)
+            
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
