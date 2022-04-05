@@ -35,7 +35,7 @@ class KeyPairTestCase(unittest.TestCase):
 
     def test_create_sr25519_keypair(self):
         mnemonic = "old leopard transfer rib spatial phone calm indicate online fire caution review"
-        keypair = Keypair.create_from_mnemonic(mnemonic, address_type=0)
+        keypair = Keypair.create_from_mnemonic(mnemonic, ss58_format=0)
 
         self.assertEqual(keypair.ss58_address, "16ADqpMa4yzfmWs3nuTSMhfZ2ckeGtvqhPWCNqECEGDcGgU2")
 
@@ -48,7 +48,7 @@ class KeyPairTestCase(unittest.TestCase):
 
         keypair = Keypair(
             public_key='0xe4359ad3e2716c539a1d663ebd0a51bdc5c98a12e663bb4c4402db47828c9446',
-            address_type=0
+            ss58_format=0
         )
         self.assertEqual(keypair.ss58_address, '16ADqpMa4yzfmWs3nuTSMhfZ2ckeGtvqhPWCNqECEGDcGgU2')
 
@@ -124,7 +124,7 @@ class KeyPairTestCase(unittest.TestCase):
 
     def test_create_ed25519_keypair(self):
         mnemonic = "old leopard transfer rib spatial phone calm indicate online fire caution review"
-        keypair = Keypair.create_from_mnemonic(mnemonic, address_type=0, crypto_type=KeypairType.ED25519)
+        keypair = Keypair.create_from_mnemonic(mnemonic, ss58_format=0, crypto_type=KeypairType.ED25519)
 
         self.assertEqual(keypair.ss58_address, "16dYRUXznyhvWHS1ktUENGfNAEjCawyDzHRtN9AdFnJRc38h")
 
