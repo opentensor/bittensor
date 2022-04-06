@@ -472,9 +472,12 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # Attempt rolling registration.
         attempts = 1
+        cuda = False
+        if torch.cuda.is_available():
+            cuda = Confirm.ask("Would you like to try CUDA registration?\n")
         while True:
             # Solve latest POW.
-            pow_result = bittensor.utils.create_pow( self, wallet )
+            pow_result = bittensor.utils.create_pow( self, wallet, cuda )
             with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:
 
                 # pow failed
@@ -531,7 +534,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 else:
                     status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
                     continue
-
 
     def serve (
             self, 
