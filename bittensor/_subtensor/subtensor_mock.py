@@ -62,7 +62,7 @@ class mock_subtensor():
         endpoint = bittensor.__mock_entrypoints__[0]
         port = int(endpoint.split(':')[1])
         substrate = SubstrateInterface(
-            address_type = 42,
+            ss58_format = 42,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
             url = "ws://{}".format('localhost:{}'.format(port)),
