@@ -300,7 +300,7 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             forward_results = self.forward_thread_queue.get()
-            loss, scores = self.nucleus.compute_shapely_scores(forward_results)
+            loss, scores, uids = self.nucleus.compute_shapely_scores(forward_results)
 
             # === Scoring ===
             # Updates moving averages and history.
@@ -558,6 +558,10 @@ class nucleus( torch.nn.Module ):
         # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
         # routing_weights.shape = [ n_filtered ]
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
+        print(batchwise_routing_weights.size())
+        print(batchwise_routing_weights.size())
+        print(batchwise_routing_weights.size())
+        print(batchwise_routing_weights.size())
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
         noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights * self.config.nucleus.noise_multiplier
         
