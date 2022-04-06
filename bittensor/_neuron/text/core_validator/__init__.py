@@ -180,7 +180,7 @@ class neuron:
         # === Wallet ===
         # Connects wallett to network. 
         # NOTE: This registration step should likely be solved offline first.
-        self.wallet.register( subtensor = self.subtensor )
+        self.wallet.create().register( subtensor = self.subtensor )
 
         # === UID ===
         # Get our uid from the chain. 
