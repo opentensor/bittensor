@@ -1,4 +1,3 @@
-from audioop import mul
 import binascii
 import multiprocessing
 import ctypes
