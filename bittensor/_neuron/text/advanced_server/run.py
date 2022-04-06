@@ -242,7 +242,9 @@ def serve(
             nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
             if not wallet.is_registered( subtensor = subtensor ):
                 wallet.register( subtensor = subtensor )
+                axon.serve( subtensor = subtensor ) # Re-serve the erased axon data.
                 nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+                
 
             # --- Run 
             current_block = subtensor.get_current_block()
