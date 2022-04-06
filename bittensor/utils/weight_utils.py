@@ -33,12 +33,16 @@ def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ) -> 'torch.
             x (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
-    x = x + torch.rand_like( x ) * 0.0000001
+    x = x 
     shift = 1 / ( multiple - 1 )
     x = x - x.min()
-    x = x / x.sum()
-    y = (torch.tanh(x * len(x)) + shift)/(torch.tanh( x * len(x) ) + shift).sum()
-    return y
+
+    if x.sum() == 0:
+        return torch.ones_like(x)/x.size(0)
+    else:
+        x = x / x.sum()
+        y = (torch.tanh(x * len(x)) + shift)/(torch.tanh( x * len(x) ) + shift).sum()
+        return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':
     r""" Converts weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)

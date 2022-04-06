@@ -80,6 +80,19 @@ def test_wallet_uri():
     the_wallet.create_hotkey_from_uri( uri = "/Alice", use_password=False, overwrite = True )
     check_keys_exists(the_wallet)
 
+def test_wallet_seed_create():
+    the_wallet = init_wallet()
+    the_wallet.regenerate_coldkey( seed = "0xf34aef01dbe821cbd8d4bbe71e01885c99fe0684886f902f8a88e0434e113041",  use_password=False, overwrite = True )
+    the_wallet.regenerate_hotkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse".split(),  use_password=False, overwrite = True )
+    check_keys_exists(the_wallet)
+    assert the_wallet.coldkeypub.ss58_address == "5DtstnxttQ1DRQMr5oWdh9B3vnqgHANN76S7s5G4ARjmgbph"
+
+    the_wallet = init_wallet()
+    the_wallet.regen_coldkey( seed = "0xee30507e209fb7630d6e7ff81b8fa74def94ba88705b288138d16159e00ce2a8",  use_password=False, overwrite = True )
+    the_wallet.regen_hotkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse".split(),  use_password=False, overwrite = True )
+    check_keys_exists(the_wallet)
+    assert the_wallet.coldkeypub.ss58_address == "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+
 def test_wallet_mnemonic_create():
     the_wallet = init_wallet()
     the_wallet.regenerate_coldkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse",  use_password=False, overwrite = True )

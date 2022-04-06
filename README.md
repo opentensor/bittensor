@@ -184,14 +184,14 @@ $ btcli unstake
 ```
 
 ### 4.2. Selecting the network to join 
-There are two open Bittensor networks: Nobunaga, Akatsuki, Nakamoto.
+There are two open Bittensor networks: staging (Nobunaga) and main (Nakamoto, Local).
 
 - Nobunaga (staging)
-- Akatsuki (testing)
 - Nakamoto (main)
+- Local (localhost, mirrors nakamoto)
 
 ```bash
-$ export NETWORK=akatsuki 
+$ export NETWORK=local 
 $ python (..) --subtensor.network $NETWORK
 or
 >> btcli run --subtensor.network $NETWORK

@@ -115,6 +115,7 @@ class neuron:
         self.forward_thread_queue = ThreadQueue(buffer_size = self.config.neuron.forward_buffer_size, target = self.forward)
         self.loss = None
         self.loss_agg_mutex = Lock()
+        self.moving_avg_scores = None
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -263,6 +264,13 @@ class neuron:
                             'era/max_allowed_ratio': max_allowed_ratio, 'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset, 
                 }, step = current_block )
 
+        # === Run Epoch ===
+        # Each block length lasts blocks_per_epoch blocks.
+        # This gives us a consistent network wide timer.
+        # Here we run until blocks_per_epochs have progressed.
+        self.metagraph.sync().save() # Reset metagraph.
+        epoch_steps = 0
+
         # === Reset Epochs with new params. ===
         # Pulls new default validator training parameters and resets 
         # the model and dataset for the following epoch.
@@ -277,14 +285,13 @@ class neuron:
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
             )
 
-        # === Run Epoch ===
-        # Each block length lasts blocks_per_epoch blocks.
-        # This gives us a consistent network wide timer.
-        # Here we run until blocks_per_epochs have progressed.
-        self.metagraph.sync().save() # Reset metagraph.
-        epoch_steps = 0
-        score_history = []
-        moving_avg_scores = torch.ones_like( self.metagraph.S )
+            # === Reset Scores ===
+            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
+
+        # Checks if moving avg has been initiated
+        if self.moving_avg_scores == None:
+            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
+
         start_block = self.subtensor.block
         while self.subtensor.block < start_block + blocks_per_epoch:
             start_time = time.time()
@@ -297,8 +304,7 @@ class neuron:
 
             # === Scoring ===
             # Updates moving averages and history.
-            score_history.append( scores ) # Normalized step scores.
-            moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
+            self.moving_avg_scores[uids] = self.moving_avg_scores[uids]*(0.99) + scores*(0.01)
         
             # === State update ===
             # Prints step logs to screen.
@@ -312,7 +318,7 @@ class neuron:
                    '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
             if self.config.using_wandb:
                 wandb.log( { 'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps, 'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(), 'epoch/time': step_time }, step = current_block )
-                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
+                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( self.moving_avg_scores, k = n_topk_peer_weights )
                 step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
                     wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
@@ -339,7 +345,7 @@ class neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
+        topk_scores, topk_uids = bittensor.unbiased_topk(self.moving_avg_scores, k = n_topk_peer_weights )
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
         print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
                 '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
@@ -431,12 +437,13 @@ class nucleus( torch.nn.Module ):
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default = 50 )
+        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default = 20 )
         parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200 )
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.1)
+        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
+        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
 
     @classmethod
     def config ( cls ):
@@ -469,19 +476,26 @@ class nucleus( torch.nn.Module ):
     # target_loss: (torch.float64): loss after decoding responses to targets.
     # target_loss.shape = [ 1 ]
     def get_target_loss ( self, hidden, targets ):
-        idx = random.randint(0,10)
         # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
         #   Token targets,
+        losses = []
+        batch_size = targets.size(0)
+        n_losses = int(hidden.size(0) / targets.size(0))
         src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
         src_mask = src_mask.to(self.config.neuron.device)
-        
         encoded_hidden = self.encoder( hidden, mask = src_mask )
         decoded_targets = self.decoder( encoded_hidden )
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = targets[..., 1:].contiguous()
-        return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
+
+        for i in range(n_losses):
+            logits = shift_logits[i*batch_size: (i+1)*batch_size, : , :]
+            loss = self.loss_fct( logits.view(-1, logits.size(-1)), shift_labels.view(-1) )
+            losses.append(loss)
+
+        return losses 
 
     def forward ( 
         self, 
@@ -545,7 +559,8 @@ class nucleus( torch.nn.Module ):
         # routing_weights.shape = [ n_filtered ]
         batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
-        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
+        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights * self.config.nucleus.noise_multiplier
+        
 
         # === Get indices and values for uids with highest scores ===
         # We are taking the topk routing weights and returning their uids.
@@ -584,7 +599,7 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
         responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
-        target_loss = self.get_target_loss ( responses_hidden, inputs )
+        target_loss = self.get_target_loss ( responses_hidden, inputs )[0]
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
         # === Compute Importance loss ===
@@ -622,22 +637,24 @@ class nucleus( torch.nn.Module ):
             state_dict.batchwise_routing_weights[state_dict.routing_uids],  
             state_dict.query_responses
             )
-        shapely_scores = torch.zeros( state_dict.n )
         # Turn off gradient computation for shapely scores.
+        # shapely_scores.shape = [ nucleus.topk ]
+        # This sets non queried peers as if non-responsive
+        shapely_scores = torch.zeros( state_dict.routing_uids.size())
+        # Turn off gradient computation for shapely scores.
+        with torch.no_grad():
+            self.eval()
+            unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)[0]
+            joint_masked_contexts = torch.cat(list(masked_contexts.values()))
+            masked_losses = self.get_target_loss ( joint_masked_contexts, state_dict.inputs )
+            
+            for i, uid,  in enumerate(state_dict.routing_uids):
+                masked_loss= masked_losses[i]
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -(unmasked_loss - masked_loss), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
+                shapely_scores[i] = -(unmasked_loss - masked_loss)
 
-        with cProfile.Profile() as pr:
-            with torch.no_grad():
-                self.eval()
-                unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
-                # Iterate over all responses creating a masked context.
-                for i,uid in enumerate(masked_contexts):
-                    # Create mask by zeroing out the response at index.              
-                    masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
-                    shapely_score = unmasked_loss - masked_loss
-                    shapely_scores[ uid ] = -shapely_score
-        
         # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[state_dict.routing_uids[ state_dict.return_ops != 1 ]]  = shapely_scores.min().item()
-
+        shapely_scores[state_dict.return_ops != 1 ]  = -1
+        
         # === Done ===
-        return state_dict.loss, shapely_scores
+        return state_dict.loss, shapely_scores, state_dict.routing_uids

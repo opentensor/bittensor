@@ -80,7 +80,7 @@ def create_seal_hash( block_hash:bytes, nonce:int ) -> bytes:
 def seal_meets_difficulty( seal:bytes, difficulty:int ):
     seal_number = int.from_bytes(seal, "big")
     product = seal_number * difficulty
-    limit = int(math.pow(2,256) - 1)
+    limit = int(math.pow(2,256))- 1
     if product > limit:
         return False
     else:
@@ -126,15 +126,15 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
     block_bytes = block_hash.encode('utf-8')[2:]
     
     nonce = 0
-    limit = int(math.pow(2,256) - 1)
+    limit = int(math.pow(2,256)) - 1
     start_time = time.time()
 
     console = bittensor.__console__
     status = console.status("Solving")
 
     found_solution = multiprocessing.Value('q', -1, lock=False) # int
-    best = multiprocessing.Value(ctypes.c_char_p, lock=True) # byte array to get around int size of ctypes
-    best.raw = struct.pack("d", float('inf'))
+    best_raw = struct.pack("d", float('inf'))
+    best = multiprocessing.Array(ctypes.c_char, best_raw, lock=True) # byte array to get around int size of ctypes
     best_seal = multiprocessing.Array('h', 32, lock=True) # short array should hold bytes (0, 256)
     
     with multiprocessing.Pool(processes=num_processes, initializer=initProcess_, initargs=(solve_, found_solution, best, best_seal)) as pool:
@@ -180,7 +180,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
 
 def initProcess_(f, found_solution, best, best_seal):
     f.found = found_solution
-    f.best = best 
+    f.best = best
     f.best_seal = best_seal
 
 def solve_(nonce_start, nonce_end, block_bytes, difficulty, block_hash, block_number, limit):
