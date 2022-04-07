@@ -112,7 +112,7 @@ class neuron:
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
         
         # === Create thread queue ===
-        self.forward_thread_queue = ThreadQueue(buffer_size = self.config.neuron.forward_buffer_size, target = self.forward)
+        self.forward_thread_queue = ThreadQueue(num_jobs = self.config.neuron.forward_num, target = self.forward)
         self.loss = None
         self.loss_agg_mutex = Lock()
         self.moving_avg_scores = None
@@ -147,7 +147,7 @@ class neuron:
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
-        parser.add_argument('--neuron.forward_buffer_size', type=int, help='''How much forward request before a backward call.''', default=5)
+        parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=5)
 
     @classmethod
     def config ( cls ):
@@ -326,7 +326,7 @@ class neuron:
                     wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
 
             # Do the backward request after the a queue of forward requests got finished.  
-            if self.forward_thread_queue.is_empty():
+            if self.forward_thread_queue.finished():
                 # === Backward ===
                 # Backwards gradients through model to train gating and remote endpoints.
                 self.loss.backward()
@@ -339,7 +339,7 @@ class neuron:
                 self.optimizer.zero_grad()    
                 
                 # === Get another round of forward requests ===
-                self.forward_thread_queue = ThreadQueue(buffer_size = self.config.neuron.forward_buffer_size, target = self.forward)
+                self.forward_thread_queue = ThreadQueue( num_jobs = self.config.neuron.forward_num, target = self.forward)
                 self.forward_thread_queue.start()
         # Iterate epochs.
         self.epoch += 1
@@ -372,7 +372,13 @@ class neuron:
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
     
     def metagraph_sync(self):
+        r""" Syncing metagraph together with other metagraph-size related objects
+        """
         self.metagraph.sync()
+        
+        if self.moving_avg_scores == None:
+            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
+        
         if self.metagraph.n > len(self.moving_avg_scores):
             size_incerease = self.metagraph.n - len(self.moving_avg_scores)
             self.moving_avg_scores = torch.concat([self.moving_avg_scores, torch.ones(size_incerease) * -1]) 
