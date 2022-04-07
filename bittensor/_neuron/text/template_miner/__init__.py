@@ -169,8 +169,13 @@ class neuron:
                 request_type ( bittensor.proto.RequestType, `required`):
                     the request type ('FORWARD' or 'BACKWARD').
         """        
-        # Priority = stake / request_size 
-        priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
+        try:
+            # Priority = stake / request_size 
+            priority = self.metagraph.S[ self.metagraph.hotkeys.index(pubkey) ] / sys.getsizeof(inputs_x)
+        except:
+            return 0
+
+        
         return priority
 
     def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> bool:

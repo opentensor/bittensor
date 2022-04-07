@@ -89,13 +89,36 @@ def serve(
                             )
                         optimizer.step()
                         optimizer.zero_grad()
+    
+
+    def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
+        r"""Axon security blacklisting, used to blacklist message from low stake members
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
+        """
+        # Check for registrations
+
+        is_registered = pubkey in metagraph.hotkeys
+        if not is_registered:
+            if config.neuron.blacklist_allow_non_registered:
+                return False
+            
+            return True
+
+        return False
+  
 
     # Create our axon server and subscribe it to the network.
     if axon == None:
         axon = bittensor.axon (
+            config = config,
             wallet = wallet,
             forward_text = forward_text,
             backward_text = backward_text,
+            blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
 
     if config.wandb.api_key != 'default':

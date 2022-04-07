@@ -3,10 +3,13 @@ import bittensor
 def test_text_dataset():
     batch_size = 20
     block_size = 128
+    num_batches = 10
     epoch_length = 10
+
     dataset = bittensor.dataset (
         batch_size = batch_size, 
-        block_size = block_size
+        block_size = block_size,
+        num_batches = num_batches
     )
     
     dataloader = dataset.dataloader(epoch_length)

@@ -59,7 +59,7 @@ def select_port():
     return port
 
 def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-    wallet = bittensor.wallet()   
+    wallet = bittensor.wallet(_mock=True)   
 
     if not coldkey:
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -69,7 +69,7 @@ def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
     wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
     wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)    
     wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
-
+    
     return wallet
 
 def setup_subtensor( port:int ):
@@ -184,6 +184,23 @@ def test_solve_for_difficulty_fast_registered_already():
         # called every time until True
         assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
 
+def test_solve_for_difficulty_fast_missing_hash():
+    block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+    subtensor = MagicMock()
+    subtensor.get_current_block = MagicMock( return_value=1 )
+    subtensor.difficulty = 1
+    subtensor.substrate = MagicMock()
+    subtensor.substrate.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
+    wallet = MagicMock()
+    wallet.is_registered = MagicMock( return_value=False )
+
+    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+
+    assert bittensor.utils.seal_meets_difficulty(seal, 1)
+    
+    subtensor.difficulty = 10
+    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+    assert bittensor.utils.seal_meets_difficulty(seal, 10)
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()

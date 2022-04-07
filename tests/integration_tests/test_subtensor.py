@@ -31,11 +31,8 @@ from bittensor._subtensor.subtensor_mock import mock_subtensor
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
         self.subtensor = bittensor.subtensor( network = 'nobunaga' )
-        self.wallet = bittensor.wallet()
+        self.wallet = bittensor.wallet(_mock=True)
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        self.wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
-        self.wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
-        self.wallet.set_hotkey(Keypair.create_from_mnemonic(Keypair.generate_mnemonic()), encrypt=False, overwrite=True)
         self.mock_neuron = self.subtensor._neuron_dict_to_namespace(
             dict({
                 "version":1,
@@ -374,7 +371,7 @@ class TestSubtensor(unittest.TestCase):
 
         with patch('bittensor.Subtensor.difficulty'):
 
-            wallet = MagicMock()
+            wallet = bittensor.wallet(_mock=True)
             wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
             self.subtensor.difficulty= 1
@@ -387,6 +384,66 @@ class TestSubtensor(unittest.TestCase):
             # This assertion is currently broken when difficulty is too low
             #assert wallet.is_registered.call_count == workblocks_before_is_registered + 2      
 
+
+    def test_registration_partly_failed( self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message ='Failed'
+            def process_events(self):
+                return False
+            
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
+
+        is_registered_return_values = [False for _ in range(100)]
+        submit_extrinsic = [failed(), failed(), success()]
+        current_block = [i for i in range(0,100)]
+        mock_neuron = MagicMock()           
+        mock_neuron.is_null = True
+
+        with patch('bittensor.Subtensor.difficulty'):
+            wallet = bittensor.wallet(_mock=True)
+            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+
+
+            self.subtensor.difficulty= 1
+            self.subtensor.get_current_block = MagicMock(side_effect=current_block)
+            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
+            self.subtensor.substrate.submit_extrinsic = MagicMock(side_effect = submit_extrinsic)
+
+            # should return True
+            assert self.subtensor.register(wallet=wallet,) == True
+
+    def test_registration_failed( self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message ='Failed'
+            def process_events(self):
+                return False
+            
+
+        is_registered_return_values = [False for _ in range(100)]
+        current_block = [i for i in range(0,100)]
+        mock_neuron = MagicMock()           
+        mock_neuron.is_null = True
+
+        with patch('bittensor.utils.create_pow' ):
+            bittensor.utils.create_pow = MagicMock(return_value=None)
+            wallet = bittensor.wallet(_mock=True)
+            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+
+            self.subtensor.get_current_block = MagicMock(side_effect=current_block)
+            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
+            self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
+
+            # should return True
+            assert self.subtensor.register(wallet=wallet,) == False
+            assert bittensor.utils.create_pow.call_count == 3 
 
 def test_subtensor_mock():
     mock_subtensor.kill_global_mock_process()
@@ -472,4 +529,4 @@ def test_subtensor_mock_functions():
 if __name__ == "__main__":
     sub = TestSubtensor()
     sub.setUp()
-    sub.test_registration_multiprocessed_already_registered()
+    sub.test_registration_partly_failed()
