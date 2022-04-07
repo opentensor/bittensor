@@ -218,7 +218,7 @@ class neuron:
         with self:
 
             # === Start forward requests ===
-            self.metagraph.sync().save()
+            self.metagraph_sync()
             self.forward_thread_queue.start()
             
             # === Run ===
@@ -270,7 +270,7 @@ class neuron:
         # Each block length lasts blocks_per_epoch blocks.
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
-        self.metagraph.sync().save() # Reset metagraph.
+        self.metagraph_sync() # Reset metagraph.
         epoch_steps = 0
 
         # === Reset Epochs with new params. ===
@@ -370,6 +370,12 @@ class neuron:
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
+    
+    def metagraph_sync(self):
+        self.metagraph.sync()
+        if self.metagraph.n > len(self.moving_avg_scores):
+            size_incerease = self.metagraph.n - len(self.moving_avg_scores)
+            self.moving_avg_scores = torch.concat([self.moving_avg_scores, torch.ones(size_incerease) * -1]) 
 
 class PositionalEncoding(nn.Module):
     r""" Positional Encoder which adds information based on the relative position of each token
