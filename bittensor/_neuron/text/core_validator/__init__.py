@@ -213,6 +213,8 @@ class neuron:
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
+        # === Start forward requests ===
+        self.metagraph.sync().save()
         self.forward_thread_queue.start()
 
         # === Setup ===
