@@ -200,7 +200,7 @@ class axon:
             parser.add_argument('--' + prefix_str + 'axon.backward_timeout', type=int,
                 help='Number of seconds to wait for backward axon request', default=20)
             parser.add_argument('--' + prefix_str + 'axon.forward_timeout', type=int,
-                help='Number of seconds to wait for forward axon request', default=10)
+                help='Number of seconds to wait for forward axon request', default=bittensor.__blocktime__)
             parser.add_argument('--' + prefix_str + 'axon.priority.max_workers', type = int,
                 help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
             parser.add_argument('--' + prefix_str + 'axon.priority.maxsize', type=int, 
