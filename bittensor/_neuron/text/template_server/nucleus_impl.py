@@ -237,6 +237,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
         parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
+        parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
 
 
         bittensor.wallet.add_args( parser )
