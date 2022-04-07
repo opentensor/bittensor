@@ -1,8 +1,14 @@
 from numpy import zeros_like
 import bittensor
+import threading
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from concurrent.futures import Future
+import queue
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 
 def update_metagraph_peerweight(metagraph, nucleus, device):
     r"""
@@ -144,3 +150,54 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
                 partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
             partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
     return partial_context
+    
+class ThreadQueue(threading.Thread):
+    r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
+    """
+    def __init__(self, buffer_size, target=None):
+        r"""Initialization.
+        Args:
+            queue (:obj:`queue.Queue`, `required`)
+                The queue to be filled.
+                
+            target (:obj:`function`, `required`)
+                The target function to run when the queue is not full.
+
+            arg (:type:`tuple`, `required`)
+                The arguments to be passed to the target function.
+
+            name (:type:`str`, `optional`)
+                The name of this threading object. 
+        """
+        super(ThreadQueue,self).__init__()
+        self.target = target
+        self.buffer_size = buffer_size
+        self.queue = queue.Queue(buffer_size)
+        self._stop_event = threading.Event()
+        self._pause_event = threading.Event()
+
+    def future_call_back(self, future):
+        self.queue.put(future.result())
+        self.submitted_count -= 1
+
+    def run(self):
+        r""" Once this thread object start(), 
+        run the following which kick start multiple target functions,
+        the results of the target function would be punt into the queue. 
+        """
+        count = 0
+        self.submitted_count = 0
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            while ( self.queue.qsize() + self.submitted_count < self.buffer_size):
+                future = executor.submit(self.target)
+                future.add_done_callback(self.future_call_back)
+                count += 1
+                self.submitted_count += 1
+                time.sleep(2)
+            return
+
+    def is_empty(self):
+        return self.queue.qsize() + self.submitted_count == 0
+
+    def get(self):
+        return self.queue.get()
