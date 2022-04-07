@@ -213,14 +213,14 @@ class neuron:
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
-        # === Start forward requests ===
-        self.metagraph.sync().save()
-        self.forward_thread_queue.start()
-
         # === Setup ===
         # Checks wallet and starts monitoring with wandb.
         with self:
 
+            # === Start forward requests ===
+            self.metagraph.sync().save()
+            self.forward_thread_queue.start()
+            
             # === Run ===
             # Iterates through epochs.
             self.epoch = 0
