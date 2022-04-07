@@ -198,13 +198,9 @@ class axon:
             parser.add_argument('--' + prefix_str + 'axon.maximum_concurrent_rpcs', type=int, 
                 help='''Maximum number of allowed active connections''',  default = bittensor.defaults.axon.maximum_concurrent_rpcs)
             parser.add_argument('--' + prefix_str + 'axon.backward_timeout', type=int,
-                help='Number of seconds to wait for backward axon request', default=20)
+                help='Number of seconds to wait for backward axon request', default=2*bittensor.__blocktime__)
             parser.add_argument('--' + prefix_str + 'axon.forward_timeout', type=int,
-<<<<<<< HEAD
                 help='Number of seconds to wait for forward axon request', default=bittensor.__blocktime__)
-=======
-                help='Number of seconds to wait for forward axon request', default=10)
->>>>>>> e8ba0fc8 (merge master)
             parser.add_argument('--' + prefix_str + 'axon.priority.max_workers', type = int,
                 help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
             parser.add_argument('--' + prefix_str + 'axon.priority.maxsize', type=int, 
