@@ -187,7 +187,7 @@ class ThreadQueue(threading.Thread):
         """
         count = 0
         self.submitted_count = 0
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=1) as executor:
             while ( self.queue.qsize() + self.submitted_count < self.buffer_size):
                 future = executor.submit(self.target)
                 future.add_done_callback(self.future_call_back)
