@@ -173,8 +173,6 @@ class ThreadQueue(threading.Thread):
         self.target = target
         self.num_jobs = num_jobs
         self.queue = queue.Queue(1)
-        self._stop_event = threading.Event()
-        self._pause_event = threading.Event()
         self.finished_job_count = 0
 
     def run(self):
@@ -189,7 +187,7 @@ class ThreadQueue(threading.Thread):
                 self.finished_job_count += 1
     
             time.sleep(1)
-            return
+        return
 
     def finished(self):
         return self.finished_job_count == self.num_jobs
