@@ -174,23 +174,43 @@ class ThreadQueue(threading.Thread):
         self.num_jobs = num_jobs
         self.queue = queue.Queue(1)
         self.finished_job_count = 0
+        self._pause_event = threading.Event()
+        self._stop_event = threading.Event()
 
     def run(self):
         r""" Once this thread object start(), 
         run the following which kick start multiple target functions,
         the results of the target function would be punt into the queue. 
         """
-        while self.finished_job_count < self.num_jobs:
-            if not self.queue.full():
+        while True and not self.stopped():
+            if (self.finished_job_count < self.num_jobs) and (not self.queue.full()) and (not self.paused()):
                 item = self.target()
                 self.queue.put(item)
                 self.finished_job_count += 1
-    
+
+            if (self.finished_job_count >= self.num_jobs):
+                self.finished_job_count = 0
+                self.pause()
             time.sleep(1)
         return
+    
+    def resume(self):
+        self._pause_event.clear()
+    
+    def pause(self):
+        self._pause_event.set()
 
-    def finished(self):
-        return self.finished_job_count == self.num_jobs
+    def paused(self):
+        return self._pause_event.is_set()
 
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def is_empty(self):
+        return self.queue.empty()
+        
     def get(self):
         return self.queue.get()

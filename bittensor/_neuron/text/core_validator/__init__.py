@@ -172,6 +172,7 @@ class neuron:
         print(exc_type, exc_value, exc_traceback)
         self.dataset.close()
         self.dendrite.__del__()
+        self.forward_thread_queue.stop()
         self.forward_thread_queue.join()
 
     def __enter__(self):
@@ -201,15 +202,11 @@ class neuron:
         r""" Run the nucleus forward request
         This function is supposed to be ran multi-threaded.
         """
-        print('Forward start')
         result = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
-        with self.loss_agg_mutex:
-            if self.loss == None:
-                self.loss = result.loss
-            else:
-                self.loss += result.loss
-
-        print('Forward finished')
+                
+        # === Backward ===
+        # Backwards gradients through model to train gating and remote endpoints.
+        (result.loss / self.config.neuron.forward_num).backward()
         return result
 
     def run ( self ):
@@ -303,10 +300,9 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            print('Got from queue', time.time() - start_time)
             forward_results = self.forward_thread_queue.get()
+            print(f'Run\t| Got forward result in {round(time.time() - start_time, 3)}')
             loss, scores, uids = self.nucleus.compute_shapely_scores(forward_results)
-
             # === Scoring ===
             # Updates moving averages and history.
             self.moving_avg_scores[uids] = self.moving_avg_scores[uids]*(0.99) + scores*(0.01)
@@ -329,12 +325,8 @@ class neuron:
                     wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
 
             # Do the backward request after the a queue of forward requests got finished.  
-            if self.forward_thread_queue.finished():
-                print('Backward start')
-                # === Backward ===
-                # Backwards gradients through model to train gating and remote endpoints.
-                self.loss.backward()
-                self.loss = None
+            if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
+                print('Run\t| Model update')
 
                 # === Apply gradients ===
                 # Applies local gradients to parameters.
@@ -343,9 +335,8 @@ class neuron:
                 self.optimizer.zero_grad()    
                 
                 # === Get another round of forward requests ===
-                self.forward_thread_queue.join()
-                self.forward_thread_queue = ThreadQueue( num_jobs = self.config.neuron.forward_num, target = self.forward)
-                self.forward_thread_queue.start()
+                self.forward_thread_queue.resume()
+
         # Iterate epochs.
         self.epoch += 1
 
