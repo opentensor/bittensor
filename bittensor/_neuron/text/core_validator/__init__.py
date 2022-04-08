@@ -499,15 +499,12 @@ class nucleus( torch.nn.Module ):
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
         #   Token targets,
-        print('Target loss start')
         # losses = []
         # batch_size = targets.size(0)
         # n_losses = int(hidden.size(0) / targets.size(0))
         src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
         src_mask = src_mask.to(self.config.neuron.device)
-        print('Target loss encode')
         encoded_hidden = self.encoder( hidden, mask = src_mask )
-        print('Target loss decode')
         decoded_targets = self.decoder( encoded_hidden )
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = targets[..., 1:].contiguous()
@@ -516,7 +513,6 @@ class nucleus( torch.nn.Module ):
         #     logits = shift_logits[i*batch_size: (i+1)*batch_size, : , :]
         #     loss = self.loss_fct( logits.view(-1, logits.size(-1)), shift_labels.view(-1) )
         #     losses.append(loss)
-        print('Target loss finished')
         # return losses 
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
@@ -683,12 +679,12 @@ class nucleus( torch.nn.Module ):
 
             unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
             # Iterate over all responses creating a masked context.
-            for i,uid in enumerate(masked_contexts):
+            for i, uid in enumerate(masked_contexts):
                 # Create mask by zeroing out the response at index.              
                 masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
                 shapely_score = unmasked_loss - masked_loss
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
-                shapely_scores[ uid ] = -shapely_score
+                shapely_scores[ i ] = -shapely_score
 
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[state_dict.return_ops != 1 ]  = -1
