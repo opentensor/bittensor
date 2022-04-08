@@ -38,6 +38,7 @@ class CLI:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
         """
+        bittensor.utils.version_checking()
         self.config = config
 
     def run ( self ):

@@ -10,6 +10,7 @@ import time
 import torch
 import numbers
 import pandas
+import requests
 from typing import Any, Tuple, List, Union, Optional
 
 
@@ -224,3 +225,12 @@ def create_pow( subtensor, wallet ):
         'block_hash': block_hash, 
         'work': binascii.hexlify(seal)
     }
+
+def version_checking():
+    response = requests.get(f'https://pypi.org/pypi/bittensor/json')
+    latest_version = response.json()['info']['version']
+    version_split = latest_version.split(".")
+    latest_version_as_int = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
+
+    if latest_version_as_int > bittensor.__version_as_int__:
+        print('\u001b[31m Current Bittensor Version: {}, Latest Bittensor Version {} \n Please update to the latest version'.format(bittensor.__version__,latest_version))
