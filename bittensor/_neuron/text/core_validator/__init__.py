@@ -490,21 +490,12 @@ class nucleus( torch.nn.Module ):
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
         #   Token targets,
-        # losses = []
-        # batch_size = targets.size(0)
-        # n_losses = int(hidden.size(0) / targets.size(0))
         src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
         src_mask = src_mask.to(self.config.neuron.device)
         encoded_hidden = self.encoder( hidden, mask = src_mask )
         decoded_targets = self.decoder( encoded_hidden )
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = targets[..., 1:].contiguous()
-
-        # for i in range(n_losses):
-        #     logits = shift_logits[i*batch_size: (i+1)*batch_size, : , :]
-        #     loss = self.loss_fct( logits.view(-1, logits.size(-1)), shift_labels.view(-1) )
-        #     losses.append(loss)
-        # return losses 
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
     def forward ( 
@@ -641,7 +632,6 @@ class nucleus( torch.nn.Module ):
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
-        print('Shapely getting masked contexts')
         masked_contexts = partial_contexts(
             state_dict.return_ops, 
             state_dict.routing_uids, 
@@ -655,18 +645,6 @@ class nucleus( torch.nn.Module ):
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
-            # unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)[0]
-            # print('Shapely joining masked contexts')
-            # joint_masked_contexts = torch.cat(list(masked_contexts.values()))
-            # print('Shapely getting target loss')
-            # masked_losses = self.get_target_loss ( joint_masked_contexts, state_dict.inputs )
-            
-            # print('Shapely got target loss')
-            # for i, uid,  in enumerate(state_dict.routing_uids):
-            #     masked_loss= masked_losses[i]
-            #     print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -(unmasked_loss - masked_loss), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
-            #     shapely_scores[i] = -(unmasked_loss - masked_loss)
-
 
             unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
             # Iterate over all responses creating a masked context.
