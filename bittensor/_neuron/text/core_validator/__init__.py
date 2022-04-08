@@ -201,6 +201,7 @@ class neuron:
         r""" Run the nucleus forward request
         This function is supposed to be ran multi-threaded.
         """
+        print('Forward start')
         result = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
         with self.loss_agg_mutex:
             if self.loss == None:
@@ -208,6 +209,7 @@ class neuron:
             else:
                 self.loss += result.loss
 
+        print('Forward finished')
         return result
 
     def run ( self ):
@@ -301,6 +303,7 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
+            print('Got from queue', time.time() - start_time)
             forward_results = self.forward_thread_queue.get()
             loss, scores, uids = self.nucleus.compute_shapely_scores(forward_results)
 
@@ -327,6 +330,7 @@ class neuron:
 
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.finished():
+                print('Backward start')
                 # === Backward ===
                 # Backwards gradients through model to train gating and remote endpoints.
                 self.loss.backward()
@@ -339,6 +343,7 @@ class neuron:
                 self.optimizer.zero_grad()    
                 
                 # === Get another round of forward requests ===
+                self.forward_thread_queue.join()
                 self.forward_thread_queue = ThreadQueue( num_jobs = self.config.neuron.forward_num, target = self.forward)
                 self.forward_thread_queue.start()
         # Iterate epochs.
@@ -494,22 +499,26 @@ class nucleus( torch.nn.Module ):
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
         #   Token targets,
-        losses = []
-        batch_size = targets.size(0)
-        n_losses = int(hidden.size(0) / targets.size(0))
+        print('Target loss start')
+        # losses = []
+        # batch_size = targets.size(0)
+        # n_losses = int(hidden.size(0) / targets.size(0))
         src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
         src_mask = src_mask.to(self.config.neuron.device)
+        print('Target loss encode')
         encoded_hidden = self.encoder( hidden, mask = src_mask )
+        print('Target loss decode')
         decoded_targets = self.decoder( encoded_hidden )
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = targets[..., 1:].contiguous()
 
-        for i in range(n_losses):
-            logits = shift_logits[i*batch_size: (i+1)*batch_size, : , :]
-            loss = self.loss_fct( logits.view(-1, logits.size(-1)), shift_labels.view(-1) )
-            losses.append(loss)
-
-        return losses 
+        # for i in range(n_losses):
+        #     logits = shift_logits[i*batch_size: (i+1)*batch_size, : , :]
+        #     loss = self.loss_fct( logits.view(-1, logits.size(-1)), shift_labels.view(-1) )
+        #     losses.append(loss)
+        print('Target loss finished')
+        # return losses 
+        return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
     def forward ( 
         self, 
@@ -613,7 +622,7 @@ class nucleus( torch.nn.Module ):
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
         responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
-        target_loss = self.get_target_loss ( responses_hidden, inputs )[0]
+        target_loss = self.get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
         # === Compute Importance loss ===
@@ -645,6 +654,7 @@ class nucleus( torch.nn.Module ):
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
+        print('Shapely getting masked contexts')
         masked_contexts = partial_contexts(
             state_dict.return_ops, 
             state_dict.routing_uids, 
@@ -658,14 +668,27 @@ class nucleus( torch.nn.Module ):
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
-            unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)[0]
-            joint_masked_contexts = torch.cat(list(masked_contexts.values()))
-            masked_losses = self.get_target_loss ( joint_masked_contexts, state_dict.inputs )
+            # unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)[0]
+            # print('Shapely joining masked contexts')
+            # joint_masked_contexts = torch.cat(list(masked_contexts.values()))
+            # print('Shapely getting target loss')
+            # masked_losses = self.get_target_loss ( joint_masked_contexts, state_dict.inputs )
             
-            for i, uid,  in enumerate(state_dict.routing_uids):
-                masked_loss= masked_losses[i]
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -(unmasked_loss - masked_loss), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
-                shapely_scores[i] = -(unmasked_loss - masked_loss)
+            # print('Shapely got target loss')
+            # for i, uid,  in enumerate(state_dict.routing_uids):
+            #     masked_loss= masked_losses[i]
+            #     print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -(unmasked_loss - masked_loss), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
+            #     shapely_scores[i] = -(unmasked_loss - masked_loss)
+
+
+            unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
+            # Iterate over all responses creating a masked context.
+            for i,uid in enumerate(masked_contexts):
+                # Create mask by zeroing out the response at index.              
+                masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
+                shapely_score = unmasked_loss - masked_loss
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
+                shapely_scores[ uid ] = -shapely_score
 
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[state_dict.return_ops != 1 ]  = -1

@@ -64,7 +64,7 @@ class ProducerThread(threading.Thread):
 class ThreadQueue():
     r""" Manages the queue the producer thread that monitor and fills the queue.
     """
-    def __init__(self, producer_target, producer_arg, buffer_size = 5):
+    def __init__(self, producer_target, producer_arg, buffer_size = 2):
         """ Setup the queue and start the producer thread.
         
         Args:
