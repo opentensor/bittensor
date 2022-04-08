@@ -147,7 +147,7 @@ class neuron:
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
-        parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=5)
+        parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
 
     @classmethod
     def config ( cls ):
