@@ -78,6 +78,8 @@ class CLI:
             self.query()
         elif self.config.command == "help":
             self.help()
+        elif self.config.command == 'update':
+            self.update()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -212,6 +214,11 @@ class CLI:
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
 
+
+    def help ( self ):
+        if self.config.no_prompt or self.config.answer == 'Y':
+            os.system(' (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )')
+            #os.system('')
 
     def register( self ):
         r""" Register neuron.
