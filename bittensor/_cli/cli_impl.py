@@ -215,10 +215,10 @@ class CLI:
             bittensor.neurons.multitron_server.neuron().run()
 
 
-    def help ( self ):
+    def update ( self ):
         if self.config.no_prompt or self.config.answer == 'Y':
             os.system(' (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )')
-            #os.system('')
+            os.system('pip install -e ~/.bittensor/bittensor/')
 
     def register( self ):
         r""" Register neuron.
