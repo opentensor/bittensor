@@ -30,6 +30,7 @@ import pandas
 import datetime
 from threading import Lock
 from loguru import logger; logger = logger.opt(colors=True)
+from datetime import datetime,timedelta
 
 def serve( 
         config, 
@@ -68,6 +69,8 @@ def serve(
     )
     mutex = Lock()
 
+    timecheck = {}
+    n_topk_peer_weights = subtensor.min_allowed_weights
     def forward_text ( inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
         """ 
@@ -101,15 +104,66 @@ def serve(
         """
         # Check for registrations
 
-        is_registered = pubkey in metagraph.hotkeys
-        if not is_registered:
-            if config.neuron.blacklist_allow_non_registered:
+        def registration_check():
+            # If we allow non-registered requests return False = not blacklisted.
+            is_registered = pubkey in metagraph.hotkeys
+            if not is_registered:
+                if config.neuron.blacklist_allow_non_registered:
+                    return False
+                raise Exception('blacklist')
+
+        # Check for stake
+        def stake_check() -> bool:
+                
+            # Check stake.
+            uid = metagraph.hotkeys.index(pubkey)
+            if request_type == bittensor.proto.RequestType.FORWARD:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
+                    raise Exception('blacklist')
+
                 return False
+
+            elif request_type == bittensor.proto.RequestType.BACKWARD:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake.backward:
+                    raise Exception('blacklist')
+
+                return False
+        
+        def validator_check():
+
+            uid = metagraph.hotkeys.index(pubkey)
+            if (metagraph.W[uid] >0).sum() ==n_topk_peer_weights:
+                return False
+            raise Exception('blacklist')
+
+
+        # Check for time
+        def time_check():
+            current_time = datetime.now()
+            if pubkey in timecheck.keys():
+                prev_time = timecheck[pubkey]
+                if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
+                    timecheck[pubkey] = current_time
+                    return False
+                else:
+                    timecheck[pubkey] = current_time
+                    raise Exception('blacklist')
+            else:
+                timecheck[pubkey] = current_time
+                return False
+
+        # Black list or not
+        try:
+            registration_check()
+
+            stake_check()
+
+            validator_check()
             
+            return False
+        except:
             return True
 
-        return False
-  
 
     # Create our axon server and subscribe it to the network.
     if axon == None:
