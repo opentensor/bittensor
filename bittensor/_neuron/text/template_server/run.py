@@ -107,30 +107,25 @@ def serve(
         def registration_check():
             # If we allow non-registered requests return False = not blacklisted.
             is_registered = pubkey in metagraph.hotkeys
-            print(pubkey)
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
                     
                     return False
                 raise Exception('blacklist')
-            print('Register pass')
+
         # Check for stake
         def stake_check() -> bool:
                 
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
-            print(metagraph.S[uid])
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
                 raise Exception('Stake blacklist')
-            print('Stake pass')
             return False
 
         def validator_check():
 
             uid = metagraph.hotkeys.index(pubkey)
-            print((metagraph.W[uid] >0).sum() )
             if (metagraph.W[uid] >0).sum() ==n_topk_peer_weights:
-                print('validator pass')
                 return False
 
             raise Exception('Validator blacklist')
@@ -160,8 +155,8 @@ def serve(
             validator_check()
             
             return False
+
         except Exception as e:
-            print('deny', e)
             return True
 
 

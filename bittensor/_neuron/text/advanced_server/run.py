@@ -197,7 +197,7 @@ def serve(
                 timecheck[pubkey] = current_time
                 return False
 
-        # Black list or not
+        # Blacklist checks
         try:
             registration_check()
 
@@ -208,8 +208,9 @@ def serve(
             validator_check()
             
             return False
+
+        #blacklisted
         except Exception as e:
-            print('deny', e)
             return True
 
     if axon == None: 
