@@ -107,6 +107,7 @@ def serve(
         def registration_check():
             # If we allow non-registered requests return False = not blacklisted.
             is_registered = pubkey in metagraph.hotkeys
+            print(pubkey)
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
                     return False
@@ -162,6 +163,7 @@ def serve(
             
             return False
         except:
+            print('deny')
             return True
 
 
