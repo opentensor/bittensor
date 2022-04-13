@@ -110,6 +110,7 @@ def serve(
             print(pubkey)
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
+                    print('Register pass')
                     return False
                 raise Exception('blacklist')
 
@@ -121,7 +122,7 @@ def serve(
             if request_type == bittensor.proto.RequestType.FORWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
                     raise Exception('blacklist')
-
+                print('Stake pass')
                 return False
 
             elif request_type == bittensor.proto.RequestType.BACKWARD:
@@ -134,7 +135,9 @@ def serve(
 
             uid = metagraph.hotkeys.index(pubkey)
             if (metagraph.W[uid] >0).sum() ==n_topk_peer_weights:
+                print('validator pass')
                 return False
+
             raise Exception('blacklist')
 
 
