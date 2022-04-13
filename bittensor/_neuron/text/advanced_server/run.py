@@ -155,7 +155,7 @@ def serve(
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
                     return False
-                raise Exception('blacklist')
+                raise Exception('Registration blacklist')
 
         # Check for stake
         def stake_check() -> bool:
@@ -164,13 +164,13 @@ def serve(
             uid = metagraph.hotkeys.index(pubkey)
             if request_type == bittensor.proto.RequestType.FORWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
-                    raise Exception('blacklist')
+                    raise Exception('Stake blacklist')
 
                 return False
 
             elif request_type == bittensor.proto.RequestType.BACKWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.backward:
-                    raise Exception('blacklist')
+                    raise Exception('Stake blacklist')
 
                 return False
         
@@ -179,7 +179,7 @@ def serve(
             uid = metagraph.hotkeys.index(pubkey)
             if (metagraph.W[uid] >0).sum() ==n_topk_peer_weights:
                 return False
-            raise Exception('blacklist')
+            raise Exception('Validator blacklist')
 
 
         # Check for time
@@ -192,7 +192,7 @@ def serve(
                     return False
                 else:
                     timecheck[pubkey] = current_time
-                    raise Exception('blacklist')
+                    raise Exception('Time blacklist')
             else:
                 timecheck[pubkey] = current_time
                 return False
@@ -208,7 +208,8 @@ def serve(
             validator_check()
             
             return False
-        except:
+        except Exception as e:
+            print('deny', e)
             return True
 
     if axon == None: 
