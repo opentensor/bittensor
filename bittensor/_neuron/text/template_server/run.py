@@ -121,13 +121,13 @@ def serve(
             uid = metagraph.hotkeys.index(pubkey)
             print(metagraph.S[uid])
             if request_type == bittensor.proto.RequestType.FORWARD:
-                if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake:
                     raise Exception('Stake blacklist')
                 print('Stake pass')
                 return False
 
             elif request_type == bittensor.proto.RequestType.BACKWARD:
-                if metagraph.S[uid].item() < config.neuron.blacklist.stake.backward:
+                if metagraph.S[uid].item() < config.neuron.blacklist.stake:
                     raise Exception('Stake blacklist')
 
                 return False
