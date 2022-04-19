@@ -230,7 +230,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='advanced_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
-        parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=0)
+        parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=10)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
         parser.add_argument('--neuron.training',  action='store_true', help='if the model should be training (increases memory load)', default=False)
