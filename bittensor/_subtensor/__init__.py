@@ -115,7 +115,7 @@ class subtensor:
         # Select using chain_endpoint arg.
         if chain_endpoint != None:
             config.subtensor.chain_endpoint = chain_endpoint
-            config.subtensor.network = 'endpoint'
+            config.subtensor.network = network
             
         # Select using network arg.
         elif network != None:
@@ -125,7 +125,7 @@ class subtensor:
         # Select using config.subtensor.chain_endpoint
         elif config.subtensor.chain_endpoint != None:
             config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
-            config.subtensor.network = 'endpoint'
+            config.subtensor.network = config.subtensor.network
          
         # Select using config.subtensor.network
         elif config.subtensor.network != None:
