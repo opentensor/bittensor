@@ -671,24 +671,6 @@ class nucleus( torch.nn.Module ):
             shift_labels = targets[..., 1:].contiguous()
             return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
-            
-        # === Compute global loss ===
-        # Computes the global training loss for the nucleus by decoding all the responses
-        # onto the targets.
-        # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
-        # target_loss.shape = [ 1 ]
-        responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], responses) 
-        target_loss = get_target_loss ( responses_hidden, inputs )
-        print ('Loss\t|\t{}'.format( target_loss.item() ))
-
-        # === Compute Importance loss ===
-        # Computes the importance loss based on the stardard error of batchwise_routing_weights
-        # This ensures that gates do not converge onto a few experts
-        # importance_loss: (torch.float64) the importance loss based on the stardard error
-        # target_loss: (torch.float64): the total loss (global training loss + importance loss)
-        # target_loss.shape = [ 1 ]
-        importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
-        loss = target_loss + importance_loss
 
         # === Compute shapely scores ===
         # Computes shapely scores for each endpoint by masking the response and
@@ -714,5 +696,14 @@ class nucleus( torch.nn.Module ):
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[return_ops != 1 ]  = -1
         
+        # distillation_loss : distillation loss between local_context and remote_context
+        # distillation_loss.shape = [1]
+        # This trains the local_context (student) to emulate the network context.
+        distillation_loss = F.mse_loss( student_embedding, responses_hidden.detach() )
+
+        # sum losses for training.
+        target_loss = get_target_loss ( responses_hidden, inputs )
+        loss = importance_loss + target_loss + distillation_loss
+        print ('Loss\t|\t{}'.format( loss.item() ))
         # === Done ===
         return loss, shapely_scores, routing_uids
