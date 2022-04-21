@@ -341,7 +341,7 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite, is_inference = False )
+            loss, scores,uids = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite, is_inference = False )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
