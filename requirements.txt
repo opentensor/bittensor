@@ -36,3 +36,4 @@ qqdm
 wandb>=0.11.1
 ansible_vault>=2.1
 substrate-interface==1.0.2
+markupsafe==2.0.1

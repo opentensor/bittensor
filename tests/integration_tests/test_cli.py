@@ -95,6 +95,7 @@ class TestCli(unittest.TestCase):
         config.dest = "no_prompt"
         config.amount = 1
         config.mnemonic = "this is a mnemonic"
+        config.seed = None
         config.uids = [1,2,3]
         config.weights = [0.25, 0.25, 0.25, 0.25]
 
@@ -193,6 +194,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.model = "template_miner"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
+        config.seed = None
         config.n_words = 12
         config.use_password = False
         config.no_prompt = True

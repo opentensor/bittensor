@@ -1,8 +1,14 @@
 from numpy import zeros_like
 import bittensor
+import threading
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from concurrent.futures import Future
+import queue
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 
 def update_metagraph_peerweight(metagraph, nucleus, device):
     r"""
@@ -144,3 +150,67 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
                 partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
             partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
     return partial_context
+    
+class ThreadQueue(threading.Thread):
+    r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
+    """
+    def __init__(self, num_jobs, target=None):
+        r"""Initialization.
+        Args:
+            queue (:obj:`queue.Queue`, `required`)
+                The queue to be filled.
+                
+            target (:obj:`function`, `required`)
+                The target function to run when the queue is not full.
+
+            arg (:type:`tuple`, `required`)
+                The arguments to be passed to the target function.
+
+            name (:type:`str`, `optional`)
+                The name of this threading object. 
+        """
+        super(ThreadQueue,self).__init__()
+        self.target = target
+        self.num_jobs = num_jobs
+        self.queue = queue.Queue(1)
+        self.finished_job_count = 0
+        self._pause_event = threading.Event()
+        self._stop_event = threading.Event()
+
+    def run(self):
+        r""" Once this thread object start(), 
+        run the following which kick start multiple target functions,
+        the results of the target function would be punt into the queue. 
+        """
+        while True and not self.stopped():
+            if (self.finished_job_count < self.num_jobs) and (not self.queue.full()) and (not self.paused()):
+                item = self.target()
+                self.queue.put(item)
+                self.finished_job_count += 1
+
+            if (self.finished_job_count >= self.num_jobs):
+                self.finished_job_count = 0
+                self.pause()
+            time.sleep(1)
+        return
+    
+    def resume(self):
+        self._pause_event.clear()
+    
+    def pause(self):
+        self._pause_event.set()
+
+    def paused(self):
+        return self._pause_event.is_set()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def is_empty(self):
+        return self.queue.empty()
+        
+    def get(self):
+        return self.queue.get()
