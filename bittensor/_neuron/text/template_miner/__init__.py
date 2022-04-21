@@ -702,8 +702,6 @@ class nucleus( torch.nn.Module ):
         with torch.no_grad():
             self.eval()
             unmasked_loss = get_target_loss(responses_hidden, inputs)
-            joint_masked_contexts = torch.cat(list(masked_contexts.values()))
-            masked_losses = get_target_loss ( joint_masked_contexts, inputs )
             
             # Iterate over all responses creating a masked context.
             for i, uid in enumerate(masked_contexts):
