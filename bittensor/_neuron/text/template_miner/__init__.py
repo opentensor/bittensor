@@ -705,11 +705,14 @@ class nucleus( torch.nn.Module ):
             joint_masked_contexts = torch.cat(list(masked_contexts.values()))
             masked_losses = get_target_loss ( joint_masked_contexts, inputs )
             
-            for i, uid,  in enumerate(routing_uids):
-                masked_loss= masked_losses[i]
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -(unmasked_loss - masked_loss), return_ops[i], query_responses[i].sum()))
-                shapely_scores[i] = -(unmasked_loss - masked_loss)
-
+            # Iterate over all responses creating a masked context.
+            for i, uid in enumerate(masked_contexts):
+                # Create mask by zeroing out the response at index.              
+                masked_loss = self.get_target_loss ( masked_contexts[uid], inputs )
+                shapely_score = unmasked_loss - masked_loss
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], responses[i].sum()))
+                shapely_scores[ i ] = -shapely_score
+            
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[return_ops != 1 ]  = -1
         
