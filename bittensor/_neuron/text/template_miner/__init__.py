@@ -413,8 +413,8 @@ class neuron:
             self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
 
         if self.metagraph.n > len(self.moving_avg_scores):
-            size_incerease = self.metagraph.n - len(self.moving_avg_scores)
-            self.moving_avg_scores = torch.concat([self.moving_avg_scores, torch.ones(size_incerease) * -1]) 
+            size_increase = self.metagraph.n - len(self.moving_avg_scores)
+            self.moving_avg_scores = torch.concat([self.moving_avg_scores, torch.ones(size_increase) * -1]) 
 
 class PositionalEncoding(nn.Module):
     r""" Positional Encoder which adds information based on the relative position of each token
