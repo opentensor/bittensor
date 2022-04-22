@@ -16,6 +16,7 @@ pandas
 psutil
 password_strength==0.0.3.post2
 protobuf==3.13.0
+pycryptodome==3.4.3
 py-sr25519-bindings==0.1.2
 py-ed25519-bindings~=0.1.2
 py-bip39-bindings>=0.1.6
