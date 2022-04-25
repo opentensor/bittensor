@@ -165,24 +165,51 @@ message Tensor {
 
 }
 
+enum SynapseType {
+	UNKNOWN = 0;
+	TEXT_LAST_HIDDEN_STATE = 0;
+	TEXT_NTP_LOGITS = 1;
+	TEXT_SEQ_2_SEQ = 2;
+}
+
+message SynapseArgsTextLastHiddenState {
+	// Might as well have this
+	SynapseType synapse_type = 1;
+
+	// other things
+}
+
+message SynapseArgsTextNTPLogits{
+	// Might as well have this
+	SynapseType synapse_type = 1;
+
+	// Specifies the number of Topk logits to return.
+	// Logit values are packed (pos, value) acocording 
+	// to the bittensor tokenizer vocab size.
+	int32 topk = 1;
+}
+
 message Synapse {
 
-	// Position of Tensor for corresponding synapse  
-	int32 tensor_pos = 1;
+	// Position of Tensor inputs for corresponding synapse call.
+	repeated int32 tensor_pos = 1;
 
-	// Serialized additional arguements 
-	bytes data = 2;
+	// Serialized special argmument data. This is proto data which
+	// is packed according to the SynapseType enum. 
+	bytes args_data = 2;
 
-	// Type of Synapse required
+	// Type of Synapse. i.e. LastHidden specifies how to decode args_data 
+	// and route information in the axon to the correct function call.
 	SynapseType synapse_type = 3;
 
-	// Return codes from Backward and Forward call.
+	// Return codes from Backward and Forward call associated 
+	// with this synapse call.
 	ReturnCode return_code = 4;
 
-	// Message associated with return code.
+	// Message associated with the return code.
 	string message = 5;
 
-	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
+	// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
 	bool requires_grad = 6;
 }
 
