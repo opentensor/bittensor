@@ -227,7 +227,7 @@ class CMPPackSerializer( Serializer ):
 class Synapse_Serializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch
     """
-    def serialize_synapse(self, tensor_pos: int,  args: dict, synapse_type: bittensor.proto.SynapseType) -> bittensor.proto.Tensor:
+    def serialize(self, tensor_pos: int,  args: dict, synapse_type: bittensor.proto.SynapseType) -> bittensor.proto.Tensor:
         """ Serializes a dictionary of args to an bittensor Synapse proto.
 
         Args:
@@ -238,7 +238,7 @@ class Synapse_Serializer( Serializer ):
                 dictionary of args for synapse 
 
             synapse_type (bittensor.proto.synapse_type): 
-                Datatype modality. i.e. TENSOR, TE
+                synapse_type 
 
         Returns:
             bittensor.proto.Synapse: 
@@ -252,11 +252,11 @@ class Synapse_Serializer( Serializer ):
                                 )
         return torch_proto
 
-    def deserialize_synapse(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+    def deserialize(self, torch_proto: bittensor.proto.Synapse) -> dict:
         """Deserializes an bittensor.proto.Synapse to a bittensor.proto.Synapse_args object.
 
         Args:
-            torch_proto (bittensor.proto.Tensor): 
+            torch_proto (bittensor.proto.Synapse): 
                 Proto containing torch tensor to derserialize.
 
         Returns:

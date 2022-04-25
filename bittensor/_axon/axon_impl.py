@@ -303,6 +303,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
             # ---- Check deserialization ----
             tensor_inputs = request.tensors[0]
+            synapse_serializer = bittensor.synapse_serializer()
+            args = synapse_serializer.deserialize(request.synapses[0])
             modality = tensor_inputs.modality
             try:
                 deserializer = bittensor.serializer( serialzer_type = tensor_inputs.serializer )

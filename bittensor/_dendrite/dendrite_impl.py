@@ -111,6 +111,8 @@ class Dendrite(torch.autograd.Function):
             modality: bittensor.proto.Modality,
             timeout: int,
             requires_grad: bool,
+            synapses: list,
+            synapses_args: list,
             *inputs: torch.Tensor
     ) -> Tuple[torch.Tensor, ...]:
         """ Internal autograd-friendly Forward RPC call to a list of neuron endpoints.
@@ -158,7 +160,9 @@ class Dendrite(torch.autograd.Function):
             endpoints=endpoints,
             inputs=inputs,
             modality=modality,
-            timeout=timeout
+            timeout=timeout,
+            synapses=synapses,
+            synapses_args=synapses_args
         )
         ctx.forward_codes = forward_codes
         forward_times = [-1 if t is None else t for t in forward_times]
@@ -215,7 +219,9 @@ class Dendrite(torch.autograd.Function):
             inputs: List[torch.Tensor],
             modality: bittensor.proto.Modality,
             timeout: int = None,
-            requires_grad: bool = None
+            requires_grad: bool = None,
+            synapses: list = [0],
+            synapses_args: list = [{}],
     ) -> Tuple[List[torch.Tensor], torch.LongTensor, torch.FloatTensor]:
         r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
@@ -256,6 +262,8 @@ class Dendrite(torch.autograd.Function):
             modality,
             timeout,
             requires_grad,
+            synapses,
+            synapses_args,
             *inputs
         )
         codes = forward_response[0]
@@ -463,8 +471,11 @@ class Dendrite(torch.autograd.Function):
             endpoints: Union[
                 torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint'],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+            synapses: Union[str, List[str]],
+            synapses_args: list or dict,
             timeout: int = None,
-            requires_grad: bool = None
+            requires_grad: bool = None,
+
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
         r""" Forward text inputs to a list of neuron endpoints and block until responses or timeout.
 
@@ -616,6 +627,14 @@ class Dendrite(torch.autograd.Function):
                 len(inputs), len(endpoints))
             raise ValueError(error_msg)
 
+        # ---- synapses is an int
+        if isinstance(synapses, int):
+            synapses = [synapses]
+
+        if isinstance(synapses_args, dict):
+            synapses_args = [synapses_args for _ in synapses]
+
+
         # Make calls.
         responses, codes, times = self._forward(
             endpoints=formatted_endpoints,
@@ -623,6 +642,8 @@ class Dendrite(torch.autograd.Function):
             modality=bittensor.proto.Modality.TEXT,
             timeout=timeout,
             requires_grad=requires_grad,
+            synapses= synapses,
+            synapses_args = synapses_args
         )
 
         # Return.

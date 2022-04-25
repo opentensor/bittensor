@@ -84,7 +84,9 @@ class ReceptorPool ( torch.nn.Module ):
             endpoints: List['bittensor.Endpoint'],
             inputs: List[torch.Tensor],
             modality: bittensor.proto.Modality,
-            timeout: int
+            timeout: int,
+            synapses: list,
+            synapses_args: list,
         ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
         r""" Forward tensor inputs to endpoints.
 
@@ -118,7 +120,7 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Fill calls ----
         call_args = [ 
-            (self._get_or_create_receptor_for_endpoint( endpoint ), inputs, modality) 
+            (self._get_or_create_receptor_for_endpoint( endpoint ), inputs, modality, synapses, synapses_args) 
             for (inputs, endpoint) 
             in list(zip( inputs, endpoints )) 
         ]
@@ -127,8 +129,8 @@ class ReceptorPool ( torch.nn.Module ):
         requests = []
         for arg in call_args:
             self.total_requests += 1
-            receptor, inputs, modality = arg
-            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
+            receptor, inputs, modality, synapses, synapses_args = arg
+            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality, synapses=synapses, synapses_args= synapses_args))
 
         # ---- Send the forward request to peers. ---- 
         request_futures = []

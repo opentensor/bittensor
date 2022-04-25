@@ -55,7 +55,9 @@ class Request():
         inputs, 
         modality,
         grads_dy = None,
-        backward = False
+        backward = False,
+        synapses = [0],
+        synapses_args = [{}]
         ):
         r""" Initialize a forward/backward request.
 
@@ -77,6 +79,8 @@ class Request():
         self.inputs = inputs
         self.grads_dy = grads_dy
         self.zeros = nill_response_for(inputs)
+        self.synapses = synapses
+        self.synapses_args = synapses_args
         
         # ---- Setups ----
         self.modality = modality
@@ -86,6 +90,7 @@ class Request():
 
         # ---- Intermediate states ---- 
         self.serialized_inputs = None
+        self.serialized_synapses = None
         self.grpc_request = None
         self.future = None
 
@@ -296,6 +301,15 @@ class Receptor(nn.Module):
             if request.backward:
                 request.serialized_grads = serializer.serialize (request.grads_dy, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
 
+            synapse_serializer = bittensor.synapse_serializer()
+            synapses = []
+            
+            for index, synapse in enumerate(request.synapses):
+                synapses += [synapse_serializer.serialize(0, request.synapses_args[index], synapse_type=synapse)]
+
+            request.serialized_synapses = synapses
+
+
         except Exception as e:
             request.code =  bittensor.proto.ReturnCode.RequestSerializationException
             request.message = 'Input serialization exception with error:{}'.format(str(e))
@@ -325,6 +339,7 @@ class Receptor(nn.Module):
                     hotkey = self.wallet.hotkey.ss58_address,
                     tensors = [request.serialized_inputs],
                     requires_grad = True,
+                    synapses = request.serialized_synapses
                 )
             else:
                 request.grpc_request = bittensor.proto.TensorMessage(
@@ -332,6 +347,7 @@ class Receptor(nn.Module):
                     hotkey = self.wallet.hotkey.ss58_address,
                     tensors = [request.serialized_inputs, request.serialized_grads],
                     requires_grad = True,
+                    synapses = request.serialized_synapses
                 )
 
         except Exception as e:
@@ -551,8 +567,10 @@ class Receptor(nn.Module):
         self, 
         inputs: torch.Tensor, 
         modality: bittensor.proto.Modality,
+        synapses: list,
+        synapses_args: list,
         grads_dy: torch.FloatTensor = None,
-        backward: str = False 
+        backward: str = False,
     ):  
         r""" Does all the checking and preprocessing to build the grpc request.
             
@@ -574,7 +592,7 @@ class Receptor(nn.Module):
                     The request object holds all specifications and processing of the request.
         """
         # ---- Setup forward request namespace, which will hold all the objects regarding the forward request ----
-        request = Request(inputs = inputs, modality = modality, grads_dy = grads_dy, backward = backward)
+        request = Request(inputs = inputs, modality = modality, grads_dy = grads_dy, backward = backward, synapses= synapses, synapses_args=synapses_args)
 
         preprocessing_funs = [self.prerequisite_check, self.serialization, self.build_grpc_request]
 
