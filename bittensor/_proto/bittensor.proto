@@ -86,6 +86,10 @@ message TensorMessage {
 
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	bool requires_grad = 8;
+
+	// Synapses hold function information this tells the axon how to use the tensor inputs.
+	// i.e. where to send them
+ 	repeated Synapse synapses = 9;
 }
 
 // Return codes from Backward and Forward call.
@@ -158,6 +162,28 @@ message Tensor {
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	// 1 bit.
 	bool requires_grad = 8;
+
+}
+
+message Synapse {
+
+	// Position of Tensor for corresponding synapse  
+	int32 tensor_pos = 1;
+
+	// Serialized additional arguements 
+	bytes data = 2;
+
+	// Type of Synapse required
+	SynapseType synapse_type = 3;
+
+	// Return codes from Backward and Forward call.
+	ReturnCode return_code = 4;
+
+	// Message associated with return code.
+	string message = 5;
+
+	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
+	bool requires_grad = 6;
 }
 
 // Dtype: [REQUIRED] The tensor serializer type.
@@ -198,4 +224,11 @@ enum RequestType {
 	NOTDEFINED = 0;
 	FORWARD = 1;
 	BACKWARD = 2;
+}
+
+enum SynapseType {
+	Default = 0;
+	Seq2Seq = 1;
+	LastHidden = 2;
+	Logits = 3;
 }

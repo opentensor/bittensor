@@ -136,3 +136,21 @@ class serializer:
                 'Unknown bittensor.dtype or no equivalent numpy.dtype for bittensor.dtype = {}'
                 .format(bdtype))
         return dtype
+
+class synapse_serializer:
+    """ An interface for serializing and deserializing bittensor synapse tensors"""
+
+    class SerializationException (Exception):
+        """ Raised during serialization """
+
+    class DeserializationException (Exception):
+        """ Raised during deserialization """
+    
+    def __new__(cls) -> 'bittensor.Serializer':
+        r"""Returns the synapse serializer object 
+
+            Returns:
+                Serializer: (obj: `bittensor.Serializer`, `required`): 
+                    The bittensor synapse serializer/deserialzer.
+        """
+        return serializer_impl.Synapse_Serializer()

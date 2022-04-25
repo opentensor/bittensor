@@ -222,3 +222,46 @@ class CMPPackSerializer( Serializer ):
         numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
+
+
+class Synapse_Serializer( Serializer ):
+    """ Make conversion between torch and bittensor.proto.torch
+    """
+    def serialize_synapse(self, tensor_pos: int,  args: dict, synapse_type: bittensor.proto.SynapseType) -> bittensor.proto.Tensor:
+        """ Serializes a dictionary of args to an bittensor Synapse proto.
+
+        Args:
+            tensor_pos (int):
+                position of the corresponding tensor
+
+            args (dictionary): 
+                dictionary of args for synapse 
+
+            synapse_type (bittensor.proto.synapse_type): 
+                Datatype modality. i.e. TENSOR, TE
+
+        Returns:
+            bittensor.proto.Synapse: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        data_buffer = msgpack.packb(args)
+        torch_proto = bittensor.proto.Synapse (
+                                    tensor_pos= tensor_pos,
+                                    data = data_buffer,
+                                    synapse_type = synapse_type,
+                                )
+        return torch_proto
+
+    def deserialize_synapse(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Synapse to a bittensor.proto.Synapse_args object.
+
+        Args:
+            torch_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            args: 
+                Deserialized Dict containing args.
+        """
+        dictionary = msgpack.unpackb(torch_proto.data)
+        return dictionary
