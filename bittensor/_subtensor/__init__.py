@@ -115,7 +115,7 @@ class subtensor:
         # Select using chain_endpoint arg.
         if chain_endpoint != None:
             config.subtensor.chain_endpoint = chain_endpoint
-            config.subtensor.network = 'endpoint'
+            config.subtensor.network = network
             
         # Select using network arg.
         elif network != None:
@@ -125,7 +125,7 @@ class subtensor:
         # Select using config.subtensor.chain_endpoint
         elif config.subtensor.chain_endpoint != None:
             config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
-            config.subtensor.network = 'endpoint'
+            config.subtensor.network = config.subtensor.network
          
         # Select using config.subtensor.network
         elif config.subtensor.network != None:
@@ -192,7 +192,7 @@ class subtensor:
         """ Adds parser defaults to object from enviroment variables.
         """
         defaults.subtensor = bittensor.Config()
-        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'local'
+        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 

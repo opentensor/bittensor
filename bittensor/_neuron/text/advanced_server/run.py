@@ -21,6 +21,7 @@ Example:
     $ python miners/text/advanced_server/main.py
 
 """
+from time import time
 import bittensor
 import torch
 import wandb
@@ -76,6 +77,8 @@ def serve(
     )
     bittensor.tokenizer() 
     timecheck = {}
+
+    n_topk_peer_weights = subtensor.min_allowed_weights
     # Define our forward function.
     def forward_text ( inputs_x ):
         r""" Forward function that is called when the axon recieves a forward request from other peers
@@ -146,28 +149,38 @@ def serve(
                     the request type ('FORWARD' or 'BACKWARD').
         """
 
-        # Check for stake
-        def stake_check() -> bool:
+        def registration_check():
             # If we allow non-registered requests return False = not blacklisted.
             is_registered = pubkey in metagraph.hotkeys
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
-                    return True
-                    
+                    return False
+                raise Exception('Registration blacklist')
 
+        # Check for stake
+        def stake_check() -> bool:
+                
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if request_type == bittensor.proto.RequestType.FORWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.forward:
-                    return True
-                else:
-                    return False
+                    raise Exception('Stake blacklist')
+
+                return False
 
             elif request_type == bittensor.proto.RequestType.BACKWARD:
                 if metagraph.S[uid].item() < config.neuron.blacklist.stake.backward:
-                    return True
-                else:
-                    return False
+                    raise Exception('Stake blacklist')
+
+                return False
+        
+        def validator_check():
+
+            uid = metagraph.hotkeys.index(pubkey)
+            if (metagraph.W[uid] >0).sum() >= n_topk_peer_weights:
+                return False
+            raise Exception('Validator blacklist')
+
 
         # Check for time
         def time_check():
@@ -179,16 +192,26 @@ def serve(
                     return False
                 else:
                     timecheck[pubkey] = current_time
-                    return True
+                    raise Exception('Time blacklist')
             else:
                 timecheck[pubkey] = current_time
                 return False
 
-        # Black list or not
-        if stake_check() or time_check():
-            return True
+        # Blacklist checks
+        try:
+            registration_check()
 
-        return False
+            stake_check()
+
+            time_check()
+
+            validator_check()
+            
+            return False
+
+        #blacklisted
+        except Exception as e:
+            return True
 
     if axon == None: 
         # Create our axon server

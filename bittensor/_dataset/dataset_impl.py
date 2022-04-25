@@ -166,7 +166,7 @@ class GenesisTextDataset( Dataset ):
         self.data_queue = ThreadQueue(
             producer_target = self.reserve_multiple_data,
             producer_arg = (self.num_batches, ),
-            buffer_size = 2
+            buffer_size = 1
         )
 
     def __del__(self):
