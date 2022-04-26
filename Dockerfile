@@ -15,11 +15,8 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
 
 RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update
-RUN apt-get install python3.7 python3.7-dev -y
-RUN python3.7 -m pip install --upgrade pip
-
-RUN rm /usr/bin/python3
-RUN ln -s //usr/bin/python3.7 /usr/bin/python3
+RUN apt-get install python3 python3-dev -y
+RUN python3 -m pip install --upgrade pip
 
 # add Bittensor code to docker image
 RUN mkdir /bittensor
