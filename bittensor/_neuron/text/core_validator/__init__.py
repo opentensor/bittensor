@@ -653,7 +653,7 @@ class nucleus( torch.nn.Module ):
                 masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
                 shapely_score = unmasked_loss - masked_loss
                 print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
-                shapely_scores[ i ] = -shapely_score
+                shapely_scores[ i ] = -shapely_score if not torch.abs(1 - state_dict.query_responses[i].std()).item() < 0.05 else -1
 
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[state_dict.return_ops != 1 ]  = -1
