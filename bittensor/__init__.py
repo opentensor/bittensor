@@ -48,7 +48,7 @@ __networks__ = [ 'local', 'nobunaga', 'nakamoto']
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
 __nakamoto_entrypoints__ = [
-    "Atreus-08415f7175fce085.elb.us-east-2.amazonaws.com"
+    "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 ]
 
 __nobunaga_entrypoints__ = [
