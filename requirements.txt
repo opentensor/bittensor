@@ -16,9 +16,9 @@ pandas
 psutil
 password_strength==0.0.3.post2
 protobuf==3.13.0
-py-sr25519-bindings
-py-ed25519-bindings
-py-bip39-bindings
+py-sr25519-bindings==0.1.2
+py-ed25519-bindings==0.1.3
+py-bip39-bindings==0.1.9
 pytest>=6.2.4
 pyyaml
 rich
@@ -35,5 +35,5 @@ tqdm
 qqdm
 wandb>=0.11.1
 ansible_vault>=2.1
-substrate-interface
+substrate-interface==1.1.3
 markupsafe==2.0.1
