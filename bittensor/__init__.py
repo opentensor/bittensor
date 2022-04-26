@@ -100,7 +100,6 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from substrateinterface import Keypair as Keypair
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._config.config_impl import Config as Config
 from bittensor._wallet.wallet_impl import Wallet as Wallet
@@ -125,3 +124,14 @@ wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
+
+
+from substrateinterface import Keypair as SubtensorInterfaceKeypair
+
+class Keypair(SubtensorInterfaceKeypair):
+    def public_key_str(self):
+        return "0x" + self.public_key.hex()
+    def private_key_str(self):
+        return "0x" + self.private_key.hex()
+    def sign_to_str(self, message):
+        return "0x" + str(self.sign(message).hex())

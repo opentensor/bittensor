@@ -47,8 +47,8 @@ def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
                 True if the password meets validity requirements.
     """
     json_data = {
-        'accountId': keypair.public_key if keypair.public_key != None else None,
-        'publicKey': keypair.public_key if keypair.public_key != None else None,
+        'accountId': keypair.public_key_str() if keypair.public_key_str() != None else None,
+        'publicKey': keypair.public_key_str()  if keypair.public_key_str() != None else None,
         'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
         'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
         'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
