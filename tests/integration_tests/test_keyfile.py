@@ -45,13 +45,13 @@ def test_create():
     str(keyfile)
 
     assert keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == alice.ss58_address
-    assert keyfile.get_keypair( password = 'thisisafakepassword' ).private_key_str() == alice.private_key_str()
-    assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key_str() == alice.public_key_str()
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).private_key == alice.private_key
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == alice.public_key
     
     bob = bittensor.Keypair.create_from_uri ('/Bob')
     keyfile.set_keypair(bob, encrypt=True, overwrite=True, password = 'thisisafakepassword')
     assert keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == bob.ss58_address
-    assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key_str()  == bob.public_key_str()
+    assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == bob.public_key
     
     repr(keyfile)
 
@@ -67,7 +67,7 @@ def test_legacy_coldkey():
     keypair_bytes = b'{"accountId": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "publicKey": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "secretPhrase": null, "secretSeed": null, "ss58Address": "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"}'
     assert keyfile.keyfile_data == keypair_bytes
     assert keyfile.get_keypair().ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
-    assert keyfile.get_keypair().public_key_str() == "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
+    assert "0x" + keyfile.get_keypair().public_key.hex() == "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
 
 def test_validate_password():
     from bittensor._keyfile.keyfile_impl import validate_password

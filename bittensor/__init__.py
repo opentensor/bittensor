@@ -125,13 +125,4 @@ dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
 
-
-from substrateinterface import Keypair as SubtensorInterfaceKeypair
-
-class Keypair(SubtensorInterfaceKeypair):
-    def public_key_str(self):
-        return "0x" + self.public_key.hex()
-    def private_key_str(self):
-        return "0x" + self.private_key.hex()
-    def sign_to_str(self, message):
-        return "0x" + str(self.sign(message).hex())
+from substrateinterface import Keypair as Keypair
