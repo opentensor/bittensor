@@ -31,6 +31,7 @@ from types import SimpleNamespace
 # Mocking imports
 import os
 import random
+import scalecodec
 import time
 import subprocess
 from sys import platform   
@@ -657,8 +658,11 @@ To run a local node (See: docs/running_a_validator.md) \n
         else:
             staking_balance = amount
 
-        # Remove existential balance
-        staking_balance = staking_balance - bittensor.Balance.from_rao( 1000 )
+        # Remove existential balance to keep key alive.
+        if staking_balance > bittensor.Balance.from_rao( 1000 ):
+            staking_balance = staking_balance - bittensor.Balance.from_rao( 1000 )
+        else:
+            staking_balance = staking_balance
 
         # Estimate transfer fee.
         staking_fee = None # To be filled.
@@ -1032,16 +1036,21 @@ To run a local node (See: docs/running_a_validator.md) \n
             balance (bittensor.utils.balance.Balance):
                 account balance
         """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(
-                    module='System',
-                    storage_function='Account',
-                    params=[address],
-                    block_hash = None if block == None else substrate.get_block_hash( block )
-                )
-        result = make_substrate_call_with_retry()
+        try:
+            @retry(delay=2, tries=3, backoff=2, max_delay=4)
+            def make_substrate_call_with_retry():
+                with self.substrate as substrate:
+                    return substrate.query(
+                        module='System',
+                        storage_function='Account',
+                        params=[address],
+                        block_hash = None if block == None else substrate.get_block_hash( block )
+                    )
+            result = make_substrate_call_with_retry()
+        except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
+            logger.critical("Your wallet it legacy formatted, you need to run btcli stake --ammount 0 to reformat it." )
+            return Balance(1000)
+        print("Got balance")
         return Balance( result.value['data']['free'] )
 
     def get_current_block(self) -> int:
