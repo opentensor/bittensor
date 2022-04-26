@@ -25,7 +25,7 @@ pyyaml
 rich
 retry
 requests>=2.25.0
-scalecodec<2.0.0
+scalecodec>=1.0.25
 termcolor
 torch==1.10
 transformers>=4.5.0
