@@ -31,7 +31,7 @@ def sign(wallet):
     receptor_uid = str(uuid.uuid1())
     message  = "{}{}{}".format(nounce, str(wallet.hotkey.ss58_address), receptor_uid)
     spliter = 'bitxx'
-    signature = spliter.join([ nounce, str(wallet.hotkey.ss58_address), wallet.hotkey.sign(message), receptor_uid])
+    signature = spliter.join([ nounce, str(wallet.hotkey.ss58_address), "0x" + wallet.hotkey.sign(message).hex(), receptor_uid])
     return signature
 
 def test_sign():
