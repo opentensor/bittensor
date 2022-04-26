@@ -1050,7 +1050,6 @@ To run a local node (See: docs/running_a_validator.md) \n
         except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
             logger.critical("Your wallet it legacy formatted, you need to run btcli stake --ammount 0 to reformat it." )
             return Balance(1000)
-        print("Got balance")
         return Balance( result.value['data']['free'] )
 
     def get_current_block(self) -> int:
