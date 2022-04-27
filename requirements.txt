@@ -16,15 +16,16 @@ pandas
 psutil
 password_strength==0.0.3.post2
 protobuf==3.13.0
-py-sr25519-bindings==0.1.2
-py-ed25519-bindings~=0.1.2
-py-bip39-bindings>=0.1.6
+pycryptodome==3.11.0
+py-sr25519-bindings
+py-ed25519-bindings
+py-bip39-bindings
 pytest>=6.2.4
 pyyaml
 rich
 retry
 requests>=2.25.0
-scalecodec>=1.0.3
+scalecodec>=1.0.25
 termcolor
 torch==1.10
 transformers>=4.5.0
@@ -35,5 +36,5 @@ tqdm
 qqdm
 wandb>=0.11.1
 ansible_vault>=2.1
-substrate-interface==1.0.2
+substrate-interface
 markupsafe==2.0.1
