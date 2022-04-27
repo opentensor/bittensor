@@ -48,7 +48,7 @@ __networks__ = [ 'local', 'nobunaga', 'nakamoto']
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
 __nakamoto_entrypoints__ = [
-    "Atreus-08415f7175fce085.elb.us-east-2.amazonaws.com"
+    "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 ]
 
 __nobunaga_entrypoints__ = [
@@ -100,7 +100,6 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from substrateinterface import Keypair as Keypair
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._config.config_impl import Config as Config
 from bittensor._wallet.wallet_impl import Wallet as Wallet
@@ -125,3 +124,5 @@ wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
+
+from substrateinterface import Keypair as Keypair

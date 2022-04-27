@@ -31,7 +31,6 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from password_strength import PasswordPolicy
 from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
-from substrateinterface import Keypair
 
 class KeyFileError(Exception):
     """ Error thrown when the keyfile is corrupt, non-writable, nno-readable or the password used to decrypt is invalid.
@@ -47,8 +46,8 @@ def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
                 True if the password meets validity requirements.
     """
     json_data = {
-        'accountId': keypair.public_key if keypair.public_key != None else None,
-        'publicKey': keypair.public_key if keypair.public_key != None else None,
+        'accountId': "0x" + keypair.public_key.hex() if keypair.public_key != None else None,
+        'publicKey': "0x" + keypair.public_key.hex()  if keypair.public_key != None else None,
         'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
         'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
         'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
@@ -87,13 +86,13 @@ def deserialize_keypair_from_keyfile_data( keyfile_data:bytes ) -> 'bittensor.Ke
             raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( string_value ))
 
     if "secretSeed" in keyfile_dict and keyfile_dict['secretSeed'] != None:
-        return Keypair.create_from_seed(keyfile_dict['secretSeed'])
+        return bittensor.Keypair.create_from_seed(keyfile_dict['secretSeed'])
 
     if "secretPhrase" in keyfile_dict and keyfile_dict['secretPhrase'] != None:
-        return Keypair.create_from_mnemonic(mnemonic=keyfile_dict['secretPhrase'])
+        return bittensor.Keypair.create_from_mnemonic(mnemonic=keyfile_dict['secretPhrase'])
 
     if "ss58Address" in keyfile_dict and keyfile_dict['ss58Address'] != None:
-        return Keypair( ss58_address = keyfile_dict['ss58Address'] )
+        return bittensor.Keypair( ss58_address = keyfile_dict['ss58Address'] )
 
     else:
         raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( keyfile_dict ))
