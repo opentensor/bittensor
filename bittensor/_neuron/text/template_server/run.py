@@ -221,7 +221,7 @@ def serve(
                 chain_weights = torch.zeros(subtensor.n)
                 chain_weights [ uid ] = 1 
                 did_set = subtensor.set_weights(
-                    uids=metagraph.uids,
+                    uids=torch.arange(0,subtensor.n),
                     weights = chain_weights,
                     wait_for_inclusion = False,
                     wallet = wallet,
