@@ -161,9 +161,8 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
-
         # ---- Return ----
-        return list(forward_outputs), list(forward_codes), list(forward_times)
+        return forward_outputs, forward_codes, list(forward_times)
 
     def backward(
                 self, 

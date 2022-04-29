@@ -96,6 +96,7 @@ class Request():
 
         # ---- Outputs ----
         self.code = None
+        self.return_codes = None
         self.message = None
         self.outputs = None
 
@@ -452,37 +453,39 @@ class Receptor(nn.Module):
                 request: (:obj:`Request`, required):
                     The request object holds all specifications and processing of the request.
         """
-
+        deserialized_tensors = []
+        return_codes = []
         # ---- Deserialize response ----
-        try:
-            outputs = request.response.tensors[0]
-            deserializer = bittensor.serializer(  outputs.serializer )
-            outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
+        for index , outputs in enumerate(request.response.tensors):
+            try:
+                deserializer = bittensor.serializer(  outputs.serializer )
+                outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
 
-        except Exception as e:
-            request.code = bittensor.proto.ReturnCode.ResponseDeserializationException
-            request.message = 'Deserialziation exception with error:{}'.format(str(e))
-            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
-            return False, request
+            except Exception as e:
+                request.code = bittensor.proto.ReturnCode.ResponseDeserializationException
+                request.message = 'Deserialziation exception with error:{}'.format(str(e))
+                self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
 
-        # ---- Check response shape ----
-        if  (
-            outputs.size(0) != request.inputs.size(0) or
-            outputs.size(1) != request.inputs.size(1) or 
-            outputs.size(2) != bittensor.__network_dim__
-            ):
-            request.code = bittensor.proto.ReturnCode.ResponseShapeException
-            request.message = "output.shape:{} does not match inputs:{}".format(outputs.shape, request.inputs.shape)
-            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape), outputs = list(outputs.shape))
-            return False, request
+            # ---- Check response shape ----
+            if  (
+                outputs.size(0) != request.inputs.size(0) or
+                outputs.size(1) != request.inputs.size(1) or 
+                outputs.size(2) != bittensor.__network_dim__
+                ):
+                request.code = bittensor.proto.ReturnCode.ResponseShapeException
+                request.message = "output.shape:{} does not match inputs:{}".format(outputs.shape, request.inputs.shape)
+                self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape), outputs = list(outputs.shape))
 
-        # ---- Safe catch NaNs and replace with 0.0 ----
-        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
+            # ---- Safe catch NaNs and replace with 0.0 ----
+            deserialized_tensors.append(torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach())
+            return_codes.append(request.response.synapses[index].return_code)
 
+        request.outputs = deserialized_tensors
         # ---- Return ----
+        request.return_codes = return_codes
         request.code = request.response.return_code
         self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape), outputs = list(outputs.shape))
-        self.stats.codes[request.code] += 1
+        self.stats.codes[request.response.return_code] += 1
         
         return True, request 
 
@@ -702,7 +705,7 @@ class Receptor(nn.Module):
                 return request.zeros, request.code, request.end_time
         
         request.end_time = clock.time()-request.start_time
-        return request.outputs if check else request.zeros, request.code, request.end_time
+        return request.outputs if check else request.zeros, request.return_codes, request.end_time
  
 
     def rpc_exception_handler(self, request, rpc_error_call):

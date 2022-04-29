@@ -247,7 +247,7 @@ class Synapse_Serializer( Serializer ):
         data_buffer = msgpack.packb(args)
         torch_proto = bittensor.proto.Synapse (
                                     tensor_pos= tensor_pos,
-                                    data = data_buffer,
+                                    args_data = data_buffer,
                                     synapse_type = synapse_type,
                                 )
         return torch_proto
@@ -263,5 +263,5 @@ class Synapse_Serializer( Serializer ):
             args: 
                 Deserialized Dict containing args.
         """
-        dictionary = msgpack.unpackb(torch_proto.data)
+        dictionary = msgpack.unpackb(torch_proto.args_data)
         return dictionary

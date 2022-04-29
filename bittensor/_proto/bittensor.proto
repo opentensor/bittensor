@@ -166,9 +166,8 @@ message Tensor {
 }
 
 enum SynapseType {
-	UNKNOWN = 0;
 	TEXT_LAST_HIDDEN_STATE = 0;
-	TEXT_NTP_LOGITS = 1;
+	TEXT_CAUSAL_LM = 1;
 	TEXT_SEQ_2_SEQ = 2;
 }
 
@@ -179,14 +178,14 @@ message SynapseArgsTextLastHiddenState {
 	// other things
 }
 
-message SynapseArgsTextNTPLogits{
+message SynapseArgsTextCausalLM{
 	// Might as well have this
 	SynapseType synapse_type = 1;
 
 	// Specifies the number of Topk logits to return.
 	// Logit values are packed (pos, value) acocording 
 	// to the bittensor tokenizer vocab size.
-	int32 topk = 1;
+	int32 topk = 2;
 }
 
 message Synapse {
@@ -251,11 +250,4 @@ enum RequestType {
 	NOTDEFINED = 0;
 	FORWARD = 1;
 	BACKWARD = 2;
-}
-
-enum SynapseType {
-	Default = 0;
-	Seq2Seq = 1;
-	LastHidden = 2;
-	Logits = 3;
 }

@@ -776,3 +776,41 @@ class Dendrite(torch.autograd.Function):
         except Exception as e:
             bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
             return {}
+
+
+    def forward_text_seq2seq(
+            self,
+            endpoints,
+            inputs,
+            synapses_args,
+            timeout: int = None,
+            requires_grad: bool = None,
+            ):
+
+        self.forward_text(
+                    endpoints= endpoints,
+                    inputs = inputs,
+                    syanpse = [bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ],
+                    synapse_args = synapse_args,
+                    timeout=timeout,
+                    requires_grad = requires_grad
+                    )
+
+    
+    def forward_text_causal_LM(
+            self,
+            endpoints,
+            inputs,
+            synapses_args,
+            timeout: int = None,
+            requires_grad: bool = None,
+            ):
+
+        self.forward_text(
+                    endpoints= endpoints,
+                    inputs = inputs,
+                    syanpse = [bittensor.proto.SynapseType.TEXT_CAUSAL_LM],
+                    synapse_args = synapse_args,
+                    timeout=timeout,
+                    requires_grad = requires_grad
+                    )
