@@ -42,7 +42,7 @@ class KeyPairTestCase(unittest.TestCase):
     def test_only_provide_ss58_address(self):
 
         keypair = Keypair(ss58_address='16ADqpMa4yzfmWs3nuTSMhfZ2ckeGtvqhPWCNqECEGDcGgU2')
-        self.assertEqual(keypair.public_key, '0xe4359ad3e2716c539a1d663ebd0a51bdc5c98a12e663bb4c4402db47828c9446')
+        self.assertEqual("0x" + keypair.public_key.hex(), '0xe4359ad3e2716c539a1d663ebd0a51bdc5c98a12e663bb4c4402db47828c9446')
 
     def test_only_provide_public_key(self):
 
@@ -153,7 +153,7 @@ class KeyPairTestCase(unittest.TestCase):
             ss58_address='16ADqpMa4yzfmWs3nuTSMhfZ2ckeGtvqhPWCNqECEGDcGgU2',
             private_key='0x1f1995bdf3a17b60626a26cfe6f564b337d46056b7a1281b64c649d592ccda0a9cffd34d9fb01cae1fba61aeed184c817442a2186d5172416729a4b54dd4b84e'
         )
-        self.assertEqual(keypair.public_key, '0xe4359ad3e2716c539a1d663ebd0a51bdc5c98a12e663bb4c4402db47828c9446')
+        self.assertEqual("0x" + keypair.public_key.hex(), '0xe4359ad3e2716c539a1d663ebd0a51bdc5c98a12e663bb4c4402db47828c9446')
 
     def test_hdkd_hard_path(self):
         mnemonic = 'old leopard transfer rib spatial phone calm indicate online fire caution review'
