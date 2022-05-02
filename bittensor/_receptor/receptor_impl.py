@@ -258,7 +258,6 @@ class Receptor(nn.Module):
                 request: (:obj:`Request`, required):
                     The request object holds all specifications and processing of the request.
         """
-
         # ---- Check inputs size ----
         if torch.numel(request.inputs) == 0 or ( request.backward and torch.numel( request.grads_dy ) == 0):
             request.code = bittensor.proto.ReturnCode.EmptyRequest
@@ -339,7 +338,6 @@ class Receptor(nn.Module):
             request.message = str(e)
             self.request_log(request = request, is_response = False, inputs = list(request.serialized_inputs.shape))
             return False, request
-        
         return True, request
 
     def collect_future(self, request):
@@ -605,6 +603,7 @@ class Receptor(nn.Module):
         # ---- Make RPC call ----
         try:
             if not request.backward:
+                self.sign()
                 self.stats.forward_qps.update(1)
                 self.stats.forward_bytes_out.update(sys.getsizeof(request.grpc_request))
                 request.future = self.stub.Forward.future(request = request.grpc_request, 
@@ -722,7 +721,7 @@ class Receptor(nn.Module):
         nounce = self.nounce()
         message  = str(nounce) + str(self.wallet.hotkey.ss58_address) + str(self.receptor_uid)
         spliter = 'bitxx'
-        signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), self.wallet.hotkey.sign(message), str(self.receptor_uid) ])
+        signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), "0x" + self.wallet.hotkey.sign(message).hex(), str(self.receptor_uid) ])
         return signature
     
     def nounce(self):

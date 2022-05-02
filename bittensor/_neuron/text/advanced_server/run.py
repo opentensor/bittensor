@@ -254,7 +254,9 @@ def serve(
         # --- creating our chain weights
         chain_weights = torch.zeros(metagraph.n)
         uid = nn.uid
-        chain_weights[uid] = 1 
+       
+        if uid < len(chain_weights):
+            chain_weights[uid] = 1 
 
         # --  serve axon to the network.
         axon.start().serve(subtensor = subtensor)
@@ -324,20 +326,20 @@ def serve(
 
             # Add additional wandb data for axon, metagraph etc.
             if config.wandb.api_key != 'default':
-
-                df = pandas.concat( [
-                    bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
-                    bittensor.utils.indexed_values_to_dataframe( prefix = 's_i'.format(nn.uid), index = metagraph.uids, values = metagraph.S ),
-                    axon.to_dataframe( metagraph = metagraph ),
-                ], axis = 1)
-                df['uid'] = df.index
-                stats_data_table = wandb.Table( dataframe = df ) 
-                wandb_info_axon = axon.to_wandb()                
-                wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
-                wandb.log( { 'stats': stats_data_table }, step = current_block )
-                wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
-                wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
-                wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
+                if uid in metagraph.W:
+                    df = pandas.concat( [
+                        bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
+                        bittensor.utils.indexed_values_to_dataframe( prefix = 's_i'.format(nn.uid), index = metagraph.uids, values = metagraph.S ),
+                        axon.to_dataframe( metagraph = metagraph ),
+                    ], axis = 1)
+                    df['uid'] = df.index
+                    stats_data_table = wandb.Table( dataframe = df ) 
+                    wandb_info_axon = axon.to_wandb()                
+                    wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
+                    wandb.log( { 'stats': stats_data_table }, step = current_block )
+                    wandb.log( { 'axon_query_times': wandb.plot.scatter( stats_data_table, "uid", "axon_query_time", title="Axon Query time by UID") } )
+                    wandb.log( { 'in_weights': wandb.plot.scatter( stats_data_table, "uid", 'w_i_{}'.format(nn.uid), title="Inward weights by UID") } )
+                    wandb.log( { 'stake': wandb.plot.scatter( stats_data_table, "uid", 's_i', title="Stake by UID") } )
                 
             # Save the model
             gp_server.save(config.neuron.full_path)

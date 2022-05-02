@@ -273,7 +273,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 code = bittensor.proto.ReturnCode.UnknownException
 
             return response_tensor, code, message 
-            
+
     def _forward(self, request):
         r""" Performs validity checks on the grpc request before passing the tensors to the forward queue.
             Returns the output, message and code from the backend forward call.
