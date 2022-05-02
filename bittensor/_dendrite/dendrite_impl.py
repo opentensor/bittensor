@@ -111,6 +111,7 @@ class Dendrite(torch.autograd.Function):
             modality: bittensor.proto.Modality,
             timeout: int,
             requires_grad: bool,
+            shared_inputs: bool,
             *inputs: torch.Tensor
     ) -> Tuple[torch.Tensor, ...]:
         """ Internal autograd-friendly Forward RPC call to a list of neuron endpoints.
@@ -157,6 +158,7 @@ class Dendrite(torch.autograd.Function):
         forward_outputs, forward_codes, forward_times = ctx.receptor_pool.forward(
             endpoints=endpoints,
             inputs=inputs,
+            shared_inputs = shared_inputs,
             modality=modality,
             timeout=timeout
         )
@@ -215,7 +217,8 @@ class Dendrite(torch.autograd.Function):
             inputs: List[torch.Tensor],
             modality: bittensor.proto.Modality,
             timeout: int = None,
-            requires_grad: bool = None
+            requires_grad: bool = None,
+            shared_inputs: bool = False
     ) -> Tuple[List[torch.Tensor], torch.LongTensor, torch.FloatTensor]:
         r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
@@ -256,6 +259,7 @@ class Dendrite(torch.autograd.Function):
             modality,
             timeout,
             requires_grad,
+            shared_inputs,
             *inputs
         )
         codes = forward_response[0]
@@ -506,6 +510,7 @@ class Dendrite(torch.autograd.Function):
         # To be filled. Inputs and endpoint must be list with the same number of elements.
         formatted_inputs = []
         formatted_endpoints = []
+        shared_inputs = False
 
         # <<Helper function>> optional casts and then checks shape of inputs.
         def cast_and_check_tensor_input(tensor_input) -> torch.LongTensor:
@@ -576,6 +581,7 @@ class Dendrite(torch.autograd.Function):
             inputs_tensor = cast_and_check_tensor_input(torch.tensor([inputs_list], dtype=torch.int64))
             # Expand to length.
             formatted_inputs = [inputs_tensor for _ in formatted_endpoints]
+            shared_inputs = True
 
         # ---- Inputs is a list of strings.
         elif isinstance(inputs, list) and len(inputs) > 0 and isinstance(inputs[0], str):
@@ -584,12 +590,14 @@ class Dendrite(torch.autograd.Function):
             tokenized_sentences = tokenizer(inputs, padding=True, truncation=True)['input_ids']
             tokenizer_tensor = cast_and_check_tensor_input(torch.tensor(tokenized_sentences, dtype=torch.int64))
             formatted_inputs = [tokenizer_tensor for _ in formatted_endpoints]
+            shared_inputs = True
 
         # ---- Inputs is a single tensor
         elif isinstance(inputs, torch.Tensor) and len(inputs.shape) <= 2:
             inputs = cast_and_check_tensor_input(inputs)
             # Expand to length.
             formatted_inputs = [inputs for _ in formatted_endpoints]
+            shared_inputs = True
 
         # ---- Inputs is tensor with shape [n_endpoints, batch_size, sequence_len]
         elif isinstance(inputs, torch.Tensor) and len(inputs.shape) == 3 and inputs.shape[0] == len(
@@ -623,6 +631,7 @@ class Dendrite(torch.autograd.Function):
             modality=bittensor.proto.Modality.TEXT,
             timeout=timeout,
             requires_grad=requires_grad,
+            shared_inputs=shared_inputs
         )
 
         # Return.

@@ -27,6 +27,7 @@ import concurrent
 import bittensor
 import bittensor.utils.networking as net
 from concurrent.futures import ThreadPoolExecutor
+import time
 
 logger = logger.opt(colors=True)
 
@@ -83,6 +84,7 @@ class ReceptorPool ( torch.nn.Module ):
             self, 
             endpoints: List['bittensor.Endpoint'],
             inputs: List[torch.Tensor],
+            shared_inputs: bool,
             modality: bittensor.proto.Modality,
             timeout: int
         ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
@@ -112,7 +114,7 @@ class ReceptorPool ( torch.nn.Module ):
                 forward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
                     dendrite backward call times
         """
-        
+        start_time = time.time()
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
 
@@ -124,27 +126,38 @@ class ReceptorPool ( torch.nn.Module ):
         ]
 
         # ---- Preprocessing for the forward function, get the request. ---- 
+        print('start: {}'.format(time.time() - start_time)); start_time = time.time()
         requests = []
+        receptor, inputs, modality = call_args[0]
+        uni_request = receptor.preprocess_request ( inputs = inputs, modality = modality )
         for arg in call_args:
             self.total_requests += 1
-            receptor, inputs, modality = arg
-            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
+            if shared_inputs:
+                requests.append( uni_request )
+            else:
+                print(self.total_requests)
+                receptor, inputs, modality = arg
+                request.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
 
         # ---- Send the forward request to peers. ---- 
+        print('preprocess request: {}'.format(time.time() - start_time)); start_time = time.time()
         request_futures = []
         for arg, request in zip(call_args, requests):
             receptor = arg[0]
             request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
 
         # ---- Collect the futures. ---- 
+        print('make request call: {}'.format(time.time() - start_time)); start_time = time.time()
         results = []
         for arg, request in zip(call_args, request_futures):
             receptor = arg[0]
             results.append(receptor.handle_request_response(request = request))
             receptor.semaphore.release()
        
+        print('handle request response: {}'.format(time.time() - start_time)); start_time = time.time()
         try:
             forward_outputs, forward_codes, forward_times = zip(*results)
+            print(' unziped result : {}'.format(time.time() - start_time)); start_time = time.time()
 
         except concurrent.futures._base.TimeoutError:
             forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
@@ -159,6 +172,7 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
+        print('killed extra receptors : {}'.format(time.time() - start_time)); start_time = time.time()
 
         # ---- Return ----
         return list(forward_outputs), list(forward_codes), list(forward_times)
