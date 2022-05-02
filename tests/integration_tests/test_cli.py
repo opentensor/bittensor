@@ -71,7 +71,7 @@ class TestCli(unittest.TestCase):
 
     @staticmethod
     def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-        wallet = bittensor.wallet()   
+        wallet = bittensor.wallet(_mock=True)   
 
         if not coldkey:
             coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -95,6 +95,7 @@ class TestCli(unittest.TestCase):
         config.dest = "no_prompt"
         config.amount = 1
         config.mnemonic = "this is a mnemonic"
+        config.seed = None
         config.uids = [1,2,3]
         config.weights = [0.25, 0.25, 0.25, 0.25]
 
@@ -133,6 +134,7 @@ class TestCli(unittest.TestCase):
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         config = self.config
         config.subtensor.network = "mock"
+        config.wallet._mock = True
         config.no_prompt = True
         config.subtensor._mock = True
         config.command = "stake"
@@ -192,6 +194,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.model = "template_miner"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
+        config.seed = None
         config.n_words = 12
         config.use_password = False
         config.no_prompt = True
@@ -287,4 +290,4 @@ class TestCli(unittest.TestCase):
 if __name__ == "__main__":
     cli = TestCli()
     cli.setUp()
-    cli.test_register()
+    cli.test_stake()

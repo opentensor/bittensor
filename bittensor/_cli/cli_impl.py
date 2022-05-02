@@ -94,30 +94,13 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
+        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, seed = self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
 
     def regen_hotkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
-
-    def query ( self ):
-        r""" Query an endpoint and get query time.
-        """
-        bittensor.logging( config = self.config )
-        wallet = bittensor.wallet(config = self.config)
-        subtensor = bittensor.subtensor( config = self.config )
-        dendrite = bittensor.dendrite( wallet = wallet )
-        stats = {}
-        for uid in self.config.uids:
-            neuron = subtensor.neuron_for_uid( uid )
-            endpoint = bittensor.endpoint.from_neuron( neuron )
-            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
-            latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
-            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
-            stats[uid] = latency
-        print (stats)
 
     def query ( self ):
         r""" Query an endpoint and get query time.
@@ -167,7 +150,7 @@ class CLI:
                     _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
                     latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
 
-                cold_balance = wallet.balance
+                cold_balance = wallet.get_balance( subtensor = subtensor )
                 bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__(), "latency:".ljust(15), latency ), highlight=True)
 
 

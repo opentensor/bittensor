@@ -86,8 +86,9 @@ class subtensor:
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.subtensor.config()
-                network (default='nakamoto', type=str)
+                network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
+                            -- local (local running network)
                             -- nakamoto (main network)
                             -- nobunaga (staging network)
                             -- mock (mock network for testing.)
@@ -114,7 +115,7 @@ class subtensor:
         # Select using chain_endpoint arg.
         if chain_endpoint != None:
             config.subtensor.chain_endpoint = chain_endpoint
-            config.subtensor.network = 'endpoint'
+            config.subtensor.network = network
             
         # Select using network arg.
         elif network != None:
@@ -124,7 +125,7 @@ class subtensor:
         # Select using config.subtensor.chain_endpoint
         elif config.subtensor.chain_endpoint != None:
             config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
-            config.subtensor.network = 'endpoint'
+            config.subtensor.network = config.subtensor.network
          
         # Select using config.subtensor.network
         elif config.subtensor.network != None:
@@ -137,7 +138,7 @@ class subtensor:
             config.subtensor.network = bittensor.defaults.subtensor.network
            
         substrate = SubstrateInterface(
-            address_type = 42,
+            ss58_format = 42,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
             url = "ws://{}".format(config.subtensor.chain_endpoint),

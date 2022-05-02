@@ -24,6 +24,7 @@ Example:
 import sys
 import argparse
 import time
+from types import SimpleNamespace
 import bittensor
 import torch
 import os
@@ -34,13 +35,15 @@ import traceback
 from rich import print
 from rich.console import Console
 from rich.traceback import install
-from ..neuron_utilities import joining_context, partial_contexts
+from ..neuron_utilities import joining_context, partial_contexts, ThreadQueue
 import torch.nn as nn
-
+import random
 from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
+import cProfile
+from threading import Lock
 
 logger = logger.opt( colors=True )
 console = Console()
@@ -107,7 +110,12 @@ class neuron:
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
         self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
-
+        
+        # === Create thread queue ===
+        self.forward_thread_queue = ThreadQueue(num_jobs = self.config.neuron.forward_num, target = self.forward)
+        self.loss = None
+        self.loss_agg_mutex = Lock()
+        self.moving_avg_scores = None
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -139,6 +147,7 @@ class neuron:
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
+        parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
 
     @classmethod
     def config ( cls ):
@@ -153,6 +162,9 @@ class neuron:
         bittensor.dataset.add_args( parser )
         bittensor.wandb.add_args(parser)
         return bittensor.config( parser )
+    
+    def __del__(self):
+        self.__exit__()
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
@@ -160,6 +172,8 @@ class neuron:
         print(exc_type, exc_value, exc_traceback)
         self.dataset.close()
         self.dendrite.__del__()
+        self.forward_thread_queue.stop()
+        self.forward_thread_queue.join()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -167,7 +181,7 @@ class neuron:
         # === Wallet ===
         # Connects wallett to network. 
         # NOTE: This registration step should likely be solved offline first.
-        self.wallet.register( subtensor = self.subtensor )
+        self.wallet.create().register( subtensor = self.subtensor )
 
         # === UID ===
         # Get our uid from the chain. 
@@ -183,15 +197,29 @@ class neuron:
                 hot_pubkey = self.wallet.hotkey.ss58_address,
                 root_dir = self.config.neuron.full_path
             )
-        
+
+    def forward(self):
+        r""" Run the nucleus forward request
+        This function is supposed to be ran multi-threaded.
+        """
+        result = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
+                
+        # === Backward ===
+        # Backwards gradients through model to train gating and remote endpoints.
+        (result.loss / self.config.neuron.forward_num).backward()
+        return result
+
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
-         
         # === Setup ===
         # Checks wallet and starts monitoring with wandb.
         with self:
 
+            # === Start forward requests ===
+            self.metagraph_sync()
+            self.forward_thread_queue.start()
+            
             # === Run ===
             # Iterates through epochs.
             self.epoch = 0
@@ -213,7 +241,6 @@ class neuron:
                     print( 'Unknown exception: {}', e )
                     if not self.config.neuron.restart_on_failure:
                         break
-
 
     def run_epoch( self ):
         r""" Runs a validator epoch. We apply batches until the epoch length is exhausted.
@@ -238,6 +265,13 @@ class neuron:
                             'era/max_allowed_ratio': max_allowed_ratio, 'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset, 
                 }, step = current_block )
 
+        # === Run Epoch ===
+        # Each block length lasts blocks_per_epoch blocks.
+        # This gives us a consistent network wide timer.
+        # Here we run until blocks_per_epochs have progressed.
+        self.metagraph_sync() # Reset metagraph.
+        epoch_steps = 0
+
         # === Reset Epochs with new params. ===
         # Pulls new default validator training parameters and resets 
         # the model and dataset for the following epoch.
@@ -252,14 +286,13 @@ class neuron:
                 self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
             )
 
-        # === Run Epoch ===
-        # Each block length lasts blocks_per_epoch blocks.
-        # This gives us a consistent network wide timer.
-        # Here we run until blocks_per_epochs have progressed.
-        self.metagraph.sync().save() # Reset metagraph.
-        epoch_steps = 0
-        score_history = []
-        moving_avg_scores = torch.ones_like( self.metagraph.S )
+            # === Reset Scores ===
+            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
+
+        # Checks if moving avg has been initiated
+        if self.moving_avg_scores == None:
+            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
+
         start_block = self.subtensor.block
         while self.subtensor.block < start_block + blocks_per_epoch:
             start_time = time.time()
@@ -267,22 +300,12 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            loss, scores = self.nucleus( next( self.dataset ), self.metagraph, self.dendrite )
-
-            # === Backward ===
-            # Backwards gradients through model to train gating and remote endpoints.
-            loss.backward()
-
-            # === Apply gradients ===
-            # Applies local gradients to parameters.
-            clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-            self.optimizer.step()
-            self.optimizer.zero_grad()    
-
+            forward_results = self.forward_thread_queue.get()
+            print(f'Run\t| Got forward result in {round(time.time() - start_time, 3)}')
+            loss, scores, uids = self.nucleus.compute_shapely_scores(forward_results)
             # === Scoring ===
             # Updates moving averages and history.
-            score_history.append( scores ) # Normalized step scores.
-            moving_avg_scores = torch.stack( score_history ).mean(0) # Average history.
+            self.moving_avg_scores[uids] = self.moving_avg_scores[uids]*(0.99) + scores*(0.01)
         
             # === State update ===
             # Prints step logs to screen.
@@ -296,10 +319,23 @@ class neuron:
                    '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
             if self.config.using_wandb:
                 wandb.log( { 'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps, 'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(), 'epoch/time': step_time }, step = current_block )
-                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
+                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( self.moving_avg_scores, k = n_topk_peer_weights )
                 step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
                 for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
                     wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
+
+            # Do the backward request after the a queue of forward requests got finished.  
+            if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
+                print('Run\t| Model update')
+
+                # === Apply gradients ===
+                # Applies local gradients to parameters.
+                clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+                self.optimizer.step()
+                self.optimizer.zero_grad()    
+                
+                # === Get another round of forward requests ===
+                self.forward_thread_queue.resume()
 
         # Iterate epochs.
         self.epoch += 1
@@ -307,7 +343,7 @@ class neuron:
         # === Set weights ===
         # Find the n_topk_peer_weights peers to set weights to.
         # We use the mean of the epoch weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk( moving_avg_scores, k = n_topk_peer_weights )
+        topk_scores, topk_uids = bittensor.unbiased_topk(self.moving_avg_scores, k = n_topk_peer_weights )
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
         print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
                 '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
@@ -330,6 +366,18 @@ class neuron:
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
+    
+    def metagraph_sync(self):
+        r""" Syncing metagraph together with other metagraph-size related objects
+        """
+        self.metagraph.sync()
+        
+        if self.moving_avg_scores == None:
+            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
+        
+        if self.metagraph.n > len(self.moving_avg_scores):
+            size_incerease = self.metagraph.n - len(self.moving_avg_scores)
+            self.moving_avg_scores = torch.concat([self.moving_avg_scores, torch.ones(size_incerease) * -1]) 
 
 class PositionalEncoding(nn.Module):
     r""" Positional Encoder which adds information based on the relative position of each token
@@ -399,12 +447,13 @@ class nucleus( torch.nn.Module ):
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default = 50 )
+        parser.add_argument('--nucleus.topk', type=int, help='the number of peers queried during each remote forward call', default = 20 )
         parser.add_argument('--nucleus.nhid', type=int, help='the dimension of the feedforward network model in nn.TransformerEncoder', default=200 )
         parser.add_argument('--nucleus.nhead', type=int, help='the number of heads in the multiheadattention models', default = 2 )
         parser.add_argument('--nucleus.nlayers', type=int, help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder', default=2 )
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
-        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=0.1)
+        parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
+        parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
 
     @classmethod
     def config ( cls ):
@@ -430,6 +479,24 @@ class nucleus( torch.nn.Module ):
         self.routing_encoder.apply( init_xavier )
         self.encoder.apply( init_xavier )
         torch.nn.init.xavier_uniform_( self.gates.weight )
+
+    # === Compute loss given joined responses ===
+    # This function computes target loss for next token prediction given 
+    # the joined responses as a hidden unit input.
+    # target_loss: (torch.float64): loss after decoding responses to targets.
+    # target_loss.shape = [ 1 ]
+    def get_target_loss ( self, hidden, targets ):
+        # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
+        #   Hidden units which are encoded and decoded onto targets for loss computation.
+        # targets: (torch.float64): [n]
+        #   Token targets,
+        src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
+        src_mask = src_mask.to(self.config.neuron.device)
+        encoded_hidden = self.encoder( hidden, mask = src_mask )
+        decoded_targets = self.decoder( encoded_hidden )
+        shift_logits = decoded_targets[..., :-1, :].contiguous()
+        shift_labels = targets[..., 1:].contiguous()
+        return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
     def forward ( 
         self, 
@@ -491,9 +558,10 @@ class nucleus( torch.nn.Module ):
         # The resulting routing_weights tensor is a score per expert.
         # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
         # routing_weights.shape = [ n_filtered ]
-        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)
+        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)[:metagraph.n]
         noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
-        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights
+        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights * self.config.nucleus.noise_multiplier
+        
 
         # === Get indices and values for uids with highest scores ===
         # We are taking the topk routing weights and returning their uids.
@@ -526,31 +594,13 @@ class nucleus( torch.nn.Module ):
         for response in query_responses:
             response.to( self.device )
 
-        # === Compute loss given joined responses ===
-        # This function computes target loss for next token prediction given 
-        # the joined responses as a hidden unit input.
-        # target_loss: (torch.float64): loss after decoding responses to targets.
-        # target_loss.shape = [ 1 ]
-        def get_target_loss ( hidden, targets ):
-            # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
-            #   Hidden units which are encoded and decoded onto targets for loss computation.
-            # targets: (torch.float64): [n]
-            #   Token targets,
-            src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
-            src_mask = src_mask.to(self.config.neuron.device)
-            encoded_hidden = self.encoder( hidden, mask = src_mask )
-            decoded_targets = self.decoder( encoded_hidden )
-            shift_logits = decoded_targets[..., :-1, :].contiguous()
-            shift_labels = targets[..., 1:].contiguous()
-            return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
-
         # === Compute global loss ===
         # Computes the global training loss for the nucleus by decoding all the responses
         # onto the targets.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
         responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
-        target_loss = get_target_loss ( responses_hidden, inputs )
+        target_loss = self.get_target_loss ( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
         # === Compute Importance loss ===
@@ -561,28 +611,52 @@ class nucleus( torch.nn.Module ):
         # target_loss.shape = [ 1 ]
         importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
         loss = target_loss + importance_loss
+        
+        state_dict = SimpleNamespace(
+            inputs = inputs,
+            batchwise_routing_weights = batchwise_routing_weights,
+            routing_uids = routing_uids,
+            query_responses = query_responses,
+            return_ops = return_ops,
+            responses_hidden = responses_hidden,
+            loss = loss,
+            n = metagraph.n.item()
+        )
+        
+        return state_dict
 
+    def compute_shapely_scores(self, state_dict):
+        
         # === Compute shapely scores ===
         # Computes shapely scores for each endpoint by masking the response and
         # computing the change in loss induced.
         # shapely_scores: (torch.float32): shapely scores per query_response
         # shapely_scores.shape = [ metagraph.n ]
-        masked_contexts = partial_contexts(return_ops, routing_uids, batchwise_routing_weights[routing_uids],  query_responses)
-        shapely_scores = torch.zeros( (metagraph.n.item()) )
+        masked_contexts = partial_contexts(
+            state_dict.return_ops, 
+            state_dict.routing_uids, 
+            state_dict.batchwise_routing_weights[state_dict.routing_uids],  
+            state_dict.query_responses
+            )
+        # Turn off gradient computation for shapely scores.
+        # shapely_scores.shape = [ nucleus.topk ]
+        # This sets non queried peers as if non-responsive
+        shapely_scores = torch.zeros( state_dict.routing_uids.size())
         # Turn off gradient computation for shapely scores.
         with torch.no_grad():
             self.eval()
-            unmasked_loss = get_target_loss(responses_hidden, inputs)
+
+            unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
             # Iterate over all responses creating a masked context.
-            for i,uid in enumerate(masked_contexts):
+            for i, uid in enumerate(masked_contexts):
                 # Create mask by zeroing out the response at index.              
-                masked_loss = get_target_loss ( masked_contexts[uid], inputs )
+                masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
                 shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, batchwise_routing_weights[routing_uids][i], -shapely_score.item(), return_ops[i], query_responses[i].sum()))
-                shapely_scores[ uid ] = -shapely_score
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
+                shapely_scores[ i ] = -shapely_score if not torch.abs(1 - state_dict.query_responses[i].std()).item() < 0.05 else -1
 
         # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[routing_uids[ return_ops != 1 ]]  = shapely_scores.min().item()
-
+        shapely_scores[state_dict.return_ops != 1 ]  = -1
+        
         # === Done ===
-        return loss, shapely_scores
+        return state_dict.loss, shapely_scores, state_dict.routing_uids

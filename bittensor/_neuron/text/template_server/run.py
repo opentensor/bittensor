@@ -30,6 +30,7 @@ import pandas
 import datetime
 from threading import Lock
 from loguru import logger; logger = logger.opt(colors=True)
+from datetime import datetime,timedelta
 
 def serve( 
         config, 
@@ -68,6 +69,8 @@ def serve(
     )
     mutex = Lock()
 
+    timecheck = {}
+    n_topk_peer_weights = subtensor.min_allowed_weights
     def forward_text ( inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
         """ 
@@ -89,13 +92,82 @@ def serve(
                             )
                         optimizer.step()
                         optimizer.zero_grad()
+    
+
+    def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
+        r"""Axon security blacklisting, used to blacklist message from low stake members
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
+        """
+        # Check for registrations
+
+        def registration_check():
+            # If we allow non-registered requests return False = not blacklisted.
+            is_registered = pubkey in metagraph.hotkeys
+            if not is_registered:
+                if config.neuron.blacklist_allow_non_registered:
+                    
+                    return False
+                raise Exception('blacklist')
+
+        # Check for stake
+        def stake_check() -> bool:
+                
+            # Check stake.
+            uid = metagraph.hotkeys.index(pubkey)
+            if metagraph.S[uid].item() < config.neuron.blacklist.stake:
+                raise Exception('Stake blacklist')
+            return False
+
+        def validator_check():
+
+            uid = metagraph.hotkeys.index(pubkey)
+            if (metagraph.W[uid] >0).sum() >= n_topk_peer_weights:
+                return False
+
+            raise Exception('Validator blacklist')
+
+
+        # Check for time
+        def time_check():
+            current_time = datetime.now()
+            if pubkey in timecheck.keys():
+                prev_time = timecheck[pubkey]
+                if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
+                    timecheck[pubkey] = current_time
+                    return False
+                else:
+                    timecheck[pubkey] = current_time
+                    raise Exception('blacklist')
+            else:
+                timecheck[pubkey] = current_time
+                return False
+
+        # Black list or not
+        try:
+            registration_check()
+
+            stake_check()
+
+            validator_check()
+            
+            return False
+
+        except Exception as e:
+            return True
+
 
     # Create our axon server and subscribe it to the network.
     if axon == None:
         axon = bittensor.axon (
+            config = config,
             wallet = wallet,
             forward_text = forward_text,
             backward_text = backward_text,
+            blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
 
     if config.wandb.api_key != 'default':
@@ -154,6 +226,7 @@ def serve(
                     wallet = wallet,
                 )
                 
+                metagraph.sync()
                 if did_set:
                     logger.success('Successfully set weights on the chain')
                 else:
