@@ -38,3 +38,4 @@ wandb>=0.11.1
 ansible_vault>=2.1
 substrate-interface==1.2.4
 markupsafe==2.0.1
+pytest-split
