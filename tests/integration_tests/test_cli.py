@@ -7,6 +7,8 @@ from unittest.mock import MagicMock
 from substrateinterface.exceptions import SubstrateRequestException
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from unittest.mock import patch
+import os
+import shutil
 
 class TestCli(unittest.TestCase):
 
@@ -83,6 +85,25 @@ class TestCli(unittest.TestCase):
         wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
 
         return wallet
+
+    @staticmethod
+    def init_wallet():
+        if os.path.exists('/tmp/pytest'):
+            shutil.rmtree('/tmp/pytest')
+    
+        the_wallet = bittensor.wallet (
+            path = '/tmp/pytest',
+            name = 'pytest',
+            hotkey = 'pytest',
+        )
+        
+        return the_wallet
+    
+    @staticmethod
+    def rm_wallet() -> None:
+        if os.path.exists('/tmp/pytest'):
+            shutil.rmtree('/tmp/pytest')
+        return
 
     def test_check_configs(self):
         commands = ["run", "transfer", "register", "unstake", 
@@ -284,6 +305,36 @@ class TestCli(unittest.TestCase):
 
         cli.config.command = "list"
         cli.config = config
+        cli.run()
+
+    def test_list( self ):
+
+        # Create a new wallet in tmp dir
+        wallet: 'bittensor.Wallet' = self.init_wallet()
+        config = self.config
+        config.wallet.path = wallet.path
+        config.wallet._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+        config.subtensor._mock = True
+        config.command = "list"
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_list_no_wallet( self ):
+        # Delete wallet if it exists
+        self.rm_wallet()
+    
+        config = self.config
+        config.wallet.path = '/tmp/pytest'
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+        config.subtensor._mock = True
+        config.command = "list"
+    
+        cli = bittensor.cli(config)
+        # This shouldn't raise an error anymore
         cli.run()
 
 
