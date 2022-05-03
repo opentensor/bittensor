@@ -227,7 +227,7 @@ class CMPPackSerializer( Serializer ):
 class Synapse_Serializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch
     """
-    def serialize(self, tensor_pos: int,  args: dict, synapse_type: bittensor.proto.SynapseType) -> bittensor.proto.Tensor:
+    def serialize(self, tensor_pos: int,  args: dict={}, synapse_type: bittensor.proto.SynapseType=0) -> bittensor.proto.Tensor:
         """ Serializes a dictionary of args to an bittensor Synapse proto.
 
         Args:
@@ -244,10 +244,26 @@ class Synapse_Serializer( Serializer ):
             bittensor.proto.Synapse: 
                 The serialized torch tensor as bittensor.proto.proto. 
         """
-        data_buffer = msgpack.packb(args)
+        if synapse_type == bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE:
+            arg_proto = bittensor.proto.SynapseArgsTextLastHiddenState(
+                            synapse_type = bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE
+                        )
+
+        elif synapse_type == bittensor.proto.SynapseType.TEXT_CAUSAL_LM:
+            arg_proto = bittensor.proto.SynapseArgsTextCausalLM(
+                            synapse_type = bittensor.proto.SynapseType.TEXT_CAUSAL_LM,
+                            topk = args['topk'] if 'topk' in args else 5
+                        )
+
+        elif synapse_type == bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ:
+            arg_proto = bittensor.proto.SynapseArgsTextSeq2Seq(
+                            synapse_type = bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ,
+                            topk = args['topk'] if 'topk' in args else 5,
+                            k_sequence = args['k_sequence'] if 'k_sequence' in args else 2,
+                        )
         torch_proto = bittensor.proto.Synapse (
                                     tensor_pos= tensor_pos,
-                                    args_data = data_buffer,
+                                    args_data = arg_proto.SerializeToString(),
                                     synapse_type = synapse_type,
                                 )
         return torch_proto
@@ -257,11 +273,24 @@ class Synapse_Serializer( Serializer ):
 
         Args:
             torch_proto (bittensor.proto.Synapse): 
-                Proto containing torch tensor to derserialize.
+                Proto containing synapse args to deserialize.
 
         Returns:
             args: 
                 Deserialized Dict containing args.
         """
-        dictionary = msgpack.unpackb(torch_proto.args_data)
-        return dictionary
+        synapse_type =  torch_proto.synapse_type
+
+        if synapse_type == bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE:
+            args_proto = bittensor.proto.SynapseArgsTextLastHiddenState()
+
+        elif synapse_type == bittensor.proto.SynapseType.TEXT_CAUSAL_LM:
+            args_proto = bittensor.proto.SynapseArgsTextCausalLM()
+
+        elif synapse_type == bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ:
+            args_proto = bittensor.proto.SynapseArgsTextSeq2Seq()
+
+        args_proto.ParseFromString(torch_proto.args_data)
+
+
+        return args_proto

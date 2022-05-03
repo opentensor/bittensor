@@ -156,7 +156,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             inputs_x: torch.Tensor, 
             modality: bittensor.proto.Modality,
             synapses: list,
-            synapses_args: list,
         ) -> Tuple[ torch.FloatTensor, int, str ]:
         r""" Calls the forward callback served by the nucleus.
             
@@ -191,7 +190,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     self.forward_callback[modality],
                     inputs_x=inputs_x, 
                     synapses=synapses,
-                    synapses_args= synapses_args,
                     priority=priority
                 )
                 
@@ -206,7 +204,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response_tensor = self.forward_callback[modality](
                      inputs_x= inputs_x,
                      synapses= synapses,
-                     synapses_args = synapses_args
                 )
 
             message = "Success"
@@ -375,16 +372,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
             return None, code, call_time, message
 
         synapses = []
-        synapses_args = []
         synapse_serializer = bittensor.synapse_serializer()
 
         for synapse in request.synapses:
-            synapses.append(synapse.synapse_type)
-            try:
-                args = synapse_serializer.deserialize(synapse)
-                synapses_args.append(args)
-            except:
-                synapses_args.append({})
+            synapses.append(synapse_serializer.deserialize(synapse))
+
 
         # Post process.
         try:
@@ -399,7 +391,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 inputs_x = torch_inputs, 
                 modality = modality,
                 synapses= synapses,
-                synapses_args = synapses_args
             )
 
             # ---- Catch empty ----
@@ -433,7 +424,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # --- Prepare Synapses ---
         return_synapses = []
         for synapse in synapses:
-            return_synapses.append(synapse_serializer.serialize(0, args={}, synapse_type=synapse))
+            return_synapses.append(synapse_serializer.serialize(0, args={}, synapse_type=synapse.synapse_type))
 
         # ---- Return successful response ----
         code = bittensor.proto.ReturnCode.Success

@@ -188,6 +188,19 @@ message SynapseArgsTextCausalLM{
 	int32 topk = 2;
 }
 
+message SynapseArgsTextSeq2Seq{
+	// Might as well have this
+	SynapseType synapse_type = 1;
+
+	// Specifies the number of Topk logits to return.
+	// Logit values are packed (pos, value) acocording 
+	// to the bittensor tokenizer vocab size.
+	int32 topk = 2;
+
+	// Number of tokens to predict
+	int32 k_sequence =3;
+}
+
 message Synapse {
 
 	// Position of Tensor inputs for corresponding synapse call.
