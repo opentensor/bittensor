@@ -44,7 +44,7 @@ jobs:
     - name: Upload coverage
       uses: actions/upload-artifact@v2
       with:
-        name: coverage${{ matrix.group }}
+        name: coverage${{ matrix.shard}}
         path: .coverage
 
   coverage:
