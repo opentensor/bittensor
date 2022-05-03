@@ -127,6 +127,22 @@ class TestCli(unittest.TestCase):
             cli.check_config(config)
 
     def test_overview( self ):
+        wallet: 'bittensor.Wallet' = self.init_wallet()
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.wallet.path = wallet.path
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_no_wallet( self ):
+        # Delete wallet if exists
+        self.rm_wallet()
         bittensor.subtensor.register = MagicMock(return_value = True)  
         
         config = self.config
