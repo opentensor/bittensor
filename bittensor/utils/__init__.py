@@ -275,3 +275,28 @@ def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
 
     except (ValueError, IndexError):
         return False
+
+def is_valid_destination_address( address: str ) -> bool:
+    """
+    Checks if the given address is a valid destination address.
+
+    Args:
+        address: The address to check.
+
+    Returns:
+        True if the address is a valid destination address, False otherwise.
+    """
+    if isinstance( address, str ):
+        # Check if ed25519
+        if address.startswith('0x'):
+            if not is_valid_ed25519_pubkey( address ):
+                bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( address ))
+                return False
+        # Assume ss58 address
+        else:
+            if not is_valid_ss58_address( address ):
+                bittensor.__console__.print(":cross_mark: [red]Invalid Destination Address[/red]: {}".format( address ))
+                return False
+    else:
+        bittensor.__console__.print(":cross_mark: [red]Invalid Destination[/red]: {}".format( address ))
+        return False

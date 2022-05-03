@@ -26,7 +26,7 @@ import bittensor.utils.weight_utils as weight_utils
 from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
-from bittensor.utils import is_valid_ss58_address, is_valid_ed25519_pubkey
+from bittensor.utils import is_valid_destination_address
 from types import SimpleNamespace
 
 # Mocking imports
@@ -759,19 +759,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 If we did not wait for finalization / inclusion, the response is true.
         """
         # Validate destination address.
-        if isinstance( dest, str ):
-            # Check if ed25519
-            if dest.startswith('0x'):
-                if not is_valid_ed25519_pubkey( dest ):
-                    bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( dest ))
-                    return False
-            # Assume ss58 address
-            else:
-                if not is_valid_ss58_address( dest ):
-                    bittensor.__console__.print(":cross_mark: [red]Invalid Destination Address[/red]: {}".format( dest ))
-                    return False
-        else:
-            bittensor.__console__.print(":cross_mark: [red]Invalid Destination[/red]: {}".format( dest ))
+        if not is_valid_destination_address( dest ):
             return False
 
         # Unlock wallet coldkey.
