@@ -279,6 +279,16 @@ class TestSubtensor(unittest.TestCase):
                             )
         assert fail == False
 
+    def test_transfer_invalid_dest(self ):
+        neuron = self.neurons[ 1 ]
+
+        fail = self.subtensor.transfer(self.wallet,
+                            neuron.hotkey[:-1], # invalid dest
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert fail == False
+
     def test_set_weights( self ):
         chain_weights = [0]
         class success():
