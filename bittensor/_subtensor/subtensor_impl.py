@@ -762,6 +762,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         if not is_valid_destination_address( dest ):
             return False
 
+        if isinstance( dest, bytes):
+            # Convert bytes to hex string.
+            dest = "0x" + dest.hex()
+
         # Unlock wallet coldkey.
         wallet.coldkey
 
