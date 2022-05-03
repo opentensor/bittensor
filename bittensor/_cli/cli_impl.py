@@ -256,7 +256,10 @@ class CLI:
     def _get_hotkey_wallets_for_wallet( wallet ):
         hotkey_wallets = []
         hotkeys_path = wallet.path + '/' + wallet.name + '/hotkeys'
-        hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        try:
+            hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        except StopIteration:
+            hotkey_files = []
         for hotkey_file_name in hotkey_files:
             hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
         return hotkey_wallets
@@ -415,6 +418,11 @@ class CLI:
         """
         console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
+
+        if not wallet.coldkeypub_file.exists_on_device():
+            console.print("[bold red]No wallets found.")
+            return
+
         subtensor = bittensor.subtensor( config = self.config )
         all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
         neurons = []
