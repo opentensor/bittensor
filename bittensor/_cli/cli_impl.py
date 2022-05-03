@@ -264,7 +264,12 @@ class CLI:
     def list(self):
         r""" Lists wallets.
         """
-        wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        try:
+            wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        except StopIteration:
+            # No wallet files found.
+            wallets = []
+
         root = Tree("Wallets")
         for w_name in wallets:
             wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
@@ -292,8 +297,10 @@ class CLI:
                             hotkey_str = '?'
                         wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
             except:
-                pass
+                continue
 
+        if len(wallets) == 0:
+            root.add("[bold red]No wallets found.")
         print(root)
 
     def metagraph(self):
