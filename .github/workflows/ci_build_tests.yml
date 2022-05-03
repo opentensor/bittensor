@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -36,10 +36,8 @@ jobs:
         python -m pip install -e .
         ./scripts/create_wallet.sh
         ./scripts/build_protos.sh
-    - name: Run Unit Tests
-      run: pytest ./tests/unit_tests --cov=. --cov-append --cov-config .coveragerc --splits 5 --group ${{ matrix.shard }}
-    - name: Run Integration Tests
-      run: pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc --splits 5 --group ${{ matrix.shard }}
+    - name: Run Tests
+      run: pytest ./tests --cov=. --cov-append --cov-config .coveragerc --splits 10 --group ${{ matrix.shard }}
 
     - name: Upload coverage
       uses: actions/upload-artifact@v2
