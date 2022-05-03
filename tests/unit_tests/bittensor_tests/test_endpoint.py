@@ -15,10 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor 
-import torch
 import random
+
 import pytest
+import torch
+
+import bittensor
 
 test_wallet = bittensor.wallet.mock()
 endpoint = None
@@ -129,6 +131,10 @@ def test_endpoint_fails_checks():
 
 
 def test_endpoint_to_tensor():
+    # This makes me feel all dirty inside; tests should not rely on global variables.
+    if endpoint is None:
+        test_create_endpoint()
+
     tensor_endpoint = endpoint.to_tensor()
     assert list(tensor_endpoint.shape) == [250]
     converted_endpoint = bittensor.endpoint.from_tensor( tensor_endpoint )
