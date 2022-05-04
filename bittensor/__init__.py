@@ -59,9 +59,11 @@ __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
 
-# This port is fixed to 2**15 - 1 to avoid clashing with get_random_unused_port
+# Avoid collisions with other processes
+import os
+pid_port = 8192 + (os.getpid() % 8192)
 __mock_entrypoints__ = [
-    'localhost:16383'
+    f"localhost:{pid_port}"
 ]
 
 
