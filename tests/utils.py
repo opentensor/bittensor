@@ -5,7 +5,7 @@ from typing import Set
 max_tries = 10
 
 
-def get_random_unused_port(allocated_ports: Set = {}):
+def get_random_unused_port(allocated_ports: Set = set()):
     def port_in_use(port: int) -> bool:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             return s.connect_ex(("localhost", port)) == 0
