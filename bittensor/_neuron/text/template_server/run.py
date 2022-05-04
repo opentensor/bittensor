@@ -71,7 +71,7 @@ def serve(
 
     timecheck = {}
     n_topk_peer_weights = subtensor.min_allowed_weights
-    def forward_text ( inputs_x ):
+    def forward_text ( inputs_x, synapse ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
         """ 
         output = model.pre_model(input_ids=inputs_x).logits
