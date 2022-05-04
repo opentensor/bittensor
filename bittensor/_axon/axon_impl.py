@@ -77,6 +77,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.backward_callback = backwards
         self.forward_timeout = forward_timeout
         self.backward_timeout = backward_timeout
+        self.synapse_callbacks = {}
         self.modality = self.find_modality()
         self.stats = self._init_stats()
         self.started = None
@@ -179,8 +180,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         # Check forward has been subscribed.
         if self.forward_callback[modality] == None:
-            message = "Forward callback is not yet subscribed on this axon."
-            return None, bittensor.proto.ReturnCode.NotImplemented, message
+            response_tensor, codes = self.default_forward_callback(inputs_x = inputs_x, synapses=synapses)
+            message = "Success"
+            return response_tensor, codes, message, synapses
         
         # Make forward call.
         try:
@@ -550,6 +552,24 @@ class Axon( bittensor.grpc.BittensorServicer ):
         bittensor.logging.rpc_log( axon=True, forward=False, is_response=True, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(grads_dy.shape), outputs=list(outputs_serialized.shape), message=None  )
         return outputs_serialized, code, call_time, message
 
+    def default_forward_callback(self, inputs_x:torch.FloatTensor, synapses=[] ):
+        """
+            The default forward callback when no callback is attached: Is used to call specific synapse functions
+        """
+        response_tensors = []
+        response_codes = []
+
+        for synapse in synapses:
+            if synapse.synapse_type in self.synapse_callbacks:
+                response_tensors.append(self.synapse_callbacks[synapse.synapse_type](inputs_x, synapse))
+                response_codes.append(bittensor.proto.ReturnCode.Success)
+            else:
+                response_tensors.append(None)
+                response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
+
+        return response_tensors, response_codes
+
+
     def attach( self, servicer:object, modality:int):
         """
             Attaches the forward and backward callbacks to the passed object.
@@ -570,6 +590,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         bittensor.axon.check_forward_callback(forward_callback,modality)
         self.forward_callback[modality] = forward_callback
+
+    def attach_synapse_callback(self, synapse_callback: Callable[[str, torch.Tensor, int],torch.Tensor], synapse_type ):
+        self.synapse_callbacks[synapse_type] = synapse_callback
 
     def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ], modality: int ):
         """ Assigns the backward_callback call to this neuron.
