@@ -74,7 +74,12 @@ def serve(
     def forward_text ( inputs_x ):
         r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
         """ 
-        return model.encode_forward( inputs_x.to(model.device))
+        output = model.pre_model(input_ids=inputs_x).logits
+        #probabilities = torch.exp(output)
+        values, indices = (output).sort(dim=-1,descending=True)
+        encoding = torch.cat((indices[..., :512], values[..., :512]), dim=-1)
+        return encoding
+
 
 
     def backward_text ( inputs_x, grads_dy ):
@@ -148,11 +153,6 @@ def serve(
 
         # Black list or not
         try:
-            registration_check()
-
-            stake_check()
-
-            validator_check()
             
             return False
 
@@ -165,10 +165,11 @@ def serve(
         axon = bittensor.axon (
             config = config,
             wallet = wallet,
-            forward_text = forward_text,
-            backward_text = backward_text,
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
+
+        axon.attach_synapse_callback( forward,  synapse_type = bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE )
+        axon.attach_synapse_callback( forward,  synapse_type = bittensor.proto.SynapseType.TEXT_CAUSAL_LM )
 
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
