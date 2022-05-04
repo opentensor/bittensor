@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov pytest-split
+        python -m pip install pytest pytest-cov pytest-split pytest-xdist
         pip install -r requirements.txt --use-deprecated=legacy-resolver
 
     - name: Build Bittensor
@@ -42,8 +42,9 @@ jobs:
       continue-on-error: true
       run: |
         pytest ./tests --cov=. --cov-append --cov-config .coveragerc \
-        --splitting-algorithm duration_based_chunks \
-        --splits 10 --group ${{ matrix.shard }}
+        -n 2 \
+        --splitting-algorithm least_duration \
+        --splits 15 --group ${{ matrix.shard }}
 
     - name: Upload coverage
       uses: actions/upload-artifact@v2
