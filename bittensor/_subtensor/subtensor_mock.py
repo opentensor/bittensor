@@ -41,7 +41,7 @@ __type_registery__ = {
     }
 }
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = f"node-subtensor-{os.getpid()}"
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
 print(GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
 
 
@@ -86,7 +86,7 @@ class mock_subtensor():
         r""" If subtensor is running a mock process this kills the mock.
         """
         for p in psutil.process_iter():
-            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
+            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
                return True
         return False
 
@@ -95,7 +95,7 @@ class mock_subtensor():
         r""" Kills the global mocked subtensor process even if not owned.
         """
         for p in psutil.process_iter():
-            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME:
+            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() :
                 p.terminate()
                 p.kill()
 
