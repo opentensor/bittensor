@@ -153,7 +153,7 @@ def serve(
 
         # Black list or not
         try:
-            
+            time_check()
             return False
 
         except Exception as e:
