@@ -168,8 +168,8 @@ def serve(
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
 
-        axon.attach_synapse_callback( forward,  synapse_type = bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE )
-        axon.attach_synapse_callback( forward,  synapse_type = bittensor.proto.SynapseType.TEXT_CAUSAL_LM )
+        axon.attach_synapse_callback( forward_text,  synapse_type = bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE )
+        axon.attach_synapse_callback( forward_text,  synapse_type = bittensor.proto.SynapseType.TEXT_CAUSAL_LM )
 
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
