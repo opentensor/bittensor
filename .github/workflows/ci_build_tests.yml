@@ -16,9 +16,6 @@ jobs:
   test:
 
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -40,19 +37,17 @@ jobs:
       continue-on-error: true
       run: |
         pytest ./tests/unit_tests --cov=. --cov-append --cov-config .coveragerc \
-        --splitting-algorithm least_duration \
-        --splits 10 --group ${{ matrix.shard }}
+        -n 4
 
     - name: Run Integration Tests
       continue-on-error: true
       run: |
         pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc \
-        --splitting-algorithm least_duration \
-        --splits 10 --group ${{ matrix.shard }}
+        -n 4
     - name: Upload coverage
       uses: actions/upload-artifact@v2
       with:
-        name: coverage${{ matrix.shard }}
+        name: coverage
         path: .coverage
 
   coverage:
