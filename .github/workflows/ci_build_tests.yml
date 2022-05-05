@@ -3,7 +3,7 @@
 
 name: CI Tests
 
-on: 
+on:
   pull_request:
     branches:
       - master
@@ -13,7 +13,7 @@ on:
       - akatsuki
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
     strategy:
@@ -21,8 +21,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
     - uses: actions/checkout@v2
-      -
-    - name: Set up Python 3.9
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: 3.9
@@ -30,27 +29,50 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov pytest-xdist pytest-split
-        
+        python -m pip install pytest pytest-cov pytest-split
         pip install -r requirements.txt --use-deprecated=legacy-resolver
-
     - name: Build Bittensor
       run: |
         python -m pip install -e .
         ./scripts/create_wallet.sh
         ./scripts/build_protos.sh
-
     - name: Run Unit Tests
+      continue-on-error: true
       run: |
         pytest ./tests/unit_tests --cov=. --cov-append --cov-config .coveragerc \
-        --splitting-algorithm least_duration \ 
-        --splits 10 --group ${{ matrix.shard }} -n 2
+        --splitting-algorithm least_duration \
+        --splits 10 --group ${{ matrix.shard }}
 
     - name: Run Integration Tests
+      continue-on-error: true
       run: |
-        pytest ./tests/integration_tests--cov=. --cov-append --cov-config .coveragerc \
-        --splitting-algorithm least_duration \ 
-        --splits 10 --group ${{ matrix.shard }} -n 2
+        pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc \
+        --splitting-algorithm least_duration \
+        --splits 10 --group ${{ matrix.shard }}
+    - name: Upload coverage
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage${{ matrix.shard }}
+        path: .coverage
 
-    - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v1
+  coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install coverage
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest-cov
+      - name: Download all artifacts
+        # Downloads coverage1, coverage2, etc.
+        uses: actions/download-artifact@v2
+      - name: Run coverage
+        run: |
+          coverage combine coverage*/.coverage*
+          coverage report --fail-under=10
+      - uses: codecov/codecov-action@v1
