@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x8f\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0b\n\x03uid\x18\x02 \x01(\x03\x12\x0e\n\x06hotkey\x18\x03 \x01(\t\x12\x0f\n\x07\x63oldkey\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x0c\n\x04port\x18\x06 \x01(\x05\x12\x0f\n\x07ip_type\x18\x07 \x01(\x05\x12\x1b\n\x08modality\x18\x08 \x01(\x0e\x32\t.Modality\"\xb0\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x18\n\x07tensors\x18\x05 \x03(\x0b\x32\x07.Tensor\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x07 \x01(\t\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08\x12\x1a\n\x08synapses\x18\t \x03(\x0b\x32\x08.Synapse\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08\"D\n\x1eSynapseArgsTextLastHiddenState\x12\"\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x0c.SynapseType\"K\n\x17SynapseArgsTextCausalLM\x12\"\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x0c.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\"^\n\x16SynapseArgsTextSeq2Seq\x12\"\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x0c.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x12\n\nk_sequence\x18\x03 \x01(\x05\"\x9e\x01\n\x07Synapse\x12\x12\n\ntensor_pos\x18\x01 \x03(\x05\x12\x11\n\targs_data\x18\x02 \x01(\x0c\x12\"\n\x0csynapse_type\x18\x03 \x01(\x0e\x32\x0c.SynapseType\x12 \n\x0breturn_code\x18\x04 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x05 \x01(\t\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08*\xb8\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17*e\n\x0bSynapseType\x12\x12\n\x0eTEXT_UNDEFINED\x10\x00\x12\x1a\n\x16TEXT_LAST_HIDDEN_STATE\x10\x01\x12\x12\n\x0eTEXT_CAUSAL_LM\x10\x02\x12\x12\n\x0eTEXT_SEQ_2_SEQ\x10\x03*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06*+\n\x08Modality\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\n\n\x06TENSOR\x10\x02*8\n\x0bRequestType\x12\x0e\n\nNOTDEFINED\x10\x00\x12\x0b\n\x07\x46ORWARD\x10\x01\x12\x0c\n\x08\x42\x41\x43KWARD\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x8f\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0b\n\x03uid\x18\x02 \x01(\x03\x12\x0e\n\x06hotkey\x18\x03 \x01(\t\x12\x0f\n\x07\x63oldkey\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x0c\n\x04port\x18\x06 \x01(\x05\x12\x0f\n\x07ip_type\x18\x07 \x01(\x05\x12\x1b\n\x08modality\x18\x08 \x01(\x0e\x32\t.Modality\"\xb0\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x18\n\x07tensors\x18\x05 \x03(\x0b\x32\x07.Tensor\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x07 \x01(\t\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08\x12\x1a\n\x08synapses\x18\t \x03(\x0b\x32\x08.Synapse\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08\"\xa8\x04\n\x07Synapse\x12\x12\n\ntensor_pos\x18\x01 \x03(\x05\x12\x11\n\targs_data\x18\x02 \x01(\t\x12*\n\x0csynapse_type\x18\x03 \x01(\x0e\x32\x14.Synapse.SynapseType\x12 \n\x0breturn_code\x18\x04 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x05 \x01(\t\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08\x1aX\n\x13TextLastHiddenState\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x15\n\rrequires_grad\x18\x02 \x01(\x08\x1a_\n\x0cTextCausalLM\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x15\n\rrequires_grad\x18\x03 \x01(\x08\x1ar\n\x0bTextSeq2Seq\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x12\n\nk_sequence\x18\x03 \x01(\x05\x12\x15\n\rrequires_grad\x18\x04 \x01(\x08\"Q\n\x0bSynapseType\x12\x1a\n\x16TEXT_LAST_HIDDEN_STATE\x10\x00\x12\x12\n\x0eTEXT_CAUSAL_LM\x10\x01\x12\x12\n\x0eTEXT_SEQ_2_SEQ\x10\x02*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06*+\n\x08Modality\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\n\n\x06TENSOR\x10\x02*8\n\x0bRequestType\x12\x0e\n\nNOTDEFINED\x10\x00\x12\x0b\n\x07\x46ORWARD\x10\x01\x12\x0c\n\x08\x42\x41\x43KWARD\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -150,51 +150,20 @@ _RETURNCODE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='BadEndpoint', index=24, number=24,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=970,
-  serialized_end=1538,
+  serialized_start=1121,
+  serialized_end=1706,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
 ReturnCode = enum_type_wrapper.EnumTypeWrapper(_RETURNCODE)
-_SYNAPSETYPE = _descriptor.EnumDescriptor(
-  name='SynapseType',
-  full_name='SynapseType',
-  filename=None,
-  file=DESCRIPTOR,
-  create_key=_descriptor._internal_create_key,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_UNDEFINED', index=0, number=0,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_LAST_HIDDEN_STATE', index=1, number=1,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_CAUSAL_LM', index=2, number=2,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_SEQ_2_SEQ', index=3, number=3,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-  ],
-  containing_type=None,
-  serialized_options=None,
-  serialized_start=1540,
-  serialized_end=1641,
-)
-_sym_db.RegisterEnumDescriptor(_SYNAPSETYPE)
-
-SynapseType = enum_type_wrapper.EnumTypeWrapper(_SYNAPSETYPE)
 _SERIALIZER = _descriptor.EnumDescriptor(
   name='Serializer',
   full_name='Serializer',
@@ -215,8 +184,8 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1643,
-  serialized_end=1681,
+  serialized_start=1708,
+  serialized_end=1746,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
@@ -246,8 +215,8 @@ _TENSORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1683,
-  serialized_end=1733,
+  serialized_start=1748,
+  serialized_end=1798,
 )
 _sym_db.RegisterEnumDescriptor(_TENSORTYPE)
 
@@ -297,8 +266,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1735,
-  serialized_end=1829,
+  serialized_start=1800,
+  serialized_end=1894,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -328,8 +297,8 @@ _MODALITY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1831,
-  serialized_end=1874,
+  serialized_start=1896,
+  serialized_end=1939,
 )
 _sym_db.RegisterEnumDescriptor(_MODALITY)
 
@@ -359,8 +328,8 @@ _REQUESTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1876,
-  serialized_end=1932,
+  serialized_start=1941,
+  serialized_end=1997,
 )
 _sym_db.RegisterEnumDescriptor(_REQUESTTYPE)
 
@@ -389,10 +358,7 @@ ResponseIncompatibleVersion = 20
 SenderUnknown = 21
 UnknownException = 22
 Unauthenticated = 23
-TEXT_UNDEFINED = 0
-TEXT_LAST_HIDDEN_STATE = 1
-TEXT_CAUSAL_LM = 2
-TEXT_SEQ_2_SEQ = 3
+BadEndpoint = 24
 MSGPACK = 0
 CMPPACK = 1
 TORCH = 0
@@ -412,6 +378,36 @@ NOTDEFINED = 0
 FORWARD = 1
 BACKWARD = 2
 
+
+_SYNAPSE_SYNAPSETYPE = _descriptor.EnumDescriptor(
+  name='SynapseType',
+  full_name='Synapse.SynapseType',
+  filename=None,
+  file=DESCRIPTOR,
+  create_key=_descriptor._internal_create_key,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='TEXT_LAST_HIDDEN_STATE', index=0, number=0,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='TEXT_CAUSAL_LM', index=1, number=1,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='TEXT_SEQ_2_SEQ', index=2, number=2,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=1037,
+  serialized_end=1118,
+)
+_sym_db.RegisterEnumDescriptor(_SYNAPSE_SYNAPSETYPE)
 
 
 _NEURON = _descriptor.Descriptor(
@@ -650,18 +646,25 @@ _TENSOR = _descriptor.Descriptor(
 )
 
 
-_SYNAPSEARGSTEXTLASTHIDDENSTATE = _descriptor.Descriptor(
-  name='SynapseArgsTextLastHiddenState',
-  full_name='SynapseArgsTextLastHiddenState',
+_SYNAPSE_TEXTLASTHIDDENSTATE = _descriptor.Descriptor(
+  name='TextLastHiddenState',
+  full_name='Synapse.TextLastHiddenState',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='synapse_type', full_name='SynapseArgsTextLastHiddenState.synapse_type', index=0,
+      name='synapse_type', full_name='Synapse.TextLastHiddenState.synapse_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='requires_grad', full_name='Synapse.TextLastHiddenState.requires_grad', index=1,
+      number=2, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -677,33 +680,39 @@ _SYNAPSEARGSTEXTLASTHIDDENSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=565,
-  serialized_end=633,
+  serialized_start=734,
+  serialized_end=822,
 )
 
-
-_SYNAPSEARGSTEXTCAUSALLM = _descriptor.Descriptor(
-  name='SynapseArgsTextCausalLM',
-  full_name='SynapseArgsTextCausalLM',
+_SYNAPSE_TEXTCAUSALLM = _descriptor.Descriptor(
+  name='TextCausalLM',
+  full_name='Synapse.TextCausalLM',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='synapse_type', full_name='SynapseArgsTextCausalLM.synapse_type', index=0,
+      name='synapse_type', full_name='Synapse.TextCausalLM.synapse_type', index=0,
       number=1, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='topk', full_name='SynapseArgsTextCausalLM.topk', index=1,
+      name='topk', full_name='Synapse.TextCausalLM.topk', index=1,
       number=2, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='requires_grad', full_name='Synapse.TextCausalLM.requires_grad', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -716,10 +725,61 @@ _SYNAPSEARGSTEXTCAUSALLM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=635,
-  serialized_end=710,
+  serialized_start=824,
+  serialized_end=919,
 )
 
+_SYNAPSE_TEXTSEQ2SEQ = _descriptor.Descriptor(
+  name='TextSeq2Seq',
+  full_name='Synapse.TextSeq2Seq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='synapse_type', full_name='Synapse.TextSeq2Seq.synapse_type', index=0,
+      number=1, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='topk', full_name='Synapse.TextSeq2Seq.topk', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='k_sequence', full_name='Synapse.TextSeq2Seq.k_sequence', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='requires_grad', full_name='Synapse.TextSeq2Seq.requires_grad', index=3,
+      number=4, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=921,
+  serialized_end=1035,
+)
 
 _SYNAPSEARGSTEXTSEQ2SEQ = _descriptor.Descriptor(
   name='SynapseArgsTextSeq2Seq',
@@ -784,8 +844,8 @@ _SYNAPSE = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='args_data', full_name='Synapse.args_data', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -820,8 +880,9 @@ _SYNAPSE = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[],
+  nested_types=[_SYNAPSE_TEXTLASTHIDDENSTATE, _SYNAPSE_TEXTCAUSALLM, _SYNAPSE_TEXTSEQ2SEQ, ],
   enum_types=[
+    _SYNAPSE_SYNAPSETYPE,
   ],
   serialized_options=None,
   is_extendable=False,
@@ -829,8 +890,8 @@ _SYNAPSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=809,
-  serialized_end=967,
+  serialized_start=566,
+  serialized_end=1118,
 )
 
 _NEURON.fields_by_name['modality'].enum_type = _MODALITY
@@ -841,20 +902,20 @@ _TENSOR.fields_by_name['serializer'].enum_type = _SERIALIZER
 _TENSOR.fields_by_name['tensor_type'].enum_type = _TENSORTYPE
 _TENSOR.fields_by_name['dtype'].enum_type = _DATATYPE
 _TENSOR.fields_by_name['modality'].enum_type = _MODALITY
-_SYNAPSEARGSTEXTLASTHIDDENSTATE.fields_by_name['synapse_type'].enum_type = _SYNAPSETYPE
-_SYNAPSEARGSTEXTCAUSALLM.fields_by_name['synapse_type'].enum_type = _SYNAPSETYPE
-_SYNAPSEARGSTEXTSEQ2SEQ.fields_by_name['synapse_type'].enum_type = _SYNAPSETYPE
-_SYNAPSE.fields_by_name['synapse_type'].enum_type = _SYNAPSETYPE
+_SYNAPSE_TEXTLASTHIDDENSTATE.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
+_SYNAPSE_TEXTLASTHIDDENSTATE.containing_type = _SYNAPSE
+_SYNAPSE_TEXTCAUSALLM.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
+_SYNAPSE_TEXTCAUSALLM.containing_type = _SYNAPSE
+_SYNAPSE_TEXTSEQ2SEQ.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
+_SYNAPSE_TEXTSEQ2SEQ.containing_type = _SYNAPSE
+_SYNAPSE.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
 _SYNAPSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_SYNAPSE_SYNAPSETYPE.containing_type = _SYNAPSE
 DESCRIPTOR.message_types_by_name['Neuron'] = _NEURON
 DESCRIPTOR.message_types_by_name['TensorMessage'] = _TENSORMESSAGE
 DESCRIPTOR.message_types_by_name['Tensor'] = _TENSOR
-DESCRIPTOR.message_types_by_name['SynapseArgsTextLastHiddenState'] = _SYNAPSEARGSTEXTLASTHIDDENSTATE
-DESCRIPTOR.message_types_by_name['SynapseArgsTextCausalLM'] = _SYNAPSEARGSTEXTCAUSALLM
-DESCRIPTOR.message_types_by_name['SynapseArgsTextSeq2Seq'] = _SYNAPSEARGSTEXTSEQ2SEQ
 DESCRIPTOR.message_types_by_name['Synapse'] = _SYNAPSE
 DESCRIPTOR.enum_types_by_name['ReturnCode'] = _RETURNCODE
-DESCRIPTOR.enum_types_by_name['SynapseType'] = _SYNAPSETYPE
 DESCRIPTOR.enum_types_by_name['Serializer'] = _SERIALIZER
 DESCRIPTOR.enum_types_by_name['TensorType'] = _TENSORTYPE
 DESCRIPTOR.enum_types_by_name['DataType'] = _DATATYPE
@@ -883,33 +944,36 @@ Tensor = _reflection.GeneratedProtocolMessageType('Tensor', (_message.Message,),
   })
 _sym_db.RegisterMessage(Tensor)
 
-SynapseArgsTextLastHiddenState = _reflection.GeneratedProtocolMessageType('SynapseArgsTextLastHiddenState', (_message.Message,), {
-  'DESCRIPTOR' : _SYNAPSEARGSTEXTLASTHIDDENSTATE,
-  '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:SynapseArgsTextLastHiddenState)
-  })
-_sym_db.RegisterMessage(SynapseArgsTextLastHiddenState)
-
-SynapseArgsTextCausalLM = _reflection.GeneratedProtocolMessageType('SynapseArgsTextCausalLM', (_message.Message,), {
-  'DESCRIPTOR' : _SYNAPSEARGSTEXTCAUSALLM,
-  '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:SynapseArgsTextCausalLM)
-  })
-_sym_db.RegisterMessage(SynapseArgsTextCausalLM)
-
-SynapseArgsTextSeq2Seq = _reflection.GeneratedProtocolMessageType('SynapseArgsTextSeq2Seq', (_message.Message,), {
-  'DESCRIPTOR' : _SYNAPSEARGSTEXTSEQ2SEQ,
-  '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:SynapseArgsTextSeq2Seq)
-  })
-_sym_db.RegisterMessage(SynapseArgsTextSeq2Seq)
-
 Synapse = _reflection.GeneratedProtocolMessageType('Synapse', (_message.Message,), {
+
+  'TextLastHiddenState' : _reflection.GeneratedProtocolMessageType('TextLastHiddenState', (_message.Message,), {
+    'DESCRIPTOR' : _SYNAPSE_TEXTLASTHIDDENSTATE,
+    '__module__' : 'bittensor._proto.bittensor_pb2'
+    # @@protoc_insertion_point(class_scope:Synapse.TextLastHiddenState)
+    })
+  ,
+
+  'TextCausalLM' : _reflection.GeneratedProtocolMessageType('TextCausalLM', (_message.Message,), {
+    'DESCRIPTOR' : _SYNAPSE_TEXTCAUSALLM,
+    '__module__' : 'bittensor._proto.bittensor_pb2'
+    # @@protoc_insertion_point(class_scope:Synapse.TextCausalLM)
+    })
+  ,
+
+  'TextSeq2Seq' : _reflection.GeneratedProtocolMessageType('TextSeq2Seq', (_message.Message,), {
+    'DESCRIPTOR' : _SYNAPSE_TEXTSEQ2SEQ,
+    '__module__' : 'bittensor._proto.bittensor_pb2'
+    # @@protoc_insertion_point(class_scope:Synapse.TextSeq2Seq)
+    })
+  ,
   'DESCRIPTOR' : _SYNAPSE,
   '__module__' : 'bittensor._proto.bittensor_pb2'
   # @@protoc_insertion_point(class_scope:Synapse)
   })
 _sym_db.RegisterMessage(Synapse)
+_sym_db.RegisterMessage(Synapse.TextLastHiddenState)
+_sym_db.RegisterMessage(Synapse.TextCausalLM)
+_sym_db.RegisterMessage(Synapse.TextSeq2Seq)
 
 
 
@@ -920,8 +984,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1934,
-  serialized_end=2036,
+  serialized_start=1999,
+  serialized_end=2101,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',

@@ -20,6 +20,8 @@
 import torch
 import msgpack
 import msgpack_numpy
+from typing import Tuple, List, Union, Optional
+
 
 import bittensor
 
@@ -223,74 +225,3 @@ class CMPPackSerializer( Serializer ):
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
 
-
-class Synapse_Serializer( Serializer ):
-    """ Make conversion between torch and bittensor.proto.torch
-    """
-    def serialize(self, tensor_pos: int,  args: dict={}, synapse_type: bittensor.proto.SynapseType=0) -> bittensor.proto.Tensor:
-        """ Serializes a dictionary of args to an bittensor Synapse proto.
-
-        Args:
-            tensor_pos (int):
-                position of the corresponding tensor
-
-            args (dictionary): 
-                dictionary of args for synapse 
-
-            synapse_type (bittensor.proto.synapse_type): 
-                synapse_type 
-
-        Returns:
-            bittensor.proto.Synapse: 
-                The serialized torch tensor as bittensor.proto.proto. 
-        """
-        if synapse_type == bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE:
-            arg_proto = bittensor.proto.SynapseArgsTextLastHiddenState(
-                            synapse_type = bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE
-                        )
-
-        elif synapse_type == bittensor.proto.SynapseType.TEXT_CAUSAL_LM:
-            arg_proto = bittensor.proto.SynapseArgsTextCausalLM(
-                            synapse_type = bittensor.proto.SynapseType.TEXT_CAUSAL_LM,
-                            topk = args['topk'] if 'topk' in args else 5
-                        )
-
-        elif synapse_type == bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ:
-            arg_proto = bittensor.proto.SynapseArgsTextSeq2Seq(
-                            synapse_type = bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ,
-                            topk = args['topk'] if 'topk' in args else 5,
-                            k_sequence = args['k_sequence'] if 'k_sequence' in args else 2,
-                        )
-        torch_proto = bittensor.proto.Synapse (
-                                    tensor_pos= tensor_pos,
-                                    args_data = arg_proto.SerializeToString(),
-                                    synapse_type = synapse_type,
-                                )
-        return torch_proto
-
-    def deserialize(self, torch_proto: bittensor.proto.Synapse) -> dict:
-        """Deserializes an bittensor.proto.Synapse to a bittensor.proto.Synapse_args object.
-
-        Args:
-            torch_proto (bittensor.proto.Synapse): 
-                Proto containing synapse args to deserialize.
-
-        Returns:
-            args: 
-                Deserialized Dict containing args.
-        """
-        synapse_type =  torch_proto.synapse_type
-
-        if synapse_type == bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE:
-            args_proto = bittensor.proto.SynapseArgsTextLastHiddenState()
-
-        elif synapse_type == bittensor.proto.SynapseType.TEXT_CAUSAL_LM:
-            args_proto = bittensor.proto.SynapseArgsTextCausalLM()
-
-        elif synapse_type == bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ:
-            args_proto = bittensor.proto.SynapseArgsTextSeq2Seq()
-
-        args_proto.ParseFromString(torch_proto.args_data)
-
-
-        return args_proto
