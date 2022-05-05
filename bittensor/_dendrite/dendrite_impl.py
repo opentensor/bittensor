@@ -50,7 +50,6 @@ def nill_response_for(inputs):
         return torch.tensor([])
     return torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
-
 class Dendrite(torch.autograd.Function):
     r""" This is the implementation class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
     which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
@@ -108,11 +107,9 @@ class Dendrite(torch.autograd.Function):
             dendrite: 'bittensor.Dendrite',
             dummy: torch.Tensor,
             endpoints: List['bittensor.Endpoint'],
-            modality: bittensor.proto.Modality,
+            synapses: List[ 'bittensor.proto.Synapse' ],
             timeout: int,
             requires_grad: bool,
-            synapses: list,
-            synapses_args: list,
             *inputs: torch.Tensor
     ) -> Tuple[torch.Tensor, ...]:
         """ Internal autograd-friendly Forward RPC call to a list of neuron endpoints.
@@ -131,17 +128,18 @@ class Dendrite(torch.autograd.Function):
                 endpoints (:obj:`List[bittensor.Endpoint']` of shape :obj:`(n_endpoints)`, `required`):
                     List of endpoints which match length of inputs. Inputs are sent forward to these endpoints.
 
-                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
-                    Bittensor forward modality or type ENUM [TEXT, IMAGE, TENSOR]
-
-                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(n_endpoints)`, `required`):
-                    List of torch tensors to be sent to the associated endpoints.
+                synapses (:obj:`List[ bittensor.proto.Synapse ]` of shape :obj:`(num_synapses)`, `required`):
+                    Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                    Responses are packed in this ordering. 
 
                 timeout (int):
                     request timeout.
 
                 requires_grad (int, default = dendrite.requires_grad, `optional`):
                     If true, the backward pass triggers passing gradients on the wire.
+
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(n_endpoints)`, `required`):
+                    List of torch tensors to be sent to the associated endpoints.
 
             Returns:
                 codes (:obj:`torch.LongTensor` of shape :obj:`(n_endpoints)` `required`):
@@ -150,19 +148,17 @@ class Dendrite(torch.autograd.Function):
                 times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                     times per call.
                 
-                outputs (:obj:`List[torch.FloatTensor]` of shape :obj:`n_endpoints * (batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
+                outputs (:obj:`List[torch.FloatTensor` of shape :obj:`num_synapses * n_endpoints * (-1, -1, -1) `, `required`):
+                    List of outputs from each synapses and each endpoint unfolded into a single list. Non-responses are zeroes of expected shape.
         """
         ctx.receptor_pool = dendrite.receptor_pool
-        ctx.endpoints, ctx.inputs, ctx.modality, ctx.timeout, ctx.does_requires_grad = endpoints, inputs, modality, timeout, requires_grad
+        ctx.endpoints, ctx.synapses, ctx.inputs, ctx.timeout, ctx.does_requires_grad = endpoints, synapses, inputs, timeout, requires_grad
         inputs = [x.cpu().clone().detach() for x in inputs]
-        forward_outputs, forward_codes, forward_times = ctx.receptor_pool.forward(
-            endpoints=endpoints,
-            inputs=inputs,
-            modality=modality,
-            timeout=timeout,
-            synapses=synapses,
-            synapses_args=synapses_args
+        forward_outputs, forward_codes, forward_times = ctx.receptor_pool.forward (
+            endpoints = endpoints,
+            synapses = synapses,
+            inputs = inputs,
+            timeout = timeout,
         )
         ctx.forward_codes = forward_codes
         forward_times = [-1 if t is None else t for t in forward_times]
@@ -215,28 +211,27 @@ class Dendrite(torch.autograd.Function):
 
     def _forward(
             self,
-            endpoints: List['bittensor.Endpoint'],
-            inputs: List[torch.Tensor],
-            modality: bittensor.proto.Modality,
-            timeout: int = None,
-            requires_grad: bool = None,
-            synapses: list = [0],
-            synapses_args: list = [{}],
-    ) -> Tuple[List[torch.Tensor], torch.LongTensor, torch.FloatTensor]:
+            endpoints: List [ 'bittensor.Endpoint' ],
+            synapses: List[ 'bittensor.proto.Synapse' ],
+            inputs: List [ torch.Tensor ],
+            timeout: Optional [ int ]  = None,
+            requires_grad: Optional [ bool ] = None,
+    ) -> Tuple [ List[ torch.Tensor ], List[ torch.LongTensor ], List [ torch.FloatTensor ]]:
         r""" Internal Forward tensor inputs to a list of neuron endpoints.
 
             Args:
                 endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
                     List of remote endpoints which match length of inputs. Tensors from inputs are sent forward to these endpoints.
 
+                synapses (:obj:`List[ bittensor.proto.Synapse ]` of shape :obj:`(num_synapses)`, `required`):
+                    Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                    Responses are packed in this ordering. 
+
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
                     List of tensors to send to corresponding endpoints. Tensors are of arbitrary type and shape depending on the
                     modality.
 
-                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
-                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
-
-                timeout (int, default = dendrite.timeout, `required`):
+                timeout (int, default = dendrite.timeout, `optional`):
                     request timeout.
 
                 requires_grad (int, default = dendrite.requires_grad, `optional`):
@@ -247,23 +242,21 @@ class Dendrite(torch.autograd.Function):
                     Output encodings of inputs produced by the remote endpoints. Non-responses are zeroes of common shape.
 
                 codes (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
-                    dendrite call return codes.
+                    Return codes per endpoint per synapse.
 
                 times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
-                    times per call.
+                    Call times per endpoint per synapse.
 
         """
         timeout = timeout if timeout is not None else self.config.dendrite.timeout
         requires_grad = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
-        forward_response = Dendrite.apply(
+        forward_response = Dendrite.apply (
             self,
             DUMMY,
             endpoints,
-            modality,
+            synapses,
             timeout,
             requires_grad,
-            synapses,
-            synapses_args,
             *inputs
         )
         codes = forward_response[0]
@@ -271,213 +264,159 @@ class Dendrite(torch.autograd.Function):
         responses = forward_response[2:]
         return responses, codes, times
 
-    def forward_image(
-            self,
-            endpoints: Union[List['bittensor.Endpoint'], 'bittensor.Endpoint'],
-            inputs: List[torch.FloatTensor],
-            timeout: int = None,
-            requires_grad: bool = None
-    ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
-        r""" Forward image inputs to endpoints.
+    def text (
+        self,
+        endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
+        synapses: Union [ List[ 'bittensor.proto.Synapse' ], List[ Tuple[ 'bittensor.proto.Synapse.Type', dict ] ]],
+        inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+        timeout: int = None,
+        requires_grad: bool = None,
+    ) -> Tuple[ Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
+        r""" Forward text inputs to a list of neuron endpoints and returns logit encodings or timeout.
 
-          Args:
-                endpoints (:obj:`Union[List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
-                    List or single of endpoints which match the length of inputs. Inputs are sent forward to these endpoints.
+                Args:
+                    endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                        Endpoints to send inputs to. Endpoint can be one of the following types:
+                            - a single endpoint tensor shape [250]
+                            - a set of endpoint tensors shape [n, 250]
+                            - a list of endpoints tensors each of shape [250]
+                            - a single endpoint object. Inputs will be sent to this endpoint alone.
+                            - a list of endpoint objects. All inputs will be sent to these endpoints.
 
-                inputs (:obj:`Union[List[torch.FloatTensor], torch.FloatTensor]` of shape :obj:`(num_endpoints * [ batch_size, sequence_len, channels, rows, cols ])`, `required`):
-                    List or single of image-tensors to send to corresponding endpoints. Tensors are images encoded using the
-                    torch.toTensor() or other encoding which produces the shape [batch_size, channels, rows, cols].
+                    synapses (:obj:`Union[ List[ bittensor.proto.Synapse ], List[ Tuple[ bittensor.proto.Synapse.Type, dict ] ]]` of shape :obj:`(num_synapses)`, `required`):
+                        Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                        Responses are packed in this ordering. 
+                            - a list of synapse protos
+                            - a list of tuples containing a synapse type and a dictionary of synapse arguments.
 
-                timeout (int, default = dendrite.timeout `optional`):
-                    Request timeout.
+                    inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                        Tokenized sentences to send on the wire. Inputs can be one of the following types:
+                            - a single string: the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings: the strings will be tokenized using the bittensor tokenizer.
+                            - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
+                            - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
+                            - a list of tensors of type long each representing a tokenized sentence to be sent to each endpoint.
+                        If inputs are tensors they will be cast to int64 format before sending on the wire.
 
-                requires_grad (int, default = dendrite.requires_grad, `optional`):
-                    If true, the backward pass triggers passing gradients on the wire.
+                    synapses (:obj:`List[ Union[ int, bittensor.proto.Synapse.Type] ]` of shape :obj:`(num_synapses)`, `required`):
+                        List of protos specifiying the synapses to call, each type corresponds to a synapse function on the axon.
+                        responses are packed in this ordering. 
 
-            Returns:
-                responses (:obj:`Union[ List[torch.FloatTensor], torch.FloatTensor] ` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                    Output encodings of inputs produced by remote endpoints. Non-responses are zeroes of input shape plus output dimension.
+                    synapses_args (:obj:`List[ dict ]` of shape :obj:`(num_synapses)`, `required`):
+                        List of dictionaries carrying synapse arguments. to be passed through to
+                        the specific synapse functions on the axon side.
 
-                codes (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
-                    dendrite call return ops.
+                    timeout (:type:`int`, default = dendrite.timeout `optional`):
+                        Request timeout. Queries that do not respond will be replaced by zeros.
 
-                times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
-                    times per call.
-        """
-        # Check types.
-        if not isinstance(endpoints, list) and not isinstance(endpoints, Endpoint):
-            raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
+                    requires_grad (:type:`int`, default = dendrite.requires_grad, `optional`):
+                        If true, the backward pass triggers passing gradients on the wire.
 
-        if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
-            raise ValueError(
-                'inputs must be of type list[torch.FloatTensor] or torch.FloatTensor. Got {}'.format(type(inputs)))
+                Returns:
+                    responses (:obj:`List[ List[ torch.FloatTensor ] ]` of shape :obj:`num_synapses * ( num_endpoints * ( -1, -1, -1 ) )`, `required`):
+                        List of outputs from synapses, each a list of size num_endpoints of tensors with relevant size. Non-responses are zeroes of relevant 
+                        synapse shape.
 
-        # Format to list.
-        non_list_inputs = False
-        if not isinstance(inputs, list):
-            non_list_inputs = True
-            inputs = [inputs]
+                    codes (:obj:`List [ torch.LongTensor ]` of shape :obj:`[ num_endpoints ]`, `required`):
+                        Return code per call per synapse.
 
-        # Format to list.
-        if not isinstance(endpoints, list):
-            endpoints = [endpoints]
-
-        # Catch inputs != List and endpoints == List
-        elif non_list_inputs and isinstance(endpoints, list):
-            raise ValueError(
-                'endpoints and inputs must be of same type. Got endpoints {} and inputs {} '.format(type(endpoints),
-                                                                                                    type(inputs[0])))
-
-        # Check length.
-        if len(inputs) < 1:
-            raise ValueError('inputs list must have at least one element. Got len {}'.format(len(inputs)))
-        if len(endpoints) < 1:
-            raise ValueError('endpoints list must have at least one item. Got len {}'.format(len(endpoints)))
-        if len(inputs) != len(endpoints):
-            error_msg = 'List of tensor inputs should have the same length as passed destination endpoints, got {} and {}'.format(
-                len(inputs), len(endpoints))
-            raise ValueError(error_msg)
-
-        # Check list types.
-        if not isinstance(inputs[0], torch.FloatTensor):
-            raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
-        if not isinstance(endpoints[0], Endpoint):
-            raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
-
-        # Check shape.
-        if len(inputs[0].shape) != 5:
-            error_msg = 'Image inputs should be rank 5 with semantic shape: [batch_size, sequence_len, channels, rows, cols], got {}'.format(
-                inputs[0].shape)
-            raise ValueError(error_msg)
-
-        # Make calls.
-        responses, codes, times = self._forward(
-            endpoints=endpoints,
-            inputs=inputs,
-            modality=bittensor.proto.Modality.IMAGE,
-            timeout=timeout,
-            requires_grad=requires_grad
+                    times (:obj:`List [ torch.FloatTensor ]` of shape :obj:`[ num_endpoints ]`, `required`):
+                        Times per call per synapse.
+            """
+        formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
+            endpoints = endpoints, 
+            inputs = inputs
         )
-
-        # Format to singletons.
-        if non_list_inputs:
-            responses = responses[0]
-
+        synapses = bittensor.Synapse_Serializer.format_synapses( synapses )
+        responses, codes, times = self._forward (
+            endpoints = formatted_endpoints,
+            synapses = synapses,
+            inputs = formatted_inputs,
+            timeout = timeout,
+            requires_grad = requires_grad,
+        )
         # Return.
-        self.update_stats( endpoints, inputs, responses, codes, times )
+        self.update_stats( formatted_endpoints, formatted_inputs, responses, codes, times )
         return responses, codes, times
 
-    def forward_tensor(
-            self,
-            endpoints: Union[List['bittensor.Endpoint'], 'bittensor.Endpoint'],
-            inputs: List[torch.FloatTensor],
-            timeout: int = None,
-            requires_grad: bool = None
+    def text_causal_lm(
+        self,
+        endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
+        inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+        topk_encoding_length: Optional[int] = 50,
+        timeout: Optional[int] = None,
+        requires_grad: Optional[bool] = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
-        r""" Forward tensor inputs to endpoints.
+        r""" Forward text inputs to a list of neuron endpoints and returns logit encodings or timeout.
 
-            Args:
-                endpoints (:obj:`Union[List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
-                    List or single of endpoints which match the length of inputs. Inputs are sent forward to these endpoints.
+                Args:
+                    endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                        Endpoints to send inputs to. Endpoint can be one of the following types:
+                            - a single endpoint tensor shape [250]
+                            - a set of endpoint tensors shape [n, 250]
+                            - a list of endpoints tensors each of shape [250]
+                            - a single endpoint object. Inputs will be sent to this endpoint alone.
+                            - a list of endpoint objects. All inputs will be sent to these endpoints.
 
-                inputs (:obj:`Union[List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
-                    List or single tensors to send to corresponding endpoints. Tensors are of float type and
-                    with shape [batch_size, sequence_len, bittensor.__network_dim__].
 
-                timeout (int, default = dendrite.timeout `optional`):
-                    Request timeout.
+                    inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                        Tokenized sentences to send on the wire. Inputs can be one of the following types:
+                            - a single string: the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings: the strings will be tokenized using the bittensor tokenizer.
+                            - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
+                            - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
+                            - a list of tensors of type long each representing a tokenized sentence to be sent to each endpoint.
+                        If inputs are tensors they will be cast to int64 format before sending on the wire.
 
-                requires_grad (int, default = dendrite.requires_grad, `optional`):
-                    If true, the backward pass triggers passing gradients on the wire.
+                    topk_encoding_length (:type:`int`, default = dendrite.causal_lm.topk_encoding_length, `optional`):
+                        Number of top logits to return from remote endpoints, the remaining logits values are 
+                        set to zero.
 
-            Returns:
-                responses (:obj:`Union[ List[torch.FloatTensor], torch.FloatTensor] ` of shape :obj:`(batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                    Output encodings of inputs produced by remote endpoints. Non-responses are zeroes of input shape plus output dimension.
+                    timeout (:type:`int`, default = dendrite.timeout `optional`):
+                        Request timeout. Queries that do not respond will be replaced by zeros.
 
-                codes (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
-                    dendrite call return ops.
+                    requires_grad (:type:`int`, default = dendrite.requires_grad, `optional`):
+                        If true, the backward pass triggers passing gradients on the wire.
 
-                times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
-                    times per call.
+                Returns:
+                    responses (:obj:`List[ torch.FloatTensor ]` of shape :obj:`num_endpoints * (-1, sequence_len, bittensor.__vocab_size__ )`, `required`):
+                        List of output logit encodings of inputs produced by each remote endpoints. Non-responses are zeroes of input shape plus output dimension.
+                        The first dimension will match the number of endpoints queried.
+
+                    codes (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                        dendrite call return ops.
+
+                    times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                        times per call.
         """
-        # Check types.
-        if not isinstance(endpoints, list) and not isinstance(endpoints, Endpoint):
-            raise ValueError('endpoints must be of type list or bittensor.Endpoint. Got {}'.format(type(endpoints)))
-
-        if not isinstance(inputs, list) and not isinstance(inputs, torch.FloatTensor):
-            raise ValueError(
-                'inputs must be of type list[torch.FloatTensor] or torch.FloatTensor. Got {}'.format(type(inputs)))
-
-        # Format to list.
-        non_list_inputs = False
-        if not isinstance(inputs, list):
-            non_list_inputs = True
-            inputs = [inputs]
-
-        # Format to list.
-        if not isinstance(endpoints, list):
-            endpoints = [endpoints]
-
-        # Catch inputs != List and endpoints == List
-        elif non_list_inputs and isinstance(endpoints, list):
-            raise ValueError(
-                'endpoints and inputs must be of same type. Got endpoints {} and inputs {} '.format(type(endpoints),
-                                                                                                    type(inputs[0])))
-
-        # Check length.
-        if len(inputs) < 1:
-            raise ValueError('inputs list must have at least one element. Got len {}'.format(len(inputs)))
-        if len(endpoints) < 1:
-            raise ValueError('endpoints list must have at least one item. Got len {}'.format(len(endpoints)))
-        if len(inputs) != len(endpoints):
-            error_msg = 'List of tensor inputs should have the same length as passed destination endpoints, got {} and {}'.format(
-                len(inputs), len(endpoints))
-            raise ValueError(error_msg)
-
-        # Check list types.
-        if not isinstance(inputs[0], torch.FloatTensor):
-            raise ValueError('inputs must be of type torch.FloatTensor. Got {}'.format(type(inputs[0])))
-        if not isinstance(endpoints[0], Endpoint):
-            raise ValueError('endpoints must be of type bittensor.Endpoint. Got {}'.format(type(endpoints)))
-
-        # Check shape.
-        if len(inputs[0].shape) != 3:
-            error_msg = 'Tensor inputs should be rank 3 with semantic shape: [batch_size, sequence_len, bittensor.__network_dim__]'
-            raise ValueError(error_msg)
-        if inputs[0].shape[2] != bittensor.__network_dim__:
-            error_msg = 'Passed tensor must have last dimension {} got {}'.format(bittensor.__network_dim__,
-                                                                                  inputs[0].shape[2])
-            raise ValueError(error_msg)
-
-        # Make calls.
-        responses, codes, times = self._forward(
-            endpoints=endpoints,
-            inputs=inputs,
-            modality=bittensor.proto.Modality.TENSOR,
-            timeout=timeout,
-            requires_grad=requires_grad
+        # Format inputs.
+        formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
+            endpoints = endpoints, 
+            inputs = inputs
         )
-
-        # Format to singletons.
-        if non_list_inputs:
-            responses = responses[0]
-
+        # Optionally convert synapses and set typing info.
+        synapses = bittensor.Synapse_Serializer.format_synapses( [ ( bittensor.proto.Synapse.Type.TEXT_CAUSAL_LM , { "topk_encoding_length": topk_encoding_length, "synapse_type" : bittensor.proto.Synapse.Type.TEXT_CAUSAL_LM } ) ] )
+        # Make calls.
+        responses, codes, times = self._forward (
+            endpoints = formatted_endpoints,
+            synapses = synapses,
+            inputs = formatted_inputs,
+            timeout = timeout,
+            requires_grad = requires_grad,
+        )
         # Return.
-        self.update_stats( endpoints, inputs, responses, codes, times )
-        return responses, codes, times
+        self.update_stats( formatted_endpoints, formatted_inputs, responses, codes, times )
+        return responses[0], codes[0], times[0]
 
-    def forward_text(
+
+    def text_last_hidden_state( 
             self,
-            endpoints: Union[
-                torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint'],
+            endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
-            synapses: Union[str, List[str]],
-            synapses_args: list or dict,
             timeout: int = None,
             requires_grad: bool = None,
-
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
-        r""" Forward text inputs to a list of neuron endpoints and block until responses or timeout.
+        r""" Forward text inputs to a list of neuron endpoints and block until last hidden state responses or timeout.
 
                 Args:
                     endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
@@ -503,8 +442,8 @@ class Dendrite(torch.autograd.Function):
                         If true, the backward pass triggers passing gradients on the wire.
 
                 Returns:
-                    responses (:obj:`torch.FloatTensor` of shape :obj:`(n, batch_size, sequence_len, bittensor.__network_dim__)`, `required`):
-                        Output encodings of inputs produced by remote endpoints. Non-responses are zeroes of input shape plus output dimension.
+                    responses (:obj:`List [ torch.FloatTensor ]` of shape :obj:` num_endpoints * ( -1, sequence_len, bittensor.__network_dim__ )`, `required`):
+                        List of output last hidden state encodings of inputs produced by remote endpoints. Non-responses are zeroes of input shape plus output dimension.
                         The first dimension will match the number of endpoints queried.
 
                     codes (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
@@ -512,6 +451,57 @@ class Dendrite(torch.autograd.Function):
 
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
+        """
+        # Format inputs.
+        formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
+            endpoints = endpoints, 
+            inputs = inputs
+        )
+        # Optionally convert synapses and set typing info.
+        synapses = bittensor.Synapse_Serializer.format_synapses( [(bittensor.proto.Synapse.Type.TEXT_LAST_HIDDEN_STATE , { "synapse_type" : bittensor.proto.Synapse.Type.TEXT_LAST_HIDDEN_STATE })] )
+        # Make calls.
+        responses, codes, times = self._forward (
+            endpoints = formatted_endpoints,
+            synapses = synapses,
+            inputs = formatted_inputs,
+            modality = bittensor.proto.Modality.TEXT,
+            timeout = timeout,
+            requires_grad = requires_grad,
+        )
+        # Return.
+        self.update_stats( formatted_endpoints, formatted_inputs, responses, codes, times )
+        return responses[0], codes[0], times[0]
+
+
+    def __format_text_inputs (
+        self,
+        endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
+        inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+    ) -> Tuple[ 'bittensor.Endpoint', List[torch.LongTensor] ]:
+        r""" Formats endpoint and inputs args to a common format.
+            Args:
+                endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    Endpoints to send inputs to. Endpoint can be one of the following types:
+                        - a single endpoint tensor shape [250]
+                        - a set of endpoint tensors shape [n, 250]
+                        - a list of endpoints tensors each of shape [250]
+                        - a single endpoint object. Inputs will be sent to this endpoint alone.
+                        - a list of endpoint objects. All inputs will be sent to these endpoints.
+
+                inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                    Tokenized sentences to send on the wire. Inputs can be one of the following types:
+                        - a single string: the string will be tokenized using the bittensor tokenizer.
+                        - a list of strings: the strings will be tokenized using the bittensor tokenizer.
+                        - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
+                        - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
+                    If inputs are tensors they will be cast to int64 format before sending on the wire.
+
+            Returns:
+                formatted_endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                    A list of endpoint objects. All inputs will be sent to these endpoints.
+
+                formatted_inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                    A list of tensor of type long each representing a tokenized sentence to be sent to each endpoint.
         """
 
         # To be filled. Inputs and endpoint must be list with the same number of elements.
@@ -539,8 +529,7 @@ class Dendrite(torch.autograd.Function):
                 raise ValueError(error_msg)
             return tensor_input
 
-            # ---- Endpoints is singular.
-
+        # ---- Endpoints is singular.
         if isinstance(endpoints, bittensor.Endpoint):
             formatted_endpoints = [endpoints]
 
@@ -627,28 +616,7 @@ class Dendrite(torch.autograd.Function):
                 len(inputs), len(endpoints))
             raise ValueError(error_msg)
 
-        # ---- synapses is an int
-        if isinstance(synapses, int):
-            synapses = [synapses]
-
-        if isinstance(synapses_args, dict):
-            synapses_args = [synapses_args for _ in synapses]
-
-
-        # Make calls.
-        responses, codes, times = self._forward(
-            endpoints=formatted_endpoints,
-            inputs=formatted_inputs,
-            modality=bittensor.proto.Modality.TEXT,
-            timeout=timeout,
-            requires_grad=requires_grad,
-            synapses= synapses,
-            synapses_args = synapses_args
-        )
-
-        # Return.
-        self.update_stats( formatted_endpoints, formatted_inputs, responses, codes, times )
-        return responses, codes, times
+        return formatted_endpoints, formatted_inputs
 
     def _init_stats(self):
         return SimpleNamespace(
