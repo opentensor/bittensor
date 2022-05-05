@@ -37,13 +37,13 @@ jobs:
       continue-on-error: true
       run: |
         pytest ./tests/unit_tests --cov=. --cov-append --cov-config .coveragerc \
-        -n 4
+        -n 2
 
     - name: Run Integration Tests
       continue-on-error: true
       run: |
         pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc \
-        -n 4
+        -n 2
     - name: Upload coverage
       uses: actions/upload-artifact@v2
       with:
