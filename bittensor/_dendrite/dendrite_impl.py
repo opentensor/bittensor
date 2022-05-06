@@ -36,7 +36,7 @@ import bittensor.utils.codes as codes
 
 import wandb
 
-logger = logger.opt(colors=True)
+logger = logger.opt(colors=True) 
 
 # dummy tensor that triggers autograd 
 DUMMY = torch.empty(0, requires_grad=True)
