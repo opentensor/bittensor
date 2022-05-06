@@ -366,14 +366,6 @@ class Dendrite(torch.autograd.Function):
         self.update_stats( formatted_endpoints, synapses, formatted_inputs, outputs, codes, times )
         return outputs, codes, times
 
-
-    dend.text_causal_lm(
-        endpoints = ...
-        inputs = ...
-        synapse = bittensor.synapse.TextCausalLM()
-    )
-
-
     def text_causal_lm (
         self,
         endpoints: Union [ torch.LongTensor, List [ torch.LongTensor ], List[ 'bittensor.Endpoint' ], 'bittensor.Endpoint' ],
