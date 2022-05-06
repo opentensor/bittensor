@@ -544,11 +544,7 @@ class TextSeq2Seq (Synapse):
         else:
             return True, bittensor.proto.ReturnCode.Success, "Success"
 
-<<<<<<< HEAD
-    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
-=======
     def check_forward_response ( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
->>>>>>> 1d10be6f (remove serializer functions)
         """ Checks that the forward response tensor being sent by the axon is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
