@@ -122,8 +122,8 @@ class Dendrite(torch.autograd.Function):
                 endpoints (:obj:`List[bittensor.Endpoint']` of shape :obj:`(n_endpoints)`, `required`):
                     List of endpoints which match length of inputs. Inputs are sent forward to these endpoints.
 
-                synapses (:obj:`List[ bittensor.Synapse ]` of shape :obj:`(num_synapses)`, `required`):
-                    Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
                     Responses are packed in this ordering. 
 
                 timeout (int):
@@ -243,8 +243,8 @@ class Dendrite(torch.autograd.Function):
                     List of remote endpoints which match length of inputs. Tensors from inputs are sent forward to these endpoints.
 
                 synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
-                        Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
-                        Responses are packed in this ordering. 
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
+                    Responses are packed in this ordering. 
 
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
                     List of tensors to send to corresponding endpoints. Tensors are of arbitrary type and shape depending on the
