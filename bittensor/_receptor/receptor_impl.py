@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+from bittensor._synapse import synapse
 import bittensor.utils.stats as stat_utils
 
 import torch
@@ -33,19 +34,6 @@ from typing import Tuple, List, Union
 from loguru import logger
 from grpc import _common
 
-
-# Helper function for filling nill (zero) responses on failures.
-def nill_response_for(inputs, synapse ):
-    """ Empty response per synapse type.
-    """
-    if torch.numel(inputs) == 0:
-        return torch.tensor([])
-    if synapse.type == bittensor.proto.Synapse.Type.TEXT_CAUSAL_LM:
-        return torch.zeros( ( inputs.size(0), inputs.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
-    elif synapse.type == bittensor.proto.Synapse.Type.TEXT_LAST_HIDDEN_STATE:
-        return torch.zeros( ( inputs.size(0), inputs.size(1), bittensor.__network_dim__ ), dtype=torch.float32)
-    else:
-        return torch.tensor([])
 
 
 class Receptor(nn.Module):
@@ -156,18 +144,18 @@ class Receptor(nn.Module):
 
     def backward (
         self, 
-        synapses: Union[ List[ 'bittensor.proto.Synapse' ], List[ Tuple[ 'bittensor.proto.Synapse.Type', dict ] ]],
+        synapses: List[ 'bittensor.Synapse' ],
         inputs: torch.Tensor, 
         grads: List[torch.Tensor], 
         timeout: int
     ) -> Tuple[ List[ torch.FloatTensor ], List['bittensor.proto.ReturnCode'], List[float] ]:
-        r""" Torch.nn.Module forward call: Triggers the grpc call to the remote endpoint.
-            This triggers the synapse calls with arguments.
-            Call returns a list of output tensors one per synapse with corresponding time and bittensor.proto.ReturnCode.
+        r""" Triggers the grpc backward call to the remote endpoint.
+            This triggers the synapse's backward calls with arguments.
+            Call returns a list of output gradient tensors one per synapse with corresponding time and bittensor.proto.ReturnCode.
 
             Args:
-                synapses (:obj:`Union[ List[ bittensor.proto.Synapse ], List[ Tuple[ bittensor.proto.Synapse.Type, dict ] ]]` of shape :obj:`(num_synapses)`, `required`):
-                    Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
                     Responses are packed in this ordering. 
 
                 inputs (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -193,9 +181,6 @@ class Receptor(nn.Module):
                     List of times for each call associated with each passed synapse enum. 
                     Success responses all get the same time.
         """
-        # Optionally convert synapses and set typing info.
-        synapses = bittensor.Synapse_Serializer.format_synapses( synapses )
-
         # =====================
         # ==== Init params ====        
         # =====================
@@ -203,7 +188,7 @@ class Receptor(nn.Module):
         # when all codes are non-success or the function finishes completely.
         synapse_messages = [ "Success" for _ in synapses ]
         synapse_codes = [ bittensor.proto.ReturnCode.Success for _ in synapses ]
-        synapse_responses = [ nill_response_for( inputs, synapse_type ) for synapse_type in synapses ]
+        synapse_responses = [ synapse.nill_response_for_inputs ( inputs ) for synapse in synapses ]
         synapse_is_response = [ False for _ in synapses ]
         synapse_call_times = [ 0 for _ in synapses ]
         start_time = clock.time()
@@ -303,7 +288,7 @@ class Receptor(nn.Module):
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [ serialized_inputs ] + serialized_grads,
-                synapses = synapses,
+                synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
                 requires_grad = True,
             )
         except Exception as e:
@@ -363,17 +348,17 @@ class Receptor(nn.Module):
 
     def forward (
         self, 
-        synapses: Union[ List[ 'bittensor.proto.Synapse' ], List[ Tuple[ 'bittensor.proto.Synapse.Type', dict ] ]],
+        synapses: List[ 'bittensor.Synapse' ],
         inputs: torch.Tensor, 
         timeout: int,
     ) -> Tuple[ List[ torch.FloatTensor ], List['bittensor.proto.ReturnCode'], List[float] ]:
-        r""" Torch.nn.Module forward call: Triggers the grpc call to the remote endpoint.
+        r""" Triggers the grpc call to the remote endpoint.
             This triggers the synapse calls with arguments.
             Call returns a list of output tensors one per synapse with corresponding time and bittensor.proto.ReturnCode.
 
             Args:
-                synapses (:obj:`Union[ List[ bittensor.proto.Synapse ], List[ Tuple[ bittensor.proto.Synapse.Type, dict ] ]]` of shape :obj:`(num_synapses)`, `required`):
-                    Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
                     Responses are packed in this ordering. 
 
                 inputs (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -395,9 +380,6 @@ class Receptor(nn.Module):
                     Success responses all get the same time.
 
         """
-        # Optionally convert synapses and set typing info.
-        synapses = bittensor.Synapse_Serializer.format_synapses( synapses )
-
         # =====================
         # ==== Init params ====        
         # =====================
@@ -405,7 +387,7 @@ class Receptor(nn.Module):
         # when all codes are non-success or the function finishes completely.
         synapse_messages = [ "Success" for _ in synapses ]
         synapse_codes = [ bittensor.proto.ReturnCode.Success for _ in synapses ]
-        synapse_responses = [ nill_response_for( inputs, syn ) for syn in synapses ]
+        synapse_responses = [ synapse.nill_response_for_inputs( inputs ) for synapse in synapses ]
         synapse_is_response = [ False for _ in synapses ]
         synapse_call_times = [ 0 for _ in synapses ]
         start_time = clock.time()
@@ -440,7 +422,6 @@ class Receptor(nn.Module):
                     outputs = None if synapse_codes[ index ] != bittensor.proto.ReturnCode.Success else list( synapse_responses[index].shape ), 
                     message = synapse_messages[ index ]
                 )
-
 
 
         # ===========================
@@ -485,7 +466,7 @@ class Receptor(nn.Module):
         serialized_inputs = None
         try:
             serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
-            serialized_inputs = serializer.serialize(inputs, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH )
+            serialized_inputs = serializer.serialize(inputs, from_type = bittensor.proto.TensorType.TORCH )
         except Exception as e:
             # Input Serialization failed.
             code = bittensor.proto.ReturnCode.RequestSerializationException
@@ -508,7 +489,7 @@ class Receptor(nn.Module):
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
                 tensors = [ serialized_inputs ],
-                synapses = synapses,
+                synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
                 requires_grad = True,
             )
         except Exception as e:
@@ -628,10 +609,10 @@ class Receptor(nn.Module):
         # ======================================
         # ==== Check for success response codes ====
         # ======================================
-        for index, response_synapse in enumerate( grpc_response.synapses ):
-            if response_synapse.code != bittensor.proto.ReturnCode.Success: 
-                synapse_codes[index] = response_synapse.code
-                synapse_messages[index] = response_synapse.message
+        for index, wire_synapse in enumerate( grpc_response.synapses ):
+            if wire_synapse.code != bittensor.proto.ReturnCode.Success: 
+                synapse_codes[index] = wire_synapse.code
+                synapse_messages[index] = wire_synapse.message
                 synapse_call_times[index] = clock.time() - start_time()
         # Check if the call can stop here.
         if check_if_should_return():
@@ -661,31 +642,19 @@ class Receptor(nn.Module):
         # ======================================
         # ==== Check response shapes ====
         # ======================================
-        for index, response_tensor in enumerate( synapse_responses ):
+        for index, synapse, synapse_forward_response_tensor in enumerate( list(zip( synapses, synapse_responses )) ):
             if synapse_codes[index] != bittensor.proto.ReturnCode.Success: continue
-            if synapses[ index ].synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
-                if  ( 
-                    response_tensor.size(0) != inputs.size(0) or 
-                    response_tensor.size(1) != inputs.size(1) or 
-                    response_tensor.size(2) != bittensor.__network_dim__
-                ):
-                    synapse_codes[index] = bittensor.proto.ReturnCode.ResponseShapeException
+            is_success, code, message = synapse.check_foward_response_shape ( inputs, synapse_forward_response_tensor )
+            if not is_success:
+                synapse_call_times[index] = clock.time() - start_time()
+                synapse_codes[index] = code
+                synapse_messages[index] = message
+            else:
+                decoded_synapse_response, code, message = synapse.decode_forward_response_tensor ( synapse_forward_response_tensor )
+                if code != bittensor.proto.ReturnCode.Success:
                     synapse_call_times[index] = clock.time() - start_time()
-                    synapse_messages[index] = "output.shape:{} does not match inputs:{} for synapse type {}".format(response_tensor.shape, inputs.shape, synapses[index])
-                else:
-                    synapse_responses[index] = torch.where( torch.isnan(response_tensor), torch.zeros_like(response_tensor), response_tensor).detach()
-
-            elif synapses[ index ].synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
-                if  ( 
-                    response_tensor.size(0) != inputs.size(0) or 
-                    response_tensor.size(1) != inputs.size(1) or 
-                    response_tensor.size(2) != bittensor.__vocab_size__
-                ):
-                    synapse_codes[index] = bittensor.proto.ReturnCode.ResponseShapeException
-                    synapse_call_times[index] = clock.time() - start_time()
-                    synapse_messages[index] = "output.shape:{} does not match inputs:{} for synapse type {}".format(response_tensor.shape, inputs.shape, synapses[index])
-                else:
-                    synapse_responses[index] = torch.where( torch.isnan(response_tensor), torch.zeros_like(response_tensor), response_tensor).detach()    
+                    synapse_codes[index] = code
+                    synapse_messages[index] = message
 
 
 

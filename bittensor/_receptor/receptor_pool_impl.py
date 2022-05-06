@@ -82,7 +82,7 @@ class ReceptorPool ( torch.nn.Module ):
     def forward (
             self, 
             endpoints: List [ 'bittensor.Endpoint' ],
-            synapses: Union[ List[ 'bittensor.proto.Synapse' ], List[ Tuple[ 'bittensor.proto.Synapse.Type', dict ] ]],
+            synapses: List[ 'bittensor.Synapse' ],
             inputs: List [ torch.Tensor ],
             timeout: int,
         ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
@@ -92,8 +92,8 @@ class ReceptorPool ( torch.nn.Module ):
                 endpoints (:obj:`List[ bittensor.Endpoint ]` of shape :obj:`(num_endpoints)`, `required`):
                     List of remote endpoints which match length of inputs. Tensors from x are sent forward to these endpoints.
 
-                synapses (:obj:`Union[ List[ bittensor.proto.Synapse ], List[ Tuple[ bittensor.proto.Synapse.Type, dict ] ]]` of shape :obj:`(num_synapses)`, `required`):
-                    Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
                     Responses are packed in this ordering. 
 
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
@@ -114,9 +114,6 @@ class ReceptorPool ( torch.nn.Module ):
                 forward_times (:obj:`List[ List [float] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
                     dendrite backward call times
         """
-        # Optionally convert synapses and set typing info.
-        synapses = bittensor.Synapse_Serializer.format_synapses( synapses )
-
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
 
@@ -162,7 +159,7 @@ class ReceptorPool ( torch.nn.Module ):
     def backward(
                 self, 
                 endpoints: List [ 'bittensor.Endpoint' ],
-                synapses: Union[ List[ 'bittensor.proto.Synapse' ], List[ Tuple[ 'bittensor.proto.Synapse.Type', dict ] ]],
+                synapses: List[ 'bittensor.Synapse' ],
                 inputs: List [ torch.Tensor ],
                 grads: List [ List[ torch.FloatTensor ] ],
                 timeout: int
@@ -173,8 +170,8 @@ class ReceptorPool ( torch.nn.Module ):
                 endpoints (:obj:`List['bittensor.Endpoint']` of shape :obj:`(num_endpoints)`, `required`):
                     List of remote endpoints which match length of x. Tensors from x are sent backward to these endpoints.
 
-                synapses (:obj:`Union[ List[ bittensor.proto.Synapse ], List[ Tuple[ bittensor.proto.Synapse.Type, dict ] ]]` of shape :obj:`(num_synapses)`, `required`):
-                    Protos specifiying the synapses to call, or synapse types with args. Each corresponds to a synapse function on the axon and args.
+                synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
                     Responses are packed in this ordering. 
 
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
@@ -197,9 +194,6 @@ class ReceptorPool ( torch.nn.Module ):
                 backward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
                     List of list of Backward call times one per endpoint and synapse.
         """
-        # Optionally convert synapses and set typing info.
-        synapses = bittensor.Synapse_Serializer.format_synapses( synapses )
-
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
         if len(endpoints) != len(grads):
