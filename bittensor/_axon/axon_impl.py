@@ -75,7 +75,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.wallet = wallet
         self.server = server
         self.forward_callback = forward if forward != None else self.default_forward_callback
-        self.backward_callback = backward
+        self.backward_callback = backward if backward != None else self.default_backward_callback
         self.forward_timeout = forward_timeout
         self.backward_timeout = backward_timeout
         self.synapse_callbacks = synapses
@@ -549,6 +549,48 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response_messages.append(str(e))
         return response_tensors, response_codes, response_messages
 
+    def default_backward_callback(self, inputs_x:torch.FloatTensor, synapses=[] ):
+        """
+            The default forward callback when no callback is attached: Is used to call specific synapse functions
+
+            Args:
+                inputs_x (:obj:`torch.FloatTensor`, `required`): 
+                    The inputs that will be passed to the synapse functions
+                
+                synapses (:obj: list of bittensor.proto.SynapseArgs, 'Optional')
+                    The proto message that contains additional args for individual synapse functions
+
+            Returns:
+                response_tensors: (:obj: list of bittensor.proto.Tensor, `required`): 
+                    serialized tensor response from the nucleus call or None.
+                response_codes: (:obj: list of bittensor.proto.ReturnCode, `required`)
+                    return code associated with forward call i.e. Success of Timeout.
+                response_messages: (:obj: list of strings, `required`)
+                    return message associated with synapse call
+        """
+        # --- initialize response variables --- 
+        response_tensors = []
+        response_codes = []
+        response_messages = []
+        
+        # --- calling attached synapses ---
+        for synapse in synapses:
+            try:
+                if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
+                    response_tensors.append(self.synapse_callbacks[synapse.synapse_type](inputs_x, synapse))
+                    response_codes.append(bittensor.proto.ReturnCode.Success)
+                    response_messages.append('Success')
+                else:
+                    response_tensors.append(None)
+                    response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
+                    response_messages.append('Not Implemented')
+
+            except Exception as e:
+                # --- Exception Hit in Synapse ---
+                response_tensors.append(None)
+                response_codes.append(bittensor.proto.ReturnCode.UnknownException)
+                response_messages.append(str(e))
+        return response_tensors, response_codes, response_messages
 
     def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ]):
         """ Assigns the forward_callback.
@@ -576,8 +618,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 backward_callback (:callabl:`Callable[ [torch.Tensor, torch.Tensor], torch.Tensor `, `required`): 
                      Backward callback called on recieving a backward request.
         """
-        bittensor.axon.check_backward_callback(backward_callback,modality)
-        self.backward_callback[modality] = backward_callback
+        bittensor.axon.check_backward_callback(backward_callback)
+        self.backward_callback = backward_callback
 
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
