@@ -133,54 +133,6 @@ class Synapse:
         """
         raise NotImplementedError("check_forward_response_shape should be implemented by the subclass.")
 
-    def serialize_forward_request_tensor( self, foward_request_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the dendrite side to serialize the synapse inputs.
-            Args:
-                foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_foward_request_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.forward_request_serializer_type )
-        return serializer.serialize( foward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def serialize_forward_response_tensor( self, foward_response_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the axon side to serialize the synapse outputs.
-            Args:
-                foward_response_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_foward_response_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.forward_response_serializer_type )
-        return serializer.serialize( foward_response_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def deserialize_backward_request_tensor( self, backward_request_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the dendrite side to serialize the synapse gradients.
-            Args:
-                backward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_backward_request_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.backward_request_serializer_type )
-        return serializer.serialize( backward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def serialize_backward_response_tensor( self, backward_response_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the axon side to serialize the synapse output gradients.
-            Args:
-                backward_response_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_backward_response_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.backward_response_serializer_type )
-        return serializer.serialize( backward_response_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
     def encode_forward_request_tensor (self, foward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Function to be called on the dendrite side before sending it over the wire. 
             Args:
@@ -394,53 +346,6 @@ class TextCausalLM (Synapse):
         else:
             return True, bittensor.proto.ReturnCode.Success, "Success"
 
-    def serialize_forward_request_tensor( self, foward_request_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the dendrite side to serialize the synapse inputs.
-            Args:
-                foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_foward_request_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.forward_request_serializer_type )
-        return serializer.serialize( foward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def serialize_forward_response_tensor( self, foward_response_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the axon side to serialize the synapse outputs.
-            Args:
-                foward_response_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_foward_response_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.forward_response_serializer_type )
-        return serializer.serialize( foward_response_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def deserialize_backward_request_tensor( self, backward_request_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the dendrite side to serialize the synapse gradients.
-            Args:
-                backward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_backward_request_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.backward_request_serializer_type )
-        return serializer.serialize( backward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def serialize_backward_response_tensor( self, backward_response_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the axon side to serialize the synapse output gradients.
-            Args:
-                backward_response_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_backward_response_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.backward_response_serializer_type )
-        return serializer.serialize( backward_response_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
     def encode_forward_request_tensor (self, foward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Function to be called on the dendrite side before sending it over the wire. 
@@ -639,7 +544,11 @@ class TextSeq2Seq (Synapse):
         else:
             return True, bittensor.proto.ReturnCode.Success, "Success"
 
+<<<<<<< HEAD
     def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
+=======
+    def check_forward_response ( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+>>>>>>> 1d10be6f (remove serializer functions)
         """ Checks that the forward response tensor being sent by the axon is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -662,54 +571,6 @@ class TextSeq2Seq (Synapse):
             return False, bittensor.proto.ReturnCode.ResponseShapeException, "output.shape:{} does not match inputs:{} for synapse: {}".format( forward_response_tensor.shape, foward_request_tensor.shape, self )
         else:
             return True, bittensor.proto.ReturnCode.Success, "Success"
-
-    def serialize_forward_request_tensor( self, foward_request_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the dendrite side to serialize the synapse inputs.
-            Args:
-                foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_foward_request_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.forward_request_serializer_type )
-        return serializer.serialize( foward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def serialize_forward_response_tensor( self, foward_response_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the axon side to serialize the synapse outputs.
-            Args:
-                foward_response_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_foward_response_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.forward_response_serializer_type )
-        return serializer.serialize( foward_response_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def deserialize_backward_request_tensor( self, backward_request_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the dendrite side to serialize the synapse gradients.
-            Args:
-                backward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_backward_request_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.backward_request_serializer_type )
-        return serializer.serialize( backward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
-
-    def serialize_backward_response_tensor( self, backward_response_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Function to be called on the axon side to serialize the synapse output gradients.
-            Args:
-                backward_response_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
-                    Tensor to be serialized.
-            Returns:
-                serialized_backward_response_tensor (:obj:`torch.Tensor`, `required`):
-                    Serialzied tensor.
-        """
-        serializer = bittensor.serializer( self.backward_response_serializer_type )
-        return serializer.serialize( backward_response_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
     def encode_forward_request_tensor (self, foward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Function to be called on the dendrite side before sending it over the wire. 

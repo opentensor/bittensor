@@ -458,14 +458,19 @@ class Receptor(nn.Module):
             return synapse_responses, synapse_codes, synapse_call_times
 
 
-
         # ==========================
         # ==== Serialize inputs ====
         # ==========================
-        serialized_inputs = None
         try:
-            serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
-            serialized_inputs = serializer.serialize(inputs, from_type = bittensor.proto.TensorType.TORCH )
+            serialized_forward_tensors = [ 
+                bittensor.serializer( serializer_type = synapse.forward_request_serializer_type 
+                    ).serialize ( 
+                        tensor = inputs, 
+                        to_type = bittensor.proto.TensorType.TORCH 
+                    ) 
+                for synapse in enumerate( synapses )
+            ]
+            serialized_synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]
         except Exception as e:
             # Input Serialization failed.
             code = bittensor.proto.ReturnCode.RequestSerializationException
@@ -478,6 +483,7 @@ class Receptor(nn.Module):
         if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
+            
         
 
         # ============================
@@ -487,8 +493,8 @@ class Receptor(nn.Module):
             grpc_request = bittensor.proto.TensorMessage (
                 version = bittensor.__version_as_int__,
                 hotkey = self.wallet.hotkey.ss58_address,
-                tensors = [ serialized_inputs ],
-                synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
+                tensors = serialized_forward_tensors,
+                synapses = serialized_synapses,
                 requires_grad = True,
             )
         except Exception as e:
@@ -605,7 +611,7 @@ class Receptor(nn.Module):
 
 
         # ======================================
-        # ==== Check for success response codes ====
+        # ==== Check for non success response codes ====
         # ======================================
         for index, wire_synapse in enumerate( grpc_response.synapses ):
             if wire_synapse.return_code != bittensor.proto.ReturnCode.Success: 
@@ -621,11 +627,15 @@ class Receptor(nn.Module):
         # ======================================
         # ==== Deserialize synapse responses ====
         # ======================================
-        for index, response_tensor_proto in enumerate( grpc_response.tensors ):
+        for index, response_tensor_proto, synapse in enumerate( list(zip(grpc_response.tensors, synapse))):
             if synapse_codes[index] != bittensor.proto.ReturnCode.Success: continue
             try:
-                deserializer = bittensor.serializer(  response_tensor_proto.serializer )
-                synapse_responses[ index ] = deserializer.deserialize( response_tensor_proto, to_type = bittensor.proto.TensorType.TORCH ) 
+                synapse_responses[ index ] = bittensor.serializer ( 
+                        serializer_type = synapse.forward_response_serializer_type 
+                    ).deserialize ( 
+                        tenosor = response_tensor_proto, 
+                        to_type = bittensor.proto.TensorType.TORCH 
+                    ) 
             except Exception as e:
                 # Deserialization error.
                 synapse_codes[index] = bittensor.proto.ReturnCode.ResponseDeserializationException
@@ -650,11 +660,14 @@ class Receptor(nn.Module):
                 synapse_messages[index] = message
             else:
                 synapse_responses[index] = synapse.decode_forward_response_tensor ( synapse_forward_response_tensor )
+<<<<<<< HEAD
                 if code != bittensor.proto.ReturnCode.Success:
                     synapse_call_times[index] = clock.time() - start_time
                     synapse_codes[index] = code
                     synapse_messages[index] = message
 
+=======
+>>>>>>> 1d10be6f (remove serializer functions)
 
 
         # ======================================

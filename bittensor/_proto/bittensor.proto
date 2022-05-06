@@ -106,7 +106,7 @@ message Synapse {
 
 	// Serialized special argmument data. This is proto data which
 	// is packed according to the SynapseType enum. 
-	string args_data = 2;
+	string synapse_data = 2;
 
 	// Type of Synapse. i.e. LastHidden specifies how to decode args_data 
 	// and route information in the axon to the correct function call.
@@ -126,22 +126,28 @@ message Synapse {
 		// Might as well have this
 		SynapseType synapse_type = 1;
 
-		// 
-		Serializer serializer_type = 2;
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 2;
+		Serializer forward_response_serializer_type = 3;
+		Serializer backward_request_serializer_type = 4;
+		Serializer backward_response_serializer_type = 5;
 
 		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 2;
+		bool requires_grad = 6;
 	}
 
 	message TextCausalLM {
 		// Might as well have this
 		SynapseType synapse_type = 1;
 
-		// 
-		Serializer serializer = 2;
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 2;
+		Serializer forward_response_serializer_type = 3;
+		Serializer backward_request_serializer_type = 4;
+		Serializer backward_response_serializer_type = 5;
 
 		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 3;
+		bool requires_grad = 6;
 	}
 
 	message TextSeq2Seq {
@@ -154,10 +160,16 @@ message Synapse {
 		int32 topk = 2;
 
 		// Number of tokens to predict
-		int32 k_sequence = 3;
+		int32 num_to_generate = 3;
+
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 4;
+		Serializer forward_response_serializer_type = 5;
+		Serializer backward_request_serializer_type = 6;
+		Serializer backward_response_serializer_type = 7;
 
 		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 4;
+		bool requires_grad = 8;
 	}
 }
 
@@ -235,31 +247,10 @@ message Tensor {
 
 }
 
-// Dtype: [REQUIRED] The tensor serializer type.
-// For use between multiple serialziation deserialziation methods.
-message Serializer
-
-	enum SerializerType {
-		// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
-		MSGPACK = 0; // MSGPACK serializer
-		CMPPACK = 1; // CMPPACK serializer
-		TOPKPACK = 3; // Packs message using topk.
-	}
-
-	bytes serialzer_data = 0;
-
-	SerializerType serializer_type = 1;
-
-	message TopkPack {
-		int32 topk = 0;
-		DataType data_type = 1;
-		SerializerType serializer_type = 0;
-	}
-
-	message MsgPack {
-		DataType data_type = 0;
-		SerializerType serializer_type = 1;
-	}
+enum Serializer {
+	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
+	MSGPACK = 0; // MSGPACK serializer
+	CMPPACK = 1; // CMPPACK serializer
 }
 
 // TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.
