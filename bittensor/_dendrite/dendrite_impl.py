@@ -370,8 +370,6 @@ class Dendrite(torch.autograd.Function):
         self,
         endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
         inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
-        request_serializer: Optional[ Union[ int, 'bittensor.serializer' ] ] = bittensor.serializer.TOPKPACK ( topk = 5, data_type = torch.float32 ),
-        response_serializer: Optional[ Union[ int, 'bittensor.serializer' ] ] = bittensor.serializer.TOPKPACK ( topk = 5, data_type = torch.float32 ),
         timeout: Optional[int] = None,
         requires_grad: Optional[bool] = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
@@ -717,12 +715,12 @@ class Dendrite(torch.autograd.Function):
                 self.stats.qps_per_pubkey[pubkey] = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 )
 
             self.stats.requests_per_pubkey[pubkey] += 1
-            self.stats.successes_per_pubkey[pubkey] += torch.where( codes_i == 1).int().sum()
+            self.stats.successes_per_pubkey[pubkey] += (codes_i == 1).sum().int()
             self.stats.query_times_per_pubkey[pubkey].event( float( times_i.max() ) )
             self.stats.avg_in_bytes_per_pubkey[pubkey].event( float(sys.getsizeof( outs_i )) )
             self.stats.avg_out_bytes_per_pubkey[pubkey].event( float(sys.getsizeof( inps_i )) )
             self.stats.qps_per_pubkey[pubkey].event()
-            total_in_bytes_per_second += sys.getsizeof(outs_i) if torch.where( codes_i == 1).int().sum() == len( synapses ) else 0 
+            total_in_bytes_per_second += sys.getsizeof(outs_i) if (codes_i == 1).sum().int() == len( synapses ) else 0 
             try:
                 for code_i_s in codes_i:
                     if bittensor.proto.ReturnCode.Name(code_i_s) in self.stats.codes_per_pubkey[pubkey].keys():

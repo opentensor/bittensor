@@ -101,7 +101,7 @@ class Synapse:
         """
         raise NotImplementedError("nill_backward_response_tensor should be implemented by the subclass.")
 
-    def check_forward_request( self, foward_request_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_request( self, foward_request_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward request tensor being sent by the dendrite is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -116,7 +116,7 @@ class Synapse:
         """
         raise NotImplementedError("check_forward_request_shape should be implemented by the subclass.")
 
-    def check_forward_response( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward response tensor being sent by the axon is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -231,8 +231,8 @@ class Synapse:
         raise NotImplementedError("decode_forward_response_tensor should be implemented by the subclass.")
 
 
-class TextCasualLM (Synapse):
-    """ CasualLM Synape type for training NTP    
+class TextCausalLM (Synapse):
+    """ CausalLM Synape type for training NTP    
     """
 
     synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM
@@ -244,7 +244,7 @@ class TextCasualLM (Synapse):
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
     ):  
-        """ TextCasualLM Synapse initializer.
+        """ TextCausalLM Synapse initializer.
             Args:
                 forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
                     Serializer used to pack torch tensors on forward request.
@@ -255,10 +255,10 @@ class TextCasualLM (Synapse):
                 backward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
                     Serialzer used to pack torch tensors on backward response.
             Returns:
-                TextCasualLM (:obj:`TextCasualLM`, `required`):
-                    TextCasualLM instance adapter class.
+                TextCausalLM (:obj:`TextCausalLM`, `required`):
+                    TextCausalLM instance adapter class.
         """
-        super(TextCasualLM).__init__ (
+        super().__init__ (
             forward_request_serializer_type,
             forward_response_serializer_type,
             backward_request_serializer_type,
@@ -267,7 +267,7 @@ class TextCasualLM (Synapse):
         self.topk = topk
 
     @staticmethod
-    def deserialize_from_instance_proto ( instance_proto: bittensor.proto.Synapse ) -> 'TextCasualLM':
+    def deserialize_from_instance_proto ( instance_proto: bittensor.proto.Synapse ) -> 'TextCausalLM':
         """ Deserialzied the instance proto to an instance class.
             Args:
                 instance_proto (:obj:`bittensor.proto.Synapse` of shape :obj:`(1)`, `required`):
@@ -276,7 +276,7 @@ class TextCasualLM (Synapse):
                 synapse_instance_clasee (:obj:`torch.Tensor`, `required`):
                     Deserialized instance class.
         """
-        return TextCasualLM ( 
+        return TextCausalLM ( 
             topk = instance_proto.topk, 
             forward_request_serializer_type = instance_proto.forward_request_serializer_type,
             forward_response_serializer_type = instance_proto.forward_response_serializer_type,
@@ -285,7 +285,7 @@ class TextCasualLM (Synapse):
         )
 
     @staticmethod
-    def deserialize_from_wire_proto ( wire_proto: bittensor.proto.Synapse ) -> 'TextCasualLM':
+    def deserialize_from_wire_proto ( wire_proto: bittensor.proto.Synapse ) -> 'TextCausalLM':
         """ Deserialzied the wire proto to an instance class.
             Args:
                 wire_proto (:obj:`bittensor.proto.Synapse` of shape :obj:`(1)`, `required`):
@@ -294,10 +294,11 @@ class TextCasualLM (Synapse):
                 synapse_instance_clasee (:obj:`torch.Tensor`, `required`):
                     Deserialized instance class.
         """
-        instance_proto = bittensor.proto.Synapse.TextCasualLM.ParseFromString( wire_proto.synapse_data )
-        return TextCasualLM.deserialize_from_instance_proto( instance_proto )
+        instance_proto = bittensor.proto.Synapse.TextCausalLM()
+        instance_proto.ParseFromString( wire_proto.args_data )
+        return TextCausalLM.deserialize_from_instance_proto( instance_proto )
 
-    def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextCasualLM':
+    def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextCausalLM':
         """ Serializes the class instance to a Synapse instance proto.
             Returns:
                 serialized_synapse_as_instance_proto (:obj:`torch.Tensor`, `required`):
@@ -311,15 +312,22 @@ class TextCasualLM (Synapse):
             backward_response_serializer_type = self.backward_response_serializer_type,
         )
 
-    def serialize_to_wire_proto( self ) -> 'bittensor.proto.Synapse':
+    def serialize_to_wire_proto ( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> bittensor.proto.Synapse:
         """ Serializes the class instance to a Synapse wire proto.
+            Args:
+                code (:obj:`bittensor.proto.ReturnCode`, `optional`):
+                    Return code of the Synapse
+                message (:obj:`string`, `optional`):
+                    Return Message of the Synapse
             Returns:
                 serialized_synapse_as_wire_proto (:obj:`torch.Tensor`, `required`):
                     Instance class serialized to a wire proto.
         """
         return bittensor.proto.Synapse (
-                synapse_data = self.to_proto().SerializeToString(),
-                synapse_type = TextCasualLM.synapse_type,
+                args_data = self.serialize_to_instance_proto().SerializeToString(),
+                synapse_type = TextCausalLM.synapse_type,
+                return_code = code,
+                message = message
             )
 
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
@@ -344,7 +352,7 @@ class TextCasualLM (Synapse):
         """
         return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
 
-    def check_forward_request ( self, foward_request_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_request ( self, foward_request_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward request tensor being sent by the dendrite is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -362,7 +370,7 @@ class TextCasualLM (Synapse):
         else:
             return True, bittensor.proto.ReturnCode.Success, "Success"
 
-    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward response tensor being sent by the axon is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -380,7 +388,7 @@ class TextCasualLM (Synapse):
         if  ( 
                 forward_response_tensor.size(0) != foward_request_tensor.size(0) or 
                 forward_response_tensor.size(1) != foward_request_tensor.size(1) or 
-                forward_response_tensor.size(2) != self.topk
+                forward_response_tensor.size(2) != self.topk * 2
             ):
             return False, bittensor.proto.ReturnCode.ResponseShapeException, "output.shape:{} does not match inputs:{} for synapse: {}".format( forward_response_tensor.shape, foward_request_tensor.shape, self )
         else:
@@ -515,7 +523,7 @@ class TextSeq2Seq (Synapse):
                 TextSeq2Seq (:obj:`TextSeq2Seq`, `required`):
                     TextSeq2Seq instance adapter class.
         """
-        super(TextSeq2Seq).__init__ (
+        super().__init__ (
             forward_request_serializer_type,
             forward_response_serializer_type,
             backward_request_serializer_type,
@@ -553,7 +561,8 @@ class TextSeq2Seq (Synapse):
                 synapse_instance_clasee (:obj:`torch.Tensor`, `required`):
                     Deserialized instance class.
         """
-        instance_proto = bittensor.proto.Synapse.TestSeq2Seq.ParseFromString( wire_proto.synapse_data )
+        instance_proto = bittensor.proto.Synapse.TestSeq2Seq()
+        instance_proto.ParseFromString( wire_proto.args_data )
         return TextSeq2Seq.deserialize_from_instance_proto( instance_proto )
 
     def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextSeq2Seq':
@@ -571,16 +580,24 @@ class TextSeq2Seq (Synapse):
             backward_response_serializer_type = self.backward_response_serializer_type,
         )
 
-    def serialize_to_wire_proto( self ) -> 'bittensor.proto.Synapse':
+    def serialize_to_wire_proto( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = ''  ) -> bittensor.proto.Synapse:
         """ Serializes the class instance to a Synapse wire proto.
+            Args:
+                code (:obj:`bittensor.proto.ReturnCode`, `optional`):
+                    Return code of the Synapse
+                message (:obj:`string`, `optional`):
+                    Return Message of the Synapse
             Returns:
                 serialized_synapse_as_wire_proto (:obj:`torch.Tensor`, `required`):
                     Instance class serialized to a wire proto.
         """
         return bittensor.proto.Synapse (
-                synapse_data = self.serialize_to_instance_proto().SerializeToString(),
+                args_data = self.serialize_to_instance_proto().SerializeToString(),
                 synapse_type = TextSeq2Seq.synapse_type,
+                return_code = code,
+                message = message
             )
+
 
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite forward call when the call fails.
@@ -604,7 +621,7 @@ class TextSeq2Seq (Synapse):
         """
         return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
 
-    def check_forward_request ( self, foward_request_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_request ( self, foward_request_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward request tensor being sent by the dendrite is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -622,7 +639,7 @@ class TextSeq2Seq (Synapse):
         else:
             return True, bittensor.proto.ReturnCode.Success, "Success"
 
-    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward response tensor being sent by the axon is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -770,7 +787,7 @@ class TextLastHiddenState (Synapse):
                 TextLastHiddenState (:obj:`TextLastHiddenState`, `required`):
                     TextLastHiddenState instance adapter class.
         """
-        super(TextLastHiddenState).__init__ (
+        super().__init__ (
             forward_request_serializer_type,
             forward_response_serializer_type,
             backward_request_serializer_type,
@@ -787,7 +804,8 @@ class TextLastHiddenState (Synapse):
                 synapse_instance_clasee (:obj:`torch.Tensor`, `required`):
                     Deserialized instance class.
         """
-        instance_proto = bittensor.proto.Synapse.TextLastHiddenState.ParseFromString( wire_proto.synapse_data )
+        instance_proto = bittensor.proto.Synapse.TextLastHiddenState()
+        instance_proto.ParseFromString( wire_proto.args_data )
         return TextLastHiddenState.deserialize_from_instance_proto( instance_proto )
 
     def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextLastHiddenState':
@@ -803,15 +821,22 @@ class TextLastHiddenState (Synapse):
             backward_response_serializer_type = self.backward_response_serializer_type,
         )
 
-    def serialize_to_wire_proto( self ) -> 'bittensor.proto.Synapse':
+    def serialize_to_wire_proto( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> 'bittensor.proto.Synapse':
         """ Serializes the class instance to a Synapse wire proto.
+            Args:
+                code (:obj:`bittensor.proto.ReturnCode`, `optional`):
+                    Return code of the Synapse
+                message (:obj:`string`, `optional`):
+                    Return Message of the Synapse
             Returns:
                 serialized_synapse_as_wire_proto (:obj:`torch.Tensor`, `required`):
                     Instance class serialized to a wire proto.
         """
         return bittensor.proto.Synapse (
-                synapse_data = self.serialize_to_instance_proto().SerializeToString(),
+                args_data = self.serialize_to_instance_proto().SerializeToString(),
                 synapse_type = TextLastHiddenState.synapse_type,
+                return_code = code,
+                message = message
             )
 
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
@@ -836,7 +861,7 @@ class TextLastHiddenState (Synapse):
         """
         return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
 
-    def check_forward_request ( self, foward_request_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_request ( self, foward_request_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward request tensor being sent by the dendrite is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -854,7 +879,7 @@ class TextLastHiddenState (Synapse):
         else:
             return True, bittensor.proto.ReturnCode.Success, "Success"
 
-    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         """ Checks that the forward response tensor being sent by the axon is well formed.
             Args:
                 foward_request_tensor (:obj:`torch.Tensor` of shape :obj:`(shape)`, `required`):
@@ -1007,14 +1032,14 @@ class synapse:
         )
 
     @staticmethod
-    def TextCasualLM ( 
+    def TextCausalLM ( 
         topk:int = 512,
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
-    ) -> TextCasualLM:
-        """ Factory function which returns a TextCasualLM synapse adapter given arguments.
+    ) -> TextCausalLM:
+        """ Factory function which returns a TextCausalLM synapse adapter given arguments.
             Args:
                 forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
                     Serializer used to pack torch tensors on forward request.
@@ -1025,10 +1050,10 @@ class synapse:
                 backward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
                     Serialzer used to pack torch tensors on backward response.
             Returns:
-                TextCasualLM (:obj:`TextCasualLM`, `required`):
-                    TextCasualLM instance adapter class.
+                TextCausalLM (:obj:`TextCausalLM`, `required`):
+                    TextCausalLM instance adapter class.
         """
-        return TextCasualLM ( 
+        return TextCausalLM ( 
             topk = topk,
             forward_request_serializer_type = forward_request_serializer_type,
             forward_response_serializer_type = forward_response_serializer_type,
@@ -1074,11 +1099,11 @@ class synapse:
 
     @staticmethod
     def deserialize( synapse_wire_proto: bittensor.proto.Synapse ) -> Synapse:
-        if synapse_wire_proto.synapse_type == bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE:
+        if synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
             return TextLastHiddenState.deserialize_from_wire_proto ( synapse_wire_proto )
-        elif synapse_wire_proto.synapse_type == bittensor.proto.SynapseType.TEXT_CAUSAL_LM:
-            return TextCasualLM.deserialize_from_wire_proto( synapse_wire_proto )
-        elif synapse_wire_proto.synapse_type == bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ:
+        elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
+            return TextCausalLM.deserialize_from_wire_proto( synapse_wire_proto )
+        elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
         else:
             raise ValueError("Synapse type is unknown.")
