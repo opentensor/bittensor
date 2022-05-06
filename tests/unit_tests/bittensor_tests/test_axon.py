@@ -560,10 +560,14 @@ def test_grpc_forward_works():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    synapse_serializer = bittensor.synapse_serializer()
+    args = {'type_num': 5, 'size':10, 'num_to_generate':5, 'blah':[1,2]}
+    synapse = synapse_serializer.serialize(0, args, synapse_type= bittensor.proto.SynapseType.Logits)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         hotkey = '1092310312914',
-        tensors = [inputs_serialized]
+        tensors = [inputs_serialized],
+        synapses = [synapse]
     )
     response = stub.Forward(request,
                             metadata = (
@@ -817,5 +821,5 @@ def test_axon_is_destroyed():
 if __name__ == "__main__":
     #test_backward_response_serialization_error()
     #test_axon_is_destroyed()
-    test_forward_wandb()
+    #test_forward_wandb()
     test_grpc_forward_works()

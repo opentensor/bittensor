@@ -36,10 +36,10 @@ class Synapse:
     def nill_response_for_inputs( self ) -> torch.Tensor:
         raise NotImplementedError("nill_response_for_input should be implemented by the subclass.")
 
-    def check_forward_request_shape( self, foward_request_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_request_shape( self, foward_request_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         raise NotImplementedError("check_response should be implemented by the subclass.")
 
-    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response_shape( self, foward_request_tensor, forward_response_tensor ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         raise NotImplementedError("check_response should be implemented by the subclass.")
 
     def serialize_forward_request_tensor( self, foward_request_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
@@ -104,37 +104,40 @@ class Synapse:
         raise NotImplementedError("decode_forward_response_tensor should be implemented by the subclass.")
 
 
-class TextCasualLM (Synapse):
+class TextCausalLM (Synapse):
     synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM
     def __init__( self, topk: int = 512 ):
         self.topk = topk
 
     @staticmethod
     def deserialize_from_instance_proto ( proto: bittensor.proto.Synapse.TextCausalLM ):
-        return TextCasualLM( topk = proto.topk )
+        return TextCausalLM( topk = proto.topk )
 
     @staticmethod
-    def deserialize_from_wire_proto ( wire_proto: 'bittensor.proto.Synapse' ) -> 'TextCasualLM':
-        instance_proto = bittensor.proto.Synapse.TextCasualLM.ParseFromString( wire_proto.synapse_data )
-        return TextCasualLM.deserialize_from_instance_proto( instance_proto )
+    def deserialize_from_wire_proto ( wire_proto: 'bittensor.proto.Synapse' ) -> 'TextCausalLM':
+        instance_proto = bittensor.proto.Synapse.TextCausalLM()
+        instance_proto.ParseFromString( wire_proto.args_data )
+        return TextCausalLM.deserialize_from_instance_proto( instance_proto )
 
     def serialize_to_instance_proto ( self ) -> bittensor.proto.Synapse.TextCausalLM:
         return bittensor.proto.Synapse.TextCausalLM( topk = self.topk )
 
-    def serialize_to_wire_proto ( self ) -> bittensor.proto.Synapse:
+    def serialize_to_wire_proto ( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> bittensor.proto.Synapse:
         return bittensor.proto.Synapse (
-                synapse_data = self.to_proto().SerializeToString(),
-                synapse_type = TextCasualLM.synapse_type,
+                args_data = self.serialize_to_instance_proto().SerializeToString(),
+                synapse_type = TextCausalLM.synapse_type,
+                return_code = code,
+                message = message
             )
 
-    def nill_response_for_inputs ( inputs: torch.Tensor ) -> torch.Tensor:
+    def nill_response_for_inputs (self, inputs: torch.Tensor ) -> torch.Tensor:
         return torch.zeros( ( inputs.size(0), inputs.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
 
-    def check_forward_response_shape( self, inputs_request, outputs_response ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response_shape( self, inputs_request, outputs_response ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         if  ( 
                 outputs_response.size(0) != inputs_request.size(0) or 
                 outputs_response.size(1) != inputs_request.size(1) or 
-                outputs_response.size(2) != self.topk
+                outputs_response.size(2) != self.topk * 2
             ):
             return False, bittensor.proto.ReturnCode.ResponseShapeException, "output.shape:{} does not match inputs:{} for synapse: {}".format( outputs_response.shape, inputs_request.shape, self )
         else:
@@ -204,26 +207,29 @@ class TextSeq2Seq (Synapse):
 
     @staticmethod
     def deserialize_from_wire_proto ( wire_proto: 'bittensor.proto.Synapse' ) -> 'TextSeq2Seq':
-        instance_proto = bittensor.proto.Synapse.TestSeq2Seq.ParseFromString( wire_proto.synapse_data )
+        instance_proto = bittensor.proto.Synapse.TestSeq2Seq()
+        instance_proto.ParseFromString( wire_proto.args_data )
         return TextSeq2Seq.deserialize_from_instance_proto( instance_proto )
 
-    def serialize_to_instance_proto( self ) -> bittensor.proto.Synapse.TestSeq2Seq:
+    def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TestSeq2Seq':
         return bittensor.proto.Synapse.TestSeq2Seq( num_to_generate = self.num_to_generate )
 
-    def serialize_to_wire_proto( self ) -> bittensor.proto.Synapse:
+    def serialize_to_wire_proto( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = ''  ) -> bittensor.proto.Synapse:
         return bittensor.proto.Synapse (
-                synapse_data = self.to_proto().SerializeToString(),
+                args_data = self.serialize_to_instance_proto().SerializeToString(),
                 synapse_type = TextSeq2Seq.synapse_type,
+                return_code = code,
+                message = message
             )
 
-    def nill_response_for_inputs ( inputs: torch.Tensor ) -> torch.Tensor:
+    def nill_response_for_inputs (self, inputs: torch.Tensor ) -> torch.Tensor:
         return torch.zeros( ( inputs.size(0), inputs.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
 
-    def check_forward_response_shape( self, inputs_request, outputs_response ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response_shape( self, inputs_request, outputs_response ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         if  ( 
                 outputs_response.size(0) != inputs_request.size(0) or 
                 outputs_response.size(1) != self.num_to_generate or 
-                outputs_response.size(2) != self.topk
+                outputs_response.size(2) != self.topk * 2
             ):
             return False, bittensor.proto.ReturnCode.ResponseShapeException, "output.shape:{} does not match inputs:{} for synapse: {}".format( outputs_response.shape, inputs_request.shape, self )
         else:
@@ -286,30 +292,33 @@ class TextLastHiddenState (Synapse):
 
     @staticmethod
     def deserialize_from_instance_proto ( instance_proto: 'bittensor.proto.Synapse.TextLastHiddenState' ) -> 'TextLastHiddenState':
-        return TextLastHiddenState( num_to_generate = instance_proto.num_to_generate )
+        return TextLastHiddenState()
 
     @staticmethod
     def deserialize_from_wire_proto ( wire_proto: 'bittensor.proto.Synapse' ) -> 'TextLastHiddenState':
-        instance_proto = bittensor.proto.Synapse.TextLastHiddenState.ParseFromString( wire_proto.synapse_data )
+        instance_proto = bittensor.proto.Synapse.TextLastHiddenState()
+        instance_proto.ParseFromString( wire_proto.args_data )
         return TextLastHiddenState.deserialize_from_instance_proto( instance_proto )
 
     def serialize_to_instance_proto ( self ) -> bittensor.proto.Synapse.TextLastHiddenState:
         return bittensor.proto.Synapse.TextLastHiddenState()
 
-    def serialize_to_wire_proto ( self ) -> bittensor.proto.Synapse:
+    def serialize_to_wire_proto ( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> bittensor.proto.Synapse:
         return bittensor.proto.Synapse (
-                synapse_data = self.to_proto().SerializeToString(),
+                args_data = self.serialize_to_instance_proto().SerializeToString(),
                 synapse_type = TextLastHiddenState.synapse_type,
+                return_code = code,
+                message = message
             )
 
-    def nill_response_for_inputs ( inputs: torch.Tensor ) -> torch.Tensor:
+    def nill_response_for_inputs (self, inputs: torch.Tensor ) -> torch.Tensor:
         return torch.zeros( ( inputs.size(0), inputs.size(1), bittensor.__network_dim__ ), dtype=torch.float32)
 
-    def check_forward_response_shape( self, inputs_request, outputs_response ) -> Tuple[ bool, bittensor.proto.ReturnCode,  str ]:
+    def check_forward_response_shape( self, inputs_request, outputs_response ) -> Tuple[ bool, 'bittensor.proto.ReturnCode',  str ]:
         if  ( 
                 outputs_response.size(0) != inputs_request.size(0) or 
                 outputs_response.size(1) != self.num_to_generate or 
-                outputs_response.size(2) != self.topk
+                outputs_response.size(2) != bittensor.__network_dim__
             ):
             return False, bittensor.proto.ReturnCode.ResponseShapeException, "output.shape:{} does not match inputs:{} for synapse: {}".format( outputs_response.shape, inputs_request.shape, self )
         else:
@@ -372,8 +381,8 @@ class synapse:
         return TextLastHiddenState ( )
 
     @staticmethod
-    def TextCasualLM ( topk:int = 512 ) -> TextCasualLM:
-        return TextCasualLM ( 
+    def TextCausalLM ( topk:int = 512 ) -> TextCausalLM:
+        return TextCausalLM ( 
             topk = topk 
         )
 
@@ -386,11 +395,11 @@ class synapse:
 
     @staticmethod
     def deserialize( synapse_wire_proto: bittensor.proto.Synapse ) -> Synapse:
-        if synapse_wire_proto.synapse_type == bittensor.proto.SynapseType.TEXT_LAST_HIDDEN_STATE:
+        if synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
             return TextLastHiddenState.deserialize_from_wire_proto ( synapse_wire_proto )
-        elif synapse_wire_proto.synapse_type == bittensor.proto.SynapseType.TEXT_CAUSAL_LM:
-            return TextCasualLM.deserialize_from_wire_proto( synapse_wire_proto )
-        elif synapse_wire_proto.synapse_type == bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ:
+        elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
+            return TextCausalLM.deserialize_from_wire_proto( synapse_wire_proto )
+        elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
         else:
             raise ValueError("Synapse type is unknown.")

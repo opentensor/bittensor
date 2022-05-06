@@ -30,18 +30,18 @@ class Serializer(object):
     various python tensor equivalents. i.e. torch.Tensor or tensorflow.Tensor
     """
 
-    def serialize (self, tensor_obj: object, modality: bittensor.proto.Modality, from_type: int) -> bittensor.proto.Tensor:
+    def serialize (self, tensor_obj: object, modality: bittensor.proto.Modality= bittensor.proto.Modality.TEXT, from_type: int = bittensor.proto.TensorType.TORCH) -> bittensor.proto.Tensor:
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:
             tensor_obj (:obj:`object`, `required`): 
                 general tensor object i.e. torch.Tensor or tensorflow.Tensor
 
-            from_type (`obj`: bittensor.proto.TensorType, `required`): 
+            from_type (`obj`: bittensor.proto.TensorType, `Optional`): 
                 Serialization from this type. i.e. bittensor.proto.TensorType.TORCH or bittensor.proto.TensorType.TENSORFLOW
 
         Returns:
-            tensor_pb2: (obj: `bittensor.proto.Tensor`, `required`): 
+            tensor_pb2: (obj: `bittensor.proto.Tensor`, `Optional`): 
                 Serialized tensor as bittensor.proto.proto. 
 
         Raises:
@@ -174,6 +174,10 @@ class MSGPackSerializer( Serializer ):
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
 
+    @staticmethod
+    def empty():
+        torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
+        return torch_proto
 
 class CMPPackSerializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch in float16
