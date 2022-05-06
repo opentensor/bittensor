@@ -660,14 +660,6 @@ class Receptor(nn.Module):
                 synapse_messages[index] = message
             else:
                 synapse_responses[index] = synapse.decode_forward_response_tensor ( synapse_forward_response_tensor )
-<<<<<<< HEAD
-                if code != bittensor.proto.ReturnCode.Success:
-                    synapse_call_times[index] = clock.time() - start_time
-                    synapse_codes[index] = code
-                    synapse_messages[index] = message
-
-=======
->>>>>>> 1d10be6f (remove serializer functions)
 
 
         # ======================================
