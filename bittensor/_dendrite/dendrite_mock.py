@@ -37,14 +37,6 @@ import bittensor.utils.stats as stat_utils
 # dummy tensor that triggers autograd 
 DUMMY = torch.empty(0, requires_grad=True)
 
-# Helper function for filling nill (zero) responses on failures.
-def nill_response_for(inputs):
-    """ Get zero matrix with the same size as inputs
-    """
-    if torch.numel(inputs) == 0:
-        return torch.tensor([])
-    return torch.zeros((inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
-
 
 class DendriteMock(torch.autograd.Function):
 

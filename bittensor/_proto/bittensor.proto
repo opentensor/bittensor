@@ -92,6 +92,75 @@ message TensorMessage {
  	repeated Synapse synapses = 9;
 }
 
+
+message Synapse {
+	
+	enum SynapseType {
+		TEXT_LAST_HIDDEN_STATE = 0;
+		TEXT_CAUSAL_LM = 1;
+		TEXT_SEQ_2_SEQ = 2;
+	}
+
+	// Position of Tensor inputs for corresponding synapse call.
+	repeated int32 tensor_pos = 1;
+
+	// Serialized special argmument data. This is proto data which
+	// is packed according to the SynapseType enum. 
+	string args_data = 2;
+
+	// Type of Synapse. i.e. LastHidden specifies how to decode args_data 
+	// and route information in the axon to the correct function call.
+	SynapseType synapse_type = 3;
+
+	// Return codes from Backward and Forward call associated 
+	// with this synapse call.
+	ReturnCode return_code = 4;
+
+	// Message associated with the return code.
+	string message = 5;
+
+	// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+	bool requires_grad = 6;
+
+	message TextLastHiddenState { 
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// 
+		Serializer serializer_type = 2;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 2;
+	}
+
+	message TextCausalLM {
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// 
+		Serializer serializer = 2;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 3;
+	}
+
+	message TextSeq2Seq {
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// Specifies the number of Topk logits to return.
+		// Logit values are packed (pos, value) acocording 
+		// to the bittensor tokenizer vocab size.
+		int32 topk = 2;
+
+		// Number of tokens to predict
+		int32 k_sequence = 3;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 4;
+	}
+}
+
 // Return codes from Backward and Forward call.
 enum ReturnCode {
 	NoReturn = 0; // Default Value
@@ -166,81 +235,31 @@ message Tensor {
 
 }
 
-
-message Synapse {
-	
-	enum SynapseType {
-		TEXT_LAST_HIDDEN_STATE = 0;
-		TEXT_CAUSAL_LM = 1;
-		TEXT_SEQ_2_SEQ = 2;
-	}
-
-	// Position of Tensor inputs for corresponding synapse call.
-	repeated int32 tensor_pos = 1;
-
-	// Serialized special argmument data. This is proto data which
-	// is packed according to the SynapseType enum. 
-	string args_data = 2;
-
-	// Type of Synapse. i.e. LastHidden specifies how to decode args_data 
-	// and route information in the axon to the correct function call.
-	SynapseType synapse_type = 3;
-
-	// Return codes from Backward and Forward call associated 
-	// with this synapse call.
-	ReturnCode return_code = 4;
-
-	// Message associated with the return code.
-	string message = 5;
-
-	// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-	bool requires_grad = 6;
-
-	message TextLastHiddenState { 
-		// Might as well have this
-		SynapseType synapse_type = 1;
-
-		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 2;
-	}
-
-	message TextCausalLM {
-		// Might as well have this
-		SynapseType synapse_type = 1;
-
-		// Specifies the number of Topk logits to return.
-		// Logit values are packed (pos, value) acocording 
-		// to the bittensor tokenizer vocab size.
-		int32 topk = 2;
-
-		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 3;
-	}
-
-	message TextSeq2Seq {
-		// Might as well have this
-		SynapseType synapse_type = 1;
-
-		// Specifies the number of Topk logits to return.
-		// Logit values are packed (pos, value) acocording 
-		// to the bittensor tokenizer vocab size.
-		int32 topk = 2;
-
-		// Number of tokens to predict
-		int32 k_sequence = 3;
-
-		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 4;
-	}
-}
-
-
 // Dtype: [REQUIRED] The tensor serializer type.
 // For use between multiple serialziation deserialziation methods.
-enum Serializer {
-	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
-	MSGPACK = 0; // MSGPACK serializer
-	CMPPACK = 1; // CMPPACK serializer
+message Serializer
+
+	enum SerializerType {
+		// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
+		MSGPACK = 0; // MSGPACK serializer
+		CMPPACK = 1; // CMPPACK serializer
+		TOPKPACK = 3; // Packs message using topk.
+	}
+
+	bytes serialzer_data = 0;
+
+	SerializerType serializer_type = 1;
+
+	message TopkPack {
+		int32 topk = 0;
+		DataType data_type = 1;
+		SerializerType serializer_type = 0;
+	}
+
+	message MsgPack {
+		DataType data_type = 0;
+		SerializerType serializer_type = 1;
+	}
 }
 
 // TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.
