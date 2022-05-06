@@ -125,7 +125,7 @@ def serve(
         def validator_check():
 
             uid = metagraph.hotkeys.index(pubkey)
-            if (metagraph.W[uid] >0).sum() ==n_topk_peer_weights:
+            if (metagraph.W[uid] >0).sum() >= n_topk_peer_weights:
                 return False
 
             raise Exception('Validator blacklist')
