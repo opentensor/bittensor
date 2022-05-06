@@ -217,6 +217,7 @@ class TextCausalLM (Synapse):
             backward_response_serializer_type
         )
         self.topk = topk
+        self.synapse_type = TextCausalLM.synapse_type
 
     @staticmethod
     def deserialize_from_instance_proto ( instance_proto: bittensor.proto.Synapse ) -> 'TextCausalLM':
@@ -436,6 +437,7 @@ class TextSeq2Seq (Synapse):
         )
         self.topk = topk
         self.num_to_generate = num_to_generate
+        self.synapse_type = TextSeq2Seq.synapse_type
 
     @staticmethod
     def deserialize_from_instance_proto ( instance_proto: bittensor.proto.Synapse ) -> 'Synapse':
@@ -650,6 +652,7 @@ class TextLastHiddenState (Synapse):
             backward_request_serializer_type,
             backward_response_serializer_type
         )
+        self.synapse_type = TextLastHiddenState.synapse_type
 
     @staticmethod
     def deserialize_from_wire_proto ( wire_proto: bittensor.proto.Synapse ) -> 'Synapse':

@@ -33,6 +33,7 @@ from yaml import serialize
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
 from bittensor._serializer import serializer, serializer_impl
+from bittensor._synapse import TextCausalLM, synapse
 import bittensor.utils.stats as stat_utils
 import bittensor.utils.codes as codes
 
@@ -147,7 +148,7 @@ class Dendrite(torch.autograd.Function):
         """
         ctx.receptor_pool = dendrite.receptor_pool
         ctx.endpoints, ctx.synapses, ctx.inputs, ctx.timeout, ctx.does_requires_grad = endpoints, synapses, inputs, timeout, requires_grad
-        inputs = [x.cpu().clone().detach() for x in inputs]
+        inputs:List[torch.Tensor] = [x.cpu().clone().detach() for x in inputs]
 
         # Ouputs are list of lists where the outer list corresponds to the endpoints and the 
         # inner list corresponds to the synapses.
@@ -162,15 +163,15 @@ class Dendrite(torch.autograd.Function):
         # We need to flatten the outputs across the synapse dimension.
         def flatten(t):
             return [item for sublist in t for item in sublist]
-        flattened_forward_outputs = flatten( forward_outputs )
-        flattened_forward_codes = flatten( forward_codes )
-        flattened_forward_times = flatten( forward_times )
         # flattened items now have length num_endpoints * num_synapses
         # where endpoint i's jth outputs is at position (num_synapses * i ) + j
+        flattened_forward_codes: List[ bittensor.proto.ReturnCode ] = flatten( forward_codes )
+        flattened_forward_times: List[float] = flatten( forward_times )
+        flattened_forward_outputs: List[torch.Tensor] = flatten( forward_outputs )
 
         # We will pack all the codes and times into a single tensor 
-        flattened_torch_codes = torch.tensor(flattened_forward_codes, dtype=torch.int64)
-        flattened_torch_times = torch.tensor(flattened_forward_times, dtype=torch.float32)
+        flattened_torch_codes: torch.LongTensor = torch.tensor(flattened_forward_codes, dtype=torch.int64)
+        flattened_torch_times: torch.FloatTensor  = torch.tensor(flattened_forward_times, dtype=torch.float32)
 
         # Return all outputs as a tuple of torch tensors of length 2 + (num_endpoints * num_synapses) 
         return (flattened_torch_codes, flattened_torch_times, *flattened_forward_outputs)
@@ -221,11 +222,11 @@ class Dendrite(torch.autograd.Function):
             # We need to flatten the outputs across the synapse dimension.
             def flatten(t):
                 return [item for sublist in t for item in sublist]
-            flattened_input_grads = flatten( input_grads )
+            flattened_input_grads: List[torch.FloatTensor]  = flatten( input_grads )
             return (None, None, None, None, None, None, *flattened_input_grads)
         else:
             # Create nill responses for each input and each synapse.
-            input_grads = [ bittensor.synapse.nill_response_for_synapse_and_inputs( inp, syn ) for inp in ctx.inputs for syn in ctx.synapses ]
+            input_grads = [ syn.nill_backward_response_tensor ( inp ) for inp in ctx.inputs for syn in ctx.synapses ]
             return (None, None, None, None, None, None, *input_grads)
 
     def _forward(
@@ -267,13 +268,13 @@ class Dendrite(torch.autograd.Function):
                     Call times per endpoint per synapse.
 
         """
-        timeout = timeout if timeout is not None else self.config.dendrite.timeout
-        requires_grad = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
+        timeout:int = timeout if timeout is not None else self.config.dendrite.timeout
+        requires_grad:bool = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
 
         # The forwarnd response is a tuple with shape (flattened_torch_codes, flattened_torch_times, *flattened_forward_outputs)
         # packed with torch tensors of length 2 + (num_endpoints * num_synapses). The first two tensors are codes and times
         # the last (num_endpoints * num_synapses) tensors are per endpoint per synapse output tensors.
-        forward_response = Dendrite.apply (
+        forward_response: List[torch.Tensor] = Dendrite.apply (
             self,
             DUMMY,
             endpoints,
@@ -285,18 +286,18 @@ class Dendrite(torch.autograd.Function):
 
         # Split codes into num_synapse lists of codes
         # split_codes is a list of tensors codes each with length num_synapses
-        codes = forward_response[0]
-        packed_codes = torch.split( codes, len( synapses ) )
+        codes: torch.LongTensor = forward_response[0]
+        packed_codes: List[torch.LongTensor] = torch.split( codes, len( synapses ) )
 
         # Split times into num_synapse lists of codes
         # split_times is a list of tensors times each with length num_synapses
-        times = forward_response[0]
-        packed_times = torch.split( times, len( synapses ) )
+        times: torch.FloatTensor  = forward_response[0]
+        packed_times: List[torch.FloatTensor] = torch.split( times, len( synapses ) )
 
         # Output responses is a list with length num_endpoints num_synapses
         # we need to pack the responses into a list of lists corresponding to
         # each endpoint.
-        outputs = forward_response[2:]
+        outputs: List[torch.Tensor] = forward_response[2:]
         packed_outputs: List[ List[torch.Tensor] ] = [  outputs[ s : s + len(synapses) ] for s in range (0, len(outputs), len( synapses )) ]
 
         return packed_outputs, packed_codes, packed_times
@@ -366,12 +367,20 @@ class Dendrite(torch.autograd.Function):
         return outputs, codes, times
 
 
+    dend.text_causal_lm(
+        endpoints = ...
+        inputs = ...
+        synapse = bittensor.synapse.TextCausalLM()
+    )
+
+
     def text_causal_lm (
         self,
-        endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
-        inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
-        timeout: Optional[int] = None,
-        requires_grad: Optional[bool] = None,
+        endpoints: Union [ torch.LongTensor, List [ torch.LongTensor ], List[ 'bittensor.Endpoint' ], 'bittensor.Endpoint' ],
+        inputs: Union [ str, List[ str ], List [ torch.LongTensor ], torch.LongTensor],
+        synapse: Optional[ 'bittensor.synapse.TextCasualLM' ] = bittensor.synapse.TextCasualLM(),
+        timeout: Optional [ int ] = None,
+        requires_grad: Optional [ bool ] = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
         r""" Forward text inputs to a list of neuron endpoints and returns logit encodings or timeout.
 
@@ -394,10 +403,9 @@ class Dendrite(torch.autograd.Function):
                             - a list of tensors of type long each representing a tokenized sentence to be sent to each endpoint.
                         If inputs are tensors they will be cast to int64 format before sending on the wire.
 
-                    topk_encoding_length (:type:`int`, default = dendrite.causal_lm.topk_encoding_length, `optional`):
-                        Number of top logits to return from remote endpoints, the remaining logits values are 
-                        set to zero.
-
+                    synapse (:type:`'bittensor.synapse.TextCasualLM'`, default = bittensor.synapse.TextCasualLM(), `optional`):
+                        Synapse axon function call which defaults to bittensor.synapse.TextCasualLM().
+                    
                     timeout (:type:`int`, default = dendrite.timeout `optional`):
                         Request timeout. Queries that do not respond will be replaced by zeros.
 
@@ -415,13 +423,16 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
         """
+        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TextCasualLM:
+            raise ValueError( "Passed synapse must have type: {} got {} instead".formate( bittensor.proto.Synapse.SynapseType.TextCasualLM, synapses.synapse_type ) )
+
         # Format inputs.
         formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
             endpoints = endpoints, 
             inputs = inputs
         )
         # Optionally convert synapses and set typing info.
-        synapses = [ bittensor.synapse.TextCasualLM() ]
+        synapses = [ synapse ]
         # Make calls.
         outputs, codes, times = self._forward (
             endpoints = formatted_endpoints,
@@ -439,6 +450,7 @@ class Dendrite(torch.autograd.Function):
             self,
             endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+            synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = bittensor.synapse.TextLastHiddenState(),
             timeout: int = None,
             requires_grad: bool = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
@@ -461,6 +473,9 @@ class Dendrite(torch.autograd.Function):
                             - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
                         If inputs are tensors they will be cast to int64 format before sending on the wire.
 
+                    synapse (:type:`'bittensor.synapse.TextLastHiddenState'`, default = bittensor.synapse.TextLastHiddenState(), `optional`):
+                        Synapse axon function call which defaults to bittensor.synapse.TextLastHiddenState().
+
                     timeout (:type:`int`, default = dendrite.timeout `optional`):
                         Request timeout. Queries that do not respond will be replaced by zeros.
 
@@ -478,12 +493,15 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
         """
+        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TextLastHiddenState:
+            raise ValueError( "Passed synapse must have type:{} got:{} instead".formate( bittensor.proto.Synapse.SynapseType.TextLastHiddenState, synapses.synapse_type ) )
+
         # Format inputs.
         formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
             endpoints = endpoints, 
             inputs = inputs
         )
-        synapses = [ bittensor.synapse.TextLastHiddenState() ]
+        synapses = [ synapse ]
         # Make calls.
         outputs, codes, times = self._forward (
             endpoints = formatted_endpoints,
