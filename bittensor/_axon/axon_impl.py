@@ -350,7 +350,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         
         # --- deserialization of synapses --- 
         synapses = [bittensor.synapse.deserialize(synapse) for synapse in request.synapses]
-
         # Post process.
         try:
             messages = [ "NoReturn" for _ in synapses ]
@@ -372,9 +371,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
             for index, output in enumerate(outputs):
                 # ---- Serialize response ----
                 try:
-                    serializer = bittensor.serializer ( bittensor.proto.Serializer.MSGPACK )
+                    synapse = synapses[index]
+                    serializer = bittensor.serializer ( synapse.forward_response_serializer_type )
                     if output != None:
-                        serialized_outputs.append(serializer.serialize ( output, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH ))
+                        encode_output = synapse.encode_forward_response_tensor(output)
+                        serialized_outputs.append(serializer.serialize( encode_output, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH ))
                     else:
                         serialized_outputs.append(serializer.empty())
                 except Exception as e:
