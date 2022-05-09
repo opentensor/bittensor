@@ -86,25 +86,6 @@ class TestCli(unittest.TestCase):
 
         return wallet
 
-    @staticmethod
-    def init_wallet():
-        if os.path.exists('/tmp/pytest'):
-            shutil.rmtree('/tmp/pytest')
-    
-        the_wallet = bittensor.wallet (
-            path = '/tmp/pytest',
-            name = 'pytest',
-            hotkey = 'pytest',
-        )
-        
-        return the_wallet
-    
-    @staticmethod
-    def rm_wallet() -> None:
-        if os.path.exists('/tmp/pytest'):
-            shutil.rmtree('/tmp/pytest')
-        return
-
     def test_check_configs(self):
         commands = ["run", "transfer", "register", "unstake", 
         "stake", "overview", "new_coldkey", "new_hotkey", 
@@ -127,32 +108,51 @@ class TestCli(unittest.TestCase):
             cli.check_config(config)
 
     def test_overview( self ):
-        wallet: 'bittensor.Wallet' = self.init_wallet()
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
-        config = self.config
-        config.wallet.path = wallet.path
-        config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
-        config.no_prompt = True
+        # Mock IO for wallet
+        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
+            exists_on_device=MagicMock(
+                return_value=True # Wallet exists
+            )
+        )):
+            bittensor.subtensor.register = MagicMock(return_value = True)  
+            
+            config = self.config
+            config.wallet.path = '/tmp/walletpath'
+            config.wallet.name = 'mock_wallet'
+            config.command = "overview"
+            config.subtensor._mock = True
+            config.subtensor.network = "mock"
+            config.no_prompt = True
 
-        cli = bittensor.cli(config)
-        cli.run()
+            cli = bittensor.cli(config)
+            with patch('os.walk', return_value=iter(
+                    ('/tmp/walletpath/mock_wallet/hotkeys', [], ['hk0', 'hk1', 'hk2'])
+                )):
+                with patch('bittensor.Wallet.hotkey', ss58_address=bittensor.Keypair.create_from_mnemonic(
+                        bittensor.Keypair.generate_mnemonic()
+                ).ss58_address):
+                    with patch('bittensor.Wallet.coldkeypub', ss58_address=bittensor.Keypair.create_from_mnemonic(
+                        bittensor.Keypair.generate_mnemonic()
+                    ).ss58_address):
+                        cli.run()
 
     def test_overview_no_wallet( self ):
-        # Delete wallet if exists
-        self.rm_wallet()
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
-        config = self.config
-        config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
-        config.no_prompt = True
+        # Mock IO for wallet
+        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
+            exists_on_device=MagicMock(
+                return_value=False
+            )
+        )):
+            bittensor.subtensor.register = MagicMock(return_value = True)  
+            
+            config = self.config
+            config.command = "overview"
+            config.subtensor._mock = True
+            config.subtensor.network = "mock"
+            config.no_prompt = True
 
-        cli = bittensor.cli(config)
-        cli.run()
+            cli = bittensor.cli(config)
+            cli.run()
 
     def test_register( self ):
 
@@ -324,34 +324,42 @@ class TestCli(unittest.TestCase):
         cli.run()
 
     def test_list( self ):
+        # TODO: Mock IO for list
+        # Mock IO for wallet
+        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
+            exists_on_device=MagicMock(
+                return_value=True # Wallet exists
+            )
+        )):
+            config = self.config
+            config.wallet.path = 'tmp/walletpath'
+            config.wallet._mock = True
+            config.subtensor.network = "mock"
+            config.no_prompt = True
+            config.subtensor._mock = True
+            config.command = "list"
 
-        # Create a new wallet in tmp dir
-        wallet: 'bittensor.Wallet' = self.init_wallet()
-        config = self.config
-        config.wallet.path = wallet.path
-        config.wallet._mock = True
-        config.subtensor.network = "mock"
-        config.no_prompt = True
-        config.subtensor._mock = True
-        config.command = "list"
-
-        cli = bittensor.cli(config)
-        cli.run()
+            cli = bittensor.cli(config)
+            cli.run()
 
     def test_list_no_wallet( self ):
-        # Delete wallet if it exists
-        self.rm_wallet()
-    
-        config = self.config
-        config.wallet.path = '/tmp/pytest'
-        config.subtensor.network = "mock"
-        config.no_prompt = True
-        config.subtensor._mock = True
-        config.command = "list"
-    
-        cli = bittensor.cli(config)
-        # This shouldn't raise an error anymore
-        cli.run()
+        # Mock IO for wallet
+        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
+            exists_on_device=MagicMock(
+                return_value=False # Wallet doesn't exist
+            )
+        )):
+            config = self.config
+            config.wallet.path = '/tmp/pytest'
+            config.wallet._mock = True
+            config.subtensor.network = "mock"
+            config.no_prompt = True
+            config.subtensor._mock = True
+            config.command = "list"
+        
+            cli = bittensor.cli(config)
+            # This shouldn't raise an error anymore
+            cli.run()
 
 
 if __name__ == "__main__":
