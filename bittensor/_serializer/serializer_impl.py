@@ -124,6 +124,12 @@ class Serializer(object):
         """ bittensor.proto.Tensor -> numpy """
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
+    @staticmethod
+    def empty():
+        """Returns an empty bittensor.proto.Tensor message"""
+        torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
+        return torch_proto
+
 class MSGPackSerializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch
     """
@@ -174,10 +180,6 @@ class MSGPackSerializer( Serializer ):
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
 
-    @staticmethod
-    def empty():
-        torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
-        return torch_proto
 
 class CMPPackSerializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch in float16
