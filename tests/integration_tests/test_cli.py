@@ -1,4 +1,6 @@
 from types import SimpleNamespace
+
+from more_itertools import side_effect
 import bittensor
 
 from substrateinterface.base import Keypair
@@ -126,7 +128,7 @@ class TestCli(unittest.TestCase):
 
             cli = bittensor.cli(config)
             with patch('os.walk', return_value=iter(
-                    ('/tmp/walletpath/mock_wallet/hotkeys', [], ['hk0', 'hk1', 'hk2'])
+                    [('/tmp/walletpath/mock_wallet/hotkeys', [], ['hk0', 'hk1', 'hk2'])] # no dirs, 3 files
                 )):
                 with patch('bittensor.Wallet.hotkey', ss58_address=bittensor.Keypair.create_from_mnemonic(
                         bittensor.Keypair.generate_mnemonic()
@@ -324,23 +326,53 @@ class TestCli(unittest.TestCase):
         cli.run()
 
     def test_list( self ):
-        # TODO: Mock IO for list
         # Mock IO for wallet
-        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
-            exists_on_device=MagicMock(
-                return_value=True # Wallet exists
+        with patch('bittensor.wallet.__new__', side_effect=[MagicMock(
+            coldkeypub_file=MagicMock(
+                exists_on_device=MagicMock(
+                    return_value=True # Wallet exists
+                ),
+                is_encrypted=MagicMock(
+                    return_value=False # Wallet is not encrypted
+                ),
+            ),
+            coldkeypub=MagicMock(
+                ss58_address=bittensor.Keypair.create_from_mnemonic(
+                        bittensor.Keypair.generate_mnemonic()
+                ).ss58_address
             )
-        )):
+        ),
+        MagicMock(
+            hotkey_file=MagicMock(
+                exists_on_device=MagicMock(
+                    return_value=True # Wallet exists
+                ),
+                is_encrypted=MagicMock(
+                    return_value=False # Wallet is not encrypted
+                ),
+            ),
+            hotkey=MagicMock(
+                ss58_address=bittensor.Keypair.create_from_mnemonic(
+                        bittensor.Keypair.generate_mnemonic()
+                ).ss58_address
+            )
+        )]):
             config = self.config
             config.wallet.path = 'tmp/walletpath'
-            config.wallet._mock = True
+            config.wallet.name = 'mock_wallet'
             config.subtensor.network = "mock"
             config.no_prompt = True
             config.subtensor._mock = True
             config.command = "list"
 
             cli = bittensor.cli(config)
-            cli.run()
+            with patch('os.walk', side_effect=[iter(
+                    [('/tmp/walletpath', ['mock_wallet'], [])] # 1 wallet dir
+            ),
+            iter(
+                [('/tmp/walletpath/mock_wallet/hotkeys', [], ['hk0'])] # 1 hotkey file
+            )]):
+                cli.run()
 
     def test_list_no_wallet( self ):
         # Mock IO for wallet
@@ -351,7 +383,6 @@ class TestCli(unittest.TestCase):
         )):
             config = self.config
             config.wallet.path = '/tmp/pytest'
-            config.wallet._mock = True
             config.subtensor.network = "mock"
             config.no_prompt = True
             config.subtensor._mock = True
