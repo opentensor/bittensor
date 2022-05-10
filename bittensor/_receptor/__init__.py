@@ -20,15 +20,21 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import grpc
-
+import json
 import bittensor
-import bittensor.utils.networking as net
 from . import receptor_impl
 
 class receptor:
     """ Create and init the receptor object, which encapsulates a grpc connection to an axon endpoint
     """
-    def __new__( cls, endpoint: 'bittensor.Endpoint', wallet: 'bittensor.Wallet' = None) -> 'bittensor.Receptor':
+    def __new__( 
+             cls,
+             endpoint: 'bittensor.Endpoint',
+             max_processes: 'int' = 1,
+             wallet: 'bittensor.Wallet' = None,
+             external_ip: 'str' = None,
+             compression: str = None,
+        ) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
                 endpoint (:obj:`bittensor.Endpoint`, `required`):
@@ -37,12 +43,6 @@ class receptor:
 
         if wallet == None:
             wallet = bittensor.wallet()
-        try:
-            external_ip = str(net.get_external_ip())
-        except Exception:
-            pass
-        finally:
-            external_ip = None
 
         # Get endpoint string.
         if endpoint.ip == external_ip:
@@ -50,17 +50,27 @@ class receptor:
             endpoint_str = ip + str(endpoint.port)
         else:
             endpoint_str = endpoint.ip + ':' + str(endpoint.port)
-        
+
+        # Determine the grpc compression algorithm
+        if compression == 'gzip':
+            compress_alg = grpc.Compression.Gzip
+        elif compression == 'deflate':
+            compress_alg = grpc.Compression.Deflate
+        else:
+            compress_alg = grpc.Compression.NoCompression
+
         channel = grpc.insecure_channel(
             endpoint_str,
             options=[('grpc.max_send_message_length', -1),
-                     ('grpc.max_receive_message_length', -1)])
+                     ('grpc.max_receive_message_length', -1),
+                     ('grpc.keepalive_time_ms', 100000)])
         stub = bittensor.grpc.BittensorStub( channel )
         return receptor_impl.Receptor( 
             endpoint = endpoint,
             channel = channel, 
             wallet = wallet,
-            stub = stub
+            stub = stub,
+            max_processes=max_processes
         )
 
 class receptor_pool:
@@ -72,6 +82,7 @@ class receptor_pool:
             thread_pool: ThreadPoolExecutor = None,
             max_worker_threads: int = 150,
             max_active_receptors: int = 500,
+            compression: str = None,
         ) -> 'bittensor.ReceptorPool':
         r""" Initializes a receptor grpc connection.
             Args:
@@ -90,5 +101,7 @@ class receptor_pool:
         return bittensor.ReceptorPool ( 
             wallet = wallet,
             thread_pool = thread_pool,
-            max_active_receptors = max_active_receptors
+            max_worker_threads = max_worker_threads,
+            max_active_receptors = max_active_receptors,
+            compression = compression
         )

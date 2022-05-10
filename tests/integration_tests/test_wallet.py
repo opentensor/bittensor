@@ -1,25 +1,37 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 import bittensor
 from unittest.mock import MagicMock
 import os
-import shutil
-from pytest import fixture
-import subprocess
-from loguru import logger
 import time
-import sys
-from sys import platform   
-
+import shutil
 from bittensor.utils.balance import Balance
 
 
-subtensor = bittensor.subtensor(network = 'akatsuki')
+subtensor = bittensor.subtensor(network = 'nobunaga')
 
 def init_wallet():
-    if os.path.exists('/tmp/pytest'):
-        shutil.rmtree('/tmp/pytest')
+    wallet_path = f"/tmp/pytest/{time.time()}"
+    if os.path.exists(wallet_path):
+        shutil.rmtree(wallet_path)
     
     the_wallet = bittensor.wallet (
-        path = '/tmp/pytest',
+        path = wallet_path,
         name = 'pytest',
         hotkey = 'pytest',
     )
@@ -70,6 +82,19 @@ def test_wallet_uri():
     the_wallet.create_hotkey_from_uri( uri = "/Alice", use_password=False, overwrite = True )
     check_keys_exists(the_wallet)
 
+def test_wallet_seed_create():
+    the_wallet = init_wallet()
+    the_wallet.regenerate_coldkey( seed = "0xf34aef01dbe821cbd8d4bbe71e01885c99fe0684886f902f8a88e0434e113041",  use_password=False, overwrite = True )
+    the_wallet.regenerate_hotkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse".split(),  use_password=False, overwrite = True )
+    check_keys_exists(the_wallet)
+    assert the_wallet.coldkeypub.ss58_address == "5DtstnxttQ1DRQMr5oWdh9B3vnqgHANN76S7s5G4ARjmgbph"
+
+    the_wallet = init_wallet()
+    the_wallet.regen_coldkey( seed = "0xee30507e209fb7630d6e7ff81b8fa74def94ba88705b288138d16159e00ce2a8",  use_password=False, overwrite = True )
+    the_wallet.regen_hotkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse".split(),  use_password=False, overwrite = True )
+    check_keys_exists(the_wallet)
+    assert the_wallet.coldkeypub.ss58_address == "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+
 def test_wallet_mnemonic_create():
     the_wallet = init_wallet()
     the_wallet.regenerate_coldkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse",  use_password=False, overwrite = True )
@@ -87,7 +112,7 @@ def test_wallet_mnemonic_create():
 
 
 def test_wallet_add_stake():
-    subtensor = bittensor.subtensor(network = 'akatsuki')
+    subtensor = bittensor.subtensor(network = 'nobunaga')
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.add_stake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -98,7 +123,7 @@ def test_wallet_add_stake():
     the_wallet.add_stake(subtensor = subtensor)
 
 def test_wallet_remove_stake():
-    subtensor = bittensor.subtensor(network = 'akatsuki')
+    subtensor = bittensor.subtensor(network = 'nobunaga')
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.unstake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -109,7 +134,7 @@ def test_wallet_remove_stake():
     the_wallet.remove_stake(subtensor = subtensor)
 
 def test_wallet_transfer():
-    subtensor = bittensor.subtensor(network = 'akatsuki')
+    subtensor = bittensor.subtensor(network = 'nobunaga')
     
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.transfer = MagicMock(return_value = True)
@@ -126,3 +151,45 @@ def test_wallet_transfer():
     # when not registered
     the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.remove_stake(subtensor = subtensor)
+
+
+def test_wallet_mock():
+    wallet = bittensor.wallet(_mock=True)
+    assert wallet.hotkey_file.exists_on_device()
+    assert wallet.coldkey_file.exists_on_device()
+    assert wallet.coldkeypub_file.exists_on_device()
+    assert wallet.hotkey
+    assert wallet.coldkey
+    assert wallet.coldkeypub
+
+
+def test_wallet_mock_from_config():
+    config = bittensor.wallet.config()
+    config.wallet.name = 'mock'
+    wallet = bittensor.wallet(config = config)
+    assert wallet.hotkey_file.exists_on_device()
+    assert wallet.coldkey_file.exists_on_device()
+    assert wallet.coldkeypub_file.exists_on_device()
+    assert wallet.hotkey
+    assert wallet.coldkey
+    assert wallet.coldkeypub
+
+
+def test_wallet_mock_from_name():
+    wallet = bittensor.wallet(name = 'mock')
+    assert wallet.hotkey_file.exists_on_device()
+    assert wallet.coldkey_file.exists_on_device()
+    assert wallet.coldkeypub_file.exists_on_device()
+    assert wallet.hotkey
+    assert wallet.coldkey
+    assert wallet.coldkeypub
+
+
+def test_wallet_mock_from_func():
+    wallet = bittensor.wallet.mock()
+    assert wallet.hotkey_file.exists_on_device()
+    assert wallet.coldkey_file.exists_on_device()
+    assert wallet.coldkeypub_file.exists_on_device()
+    assert wallet.hotkey
+    assert wallet.coldkey
+    assert wallet.coldkeypub

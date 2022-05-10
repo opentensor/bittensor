@@ -31,7 +31,6 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from password_strength import PasswordPolicy
 from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
-from substrateinterface import Keypair
 
 class KeyFileError(Exception):
     """ Error thrown when the keyfile is corrupt, non-writable, nno-readable or the password used to decrypt is invalid.
@@ -47,8 +46,8 @@ def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
                 True if the password meets validity requirements.
     """
     json_data = {
-        'accountId': keypair.public_key if keypair.public_key != None else None,
-        'publicKey': keypair.public_key if keypair.public_key != None else None,
+        'accountId': "0x" + keypair.public_key.hex() if keypair.public_key != None else None,
+        'publicKey': "0x" + keypair.public_key.hex()  if keypair.public_key != None else None,
         'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
         'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
         'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
@@ -87,13 +86,13 @@ def deserialize_keypair_from_keyfile_data( keyfile_data:bytes ) -> 'bittensor.Ke
             raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( string_value ))
 
     if "secretSeed" in keyfile_dict and keyfile_dict['secretSeed'] != None:
-        return Keypair.create_from_seed(keyfile_dict['secretSeed'])
+        return bittensor.Keypair.create_from_seed(keyfile_dict['secretSeed'])
 
     if "secretPhrase" in keyfile_dict and keyfile_dict['secretPhrase'] != None:
-        return Keypair.create_from_mnemonic(mnemonic=keyfile_dict['secretPhrase'])
+        return bittensor.Keypair.create_from_mnemonic(mnemonic=keyfile_dict['secretPhrase'])
 
     if "ss58Address" in keyfile_dict and keyfile_dict['ss58Address'] != None:
-        return Keypair( ss58_address = keyfile_dict['ss58Address'] )
+        return bittensor.Keypair( ss58_address = keyfile_dict['ss58Address'] )
 
     else:
         raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( keyfile_dict ))
@@ -460,6 +459,66 @@ class Keyfile( object ):
             keyfile.write( keyfile_data )
         # Set file permissions.
         os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
+
+
+class MockKeyfile( object ):
+    """ Defines an interface to a mocked keyfile object (nothing is created on device) keypair is treated as non encrypted and the data is just the string version.
+    """
+    def __init__( self, path: str ):
+        self.path = os.path.expanduser(path)
+        self._mock_keypair = bittensor.Keypair.create_from_mnemonic( mnemonic = 'arrive produce someone view end scout bargain coil slight festival excess struggle' )
+        self._mock_data = serialized_keypair_to_keyfile_data( self._mock_keypair )
+
+    def __str__(self):
+        if not self.exists_on_device():
+            return "Keyfile (empty, {})>".format( self.path )
+        if self.is_encrypted():
+            return "Keyfile (encrypted, {})>".format( self.path )
+        else:
+            return "Keyfile (decrypted, {})>".format( self.path )
+
+    def __repr__(self):
+        return self.__str__()
+
+    @property
+    def keypair( self ) -> 'bittensor.Keypair':
+        return self._mock_keypair
+
+    @property
+    def data( self ) -> bytes:
+        return bytes(self._mock_data)
+
+    @property
+    def keyfile_data( self ) -> bytes:
+        return bytes( self._mock_data) 
+
+    def set_keypair ( self, keypair: 'bittensor.Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
+        self._mock_keypair = keypair
+        self._mock_data = serialized_keypair_to_keyfile_data( self._mock_keypair )
+
+    def get_keypair(self, password: str = None) -> 'bittensor.Keypair':
+        return self._mock_keypair
+
+    def make_dirs( self ):
+        return
+
+    def exists_on_device( self ) -> bool:
+        return True
+
+    def is_readable( self ) -> bool:
+        return True
+
+    def is_writable( self ) -> bool:
+        return True
+
+    def is_encrypted ( self ) -> bool:
+        return False
+
+    def encrypt( self, password: str = None):
+        raise ValueError('Cannot encrypt a mock keyfile')
+
+    def decrypt( self, password: str = None):
+        return
 
 
 

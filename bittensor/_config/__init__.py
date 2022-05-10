@@ -37,17 +37,41 @@ class config:
         """ In place of YAMLError
         """
 
-    def __new__( cls, parser: ArgumentParser = None):
+    def __new__( cls, parser: ArgumentParser = None, strict: bool = False ):
+        r""" Translates the passed parser into a nested Bittensor config.
+        Args:
+            parser (argparse.Parser):
+                Command line parser object.
+            strict (bool):
+                If true, the command line arguments are strictly parsed.
+        Returns:
+            config (bittensor.Config):
+                Nested config object created from parser arguments.
+        """
         if parser == None:
             parser = ArgumentParser()
 
-        # 1. Optionally load defaults if the --config is set.
+        # Optionally add config specific arguments
+        try:
+            parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
+        except:
+            # this can fail if the --config has already been added.
+            pass
+        try:
+            parser.add_argument('--strict',  action='store_true', help='''If flagged, config will check that only exact arguemnts have been set.''', default=False )
+        except:
+            # this can fail if the --config has already been added.
+            pass
+
+        # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
-
         except Exception as e:
             config_file_path = None
-            
+
+        # 2. Optionally check for --strict, if stict we will parse the args strictly.
+        strict = parser.parse_known_args()[0].strict
+                        
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
             try:
@@ -59,7 +83,10 @@ class config:
                 print('Error in loading: {} using default parser settings'.format(e))
 
         # 2. Continue with loading in params.
-        params = parser.parse_known_args()[0]
+        if not strict:
+            params = parser.parse_known_args()[0]
+        else:
+            params = parser.parse_args()
         _config = config_impl.Config()
 
         # Splits params on dot syntax i.e neuron.axon_port            

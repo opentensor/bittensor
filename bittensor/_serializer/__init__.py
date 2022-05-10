@@ -58,6 +58,8 @@ class serializer:
         #     return PyTorchPickleSerializer()
         if serialzer_type == bittensor.proto.Serializer.MSGPACK:
             return serializer_impl.MSGPackSerializer()
+        elif serialzer_type == bittensor.proto.Serializer.CMPPACK:
+            return serializer_impl.CMPPackSerializer()
         else:
             raise bittensor.serializer.NoSerializerForEnum("No known serialzier for proto type {}".format(serialzer_type))
 
@@ -79,6 +81,8 @@ class serializer:
             dtype = bittensor.proto.DataType.INT32
         elif tdtype == torch.int64:
             dtype = bittensor.proto.DataType.INT64
+        elif tdtype == torch.float16:
+            dtype = bittensor.proto.DataType.FLOAT16
         else:
             dtype = bittensor.proto.DataType.UNKNOWN
         return dtype
@@ -101,6 +105,8 @@ class serializer:
             dtype = torch.int32
         elif bdtype == bittensor.proto.DataType.INT64:
             dtype=torch.int64
+        elif bdtype == bittensor.proto.DataType.FLOAT16:
+            dtype=torch.float16
         else:
             raise bittensor.serializer.DeserializationException(
                 'Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}'

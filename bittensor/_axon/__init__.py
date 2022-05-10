@@ -34,7 +34,15 @@ import bittensor
 from . import axon_impl
 
 class axon:
-    """ Create and init Axon, whcih services Forward and Backward requests from other neurons.
+    """ The factor class for bittensor.Axon object
+    The Axon acts a grpc server for the bittensor network and allows for communication between neurons.
+    By default, the grpc server follows the bittensor protocol and transports forward and backwards requests
+    between validators and servers. 
+    
+    Examples:: 
+            >>> axon = bittensor.axon(config=config)
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> axon.serve(subtensor=subtensor)
     """
 
     def __new__(
@@ -57,6 +65,7 @@ class axon:
             priority: 'Callable' = None,
             forward_timeout: int = None,
             backward_timeout: int = None,
+            compression: str = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -107,7 +116,17 @@ class axon:
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
         config.axon.backward_timeout = backward_timeout if backward_timeout != None else config.axon.backward_timeout
+        config.axon.compression = compression if compression != None else config.axon.compression
         axon.check_config( config )
+
+        # Determine the grpc compression algorithm
+        if config.axon.compression == 'gzip':
+            compress_alg = grpc.Compression.Gzip
+        elif config.axon.compression == 'deflate':
+            compress_alg = grpc.Compression.Deflate
+        else:
+            compress_alg = grpc.Compression.NoCompression
+
         if wallet == None:
             wallet = bittensor.wallet( config = config )
         if thread_pool == None:
@@ -116,6 +135,8 @@ class axon:
             server = grpc.server( thread_pool,
                                   interceptors=(AuthInterceptor(blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
+                                  options = [('grpc.keepalive_time_ms', 100000),
+                                             ('grpc.keepalive_timeout_ms', 500000)]
                                 )
 
         forwards = [forward_text, forward_image, forward_tensor]
@@ -135,8 +156,8 @@ class axon:
             backwards = backwards,
             priority = priority,
             priority_threadpool = priority_threadpool,
-            forward_timeout = forward_timeout,
-            backward_timeout = backward_timeout
+            forward_timeout = config.axon.forward_timeout,
+            backward_timeout = config.axon.backward_timeout,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
@@ -151,6 +172,15 @@ class axon:
         parser = argparse.ArgumentParser()
         axon.add_args( parser )
         return bittensor.config( parser )
+
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
@@ -169,11 +199,13 @@ class axon:
             parser.add_argument('--axon.backward_timeout', type=int,
                 help='Number of seconds to wait for backward axon request', default=20)
             parser.add_argument('--axon.forward_timeout', type=int,
-                help='Number of seconds to wait for forward axon request', default=10)
+                help='Number of seconds to wait for forward axon request', default=bittensor.__blocktime__)
             parser.add_argument('--axon.priority.max_workers', type = int,
                 help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
             parser.add_argument('--axon.priority.maxsize', type=int, 
                 help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
+            parser.add_argument('--axon.compression', type=str, 
+                help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.axon.compression)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -193,6 +225,8 @@ class axon:
         defaults.axon.priority = bittensor.Config()
         defaults.axon.priority.max_workers = os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') if os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') != None else 10
         defaults.axon.priority.maxsize = os.getenv('BT_AXON_PRIORITY_MAXSIZE') if os.getenv('BT_AXON_PRIORITY_MAXSIZE') != None else -1
+
+        defaults.axon.compression = 'NoCompression'
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
@@ -311,7 +345,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         #checking the time of creation, compared to previous messages
         if endpoint_key in self.nounce_dic.keys():
             prev_data_time = self.nounce_dic[ endpoint_key ]
-            if nounce - prev_data_time > 0:
+            if nounce - prev_data_time > -10:
                 self.nounce_dic[ endpoint_key ] = nounce
 
                 #decrypting the message and verify that message is correct
@@ -348,7 +382,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         
         if self.blacklist == None:
             pass
-        #TODO: Turn on blacklisting
         elif self.blacklist(pubkey,int(meta[3].value)):
             raise Exception('Black listed')
         else:

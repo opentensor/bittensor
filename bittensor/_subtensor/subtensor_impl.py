@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm
-
 from typing import List, Dict, Union
 from multiprocessing import Process
 
@@ -24,9 +23,18 @@ import bittensor
 from tqdm import tqdm
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
+from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from types import SimpleNamespace
+
+# Mocking imports
+import os
+import random
+import scalecodec
+import time
+import subprocess
+from sys import platform   
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -39,16 +47,16 @@ class Subtensor:
         self, 
         substrate: 'SubstrateInterface',
         network: str,
-        chain_endpoint: str
+        chain_endpoint: str,
     ):
         r""" Initializes a subtensor chain interface.
             Args:
                 substrate (:obj:`SubstrateInterface`, `required`): 
                     substrate websocket client.
-                network (default='nakamoto', type=str)
+                network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
+                            -- local (local running network)
                             -- nobunaga (staging network)
-                            -- akatsuki (testing network)
                             -- nakamoto (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
@@ -61,8 +69,10 @@ class Subtensor:
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
+            # Connecting to chain endpoint without network known.
             return "Subtensor({})".format( self.chain_endpoint )
         else:
+            # Connecting to network with endpoint known.
             return "Subtensor({}, {})".format( self.network, self.chain_endpoint )
 
     def __repr__(self) -> str:
@@ -92,7 +102,6 @@ Check that your internet connection is working and the chain endpoints are avail
 The subtensor.network should likely be one of the following choices:
     -- local - (your locally running node)
     -- nobunaga - (staging)
-    -- akatsuki - (testing)
     -- nakamoto - (main)
 Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
 To run a local node (See: docs/running_a_validator.md) \n
@@ -125,14 +134,43 @@ To run a local node (See: docs/running_a_validator.md) \n
                     return False
 
     @property
+    def rho (self) -> int:
+        r""" Incentive mechanism rho parameter.
+        Returns:
+            rho (int):
+                Incentive mechanism rho parameter.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Rho').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def kappa (self) -> int:
+        r""" Incentive mechanism kappa parameter.
+        Returns:
+            kappa (int):
+                Incentive mechanism kappa parameter.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Kappa').value
+        return make_substrate_call_with_retry()
+
+    @property
     def difficulty (self) -> int:
         r""" Returns registration difficulty from the chain.
         Returns:
             difficulty (int):
                 Registration difficulty.
         """
-        with self.substrate as substrate:
-            return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
+        return make_substrate_call_with_retry()
 
     @property
     def total_issuance (self) -> 'bittensor.Balance':
@@ -141,8 +179,77 @@ To run a local node (See: docs/running_a_validator.md) \n
             total_issuance (int):
                 Total issuance as balance.
         """
-        with self.substrate as substrate:
-            return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
+        return make_substrate_call_with_retry()
+
+    @property
+    def immunity_period (self) -> int:
+        r""" Returns the chain registration immunity_period
+        Returns:
+            immunity_period (int):
+                Chain registration immunity_period
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ImmunityPeriod').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_batch_size (self) -> int:
+        r""" Returns the chain default validator batch size.
+        Returns:
+            batch_size (int):
+                Chain default validator batch size.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorBatchSize').value
+        return make_substrate_call_with_retry()
+
+
+    @property
+    def validator_sequence_length (self) -> int:
+        r""" Returns the chain default validator sequence length.
+        Returns:
+            sequence_length (int):
+                Chain default validator sequence length.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorSequenceLength').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_epochs_per_reset (self) -> int:
+        r""" Epochs passed before the validator resets its weights.
+        Returns:
+            validator_epochs_per_reset (int):
+                Epochs passed before the validator resets its weights.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochsPerReset').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_epoch_length (self) -> int:
+        r""" Default validator epoch length.
+        Returns:
+            validator_epoch_length (int):
+                Default validator epoch length. 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochLen').value
+        return make_substrate_call_with_retry()
 
     @property
     def total_stake (self) -> 'bittensor.Balance':
@@ -151,8 +258,37 @@ To run a local node (See: docs/running_a_validator.md) \n
             total_stake (bittensor.Balance):
                 Total stake as balance.
         """
-        with self.substrate as substrate:
-            return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
+        return make_substrate_call_with_retry()
+
+    @property
+    def min_allowed_weights (self) -> int:
+        r""" Returns min allowed number of weights.
+        Returns:
+            min_allowed_weights (int):
+                Min number of weights allowed to be set.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MinAllowedWeights').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def max_allowed_min_max_ratio(self) -> int:
+        r""" Returns the chains max_allowed_min_max_ratio
+        Returns:
+            max_allowed_min_max_ratio (int):
+                The max ratio allowed between the min and max.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedMaxMinRatio').value
+        return make_substrate_call_with_retry()
 
     @property
     def n (self) -> int:
@@ -161,21 +297,24 @@ To run a local node (See: docs/running_a_validator.md) \n
             n (int):
                 Total number of neurons on chain.
         """
-        with self.substrate as substrate:
-            return substrate.query(  module='SubtensorModule', storage_function = 'N').value
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'N').value
+        return make_substrate_call_with_retry()
 
-    def get_n (self, block: int = None) -> int:
-        r""" Returns total number of neurons on the chain.
+    @property
+    def max_n (self) -> int:
+        r""" Returns maximum number of neuron positions on the graph.
         Returns:
-            n (int):
-                Total number of neurons on chain.
+            max_n (int):
+                Maximum number of neuron positions on the graph.
         """
-        with self.substrate as substrate:
-            return substrate.query(  
-                module='SubtensorModule', 
-                storage_function = 'N',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            ).value
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedUids').value
+        return make_substrate_call_with_retry()
 
     @property
     def block (self) -> int:
@@ -185,6 +324,49 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Current chain block.
         """
         return self.get_current_block()
+
+    @property
+    def blocks_since_epoch (self) -> int:
+        r""" Returns blocks since last epoch.
+        Returns:
+            blocks_since_epoch (int):
+                blocks_since_epoch 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksSinceLastStep').value
+        return make_substrate_call_with_retry()
+
+    @property
+    def blocks_per_epoch (self) -> int:
+        r""" Returns blocks per chain epoch.
+        Returns:
+            blocks_per_epoch (int):
+                blocks_per_epoch 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksPerStep').value
+        return make_substrate_call_with_retry()
+
+    def get_n (self, block: int = None) -> int:
+        r""" Returns total number of neurons on the chain.
+        Returns:
+            n (int):
+                Total number of neurons on chain.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  
+                    module='SubtensorModule', 
+                    storage_function = 'N',
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                ).value
+        return make_substrate_call_with_retry()
+
 
     def serve_axon (
         self,
@@ -257,6 +439,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
+        max_allowed_attempts: int = 3
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -287,47 +470,67 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return False
 
         # Attempt rolling registration.
-        attempts = 0
-        max_allowed_attempts = 10
+        attempts = 1
         while True:
-            
             # Solve latest POW.
-            pow_result = bittensor.utils.create_pow( self )
-            with bittensor.__console__.status(":satellite: Registering...({}/10)".format(attempts)) as status:
-                with self.substrate as substrate:
-                    call = substrate.compose_call( 
-                        call_module='SubtensorModule',  
-                        call_function='register', 
-                        call_params={ 
-                            'block_number': pow_result['block_number'], 
-                            'nonce': pow_result['nonce'], 
-                            'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
-                            'hotkey': wallet.hotkey.ss58_address, 
-                            'coldkey': wallet.coldkeypub.ss58_address
-                        } 
-                    )
-                    extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-                    response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
-                    # We only wait here if we expect finalization.
-                    if not wait_for_finalization and not wait_for_inclusion:
-                        bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                        return True
-                    response.process_events()
-                    if not response.is_success:
-                        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                        attempts += 1
-                        if attempts > max_allowed_attempts: 
-                            bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                            return False
-                        else:
-                            status.update( ":satellite: Registering...({}/10)".format(attempts))
-                            continue
+            pow_result = bittensor.utils.create_pow( self, wallet )
+            with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:
 
-            if response.is_success:
-                with bittensor.__console__.status(":satellite: Checking Balance..."):
-                    neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
-                    return True
+                # pow failed
+                if not pow_result:
+                    # might be registered already
+                    if (wallet.is_registered( self )):
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                        return True
+                    
+                # pow successful, proceed to submit pow to chain for registration
+                else:
+                    #check if pow result is still valid
+                    while pow_result['block_number'] >= self.get_current_block() - 3:
+                        with self.substrate as substrate:
+                            # create extrinsic call
+                            call = substrate.compose_call( 
+                                call_module='SubtensorModule',  
+                                call_function='register', 
+                                call_params={ 
+                                    'block_number': pow_result['block_number'], 
+                                    'nonce': pow_result['nonce'], 
+                                    'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
+                                    'hotkey': wallet.hotkey.ss58_address, 
+                                    'coldkey': wallet.coldkeypub.ss58_address
+                                } 
+                            )
+                            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+                            
+                            # We only wait here if we expect finalization.
+                            if not wait_for_finalization and not wait_for_inclusion:
+                                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                                return True
+                            
+                            # process if registration successful, try again if pow is still valid
+                            response.process_events()
+                            if not response.is_success:
+                                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                                time.sleep(1)
+                                continue
+                            
+                            # Successful registration, final check for neuron and pubkey
+                            else:
+                                bittensor.__console__.print(":satellite: Checking Balance...")
+                                neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                                bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                                return True
+
+                #Failed registration, retry pow
+                attempts += 1
+                if attempts > max_allowed_attempts: 
+                    bittensor.__console__.print( "[red]No more attempts.[/red]" )
+                    return False
+                else:
+                    status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
+                    continue
+
 
     def serve (
             self, 
@@ -449,20 +652,46 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Covert to bittensor.Balance
         if amount == None:
             # Stake it all.
-            staking_balance = bittensor.Balance.from_tao( old_balance.tao - 0.25 )
+            staking_balance = bittensor.Balance.from_tao( old_balance.tao )
         elif not isinstance(amount, bittensor.Balance ):
             staking_balance = bittensor.Balance.from_tao( amount )
         else:
             staking_balance = amount
 
+        # Remove existential balance to keep key alive.
+        if staking_balance > bittensor.Balance.from_rao( 1000 ):
+            staking_balance = staking_balance - bittensor.Balance.from_rao( 1000 )
+        else:
+            staking_balance = staking_balance
+
+        # Estimate transfer fee.
+        staking_fee = None # To be filled.
+        with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='SubtensorModule', 
+                    call_function='add_stake',
+                    call_params={
+                        'hotkey': wallet.hotkey.ss58_address,
+                        'ammount_staked': staking_balance.rao
+                    }
+                )
+                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+                if payment_info:
+                    staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
+                else:
+                    staking_fee = bittensor.Balance.from_tao( 0.2 )
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
+
         # Check enough to unstake.
-        if staking_balance > old_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, wallet.name))
+        if staking_balance > old_balance + staking_fee:
+            bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, staking_fee, wallet.name))
             return False
                 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format( staking_balance, wallet.hotkey_str ) ):
+            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}\n  fee: {}[/bold white]".format( staking_balance, wallet.hotkey_str, staking_fee) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
@@ -495,6 +724,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                 return True
+        
+        return False
 
     def transfer(
             self, 
@@ -538,13 +769,34 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Check balance.
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             account_balance = self.get_balance( wallet.coldkey.ss58_address )
-        if account_balance < transfer_balance:
-            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
+
+        # Estimate transfer fee.
+        with bittensor.__console__.status(":satellite: Estimating Transfer Fees..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='Balances',
+                    call_function='transfer',
+                    call_params={
+                        'dest': dest, 
+                        'value': transfer_balance.rao
+                    }
+                )
+                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+                transfer_fee = "N/A"
+                if payment_info:
+                    transfer_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( transfer_fee ))
+                else:
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate transfer fee, assuming base fee of 0.2")
+                    transfer_fee = bittensor.Balance.from_tao( 0.2 )
+
+        if account_balance < transfer_balance + transfer_fee:
+            bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {} fee: {}[/bold white]".format( account_balance, transfer_balance, transfer_fee ))
             return False
 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest ) ):
+            if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, transfer_fee )):
                 return False
 
         with bittensor.__console__.status(":satellite: Transferring..."):
@@ -568,6 +820,10 @@ To run a local node (See: docs/running_a_validator.md) \n
                 response.process_events()
                 if response.is_success:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    block_hash = response.block_hash
+                    bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
+                    explorer_url = "https://explorer.nakamoto.opentensor.ai/#/explorer/query/{block_hash}".format( block_hash = block_hash )
+                    bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
                 else:
                     bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 
@@ -576,6 +832,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
                 return True
+        
+        return False
 
     def unstake (
             self, 
@@ -629,10 +887,30 @@ To run a local node (See: docs/running_a_validator.md) \n
         if unstaking_balance > stake_on_uid:
             bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
             return False
-        
+
+        # Estimate unstaking fee.
+        unstake_fee = None # To be filled.
+        with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='SubtensorModule', 
+                    call_function='remove_stake',
+                    call_params={
+                        'hotkey': wallet.hotkey.ss58_address,
+                        'ammount_unstaked': unstaking_balance.rao
+                    }
+                )
+                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+                if payment_info:
+                    unstake_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( unstake_fee ))
+                else:
+                    unstake_fee = bittensor.Balance.from_tao( 0.2 )
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
+                        
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
+            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}\n  fee: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str, unstake_fee) ):
                 return False
 
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
@@ -666,6 +944,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( stake_on_uid, new_stake ))
                 return True
+        
+        return False
                 
     def set_weights(
             self, 
@@ -712,34 +992,40 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return False
 
         with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(self.network)):
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='set_weights',
-                    call_params = {'dests': weight_uids, 'weights': weight_vals}
-                )
-                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
-                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                    return True
+            try:
+                with self.substrate as substrate:
+                    call = substrate.compose_call(
+                        call_module='SubtensorModule',
+                        call_function='set_weights',
+                        call_params = {'dests': weight_uids, 'weights': weight_vals}
+                    )
+                    extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                    response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+                    # We only wait here if we expect finalization.
+                    if not wait_for_finalization and not wait_for_inclusion:
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                        return True
 
-                response.process_events()
-                if response.is_success:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                    bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.is_success) )
-                else:
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                    bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
+                    response.process_events()
+                    if response.is_success:
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                        bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.is_success) )
+                    else:
+                        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                        bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
+
+            except Exception as e:
+                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
+                bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(e) )
+                return False
 
         if response.is_success:
             bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( [float(v/4294967295) for v in weight_vals], weight_uids ))
             message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
             logger.debug('Set weights:'.ljust(20) +  message)
             return True
-        else:
-            return False
+        
+        return False
 
     def get_balance(self, address: str, block: int = None) -> Balance:
         r""" Returns the token balance for the passed ss58_address address
@@ -750,57 +1036,68 @@ To run a local node (See: docs/running_a_validator.md) \n
             balance (bittensor.utils.balance.Balance):
                 account balance
         """
-        with self.substrate as substrate:
-            result = substrate.query(
-                module='System',
-                storage_function='Account',
-                params=[address],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return Balance( result.value['data']['free'] )
+        try:
+            @retry(delay=2, tries=3, backoff=2, max_delay=4)
+            def make_substrate_call_with_retry():
+                with self.substrate as substrate:
+                    return substrate.query(
+                        module='System',
+                        storage_function='Account',
+                        params=[address],
+                        block_hash = None if block == None else substrate.get_block_hash( block )
+                    )
+            result = make_substrate_call_with_retry()
+        except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
+            logger.critical("Your wallet it legacy formatted, you need to run btcli stake --ammount 0 to reformat it." )
+            return Balance(1000)
+        return Balance( result.value['data']['free'] )
 
     def get_current_block(self) -> int:
         r""" Returns the current block number on the chain.
         Returns:
             block_number (int):
                 Current chain blocknumber.
-        """
-        with self.substrate as substrate:
-            return substrate.get_block_number(None)
+        """        
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.get_block_number(None)
+        return make_substrate_call_with_retry()
 
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
-        with self.substrate as substrate:
-            result = substrate.query_map(
-                module='System',
-                storage_function='Account',
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            return_dict = {}
-            for r in result:
-                bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
-                return_dict[r[0].value] = bal
-            return return_dict
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module='System',
+                    storage_function='Account',
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        return_dict = {}
+        for r in result:
+            bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
+            return_dict[r[0].value] = bal
+        return return_dict
 
-    def neurons(self, block: int = None, page_size: int = 100) -> List[SimpleNamespace]: 
+    def neurons(self, block: int = None ) -> List[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             block (int):
                 block to sync from.
-            page_size (int):
-                Number of neuron entries to return each step of the sync.
         Returns:
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
-        with self.substrate as substrate:
-            neurons = []
-            for id in tqdm(range(self.get_n( block ))): 
-                try:
-                    neuron = self.neuron_for_uid(id, block)
-                    neurons.append( neuron )
-                except Exception as e:
-                    break
-            return neurons
+        neurons = []
+        for id in tqdm(range(self.get_n( block ))): 
+            try:
+                neuron = self.neuron_for_uid(id, block)
+                neurons.append( neuron )
+            except Exception as e:
+                logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
+                break
+        return neurons
 
     @staticmethod
     def _null_neuron() -> SimpleNamespace:
@@ -851,21 +1148,24 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             uid ( int ):
                 The uid of the neuron to query for.
-            ss58_hotkey ( str ):
-                The hotkey to query for a neuron.
+            block ( int ):
+                The neuron at a particular block
         Returns:
             neuron (dict(NeuronMetadata)):
                 neuron object associated with uid or None if it does not exist.
         """
-        # Make the call.
-        with self.substrate as substrate:
-            neuron = dict( substrate.query( 
-                module='SubtensorModule',  
-                storage_function='Neurons', 
-                params = [ uid ], 
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            ).value )
-        neuron = Subtensor._neuron_dict_to_namespace( neuron )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                result = dict( substrate.query( 
+                    module='SubtensorModule',  
+                    storage_function='Neurons', 
+                    params = [ uid ], 
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                ).value )
+            return result
+        result = make_substrate_call_with_retry()
+        neuron = Subtensor._neuron_dict_to_namespace( result )
         return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
@@ -877,24 +1177,25 @@ To run a local node (See: docs/running_a_validator.md) \n
             uid ( int ):
                 UID of passed hotkey or -1 if it is non-existent.
         """
-        # Make the call.
-        with self.substrate as substrate:
-            result = substrate.query (
-                module='SubtensorModule',
-                storage_function='Hotkeys',
-                params = [ ss58_hotkey ],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query (
+                    module='SubtensorModule',
+                    storage_function='Hotkeys',
+                    params = [ ss58_hotkey ],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
         # Process the result.
         uid = int(result.value)
-        if uid == 0:
-            neuron = self.neuron_for_uid( uid, block)
-            if neuron.is_null:
-                return -1
-            else:
-                return uid
+        
+        neuron = self.neuron_for_uid( uid, block )
+        if neuron.hotkey != ss58_hotkey:
+            return -1
         else:
             return uid
+
 
     def is_hotkey_registered( self, ss58_hotkey: str, block: int = None) -> bool:
         r""" Returns true if the passed hotkey is registered on the chain.
@@ -921,20 +1222,23 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron ( dict(NeuronMetadata) ):
                 neuron object associated with uid or None if it does not exist.
         """
-        with self.substrate as substrate:
-            result = substrate.query (
-                module='SubtensorModule',
-                storage_function='Hotkeys',
-                params = [ ss58_hotkey ],
-                block_hash = None if block == None else substrate.get_block_hash( block )
-            )
-            # Get response uid. This will be zero if it doesn't exist.
-            uid = int(result.value)
-            neuron = self.neuron_for_uid( uid, block )
-            if neuron.hotkey != ss58_hotkey:
-                return Subtensor._null_neuron()
-            else:
-                return neuron
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query (
+                    module='SubtensorModule',
+                    storage_function='Hotkeys',
+                    params = [ ss58_hotkey ],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        # Get response uid. This will be zero if it doesn't exist.
+        uid = int(result.value)
+        neuron = self.neuron_for_uid( uid, block )
+        if neuron.hotkey != ss58_hotkey:
+            return Subtensor._null_neuron()
+        else:
+            return neuron
 
     def get_n( self, block: int = None ) -> int: 
         r""" Returns the number of neurons on the chain at block.
@@ -946,8 +1250,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             n ( int ):
                 the number of neurons subscribed to the chain.
         """
-        with self.substrate as substrate:
-            return int(substrate.query(  module='SubtensorModule', storage_function = 'N' ).value)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return int(substrate.query(  module='SubtensorModule', storage_function = 'N', block_hash = None if block == None else substrate.get_block_hash( block ) ).value)
+        return make_substrate_call_with_retry()
 
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', block: int = None ) -> SimpleNamespace: 
         r""" Returns a list of neuron from the chain. 
@@ -958,46 +1265,4 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron ( dict(NeuronMetadata) ):
                 neuron object associated with uid or None if it does not exist.
         """
-        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address )
-
-    def timeout_set_weights(
-            self, 
-            timeout,
-            wallet: 'bittensor.wallet',
-            uids: torch.LongTensor,
-            weights: torch.FloatTensor,
-            wait_for_inclusion:bool = False,
-        ) -> bool:
-        r""" wrapper for set weights function that includes a timeout component
-        Args:
-            wallet (bittensor.wallet):
-                bittensor wallet object.
-            uids (torch.LongTensor):
-                uint64 uids of destination neurons.
-            weights (torch.FloatTensor):
-                weights to set which must floats and correspond to the passed uids.
-            wait_for_inclusion (bool):
-                if set, waits for the extrinsic to enter a block before returning true,
-                or returns false if the extrinsic fails to enter the block within the timeout.
-            timeout (int):
-                time that this call waits for either finalization of inclusion.
-        Returns:
-            success (bool):
-                flag is true if extrinsic was finalized or included in the block.
-        """
-        
-        set_weights = Process(target= self.set_weights, kwargs={
-                                                           'uids':uids,
-                                                           'weights': weights,
-                                                           'wait_for_inclusion': wait_for_inclusion,
-                                                           'wallet' : wallet,
-                                                           })
-        set_weights.start()
-        set_weights.join(timeout=timeout)
-        set_weights.terminate()
-
-
-        if set_weights.exitcode == 0:
-            return True
-        else:
-            return False
+        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, block = block )

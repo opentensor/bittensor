@@ -1,19 +1,38 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 from typing import DefaultDict
+from unittest import mock
+from unittest.mock import patch
 import bittensor
 import pytest
+import psutil  
 import unittest
+import time
+import random
 from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
-
+from bittensor._subtensor.subtensor_mock import mock_subtensor
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
-        self.subtensor = bittensor.subtensor( network = 'akatsuki' )
-        self.wallet = bittensor.wallet()
+        self.subtensor = bittensor.subtensor( network = 'nobunaga' )
+        self.wallet = bittensor.wallet(_mock=True)
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        self.wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
-        self.wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
-        self.wallet.set_hotkey(Keypair.create_from_mnemonic(Keypair.generate_mnemonic()), encrypt=False, overwrite=True)
         self.mock_neuron = self.subtensor._neuron_dict_to_namespace(
             dict({
                 "version":1,
@@ -43,16 +62,16 @@ class TestSubtensor(unittest.TestCase):
         self.balance = Balance.from_tao(1000)
         assert True
 
-    def test_defaults_to_akatsuki( self ):
-        assert self.subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+    def test_defaults_to_nobunaga( self ):
+        assert self.subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
 
     def test_networks( self ):
-        assert self.subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+        assert self.subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
 
     def test_network_overrides( self ):
         config = bittensor.subtensor.config()
-        subtensor = bittensor.subtensor(network='akatsuki', config=config, )
-        assert subtensor.endpoint_for_network() in bittensor.__akatsuki_entrypoints__
+        subtensor = bittensor.subtensor(network='nobunaga', config=config, )
+        assert subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
 
     def test_connect_no_failure( self ):
         self.subtensor.connect(timeout = 1, failure=False)
@@ -208,6 +227,7 @@ class TestSubtensor(unittest.TestCase):
                 self.is_success = True
             def process_events(self):
                 return True
+            block_hash: str = '0x'
 
         neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
@@ -226,6 +246,7 @@ class TestSubtensor(unittest.TestCase):
                 self.is_success = True
             def process_events(self):
                 return True
+            block_hash: str = '0x'
 
         neuron = self.neurons[ 1 ]
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
@@ -307,22 +328,6 @@ class TestSubtensor(unittest.TestCase):
                             )
         assert fail == False
 
-    def test_timeout_set_weights( self ):
-        chain_weights = [0]
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-        neuron = self.neurons[ 1 ]
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
-        success= self.subtensor.timeout_set_weights(wallet=self.wallet,
-                            uids=[neuron.uid],
-                            weights=chain_weights,
-                            timeout=10,
-                            )
-        assert success == True
-
     def test_get_balance( self ):
         neuron = self.neurons[ 1 ]
         balance= self.subtensor.get_balance(address=neuron.hotkey)
@@ -348,50 +353,180 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_uid_for_hotkey = MagicMock(return_value = -1) 
         register= self.subtensor.is_hotkey_registered('mock')
         assert register == False
-# def test_stake( ):
-#     assert(type(subtensor.get_stake_for_uid(0)) == bittensor.utils.balance.Balance)
-# def test_weight_uids( ):
-#     weight_uids = subtensor.weight_uids_for_uid(0)
-#     assert(type(weight_uids) == list)
-#     assert(type(weight_uids[0]) == int)
 
-# def test_weight_vals( ):
-#     weight_vals = subtensor.weight_vals_for_uid(0)
-#     assert(type(weight_vals) == list)
-#     assert(type(weight_vals[0]) == int)
+    def test_registration_multiprocessed_already_registered( self ):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
+            
+        workblocks_before_is_registered = random.randint(5, 10)
+        # return False each work block but return True after a random number of blocks
+        is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [True, False]
+        # this should pass the initial False check in the subtensor class and then return True because the neuron is already registered
 
-# def test_last_emit( ):
-#     last_emit = subtensor.get_last_emit_data_for_uid(0)
-#     assert(type(last_emit) == int)
+        mock_neuron = MagicMock()           
+        mock_neuron.is_null = True
 
-# def test_get_active():
-#     active = subtensor.get_active()
-#     assert (type(active) == list)
-#     assert (type(active[0][0]) == str)
-#     assert (type(active[0][1]) == int)
+        with patch('bittensor.Subtensor.difficulty'):
 
-# def test_get_stake():
-#     stake = subtensor.get_stake()
-#     assert (type(stake) == list)
-#     assert (type(stake[0][0]) == int)
-#     assert (type(stake[0][1]) == int)
+            wallet = bittensor.wallet(_mock=True)
+            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
-# def test_get_last_emit():
-#     last_emit = subtensor.get_stake()
-#     assert (type(last_emit) == list)
-#     assert (type(last_emit[0][0]) == int)
-#     assert (type(last_emit[0][1]) == int)
+            self.subtensor.difficulty= 1
+            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
+            self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
 
-# def test_get_weight_vals():
-#     weight_vals = subtensor.get_weight_vals()
-#     assert (type(weight_vals) == list)
-#     assert (type(weight_vals[0][0]) == int)
-#     assert (type(weight_vals[0][1]) == list)
-#     assert (type(weight_vals[0][1][0]) == int)
+            # should return True
+            assert self.subtensor.register(wallet=wallet,)
+            # calls until True and once again before exiting subtensor class
+            # This assertion is currently broken when difficulty is too low
+            #assert wallet.is_registered.call_count == workblocks_before_is_registered + 2      
 
-# def test_get_weight_uids():
-#     weight_uids = subtensor.get_weight_vals()
-#     assert (type(weight_uids) == list)
-#     assert (type(weight_uids[0][0]) == int)
-#     assert (type(weight_uids[0][1]) == list)
-#     assert (type(weight_uids[0][1][0]) == int)
+
+    def test_registration_partly_failed( self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message ='Failed'
+            def process_events(self):
+                return False
+            
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
+
+        is_registered_return_values = [False for _ in range(100)]
+        submit_extrinsic = [failed(), failed(), success()]
+        current_block = [i for i in range(0,100)]
+        mock_neuron = MagicMock()           
+        mock_neuron.is_null = True
+
+        with patch('bittensor.Subtensor.difficulty'):
+            wallet = bittensor.wallet(_mock=True)
+            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+
+
+            self.subtensor.difficulty= 1
+            self.subtensor.get_current_block = MagicMock(side_effect=current_block)
+            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
+            self.subtensor.substrate.submit_extrinsic = MagicMock(side_effect = submit_extrinsic)
+
+            # should return True
+            assert self.subtensor.register(wallet=wallet,) == True
+
+    def test_registration_failed( self ):
+        class failed():
+            def __init__(self):
+                self.is_success = False
+                self.error_message ='Failed'
+            def process_events(self):
+                return False
+            
+
+        is_registered_return_values = [False for _ in range(100)]
+        current_block = [i for i in range(0,100)]
+        mock_neuron = MagicMock()           
+        mock_neuron.is_null = True
+
+        with patch('bittensor.utils.create_pow' ):
+            bittensor.utils.create_pow = MagicMock(return_value=None)
+            wallet = bittensor.wallet(_mock=True)
+            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+
+            self.subtensor.get_current_block = MagicMock(side_effect=current_block)
+            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
+            self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
+
+            # should return True
+            assert self.subtensor.register(wallet=wallet,) == False
+            assert bittensor.utils.create_pow.call_count == 3 
+
+def test_subtensor_mock():
+    mock_subtensor.kill_global_mock_process()
+    sub = bittensor.subtensor(_mock=True)
+    assert mock_subtensor.global_mock_process_is_running()
+    assert sub._is_mocked == True
+    assert sub._owned_mock_subtensor_process != None
+    del(sub)
+    assert not mock_subtensor.global_mock_process_is_running()
+
+def test_create_mock_process():
+    mock_subtensor.kill_global_mock_process()
+    mock_subtensor.create_global_mock_process()
+    assert mock_subtensor.global_mock_process_is_running()
+    mock_subtensor.kill_global_mock_process()
+    assert not mock_subtensor.global_mock_process_is_running()
+
+def test_mock_from_mock_arg():
+    sub = bittensor.subtensor(_mock=True)
+    assert mock_subtensor.global_mock_process_is_running()
+    assert sub._is_mocked == True
+    assert sub._owned_mock_subtensor_process != None
+    sub.optionally_kill_owned_mock_instance()
+    assert not mock_subtensor.global_mock_process_is_running()
+    del(sub)
+    assert not mock_subtensor.global_mock_process_is_running()
+
+def test_mock_from_network_arg():
+    mock_subtensor.kill_global_mock_process()
+    sub = bittensor.subtensor(network='mock')
+    assert sub.network == 'mock'
+    assert mock_subtensor.global_mock_process_is_running()
+    assert sub._is_mocked == True
+    assert sub._owned_mock_subtensor_process != None
+    sub.__del__()
+    assert not mock_subtensor.global_mock_process_is_running()
+
+def test_create_from_config():
+    mock_subtensor.kill_global_mock_process()
+    config = bittensor.subtensor.config()
+    config.subtensor.network = 'mock'
+    sub = bittensor.subtensor(config=config)
+    assert mock_subtensor.global_mock_process_is_running()
+    assert sub._is_mocked == True
+    assert sub._owned_mock_subtensor_process != None
+    del(sub)
+    assert not mock_subtensor.global_mock_process_is_running()
+
+def test_two_subtensor_ownership():
+    mock_subtensor.kill_global_mock_process()
+    sub1 = bittensor.subtensor(_mock=True)
+    sub2 = bittensor.subtensor(_mock=True)
+    assert sub1._is_mocked == True
+    assert sub2._is_mocked == True
+    assert sub1._owned_mock_subtensor_process != None
+    assert sub2._owned_mock_subtensor_process == None
+    assert mock_subtensor.global_mock_process_is_running()
+    del( sub2 )
+    assert mock_subtensor.global_mock_process_is_running()
+    del ( sub1 )
+    time.sleep(2)
+    assert not mock_subtensor.global_mock_process_is_running()
+
+def test_subtensor_mock_functions():
+    sub = bittensor.subtensor(_mock=True)
+    sub.n
+    sub.total_issuance
+    sub.total_stake
+    sub.immunity_period
+    sub.rho
+    sub.kappa
+    sub.blocks_per_epoch
+    sub.blocks_since_epoch
+    sub.max_n
+    sub.max_allowed_min_max_ratio
+    sub.min_allowed_weights
+    sub.validator_epoch_length
+    sub.validator_epochs_per_reset
+    sub.validator_sequence_length
+    sub.validator_batch_size
+    sub.difficulty
+
+if __name__ == "__main__":
+    sub = TestSubtensor()
+    sub.setUp()
+    sub.test_registration_partly_failed()

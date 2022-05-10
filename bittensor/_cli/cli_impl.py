@@ -1,4 +1,5 @@
 # The MIT License (MIT)
+# The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
@@ -72,51 +73,85 @@ class CLI:
             self.set_weights()
         elif self.config.command == "inspect":
             self.inspect()
-
+        elif self.config.command == "query":
+            self.query()
+        elif self.config.command == "help":
+            self.help()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey)   
 
     def create_new_hotkey ( self ):
         r""" Creates a new hotke under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = False)   
+        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)   
 
     def regen_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False )
+        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, seed = self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
 
     def regen_hotkey ( self ):
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = False)
+        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
+
+    def query ( self ):
+        r""" Query an endpoint and get query time.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        subtensor = bittensor.subtensor( config = self.config )
+        dendrite = bittensor.dendrite( wallet = wallet )
+        stats = {}
+        for uid in self.config.uids:
+            neuron = subtensor.neuron_for_uid( uid )
+            endpoint = bittensor.endpoint.from_neuron( neuron )
+            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
+            latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
+            stats[uid] = latency
+        print (stats)
 
     def inspect ( self ):
         r""" Inspect a cold, hot pair.
         """
         wallet = bittensor.wallet(config = self.config)
         subtensor = bittensor.subtensor( config = self.config )
+        dendrite = bittensor.dendrite( wallet = wallet )
 
-        wallet.hotkey
-        wallet.coldkeypub
         
-        with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
-            if neuron.is_null:
-                registered = 'No'
-                stake = bittensor.Balance.from_tao( 0 )
+        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            
+            if self.config.wallet.hotkey == 'None':
+                wallet.coldkeypub
+                cold_balance = wallet.get_balance( subtensor = subtensor )
+                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)
+
             else:
-                registered = 'Yes'
-                stake = bittensor.Balance.from_tao( neuron.stake )
-            cold_balance = wallet.balance
-        bittensor.__console__.print("[bold white]{}[/bold white]:\n  [bold grey]coldkey: {}\n  hotkey: {}\n  balance: {}\n  stake: {}\n  registered: {}[/bold grey]".format( wallet, wallet.coldkeypub.ss58_address, wallet.hotkey.ss58_address, cold_balance.__rich__(), stake.__rich__(), registered),highlight=True)
+                wallet.hotkey
+                wallet.coldkeypub
+                neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
+                endpoint = bittensor.endpoint.from_neuron( neuron )
+                if neuron.is_null:
+                    registered = '[bold white]No[/bold white]'
+                    stake = bittensor.Balance.from_tao( 0 )
+                    emission = bittensor.Balance.from_rao( 0 )
+                    latency = 'N/A'
+                else:
+                    registered = '[bold white]Yes[/bold white]'
+                    stake = bittensor.Balance.from_tao( neuron.stake )
+                    emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
+                    _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
+                    latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+
+                cold_balance = wallet.get_balance( subtensor = subtensor )
+                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__(), "latency:".ljust(15), latency ), highlight=True)
 
 
     def run_miner ( self ):
@@ -152,10 +187,30 @@ class CLI:
             bittensor.neurons.template_miner.neuron().run()
         elif self.config.model == 'template_server':
             bittensor.neurons.template_server.neuron().run()
-        elif self.config.model == 'template_validator':
-            bittensor.neurons.template_validator.neuron().run()
+        elif self.config.model == 'core_validator':
+            bittensor.neurons.core_validator.neuron().run()
         elif self.config.model == 'advanced_server':
             bittensor.neurons.advanced_server.neuron().run()
+        elif self.config.model == 'multitron_server':
+            bittensor.neurons.multitron_server.neuron().run()
+
+    def help ( self ):
+        self.config.to_defaults()
+
+        sys.argv = [sys.argv[0], '--help']
+
+        # Run miner.
+        if self.config.model == 'template_miner':
+            bittensor.neurons.template_miner.neuron().run()
+        elif self.config.model == 'template_server':
+            bittensor.neurons.template_server.neuron().run()
+        elif self.config.model == 'core_validator':
+            bittensor.neurons.core_validator.neuron().run()
+        elif self.config.model == 'advanced_server':
+            bittensor.neurons.advanced_server.neuron().run()
+        elif self.config.model == 'multitron_server':
+            bittensor.neurons.multitron_server.neuron().run()
+
 
     def register( self ):
         r""" Register neuron.
@@ -198,6 +253,14 @@ class CLI:
             prompt = not self.config.no_prompt 
         )
 
+    def _get_hotkey_wallets_for_wallet( wallet ):
+        hotkey_wallets = []
+        hotkeys_path = wallet.path + '/' + wallet.name + '/hotkeys'
+        hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        for hotkey_file_name in hotkey_files:
+            hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
+        return hotkey_wallets
+
     def list(self):
         r""" Lists wallets.
         """
@@ -213,7 +276,7 @@ class CLI:
             except:
                 coldkeypub_str = '?'
 
-            wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str[:8]))
+            wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str))
             hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
@@ -227,14 +290,14 @@ class CLI:
                                 hotkey_str = '?'
                         except:
                             hotkey_str = '?'
-                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str[:8]))
+                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
             except:
                 pass
 
         print(root)
 
     def metagraph(self):
-        r""" Prints an overview for the wallet's colkey.
+        r""" Prints an entire metagraph.
         """
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
@@ -306,7 +369,7 @@ class CLI:
         console.print(table)
 
     def weights(self):
-        r""" Prints an overview for the wallet's colkey.
+        r""" Prints an weights to screen.
         """
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
@@ -346,18 +409,15 @@ class CLI:
         console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        metagraph = bittensor.metagraph( subtensor = subtensor )
+        all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
+        neurons = []
+        block = subtensor.block
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            metagraph.load()
-            metagraph.sync()
-            metagraph.save()
+            for wallet in tqdm(all_hotkeys):
+                nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                if not nn.is_null:
+                    neurons.append( (nn, wallet) )
             balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
-
-        owned_endpoints = [] 
-        endpoints = metagraph.endpoint_objs
-        for uid, cold in enumerate(metagraph.coldkeys):
-            if cold == wallet.coldkeypub.ss58_address:
-                owned_endpoints.append( endpoints[uid] )
 
         TABLE_DATA = []  
         total_stake = 0.0
@@ -367,19 +427,20 @@ class CLI:
         total_incentive = 0.0
         total_dividends = 0.0
         total_emission = 0     
-        for ep in tqdm(owned_endpoints):
-            uid = ep.uid
-            active = metagraph.active[ uid ].item()
-            stake = metagraph.S[ uid ].item()
-            rank = metagraph.R[ uid ].item()
-            trust = metagraph.T[ uid ].item()
-            consensus = metagraph.C[ uid ].item()
-            incentive = metagraph.I[ uid ].item()
-            dividends = metagraph.D[ uid ].item()
-            emission = int(metagraph.E[ uid ].item() * 1000000000)
-            last_update = int(metagraph.block - metagraph.last_update[ uid ])
+        for nn, hotwallet in tqdm(neurons):
+            uid = nn.uid
+            active = nn.active
+            stake = nn.stake
+            rank = nn.rank
+            trust = nn.trust
+            consensus = nn.consensus
+            incentive = nn.incentive
+            dividends = nn.dividends
+            emission = int(nn.emission * 1000000000)
+            last_update = int(block -  nn.last_update)
             row = [
-                str(ep.uid), 
+                hotwallet.hotkey_str,
+                str(uid), 
                 str(active), 
                 '{:.5f}'.format(stake),
                 '{:.5f}'.format(rank), 
@@ -389,8 +450,8 @@ class CLI:
                 '{:.5f}'.format(dividends),
                 '{}'.format(emission),
                 str(last_update),
-                ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
-                ep.hotkey
+                bittensor.utils.networking.int_to_ip( nn.ip) + ':' + str(nn.port) if nn.port != 0 else '[yellow]none[/yellow]', 
+                nn.hotkey
             ]
             total_stake += stake
             total_rank += rank
@@ -401,11 +462,12 @@ class CLI:
             total_emission += emission
             TABLE_DATA.append(row)
             
-        total_neurons = len(owned_endpoints)                
+        total_neurons = len(neurons)                
         table = Table(show_footer=False)
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
+        table.add_column("[overline white]HOTKEY NAME",  str(total_neurons), footer_style = "overline white", style='bold white')
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)

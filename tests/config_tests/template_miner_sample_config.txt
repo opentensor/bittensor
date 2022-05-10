@@ -1,0 +1,4 @@
+axon.ip: '[::]'
+dataset.data_dir: ~/.bittensor/data/
+dendrite.requires_grad: true
+nucleus.punishment: 0.001

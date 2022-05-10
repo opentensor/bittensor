@@ -23,21 +23,21 @@ import json
 import requests
 from types import SimpleNamespace
 
-from typing import Union
+from typing import Union, Optional
 from substrateinterface import Keypair
 from termcolor import colored
 import bittensor
 
-def display_mnemonic_msg( kepair : Keypair ):
+def display_mnemonic_msg( keypair : Keypair, key_type : str ):
     """ Displaying the mnemonic and warning message to keep mnemonic safe
     """
-    mnemonic = kepair.mnemonic
+    mnemonic = keypair.mnemonic
     mnemonic_green = colored(mnemonic, 'green')
     print (colored("\nIMPORTANT: Store this mnemonic in a secure (preferable offline place), as anyone " \
                 "who has possesion of this mnemonic can use it to regenerate the key and access your tokens. \n", "red"))
-    print ("The mnemonic to the new key is:\n\n%s\n" % mnemonic_green)
+    print ("The mnemonic to the new {} is:\n\n{}\n".format(key_type, mnemonic_green))
     print ("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
-    print("bittensor-cli regen --mnemonic %s" % mnemonic)
+    print("btcli regen_{} --mnemonic {}".format(key_type, mnemonic))
     print('')
 
 class Wallet():
@@ -142,7 +142,7 @@ class Wallet():
                 is_registered (bool):
                     Is the wallet registered on the chain.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
 
     def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> Union[ SimpleNamespace, None] :
@@ -154,7 +154,7 @@ class Wallet():
                 neuron (Union[ SimpleNamespace, None ]):
                     neuron account on the chain or None if you are not registered.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return None
@@ -170,7 +170,7 @@ class Wallet():
                 uid (int):
                     Network uid or -1 if you are not registered.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
@@ -189,7 +189,7 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         if not self.is_registered(subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return bittensor.Balance(0)
@@ -208,7 +208,7 @@ class Wallet():
                 balance (bittensor.utils.balance.Balance):
                     Coldkey balance.
         """
-        if subtensor == None: subtensor = bittensor.subtensor(network = 'akatsuki')
+        if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.get_balance(address = self.coldkeypub.ss58_address)
 
     def register ( 
@@ -356,15 +356,16 @@ class Wallet():
 
     @property
     def hotkey_file(self) -> 'bittensor.Keyfile':
+
         wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
-        return bittensor.Keyfile( path = hotkey_path )
+        return bittensor.keyfile( path = hotkey_path )
 
     @property
     def coldkey_file(self) -> 'bittensor.Keyfile':
         wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         coldkey_path = os.path.join(wallet_path, "coldkey")
-        return bittensor.Keyfile( path = coldkey_path )
+        return bittensor.keyfile( path = coldkey_path )
 
     @property
     def coldkeypub_file(self) -> 'bittensor.Keyfile':
@@ -449,7 +450,7 @@ class Wallet():
                     this object with newly created coldkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair )
+        display_mnemonic_msg( keypair, "coldkey" )
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
@@ -468,7 +469,7 @@ class Wallet():
                     this object with newly created hotkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
@@ -502,7 +503,7 @@ class Wallet():
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "coldkey" )
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
@@ -537,15 +538,17 @@ class Wallet():
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
-    def regen_coldkey( self, mnemonic: Union[list, str], use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regen_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -554,13 +557,15 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
         """
-        self.regenerate_coldkey(mnemonic, use_password, overwrite)
+        self.regenerate_coldkey(mnemonic, seed, use_password, overwrite)
 
-    def regenerate_coldkey( self, mnemonic: Union[list, str], use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -569,11 +574,18 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
         """
-        if isinstance( mnemonic, str): mnemonic = mnemonic.split()
-        if len(mnemonic) not in [12,15,18,21,24]:
-            raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
-        keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-        display_mnemonic_msg( keypair  )
+        if mnemonic is None and seed is None:
+            raise ValueError("Must pass either mnemonic or seed")
+        if mnemonic is not None:
+            if isinstance( mnemonic, str): mnemonic = mnemonic.split()
+            if len(mnemonic) not in [12,15,18,21,24]:
+                raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
+            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))   
+            display_mnemonic_msg( keypair, "coldkey" )
+        else:
+            # seed is not None
+            keypair = Keypair.create_from_seed(seed)
+            
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
@@ -610,6 +622,6 @@ class Wallet():
         if len(mnemonic) not in [12,15,18,21,24]:
             raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
         keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-        display_mnemonic_msg( keypair  )
+        display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self 

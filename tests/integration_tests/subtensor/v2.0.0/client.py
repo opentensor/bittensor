@@ -56,7 +56,7 @@ class WalletStub( bittensor.Wallet ):
         def __init__(self, coldkey_pair: 'Keypair', hotkey_pair: 'Keypair'):
             self._hotkey = hotkey_pair
             self._coldkey = coldkey_pair
-            self._coldkeypub = coldkey_pair.public_key
+            self._coldkeypub = "0x" + coldkey_pair.public_key.hex()
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests():
@@ -69,17 +69,16 @@ def select_port():
 
 
 def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-    wallet = bittensor.wallet()   
+    wallet = bittensor.wallet(_mock=True)   
 
     if not coldkey:
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
     if not hotkey:
         hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-
+        
     wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
     wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)    
     wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
-
 
     return wallet
 
@@ -328,3 +327,33 @@ def test_set_weights_success(setup_chain):
     assert result_uids == w_uids.tolist()
     assert result_vals == w_vals.tolist()
 
+def test_solve_for_difficulty_fast( setup_chain ):
+    subtensor, port = setup_subtensor(setup_chain)
+    nonce, block_number, block_hash, difficulty, seal = bittensor.utils.solve_for_difficulty_fast(subtensor)
+
+    assert difficulty == 10000
+
+def test_indexed_values_to_dataframe( setup_chain ):
+    subtensor, port = setup_subtensor(setup_chain)
+    wallet = generate_wallet()
+
+    wallet.register(subtensor=subtensor)
+    nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+    metagraph = bittensor.metagraph(subtensor=subtensor)
+    metagraph.sync()
+    idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = [nn.uid], values = metagraph.W[:, nn.uid] )
+    assert idx_df.values[0][0] == 1.0
+
+    idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = nn.uid, index = [nn.uid], values = metagraph.W[:, nn.uid] )
+    assert idx_df.values[0][0] == 1.0
+
+    idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = nn.uid, index = torch.LongTensor([nn.uid]), values = metagraph.W[:, nn.uid] )
+    assert idx_df.values[0][0] == 1.0
+
+    # Need to check for errors 
+    with pytest.raises(ValueError):
+        idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = b'w_i', index = [nn.uid], values = metagraph.W[:, nn.uid] )
+    with pytest.raises(ValueError):
+        idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = nn.uid, values = metagraph.W[:, nn.uid] )
+    with pytest.raises(ValueError):
+        idx_df = bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = [nn.uid], values = nn.uid)

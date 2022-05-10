@@ -29,24 +29,67 @@ from .nucleus_impl import server
 from .run import serve
 
 class neuron:
+    r"""
+    Creates a bittensor neuron that specializes in the serving. The template server miner
+    serves a NLP model from huggingface on the bittensor network. By default, the model does 
+    not train itself and thus requires less memory to run. 
 
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            axon (:obj:bittensor.axon, `optional`):
+                bittensor axon object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> server = bittensor.neuron.text.template_server.neuron(subtensor=subtensor)
+            >>> server.run()
+    """
     def __init__(
         self, 
-        config: 'bittensor.config' = None
+        config: 'bittensor.config' = None,
+        subtensor: 'bittensor.subtensor' = None,
+        wallet: 'bittensor.wallet' = None,
+        axon: 'bittensor.axon' = None,
+        metagraph: 'bittensor.metagraph' = None,
+
     ):
         if config == None: config = server.config()
         config = config; 
         self.check_config( config )
         bittensor.logging (
             config = config,
-            logging_dir = config.server.full_path,
+            logging_dir = config.neuron.full_path,
         )
 
-        self.model = server( config = config, model_name='gpt2', pretrained=False)
+        self.model = server(config = config)
         self.config = config
 
+        self.subtensor = subtensor
+        self.wallet = wallet
+        self.axon = axon
+        self.metagraph = metagraph
+
     def run(self):
-        serve(self.config,self.model)
+        serve(
+            self.config,
+            self.model,
+            subtensor = self.subtensor,
+            wallet = self.wallet,
+            axon = self.axon,
+            metagraph= self.metagraph,
+        )
+
+
+    @classmethod
+    def config(cls):
+        return server.config()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
@@ -59,7 +102,7 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.wandb.check_config( config )
-        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.server.name ))
-        config.server.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.server.full_path):
-            os.makedirs(config.server.full_path)
+        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
+        config.neuron.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.neuron.full_path):
+            os.makedirs(config.neuron.full_path)

@@ -23,10 +23,18 @@ import copy
 
 import bittensor
 from . import metagraph_impl
+from . import metagraph_mock
 
 class metagraph:
-    """ create and init metagraph, 
-    which maintains chain state as a torch.nn.module.
+    """ Factory class for the bittensor.Metagraph class or the MockMetagraph
+    The Metagraph object serves as the main storage unit for the chain state. 
+    By default, it stores all chain information as a torch.nn.Module which can be
+    synced using a subtensor connection.
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> metagraph = bittensor.metagraph(subtensor=subtensor)
+            >>> metagraph.sync()
     """
     def __new__(
             cls, 
@@ -34,6 +42,7 @@ class metagraph:
             subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
             chain_endpoint: str = None,
+            _mock:bool=None
         ) -> 'bittensor.Metagraph':
         r""" Creates a new bittensor.Metagraph object from passed arguments.
             Args:
@@ -41,21 +50,26 @@ class metagraph:
                     bittensor.metagraph.config()
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     bittensor subtensor chain connection.
-                network (default='nakamoto', type=str)
+                network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
                             -- nobunaga (staging network)
-                            -- akatsuki (testing network)
                             -- nakamoto (main network)
+                            -- local (local running network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                _mock (:obj:`bool`, `optional`):
+                    For testing, if true the metagraph returns mocked outputs.
         """      
         if config == None: 
             config = metagraph.config()
         config = copy.deepcopy(config)
+        config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
+        if config.metagraph._mock:
+            return metagraph_mock.MockMetagraph()
         if subtensor == None:
-            subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint )
+            subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
         return metagraph_impl.Metagraph( subtensor = subtensor )
 
     @classmethod   
@@ -67,12 +81,22 @@ class metagraph:
         metagraph.add_args( parser )
         return bittensor.config( parser )
 
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
+
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         """ Add specific arguments from parser, 
         which is the identical to subtensor  
         """
         try:
+            parser.add_argument('--metagraph._mock', action='store_true', help='To turn on metagraph mocking for testing purposes.', default=False)
             bittensor.subtensor.add_args( parser )
         except argparse.ArgumentError:
             # re-parsing arguments.
