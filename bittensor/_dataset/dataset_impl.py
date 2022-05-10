@@ -488,6 +488,7 @@ class GenesisTextDataset( Dataset ):
                         data_corpus.extend(text_list)
                         total_dataset_size += int(random_datafile_dir['Size'])
                         total_dataset_len += len(text_list)
+
                     i += 1
                     
                     if (total_dataset_len > min_data_len) or self.IPFS_fails > self.IPFS_fails_max:
