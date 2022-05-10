@@ -34,13 +34,11 @@ jobs:
         ./scripts/create_wallet.sh
         ./scripts/build_protos.sh
     - name: Run Unit Tests
-      continue-on-error: true
       run: |
         pytest ./tests/unit_tests --cov=. --cov-append --cov-config .coveragerc \
         -n 2
 
     - name: Run Integration Tests
-      continue-on-error: true
       run: |
         pytest ./tests/integration_tests --cov=. --cov-append --cov-config .coveragerc \
         -n 2
