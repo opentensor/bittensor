@@ -7,6 +7,7 @@ import time
 import os
 
 from . import subtensor_impl
+from tests.utils import get_random_unused_port
 
 __type_registery__ = {
     "runtime_id": 2,
@@ -40,7 +41,8 @@ __type_registery__ = {
     }
 }
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
+print(GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
 
 
 
@@ -84,7 +86,7 @@ class mock_subtensor():
         r""" If subtensor is running a mock process this kills the mock.
         """
         for p in psutil.process_iter():
-            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
+            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
                return True
         return False
 
@@ -93,7 +95,7 @@ class mock_subtensor():
         r""" Kills the global mocked subtensor process even if not owned.
         """
         for p in psutil.process_iter():
-            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME:
+            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() :
                 p.terminate()
                 p.kill()
 
@@ -104,10 +106,13 @@ class mock_subtensor():
         try:
             operating_system = "OSX" if platform == "darwin" else "Linux"
             path = "./bin/chain/{}/node-subtensor".format(operating_system)
-            port = int(bittensor.__mock_entrypoints__[0].split(':')[1])
-            print(port)
+            ws_port = int(bittensor.__mock_entrypoints__[0].split(':')[1])
+            print(ws_port)
+            print(os.getpid())
+            baseport = get_random_unused_port()
+            rpc = get_random_unused_port()
             subprocess.Popen([path, 'purge-chain', '--dev', '-y'], close_fds=True, shell=False)    
-            _mock_subtensor_process = subprocess.Popen( [path, '--dev', '--port', str(port+1), '--ws-port', str(port), '--rpc-port', str(port + 2), '--tmp'], close_fds=True, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+            _mock_subtensor_process = subprocess.Popen( [path, '--dev', '--port', str(baseport), '--ws-port', str(ws_port), '--rpc-port', str(rpc), '--tmp'], close_fds=True, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))
             return _mock_subtensor_process
         except Exception as e:
