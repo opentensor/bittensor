@@ -370,7 +370,7 @@ class Dendrite(torch.autograd.Function):
         self,
         endpoints: Union [ torch.LongTensor, List [ torch.LongTensor ], List[ 'bittensor.Endpoint' ], 'bittensor.Endpoint' ],
         inputs: Union [ str, List[ str ], List [ torch.LongTensor ], torch.LongTensor],
-        synapse: Optional[ 'bittensor.synapse.TextCasualLM' ] = bittensor.synapse.TextCasualLM(),
+        synapse: Optional[ 'bittensor.synapse.TextCasualLM' ] = synapse.TextCausalLM(),
         timeout: Optional [ int ] = None,
         requires_grad: Optional [ bool ] = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
@@ -415,8 +415,8 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
         """
-        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TextCasualLM:
-            raise ValueError( "Passed synapse must have type: {} got {} instead".formate( bittensor.proto.Synapse.SynapseType.TextCasualLM, synapses.synapse_type ) )
+        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TextCausalLM:
+            raise ValueError( "Passed synapse must have type: {} got {} instead".formate( bittensor.proto.Synapse.SynapseType.TextCausalLM, synapses.synapse_type ) )
 
         # Format inputs.
         formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
@@ -442,7 +442,7 @@ class Dendrite(torch.autograd.Function):
             self,
             endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
-            synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = bittensor.synapse.TextLastHiddenState(),
+            synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = synapse.TextLastHiddenState(),
             timeout: int = None,
             requires_grad: bool = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
