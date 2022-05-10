@@ -15,13 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import torch
-import grpc
-import bittensor
 import time
-import pytest
-import uuid
 import unittest.mock as mock
+import uuid
+
+import grpc
+import pytest
+import torch
+
+import bittensor
+from tests.utils import get_random_unused_port
 
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon(wallet = wallet)
@@ -781,7 +784,7 @@ def is_port_in_use(port):
             return False
 
 def test_axon_is_destroyed():
-    port = 8081
+    port = get_random_unused_port()
     assert is_port_in_use( port ) == False
     axon = bittensor.axon ( port = port )
     assert is_port_in_use( port ) == True
@@ -792,7 +795,7 @@ def test_axon_is_destroyed():
     axon.__del__()
     assert is_port_in_use( port ) == False
 
-    port = 8082
+    port = get_random_unused_port()
     assert is_port_in_use( port ) == False
     axon2 = bittensor.axon ( port = port )
     assert is_port_in_use( port ) == True
@@ -801,7 +804,7 @@ def test_axon_is_destroyed():
     axon2.__del__()
     assert is_port_in_use( port ) == False
 
-    port_3 = 8086
+    port_3 = get_random_unused_port()
     assert is_port_in_use( port_3 ) == False
     axonA = bittensor.axon ( port = port_3 )
     assert is_port_in_use( port_3 ) == True
