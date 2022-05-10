@@ -48,7 +48,7 @@ jobs:
           # This assumes pytest is installed via the install-package step above
           command: |
             set -e
-            TEST_FILES=$(circleci tests glob "tests/**/*.py" | circleci tests split --split-by=timings)
+            TEST_FILES=$(circleci tests glob "tests/**/test_*.py" | circleci tests split --split-by=timings)
             mkdir -p test-results
             pytest --verbose --junitxml=test-results/junit.xml $TEST_FILES
 
