@@ -385,7 +385,6 @@ class neuron:
         # === Reset moving average score if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.metagraph.hotkeys[uid]:
-                print(f'uid replaced! {old_hotkey} ==> {self.metagraph.hotkeys[uid]}')
                 self.moving_avg_scores[uid] = -1
 class PositionalEncoding(nn.Module):
     r""" Positional Encoder which adds information based on the relative position of each token
