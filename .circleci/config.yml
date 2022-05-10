@@ -34,6 +34,15 @@ jobs:
           # app-dir: ~/project/package-directory/  # If you're requirements.txt isn't in the root directory.
           # pip-dependency-file: test-requirements.txt  # if you have a different name for your requirements file, maybe one that combines your runtime and test requirements.
       - run:
+          name: Install bittensor
+          # This assumes pytest is installed via the install-package step above
+          command: pip install -e .
+
+      - run:
+          name: Instantiate wallet & protos
+          command: ./scripts/create_wallet.sh && ./scripts/build_protos.sh
+
+      - run:
           name: Run tests
           # This assumes pytest is installed via the install-package step above
           command: pytest
