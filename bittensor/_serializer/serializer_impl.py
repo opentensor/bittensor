@@ -30,6 +30,12 @@ class Serializer(object):
     various python tensor equivalents. i.e. torch.Tensor or tensorflow.Tensor
     """
 
+    @staticmethod
+    def empty():
+        """Returns an empty bittensor.proto.Tensor message with the version"""
+        torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
+        return torch_proto
+
     def serialize (self, tensor_obj: object, modality: bittensor.proto.Modality= bittensor.proto.Modality.TEXT, from_type: int = bittensor.proto.TensorType.TORCH) -> bittensor.proto.Tensor:
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
@@ -124,11 +130,6 @@ class Serializer(object):
         """ bittensor.proto.Tensor -> numpy """
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
-    @staticmethod
-    def empty():
-        """Returns an empty bittensor.proto.Tensor message"""
-        torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
-        return torch_proto
 
 class MSGPackSerializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch
