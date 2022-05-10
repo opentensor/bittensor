@@ -248,7 +248,7 @@ $ python3 ./bittensor/_neuron/text/template_server/main.py --help
 
 ###  4.5. Serving an endpoint on the network
 
-Endpoints are server to the bittensor network through the axon. We must first create a bittensor wallet and a bittensor axon to serve.
+Endpoints are served to the bittensor network through the axon. The axon is instantiated via a wallet which holds an account on the Bittensor network.
 
 ```python
 import bittensor
