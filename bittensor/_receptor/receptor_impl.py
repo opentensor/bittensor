@@ -21,6 +21,7 @@ import sys
 import time as clock
 from types import SimpleNamespace
 from typing import Tuple
+import threading
 
 import torch
 import uuid
@@ -28,6 +29,7 @@ import time
 import torch.nn as nn
 import grpc
 from loguru import logger
+from grpc import _common
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -45,6 +47,53 @@ def nill_response_for(inputs):
         return torch.tensor([])
     return torch.zeros( (inputs.size(0), inputs.size(1), bittensor.__network_dim__), dtype=torch.float32)
 
+class Request():
+    """ Contains all of the inputs, intermediate, and output state of a forward/backward request. 
+    """
+    def __init__(
+        self,
+        inputs, 
+        modality,
+        grads_dy = None,
+        backward = False
+        ):
+        r""" Initialize a forward/backward request.
+
+            Args: 
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
+                    List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
+                    modality.
+
+                grads_dy (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`):
+                    List of grad tensors to send to corresponsing inputs. Only needed when it is a backward request.
+
+                modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
+                    Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
+
+                backward (:type:`Bool`);
+                    True if it is a backward request. False when it is a forward request instead.
+        """
+        # ---- Inputs ----
+        self.inputs = inputs
+        self.grads_dy = grads_dy
+        self.zeros = nill_response_for(inputs)
+        
+        # ---- Setups ----
+        self.modality = modality
+        self.backward = backward
+        self.start_time = clock.time()
+        self.end_time = None
+
+        # ---- Intermediate states ---- 
+        self.serialized_inputs = None
+        self.grpc_request = None
+        self.future = None
+
+        # ---- Outputs ----
+        self.code = None
+        self.message = None
+        self.outputs = None
+
 class Receptor(nn.Module):
     """ Encapsulates a grpc connection to an axon endpoint as a standard auto-grad torch.nn.Module.
     """
@@ -55,8 +104,10 @@ class Receptor(nn.Module):
             endpoint: 'bittensor.Endpoint', 
             channel: 'grpc._Channel',
             stub: 'bittensor.grpc.BittensorStub',
+            max_processes: int,
         ):
         r""" Initializes a receptor grpc connection.
+
             Args:
                 wallet (:obj:`bittensor.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
@@ -75,6 +126,8 @@ class Receptor(nn.Module):
         self.backoff = 0 # Number o queries to backoff.
         self.next_backoff = 1 # Next backoff level.
         self.receptor_uid = str(uuid.uuid1())
+        self.semaphore = threading.Semaphore(max_processes)
+        self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
         self.stats = SimpleNamespace(
             forward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
             backward_qps = stat_utils.timed_rolling_avg(0.0, 0.01),
@@ -117,8 +170,15 @@ class Receptor(nn.Module):
         return self.__str__()
 
     def __del__(self):
-        if self.channel is not None:
-            self.channel.close()
+        try:
+            result = self.channel._channel.check_connectivity_state(True)
+            if self.state_dict[result] != self.state_dict[result].SHUTDOWN:        
+                self.channel.close()
+        except:
+            pass
+        
+    def __exit__(self):
+        self.__del__()
 
     def forward (
         self, 
@@ -132,30 +192,21 @@ class Receptor(nn.Module):
             Args:
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
                     Single torch tensor to be sent to the remote endpoint.
-
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality type. Enum in [TEXT, IMAGE, TENSOR]
-
+                timeout (:obj:`int`, `required`)
             Returns:
                 output (:obj:`Tuple[torch.FloatTensor, torch.LongTensor]`, `required`):
                     Result tuple from the forward call.
-
                 code (:obj:`bittensor.proto.ReturnCode`, `required`):
                     Return code associated with forward call.
-
                 time (:obj:`float`, `required`):
                     Time of call.
+
         """
-        outputs, code, time, _ = self._call_forward( 
-            inputs = inputs, 
-            modality = modality, 
-            timeout = timeout 
-        )
-        try:
-            self.stats.codes[code] += 1
-        except Exception: 
-            pass
-        return outputs, code, time
+        request = self.preprocess_request ( inputs = inputs, modality = modality)
+        request = self.make_request_call(request, timeout = timeout)
+        return self.handle_request_response(request)
 
     def backward(
             self, 
@@ -163,7 +214,7 @@ class Receptor(nn.Module):
             grads_dy: torch.Tensor, 
             modality: bittensor.proto.Modality,
             timeout: int
-        ) -> Tuple[ torch.Tensor, int ]:
+        ) -> Tuple[ torch.Tensor, int, float, str ]:
         r""" Backward call: Triggers the grpc Backward call to the associated endpoint.
 
             Args:
@@ -189,35 +240,416 @@ class Receptor(nn.Module):
                 time (:obj:`float`, `required`):
                     Time of call.
         """
-        outputs, code, time, _ = self._call_backward( 
-            inputs_x = inputs_x, 
-            grads_dy = grads_dy, 
-            modality = modality,
-            timeout = timeout
-        )
-        try:
-            self.stats.codes[code] += 1
-        except Exception: 
-            pass
-        return outputs, code, time
+        request = self.preprocess_request (inputs = inputs_x, modality = modality, grads_dy = grads_dy, backward = True)
+        request = self.make_request_call(request, timeout = timeout)
+        return self.handle_request_response(request)
+            
 
-    def _call_forward(
+    def prerequisite_check(self, request):
+        r""" Check the input size and endpoint validity.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+            Returns:
+                success: (:type:`bool`, `required`):
+                    True if the check has passed.
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        # ---- Check inputs size ----
+        if torch.numel(request.inputs) == 0 or ( request.backward and torch.numel( request.grads_dy ) == 0):
+            request.code = bittensor.proto.ReturnCode.EmptyRequest
+            request.message = 'Empty request.'
+            self.request_log(request = request, is_response = False, inputs = list(request.inputs.shape))
+            return False, request
+        
+        # ---- Check endpoint----
+        if self.endpoint.hotkey  == 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX':
+            request.code = bittensor.proto.ReturnCode.EmptyRequest
+            request.message = 'Bad endpoint.'            
+            self.request_log(request = request, is_response = False, inputs = list(request.inputs.shape))
+            return False, request
+        
+        return True, request
+
+    def serialization(self, request):
+        r""" Does the serialization to the request inputs and grads(backward request only).
+            The result would update request.serialized_inputs and request.serialized_grad.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+            Returns:
+                success: (:type:`bool`, `required`):
+                    True if the serialization is successful.
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        try:
+            serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
+            request.serialized_inputs = serializer.serialize(request.inputs, modality = request.modality, from_type = bittensor.proto.TensorType.TORCH)
+
+            if request.backward:
+                request.serialized_grads = serializer.serialize (request.grads_dy, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
+
+        except Exception as e:
+            request.code =  bittensor.proto.ReturnCode.RequestSerializationException
+            request.message = 'Input serialization exception with error:{}'.format(str(e))
+            self.request_log(request = request, is_response = False, inputs = list(request.inputs.shape))
+            return False, request
+        
+        return True, request
+
+    def build_grpc_request(self, request):
+        r"""Build the grapc call with the serialized_inputs and serialized grad(backward request only). 
+            The result would update request.grpc_request.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+            Returns:
+                success: (:type:`bool`, `required`):
+                    True if the build is successful.
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        try: 
+            if not request.backward:
+                request.grpc_request = bittensor.proto.TensorMessage (
+                    version = bittensor.__version_as_int__,
+                    hotkey = self.wallet.hotkey.ss58_address,
+                    tensors = [request.serialized_inputs],
+                    requires_grad = True,
+                )
+            else:
+                request.grpc_request = bittensor.proto.TensorMessage(
+                    version = bittensor.__version_as_int__,
+                    hotkey = self.wallet.hotkey.ss58_address,
+                    tensors = [request.serialized_inputs, request.serialized_grads],
+                    requires_grad = True,
+                )
+
+        except Exception as e:
+            request.code = bittensor.proto.ReturnCode.UnknownException
+            request.message = str(e)
+            self.request_log(request = request, is_response = False, inputs = list(request.serialized_inputs.shape))
+            return False, request
+        return True, request
+
+    def collect_future(self, request):
+        r"""Get the result of the grpc request. 
+            The result would update request.response.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+            Returns:
+                success: (:type:`bool`, `required`):
+                    True if getting the result is successful.
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        try:
+            request.response = request.future.result()
+            self.stats.forward_bytes_in.update(sys.getsizeof(request.response))
+            self.stats.forward_elapsed_time.update((clock.time()-request.start_time))
+            
+        # ---- Catch GRPC Errors ----
+        except grpc.RpcError as rpc_error_call:
+            request.code, request.message =  self.rpc_exception_handler(request, rpc_error_call)
+            return False, request
+
+        # ---- Catch Unknown Errors ----
+        except Exception as e:
+            request.code = bittensor.proto.ReturnCode.UnknownException
+            request.message = str(e)
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+
+        return True, request
+
+    def check_response(self, request):
+        r"""Check the response. 
+            This function should not update any part of request.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+            Returns:
+                success: (:type:`bool`, `required`):
+                    True if the check is successful.
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        # ---- Get response message ----
+        try:
+            request.message = request.response.message 
+        except Exception:
+            request.message = ''
+
+        # ---- Catch non-code ----
+        request.code = request.response.return_code
+
+        if request.code == bittensor.proto.ReturnCode.NoReturn:
+            request.message = 'No return code.'
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+
+        # ---- Catch bittensor errors ----
+        if request.code == bittensor.proto.ReturnCode.UnknownException:
+            request.message = 'Return code unknown exception.'
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+
+        elif request.code != bittensor.proto.ReturnCode.Success:
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+
+        # ---- Check for empty length ----
+        if len(request.response.tensors) == 0:
+            request.code = bittensor.proto.ReturnCode.EmptyResponse
+            request.message = 'No tensors in response.'
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+        
+        return True, request
+
+    def deserialize_forward_response(self, request):
+        r"""Deserialization for the forward request.
+            The result would update request.output.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+            Returns:
+                success: (:type:`bool`, `required`):
+                    True if the deserialization is successful.
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+
+        # ---- Deserialize response ----
+        try:
+            outputs = request.response.tensors[0]
+            deserializer = bittensor.serializer(  outputs.serializer )
+            outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
+
+        except Exception as e:
+            request.code = bittensor.proto.ReturnCode.ResponseDeserializationException
+            request.message = 'Deserialziation exception with error:{}'.format(str(e))
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+
+        # ---- Check response shape ----
+        if  (
+            outputs.size(0) != request.inputs.size(0) or
+            outputs.size(1) != request.inputs.size(1) or 
+            outputs.size(2) != bittensor.__network_dim__
+            ):
+            request.code = bittensor.proto.ReturnCode.ResponseShapeException
+            request.message = "output.shape:{} does not match inputs:{}".format(outputs.shape, request.inputs.shape)
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape), outputs = list(outputs.shape))
+            return False, request
+
+        # ---- Safe catch NaNs and replace with 0.0 ----
+        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
+
+        # ---- Return ----
+        request.code = request.response.return_code
+        self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape), outputs = list(outputs.shape))
+        self.stats.codes[request.code] += 1
+        
+        return True, request 
+
+    def deserialize_backward_response(self, request):
+        r"""Deserialization for the backward request.
+            The result would update request.output.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+            Returns:
+                success: (:type:`bool`, `required`):
+                    True if the deserialization is successful.
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        # ---- Post-process request ----
+        try:
+            outputs = request.response.tensors[0]
+            deserializer = bittensor.serializer( outputs.serializer )
+            outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
+        except Exception as e:
+            request.code = bittensor.proto.ReturnCode.ResponseDeserializationException
+            request.message = 'deserialization exception with error:{}'.format(e)
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+
+        try:
+            # ---- Check response shape is same as inputs ----
+            if  outputs.size() != request.inputs.size():
+                request.code = bittensor.proto.ReturnCode.ResponseShapeException 
+                request.message = 'output shape does not match inputs shape'
+                self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+                return False, request
+        
+        except Exception as e:
+            request.code = bittensor.proto.ReturnCode.UnknownException
+            request.message = 'Size Error: {}'.format(e)
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return False, request
+
+        # ---- Safe catch NaNs and replace with 0.0 ----
+        request.outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs).detach()
+   
+        # ---- Return ----
+        request.code = bittensor.proto.ReturnCode.Success
+        request.message = 'Success'
+        self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+        self.stats.codes[request.code] += 1
+        return False, request
+
+    def request_log(self, request, is_response = False, inputs = None, outputs = None):
+        r""" rpc logging for forward/backward request
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+
+                is_response (:type: `bool`):
+                    True if we are logging a response from the grpc call, false if it is a request instead
+
+                inputs (:type: `List`): 
+                    shape of the tensor input that was being handled
+        """
+
+        call_time = clock.time() - request.start_time
+        if bittensor.logging.__debug_on__: 
+            bittensor.logging.rpc_log(
+                axon=False, 
+                forward= not request.backward, 
+                is_response=is_response, 
+                code=request.code, 
+                call_time=call_time, 
+                pubkey=self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs=inputs, 
+                outputs=outputs, 
+                message=request.message
+            )
+
+    def preprocess_request (
         self, 
         inputs: torch.Tensor, 
         modality: bittensor.proto.Modality,
-        timeout: int
-    ) -> Tuple[torch.Tensor, int, float, str]:  
-        r""" Internal autograd-friendly Forward RPC call to a remote endpoint (calls the Forward method on an Axon terminal.)
-
+        grads_dy: torch.FloatTensor = None,
+        backward: str = False 
+    ):  
+        r""" Does all the checking and preprocessing to build the grpc request.
+            
             Args:  
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
                     Torch tensor to be sent to this endpoint.
 
                 modality (:obj:`bittensor.proto.Modality` of shape :obj:`(1)`, `required`):
                     Bittensor forward modality of type Enum: [TEXT, IMAGE, TENSOR]
+                
+                grads_dy (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
+                    List of grad tensors to send to corresponsing inputs. 
 
+                backward (:type:`Bool`, `required`);
+                    If the request is a backward request.
+
+            Returns:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        # ---- Setup forward request namespace, which will hold all the objects regarding the forward request ----
+        request = Request(inputs = inputs, modality = modality, grads_dy = grads_dy, backward = backward)
+
+        preprocessing_funs = [self.prerequisite_check, self.serialization, self.build_grpc_request]
+
+        for fun in preprocessing_funs:
+            check, request = fun(request)
+            if not check:
+                return request 
+
+        request.code = bittensor.proto.ReturnCode.Success
+        return request
+        
+    def make_request_call(self, request, timeout):
+        r""" Torch.nn.Module forward call: Triggers the grpc call to the remote endpoint. (calls the Forward method on an Axon terminal.)
+            The resulted future of forward call was stored in forward_request.
+
+            Args:            
                 timeout (:type:`int`, `required`):
                     request timeout.
+
+            Returns:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
+        """
+        # ---- Return if the previous statue was not finished. ----
+        if (request.grpc_request == None) or (request.code != bittensor.proto.ReturnCode.Success):
+            return request
+        
+        # ---- Make RPC call ----
+        try:
+            if not request.backward:
+                self.sign()
+                self.stats.forward_qps.update(1)
+                self.stats.forward_bytes_out.update(sys.getsizeof(request.grpc_request))
+                request.future = self.stub.Forward.future(request = request.grpc_request, 
+                                timeout = timeout,
+                                metadata = (
+                                        ('rpc-auth-header','Bittensor'),
+                                        ('bittensor-signature',self.sign()),
+                                        ('bittensor-version',str(bittensor.__version_as_int__)),
+                                        ('request_type', str(bittensor.proto.RequestType.FORWARD)),
+                                        ))
+                request.future.add_done_callback(lambda z : self.handle_request_response(request))
+            else:
+                self.stats.backward_qps.update(1)
+                self.stats.backward_bytes_out.update(sys.getsizeof(request.grpc_request))
+                request.future = self.stub.Backward.future(request = request.grpc_request, 
+                                timeout = timeout,
+                                metadata = (
+                                        ('rpc-auth-header','Bittensor'),
+                                        ('bittensor-signature',self.sign()),
+                                        ('bittensor-version',str(bittensor.__version_as_int__)),
+                                        ('request_type', str(bittensor.proto.RequestType.BACKWARD)),
+                                        ))
+            
+            request.code = bittensor.proto.ReturnCode.Success
+            self.request_log(request = request, is_response = False, inputs = list(request.serialized_inputs.shape))
+            return request
+        
+        # ---- Catch GRPC Errors ----
+        except grpc.RpcError as rpc_error_call:
+            request.code, request.message =  self.rpc_exception_handler(request, rpc_error_call)
+            self.request_log(request = request, is_response = False, inputs = list(request.serialized_inputs.shape))
+            return request
+
+        # ---- Catch Unknown Errors ----
+        except Exception as e:
+            request.code = bittensor.proto.ReturnCode.UnknownException
+            request.message = str(e)
+            self.request_log(request = request, is_response = False, inputs = list(request.serialized_inputs.shape))
+            return request
+
+    def handle_request_response(self, request):
+        r""" Handle all the getting result checking, and processing the response.
+
+            Args:
+                request: (:obj:`Request`, required):
+                    The request object holds all specifications and processing of the request.
 
             Returns:
                 output (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
@@ -231,383 +663,57 @@ class Receptor(nn.Module):
 
                 message (:type:`str`, `required`): 
                     message associated with forward call, potentially error, or 'success'.
-        """
-        start_time = clock.time()
-        zeros = nill_response_for(inputs)
+        """ 
+        if request.outputs != None:
+            if request.end_time == None:
+                request.end_time = 15
+            return request.outputs, request.code, request.end_time
 
-        try:
-            # ---- Check inputs size ----
-            if torch.numel(inputs) == 0:
-                code = bittensor.proto.ReturnCode.EmptyRequest
-                message = 'empty request'
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message )
-                return zeros, code, call_time, message
-            elif self.endpoint.uid == -1:
-                code = bittensor.proto.ReturnCode.EmptyRequest
-                message = 'bad endpoint'
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(inputs.shape), outputs=None, message=message  )
-                return zeros, code, call_time, message
+        if (request.code != bittensor.proto.ReturnCode.Success) or (request.future == None):
+            request.end_time = clock.time() - request.start_time
+            return request.zeros, request.code, request.end_time
 
-            # ---- Inputs Serialization ----
-            try:
-                serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
-                serialized_inputs = serializer.serialize(inputs, modality = modality, from_type = bittensor.proto.TensorType.TORCH)
-            except Exception as e:
-                code =  bittensor.proto.ReturnCode.RequestSerializationException
-                message = 'Input serialization exception with error:{}'.format(str(e))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message )
-                return zeros, code, call_time, message
+        deserializer = self.deserialize_forward_response if not request.backward else self.deserialize_backward_response
+        response_handling_funs = [self.collect_future, self.check_response, deserializer]
 
-            # ---- Build request ----
-            request = bittensor.proto.TensorMessage (
-                version = bittensor.__version_as_int__,
-                hotkey = self.wallet.hotkey.ss58_address,
-                tensors = [serialized_inputs],
-                requires_grad = True,
-            )
+        for fun in response_handling_funs:
+            check, request = fun(request)
+            if not check:
+                request.end_time = clock.time()-request.start_time
+                return request.zeros, request.code, request.end_time
         
-            # ---- Make RPC call ----
-            try:
-                self.stats.forward_qps.update(1)
-                self.stats.forward_bytes_out.update(sys.getsizeof(request))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=False, forward=True, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(serialized_inputs.shape), outputs=None, message=None )
-
-                #forwarding grpc request to the server
-                response = self.stub.Forward(request = request, 
-                                             timeout = timeout,
-                                             metadata = (
-                                                        ('rpc-auth-header','Bittensor'),
-                                                        ('bittensor-signature',self.sign()),
-                                                        ('bittensor-version',str(bittensor.__version_as_int__)),
-                                                        ('request_type', str(bittensor.proto.RequestType.FORWARD)),
-                                                        ))
-                self.stats.forward_bytes_in.update(sys.getsizeof(response))
-                self.stats.forward_elapsed_time.update((clock.time()-start_time))
-
-                # Get message
-                try:
-                    response_message = response.message 
-                except Exception:
-                    response_message = ''
-
-                # ---- Catch non-code ----
-                bittensor_code = response.return_code
-
-                if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
-                    code = bittensor.proto.ReturnCode.NoReturn
-                    message = 'no return code.'
-                    call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=response_message  )
-                    return zeros, code, call_time, message
-
-                # ---- Catch bittensor errors ----
-                if bittensor_code == bittensor.proto.ReturnCode.UnknownException:
-                    call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=bittensor_code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=response_message  )
-                    return zeros, bittensor_code, clock.time() - start_time, response.message 
-
-                elif bittensor_code != bittensor.proto.ReturnCode.Success:
-                    call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log( axon=False, forward=True, is_response=True, code=bittensor_code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=response_message)
-                    return zeros, bittensor_code, call_time, response.message 
-
-            # ---- Catch GRPC Errors ----
-            except grpc.RpcError as rpc_error_call:
-                grpc_code = rpc_error_call.code()
-
-                if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
-                    code = bittensor.proto.ReturnCode.Timeout
-                    message = 'grpc.StatusCode.DEADLINE_EXCEEDED'+': '+ rpc_error_call.details()
-                    call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-                    return zeros, code, call_time, message
-
-                elif grpc_code == grpc.StatusCode.UNAVAILABLE:
-                    code = bittensor.proto.ReturnCode.Unavailable
-                    message = 'grpc.StatusCode.UNAVAILABLE'+': '+ rpc_error_call.details()
-                    call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-                    return zeros, code, call_time, message
-
-                elif grpc_code == grpc.StatusCode.UNAUTHENTICATED:
-                    code = bittensor.proto.ReturnCode.Unauthenticated
-                    message = 'grpc.StatusCode.UNAUTHENTICATED'+': '+ rpc_error_call.details()
-                    call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-                    return zeros, code, call_time, message
-                else:
-                    code = bittensor.proto.ReturnCode.UnknownException
-                    message = 'GRPC error code: {}, details: {}'.format( grpc_code, str(rpc_error_call.details()) )
-                    call_time = clock.time() - start_time
-                    bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-                    return zeros, code, call_time, message
-
-            # ---- Catch Unknown Errors ----
-            except Exception as e:
-                code = bittensor.proto.ReturnCode.UnknownException
-                message = str(e)
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-                return zeros, code, call_time, message
-
-            # ---- Check tensor response length ----
-            if len(response.tensors) == 0:
-                code = bittensor.proto.ReturnCode.EmptyResponse
-                message = 'no tensors in response'
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-                return zeros, code, call_time, message
-
-            # ---- Deserialize response ----
-            try:
-                outputs = response.tensors[0]
-                deserializer = bittensor.serializer(  outputs.serializer )
-                outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
-
-            except Exception as e:
-                code = bittensor.proto.ReturnCode.ResponseDeserializationException
-                message = 'deserialziation exception with error:{}'.format(str(e))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-                return zeros, code, call_time, message
-        
-            # ---- Check response shape ----
-            if  (
-                outputs.size(0) != inputs.size(0) or
-                outputs.size(1) != inputs.size(1) or 
-                outputs.size(2) != bittensor.__network_dim__
-                ):
-                code = bittensor.proto.ReturnCode.ResponseShapeException
-                message = "output.shape:{} does not match inputs:{}".format(outputs.shape, inputs.shape)
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=list(outputs.shape), message=message)
-                return zeros, code, call_time, message
-
-            # ---- Safe catch NaNs and replace with 0.0 ----
-            outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
-            
-        # ---- Catch all ----
-        except Exception as e:
-            code = bittensor.proto.ReturnCode.UnknownException
-            message = 'exception in forward call: {}'.format(e)
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
-
-        # ---- Return ----
-        code = response.return_code
-        message = response_message
-        call_time = clock.time() - start_time
-        bittensor.logging.rpc_log(axon=False, forward=True, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(inputs.shape), outputs=list(outputs.shape), message=response_message)
-        return outputs, code, call_time, message
-
-    def _call_backward(
-            self,
-            inputs_x: torch.Tensor, 
-            grads_dy: torch.FloatTensor, 
-            modality: bittensor.proto.Modality,
-            timeout: int
-        ) -> Tuple[torch.Tensor, int, float, str]:
-        """ Checks and makes RPC Forward call to a remote neuron (calls the Forward method on an Axon terminal of the endpoint)
-
-            Args:
-                inputs_x (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
-                    Torch tensor to be sent to the caller associated endpoint neurons.
-  
-                grads_dy (:obj:`List[torch.Tensor]` of shape :obj:`(shape)`, `required`):
-                    Gradients of this function's outputs computed during the loss.backward() call.
-                
-                timeout (int):
-                    request timeout.
-
-            Returns:
-                outputs (:obj:`Tuple[torch.FloatTensor`, torch.LongTensor]`, `optional`):
-                    Gradients of the inputs with respect to the inputs and grads of the outputs.
-
-                code (:obj:`bittensor.proto.ReturnCode`, `required`):
-                    Return code associated with backward call.
-
-                time (:type:`float`, `required`):
-                    Length of call in seconds.
-
-                message (:type:`str`, `required`):
-                    Message associated with forward call, potentially error, or 'success'.
-
-        """
-        start_time = clock.time()
-        # ---- Zeros response in the case of failure ----
-        zeros = nill_response_for( inputs_x )
+        request.end_time = clock.time()-request.start_time
+        return request.outputs if check else request.zeros, request.code, request.end_time
  
-        # ---- Check inputs size ----
-        if torch.numel( inputs_x ) == 0:
-            code = bittensor.proto.ReturnCode.EmptyRequest
-            message = 'empty request'
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
-        
-        if self.endpoint.uid == -1:
-            code = bittensor.proto.ReturnCode.EmptyRequest
-            message = 'bad endpoint'
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
-            return zeros, code, call_time, message
 
+    def rpc_exception_handler(self, request, rpc_error_call):
+        r""" Handle the rpc exception call according to grpc status code.
+        """
+        grpc_code = rpc_error_call.code()
 
-        # ---- Check grads size ----
-        if torch.numel( grads_dy ) == 0:
-            code = bittensor.proto.ReturnCode.EmptyRequest
-            message = 'empty request'
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
+        if grpc_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+            request.code = bittensor.proto.ReturnCode.Timeout
+            request.message = 'grpc.StatusCode.DEADLINE_EXCEEDED'+': '+ rpc_error_call.details()
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return request.code, request.message
 
-        # ---- Serialization ----
-        try:
-            serializer = bittensor.serializer( bittensor.proto.Serializer.MSGPACK )
-            serialized_inputs = serializer.serialize (inputs_x, modality = modality, from_type = bittensor.proto.TensorType.TORCH )
-            serialized_grads = serializer.serialize (grads_dy, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH )
-        except Exception as e:
-            code = bittensor.proto.ReturnCode.RequestSerializationException
-            message = 'serializer exception with error:{}'.format(e)
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
-        
-        # ---- Make RPC call ----
-        try:
-            request = bittensor.proto.TensorMessage(
-                version = bittensor.__version_as_int__,
-                hotkey = self.wallet.hotkey.ss58_address,
-                tensors = [serialized_inputs, serialized_grads],
-                requires_grad = True,
-            )
-            
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=None)
-            response = self.stub.Backward(request = request, 
-                                          timeout = timeout,
-                                          metadata = (
-                                                    ('rpc-auth-header','Bittensor'),
-                                                    ('bittensor-signature',self.sign()),
-                                                    ('bittensor-version',str(bittensor.__version_as_int__)),
-                                                    ('request_type', str(bittensor.proto.RequestType.BACKWARD)),
-                                                    ))
+        elif grpc_code == grpc.StatusCode.UNAVAILABLE:
+            request.code = bittensor.proto.ReturnCode.Unavailable
+            request.message = 'grpc.StatusCode.UNAVAILABLE'+': '+ rpc_error_call.details()
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return request.code, request.message
 
-            # Get message
-            try:
-                response_message = response.message 
-            except Exception:
-                response_message = ''
+        elif grpc_code == grpc.StatusCode.UNAUTHENTICATED:
+            request.code = bittensor.proto.ReturnCode.Unauthenticated
+            request.message = 'grpc.StatusCode.UNAUTHENTICATED'+': '+ rpc_error_call.details()
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return request.code, request.message
+        else:
+            request.code = bittensor.proto.ReturnCode.UnknownException
+            request.message = 'GRPC error code: {}, details: {}'.format( grpc_code, str(rpc_error_call.details()) )
+            self.request_log(request = request, is_response = True, inputs = list(request.inputs.shape))
+            return request.code, request.message
 
-        # ---- Catch GRPC Errors ----
-        except grpc.RpcError as e:
-            if e.code() == grpc.StatusCode.DEADLINE_EXCEEDED:
-                code = bittensor.proto.ReturnCode.Timeout
-                message = 'grpc.StatusCode.DEADLINE_EXCEEDED'+': '+ e.details()
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-                return zeros, code, call_time, message
-            
-            elif e.code() == grpc.StatusCode.UNAVAILABLE:
-                code = bittensor.proto.ReturnCode.Unavailable
-                message = 'grpc.StatusCode.UNAVAILABLE'+': '+ e.details()
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-                return zeros, code, call_time, message
-            
-            elif e.code() == grpc.StatusCode.UNAUTHENTICATED:
-                code = bittensor.proto.ReturnCode.Unauthenticated
-                message = 'grpc.StatusCode.UNAUTHENTICATED'+': '+ e.details()
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-                return zeros, code, call_time, message
-
-            else:
-                code = bittensor.proto.ReturnCode.UnknownException
-                message = 'grpc error code:{}, details: {}'.format(str(e.code()), str(e.details()))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-                return zeros, code, call_time, message
-
-        # ---- Catch Unknown RPC Errors ----
-        except Exception as e:
-            code = bittensor.proto.ReturnCode.UnknownException
-            message = str(e)
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
-
-        # ---- Catch Code Errors ----
-        try:
-            bittensor_code = response.return_code
-        except:
-            bittensor_code = bittensor.proto.ReturnCode.NoReturn
-
-        if bittensor_code == bittensor.proto.ReturnCode.NoReturn:
-            code = bittensor.proto.ReturnCode.NoReturn
-            message = 'no response code.'
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
-
-        # ---- Catch negative codes ----
-        if bittensor_code != bittensor.proto.ReturnCode.Success:
-            code = bittensor_code
-            message = response_message
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=response_message)
-            return zeros, code, call_time, message
-
-        # ---- Check for empty response ----
-        if len(response.tensors) == 0:
-            code = bittensor.proto.ReturnCode.EmptyResponse
-            message = 'empty response tensor.'
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
-
-        # ---- Post-process request ----
-        try:
-            outputs = response.tensors[0]
-            deserializer = bittensor.serializer( outputs.serializer )
-            outputs = deserializer.deserialize( outputs, to_type = bittensor.proto.TensorType.TORCH )
-        except Exception as e:
-            code = bittensor.proto.ReturnCode.ResponseDeserializationException
-            message = 'deserialization exception with error:{}'.format(e)
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=None, message=message)
-            return zeros, code, call_time, message
-        try:
-            # ---- Check response shape is same as inputs ----
-            if  outputs.size() != inputs_x.size():
-
-                code = bittensor.proto.ReturnCode.ResponseShapeException 
-                message = 'output shape does not match inputs shape'
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=list(outputs.shape), message=message)
-                return zeros, code, call_time, message
-        except Exception as e:
-            code = bittensor.proto.ReturnCode.UnknownException
-            message = 'Size Error: {}'.format(e)
-            call_time = clock.time() - start_time
-
-            bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, inputs=list(grads_dy.shape), outputs=None, message=message )
-            return zeros, code, call_time, message
-            
-        # ---- Safe catch NaNs and replace with 0.0 ----
-        outputs = torch.where(torch.isnan(outputs), torch.zeros_like(outputs), outputs)
-   
-        # ---- Return ----
-        code = bittensor.proto.ReturnCode.Success
-        message = 'success'
-        call_time = clock.time() - start_time
-        bittensor.logging.rpc_log(axon=False, forward=False, is_response=True, code=code, call_time=call_time, pubkey=self.endpoint.hotkey, uid = self.endpoint.uid, inputs=list(grads_dy.shape), outputs=list(outputs.shape), message=response_message)
-        return outputs, code, clock.time() - start_time, message
 
     def sign(self):
         r""" Uses the wallet pubkey to sign a message containing the pubkey and the time
@@ -615,7 +721,7 @@ class Receptor(nn.Module):
         nounce = self.nounce()
         message  = str(nounce) + str(self.wallet.hotkey.ss58_address) + str(self.receptor_uid)
         spliter = 'bitxx'
-        signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), self.wallet.hotkey.sign(message), str(self.receptor_uid) ])
+        signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), "0x" + self.wallet.hotkey.sign(message).hex(), str(self.receptor_uid) ])
         return signature
     
     def nounce(self):
@@ -624,3 +730,11 @@ class Receptor(nn.Module):
         nounce = int(time.time() * 1000)
         return nounce
         
+    def state(self):
+        try: 
+            return self.state_dict[self.channel._channel.check_connectivity_state(True)]
+        except ValueError:
+            return "Channel closed"
+
+    def close(self):
+        self.__exit__()

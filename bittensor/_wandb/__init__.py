@@ -36,11 +36,28 @@ class wandb:
             tags: tuple = None,
             run_group: str = None,
             directory: str = None,
-            offline: bool = None,
             cold_pubkey: str = None,
             hot_pubkey: str = None,
             root_dir: str = None
         ):
+        r""" Initializes a bittensor wandb backend logging object.
+            Args:
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.wamdb.config()
+                api_key (:obj:`bool`, `optional`):
+                    Optionally pass wandb api key for use_wandb.
+                name (:obj:`bool`, `optional`):
+                    Optionally pass wandb run name for use_wandb.
+                project (:obj:`bool`, `optional`):
+                    Optionally pass wandb project name for use_wandb.
+                tags (:obj:`bool`, `optional`):
+                run_group (:obj:`bool`, `optional`):
+                directory (:obj:`bool`, `optional`):
+                offline (:obj:`bool`, `optional`):
+                cold_pubkey (:obj:`bool`, `optional`):
+                hot_pubkey (:obj:`bool`, `optional`):
+                root_dir (:obj:`bool`, `optional`):
+        """
         if config == None: 
             config = wandb.config()
         config = copy.deepcopy( config )
@@ -80,6 +97,15 @@ class wandb:
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
 
     @classmethod   
     def add_defaults(cls, defaults):

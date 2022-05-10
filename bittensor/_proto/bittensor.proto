@@ -165,6 +165,7 @@ message Tensor {
 enum Serializer {
 	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
 	MSGPACK = 0; // MSGPACK serializer
+	CMPPACK = 1; // CMPPACK serializer
 }
 
 // TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.
@@ -184,6 +185,7 @@ enum DataType {
 	INT32 = 3;
 	INT64 = 4;
 	UTF8 = 5;
+	FLOAT16 = 6;
 }
 
 enum Modality {

@@ -18,12 +18,19 @@
 from rich.console import Console
 
 # Bittensor code and protocol version.
-__version__ = '2.0.2'
+__version__ = '2.0.4'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
 # Rich console.
 __console__ = Console()
+__use_console__ = True
+def turn_console_off():
+    from io import StringIO
+    __use_console__ = False
+    __console__ = Console(file=StringIO(), stderr=False)
+
+
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
@@ -36,14 +43,12 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
-__networks__ = [ 'local', 'nobunaga', 'akatsuki', 'nakamoto']
+__networks__ = [ 'local', 'nobunaga', 'nakamoto']
+
+__datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
 __nakamoto_entrypoints__ = [
-    "entrypointnetworkloadbalancer-21fe5fbdc08425ca.elb.us-east-2.amazonaws.com:9944"
-]
-
-__akatsuki_entrypoints__ = [
-    "test.akatsuki.opentensor.ai:9944"
+    "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 ]
 
 __nobunaga_entrypoints__ = [
@@ -54,9 +59,13 @@ __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]
 
-__registration_servers__ = [
-    'registration.opentensor.ai:5000'
+# Avoid collisions with other processes
+import os
+pid_port = 8192 + (os.getpid() % 8192)
+__mock_entrypoints__ = [
+    f"localhost:{pid_port}"
 ]
+
 
 # ---- Config ----
 from bittensor._config import config as config
@@ -70,6 +79,9 @@ import bittensor._proto.bittensor_pb2_grpc as grpc
 
 # ---- Neurons ----
 import bittensor._neuron as neurons
+
+# ---- Utils ----
+from bittensor.utils import unbiased_topk as unbiased_topk
 
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance
@@ -91,7 +103,6 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from substrateinterface import Keypair as Keypair
 from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._config.config_impl import Config as Config
 from bittensor._wallet.wallet_impl import Wallet as Wallet
@@ -105,7 +116,7 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-
+from bittensor._ipfs.ipfs_impl import Ipfs
 
 # DEFAULTS
 defaults = Config()
@@ -116,3 +127,5 @@ wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
+
+from substrateinterface import Keypair as Keypair

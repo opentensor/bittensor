@@ -24,33 +24,79 @@ Example:
 """
 
 import bittensor
+import threading
 import os
 
 from .nucleus_impl import server
 from .run import serve
 
 class neuron:
+    r"""
+    Creates a bittensor neuron that specializes in serving the bittensor network. The advanced server 
+    trains itself while accepting requests from the bittensor network. This is done by accumulating
+    gradients over the wire and applying them in a single step. Blacklist features are enabled in 
+    advanced servers to determine who can apply gradients. 
 
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            dataset (:obj:bittensor.dataset , `optional`):
+                bittensor dataset 
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            axon (:obj:bittensor.axon, `optional`):
+                bittensor axon object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> server = bittensor.neuron.text.advanced_server.neuron(subtensor=subtensor)
+            >>> server.run()
+    """
     def __init__(
         self, 
-        config: 'bittensor.config' = None
+        config: 'bittensor.config' = None,
+        subtensor: 'bittensor.subtensor' = None,
+        dataset: 'bittensor.dataset' = None,
+        wallet: 'bittensor.wallet' = None,
+        axon: 'bittensor.axon' = None,
+        metagraph: 'bittensor.metagraph' = None,
     ):
         if config == None: config = server.config()
         config = config; 
         self.check_config( config )
         bittensor.logging (
             config = config,
-            logging_dir = config.server.full_path,
+            logging_dir = config.neuron.full_path,
         )
 
-        self.model = server(config=config)
+        self.model = server( config = config ) 
         self.config = config
 
-    def run(self):
-        serve( self.config, self.model )
+        self.subtensor = subtensor
+        self.dataset = dataset
+        self.wallet = wallet
+        self.axon = axon
+        self.metagraph = metagraph
 
-    @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def run(self):
+        serve( 
+            self.config, 
+            self.model,
+            subtensor=self.subtensor, 
+            wallet = self.wallet, 
+            metagraph=self.metagraph, 
+            axon= self.axon)
+
+    @classmethod
+    def config(cls):
+        return server.config()
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
         """
         bittensor.logging.check_config( config )
@@ -60,7 +106,7 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.wandb.check_config( config )
-        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.server.name ))
-        config.server.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.server.full_path):
-            os.makedirs(config.server.full_path)
+        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
+        config.neuron.full_path = os.path.expanduser(full_path)
+        if not os.path.exists(config.neuron.full_path):
+            os.makedirs(config.neuron.full_path)

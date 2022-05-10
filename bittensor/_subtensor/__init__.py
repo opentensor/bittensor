@@ -17,11 +17,21 @@
 import argparse
 import os
 
+import random
+import time
+import psutil
+import subprocess
+from sys import platform   
+
 import bittensor
 import copy
 from substrateinterface import SubstrateInterface
 
 from . import subtensor_impl
+from . import subtensor_mock
+
+from loguru import logger
+logger = logger.opt(colors=True)
 
 __type_registery__ = {
     "runtime_id": 2,
@@ -55,9 +65,14 @@ __type_registery__ = {
     }
 }
 
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
+
 class subtensor:
-    """
-    Handles interactions with the subtensor chain.
+    """Factory Class for both bittensor.Subtensor and Mock_Subtensor Classes
+
+    The Subtensor class handles interactions with the substrate subtensor chain.
+    By default, the Subtensor class connects to the Nakamoto which serves as the main bittensor network.
+    
     """
     
     def __new__(
@@ -65,34 +80,65 @@ class subtensor:
             config: 'bittensor.config' = None,
             network: str = None,
             chain_endpoint: str = None,
+            _mock: bool = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.subtensor.config()
-                network (default='nakamoto', type=str)
+                network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
+                            -- local (local running network)
                             -- nakamoto (main network)
-                            -- akatsuki (testing network)
                             -- nobunaga (staging network)
+                            -- mock (mock network for testing.)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
-                _mock (bool):
-                    returned object is mocks the underlying chain connection.
+                _mock (bool, `optional`):
+                    Returned object is mocks the underlying chain connection.
         """
         if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
-        if chain_endpoint != None:
-            config.subtensor.network = chain_endpoint
-            config.subtensor.chain_endpoint = chain_endpoint
-        else:
-            config.subtensor.network = network if network != None else config.subtensor.network
-            config.subtensor.chain_endpoint = chain_endpoint if chain_endpoint != None else subtensor.determine_chain_endpoint(config.subtensor.network)
+
+        # Returns a mocked connection with a background chain connection.
+        config.subtensor._mock = _mock if _mock != None else config.subtensor._mock
+        if config.subtensor._mock == True or network == 'mock' or config.subtensor.network == 'mock':
+            config.subtensor._mock = True
+            return subtensor_mock.mock_subtensor.mock()
         
+        # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
+        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
+        # Argument importance: chain_endpoint > network > config.subtensor.chain_endpoint > config.subtensor.network
+       
+        # Select using chain_endpoint arg.
+        if chain_endpoint != None:
+            config.subtensor.chain_endpoint = chain_endpoint
+            config.subtensor.network = network
+            
+        # Select using network arg.
+        elif network != None:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( network )
+            config.subtensor.network = network
+            
+        # Select using config.subtensor.chain_endpoint
+        elif config.subtensor.chain_endpoint != None:
+            config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
+            config.subtensor.network = config.subtensor.network
+         
+        # Select using config.subtensor.network
+        elif config.subtensor.network != None:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.network )
+            config.subtensor.network = config.subtensor.network
+            
+        # Fallback to defaults.
+        else:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( bittensor.defaults.subtensor.network )
+            config.subtensor.network = bittensor.defaults.subtensor.network
+           
         substrate = SubstrateInterface(
-            address_type = 42,
+            ss58_format = 42,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
             url = "ws://{}".format(config.subtensor.chain_endpoint),
@@ -103,7 +149,7 @@ class subtensor:
         return subtensor_impl.Subtensor( 
             substrate = substrate,
             network = config.subtensor.network,
-            chain_endpoint = config.subtensor.chain_endpoint
+            chain_endpoint = config.subtensor.chain_endpoint,
         )
 
     @staticmethod   
@@ -112,20 +158,31 @@ class subtensor:
         subtensor.add_args( parser )
         return bittensor.config( parser )
 
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
+
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
         try:
             parser.add_argument('--subtensor.network', default = bittensor.defaults.subtensor.network, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- nobunaga (staging network)
-                                        -- akatsuki (testing network)
                                         -- nakamoto (master network)
+                                        -- local (local running network)
+                                        -- mock (creates a mock connection (for testing))
                                     If this option is set it overloads subtensor.chain_endpoint with 
                                     an entry point node from that network.
                                     ''')
             parser.add_argument('--subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
+            parser.add_argument('--subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -137,25 +194,25 @@ class subtensor:
         defaults.subtensor = bittensor.Config()
         defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
+        defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
         assert config.subtensor
+        assert config.subtensor.network != None
 
     @staticmethod
     def determine_chain_endpoint(network: str):
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoints__[0]
-        elif network == "akatsuki":
-            # Testing network.
-            return bittensor.__akatsuki_entrypoints__[0]
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoints__[0]
         elif network == "local":
             # Local chain.
             return bittensor.__local_entrypoints__[0]
+        elif network == 'mock':
+            return bittensor.__mock_entrypoints__[0]
         else:
             return bittensor.__local_entrypoints__[0]
-        

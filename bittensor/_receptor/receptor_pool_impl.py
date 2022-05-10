@@ -19,11 +19,14 @@
 
 import math
 from typing import Tuple, List
+from threading import Lock
 
 import torch
 from loguru import logger
 import concurrent
 import bittensor
+import bittensor.utils.networking as net
+from concurrent.futures import ThreadPoolExecutor
 
 logger = logger.opt(colors=True)
 
@@ -34,19 +37,47 @@ class ReceptorPool ( torch.nn.Module ):
         self, 
         wallet: 'bittensor.Wallet',
         thread_pool: 'ThreadPoolExecutor',
-        max_active_receptors: int
+        max_worker_threads: int,
+        max_active_receptors: int,
+        compression: str,
     ):
         super().__init__()
         self.wallet = wallet
         self.thread_pool = thread_pool
+        self.max_worker_threads = max_worker_threads
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
+        self.cull_mutex = Lock()
+        self.max_processes = 10
+        self.compression = compression
+        self.total_requests = 0
+
+
+        
+        try:
+            self.external_ip = str(net.get_external_ip())
+        except Exception:
+            self.external_ip = None
 
     def __str__(self):
         return "ReceptorPool({},{})".format(len(self.receptors), self.max_active_receptors)
 
     def __repr__(self):
         return self.__str__()
+    
+    def __exit__(self):
+        for receptor in self.receptors:
+            receptor.__del__()
+
+    def get_total_requests(self):
+        return self.total_requests
+    def get_receptors_state(self):
+        r""" Return the state of each receptor.
+            Returns:
+                states (:obj:`List[grpc.channel.state]`)
+                    The state of receptor.
+        """
+        return {hotkey: v.state() for hotkey, v in self.receptors.items()}
 
     def forward(
             self, 
@@ -81,16 +112,9 @@ class ReceptorPool ( torch.nn.Module ):
                 forward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
                     dendrite backward call times
         """
+        
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
-        # ---- Run threaded calls with executor ----
-        forward_outputs = []
-        forward_codes = []
-        forward_times = []
-        
-        # --- Create calls ----
-        def _call_receptor_forward_with_args( receptor, inputs, modality ):
-            return receptor.forward( inputs = inputs, modality = modality, timeout = timeout )
 
         # ---- Fill calls ----
         call_args = [ 
@@ -98,16 +122,35 @@ class ReceptorPool ( torch.nn.Module ):
             for (inputs, endpoint) 
             in list(zip( inputs, endpoints )) 
         ]
-        results = self.thread_pool.map( lambda args: _call_receptor_forward_with_args(*args), call_args, timeout=timeout*10)
+
+        # ---- Preprocessing for the forward function, get the request. ---- 
+        requests = []
+        for arg in call_args:
+            self.total_requests += 1
+            receptor, inputs, modality = arg
+            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality ))
+
+        # ---- Send the forward request to peers. ---- 
+        request_futures = []
+        for arg, request in zip(call_args, requests):
+            receptor = arg[0]
+            request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
+
+        # ---- Collect the futures. ---- 
+        results = []
+        for arg, request in zip(call_args, request_futures):
+            receptor = arg[0]
+            results.append(receptor.handle_request_response(request = request))
+            receptor.semaphore.release()
+       
         try:
-            for result in results:
-                forward_outputs.append( result[0] )
-                forward_codes.append( result[1] )
-                forward_times.append( result[2] )
+            forward_outputs, forward_codes, forward_times = zip(*results)
+
         except concurrent.futures._base.TimeoutError:
             forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             forward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
             forward_times= [15] * len(endpoints)
+        
         except Exception as e:
             forward_outputs= [torch.zeros( (inputs[0].size(0), inputs[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
             forward_codes= [bittensor.proto.ReturnCode.UnknownException] * len(endpoints) 
@@ -116,9 +159,9 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
-        
+
         # ---- Return ----
-        return forward_outputs, forward_codes, forward_times
+        return list(forward_outputs), list(forward_codes), list(forward_times)
 
     def backward(
                 self, 
@@ -160,55 +203,66 @@ class ReceptorPool ( torch.nn.Module ):
         if len(endpoints) != len(inputs_x):
             raise ValueError('Endpoints and inputs must have the same length. Got {} and {}'.format(len(endpoints), len(inputs_x)))
 
-        # ---- Run threaded calls with executor ----
-        backward_outputs = []
-        backward_codes = []
-        backward_times = []
-
-        # --- Create calls ----
-        def _call_receptor_backward_with_args( receptor, inputs_x, grads_dy , modality ):
-            return receptor.backward( inputs_x = inputs_x, grads_dy = grads_dy, modality = modality, timeout = timeout )
-
         # ---- Fill calls ----
         call_args = [
             (self._get_or_create_receptor_for_endpoint( endpoint ), inputs_x, grads_dy, modality) 
             for (inputs_x, grads_dy, endpoint) in 
             list(zip( inputs_x, grads_dy, endpoints )) 
         ]
-        results = self.thread_pool.map( lambda args: _call_receptor_backward_with_args(*args), call_args, timeout=timeout*10)
 
-        # --- catch any timeout issues due to threadpool --- 
-        try:
-            for result in results:
-                backward_outputs.append( result[0] )
-                backward_codes.append( result[1] )
-                backward_times.append( result[2] )
-        except concurrent.futures._base.TimeoutError:
-            backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
-            backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
-            backward_times= [15] * len(endpoints)
+        # ---- Preprocessing for the forward function, get the request. ---- 
+        requests = []
+        for arg in call_args:
+            receptor, inputs, grads_dy, modality = arg
+            requests.append(receptor.preprocess_request ( inputs = inputs, modality = modality, grads_dy = grads_dy, backward = True))
+
+        # ---- Send the forward request to peers. ---- 
+        request_futures = []
+        for arg, request in zip(call_args, requests):
+            receptor = arg[0]
+            request_futures.append(receptor.make_request_call(request = request, timeout = timeout))
+            
+        for request_future in request_futures:
+            request_future.future.cancel()
+
+        for arg in call_args:
+            receptor = arg[0]
+            receptor.semaphore.release()
+
+        # ---- Return zeros ----
+        backward_outputs= [torch.zeros( (inputs_x[0].size(0), inputs_x[0].size(1), bittensor.__network_dim__), dtype=torch.float32)] * len(endpoints) 
+        backward_codes= [bittensor.proto.ReturnCode.Timeout] * len(endpoints) 
+        backward_times= [15] * len(endpoints)
 
         # ---- Kill receptors ----
         self._destroy_receptors_over_max_allowed()
         
-        # ---- Return ----
         return backward_outputs, backward_codes, backward_times
 
     def _destroy_receptors_over_max_allowed( self ):
         r""" Destroys receptors based on QPS until there are no more than max_active_receptors.
         """
-
-        # ---- Finally: Kill receptors over max allowed ----
-        while len(self.receptors) > self.max_active_receptors:
-            min_receptor_qps = math.inf
-            receptor_to_remove = None
-            for next_receptor in self.receptors.values():
-                next_qps = next_receptor.stats.forward_qps.value
-                if min_receptor_qps > next_qps:
-                    receptor_to_remove = next_receptor
-            if receptor_to_remove != None:
-                bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
-                del self.receptors[ receptor_to_remove.endpoint.hotkey ]
+        with self.cull_mutex:
+            # ---- Finally: Kill receptors over max allowed ----
+            while len(self.receptors) > self.max_active_receptors:
+                min_receptor_qps = math.inf
+                receptor_to_remove = None
+                for next_receptor in self.receptors.values():
+                    next_qps = next_receptor.stats.forward_qps.value
+                    sema_value = next_receptor.semaphore._value
+                    if (min_receptor_qps > next_qps) and (sema_value == self.max_processes):
+                        receptor_to_remove = next_receptor
+                        min_receptor_qps = next_receptor.stats.forward_qps.value
+                        
+                if receptor_to_remove != None:
+                    try:
+                        bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
+                        self.receptors[ receptor_to_remove.endpoint.hotkey ].close()
+                        del self.receptors[ receptor_to_remove.endpoint.hotkey ]
+                    except KeyError:
+                        pass
+                elif receptor_to_remove == None:
+                    break
 
     def _get_or_create_receptor_for_endpoint( self, endpoint: 'bittensor.Endpoint' ) -> 'bittensor.Receptor':
         r""" Finds or creates a receptor TCP connection associated with the passed Neuron Endpoint
@@ -216,18 +270,19 @@ class ReceptorPool ( torch.nn.Module ):
                 receptor: (`bittensor.Receptor`):
                     receptor with tcp connection endpoint at endpoint.ip:endpoint.port
         """
-
         # ---- Find the active receptor for this endpoint ----
         if endpoint.hotkey in self.receptors:
             receptor = self.receptors[ endpoint.hotkey ]
 
             # Change receptor address.
             if receptor.endpoint.ip != endpoint.ip or receptor.endpoint.port != endpoint.port:
-                del receptor
+                #receptor.close()
                 bittensor.logging.update_receptor_log( endpoint )
                 receptor = bittensor.receptor (
                     endpoint = endpoint, 
-                    wallet = self.wallet
+                    wallet = self.wallet,
+                    external_ip = self.external_ip,
+                    max_processes = self.max_processes
                 )            
                 self.receptors[ receptor.endpoint.hotkey ] = receptor
 
@@ -236,8 +291,12 @@ class ReceptorPool ( torch.nn.Module ):
             bittensor.logging.create_receptor_log( endpoint )
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
-                    wallet = self.wallet
+                    wallet = self.wallet,
+                    external_ip = self.external_ip,
+                    max_processes = self.max_processes,
+                    compression = self.compression
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
-
+            
+        receptor.semaphore.acquire()
         return receptor
