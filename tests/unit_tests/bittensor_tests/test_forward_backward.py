@@ -15,13 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor._endpoint import endpoint
-import bittensor
-import torch
-import pytest
-from unittest.mock import MagicMock
-from torch.autograd import Variable
 import time
+from unittest.mock import MagicMock
+
+import pytest
+import torch
+from torch.autograd import Variable
+
+import bittensor
+from bittensor._endpoint import endpoint
+from tests.utils import get_random_unused_port
 
 wallet = bittensor.wallet.mock()
 bittensor.logging(debug = True)
@@ -177,8 +180,10 @@ def test_axon_receptor_forward_works():
     def forward( inputs_x:torch.FloatTensor):
         time.sleep(0.2)
         return torch.zeros([3, 3, bittensor.__network_dim__])
+
+    axon_port = get_random_unused_port()
     axon = bittensor.axon (
-        port = 8090,
+        port = axon_port,
         ip = '0.0.0.0',
         wallet = wallet,
     )
@@ -193,7 +198,7 @@ def test_axon_receptor_forward_works():
             hotkey = wallet.hotkey.ss58_address,
             ip = '0.0.0.0', 
             ip_type = 4, 
-            port = 8090, 
+            port = axon_port,
             modality = 2, 
             coldkey = wallet.coldkey.ss58_address
         )
@@ -201,7 +206,7 @@ def test_axon_receptor_forward_works():
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
     receptors_states = dendrite.receptor_pool.get_receptors_state()
-    
+    # TODO: Fails locally independent of multiprocessing.
     assert receptors_states[endpoint.hotkey] == receptors_states[endpoint.hotkey].READY
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
     assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
@@ -212,9 +217,10 @@ def test_dendrite_call_time():
     def forward( inputs_x:torch.FloatTensor):
         time.sleep(12)
         return torch.zeros([3, 3, bittensor.__network_dim__])
-    
+
+    axon_port = get_random_unused_port()
     axon = bittensor.axon (
-        port = 8091,
+        port = axon_port,
         ip = '0.0.0.0',
         wallet = wallet,
     )
@@ -229,7 +235,7 @@ def test_dendrite_call_time():
             hotkey = wallet.hotkey.ss58_address,
             ip = '0.0.0.0', 
             ip_type = 4, 
-            port = 8091, 
+            port = axon_port,
             modality = 2, 
             coldkey = wallet.coldkey.ss58_address
         )
