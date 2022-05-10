@@ -7,7 +7,7 @@ import time
 import os
 
 from . import subtensor_impl
-from tests.utils import get_random_unused_port
+from bittensor.utils.test_utils import get_random_unused_port
 
 __type_registery__ = {
     "runtime_id": 2,
