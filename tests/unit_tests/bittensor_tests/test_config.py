@@ -26,7 +26,12 @@ def test_loaded_config():
 
 def test_strict():
     parser = argparse.ArgumentParser()
-    parser.add_argument("arg", help="Dummy Args")
+
+    # Positional/mandatory arguments don't play nice with multiprocessing.
+    # When the CLI is used, the argument is just the 0th element or the filepath.
+    # However with multiprocessing this function call actually comes from a subprocess, and so there
+    # is no positional argument and this raises an exception when we try to parse the args later.
+    # parser.add_argument("arg", help="Dummy Args")
     parser.add_argument("--cov", help="Dummy Args")
     parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
     parser.add_argument("--cov-config",  help="Dummy Args")
