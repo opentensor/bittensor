@@ -18,6 +18,7 @@
 import bittensor
 from unittest.mock import MagicMock
 import os
+import time
 import shutil
 from bittensor.utils.balance import Balance
 
@@ -25,11 +26,12 @@ from bittensor.utils.balance import Balance
 subtensor = bittensor.subtensor(network = 'nobunaga')
 
 def init_wallet():
-    if os.path.exists('/tmp/pytest'):
-        shutil.rmtree('/tmp/pytest')
+    wallet_path = f"/tmp/pytest/{time.time()}"
+    if os.path.exists(wallet_path):
+        shutil.rmtree(wallet_path)
     
     the_wallet = bittensor.wallet (
-        path = '/tmp/pytest',
+        path = wallet_path,
         name = 'pytest',
         hotkey = 'pytest',
     )
