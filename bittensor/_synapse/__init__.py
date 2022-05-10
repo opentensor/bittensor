@@ -160,12 +160,12 @@ class Synapse:
         return backward_request_gradient
 
 
-    def serialize_forward_request_tensor( self, forward_request_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:        
-    def deserialize_forward_request_tensor( self, forward_request_proto: torch.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def serialize_forward_response_tensor( self, foward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def deserialize_forward_response_proto( self, foward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def serialize_backward_request_gradient( self, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def deserialize_backward_request_gradient( self, backward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    #def serialize_forward_request_tensor( self, forward_request_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:        
+    #def deserialize_forward_request_tensor( self, forward_request_proto: torch.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    #def serialize_forward_response_tensor( self, foward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    #def deserialize_forward_response_proto( self, foward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    #def serialize_backward_request_gradient( self, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    #def deserialize_backward_request_gradient( self, backward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
 
 class TextCausalLM (Synapse):
     """ CausalLM Synape type for training NTP    
