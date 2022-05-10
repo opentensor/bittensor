@@ -122,7 +122,7 @@ class Synapse:
         tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
         return tensor_serialzier.serialize( tensor = forward_request_tensor, to_type = bittensor.proto.TensorType.TORCH )
 
-    def deserialize_forward_request_tensor( self, forward_request_proto: torch.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    def deserialize_forward_request_tensor( self, forward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
         forward_request_tensor = tensor_deserialzier.deserialize( tensor = forward_request_proto, from_type = bittensor.proto.TensorType.TORCH )
