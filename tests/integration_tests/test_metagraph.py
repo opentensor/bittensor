@@ -45,7 +45,7 @@ class TestMetagraph(unittest.TestCase):
     def test_factory(self):
         self.metagraph.load().sync().save()
 
-    @pytest.mark.flaky(reruns=5)
+    @pytest.mark.flaky(max_runs=5)
     def test_forward(self):
         metagraph = self.metagraph
         row = torch.ones( (metagraph.n), dtype = torch.float32 )
