@@ -85,7 +85,8 @@ class mock_subtensor():
         """
         for p in psutil.process_iter():
             if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
-               return True
+                print(f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}")
+                return True
         return False
 
     @classmethod
