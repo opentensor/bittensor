@@ -330,7 +330,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             tensor_inputs = request.tensors[0]
             modality = tensor_inputs.modality
             try:
-                deserializer = bittensor.serializer( serialzer_type = tensor_inputs.serializer )
+                deserializer = bittensor.serializer( serializer_type = tensor_inputs.serializer )
                 torch_inputs = deserializer.deserialize(tensor_inputs, to_type = bittensor.proto.TensorType.TORCH)
             except Exception as e:
                 code = bittensor.proto.ReturnCode.RequestDeserializationException

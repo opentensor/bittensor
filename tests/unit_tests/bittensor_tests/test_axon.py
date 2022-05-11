@@ -40,7 +40,7 @@ def test_sign():
 
 def test_forward_wandb():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -53,7 +53,7 @@ def test_forward_wandb():
 
 def test_forward_not_implemented():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
   
     request = bittensor.proto.TensorMessage(
@@ -68,7 +68,7 @@ def test_forward_tensor_success():
         return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_forward_callback( forward, modality=2)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -82,7 +82,7 @@ def test_forward_tensor_success_image():
         return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_forward_callback( forward, modality=1)
     inputs_raw = torch.rand(1,1,1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -93,7 +93,7 @@ def test_forward_tensor_success_image():
 
 def test_forward_empty_request():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
   
     request = bittensor.proto.TensorMessage(
@@ -116,7 +116,7 @@ def test_forward_deserialization_error():
 
 def test_forward_batch_shape_error():
     inputs_raw = torch.rand(0, 1, 1)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
@@ -128,7 +128,7 @@ def test_forward_batch_shape_error():
 
 def test_forward_seq_shape_error():
     inputs_raw = torch.rand(1, 0, 1)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
@@ -140,7 +140,7 @@ def test_forward_seq_shape_error():
 
 def test_forward_text_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
@@ -152,7 +152,7 @@ def test_forward_text_shape_error():
 
 def test_forward_image_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
@@ -164,7 +164,7 @@ def test_forward_image_shape_error():
 
 def test_forward_tensor_shape_error():
     inputs_raw = torch.rand(1, 1, 1, 1)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
@@ -179,7 +179,7 @@ def test_forward_deserialization_empty():
         return None
     axon.attach_forward_callback( forward, modality = bittensor.proto.Modality.TENSOR)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
   
     request = bittensor.proto.TensorMessage(
@@ -195,7 +195,7 @@ def test_forward_response_deserialization_error():
         return dict()
     axon.attach_forward_callback( forward, modality = bittensor.proto.Modality.TENSOR)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
   
     request = bittensor.proto.TensorMessage(
@@ -214,7 +214,7 @@ def test_forward_tensor_exception():
             raise Exception('Mock')
     axon.attach_forward_callback( forward, modality=2)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -232,7 +232,7 @@ def test_forward_tensor_timeout():
             raise TimeoutError('Timeout')
     axon.attach_forward_callback( forward, modality=2)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -248,7 +248,7 @@ def test_forward_unknown_error():
         raise Exception('Unknown')
     with mock.patch.object(axon, '_call_forward', new=forward):
         inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
         request = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
@@ -263,7 +263,7 @@ def test_forward_unknown_error():
 
 def test_backward_invalid_request():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
 
     request = bittensor.proto.TensorMessage(
@@ -277,7 +277,7 @@ def test_backward_invalid_request():
 def test_backward_response_not_implemented():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -302,7 +302,7 @@ def test_backward_deserialization_error():
 def test_backward_text_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -316,7 +316,7 @@ def test_backward_text_shape_error():
 def test_backward_image_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -330,7 +330,7 @@ def test_backward_image_shape_error():
 def test_backward_tensor_shape_error():
     inputs_raw = torch.rand(1, 1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -344,7 +344,7 @@ def test_backward_tensor_shape_error():
 def test_backward_grads_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -358,7 +358,7 @@ def test_backward_grads_shape_error():
 def test_backward_grad_inputs_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(2, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -375,7 +375,7 @@ def test_backward_response_serialization_error():
     axon.attach_backward_callback( backward, modality=bittensor.proto.Modality.TENSOR)
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -392,7 +392,7 @@ def test_backward_response_empty_error():
     axon.attach_backward_callback( backward,modality=bittensor.proto.Modality.TENSOR)
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -409,7 +409,7 @@ def test_backward_response_success_text():
     axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TEXT )
     inputs_raw = torch.ones((1, 1))
     grads_raw = torch.zeros((1, 1, bittensor.__network_dim__))
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -426,7 +426,7 @@ def test_backward_response_success_image():
     axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.IMAGE )
     inputs_raw = torch.ones((1, 1,1,1,1))
     grads_raw = torch.zeros((1, 1, bittensor.__network_dim__))
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -443,7 +443,7 @@ def test_backward_response_success():
     axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TENSOR )
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -463,7 +463,7 @@ def test_backward_response_timeout():
     axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TENSOR )
     inputs_raw = torch.rand(2, 2, 2)
     grads_raw = torch.rand(2, 2, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -483,7 +483,7 @@ def test_backward_response_exception():
     axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TENSOR )
     inputs_raw = torch.rand(2, 2, 2)
     grads_raw = torch.rand(2, 2, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -507,7 +507,7 @@ def test_forward_tensor_success_priority():
         return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_forward_callback( forward, modality=2)
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -528,7 +528,7 @@ def test_backward_response_success_text_priority():
     axon.attach_backward_callback( backward,modality = bittensor.proto.Modality.TEXT )
     inputs_raw = torch.ones((1, 1))
     grads_raw = torch.zeros((1, 1, bittensor.__network_dim__))
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -558,7 +558,7 @@ def test_grpc_forward_works():
     stub = bittensor.grpc.BittensorStub( channel )
 
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     synapse_serializer = bittensor.synapse_serializer()
     args = {'type_num': 5, 'size':10, 'num_to_generate':5, 'blah':[1,2]}
@@ -602,7 +602,7 @@ def test_grpc_forward_works_gzip():
     stub = bittensor.grpc.BittensorStub( channel )
 
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -642,7 +642,7 @@ def test_grpc_forward_works_deflate():
     stub = bittensor.grpc.BittensorStub( channel )
 
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -683,7 +683,7 @@ def test_grpc_backward_works():
 
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
@@ -719,7 +719,7 @@ def test_grpc_forward_fails():
     stub = bittensor.grpc.BittensorStub( channel )
 
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -754,7 +754,7 @@ def test_grpc_backward_fails():
 
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
     grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
