@@ -1,4 +1,5 @@
 
+from multiprocessing.sharedctypes import Value
 from yaml import serialize_all
 import bittensor
 import torch
@@ -294,15 +295,38 @@ class TextSeq2Seq (Synapse):
                 message = message
             )
 
-    def check_forward_request_tensor     ( self, foward_request_tensor ): pass
-    def check_forward_response_tensor    ( self, foward_request_tensor, forward_response_tensor ): pass
-    def check_backward_request_gradient  ( self, foward_request_tensor, backward_request_gradient ): pass
-    def encode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
-    def decode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
-    def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
-    def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
-    def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
-    def decode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
+    def check_forward_request_tensor     ( self, foward_request_tensor ):
+        if len( foward_request_tensor.shape ) != 2:
+            raise ValueError( "foward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(foward_request_tensor.shape), self ) ) 
+
+    def check_forward_response_tensor    ( self, foward_request_tensor, forward_response_tensor ):
+        if ( len( forward_response_tensor.shape ) != 3 or
+             forward_response_tensor.size(0) != foward_request_tensor.size(0) or
+             forward_response_tensor.size(1) != self.num_to_generate or
+             forward_response_tensor.size(2) != self.topk
+            ):
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( foward_request_tensor.size(0) , self.num_to_generate, self.topk, list(forward_response_tensor.shape), self ) ) 
+
+    def check_backward_request_gradient  ( self, foward_request_tensor, backward_request_gradient ):
+        if list( backward_request_gradient.shape ) != list( foward_request_tensor.shape ):
+            raise ValueError( "backward_request_gradient.shape: {} must be equivalent to foward_request_tensor.shape: {} for synapse: {}".format( list( backward_request_gradient.shape ), list(foward_request_tensor.shape), self ) ) 
+
+    def encode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: 
+        return foward_request_tensor
+    def decode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: 
+        return foward_request_tensor
+    def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
+        # Apply topk logit encoding.
+        return forward_response_tensor
+    def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
+        # Decode topk logit encoding.
+        return forward_response_tensor
+    def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: 
+        # Apply topk logit encoding for gradients.
+        return backward_request_gradient
+    def decode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor:
+        # Decode topk logit encoding for gradients.
+        return backward_request_gradient
 
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite forward call when the call fails."""
