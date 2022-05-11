@@ -48,15 +48,7 @@ jobs:
           name: Run tests
           # This assumes pytest is installed via the install-package step above
           command: |
-            set -e
-            TEST_FILES=$(circleci tests glob "tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
-            mkdir -p test-results
-            pytest -n 2 --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
-
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
+            pytest --splitting-algorithm least_duration --splits $CIRCLE_NODE_TOTAL --group $CIRCLE_NODE_INDEX
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
