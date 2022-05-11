@@ -370,7 +370,7 @@ class Dendrite(torch.autograd.Function):
         self,
         endpoints: Union [ torch.LongTensor, List [ torch.LongTensor ], List[ 'bittensor.Endpoint' ], 'bittensor.Endpoint' ],
         inputs: Union [ str, List[ str ], List [ torch.LongTensor ], torch.LongTensor],
-        synapse: Optional[ 'bittensor.synapse.TextCasualLM' ] = bittensor.synapse.TextCasualLM(),
+        synapse: Optional[ 'bittensor.synapse.TextCausalLM' ] = synapse.TextCausalLM(),
         timeout: Optional [ int ] = None,
         requires_grad: Optional [ bool ] = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
@@ -395,8 +395,8 @@ class Dendrite(torch.autograd.Function):
                             - a list of tensors of type long each representing a tokenized sentence to be sent to each endpoint.
                         If inputs are tensors they will be cast to int64 format before sending on the wire.
 
-                    synapse (:type:`'bittensor.synapse.TextCasualLM'`, default = bittensor.synapse.TextCasualLM(), `optional`):
-                        Synapse axon function call which defaults to bittensor.synapse.TextCasualLM().
+                    synapse (:type:`'bittensor.synapse.TextCausalLM'`, default = bittensor.synapse.TextCausalLM(), `optional`):
+                        Synapse axon function call which defaults to bittensor.synapse.TextCausalLM().
                     
                     timeout (:type:`int`, default = dendrite.timeout `optional`):
                         Request timeout. Queries that do not respond will be replaced by zeros.
@@ -442,7 +442,7 @@ class Dendrite(torch.autograd.Function):
             self,
             endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
-            synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = bittensor.synapse.TextLastHiddenState(),
+            synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = synapse.TextLastHiddenState(),
             timeout: int = None,
             requires_grad: bool = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:

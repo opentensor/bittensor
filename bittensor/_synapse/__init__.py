@@ -116,13 +116,13 @@ class Synapse:
     def encode_backward_response_gradient ( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor: return backward_response_gradient
     def decode_backward_response_gradient ( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor: return backward_response_gradient
 
-    def serialize_forward_request_tensor( self, forward_request_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:        
+    def serialize_forward_request_tensor( self, forward_request_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:        
         self.check_forward_request_tensor ( forward_request_tensor )
         forward_request_tensor = self.encode_forward_request_tensor ( forward_request_tensor )
         tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
         return tensor_serialzier.serialize( tensor = forward_request_tensor, to_type = bittensor.proto.TensorType.TORCH )
 
-    def deserialize_forward_request_tensor( self, forward_request_proto: torch.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    def deserialize_forward_request_tensor( self, forward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
         forward_request_tensor = tensor_deserialzier.deserialize( tensor = forward_request_proto, from_type = bittensor.proto.TensorType.TORCH )
@@ -130,7 +130,7 @@ class Synapse:
         self.check_forward_request_tensor ( forward_request_tensor )
         return forward_request_tensor
 
-    def serialize_forward_response_tensor( self, foward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    def serialize_forward_response_tensor( self, foward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a bittensor.proto.Tensor to be sent on the wire after relevant serialization applied. """        
         self.check_forward_response_tensor ( foward_request_tensor, forward_response_tensor )
         encoded_tensor = self.encode_forward_response_tensor ( forward_response_tensor )
@@ -160,12 +160,12 @@ class Synapse:
         return backward_request_gradient
 
 
-    def serialize_forward_request_tensor( self, forward_request_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:        
-    def deserialize_forward_request_tensor( self, forward_request_proto: torch.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def serialize_forward_response_tensor( self, foward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'torch.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def deserialize_forward_response_proto( self, foward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def serialize_backward_request_gradient( self, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-    def deserialize_backward_request_gradient( self, backward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    def serialize_forward_request_tensor( self, forward_request_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]: pass
+    def deserialize_forward_request_tensor( self, forward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]: pass
+    def serialize_forward_response_tensor( self, foward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]: pass
+    def deserialize_forward_response_proto( self, foward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]: pass
+    def serialize_backward_request_gradient( self, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]: pass
+    def deserialize_backward_request_gradient( self, backward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]: pass
 
 class TextCausalLM (Synapse):
     """ CausalLM Synape type for training NTP    
@@ -202,7 +202,7 @@ class TextCausalLM (Synapse):
     @staticmethod
     def deserialize_from_wire_proto ( wire_proto: bittensor.proto.Synapse ) -> 'TextCausalLM':
         instance_proto = bittensor.proto.Synapse.TextCausalLM()
-        instance_proto.ParseFromString( wire_proto.args_data )
+        instance_proto.ParseFromString( wire_proto.synapse_data )
         return TextCausalLM.deserialize_from_instance_proto( instance_proto )
 
     def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextCausalLM':
@@ -216,7 +216,7 @@ class TextCausalLM (Synapse):
 
     def serialize_to_wire_proto ( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> bittensor.proto.Synapse:
         return bittensor.proto.Synapse (
-                args_data = self.serialize_to_instance_proto().SerializeToString(),
+                synapse_data = self.serialize_to_instance_proto().SerializeToString(),
                 synapse_type = TextCausalLM.synapse_type,
                 return_code = code,
                 message = message
@@ -279,7 +279,7 @@ class TextSeq2Seq (Synapse):
     def deserialize_from_wire_proto ( wire_proto: bittensor.proto.Synapse ) -> 'Synapse':
         """ Deserialzied the wire proto to an instance class. """
         instance_proto = bittensor.proto.Synapse.TestSeq2Seq()
-        instance_proto.ParseFromString( wire_proto.args_data )
+        instance_proto.ParseFromString( wire_proto.synapse_data )
         return TextSeq2Seq.deserialize_from_instance_proto( instance_proto )
 
     def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextSeq2Seq':
@@ -296,7 +296,7 @@ class TextSeq2Seq (Synapse):
     def serialize_to_wire_proto( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = ''  ) -> bittensor.proto.Synapse:
         """ Serializes the class instance to a Synapse wire proto. """
         return bittensor.proto.Synapse (
-                args_data = self.serialize_to_instance_proto().SerializeToString(),
+                synapse_data = self.serialize_to_instance_proto().SerializeToString(),
                 synapse_type = TextSeq2Seq.synapse_type,
                 return_code = code,
                 message = message
@@ -360,8 +360,25 @@ class TextLastHiddenState (Synapse):
         """ Deserialzied the wire proto to an instance class.
         """
         instance_proto = bittensor.proto.Synapse.TextLastHiddenState()
-        instance_proto.ParseFromString( wire_proto.args_data )
+        instance_proto.ParseFromString( wire_proto.synapse_data )
         return TextLastHiddenState.deserialize_from_instance_proto( instance_proto )
+
+    @staticmethod
+    def deserialize_from_instance_proto ( instance_proto: bittensor.proto.Synapse ) -> 'Synapse':
+        """ Deserialzied the instance proto to an instance class.
+            Args:
+                isntance_proto (:obj:`bittensor.proto.Synapse` of shape :obj:`(1)`, `required`):
+                    Synapse instance proto to be deserialized.
+            Returns:
+                synapse_instance_clasee (:obj:`torch.Tensor`, `required`):
+                    Deserialized instance class.
+        """
+        return TextLastHiddenState (
+            forward_request_serializer_type = instance_proto.forward_request_serializer_type,
+            forward_response_serializer_type = instance_proto.forward_response_serializer_type,
+            backward_request_serializer_type = instance_proto.backward_request_serializer_type,
+            backward_response_serializer_type = instance_proto.backward_response_serializer_type,
+        )
 
     def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextLastHiddenState':
         """ Serializes the class instance to a Synapse instance proto.
@@ -377,7 +394,7 @@ class TextLastHiddenState (Synapse):
         """ Serializes the class instance to a Synapse wire proto.
         """
         return bittensor.proto.Synapse (
-                args_data = self.serialize_to_instance_proto().SerializeToString(),
+                synapse_data = self.serialize_to_instance_proto().SerializeToString(),
                 synapse_type = TextLastHiddenState.synapse_type,
                 return_code = code,
                 message = message
