@@ -18,6 +18,7 @@
 import bittensor
 import torch
 import unittest
+import pytest
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 
 
@@ -44,6 +45,7 @@ class TestMetagraph(unittest.TestCase):
     def test_factory(self):
         self.metagraph.load().sync().save()
 
+    @pytest.mark.flaky(reruns=5)
     def test_forward(self):
         metagraph = self.metagraph
         row = torch.ones( (metagraph.n), dtype = torch.float32 )
