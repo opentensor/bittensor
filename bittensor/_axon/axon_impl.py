@@ -109,21 +109,19 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (bittensor.proto.TensorMessage): 
                     proto response carring the nucleus forward output or None under failure.
         """
-        tensor, code, time, messages, synapses = self._forward( request )
+        forward_response_tensors, code, synapses = self._forward( request )
+        # TODO(eugene) Shouldnt we be signing these responses ?
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
             return_code = code,
-            message = 'Success',
-            tensors = tensor if tensor is not None else [],
-            requires_grad = True,
+            tensors = forward_response_tensors if forward_response_tensors is not None else [],
+            requires_grad = request.requires_grad,
             synapses = synapses,
         )
-        # ---- Update stats for this request.
-        self.update_stats_for_request( request, response, time, code)
         return response
 
-    def Backward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
+    def Backward( self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext ) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Backward requests from other neurons.
             Backward is equivalent to a 'backward' gradient descent pass through a neural network.
             After checking request validity, passes the request to the nucleus for processing.
@@ -139,152 +137,21 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response (:obj:`bittensor.proto.TensorMessage`): 
                     proto response carring the nucleus backward output or None under failure.
         """
-        tensor, code, time, message, synapses = self._backward( request )
+        backward_response_tensors, code, synapses = self._backward( request )
+        # TODO(eugene) Shouldnt we be signing these responses ?
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
             return_code = code,
-            message = message,
-            tensors = [tensor] if tensor is not None else [],
-            requires_grad = True,
-            synapses=synapses
+            tensors = backward_response_tensors,
+            requires_grad = request.requires_grad,
+            synapses = synapses
         )
-        self.update_stats_for_request( request, response, time, code )
         return response
-
-    def _call_forward(
-            self, 
-            public_key: str, 
-            inputs_x: torch.Tensor, 
-            synapses: list,
-        ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Calls the forward callback served by the nucleus.
-            
-            Args:
-                public_key (str, `required`): 
-                    public key of the sender
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be forward processed.
-                synapses (list, `require`):
-                    a list of synapses that is to be called by the forward funciton
-            
-            Returns:
-                response (:obj:`list of torch.FloatTensor, `required`): 
-                    list of Torch tensor response from miner processes.
-                code (:obj:`list of bittensor.proto.ReturnCode, `required`)
-                    list of return code associated with forward call i.e. Success of Timeout.
-                message (list of str, `required`): 
-                    list of message associated with forward call, potentially error, or 'success'.
-
-        """
-        # Make forward call.
-        try:
-            if self.priority != None:
-                priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.FORWARD)
-                future = self.priority_threadpool.submit(
-                    self.forward_callback,
-                    inputs_x=inputs_x, 
-                    synapses=synapses,
-                    priority=priority
-                )
-                
-                try:
-                    response_tensor, codes, messages = future.result(timeout= self.forward_timeout)
-                except concurrent.futures.TimeoutError :
-                    raise TimeoutError('TimeOutError')
-                except Exception as e:
-                    logger.error('Error found: {}, with message {}'.format(repr(e), e))
-
-            else:
-                response_tensor, codes, messages = self.forward_callback(
-                     inputs_x= inputs_x,
-                     synapses= synapses,
-                )
-
-            return response_tensor, codes, messages, synapses
-
-        except Exception as e:
-            response_tensor = None
-            message = "Error calling forward callback: {}".format(e)
-            if isinstance(e, TimeoutError):
-                code = bittensor.proto.ReturnCode.Timeout
-            else:
-                code = bittensor.proto.ReturnCode.UnknownException
-            return response_tensor, code, message, synapses
-
-    def _call_backward(
-            self, 
-            public_key: str, 
-            inputs_x: torch.Tensor, 
-            grads_dy: torch.FloatTensor,
-            synapses: list,
-        ) -> Tuple[ torch.FloatTensor, int, str ]:
-        r""" Calls the backward callback.
-            
-            Args:
-                public_key (str, `required`): 
-                    public key of the sender
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be backward processed.
-                grads_dy ( :obj:`torch.Tensor`, `required`):
-                    torch gradient inputs to be backward processed with inputs.
-                synapses ( list , `required`):
-                    a list of synapses that is to be called by the backward funciton
-            
-            Returns:
-                response (:obj:`list of torch.FloatTensor, `required`): 
-                    list of Torch tensor response from miner processes.
-                code (:obj:`list of bittensor.proto.ReturnCode, `required`)
-                    list of return code associated with forward call i.e. Success of Timeout.
-                message (str, `required`): 
-                    list of message associated with forward call, potentially error, or 'success'.
-        """
-        #initalize response variables
-        response_codes = []
-        response_messages = []
-        response_tensors = []
-        message = 'Success'
-        code = bittensor.proto.ReturnCode.Success
-        
-        try:
-            #priority check
-            if self.priority != None:
-                try:
-                    priority = self.priority(public_key,inputs_x=inputs_x, request_type = bittensor.proto.RequestType.BACKWARD)
-                    future = self.priority_threadpool.submit(
-                        self.backward_callback, 
-                        inputs_x=inputs_x, 
-                        grads_dy=grads_dy,
-                        synapses=synapses,
-                        priority=priority
-                    )
-
-                except concurrent.futures.TimeoutError :
-                    raise TimeoutError('TimeOutError')
-                except Exception as e:
-                    logger.error('Error found: {}, with message {}'.format(repr(e), e))
-            else:
-                #Calling default
-                 self.backward_callback(inputs_x, grads_dy, synapses= synapses)
-
-        except Exception as e:
-            message = "Error calling backward callback: {}".format(e)
-            if isinstance(e, TimeoutError):
-                code = bittensor.proto.ReturnCode.Timeout
-            else:
-                code = bittensor.proto.ReturnCode.UnknownException
-
-        # --- empty response --- 
-        for _ in synapses:
-            response_tensors.append(None)
-            response_codes.append(code)
-            response_messages.append(message)
-
-        return response_tensors, response_codes, response_messages 
 
     def _forward(self, request):
         r""" Performs validity checks on the grpc request before passing the tensors to the forward queue.
-            Returns the output, message and code from the backend forward call.
+            Returns the outputs and synapses from the backend forward call.
             
             Args:
                 request (:obj:`bittensor.proto`, `required`): 
@@ -292,260 +159,313 @@ class Axon( bittensor.grpc.BittensorServicer ):
             Returns:
                 response (:obj:`bittensor.proto.Tensor, `required`): 
                     serialized tensor response from the nucleus call or None.
-                code (:obj:`bittensor.proto.ReturnCode, `required`)
-                    return code associated with forward call i.e. Success of Timeout.
-                time (:type:`float`, `required`):
-                    Length of call in seconds.
-                message (str, `required`): 
-                    message associated with forward call, potentially error, or 'success'.
+                code (:obj:`bittensor.proto.ReturnCode`, `required`):
+                    Code from the call. This specifies if the overall function call was a success. 
+                    This is separate from the synapse returns codes which relate to the individual synapse call. 
+                synapses (:obj:`List[ 'bittensor.proto.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Synapse wire protos with return codes from forward request.
         """
+        # ===================================================================
+        # ==== First deserialize synapse wire protos to instance objects ====        
+        # ===================================================================
+        synapses: List['bittensor.Synapse'] = []
+        for synapse_wire_proto in request.synapses:
+            synapses.append( bittensor.synapse.deserialize( synapse_wire_proto ) )
+
+
+        # ===================================
+        # ==== Init params from synapses ====        
+        # ===================================
+        # These items are filled through the call and the function returns 
+        # when all codes are non-success or the function finishes completely.
+        synapse_messages = [ "Success" for _ in synapses ]
+        synapse_codes = [ bittensor.proto.ReturnCode.Success for _ in synapses ]
+        synapse_inputs = [ None for _ in synapses ]
+        synapse_responses = [ None for _ in synapses ] # We fill nones for non success.
+        synapse_is_response = [ False for _ in synapses ]
+        synapse_call_times = [ 0 for _ in synapses ]
         start_time = clock.time()
 
-        # --- Function that logs each individual response from synapses ---
-        def finalize_logs():
+        # ==================================================================
+        # ==== Function which returns true if all codes are non success ====
+        # ==================================================================
+        def check_if_should_return() -> bool:
+            for code in synapse_codes:
+                if code == bittensor.proto.ReturnCode.Success:
+                    return False
+            return True
+
+
+        # ==============================================================
+        # ==== Function which prints all log statements per synapse ====
+        # ==============================================================
+        def finalize_codes_stats_and_logs():
+            self.stats.forward_elapsed_time.update( clock.time() - start_time )
             for index, _ in enumerate( synapses ):
+                self.stats.codes[ synapse_codes[ index ] ] += 1
+                request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
+                request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
                     axon = True, 
                     forward = True, 
-                    is_response = True, 
-                    code = codes[ index ], 
-                    call_time = call_time, 
+                    is_response = synapse_is_response [index], 
+                    code = synapse_codes[ index ], 
+                    call_time = synapse_call_times[ index ], 
                     pubkey = request.hotkey, 
-                    inputs = list(torch_inputs.shape), 
-                    outputs = None if codes[ index ] != bittensor.proto.ReturnCode.Success else list( outputs[index].shape ), 
-                    message = messages[index]
+                    inputs = synapse_inputs [index] , 
+                    outputs = None if synapse_codes[ index ] != bittensor.proto.ReturnCode.Success else list( synapse_responses[index].shape ), 
+                    message = synapse_messages[ index ]
                 )
 
-        # --- Initial Checks of the request tensor ---
-        try:
-            # ---- Check Empty request ----
-            if len(request.tensors) == 0:
-                code = bittensor.proto.ReturnCode.EmptyRequest
-                message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
-                return None, code, call_time, message
+        # ======================================
+        # ==== Check response length ====
+        # ======================================
+        if len( request.tensors ) != len( synapses ):
+            # Not enough responses per request.
+            code = bittensor.proto.ReturnCode.ResponseShapeException
+            call_time = clock.time() - start_time
+            message = "Request length doesn't match synape length."
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.ResponseShapeException, request.synapses
 
-            # ---- Check deserialization ----
-            tensor_inputs = request.tensors[0]
-            modality = tensor_inputs.modality
+
+        # ===================================
+        # ==== Deeerialize/Decode inputs ====
+        # ===================================
+        deserialized_forward_tensors = []
+        for index, synapse in enumerate( synapses ):
             try:
-                deserializer = bittensor.serializer( serializer_type = tensor_inputs.serializer )
-                torch_inputs = deserializer.deserialize(tensor_inputs, to_type = bittensor.proto.TensorType.TORCH)
+                deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
             except Exception as e:
-                code = bittensor.proto.ReturnCode.RequestDeserializationException
-                message = "Request deserialization exception: {}".format(str(e))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
-                return None, code, call_time, message, [] 
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [index] = 'Input deserialization exception with error:{}'.format(str(e))
+        # Check if the call can stop here.
+        if check_if_should_return():
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.RequestSerializationException, request.synapses
 
-            # ---- Check shape and modality ----
-            # ---- Invalid Batch dimension ----
-            if list(torch_inputs.shape)[0] < 1:
-                code = bittensor.proto.ReturnCode.RequestShapeException
-                message = "Forward request batch dim exception with batch_size = {} ".format(list(torch_inputs.shape)[0])
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
-                return None, code, call_time, message, []
 
-            # ---- Invalid Sequence dimension ----
-            if list(torch_inputs.shape)[1] < 1:
-                code = bittensor.proto.ReturnCode.RequestShapeException
-                message = "Forward request sequence dim exception with sequence_dim = {} ".format(list(torch_inputs.shape)[1])
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
-                return None, code, call_time, message, []
-
-        except Exception as e:
-            # --- Error in request tensor ---
-            code = bittensor.proto.ReturnCode.UnknownException
-            message = 'exception in preprocessing forward call with error: {}'.format(e)
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
-            return None, code, call_time, message, []
-        
-        # --- deserialization of synapses --- 
-        synapses = [bittensor.synapse.deserialize(synapse) for synapse in request.synapses]
-        # Post process.
+        # ===================================
+        # ==== Make forward calls. =========
+        # ===================================
         try:
-            messages = [ "NoReturn" for _ in synapses ]
-            codes = [ bittensor.proto.ReturnCode.NoReturn for _ in synapses ]
-            outputs = None
+            if self.priority != None:
+                priority = self.priority( request.hotkey, inputs_x = deserialized_forward_tensors, request_type = bittensor.proto.RequestType.FORWARD )
+                future = self.priority_threadpool.submit (
+                    self.forward_callback,
+                    inputs_x = deserialized_forward_tensors, 
+                    synapses = synapses,
+                    priority = priority
+                )
+                forward_response_tensors, codes, messages = future.result( timeout= self.forward_timeout )
+            else:
+                forward_response_tensors, codes, messages = self.forward_callback(
+                    inputs_x = deserialized_forward_tensors,
+                    synapses = synapses,
+                )
+            synapse_is_response = [ True for code in synapse_codes if code == bittensor.proto.ReturnCode.Success  ]
 
-            # ---- Make nucleus forward call. ----
-            code = bittensor.proto.ReturnCode.Success
-            message = None
+        # ========================================
+        # ==== Catch forward request timeouts ====
+        # ========================================
+        except concurrent.futures.TimeoutError:
+            code = bittensor.proto.ReturnCode.Timeout
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=True, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(torch_inputs.shape), outputs=None, message=message  )
-            outputs, codes, messages, synapses = self._call_forward( 
-                public_key = request.hotkey, 
-                inputs_x = torch_inputs, 
-                synapses= synapses,
-            )
-            serialized_outputs = []
-            for index, output in enumerate(outputs):
-                # ---- Serialize response ----
-                try:
-                    synapse = synapses[index]
-                    serializer = bittensor.serializer ( synapse.forward_response_serializer_type )
-                    if output != None:
-                        encode_output = synapse.encode_forward_response_tensor(output)
-                        serialized_outputs.append(serializer.serialize( encode_output, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH ))
-                    else:
-                        serialized_outputs.append(serializer.empty())
-                except Exception as e:
-                    # --- Exception when tensor serialization fails ---
-                    code = bittensor.proto.ReturnCode.ResponseDeserializationException
-                    serialized_outputs.append(serializer.empty())
-                    messages[index] = e
-                    codes[index] = code
+            message = "Request reached timeout"
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.Timeout, request.synapses
 
+        # ==================================
+        # ==== Catch unknown exceptions ====
+        # ==================================
         except Exception as e:
-            # --- Exception in self._call_forward ---
             code = bittensor.proto.ReturnCode.UnknownException
-            message = 'exception in processing forward call: {}'.format(e)
-            codes = [code for _ in synapses]
-            messages = [message for _ in synapses]
             call_time = clock.time() - start_time
-            finalize_logs()
-            return None, codes, call_time, messages, []
+            message = str ( e )
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.UnknownException, request.synapses
 
-        # --- Prepare Synapses ---
-        return_synapses = []
-        for index, synapse in enumerate(synapses):
-            return_synapses.append(synapse.serialize_to_wire_proto(code=codes[index], message=messages[index]))
 
-        # ---- Return successful response ----
-        code = bittensor.proto.ReturnCode.Success
-        call_time = clock.time() - start_time
-        finalize_logs()
-        return serialized_outputs, code, call_time, messages, return_synapses
+        # ====================================
+        # ==== Encode/serialize responses ====
+        # ====================================
+        for index, forward_response_tensor, synapse in enumerate( list(zip(forward_response_tensors, synapses))):
+            try:
+                synapse_responses [ index ] = synapse.serialize_forward_response_tensor( forward_response_tensor )
+            except Exception as e:
+                synapse_codes [ index ]= bittensor.proto.ReturnCode.ResponseSerializationException
+                synapse_call_times [ index ] = clock.time() - start_time
+                synapse_messages [index] = "Synapse response serialization exception with error: {}".format( str( e ) )
+        # Check if the call can stop here.
+        if check_if_should_return():
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.ResponseSerializationException, request.synapses
+
+
+        # =========================================================
+        # ==== Set return times for successfull forward ===========
+        # =========================================================
+        for index, _ in enumerate( synapses ):
+            if synapse_codes[index] == bittensor.proto.ReturnCode.Success:
+                synapse_call_times[index] = clock.time() - start_time
+
+        finalize_codes_stats_and_logs()
+        return synapse_responses, bittensor.proto.ReturnCode.Success, request.synapses
  
     def _backward(self, request):
         r""" Performs validity checks on the grpc request before piping the request to backend queue.
-            Returns the output, message and code from the call.
+            Returns the outputs and synapses (with codes and messages from the backward call.)
             Args:
                 request (:obj:`bittensor.proto`, `required`): 
                     Tensor request proto.
             Returns:
                 response: (:obj:`bittensor.proto.Tensor, `required`): 
-                    serialized tensor response from the nucleus call or None.
-                code: (:obj:`bittensor.proto.ReturnCode, `required`)
-                    return code associated with backward call i.e. Success of Timeout.
-                time (:type:`float`, `required`):
-                    Length of call in seconds.
-                message: (str, `required`): 
-                    message associated with backward call, potentially error, or 'success'.
+                    serialized tensor gradient responses. This is always an empty vector until gradients are allowed.
+                code (:obj:`bittensor.proto.ReturnCode`, `required`):
+                    Code from the call. This specifies if the overall function call was a success. 
+                    This is separate from the synapse returns codes which relate to the individual synapse call. 
+                synapses (:obj:`List[ 'bittensor.proto.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Synapse wire protos with return codes from forward request.
         """
 
-        # --- Function that logs each individual response from synapses ---
-        def finalize_logs():
+        # ===================================================================
+        # ==== First deserialize synapse wire protos to instance objects ====        
+        # ===================================================================
+        synapses: List['bittensor.Synapse'] = []
+        for synapse_wire_proto in request.synapses:
+            synapses.append( bittensor.synapse.deserialize( synapse_wire_proto ) )
+
+
+        # ===================================
+        # ==== Init params from synapses ====        
+        # ===================================
+        # These items are filled through the call and the function returns 
+        # when all codes are non-success or the function finishes completely.
+        synapse_messages = [ "Success" for _ in synapses ]
+        synapse_codes = [ bittensor.proto.ReturnCode.Success for _ in synapses ]
+        deserialized_forward_tensors = [ None for _ in synapses ]
+        deserialized_forward_gradients = [ None for _ in synapses ]
+        synapse_is_response = [ False for _ in synapses ]
+        synapse_call_times = [ 0 for _ in synapses ]
+        start_time = clock.time()
+
+        # ==================================================================
+        # ==== Function which returns true if all codes are non success ====
+        # ==================================================================
+        def check_if_should_return() -> bool:
+            for code in synapse_codes:
+                if code == bittensor.proto.ReturnCode.Success:
+                    return False
+            return True
+
+
+        # ==============================================================
+        # ==== Function which prints all log statements per synapse ====
+        # ==============================================================
+        def finalize_codes_stats_and_logs():
+            self.stats.forward_elapsed_time.update( clock.time() - start_time )
             for index, _ in enumerate( synapses ):
+                self.stats.codes[ synapse_codes[ index ] ] += 1
+                request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
+                request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
                     axon = True, 
                     forward = False, 
-                    is_response = True, 
-                    code = codes[ index ], 
-                    call_time = call_time, 
+                    is_response = synapse_is_response [index], 
+                    code = synapse_codes[ index ], 
+                    call_time = synapse_call_times[ index ], 
                     pubkey = request.hotkey, 
-                    inputs = list(inputs_x.shape), 
-                    outputs = None, 
-                    message = messages[index]
+                    inputs = deserialized_forward_gradients [index] , 
+                    outputs = None, # we never return from backward. 
+                    message = synapse_messages[ index ]
                 )
 
-        start_time = clock.time()
-        # ---- Check request inputs ----.
-        inputs_x = request.tensors[0]
-        grads_dy = request.tensors[1:]
-        modality_x = inputs_x.modality
 
-        # ---- Deserialize request ---
-        try:
-            serializer = bittensor.serializer( inputs_x.serializer )
-            inputs_x = serializer.deserialize( inputs_x, to_type = bittensor.proto.TensorType.TORCH )
-        except Exception as e:
-            code = bittensor.proto.ReturnCode.RequestDeserializationException
-            message = "Request serialization exception with error: {}".format(str(e))
+        # ======================================
+        # ==== Check request length ====
+        # ======================================
+        if len( request.tensors ) != 2 * len( synapses ): # 2 per input.
+            # Not enough responses per request.
+            code = bittensor.proto.ReturnCode.ResponseShapeException
             call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=None, outputs=None, message=message  )
-            return None, code, call_time, message, []
-        
-        # ---- Check shapes ----
-        if modality_x == bittensor.proto.Modality.TEXT:
-            if len(inputs_x.shape) != 2:
-                code = bittensor.proto.ReturnCode.RequestShapeException
-                message = "Forward text input shape exception with len(request.shape) = {} must have rank 2.".format(len(inputs_x.shape))
-                call_time = clock.time() - start_time
-                bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=code, call_time = call_time, pubkey=request.hotkey, inputs=list(inputs_x.shape), outputs=None, message=message  )
-                return None, code, call_time, message, []
+            message = "Request length doesn't match synape length."
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.ResponseShapeException, request.synapses
 
-        # --- Compute synapses and gradients ---
-        synapses = []
-        grads = []
-        messages = [ "NoReturn" for _ in request.synapses ]
-        codes = [ bittensor.proto.ReturnCode.NoReturn for _ in request.synapses ]
-        for index, synapse in enumerate(request.synapses):
+
+        # ===================================
+        # ==== Deeerialize/Decode inputs ====
+        # ===================================
+        for index, synapse in enumerate( synapses ):
             try:
-                deserial_synapse = bittensor.synapse.deserialize(synapse)
-                synapses.append(deserial_synapse)
-                serializer = bittensor.serializer( deserial_synapse.backward_request_serializer_type )
-                deserial_grads = serializer.deserialize( grads_dy[index], to_type = bittensor.proto.TensorType.TORCH )
-                deserial_synapse.check_backward_request_gradient(inputs_x, deserial_grads)
-                decode_grads = deserial_synapse.decode_backward_request_gradient(deserial_grads)
-                grads.append(deserial_grads)
-
+                deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
+                deserialized_forward_gradients [index] = synapse.serialize_backward_request_gradient ( request.tensors [ len( synapses ) + index ] )
             except Exception as e:
-                codes[index]  = bittensor.proto.ReturnCode.RequestDeserializationException
-                messages[index] = "Gradient serialization exception with error: {}".format(str(e))
-                synapses.append(None)
-                grads.append(None)
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [index] = 'Input deserialization exception with error:{}'.format(str(e))
+        # Check if the call can stop here.
+        if check_if_should_return():
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.RequestSerializationException, request.synapses
 
-        # Post process.
+
+        # ===================================
+        # ==== Make backward calls. =========
+        # ===================================
         try:
-            outputs = None
-            # ---- Make nucleus backward call. ----
-            call_time = clock.time() - start_time
-            bittensor.logging.rpc_log( axon=True, forward=False, is_response=False, code=bittensor.proto.ReturnCode.Success, call_time = call_time, pubkey=request.hotkey, inputs=list(inputs_x.shape), outputs=None, message=None  )
-            outputs, codes, messages = self._call_backward( 
-                public_key = request.hotkey, 
-                inputs_x = inputs_x, 
-                grads_dy = grads, 
-                synapses = synapses
-            )
-            serialized_outputs = []
-            for index, output in enumerate(outputs):
-                # ---- Serialize empty response ----
-                try:
-                    synapse = synapses[index]
-                    serializer = bittensor.serializer ( synapse.backward_response_serializer_type )
-                    serialized_outputs.append(serializer.empty())
-                except Exception as e:
-                    # --- Exception when tensor serialization fails ---
-                    code = bittensor.proto.ReturnCode.ResponseDeserializationException
-                    serialized_outputs.append(serializer.empty())
-                    messages[index] = e
-                    codes[index] = code
+            if self.priority != None:
+                # No wait on backward calls.
+                priority = self.priority( request.hotkey, inputs_x = deserialized_forward_tensors, request_type = bittensor.proto.RequestType.BACKWARD )
+                self.priority_threadpool.submit(
+                    self.backward_callback, 
+                    inputs_x = deserialized_forward_tensors, 
+                    grads_dy = deserialized_forward_gradients,
+                    synapses = synapses,
+                    priority = priority
+                )
+            else:
+                # Calling default
+                # TODO(eugene): does this create a waiting operation.
+                self.backward_callback ( deserialized_forward_tensors, deserialized_forward_gradients, synapses = synapses )
 
+        # ==================================
+        # ==== Catch unknown exceptions ====
+        # ==================================
         except Exception as e:
-            # --- Exception in self._call_backward ---
             code = bittensor.proto.ReturnCode.UnknownException
-            message = 'exception in processing backward call: {}'.format(e)
-            codes = [code for _ in synapses]
-            messages = [message for _ in synapses]
             call_time = clock.time() - start_time
-            finalize_logs()
-            return None, codes, call_time, messages, []
+            message = str ( e )
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.UnknownException, request.synapses
 
-        # --- Prepare Synapses ---
-        return_synapses = []
-        for index, synapse in enumerate(synapses):
-            return_synapses.append(synapse.serialize_to_wire_proto(code=codes[index], message=messages[index]))
+        # ==============================
+        # ==== Finalize call times =====
+        # ==============================
+        for index, _ in enumerate( synapses ):
+            if synapse_codes[index] == bittensor.proto.ReturnCode.Success:
+                synapse_call_times[index] = clock.time() - start_time
 
-        # ---- Return successful response ----
-        code = bittensor.proto.ReturnCode.Success
-        call_time = clock.time() - start_time
-        finalize_logs()
-        return serialized_outputs, code, call_time, messages, return_synapses
+        finalize_codes_stats_and_logs()
+        return [], bittensor.proto.ReturnCode.Success, request.synapses
+
+
 
     def default_forward_callback(self, inputs_x:torch.FloatTensor, synapses=[] ):
         """

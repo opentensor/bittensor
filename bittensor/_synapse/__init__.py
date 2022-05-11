@@ -313,17 +313,22 @@ class TextSeq2Seq (Synapse):
 
     def encode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: 
         return foward_request_tensor
+        
     def decode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: 
         return foward_request_tensor
+
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
         # Apply topk logit encoding.
         return forward_response_tensor
+
     def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
         # Decode topk logit encoding.
         return forward_response_tensor
+
     def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: 
         # Apply topk logit encoding for gradients.
         return backward_request_gradient
+
     def decode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor:
         # Decode topk logit encoding for gradients.
         return backward_request_gradient
