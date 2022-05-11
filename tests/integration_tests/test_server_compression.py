@@ -37,8 +37,6 @@ import select
 import socket
 import threading
 
-from tests.utils import get_random_unused_port
-
 """Tests bittensor server and client side compression 
 Apdated from: https://github.com/grpc/grpc/blob/0045e27bf93e4376363a86a6ce8bc7d13565b1da/src/python/grpcio_tests/tests/unit/_compression_test.py#L22
 
@@ -66,8 +64,6 @@ def get_socket(bind_address='localhost',
         - the port to which the socket is bound
         - the socket object itself
     """
-    if port == 0:
-        port = get_random_unused_port()
     _sock_options = sock_options if sock_options else []
     if socket.has_ipv6:
         address_families = (socket.AF_INET6, socket.AF_INET)
@@ -84,10 +80,12 @@ def get_socket(bind_address='localhost',
             return bind_address, sock.getsockname()[1], sock
         except OSError as os_error:
             sock.close()
-            if os_error.errno in _UNRECOVERABLE_ERRNOS:
-                raise
-            else:
-                continue
+
+            # This variable was undefined--what were the previously unrecoverable error numbers?:w
+            # if os_error.errno in _UNRECOVERABLE_ERRNOS:
+            #    raise
+            # else:
+            continue
         # For PY2, socket.error is a child class of IOError; for PY3, it is
         # pointing to OSError. We need this catch to make it 2/3 agnostic.
         except socket.error:  # pylint: disable=duplicate-except
