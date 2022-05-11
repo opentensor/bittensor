@@ -97,6 +97,7 @@ class mock_subtensor():
             if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() :
                 p.terminate()
                 p.kill()
+        time.sleep(2) # Buffer to ensure the processes actually die
 
     @classmethod
     def create_global_mock_process(self):
@@ -162,7 +163,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 self._owned_mock_subtensor_process.terminate()
                 self._owned_mock_subtensor_process.kill()
                 os.system("kill %i" % self._owned_mock_subtensor_process.pid)
-                time.sleep(5) # hail mary
+                time.sleep(2) # Buffer to ensure the processes actually die
             except Exception as e:
                 print(f"failed to kill owned mock instance: {e}")
                 # Occasionally 
