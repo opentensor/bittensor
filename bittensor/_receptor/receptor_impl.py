@@ -222,22 +222,6 @@ class Receptor(nn.Module):
                     message = synapse_messages[ index ]
                 )
 
-        # ===========================
-        # ==== Check inputs size ====
-        # ===========================
-        if torch.numel(inputs) == 0 or len(grads) == 0:
-            # Inputs are nill.
-            code = bittensor.proto.ReturnCode.EmptyRequest
-            call_time = clock.time() - start_time
-            message = "Empty Request"
-            synapse_codes = [ code for _ in synapses ]
-            synapse_call_times = [ call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
-            finalize_stats_and_logs()
-            return synapse_responses, synapse_codes, synapse_call_times
-
 
         # ========================
         # ==== Check endpoint ====
@@ -259,18 +243,22 @@ class Receptor(nn.Module):
         # ==================================
         # ==== Serialize inputs & grads ====
         # ==================================
-        try:
-            serialized_forward_tensors = [ synapse.serialize_forward_request_tensor( inputs ) for synapse in synapses ]
-            serialized_backward_grads = [ synapse.serialize_backward_request_gradient ( grad ) for grad, synapse in list(zip(grads, synapses)) ]
-            serialized_synapses = [ synapse.serialize_to_wire_proto() for synapse in synapses ]
-        except Exception as e:
-            # Input Serialization failed.
-            code = bittensor.proto.ReturnCode.RequestSerializationException
-            call_time = clock.time() - start_time
-            message = 'Input serialization exception with error:{}'.format(str(e))
-            synapse_codes = [code for _ in synapses ]
-            synapse_call_times = [call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
+        serialized_forward_tensors = []
+        serialized_backward_grads = []
+        serialized_synapses = []
+        for index, synapse in enumerate( synapses ):
+            try:
+                serialized_forward_tensors [ index ] = synapse.serialize_forward_request_tensor( inputs )
+                serialized_backward_grads [ index ] = synapse.serialize_backward_request_gradient ( grads[index] )
+                serialized_synapses [ index ] = synapse.serialize_to_wire_proto()
+            except Exception as e:
+                # Input Serialization failed.
+                code = bittensor.proto.ReturnCode.RequestSerializationException
+                call_time = clock.time() - start_time
+                message = 'Input serialization exception with error:{}'.format(str(e))
+                synapse_codes[index] = code
+                synapse_call_times = call_time
+                synapse_messages = message 
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_stats_and_logs()
