@@ -52,7 +52,7 @@ jobs:
             # TEST_FILES=$(circleci tests glob "tests/**/test_*.py" | circleci tests split --split-by=timings)
             # mkdir -p test-results
             # pytest --verbose --junitxml=test-results/junit.xml $TEST_FILES
-          command: pytest -n2
+          command: pytest
 
       - store_test_results:
           path: test-results
