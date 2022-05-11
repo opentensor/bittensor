@@ -234,8 +234,6 @@ class Receptor(nn.Module):
             synapse_call_times = [ call_time for _ in synapses ]
             synapse_codes = [ code for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -281,8 +279,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -416,8 +412,6 @@ class Receptor(nn.Module):
             synapse_codes = [ code for _ in synapses ]
             synapse_call_times = [ call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -434,8 +428,6 @@ class Receptor(nn.Module):
             synapse_call_times = [ call_time for _ in synapses ]
             synapse_codes = [ code for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -478,8 +470,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -501,7 +491,6 @@ class Receptor(nn.Module):
                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
             self.stats.forward_bytes_in.update( sys.getsizeof( grpc_response ) )
-
             # Set successful response booleans to true
             synapse_is_response = [ True for code in synapse_codes if code == bittensor.proto.ReturnCode.Success  ]
 
@@ -528,6 +517,9 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
+            finalize_stats_and_logs()
+            return synapse_responses, synapse_codes, synapse_call_times
+
 
         # ====================================
         # ==== Handle GRPC Unknown Errors ====
@@ -540,8 +532,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -557,8 +547,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -575,8 +563,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -611,8 +597,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
