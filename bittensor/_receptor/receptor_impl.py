@@ -253,12 +253,9 @@ class Receptor(nn.Module):
                 serialized_synapses [ index ] = synapse.serialize_to_wire_proto()
             except Exception as e:
                 # Input Serialization failed.
-                code = bittensor.proto.ReturnCode.RequestSerializationException
-                call_time = clock.time() - start_time
-                message = 'Input serialization exception with error:{}'.format(str(e))
-                synapse_codes[index] = code
-                synapse_call_times = call_time
-                synapse_messages = message 
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [message] = 'Input serialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_stats_and_logs()
@@ -446,17 +443,16 @@ class Receptor(nn.Module):
         # ==========================
         # ==== Serialize inputs ====
         # ==========================
-        try:
-            serialized_forward_tensors = [  synapse.serialize_forward_request_tensor ( inputs ) for synapse in synapses ]
-            serialized_synapses = [ synapse.serialize_to_wire_proto() for synapse in synapses ]
-        except Exception as e:
-            # Input Serialization failed.
-            code = bittensor.proto.ReturnCode.RequestSerializationException
-            call_time = clock.time() - start_time
-            message = 'Input serialization exception with error:{}'.format(str(e))
-            synapse_codes = [code for _ in synapses ]
-            synapse_call_times = [call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
+        serialized_forward_tensors = []
+        serialized_synapses = []
+        for index, synapse in enumerate( synapses ):
+            try:
+                serialized_forward_tensors [index] = synapse.serialize_forward_request_tensor ( inputs )
+                serialized_synapses [index] = synapse.serialize_to_wire_proto()
+            except Exception as e:
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [index] = 'Input serialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_stats_and_logs()
