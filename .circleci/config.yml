@@ -23,7 +23,7 @@ jobs:
     docker:
       - image: cimg/python:3.8
     resource_class: medium
-    parallelism: 2
+    parallelism: 4
     # Checkout the code as the first step. This is a dedicated CircleCI step.
     # The python orb's install-packages step will install the dependencies from a Pipfile via Pipenv by default.
     # Here we're making sure we use just use the system-wide pip. By default it uses the project root's requirements.txt.
@@ -51,7 +51,7 @@ jobs:
             set -e
             TEST_FILES=$(circleci tests glob "tests/**/test_*.py" | circleci tests split --split-by=timings)
             mkdir -p test-results
-            pytest --verbose --junitxml=test-results/junit.xml $TEST_FILES
+            pytest -n2 --verbose --junitxml=test-results/junit.xml $TEST_FILES
 
       - store_test_results:
           path: test-results
