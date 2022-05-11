@@ -162,6 +162,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 self._owned_mock_subtensor_process.terminate()
                 self._owned_mock_subtensor_process.kill()
                 os.system("kill %i" % self._owned_mock_subtensor_process.pid)
-            except:
+            except Exception as e:
+                print(f"failed to kill owned mock instance: {e}")
                 # Occasionally 
                 pass
