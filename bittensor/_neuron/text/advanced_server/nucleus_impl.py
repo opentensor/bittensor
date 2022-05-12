@@ -88,6 +88,14 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
         
+    def select_fine_tuning_params(self):
+        if self.config.nucleus.finetune:
+            for i, (name, param) in enumerate(self.pre_model.named_parameters()):
+                if 'encoder.layer.11' not in name:
+                    param.requires_grad = False
+                
+                print(i, name, param.requires_grad)
+
     def forward(self, inputs,tokenizer=None):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
@@ -222,6 +230,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to sync set weights', default=100)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=0)
+        parser.add_argument('--neuron.finetune', action='store_true', help='how often a peer can query you (seconds) ', default=False)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
