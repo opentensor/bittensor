@@ -126,7 +126,7 @@ class Synapse:
     def deserialize_forward_request_tensor( self, forward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
-        forward_request_tensor = tensor_deserialzier.deserialize( tensor_obj = forward_request_proto, to_type = bittensor.proto.TensorType.TORCH )
+        forward_request_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_request_proto, to_type = bittensor.proto.TensorType.TORCH )
         forward_request_tensor = self.decode_forward_request_tensor ( forward_request_tensor )
         self.check_forward_request_tensor ( forward_request_tensor )
         return forward_request_tensor
@@ -141,7 +141,7 @@ class Synapse:
     def deserialize_forward_response_proto( self, foward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
-        forward_response_tensor = tensor_deserialzier.deserialize( tensor_obj = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
+        forward_response_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
         forward_response_tensor = self.decode_forward_response_tensor ( forward_response_tensor )
         self.check_forward_response_tensor ( forward_response_tensor )
         return forward_response_tensor
@@ -159,6 +159,10 @@ class Synapse:
         backward_request_gradient = self.decode_backward_request_gradient ( backward_request_gradient )
         self.check_backward_request_gradient ( backward_request_gradient )
         return backward_request_gradient
+
+    def empty(self):
+        tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
+        return tensor_deserialzier.empty()
 
 
 class TextCausalLM (Synapse):

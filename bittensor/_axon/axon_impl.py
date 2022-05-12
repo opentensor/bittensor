@@ -200,9 +200,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
         def finalize_codes_stats_and_logs():
-            self.stats.forward_elapsed_time.update( clock.time() - start_time )
             for index, _ in enumerate( synapses ):
-                self.stats.codes[ synapse_codes[ index ] ] += 1
                 request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
                 request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
@@ -235,7 +233,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ===================================
         # ==== Deeerialize/Decode inputs ====
         # ===================================
-        deserialized_forward_tensors = []
+        deserialized_forward_tensors = [ None for _ in synapses]
         for index, synapse in enumerate( synapses ):
             try:
                 deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
@@ -267,7 +265,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     inputs_x = deserialized_forward_tensors,
                     synapses = synapses,
                 )
-            synapse_is_response = [ True for code in synapse_codes if code == bittensor.proto.ReturnCode.Success  ]
+            synapse_is_response = [ True for code in synapse_codes if code == bittensor.proto.ReturnCode.Success]
 
         # ========================================
         # ==== Catch forward request timeouts ====
@@ -295,13 +293,17 @@ class Axon( bittensor.grpc.BittensorServicer ):
             finalize_codes_stats_and_logs()
             return [], bittensor.proto.ReturnCode.UnknownException, request.synapses
 
-
         # ====================================
         # ==== Encode/serialize responses ====
         # ====================================
-        for index, forward_response_tensor, synapse in enumerate( list(zip(forward_response_tensors, synapses))):
+        for index, information in enumerate( list(zip(forward_response_tensors, synapses))):
+            forward_response_tensor, synapse = information
             try:
-                synapse_responses [ index ] = synapse.serialize_forward_response_tensor( forward_response_tensor )
+                if synapse_codes[index] == bittensor.proto.ReturnCode.Success:
+                    synapse_responses [ index ] = synapse.serialize_forward_response_tensor( deserialized_forward_tensors[index], forward_response_tensor )
+                else:
+                    synapse_responses [ index ] = synapse.empty()
+
             except Exception as e:
                 synapse_codes [ index ]= bittensor.proto.ReturnCode.ResponseSerializationException
                 synapse_call_times [ index ] = clock.time() - start_time
@@ -373,9 +375,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
         def finalize_codes_stats_and_logs():
-            self.stats.forward_elapsed_time.update( clock.time() - start_time )
             for index, _ in enumerate( synapses ):
-                self.stats.codes[ synapse_codes[ index ] ] += 1
                 request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
                 request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
@@ -492,10 +492,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
         response_messages = []
         
         # --- calling attached synapses ---
-        for synapse in synapses:
+        for index, synapse in enumerate(synapses):
             try:
                 if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
-                    response_tensors.append(self.synapse_callbacks[synapse.synapse_type](inputs_x, synapse))
+                    response_tensors.append(self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse))
                     response_codes.append(bittensor.proto.ReturnCode.Success)
                     response_messages.append('Success')
                 else:
