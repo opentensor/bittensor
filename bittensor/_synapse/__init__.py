@@ -42,6 +42,9 @@ class Synapse:
         self.backward_request_serializer_type = backward_request_serializer_type
         self.backward_response_serializer_type = backward_response_serializer_type
 
+    def __repr__(self) -> str: return self.__str__()
+    def __str__(self) -> str: return "Synapse"
+
     @staticmethod
     def deserialize_from_instance_proto ( isntance_proto: bittensor.proto.Synapse ) -> 'Synapse':
         """ Deserialzied the instance proto to an instance class.
@@ -104,12 +107,12 @@ class Synapse:
         """
         raise NotImplementedError("nill_backward_response_tensor should be implemented by the subclass.")
 
-    def check_forward_request_tensor     ( self, foward_request_tensor ): pass
-    def check_forward_response_tensor    ( self, foward_request_tensor, forward_response_tensor ): pass
-    def check_backward_request_gradient  ( self, foward_request_tensor, backward_request_gradient ): pass
-    def check_backward_response_gradient  ( self, foward_request_tensor, backward_request_gradient ): pass
-    def encode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
-    def decode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
+    def check_forward_request_tensor     ( self, forward_request_tensor ): pass
+    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ): pass
+    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): pass
+    def check_backward_response_gradient  ( self, forward_request_tensor, backward_request_gradient ): pass
+    def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
+    def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
     def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
     def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
@@ -131,14 +134,14 @@ class Synapse:
         self.check_forward_request_tensor ( forward_request_tensor )
         return forward_request_tensor
 
-    def serialize_forward_response_tensor( self, foward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    def serialize_forward_response_tensor( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a bittensor.proto.Tensor to be sent on the wire after relevant serialization applied. """        
-        self.check_forward_response_tensor ( foward_request_tensor, forward_response_tensor )
+        self.check_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
         encoded_tensor = self.encode_forward_response_tensor ( forward_response_tensor )
         tensor_serialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
         return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
-    def deserialize_forward_response_proto( self, foward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
+    def deserialize_forward_response_proto( self, forward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
         forward_response_tensor = tensor_deserialzier.deserialize( tensor_obj = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
@@ -184,6 +187,9 @@ class TextCausalLM (Synapse):
         self.topk = topk
         self.synapse_type = TextCausalLM.synapse_type
 
+    def __repr__(self) -> str: return self.__str__()
+    def __str__(self) -> str: return "TextCausalLM"
+
     @staticmethod
     def deserialize_from_instance_proto ( instance_proto: bittensor.proto.Synapse ) -> 'TextCausalLM':
         return TextCausalLM ( 
@@ -217,9 +223,22 @@ class TextCausalLM (Synapse):
                 message = message
             )
 
-    def check_forward_request_tensor     ( self, forward_request_tensor ): pass
-    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ): pass
-    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): pass
+    def check_forward_request_tensor     ( self, forward_request_tensor ): 
+        if len( forward_request_tensor.shape ) != 2:
+            raise ValueError( "forward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(forward_request_tensor.shape), self ) ) 
+
+    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
+        if ( len( forward_response_tensor.shape ) != 3 or
+             forward_response_tensor.size(0) != forward_request_tensor.size(0) or
+             forward_response_tensor.size(1) != forward_response_tensor.size(1) or
+             forward_response_tensor.size(2) != self.topk
+            ):
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, self.topk, list(forward_response_tensor.shape), self ) ) 
+
+    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
+        if list( backward_request_gradient.shape ) != list( forward_request_tensor.shape ):
+            raise ValueError( "backward_request_gradient.shape: {} must be equivalent to forward_request_tensor.shape: {} for synapse: {}".format( list( backward_request_gradient.shape ), list(forward_request_tensor.shape), self ) ) 
+
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
 
@@ -308,6 +327,9 @@ class TextSeq2Seq (Synapse):
         self.num_to_generate = num_to_generate
         self.synapse_type = TextSeq2Seq.synapse_type
 
+    def __repr__(self) -> str: return self.__str__()
+    def __str__(self) -> str: return "TextSeq2Seq"
+
     @staticmethod
     def deserialize_from_instance_proto ( instance_proto: bittensor.proto.Synapse ) -> 'Synapse':
         """ Deserialzied the instance proto to an instance class."""
@@ -347,27 +369,27 @@ class TextSeq2Seq (Synapse):
                 message = message
             )
 
-    def check_forward_request_tensor     ( self, foward_request_tensor ):
-        if len( foward_request_tensor.shape ) != 2:
-            raise ValueError( "foward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(foward_request_tensor.shape), self ) ) 
+    def check_forward_request_tensor     ( self, forward_request_tensor ):
+        if len( forward_request_tensor.shape ) != 2:
+            raise ValueError( "forward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(forward_request_tensor.shape), self ) ) 
 
-    def check_forward_response_tensor    ( self, foward_request_tensor, forward_response_tensor ):
+    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
         if ( len( forward_response_tensor.shape ) != 3 or
-             forward_response_tensor.size(0) != foward_request_tensor.size(0) or
+             forward_response_tensor.size(0) != forward_request_tensor.size(0) or
              forward_response_tensor.size(1) != self.num_to_generate or
              forward_response_tensor.size(2) != self.topk
             ):
-            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( foward_request_tensor.size(0) , self.num_to_generate, self.topk, list(forward_response_tensor.shape), self ) ) 
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, self.topk, list(forward_response_tensor.shape), self ) ) 
 
-    def check_backward_request_gradient  ( self, foward_request_tensor, backward_request_gradient ):
-        if list( backward_request_gradient.shape ) != list( foward_request_tensor.shape ):
-            raise ValueError( "backward_request_gradient.shape: {} must be equivalent to foward_request_tensor.shape: {} for synapse: {}".format( list( backward_request_gradient.shape ), list(foward_request_tensor.shape), self ) ) 
+    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
+        if list( backward_request_gradient.shape ) != list( forward_request_tensor.shape ):
+            raise ValueError( "backward_request_gradient.shape: {} must be equivalent to forward_request_tensor.shape: {} for synapse: {}".format( list( backward_request_gradient.shape ), list(forward_request_tensor.shape), self ) ) 
 
-    def encode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: 
-        return foward_request_tensor
+    def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: 
+        return forward_request_tensor
         
-    def decode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: 
-        return foward_request_tensor
+    def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: 
+        return forward_request_tensor
 
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
         # Apply topk logit encoding.
@@ -428,6 +450,9 @@ class TextLastHiddenState (Synapse):
         )
         self.synapse_type = TextLastHiddenState.synapse_type
 
+    def __repr__(self) -> str: return self.__str__()
+    def __str__(self) -> str: return "TextLastHiddenState"
+
     @staticmethod
     def deserialize_from_wire_proto ( wire_proto: bittensor.proto.Synapse ) -> 'Synapse':
         """ Deserialzied the wire proto to an instance class.
@@ -473,11 +498,11 @@ class TextLastHiddenState (Synapse):
                 message = message
             )
 
-    def check_forward_request_tensor     ( self, foward_request_tensor ): pass
-    def check_forward_response_tensor    ( self, foward_request_tensor, forward_response_tensor ): pass
-    def check_backward_request_gradient  ( self, foward_request_tensor, backward_request_gradient ): pass
-    def encode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
-    def decode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
+    def check_forward_request_tensor     ( self, forward_request_tensor ): pass
+    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ): pass
+    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): pass
+    def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
+    def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
     def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
     def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
