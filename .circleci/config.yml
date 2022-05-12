@@ -12,8 +12,20 @@ jobs:
 
     steps:
       - checkout
+
+      # TODO: Add Python version (matrix strategy)
+      - restore_cache:
+          keys:
+            - v1-pypi-{{ checksum "requirements.txt" }}
+            - v1-pypi-
+
       - python/install-packages:
           pkg-manager: pip
+
+      - save_cache:
+          key: v1-pypi-{{ checksum "requirements.txt" }}
+          paths:
+            - "/home/circleci/.pyenv"
 
       - run:
           name: Install bittensor
