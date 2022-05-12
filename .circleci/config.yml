@@ -48,10 +48,12 @@ jobs:
           name: Run tests
           # This assumes pytest is installed via the install-package step above
           command: |
+            pushd tests
             set -e
-            TEST_FILES=$(circleci tests glob "tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=classname)
+            TEST_FILES=$(circleci tests glob "**/test_*.py" | circleci tests split --split-by=timings --timings-type=classname)
             mkdir -p test-results
             pytest --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
+            popd
 
       - store_test_results:
           path: test-results
