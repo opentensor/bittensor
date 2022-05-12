@@ -2,7 +2,7 @@ import argparse
 import bittensor
 import torch
 import torch.nn.functional as F
-
+from torch import nn
 from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils.rnn import pad_sequence
 from loguru import logger; logger = logger.opt(colors=True)
@@ -88,13 +88,40 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
         
-    def select_fine_tuning_params(self):
-        if self.config.nucleus.finetune:
-            for i, (name, param) in enumerate(self.pre_model.named_parameters()):
-                if 'encoder.layer.11' not in name:
-                    param.requires_grad = False
+    def set_fine_tuning_params(self):
+        r''' Set to tune only the parameter of the last layer
+        '''
+        def find_last_layer(model):    
+            r''' Recursively find the last layer in a nn.ModuleList
+            '''
+            for name, child in model.named_children():    
+                if isinstance(child, nn.ModuleList):
+                    return (name + '.' +str(len(child) - self.config.neuron.num_finetune_layers))
                 
-                print(i, name, param.requires_grad)
+            for name, child in model.named_children():    
+                name_ = find_last_layer(child)
+                if name_ != None:
+                    return (name+'.'+ name_)
+            
+            return (None)     
+
+        last_layer_name = find_last_layer(server.pre_model)
+        reached_last_layer = False
+
+        # set the non-last layer parameters not to require grads
+        if (not self.config.nucleus.finetune_all) and (last_layer_name != None):
+            for name, param in self.pre_model.named_parameters():
+                if last_layer_name in name or reached_last_layer == True:
+                    param.requires_grad = True
+                    reached_last_layer = True
+                else:
+                    param.requires_grad = False
+
+        else:
+            if self.config.nucleus.finetune_all:
+                logger.warning('Set to finetune the whole model, this will significantly increase the memory usage.')
+            elif last_layer_name == None:
+                logger.warning('Cannot identify the last layer of the model, setting to finetune on all of the parameters.')
 
     def forward(self, inputs,tokenizer=None):
         """
@@ -230,7 +257,8 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to sync set weights', default=100)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=0)
-        parser.add_argument('--neuron.finetune', action='store_true', help='how often a peer can query you (seconds) ', default=False)
+        parser.add_argument('--neuron.finetune_all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
+        parser.add_argument('--neuron.num_finetune_layers', type=int, help='The number of layers to finetune on your model.', default=1)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
