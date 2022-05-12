@@ -136,8 +136,8 @@ class Synapse:
 
     def serialize_forward_response_tensor( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a bittensor.proto.Tensor to be sent on the wire after relevant serialization applied. """        
-        self.check_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
         encoded_tensor = self.encode_forward_response_tensor ( forward_response_tensor )
+        self.check_forward_response_tensor ( forward_request_tensor, encoded_tensor )
         tensor_serialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
         return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
@@ -145,8 +145,8 @@ class Synapse:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
         forward_response_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
+        self.check_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
         forward_response_tensor = self.decode_forward_response_tensor ( forward_response_tensor )
-        self.check_forward_response_tensor ( forward_response_tensor )
         return forward_response_tensor
 
     def serialize_backward_request_gradient( self, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
@@ -166,7 +166,6 @@ class Synapse:
     def empty(self):
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
         return tensor_deserialzier.empty()
-
 
 class TextCausalLM (Synapse):
     """ CausalLM Synape type for training NTP    
@@ -235,9 +234,9 @@ class TextCausalLM (Synapse):
         if ( len( forward_response_tensor.shape ) != 3 or
              forward_response_tensor.size(0) != forward_request_tensor.size(0) or
              forward_response_tensor.size(1) != forward_response_tensor.size(1) or
-             forward_response_tensor.size(2) != self.topk
+             forward_response_tensor.size(2) != self.topk*2
             ):
-            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, self.topk, list(forward_response_tensor.shape), self ) ) 
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), self.topk, list(forward_response_tensor.shape), self ) ) 
 
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
         if list( backward_request_gradient.shape ) != list( forward_request_tensor.shape ):
@@ -349,13 +348,13 @@ class TextSeq2Seq (Synapse):
     @staticmethod
     def deserialize_from_wire_proto ( wire_proto: bittensor.proto.Synapse ) -> 'Synapse':
         """ Deserialzied the wire proto to an instance class. """
-        instance_proto = bittensor.proto.Synapse.TestSeq2Seq()
+        instance_proto = bittensor.proto.Synapse.TextSeq2Seq()
         instance_proto.ParseFromString( wire_proto.synapse_data )
         return TextSeq2Seq.deserialize_from_instance_proto( instance_proto )
 
     def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextSeq2Seq':
         """ Serializes the class instance to a Synapse instance proto."""
-        return bittensor.proto.Synapse.TestSeq2Seq ( 
+        return bittensor.proto.Synapse.TextSeq2Seq ( 
             topk = self.topk, 
             num_to_generate = self.num_to_generate,
             forward_request_serializer_type = self.forward_request_serializer_type,
@@ -378,12 +377,11 @@ class TextSeq2Seq (Synapse):
             raise ValueError( "forward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(forward_request_tensor.shape), self ) ) 
 
     def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
-        if ( len( forward_response_tensor.shape ) != 3 or
+        if ( len( forward_response_tensor.shape ) != 2 or
              forward_response_tensor.size(0) != forward_request_tensor.size(0) or
-             forward_response_tensor.size(1) != self.num_to_generate or
-             forward_response_tensor.size(2) != self.topk
+             forward_response_tensor.size(1) != self.num_to_generate 
             ):
-            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, self.topk, list(forward_response_tensor.shape), self ) ) 
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, list(forward_response_tensor.shape), self ) ) 
 
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
         if list( backward_request_gradient.shape ) != list( forward_request_tensor.shape ):

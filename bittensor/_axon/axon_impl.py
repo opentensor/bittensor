@@ -267,6 +267,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 )
             synapse_is_response = [ True for code in synapse_codes if code == bittensor.proto.ReturnCode.Success]
 
+            for index, code in enumerate(synapse_codes):
+                if code == bittensor.proto.ReturnCode.Success:
+                    synapse_codes[index] = codes[index]
+                    synapse_messages[index] = messages[index]
+
         # ========================================
         # ==== Catch forward request timeouts ====
         # ========================================
@@ -293,9 +298,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
             finalize_codes_stats_and_logs()
             return [], bittensor.proto.ReturnCode.UnknownException, request.synapses
 
-        # ====================================
-        # ==== Encode/serialize responses ====
-        # ====================================
+        # =================================================
+        # ==== Encode/serialize responses and synapses ====
+        # ==================================================
+        response_synapses = []
         for index, information in enumerate( list(zip(forward_response_tensors, synapses))):
             forward_response_tensor, synapse = information
             try:
@@ -303,6 +309,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapse_responses [ index ] = synapse.serialize_forward_response_tensor( deserialized_forward_tensors[index], forward_response_tensor )
                 else:
                     synapse_responses [ index ] = synapse.empty()
+                response_synapses.append(synapse.serialize_to_wire_proto(code = synapse_codes[index], message= synapse_messages[index] ))
 
             except Exception as e:
                 synapse_codes [ index ]= bittensor.proto.ReturnCode.ResponseSerializationException
@@ -322,7 +329,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapse_call_times[index] = clock.time() - start_time
 
         finalize_codes_stats_and_logs()
-        return synapse_responses, bittensor.proto.ReturnCode.Success, request.synapses
+        return synapse_responses, bittensor.proto.ReturnCode.Success, response_synapses
  
     def _backward(self, request):
         r""" Performs validity checks on the grpc request before piping the request to backend queue.

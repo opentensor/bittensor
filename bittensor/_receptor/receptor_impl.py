@@ -585,10 +585,12 @@ class Receptor(nn.Module):
         # ==== Deserialize synapse responses ====
         # ======================================
         try:
-            synapse_responses = [ 
-                synapse.deserialize_forward_response_proto ( inputs, response_proto ) 
-                for response_proto, synapse in list(zip(grpc_response.tensors, synapse))
-            ]
+            for index, response_proto in enumerate(grpc_response.tensors):
+                synapse = synapses[index]
+                if synapse_codes[index] == bittensor.proto.ReturnCode.Success:
+                    synapse_responses[index] = synapse.deserialize_forward_response_proto ( inputs, response_proto ) 
+                else: 
+                    synapse_responses[index] = None
         except Exception as e:
             # Input Serialization failed.
             code = bittensor.proto.ReturnCode.ResponseDeserializationException
