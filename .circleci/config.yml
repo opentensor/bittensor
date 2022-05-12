@@ -8,24 +8,15 @@ jobs:
     docker:
       - image: cimg/python:3.8
     resource_class: medium
-    parallelism: 4
+    parallelism: 2
 
     steps:
       - checkout
 
-      # TODO: Add Python version (matrix strategy)
-      - restore_cache:
-          keys:
-            - v1-pypi-{{ checksum "requirements.txt" }}
-            - v1-pypi-
-
       - python/install-packages:
           pkg-manager: pip
-
-      - save_cache:
-          key: v1-pypi-{{ checksum "requirements.txt" }}
-          paths:
-            - "/home/circleci/.pyenv"
+          include-branch-in-cache-key: false
+          pypi-cache: false
 
       - run:
           name: Install bittensor
