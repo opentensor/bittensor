@@ -160,11 +160,13 @@ class Synapse:
         self.check_backward_request_gradient ( backward_request_gradient )
         return backward_request_gradient
 
+
 class TextCausalLM (Synapse):
     """ CausalLM Synape type for training NTP    
     """
 
     synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM
+
     def __init__( 
         self, 
         topk: int = 512,
@@ -215,22 +217,72 @@ class TextCausalLM (Synapse):
                 message = message
             )
 
-    def check_forward_request_tensor     ( self, foward_request_tensor ): pass
-    def check_forward_response_tensor    ( self, foward_request_tensor, forward_response_tensor ): pass
-    def check_backward_request_gradient  ( self, foward_request_tensor, backward_request_gradient ): pass
-    def encode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
-    def decode_forward_request_tensor    ( self, foward_request_tensor: torch.Tensor ) -> torch.Tensor: return foward_request_tensor
-    def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
-    def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
-    def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
+    def check_forward_request_tensor     ( self, forward_request_tensor ): pass
+    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ): pass
+    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): pass
+    def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
+    def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
+
+    def encode_forward_response_tensor( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor:
+        """ Returns topk tokens/probabilities given unnormalized logits as input. """
+        logits = forward_response_tensor  # unnormalized logit scores: [batch_size, sequence_len, vocab_size]
+        probs = torch.softmax(logits, dim=-1)  # normalized probabilities: [batch_size, sequence_len, vocab_size]
+
+        values, indices = probs.sort(dim=-1, descending=True)  # descend sort probs
+        topk_values = values[..., :self.topk]  # topk probs: [batch_size, sequence_len, topk]
+        topk_indices = indices[..., :self.topk]  # topk probs indices: [batch_size, sequence_len, topk]
+        encoded_probs = torch.cat((topk_values, topk_indices), dim=-1)  # [batch_size, sequence_len, topk + topk]
+
+        return encoded_probs  # [batch_size, sequence_len, topk + topk]
+
+    def decode_forward_response_tensor( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor:
+        """ Returns full logits by decoding topk-encoding input. """
+        batch_size, sequence_len, _ = forward_response_tensor.shape
+        encoded_probs = forward_response_tensor  # encoded probabilities: [batch_size, sequence_len, topk + topk]
+        topk_values = encoded_probs[..., :self.topk]  # topk probs: [batch_size, sequence_len, topk]
+        topk_indices = encoded_probs[..., self.topk:].long()  # topk probs indices: [batch_size, sequence_len, topk]
+
+        topk_pmass = topk_values.sum(dim=-1)  # topk probability mass: [batch_size, sequence_len]
+        remainder_pmass = torch.clamp(1 - topk_pmass, 1e-64, 1)  # remainder probability mass: [batch_size, sequence_len]
+        remainder_floor = remainder_pmass / (bittensor.__vocab_size__ - self.topk)  # divide remainder: [batch_size, sequence_len]
+
+        logits = torch.ones((batch_size, sequence_len, bittensor.__vocab_size__)).to(topk_values.device)
+        logits *= torch.log(remainder_floor)[:, :, None]  # set probability floor: [batch_size, sequence_len, vocab_size]
+        logits.scatter_(-1, topk_indices, torch.log(topk_values + 1e-64))  # insert topk probs: [batch_size, sequence_len, vocab_size]
+
+        return logits  # [batch_size, sequence_len, vocab_size]
+
+    def encode_backward_request_gradient( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
     def decode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
+
+    def encode_backward_response_gradient( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor:
+        """ Return topk most negative token grads given full logit gradients. """
+        logit_gradients = backward_response_gradient  # logit gradients: [batch_size, sequence_len, vocab_size]
+        values, indices = logit_gradients.sort(dim=-1)  # ascend sort to get most negative gradients - informs on ideal logits
+
+        topk_values = values[..., :self.topk]  # topk gradients: [batch_size, sequence_len, topk]
+        topk_indices = indices[..., :self.topk]  # topk grad indices: [batch_size, sequence_len, topk]
+        encoded_grads = torch.cat((topk_values, topk_indices), dim=-1)  # [batch_size, sequence_len, topk + topk]
+
+        return encoded_grads  # [batch_size, sequence_len, topk + topk]
+
+    def decode_backward_response_gradient( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor:
+        """ Return full gradients by decoding topk-encoding input. """
+        batch_size, sequence_len, _ = backward_response_gradient.shape
+        encoded_grads = backward_response_gradient  # encoded gradients: [batch_size, sequence_len, topk + topk]
+        topk_values = encoded_grads[..., :self.topk]  # topk grads: [batch_size, sequence_len, topk]
+        topk_indices = encoded_grads[..., self.topk:].long()  # topk grads indices: [batch_size, sequence_len, topk]
+
+        gradients = torch.zeros((batch_size, sequence_len, bittensor.__vocab_size__)).to(topk_values.device)
+        gradients.scatter_(-1, topk_indices, topk_values)  # insert topk grads: [batch_size, sequence_len, vocab_size]
+
+        return gradients  # [batch_size, sequence_len, vocab_size]
 
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
 
     def nill_backward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
-
 
 
 class TextSeq2Seq (Synapse):
