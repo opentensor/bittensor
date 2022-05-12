@@ -48,7 +48,7 @@ jobs:
           name: Run tests
           # This assumes pytest is installed via the install-package step above
           command: |
-            pytest --splitting-algorithm least_duration --splits $CIRCLE_NODE_TOTAL --group $(CIRCLE_NODE_INDEX + 1)
+            pytest --splitting-algorithm least_duration --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1))
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
