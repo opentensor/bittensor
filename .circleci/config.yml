@@ -32,15 +32,20 @@ jobs:
 
       - run:
           name: Install bittensor
-          command: pip install -e .
+          command: |
+            . env/bin/activate
+            pip install -e .
 
       - run:
           name: Instantiate wallet & protos
-          command: ./scripts/create_wallet.sh && ./scripts/build_protos.sh
+          command: |
+            . env/bin/activate
+            ./scripts/create_wallet.sh && ./scripts/build_protos.sh
 
       - run:
           name: Run tests
           command: |
+            . env/bin/activate
             set -e
             TEST_FILES=$(circleci tests glob "tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
             mkdir -p test-results
