@@ -57,7 +57,7 @@ jobs:
             . env/bin/activate
             pytest --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
-            --splitting-algorithm least_duration --store-durations --durations-path .unit_test_durations_$CIRCLE_NODE_INDEX \
+            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.unit_test_durations_$CIRCLE_NODE_INDEX \
             tests/unit_tests/
             
 
@@ -67,14 +67,13 @@ jobs:
             . env/bin/activate
             pytest --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
-            --splitting-algorithm least_duration --store-durations --durations-path .integration_test_durations_$CIRCLE_NODE_INDEX \
+            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.integration_test_durations_$CIRCLE_NODE_INDEX \
             tests/integration_tests/
 
       - save_cache:
           name: Save cached timings
           paths:
-            - .unit_test_durations_$CIRCLE_NODE_INDEX
-            - .integration_test_durations_$CIRCLE_NODE_INDEX
+            - "test-timings/"
           key: test-timings-{{ .Branch }}
 
             
