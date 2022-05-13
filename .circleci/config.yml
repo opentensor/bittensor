@@ -43,11 +43,21 @@ jobs:
             ./scripts/create_wallet.sh && ./scripts/build_protos.sh
 
       - run:
-          name: Run tests
+          name: Unit Tests
           command: |
             . env/bin/activate
             set -e
-            TEST_FILES=$(circleci tests glob "tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
+            TEST_FILES=$(circleci tests glob "tests/unit_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
+            mkdir -p test-results
+            cp tests/pytest.ini . # workaround to fix pathing issues with pytest.
+            pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
+
+      - run:
+          name: Integration Tests
+          command: |
+            . env/bin/activate
+            set -e
+            TEST_FILES=$(circleci tests glob "tests/integration_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
             mkdir -p test-results
             cp tests/pytest.ini . # workaround to fix pathing issues with pytest.
             pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
