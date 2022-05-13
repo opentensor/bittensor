@@ -48,8 +48,8 @@ jobs:
       - restore_cache:
           name: Restore cached test timings
           keys:
-            - test-timings-{{ .Branch }}
-            - test-timings-
+            - test-timings-v1-{{ .Branch }}
+            - test-timings-v1-
 
       - run:
           name: Unit Tests
@@ -75,7 +75,7 @@ jobs:
           name: Save cached timings
           paths:
             - "test-timings/"
-          key: test-timings-{{ .Branch }}
+          key: test-timings-v1-{{ .Branch }}
 
             
       - store_test_results:
