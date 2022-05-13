@@ -96,6 +96,9 @@ class server(torch.nn.Module):
             '''
             for name, child in model.named_children():    
                 if isinstance(child, nn.ModuleList):
+                    if self.config.neuron.num_finetune_layers > len(child):
+                        logger.warning(f'Number of finetune layer was set higher then the layers avaliable {len(child)}')
+                        return None
                     return (name + '.' +str(len(child) - self.config.neuron.num_finetune_layers))
                 
             for name, child in model.named_children():    
@@ -109,7 +112,7 @@ class server(torch.nn.Module):
         reached_last_layer = False
 
         # set the non-last layer parameters not to require grads
-        if (not self.config.nucleus.finetune_all) and (last_layer_name != None):
+        if (not self.config.neuron.finetune_all) and (last_layer_name != None):
             for name, param in self.pre_model.named_parameters():
                 if last_layer_name in name or reached_last_layer == True:
                     param.requires_grad = True
@@ -118,7 +121,7 @@ class server(torch.nn.Module):
                     param.requires_grad = False
 
         else:
-            if self.config.nucleus.finetune_all:
+            if self.config.neuron.finetune_all:
                 logger.warning('Set to finetune the whole model, this will significantly increase the memory usage.')
             elif last_layer_name == None:
                 logger.warning('Cannot identify the last layer of the model, setting to finetune on all of the parameters.')
