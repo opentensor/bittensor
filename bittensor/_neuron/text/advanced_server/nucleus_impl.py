@@ -113,6 +113,7 @@ class server(torch.nn.Module):
 
         # set the non-last layer parameters not to require grads
         if (not self.config.neuron.finetune_all) and (last_layer_name != None):
+            logger.success(f'Set to finetune layer {last_layer_name} and on-wards')
             for name, param in self.pre_model.named_parameters():
                 if last_layer_name in name or reached_last_layer == True:
                     param.requires_grad = True
