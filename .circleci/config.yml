@@ -54,7 +54,7 @@ jobs:
       - run:
           name: Unit Tests
           command: |
-            mkdir test-timings/
+            mkdir -p test-timings/
             . env/bin/activate
             pytest --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
