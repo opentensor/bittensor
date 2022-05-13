@@ -88,7 +88,7 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
         self.set_fine_tuning_params()
-        
+
     def set_fine_tuning_params(self):
         r''' Set to tune only the parameter of the last layer
         '''
@@ -106,10 +106,10 @@ class server(torch.nn.Module):
                 name_ = find_last_layer(child)
                 if name_ != None:
                     return (name+'.'+ name_)
-            
+
             return (None)     
 
-        last_layer_name = find_last_layer(server.pre_model)
+        last_layer_name = find_last_layer(self.pre_model)
         reached_last_layer = False
 
         # set the non-last layer parameters not to require grads
