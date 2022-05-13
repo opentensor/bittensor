@@ -87,6 +87,7 @@ class server(torch.nn.Module):
         
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
+        self.set_fine_tuning_params()
         
     def set_fine_tuning_params(self):
         r''' Set to tune only the parameter of the last layer
