@@ -15,53 +15,69 @@ jobs:
 
       # TODO: Add Python version (matrix strategy)
       - restore_cache:
+          name: Restore cached venv
           keys:
             - v1-pypi-py3.8-{{ checksum "requirements.txt" }}
+            - v1-pypi-py3.8-
 
       - run:
-          name: Install & Activate venv
+          name: Update & Activate venv
           command: |
             python -m venv env/
             . env/bin/activate
             pip install -r requirements.txt
 
       - save_cache:
+          name: Save cached venv
           paths:
             - "env/"
           key: v1-pypi-py3.8-{{ checksum "requirements.txt" }}
 
       - run:
-          name: Install bittensor
+          name: Install Bittensor
           command: |
             . env/bin/activate
             pip install -e .
 
       - run:
-          name: Instantiate wallet & protos
+          name: Instantiate Mock Wallet & Protos
           command: |
             . env/bin/activate
             ./scripts/create_wallet.sh && ./scripts/build_protos.sh
+
+      - restore_cache:
+          name: Restore cached test timings
+          keys:
+            - test-timings-{{ .Branch }}
+            - test-timings-
 
       - run:
           name: Unit Tests
           command: |
             . env/bin/activate
-            set -e
-            TEST_FILES=$(circleci tests glob "tests/unit_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
-            mkdir -p test-results
-            cp tests/pytest.ini . # workaround to fix pathing issues with pytest.
-            pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
+            pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm least_duration --store-durations --durations-path .unit_test_durations_$CIRCLE_NODE_INDEX \
+            tests/unit_tests/
+            
 
-      - run:
+       - run:
           name: Integration Tests
           command: |
             . env/bin/activate
-            set -e
-            TEST_FILES=$(circleci tests glob "tests/integration_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
-            mkdir -p test-results
-            cp tests/pytest.ini . # workaround to fix pathing issues with pytest.
-            pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
+            pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm least_duration --store-durations --durations-path .integration_test_durations_$CIRCLE_NODE_INDEX \
+            tests/integration_tests/
 
+      - save_cache:
+          name: Save cached timings
+          paths:
+            - .unit_test_durations_$CIRCLE_NODE_INDEX
+            - .integration_test_durations_$CIRCLE_NODE_INDEX
+          key: test-timings-{{ .Branch }}
+
+            
       - store_test_results:
           path: test-results
       - store_artifacts:
