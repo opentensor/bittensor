@@ -61,7 +61,7 @@ jobs:
             tests/unit_tests/
             
 
-       - run:
+      - run:
           name: Integration Tests
           command: |
             . env/bin/activate
