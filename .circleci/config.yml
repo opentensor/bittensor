@@ -94,8 +94,7 @@ jobs:
       - run:
           name: Install coverage
           command: |
-            ls
-            pip install coverage
+            echo $(ls)
 
 
 workflows:
