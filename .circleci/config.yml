@@ -51,6 +51,8 @@ jobs:
             - test-timings-v1-{{ .Branch }}
             - test-timings-v1-
 
+      # [[ -e .unit_test_durations1 ]] && x="test" || x="test2"
+      # [[ -e test-timings/.unit_test_durations ]] && dur=.unit_test_durations || dur=.unit_test_durations_$CIRCLE_NODE_INDEX
       - run:
           name: Unit Tests
           command: |
@@ -72,18 +74,33 @@ jobs:
             tests/integration_tests/
 
       - save_cache:
-          name: Save cached timings
+          name: Save cached timings for CircleCI
           paths:
             - "test-timings/"
           key: test-timings-v1-{{ .Branch }}
 
-            
       - store_test_results:
           path: test-results
       - store_artifacts:
           path: test-results
 
+  collate-results:
+    docker:
+      - image: cimg/python:3.8
+    resource_class: small
+
+    steps:
+
+      - run:
+          name: Install coverage
+          command: |
+            ls
+            ls test-timings/
+            pip install coverage
+
+
 workflows:
   pre-pr:
     jobs:
       - build-and-test
+      - collate-results
