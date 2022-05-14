@@ -95,7 +95,6 @@ jobs:
           name: Install coverage
           command: |
             ls
-            ls test-timings/
             pip install coverage
 
 
