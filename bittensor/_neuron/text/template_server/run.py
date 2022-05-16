@@ -111,7 +111,7 @@ def serve(
                 if config.neuron.blacklist_allow_non_registered:
                     
                     return False
-                raise Exception('blacklist')
+                raise Exception('Registration blacklist')
 
         # Check for stake
         def stake_check() -> bool:

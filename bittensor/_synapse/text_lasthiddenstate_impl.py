@@ -9,7 +9,7 @@ class TextLastHiddenState (Synapse):
     """ TastHiddenState Synapse type for getting last hidden layer embeddings from languge models.
     """
     synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE
-    
+
     def __init__( 
         self,
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -87,8 +87,18 @@ class TextLastHiddenState (Synapse):
                 message = message
             )
 
-    def check_forward_request_tensor     ( self, forward_request_tensor ): pass
-    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ): pass
+    def check_forward_request_tensor     ( self, forward_request_tensor ): 
+        if len( forward_request_tensor.shape ) != 2:
+            raise ValueError( "forward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(forward_request_tensor.shape), self ) ) 
+
+    def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
+        if ( len( forward_response_tensor.shape ) != 3 or
+             forward_response_tensor.size(0) != forward_request_tensor.size(0) or
+             forward_response_tensor.size(1) != forward_request_tensor.size(1) or
+             forward_response_tensor.size(2) != bittensor.__network_dim__
+            ):
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(forward_response_tensor.shape), self ) ) 
+   
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): pass
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor

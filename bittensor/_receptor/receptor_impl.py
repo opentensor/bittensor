@@ -98,6 +98,8 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.ResponseIncompatibleVersion: 0,
                 bittensor.proto.ReturnCode.SenderUnknown: 0,
                 bittensor.proto.ReturnCode.UnknownException: 0,
+                bittensor.proto.ReturnCode.Unauthenticated: 0,
+                bittensor.proto.ReturnCode.BadEndpoint: 0,
             }
         )
 
