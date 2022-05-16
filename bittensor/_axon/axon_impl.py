@@ -394,7 +394,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     code = synapse_codes[ index ], 
                     call_time = synapse_call_times[ index ], 
                     pubkey = request.hotkey, 
-                    inputs = deserialized_forward_gradients [index] , 
+                    inputs = deserialized_forward_gradients[index].shape , 
                     outputs = None, # we never return from backward. 
                     message = synapse_messages[ index ]
                 )
@@ -421,7 +421,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         for index, synapse in enumerate( synapses ):
             try:
                 deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
-                deserialized_forward_gradients [index] = synapse.serialize_backward_request_gradient ( request.tensors [ len( synapses ) + index ] )
+                deserialized_forward_gradients [index] = synapse.deserialize_backward_request_gradient ( deserialized_forward_tensors [index],  request.tensors [ len( synapses ) + index ] )
             except Exception as e:
                 synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
                 synapse_call_times [index] = clock.time() - start_time
