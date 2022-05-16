@@ -95,14 +95,17 @@ class server(torch.nn.Module):
         def find_last_layer(model):    
             r''' Recursively find the last layer in a nn.ModuleList
             '''
-            for name, child in model.named_children():    
+            reverted_child_list = [(name, child) for name, child in model.named_children()]
+            reverted_child_list.reverse()
+
+            for name, child in reverted_child_list:    
                 if isinstance(child, nn.ModuleList):
                     if self.config.neuron.num_finetune_layers > len(child):
                         logger.warning(f'Number of finetune layer was set higher then the layers avaliable {len(child)}')
                         return None
                     return (name + '.' +str(len(child) - self.config.neuron.num_finetune_layers))
                 
-            for name, child in model.named_children():    
+            for name, child in reverted_child_list:    
                 name_ = find_last_layer(child)
                 if name_ != None:
                     return (name+'.'+ name_)
@@ -114,7 +117,7 @@ class server(torch.nn.Module):
 
         # set the non-last layer parameters not to require grads
         if (not self.config.neuron.finetune_all) and (last_layer_name != None):
-            logger.success(f'Set to finetune layer {last_layer_name} and on-wards')
+            print(f'Set to finetune layer {last_layer_name} and on-wards')
             for name, param in self.pre_model.named_parameters():
                 if last_layer_name in name or reached_last_layer == True:
                     param.requires_grad = True
