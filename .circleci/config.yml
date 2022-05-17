@@ -50,7 +50,7 @@ jobs:
           name: Unit Tests
           command: |
             . env/bin/activate
-            pytest -n2 --dist loadscope --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            pytest -n2 --dist loadfile--durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm least_duration --store-durations --durations-path .test_durations \
             tests/unit_tests/
@@ -59,7 +59,7 @@ jobs:
           name: Integration Tests
           command: |
             . env/bin/activate
-            pytest -n2 --dist loadscope --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            pytest -n2 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm least_duration --store-durations --durations-path .test_durations \
             tests/integration_tests/
