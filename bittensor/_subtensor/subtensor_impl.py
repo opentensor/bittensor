@@ -426,7 +426,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 wallet = axon.wallet,
                 ip = external_ip,
                 port = external_port,
-                modality = axon.modality,
+                modality = 0,
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
                 prompt = prompt
