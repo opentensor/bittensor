@@ -7,7 +7,7 @@ jobs:
   build-and-test:
     docker:
       - image: cimg/python:3.8
-    resource_class: xlarge
+    resource_class: large
     parallelism: 2
 
     steps:
