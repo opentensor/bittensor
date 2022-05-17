@@ -110,7 +110,7 @@ class dataset:
 
     @classmethod
     def mock(cls):
-        return dataset( _mock = True, dataset_name = ['Books3'])
+        return dataset( _mock = True )
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
