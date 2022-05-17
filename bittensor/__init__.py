@@ -60,7 +60,7 @@ __local_entrypoints__ = [
 ]
 
 # Avoid collisions with other processes
-from utils.test_utils import get_random_unused_port
+from .utils.test_utils import get_random_unused_port
 mock_subtensor_port = get_random_unused_port()
 __mock_entrypoints__ = [
     f"localhost:{mock_subtensor_port}"
