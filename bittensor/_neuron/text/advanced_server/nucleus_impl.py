@@ -95,26 +95,33 @@ class server(torch.nn.Module):
         def find_last_layer(model):    
             r''' Recursively find the last layer in a nn.ModuleList
             '''
-            for name, child in model.named_children():    
+            reverted_child_list = [(name, child) for name, child in model.named_children()]
+            reverted_child_list.reverse()
+
+            for name, child in reverted_child_list:    
                 if isinstance(child, nn.ModuleList):
-                    if self.config.neuron.num_finetune_layers > len(child):
-                        logger.warning(f'Number of finetune layer was set higher then the layers avaliable {len(child)}')
+                    if self.config.neuron.finetune.num_layers > len(child):
+                        logger.warning(f'Number of finetune layers was set higher then the layers avaliable {len(child)}')
                         return None
-                    return (name + '.' +str(len(child) - self.config.neuron.num_finetune_layers))
+                    return (name + '.' +str(len(child) - self.config.neuron.finetune.num_layers))
                 
-            for name, child in model.named_children():    
+            for name, child in reverted_child_list:    
                 name_ = find_last_layer(child)
                 if name_ != None:
                     return (name+'.'+ name_)
 
             return (None)     
 
-        last_layer_name = find_last_layer(self.pre_model)
+        if self.config.neuron.finetune.layer_name == None:
+            last_layer_name = find_last_layer(self.pre_model)
+        else:
+            last_layer_name = self.config.neuron.finetune.layer_name
+
         reached_last_layer = False
 
         # set the non-last layer parameters not to require grads
-        if (not self.config.neuron.finetune_all) and (last_layer_name != None):
-            logger.success(f'Set to finetune layer {last_layer_name} and on-wards')
+        if (not self.config.neuron.finetune.all) and (last_layer_name != None):
+            logger.success(f'Set to finetune layer {last_layer_name} and onwards')
             for name, param in self.pre_model.named_parameters():
                 if last_layer_name in name or reached_last_layer == True:
                     param.requires_grad = True
@@ -122,11 +129,11 @@ class server(torch.nn.Module):
                 else:
                     param.requires_grad = False
 
-        else:
-            if self.config.neuron.finetune_all:
+        if reached_last_layer == False:
+            if self.config.neuron.finetune.all:
                 logger.warning('Set to finetune the whole model, this will significantly increase the memory usage.')
-            elif last_layer_name == None:
-                logger.warning('Cannot identify the last layer of the model, setting to finetune on all of the parameters.')
+            else:
+                logger.warning(f'Cannot identify the last layer of the model with name {last_layer_name}, setting to finetune on all of the parameters.')
 
     def forward(self, inputs,tokenizer=None):
         """
@@ -262,8 +269,9 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to sync set weights', default=100)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=2)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=0)
-        parser.add_argument('--neuron.finetune_all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
-        parser.add_argument('--neuron.num_finetune_layers', type=int, help='The number of layers to finetune on your model.', default=1)
+        parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
+        parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
+        parser.add_argument('--neuron.finetune.layer_name', type=str, help='Specify since which layer to finetune. eg. encoder.layer.11', default=None)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
