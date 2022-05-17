@@ -24,7 +24,7 @@ from torch.autograd import Variable
 
 import bittensor
 from bittensor._endpoint import endpoint
-from bittensor.utils.test_utils import get_random_unused_port
+from test.utils import get_random_unused_port
 
 wallet = bittensor.wallet.mock()
 bittensor.logging(debug = True)

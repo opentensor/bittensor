@@ -21,7 +21,7 @@ import pytest
 import torch
 
 import bittensor
-from bittensor.utils.test_utils import get_random_unused_port
+from test.utils import get_random_unused_port
 
 test_wallet = bittensor.wallet.mock()
 

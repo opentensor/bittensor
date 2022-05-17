@@ -4,7 +4,7 @@ import time
 from multiprocessing import Pool
 from qqdm import qqdm
 
-from bittensor.utils.test_utils import get_random_unused_port
+from test.utils import get_random_unused_port
 
 wallet =  bittensor.wallet (
     path = f"/tmp/pytest{time.time()}",
