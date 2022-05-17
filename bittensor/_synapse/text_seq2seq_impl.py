@@ -95,9 +95,9 @@ class TextSeq2Seq (Synapse):
     def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
         if ( len( forward_response_tensor.shape ) != 2 or
              forward_response_tensor.size(0) != forward_request_tensor.size(0) or
-             forward_response_tensor.size(1) != self.num_to_generate 
+             forward_response_tensor.size(1) > self.num_to_generate 
             ):
-            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, list(forward_response_tensor.shape), self ) ) 
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, list(forward_response_tensor.shape), self ) ) 
 
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
         if list( backward_request_gradient.shape ) != list( forward_request_tensor.shape ):
