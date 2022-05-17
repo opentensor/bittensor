@@ -45,24 +45,15 @@ jobs:
             . env/bin/activate
             ./scripts/create_wallet.sh && ./scripts/build_protos.sh
 
-      - restore_cache:
-          name: Restore cached test timings
-          keys:
-            - test-timings-v1-{{ .Branch }}
-            - test-timings-v1-
-
-      # [[ -e .unit_test_durations1 ]] && x="test" || x="test2"
-      # [[ -e test-timings/.unit_test_durations ]] && dur=.unit_test_durations || dur=.unit_test_durations_$CIRCLE_NODE_INDEX
+      # TODO: Update test durations on different runs
       - run:
           name: Unit Tests
           command: |
-            mkdir -p test-timings/
             . env/bin/activate
             pytest -n2 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
-            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.unit_test_durations_$CIRCLE_NODE_INDEX \
+            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.test_durations \
             tests/unit_tests/
-            
 
       - run:
           name: Integration Tests
@@ -70,35 +61,15 @@ jobs:
             . env/bin/activate
             pytest -n2 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
-            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.integration_test_durations_$CIRCLE_NODE_INDEX \
+            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.test_durations \
             tests/integration_tests/
-
-      - save_cache:
-          name: Save cached timings for CircleCI
-          paths:
-            - "test-timings/"
-          key: test-timings-v1-{{ .Branch }}
 
       - store_test_results:
           path: test-results
       - store_artifacts:
           path: test-results
 
-  collate-results:
-    docker:
-      - image: cimg/python:3.8
-    resource_class: small
-
-    steps:
-
-      - run:
-          name: Install coverage
-          command: |
-            echo $(ls)
-
-
 workflows:
   pre-pr:
     jobs:
       - build-and-test
-      - collate-results
