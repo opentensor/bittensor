@@ -259,7 +259,7 @@ def serve(
             chain_weights[uid] = 1 
 
         # --  serve axon to the network.
-        # axon.start().serve(subtensor = subtensor)
+        axon.start().serve(subtensor = subtensor)
         
         while True:
             
@@ -267,7 +267,7 @@ def serve(
             nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
             if not wallet.is_registered( subtensor = subtensor ):
                 wallet.register( subtensor = subtensor )
-                # axon.serve( subtensor = subtensor ) # Re-serve the erased axon data.
+                axon.serve( subtensor = subtensor ) # Re-serve the erased axon data.
                 nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
                 
 
