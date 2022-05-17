@@ -117,7 +117,7 @@ def test_receptor_neuron_request_empty():
 def test_receptor_neuron_mock_server():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -139,7 +139,7 @@ def test_receptor_neuron_mock_server():
 def test_receptor_neuron_serve_timeout():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -199,7 +199,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
 def test_receptor_neuron_mock_server_shape_error():
     y = torch.rand(1, 3, bittensor.__network_dim__)
 
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
    
     mock_return_val = bittensor.proto.TensorMessage(
@@ -224,7 +224,7 @@ def test_receptor_neuron_server_response_with_nans():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     y[0][0][0] = np.nan
 
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
    
     mock_return_val = bittensor.proto.TensorMessage(
@@ -298,7 +298,7 @@ def test_receptor_neuron_backward_empty_response():
 def test_receptor_neuron_mock_server_backward():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -340,7 +340,7 @@ def test_receptor_neuron_mock_server_deserialization_error_backward():
 def test_receptor_neuron_mock_server_shape_error_backward():
     y = torch.rand(1, 3, bittensor.__network_dim__)
 
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
    
     mock_return_val = bittensor.proto.TensorMessage(
@@ -364,7 +364,7 @@ def test_receptor_neuron_server_response_with_nans_backward():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     y[0][0][0] = np.nan
 
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
    
     mock_return_val = bittensor.proto.TensorMessage(
@@ -387,7 +387,7 @@ def test_receptor_neuron_server_response_with_nans_backward():
 def test_receptor_forward_no_return():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -407,7 +407,7 @@ def test_receptor_forward_no_return():
 def test_receptor_backward_no_return():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -429,7 +429,7 @@ def test_receptor_backward_no_return():
 def test_receptor_forward_exception():
     y = torch.rand(3, 3, bittensor.__network_dim__)
     
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
@@ -450,7 +450,7 @@ def test_receptor_forward_exception():
 def test_receptor_backward_exception():
     y = torch.zeros(3, 3, bittensor.__network_dim__)
     
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(

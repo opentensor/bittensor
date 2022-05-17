@@ -80,7 +80,7 @@ def test_receptor_pool_forward_hang():
     endpoints = [neuron_obj,neuron_obj]
     x = torch.ones( (2,2,2) )    
     y = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(

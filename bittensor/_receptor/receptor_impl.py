@@ -98,6 +98,8 @@ class Receptor(nn.Module):
                 bittensor.proto.ReturnCode.ResponseIncompatibleVersion: 0,
                 bittensor.proto.ReturnCode.SenderUnknown: 0,
                 bittensor.proto.ReturnCode.UnknownException: 0,
+                bittensor.proto.ReturnCode.Unauthenticated: 0,
+                bittensor.proto.ReturnCode.BadEndpoint: 0,
             }
         )
 
@@ -222,22 +224,6 @@ class Receptor(nn.Module):
                     message = synapse_messages[ index ]
                 )
 
-        # ===========================
-        # ==== Check inputs size ====
-        # ===========================
-        if torch.numel(inputs) == 0 or len(grads) == 0:
-            # Inputs are nill.
-            code = bittensor.proto.ReturnCode.EmptyRequest
-            call_time = clock.time() - start_time
-            message = "Empty Request"
-            synapse_codes = [ code for _ in synapses ]
-            synapse_call_times = [ call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
-            finalize_stats_and_logs()
-            return synapse_responses, synapse_codes, synapse_call_times
-
 
         # ========================
         # ==== Check endpoint ====
@@ -250,8 +236,6 @@ class Receptor(nn.Module):
             synapse_call_times = [ call_time for _ in synapses ]
             synapse_codes = [ code for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -259,18 +243,19 @@ class Receptor(nn.Module):
         # ==================================
         # ==== Serialize inputs & grads ====
         # ==================================
-        try:
-            serialized_forward_tensors = [ synapse.serialize_forward_request_tensor( inputs ) for synapse in synapses ]
-            serialized_backward_grads = [ synapse.serialize_backward_request_gradient ( grad ) for grad, synapse in list(zip(grads, synapses)) ]
-            serialized_synapses = [ synapse.serialize_to_wire_proto() for synapse in synapses ]
-        except Exception as e:
-            # Input Serialization failed.
-            code = bittensor.proto.ReturnCode.RequestSerializationException
-            call_time = clock.time() - start_time
-            message = 'Input serialization exception with error:{}'.format(str(e))
-            synapse_codes = [code for _ in synapses ]
-            synapse_call_times = [call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
+        serialized_forward_tensors = []
+        serialized_backward_grads = []
+        serialized_synapses = []
+        for index, synapse in enumerate( synapses ):
+            try:
+                serialized_forward_tensors [ index ] = synapse.serialize_forward_request_tensor( inputs )
+                serialized_backward_grads [ index ] = synapse.serialize_backward_request_gradient ( grads[index] )
+                serialized_synapses [ index ] = synapse.serialize_to_wire_proto()
+            except Exception as e:
+                # Input Serialization failed.
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [message] = 'Input serialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_stats_and_logs()
@@ -296,8 +281,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -431,8 +414,6 @@ class Receptor(nn.Module):
             synapse_codes = [ code for _ in synapses ]
             synapse_call_times = [ call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -449,8 +430,6 @@ class Receptor(nn.Module):
             synapse_call_times = [ call_time for _ in synapses ]
             synapse_codes = [ code for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -458,17 +437,16 @@ class Receptor(nn.Module):
         # ==========================
         # ==== Serialize inputs ====
         # ==========================
-        try:
-            serialized_forward_tensors = [  synapse.serialize_forward_request_tensor ( inputs ) for synapse in synapses ]
-            serialized_synapses = [ synapse.serialize_to_wire_proto() for synapse in synapses ]
-        except Exception as e:
-            # Input Serialization failed.
-            code = bittensor.proto.ReturnCode.RequestSerializationException
-            call_time = clock.time() - start_time
-            message = 'Input serialization exception with error:{}'.format(str(e))
-            synapse_codes = [code for _ in synapses ]
-            synapse_call_times = [call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
+        serialized_forward_tensors = []
+        serialized_synapses = []
+        for index, synapse in enumerate( synapses ):
+            try:
+                serialized_forward_tensors.append( synapse.serialize_forward_request_tensor ( inputs ))
+                serialized_synapses.append(synapse.serialize_to_wire_proto())
+            except Exception as e:
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [index] = 'Input serialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_stats_and_logs()
@@ -494,8 +472,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -517,7 +493,6 @@ class Receptor(nn.Module):
                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
             self.stats.forward_bytes_in.update( sys.getsizeof( grpc_response ) )
-
             # Set successful response booleans to true
             synapse_is_response = [ True for code in synapse_codes if code == bittensor.proto.ReturnCode.Success  ]
 
@@ -544,6 +519,9 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
+            finalize_stats_and_logs()
+            return synapse_responses, synapse_codes, synapse_call_times
+
 
         # ====================================
         # ==== Handle GRPC Unknown Errors ====
@@ -556,8 +534,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -573,8 +549,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -591,8 +565,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
@@ -615,10 +587,12 @@ class Receptor(nn.Module):
         # ==== Deserialize synapse responses ====
         # ======================================
         try:
-            synapse_responses = [ 
-                synapse.deserialize_forward_response_proto ( inputs, response_proto ) 
-                for response_proto, synapse in list(zip(grpc_response.tensors, synapse))
-            ]
+            for index, response_proto in enumerate(grpc_response.tensors):
+                synapse = synapses[index]
+                if synapse_codes[index] == bittensor.proto.ReturnCode.Success:
+                    synapse_responses[index] = synapse.deserialize_forward_response_proto ( inputs, response_proto ) 
+                else: 
+                    synapse_responses[index] = None
         except Exception as e:
             # Input Serialization failed.
             code = bittensor.proto.ReturnCode.ResponseDeserializationException
@@ -627,8 +601,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-        # Check if the call can stop here.
-        if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
