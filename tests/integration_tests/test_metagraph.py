@@ -18,7 +18,6 @@
 import bittensor
 import torch
 import unittest
-import pytest
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 
 

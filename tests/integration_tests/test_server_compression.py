@@ -81,7 +81,7 @@ def get_socket(bind_address='localhost',
         except OSError as os_error:
             sock.close()
 
-            # This variable was undefined--what were the previously unrecoverable error numbers?:w
+            # This variable was undefined--what were the previously unrecoverable error numbers?
             # if os_error.errno in _UNRECOVERABLE_ERRNOS:
             #    raise
             # else:
