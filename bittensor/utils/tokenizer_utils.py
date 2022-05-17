@@ -1,4 +1,4 @@
-""" Utils for tokenizer compatibility checking, logit translation, etc.
+""" Utils for tokenizer equivalence checking, logit translation, etc.
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -617,7 +617,7 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
                                   split_map_cache: Dict[tuple, List[Dict[str, torch.Tensor]]],
                                   to_translation_map: Dict[str, Any], from_translation_map: Dict[str, Any],
                                   tokens: torch.LongTensor, tokens_std: torch.LongTensor,
-                                  skip_compatible: bool = True) -> torch.FloatTensor:
+                                  skip_equivalent: bool = True) -> torch.FloatTensor:
     r"""
         Translates source token logit scores to probability distributions over the standard tokenizer.
             Args:
@@ -646,16 +646,16 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
                 from_translation_map (:obj:`Dict[str, Any]`, `required`):
                     Maps for each observed length, a source token to a token sequence of that length,
                     from target index to source indices.
-                skip_compatible (:obj:`bool`, `optional`):
-                    Skips translation if tokenizer and std_tokenizer are compatible.
+                skip_equivalent (:obj:`bool`, `optional`):
+                    Skips translation if tokenizer and std_tokenizer are equivalent.
 
             Returns:
                 probs_std (:obj:`torch.FloatTensor`, `required`):
                     [batch_size, std_sequence_len, std_vocab_size] Output probability distribution over the
                     standard tokenizer vocabulary.
         """
-    # === Check tokenizer compatibility / Skip if compatible ===
-    if skip_compatible and check_tokenizer_compatibility(tokenizer, std_tokenizer):
+    # === Check tokenizer equivalence / Skip if equivalent ===
+    if skip_equivalent and check_tokenizer_equivalence(tokenizer, std_tokenizer):
         probs = torch.softmax(logits, dim=2).to('cpu')
         return probs
 
@@ -688,15 +688,15 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
     return probs_std  # [batch_size, std_sequence_len, std_vocab_size]
 
 
-def check_tokenizer_compatibility(tokenizer_to_check: PreTrainedTokenizerBase,
-                                  target_tokenizer: PreTrainedTokenizerBase) -> bool:
+def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
+                                target_tokenizer: PreTrainedTokenizerBase) -> bool:
     r"""
-    Is tokenizer_to_check compatible with target_tokenizer?
+    Is tokenizer_to_check equivalent to target_tokenizer?
         Args:
             tokenizer_to_check (:obj:`PreTrainedTokenizerBase`, `required`):
-                Tokenizer to check for compatibility.
+                Tokenizer to check for equivalence.
             target_tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                Target tokenizer to check compatibility against.
+                Target tokenizer to check equivalence against.
 
         Returns:
             result (:obj:`bool`, `required`)

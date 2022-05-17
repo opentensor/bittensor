@@ -44,10 +44,10 @@ Drittes Gesetz: Ein roboter muss seine eigene existenz schützen, solange dieser
                             ]}
 
 
-def test_tokenizer_compatibility():
+def test_tokenizer_equivalence():
     r"""
-    Checks if two tokenizers are compatible w.r.t. their vocabularies.
-    Compatible tokenizers should always produce the same tokenization for the same text.
+    Checks if two tokenizers are equivalent w.r.t. their vocabularies.
+    Equivalent tokenizers should always produce the same tokenization for the same text.
         Returns:
             Asserts expected result for list of tokenizer pairs.
     """
@@ -64,7 +64,7 @@ def test_tokenizer_compatibility():
     for target, to_check, expected_result in test_pairs:
         tokenizer_to_check = AutoTokenizer.from_pretrained(to_check)
         target_tokenizer = AutoTokenizer.from_pretrained(target)
-        assert check_tokenizer_compatibility(tokenizer_to_check, target_tokenizer) == expected_result
+        assert check_tokenizer_equivalence(tokenizer_to_check, target_tokenizer) == expected_result
 
 
 def get_loss_fct(logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
@@ -144,7 +144,7 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
                 bypass server model forward call.
             device (:obj:`str`, `optional`):
                 CUDA device for server model forward call.
-            topk (:obj:`int`, `required`):
+            topk (:obj:`int`, `optional`):
                 Amount of top logits to encode the server model pre_logits with (for saving purposes).
 
         Returns:
@@ -230,7 +230,8 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
                                                   tokens['offset_mapping'], tokens['offset_mapping_std'],
                                                   tokenizer, std_tokenizer,
                                                   split_map_cache, to_translation_map, from_translation_map,
-                                                  tokens['input_ids'].cpu(), token_batch.cpu())
+                                                  tokens['input_ids'].cpu(), token_batch.cpu(),
+                                                  skip_equivalent=False)
 
     logits_std = torch.log(probs_std + EPSILON)
     translated_loss = get_loss_fct(logits_std, token_batch.cpu())
@@ -285,5 +286,5 @@ def test_tokenizer_translation():
 
 
 if __name__ == '__main__':
-    test_tokenizer_compatibility()
+    test_tokenizer_equivalence()
     test_tokenizer_translation()
