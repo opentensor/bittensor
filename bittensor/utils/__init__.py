@@ -240,8 +240,21 @@ def millify(n: int):
 
     return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
-
-def solve_for_difficulty_fast_cuda( subtensor, wallet, update_interval: int = 100000, TPB: int = 1024 ) -> Tuple[int, int, Any, int, Any]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 100000, TPB: int = 512, dev_id: int = 0 ) -> Tuple[int, int, Any, int, Any]:
+    """
+    Solves the registration fast using CUDA
+    Args:
+        subtensor: bittensor.Subtensor
+            The subtensor node to grab blocks
+        wallet: bittensor.Wallet
+            The wallet to register
+        update_interval: int
+            The number of nonces to try before checking for more blocks
+        TPB: int
+            The number of threads per block. CUDA param that should match the GPU capability
+        dev_id: int
+            The CUDA device ID to execute the registration on
+    """
     if not torch.cuda.is_available():
         raise Exception("CUDA not available")
         
@@ -265,13 +278,14 @@ def solve_for_difficulty_fast_cuda( subtensor, wallet, update_interval: int = 10
     interval_time = start_time
 
     status.start()
-    while solution == -1 and not wallet.is_registered(subtensor):
+    while solution == -1: #and not wallet.is_registered(subtensor):
         solution, seal = solve_cuda(nonce,
                         update_interval,
                         TPB,
                         block_bytes, 
                         difficulty, 
-                        limit)
+                        limit,
+                        dev_id)
 
         if (solution != -1):
             # Attempt to reset CUDA device
@@ -314,9 +328,9 @@ def solve_for_difficulty_fast_cuda( subtensor, wallet, update_interval: int = 10
         status.stop()
         return None, None, None, None, None
 
-def create_pow( subtensor, wallet, cuda: bool = False ):
+def create_pow( subtensor, wallet, cuda: bool = False, dev_id: int = 0 ):
     if cuda:
-        nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast_cuda( subtensor, wallet )
+        nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast_cuda( subtensor, wallet, dev_id=dev_id )
     else:
         nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet )
     return None if nonce is None else {
@@ -414,5 +428,3 @@ def is_valid_destination_address( address: Union[str, bytes] ) -> bool:
         return False
         
     return True
-
-

@@ -23,6 +23,8 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
             Difficulty of the PoW problem.
         limit: int32
             Upper limit of the nonce.
+        dev_id: int (default=0)
+            The CUDA device ID
     Returns:
         Tuple[int32, bytes]
             Tuple of the nonce and the seal corresponding to the solution.  
@@ -52,9 +54,9 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
         return seal
 
     # Call cython function
-    # int blockSize, int64 nonce_start, uint64 update_interval,
-    #  uint64 difficulty, const unsigned char[:] limit, const unsigned char[:] block_bytes
-    solution = solve_cuda_c(TPB, nonce_start, update_interval, upper_bytes, block_bytes)
+    # int blockSize, uint64 nonce_start, uint64 update_interval, const unsigned char[:] limit,
+    # const unsigned char[:] block_bytes, int dev_id
+    solution = solve_cuda_c(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
         seal = create_seal_hash(block_bytes, solution)

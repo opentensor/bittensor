@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import torch
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 from typing import List, Dict, Union
 from multiprocessing import Process
 
@@ -473,11 +473,20 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Attempt rolling registration.
         attempts = 1
         cuda = False
-        if torch.cuda.is_available():
-            cuda = Confirm.ask("Would you like to try CUDA registration?\n")
+        dev_id: int = 0
+        if prompt:
+            if torch.cuda.is_available():
+                cuda = Confirm.ask("Would you like to try CUDA registration?\n")
+                if cuda:
+                    devices: List[int] = [str(x) for x in range(torch.cuda.device_count())]
+                    dev_id = Prompt.ask("Which GPU would you like to use?", choices=devices, default="0")
+                    dev_id = int(dev_id)
         while True:
             # Solve latest POW.
-            pow_result = bittensor.utils.create_pow( self, wallet, cuda )
+            if cuda:
+                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id )
+            else:
+                pow_result = bittensor.utils.create_pow( self, wallet, cuda )
             with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:
 
                 # pow failed
