@@ -71,11 +71,20 @@ def serve(
 
     timecheck = {}
     n_topk_peer_weights = subtensor.min_allowed_weights
-    def forward_text ( inputs_x ):
-        r""" Single threaded version of the Forward function that is called when the axon recieves a forward request from other peers
-        """ 
-        return model.encode_forward( inputs_x.to(model.device))
 
+    def forward_generate( inputs_x:torch.FloatTensor, synapse):
+        output = model.generate(input_ids=inputs_x, max_length=synapse.num_to_generate)
+        return output
+
+    def forward_hidden_state(inputs_x, synapse):
+        output = model(x,output_hidden_states=True).hidden_states[-1]
+        padding_r = (1024-output.size(2))
+        encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
+        return encoded_hidden
+
+    def forward_casual_lm(inputs_x, synapse):
+        output = model(input_ids=inputs_x).logits
+        return output
 
     def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
@@ -165,8 +174,9 @@ def serve(
         axon = bittensor.axon (
             config = config,
             wallet = wallet,
-            forward_text = forward_text,
-            backward_text = backward_text,
+            synapse_last_hidden = forward_hidden_state,
+            synapse_causal_lm = forward_casual_lm,
+            synapse_seq_2_seq = forward_generate,
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
 
