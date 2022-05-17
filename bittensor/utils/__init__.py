@@ -181,7 +181,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
 
 def initProcess_(f, found_solution, best, best_seal):
     f.found = found_solution
-    f.best = best
+    f.best = best 
     f.best_seal = best_seal
 
 def solve_(nonce_start, nonce_end, block_bytes, difficulty, block_hash, block_number, limit):
