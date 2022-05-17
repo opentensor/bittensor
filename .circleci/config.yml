@@ -52,9 +52,7 @@ jobs:
             cp tests/pytest.ini . # workaround to fix pathing issues with pytest.
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            
-            TEST_FILES=$(circleci tests glob "tests/unit_tests/**/test_*.py" | \ 
-            circleci tests split --split-by=timings --timings-type=filename)
+            TEST_FILES=$(circleci tests glob "tests/unit_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
             pytest -n2 -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
 
       - run:
@@ -62,9 +60,7 @@ jobs:
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            
-            TEST_FILES=$(circleci tests glob "tests/integration_tests/**/test_*.py" | \ 
-            circleci tests split --split-by=timings --timings-type=filename)
+            TEST_FILES=$(circleci tests glob "tests/integration_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
             pytest -n4 -c pytest.ini --durations=0 --verbose --junitxml=test-results/jint.xml $TEST_FILES
 
       - store_test_results:
