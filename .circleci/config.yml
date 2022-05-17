@@ -53,7 +53,7 @@ jobs:
             . env/bin/activate
             export PYTHONUNBUFFERED=1
             TEST_FILES=$(circleci tests glob "tests/unit_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
-            pytest -n2 -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
+            pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
 
       - run:
           name: Integration Tests
