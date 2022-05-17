@@ -7,7 +7,7 @@ import time
 import os
 
 from . import subtensor_impl
-from test.utils import get_random_unused_port
+from tests.utils import get_random_unused_port
 
 __type_registery__ = {
     "runtime_id": 2,
@@ -43,7 +43,6 @@ __type_registery__ = {
 
 GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
 print(GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
-
 
 class mock_subtensor():
     r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
