@@ -209,7 +209,7 @@ class Receptor(nn.Module):
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
         def finalize_stats_and_logs():
-            for index, _ in enumerate( synapses ):
+            for index, synapse in enumerate( synapses ):
                 self.stats.codes[ synapse_codes[ index ] ] += 1
                 bittensor.logging.rpc_log ( 
                     axon = False, 
@@ -221,7 +221,8 @@ class Receptor(nn.Module):
                     uid = self.endpoint.uid, 
                     inputs = list(grads[index].shape), 
                     outputs = None, 
-                    message = synapse_messages[ index ]
+                    message = synapse_messages[ index ],
+                    synapse = synapse.synapse_type
                 )
 
 
@@ -349,6 +350,7 @@ class Receptor(nn.Module):
                     Request max timeout
             Returns:
                 outputs (:obj:`List[ Union[torch.FloatTensor, torch.LongTensor] ]`, `required`):
+                    outputs.shape = [batch_size, synapse_length, response] 
                     List of result tensors from the forward call each corresponding to a passed synapse enum.
 
                 codes (:obj:`bittensor.proto.ReturnCode`, `required`):
@@ -387,7 +389,7 @@ class Receptor(nn.Module):
         # ==============================================================
         def finalize_stats_and_logs():
             self.stats.forward_elapsed_time.update( clock.time() - start_time )
-            for index, _ in enumerate( synapses ):
+            for index, synapse in enumerate( synapses ):
                 self.stats.codes[ synapse_codes[ index ] ] += 1
                 bittensor.logging.rpc_log ( 
                     axon = False, 
@@ -399,7 +401,8 @@ class Receptor(nn.Module):
                     uid = self.endpoint.uid, 
                     inputs = list(inputs.shape), 
                     outputs = None if synapse_codes[ index ] != bittensor.proto.ReturnCode.Success else list( synapse_responses[index].shape ), 
-                    message = synapse_messages[ index ]
+                    message = synapse_messages[ index ],
+                    synapse = synapse.synapse_type
                 )
 
 
@@ -483,6 +486,7 @@ class Receptor(nn.Module):
         try:
             self.stats.forward_qps.update(1)
             self.stats.forward_bytes_out.update( sys.getsizeof( grpc_request ) )
+            finalize_stats_and_logs()
             grpc_response = self.stub.Forward (
                 request = grpc_request, 
                 timeout = timeout,
@@ -493,9 +497,8 @@ class Receptor(nn.Module):
                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
             self.stats.forward_bytes_in.update( sys.getsizeof( grpc_response ) )
+            synapse_is_response = [ True for _ in synapses ]
             # Set successful response booleans to true
-            synapse_is_response = [ True for code in synapse_codes if code == bittensor.proto.ReturnCode.Success  ]
-
 
         # ====================================
         # ==== Handle GRPC Errors ====
@@ -543,12 +546,10 @@ class Receptor(nn.Module):
         # ==========================================
         if grpc_response.return_code != bittensor.proto.ReturnCode.Success:
             # Request failed with unknown exception.
-            code = grpc_response.return_code 
-            message = grpc_response.message 
             call_time = clock.time() - start_time
-            synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
+            synapse_codes = [synapse.return_code for synapse in grpc_response.synapses ]
+            synapse_messages = ['Remote Server Failure: '+ synapse.message for synapse in grpc_response.synapses ]
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 

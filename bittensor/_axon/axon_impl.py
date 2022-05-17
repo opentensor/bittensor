@@ -110,7 +110,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     proto response carring the nucleus forward output or None under failure.
         """
         forward_response_tensors, code, synapses = self._forward( request )
-        # TODO(eugene) Shouldnt we be signing these responses ?
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
@@ -200,7 +199,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
         def finalize_codes_stats_and_logs():
-            for index, _ in enumerate( synapses ):
+            for index, synapse in enumerate( synapses ):
                 request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
                 request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
@@ -211,8 +210,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     call_time = synapse_call_times[ index ], 
                     pubkey = request.hotkey, 
                     inputs = synapse_inputs [index] , 
-                    outputs = None if synapse_codes[ index ] != bittensor.proto.ReturnCode.Success else list( synapse_responses[index].shape ), 
-                    message = synapse_messages[ index ]
+                    outputs = None if synapse_responses[index] == None else list( synapse_responses[index].shape ), 
+                    message = synapse_messages[ index ],
+                    synapse = synapse.synapse_type
                 )
 
         # ======================================
@@ -251,6 +251,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Make forward calls. =========
         # ===================================
         try:
+            finalize_codes_stats_and_logs()
             if self.priority != None:
                 priority = self.priority( request.hotkey, inputs_x = deserialized_forward_tensors, request_type = bittensor.proto.RequestType.FORWARD )
                 future = self.priority_threadpool.submit (
@@ -266,14 +267,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapses = synapses,
                 )
             
+            synapse_is_response = [ True for _ in synapses ]
             # ========================================
             # ==== Fill codes from forward calls ====
             # ========================================
             for index, synapse in enumerate(synapses):
                 synapse_codes [ index ] = forward_codes [ index ]
                 synapse_messages [index] = forward_messages [ index ]
-                if forward_codes [ index ] == bittensor.proto.ReturnCode.Success:
-                    synapse_is_response[index] = True
 
         # ========================================
         # ==== Catch forward request timeouts ====
@@ -384,7 +384,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
         def finalize_codes_stats_and_logs():
-            for index, _ in enumerate( synapses ):
+            for index, synapse in enumerate( synapses ):
                 request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
                 request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
@@ -394,9 +394,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     code = synapse_codes[ index ], 
                     call_time = synapse_call_times[ index ], 
                     pubkey = request.hotkey, 
-                    inputs = deserialized_forward_gradients[index].shape , 
+                    inputs = None if deserialized_forward_gradients[index] == None else deserialized_forward_gradients[index].shape  , 
                     outputs = None, # we never return from backward. 
-                    message = synapse_messages[ index ]
+                    message = synapse_messages[ index ],
+                    synapse = synapse.synapse_type
                 )
 
 
