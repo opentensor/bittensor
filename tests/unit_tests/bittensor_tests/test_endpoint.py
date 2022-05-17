@@ -15,16 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor 
-import torch
 import random
+
 import pytest
+import torch
+
+import bittensor
+from bittensor.utils.test_utils import get_random_unused_port
 
 test_wallet = bittensor.wallet.mock()
-endpoint = None
 
 def test_create_endpoint():
-    global endpoint
     endpoint = bittensor.endpoint(
         version = bittensor.__version_as_int__,
         uid = 0,
@@ -129,6 +130,16 @@ def test_endpoint_fails_checks():
 
 
 def test_endpoint_to_tensor():
+    endpoint = bittensor.endpoint(
+        version = bittensor.__version_as_int__,
+        uid = 0,
+        ip = '0.0.0.0',
+        ip_type = 4,
+        port = get_random_unused_port(),
+        hotkey = test_wallet.hotkey.ss58_address,
+        coldkey = test_wallet.coldkey.ss58_address,
+        modality = 0
+    )
     tensor_endpoint = endpoint.to_tensor()
     assert list(tensor_endpoint.shape) == [250]
     converted_endpoint = bittensor.endpoint.from_tensor( tensor_endpoint )

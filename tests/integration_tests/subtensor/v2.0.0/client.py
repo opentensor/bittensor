@@ -56,7 +56,7 @@ class WalletStub( bittensor.Wallet ):
         def __init__(self, coldkey_pair: 'Keypair', hotkey_pair: 'Keypair'):
             self._hotkey = hotkey_pair
             self._coldkey = coldkey_pair
-            self._coldkeypub = coldkey_pair.public_key
+            self._coldkeypub = "0x" + coldkey_pair.public_key.hex()
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_tests():

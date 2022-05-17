@@ -4,8 +4,10 @@ import time
 from multiprocessing import Pool
 from qqdm import qqdm
 
+from bittensor.utils.test_utils import get_random_unused_port
+
 wallet =  bittensor.wallet (
-    path = '/tmp/pytest',
+    path = f"/tmp/pytest{time.time()}",
     name = 'pytest',
     hotkey = 'pytest',
 ) 
@@ -13,7 +15,7 @@ wallet =  bittensor.wallet (
 wallet.create_new_coldkey( use_password=False, overwrite = True)
 wallet.create_new_hotkey( use_password=False, overwrite = True)
 logging =bittensor.logging(debug=True)
-ports = [8081, 8082,8083,8084,8085]
+ports = [get_random_unused_port() for _ in range(5)]
 
 inputs="""in my palm is a clear stone , and inside it is a
     small ivory statuette . a guardian angel .
