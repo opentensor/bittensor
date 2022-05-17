@@ -21,7 +21,6 @@ py-sr25519-bindings>=0.1.4,<1
 py-ed25519-bindings>=1.0,<2
 py-bip39-bindings>=0.1.9,<1
 pytest>=6.2.4
-pytest-split
 pyyaml
 rich
 retry
