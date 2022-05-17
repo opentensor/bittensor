@@ -50,6 +50,7 @@ jobs:
           name: Unit Tests
           command: |
             . env/bin/activate
+            export PYTHONUNBUFFERED=1
             pytest --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm least_duration --store-durations --durations-path .test_durations \
@@ -59,6 +60,7 @@ jobs:
           name: Integration Tests
           command: |
             . env/bin/activate
+            export PYTHONUNBUFFERED=1
             pytest -n2 --verbose --junitxml=test-results/integration_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm least_duration --store-durations --durations-path .test_durations \
