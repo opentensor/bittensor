@@ -1,13 +1,15 @@
-from typing import Tuple
-import math
-
-import hashlib
 import binascii
-from bittensor_register_cuda import solve_cuda as solve_cuda_c, reset_cuda as reset_cuda_c
+import hashlib
+import math
+from typing import Tuple
 
 import numpy as np
+from bittensor_register_cuda import reset_cuda as reset_cuda_c
+from bittensor_register_cuda import solve_cuda as solve_cuda_c
+from Crypto.Hash import keccak
 
-def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, difficulty: np.int64, limit: np.int64) -> Tuple[np.int64, bytes]:
+
+def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, difficulty: np.int64, limit: np.int64, dev_id: int = 0) -> Tuple[np.int64, bytes]:
     """
     Solves the PoW problem using CUDA.
     Args:
@@ -37,12 +39,10 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     def seal_meets_difficulty( seal:bytes, difficulty:int ):
         seal_number = int.from_bytes(seal, "big")
         product = seal_number * difficulty
-        limit = int(math.pow(2,256))- 1
-        upper = int(limit // difficulty)        
-        if product > limit:
-            return False
-        else:
-            return True
+        limit = int(math.pow(2,256))- 1  
+
+        return product < limit
+
     def hex_bytes_to_u8_list( hex_bytes: bytes ):
         hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
         return hex_chunks
@@ -50,7 +50,9 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     def create_seal_hash( block_bytes:bytes, nonce:int ) -> bytes:
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
         pre_seal = nonce_bytes + block_bytes
-        seal = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
+        seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
+        kec = keccak.new(digest_bits=256)
+        seal = kec.update( seal_sh256 ).digest()
         return seal
 
     # Call cython function
@@ -59,6 +61,7 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     solution = solve_cuda_c(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
+        print(f"Checking solution: {solution}")
         seal = create_seal_hash(block_bytes, solution)
         if seal_meets_difficulty(seal, difficulty):
             return solution, seal
