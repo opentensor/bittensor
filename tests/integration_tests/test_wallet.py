@@ -165,9 +165,12 @@ def test_wallet_mock():
 
 def test_wallet_mock_from_config():
     config = bittensor.wallet.config()
+    raise Exception("Number 1")
     config.wallet.name = 'mock'
     wallet = bittensor.wallet(config = config)
+    raise Exception("Number 2")
     assert wallet.hotkey_file.exists_on_device()
+    raise Exception("Number 3")
     assert wallet.coldkey_file.exists_on_device()
     assert wallet.coldkeypub_file.exists_on_device()
     assert wallet.hotkey
