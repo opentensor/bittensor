@@ -49,19 +49,22 @@ jobs:
       - run:
           name: Unit Tests
           command: |
-            cp tests/pytest.ini . # workaround to fix pathing issues with pytest.
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            TEST_FILES=$(circleci tests glob "tests/unit_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
-            pytest -c pytest.ini --durations=0 --verbose --junitxml=test-results/junit.xml $TEST_FILES
+            pytest -n2 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.unit_test_durations_$CIRCLE_NODE_INDEX \
+            tests/unit_tests/
 
       - run:
           name: Integration Tests
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            TEST_FILES=$(circleci tests glob "tests/integration_tests/**/test_*.py" | circleci tests split --split-by=timings --timings-type=filename)
-            pytest -n4 -c pytest.ini --durations=0 --verbose --junitxml=test-results/jint.xml $TEST_FILES
+            pytest -n2 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm least_duration --store-durations --durations-path test-timings/.integration_test_durations_$CIRCLE_NODE_INDEX \
+            tests/integration_tests/
 
       - store_test_results:
           path: test-results
