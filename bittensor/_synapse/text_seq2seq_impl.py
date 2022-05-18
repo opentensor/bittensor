@@ -13,6 +13,10 @@ class TextSeq2Seq (Synapse):
         self, 
         topk:int = 512, 
         num_to_generate: int = 512,
+        num_beams: int = 5,
+        no_repeat_ngram_size: int = 2,
+        early_stopping: bool = True,
+        num_return_sequences: int = 1,
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -44,6 +48,10 @@ class TextSeq2Seq (Synapse):
         )
         self.topk = topk
         self.num_to_generate = num_to_generate
+        self.num_beams = num_beams
+        self.no_repeat_ngram_size = no_repeat_ngram_size
+        self.early_stopping = early_stopping
+        self.num_return_sequences = num_return_sequences
         self.synapse_type = TextSeq2Seq.synapse_type
 
     def __repr__(self) -> str: return self.__str__()
@@ -55,6 +63,10 @@ class TextSeq2Seq (Synapse):
         return TextSeq2Seq (
             topk = instance_proto.topk,
             num_to_generate = instance_proto.num_to_generate,
+            num_beams = instance_proto.num_beams,
+            no_repeat_ngram_size = instance_proto.no_repeat_ngram_size,
+            early_stopping = instance_proto.early_stopping,
+            num_return_sequences = instance_proto.num_return_sequences,
             forward_request_serializer_type = instance_proto.forward_request_serializer_type,
             forward_response_serializer_type = instance_proto.forward_response_serializer_type,
             backward_request_serializer_type = instance_proto.backward_request_serializer_type,
@@ -73,6 +85,10 @@ class TextSeq2Seq (Synapse):
         return bittensor.proto.Synapse.TextSeq2Seq ( 
             topk = self.topk, 
             num_to_generate = self.num_to_generate,
+            num_beams = self.num_beams,
+            no_repeat_ngram_size = self.no_repeat_ngram_size,
+            early_stopping = self.early_stopping,
+            num_return_sequences = self.num_return_sequences,
             forward_request_serializer_type = self.forward_request_serializer_type,
             forward_response_serializer_type = self.forward_response_serializer_type,
             backward_request_serializer_type = self.backward_request_serializer_type,

@@ -167,14 +167,23 @@ message Synapse {
 		// Number of tokens to predict
 		int32 num_to_generate = 3;
 
+
 		// Serializer typing.
 		Serializer forward_request_serializer_type = 4;
 		Serializer forward_response_serializer_type = 5;
 		Serializer backward_request_serializer_type = 6;
 		Serializer backward_response_serializer_type = 7;
 
+        int32 num_beams = 8;
+
+        int32 no_repeat_ngram_size = 9;
+
+        bool early_stopping = 10;
+            
+		int32 num_return_sequences = 11;
+
 		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 8;
+		bool requires_grad = 12;
 	}
 }
 
