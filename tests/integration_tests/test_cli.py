@@ -119,7 +119,7 @@ class TestCli(unittest.TestCase):
             bittensor.subtensor.register = MagicMock(return_value = True)  
             
             config = self.config
-            config.wallet.path = '/tmp/walletpath'
+            config.wallet.path = '/tmp/test_cli_test_overview'
             config.wallet.name = 'mock_wallet'
             config.command = "overview"
             config.subtensor._mock = True
@@ -128,7 +128,7 @@ class TestCli(unittest.TestCase):
 
             cli = bittensor.cli(config)
             with patch('os.walk', return_value=iter(
-                    [('/tmp/walletpath/mock_wallet/hotkeys', [], ['hk0', 'hk1', 'hk2'])] # no dirs, 3 files
+                    [('/tmp/test_cli_test_overview/mock_wallet/hotkeys', [], ['hk0', 'hk1', 'hk2'])] # no dirs, 3 files
                 )):
                 with patch('bittensor.Wallet.hotkey', ss58_address=bittensor.Keypair.create_from_mnemonic(
                         bittensor.Keypair.generate_mnemonic()
@@ -382,7 +382,7 @@ class TestCli(unittest.TestCase):
             )
         )):
             config = self.config
-            config.wallet.path = '/tmp/pytest'
+            config.wallet.path = '/tmp/test_cli_test_list_no_wallet'
             config.subtensor.network = "mock"
             config.no_prompt = True
             config.subtensor._mock = True
