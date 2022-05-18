@@ -440,7 +440,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
-        max_allowed_attempts: int = 3
+        max_allowed_attempts: int = 3,
+        cuda: bool = False,
+        dev_id: int = 0
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -472,8 +474,6 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # Attempt rolling registration.
         attempts = 1
-        cuda = False
-        dev_id: int = 0
         if prompt:
             if torch.cuda.is_available():
                 cuda = Confirm.ask("Would you like to try CUDA registration?\n")
