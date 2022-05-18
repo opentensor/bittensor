@@ -23,8 +23,6 @@ import shutil
 from bittensor.utils.balance import Balance
 
 
-subtensor = bittensor.subtensor(network = 'nobunaga')
-
 def init_wallet():
     wallet_path = f"/tmp/pytest/{time.time()}"
     if os.path.exists(wallet_path):
