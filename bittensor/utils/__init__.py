@@ -240,7 +240,7 @@ def is_valid_ss58_address( address: str ) -> bool:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
     """
     try:
-        return ss58.is_valid_ss58_address( address, valid_ss58_format=42 )
+        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ )
     except (IndexError):
         return False
 
@@ -267,7 +267,7 @@ def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
 
         keypair = Keypair(
             public_key=public_key,
-            ss58_format=42
+            ss58_format=bittensor.__ss58_format__
         )
 
         ss58_addr = keypair.ss58_address

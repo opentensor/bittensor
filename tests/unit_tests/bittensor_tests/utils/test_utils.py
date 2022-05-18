@@ -206,7 +206,7 @@ def test_is_valid_ss58_address():
     keypair = bittensor.Keypair.create_from_mnemonic(
         bittensor.Keypair.generate_mnemonic(
             words=12
-        ), ss58_format=42
+        ), ss58_format=bittensor.__ss58_format__
     )
     good_address = keypair.ss58_address
     bad_address = good_address[:-1] + 'a'
@@ -217,7 +217,7 @@ def test_is_valid_ed25519_pubkey():
     keypair = bittensor.Keypair.create_from_mnemonic(
         bittensor.Keypair.generate_mnemonic(
             words=12
-        ), ss58_format=42
+        ), ss58_format=bittensor.__ss58_format__
     )
     good_pubkey = keypair.public_key.hex()
     bad_pubkey = good_pubkey[:-1] # needs to be 64 chars
