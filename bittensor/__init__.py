@@ -60,10 +60,10 @@ __local_entrypoints__ = [
 ]
 
 # Avoid collisions with other processes
-import os
-pid_port = 8192 + (os.getpid() % 8192)
+from .utils.test_utils import get_random_unused_port
+mock_subtensor_port = get_random_unused_port()
 __mock_entrypoints__ = [
-    f"localhost:{pid_port}"
+    f"localhost:{mock_subtensor_port}"
 ]
 
 
