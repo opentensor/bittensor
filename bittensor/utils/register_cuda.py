@@ -9,7 +9,7 @@ from bittensor_register_cuda import solve_cuda as solve_cuda_c
 from Crypto.Hash import keccak
 
 
-def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, difficulty: np.int64, limit: np.int64, dev_id: int = 0) -> Tuple[np.int64, bytes]:
+def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, bn: int, difficulty: np.int64, limit: np.int64, dev_id: int = 0) -> Tuple[np.int64, bytes]:
     """
     Solves the PoW problem using CUDA.
     Args:
@@ -61,7 +61,7 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     solution = solve_cuda_c(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
-        print(f"Checking solution: {solution}")
+        print(f"Checking solution: {solution} for bn: {bn}")
         seal = create_seal_hash(block_bytes, solution)
         if seal_meets_difficulty(seal, difficulty):
             return solution, seal
