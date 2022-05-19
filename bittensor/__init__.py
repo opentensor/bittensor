@@ -43,6 +43,9 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
+# Pip address for versioning
+__pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
+
 __networks__ = [ 'local', 'nobunaga', 'nakamoto']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']

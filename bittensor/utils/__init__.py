@@ -229,7 +229,7 @@ def create_pow( subtensor, wallet ):
     }
 
 def version_checking():
-    response = requests.get(f'https://pypi.org/pypi/bittensor/json')
+    response = requests.get(bittensor.__pipaddress__)
     latest_version = response.json()['info']['version']
     version_split = latest_version.split(".")
     latest_version_as_int = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
