@@ -215,6 +215,7 @@ class Dendrite(torch.autograd.Function):
             input_grads, _, _ = ctx.receptor_pool.backward(
                 endpoints = ctx.endpoints,
                 inputs = ctx.inputs,
+                synapses = ctx.synapses,
                 grads = packed_grads,
                 timeout = ctx.timeout,
             )

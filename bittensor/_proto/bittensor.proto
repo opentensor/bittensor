@@ -174,16 +174,27 @@ message Synapse {
 		Serializer backward_request_serializer_type = 6;
 		Serializer backward_response_serializer_type = 7;
 
+		//Generate Arguments
+		// Number of beams
         int32 num_beams = 8;
 
+		//Number of repeat words
         int32 no_repeat_ngram_size = 9;
 
+		//Early Stopping
         bool early_stopping = 10;
-            
+        
+		//Number of return seuqences
 		int32 num_return_sequences = 11;
 
+		//If sampling should be used
+		bool do_sample = 12;
+
+		//The probability cutoff
+		float top_p = 13;
+
 		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 12;
+		bool requires_grad = 14;
 	}
 }
 
