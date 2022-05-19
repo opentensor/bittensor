@@ -110,12 +110,44 @@ class TestCli(unittest.TestCase):
         
         config = self.config
         config.command = "overview"
+        config.no_cache = True  # Don't use neuron cache
         config.subtensor._mock = True
         config.subtensor.network = "mock"
         config.no_prompt = True
 
         cli = bittensor.cli(config)
         cli.run()
+
+    def test_overview_with_cache( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.no_cache = False # Use neuron cache
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_with_cache_cache_fails( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.no_cache = False # Use neuron cache
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        with patch('bittensor.Metagraph.retrieve_cached_neurons') as mock_retrieve_cached_neurons:
+            # Mock the cache retrieval to fail
+            mock_retrieve_cached_neurons.side_effect = Exception("Cache failed")
+
+            # Should not raise an exception
+            cli = bittensor.cli(config)
+            cli.run()
 
     def test_register( self ):
 
