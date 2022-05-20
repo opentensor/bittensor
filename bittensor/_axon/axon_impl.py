@@ -33,6 +33,9 @@ import concurrent
 import bittensor
 import bittensor.utils.stats as stat_utils
 
+import cProfile, pstats, io
+from pstats import SortKey
+
 logger = logger.opt(colors=True)
 
 class Axon( bittensor.grpc.BittensorServicer ):
@@ -164,6 +167,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapses (:obj:`List[ 'bittensor.proto.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
                     Synapse wire protos with return codes from forward request.
         """
+        pr = cProfile.Profile()
+        pr.enable()
+
         # ===================================================================
         # ==== First deserialize synapse wire protos to instance objects ====        
         # ===================================================================
@@ -331,6 +337,14 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapse_call_times[index] = clock.time() - start_time
 
         finalize_codes_stats_and_logs()
+
+        pr.disable()
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+
         return synapse_responses, bittensor.proto.ReturnCode.Success, response_synapses
  
     def _backward(self, request):
@@ -474,8 +488,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         finalize_codes_stats_and_logs()
         return [], bittensor.proto.ReturnCode.Success, request.synapses
-
-
 
     def default_forward_callback(self, inputs_x:torch.FloatTensor, synapses=[] ):
         """
@@ -637,7 +649,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         if not serv_success:
             raise RuntimeError('Failed to serve neuron.')
         return self
-
 
     def start(self) -> 'Axon':
         r""" Starts the standalone axon GRPC server thread.
