@@ -124,7 +124,7 @@ class wallet:
         defaults.wallet._mock = os.getenv('BT_WALLET_MOCK') if os.getenv('BT_WALLET_MOCK') != None else False
         # CLI defaults for Overview
         defaults.wallet.hotkeys = []
-        defaults.wallet.sort_by = None
+        defaults.wallet.sort_by = ""
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):

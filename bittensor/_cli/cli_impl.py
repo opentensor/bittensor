@@ -514,7 +514,7 @@ class CLI:
         console.clear()
 
         sort_by: str = self.config.wallet.sort_by
-        if sort_by is not None:
+        if sort_by != "":
             column_to_sort_by: int = 0
             for index, column in zip(range(len(table.columns)), table.columns):
                 # Fuzzy match the column name. Default to the first column.
