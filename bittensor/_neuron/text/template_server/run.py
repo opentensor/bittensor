@@ -90,12 +90,29 @@ def serve(
         return encoded_hidden
 
     def forward_casual_lm(inputs_x, synapse):
-        output = model.pre_model(input_ids=inputs_x).logits
+        output = model.encode_forward_causallm(inputs_x.to(model.device))
         return output
+
+    def backward_causal_lm(inputs_x, grads_dy):
+        r"""Single threaded backwards function that is called when the axon receives
+            a backwards request from other peers.
+            Updates the server parameters with gradients through the chain.             
+        """
+        if config.neuron.training:
+            with mutex:
+                with torch.enable_grad():
+                    with torch.autograd.set_detect_anomaly(True):
+                        outputs_y = model.encode_forward_causallm(inputs_x.to(model.device))
+                        torch.autograd.backward (
+                            tensors = [ outputs_y ],
+                            grad_tensors = [ grads_dy ]
+                            )
+                        optimizer.step()
+                        optimizer.zero_grad()
 
     def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
-            Updates the server parameters with gradients through the chain.             
+            Updates the server parameters with gradients through the chain.
         """
         if config.neuron.training:
             with mutex:
@@ -108,7 +125,6 @@ def serve(
                             )
                         optimizer.step()
                         optimizer.zero_grad()
-    
 
     def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members

@@ -5,6 +5,8 @@ import torch.nn.functional as F
 
 from transformers import AutoModel,AutoModelForCausalLM,AutoTokenizer,AutoConfig
 from torch.nn.utils.rnn import pad_sequence
+from bittensor.utils.tokenizer_utils import get_translation_map, translate_logits_to_probs_std, \
+    translate_special_token_text, pad_offsets
 
 from loguru import logger; logger = logger.opt(colors=True)
 
@@ -68,6 +70,10 @@ class server(torch.nn.Module):
             self.pre_model.half()
         else:
             self.pre_model.eval()
+
+        self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
+        self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
+        self.split_map_cache = {}
 
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
@@ -177,7 +183,103 @@ class server(torch.nn.Module):
             new_data += [torch.LongTensor(hugging.input_ids)]
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
-    
+
+    def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__):
+        r""" Forward pass through the pretrained model and possible mappings between hidden units.
+             The response tensor should be the hidden units computed using the local context and
+             with shape: [batch_size, sequence_len, __network_dim__].
+
+            Args:
+                token_batch ( :obj:`torch.LongTensor`, `required`):
+                    torch inputs to be forward processed, [batch_size, sequence_len]
+                tokenizer ( huggingface.tokenizer, `optional`):
+                    The tokenizer which was used to tokenize the inputs
+                encode_len ( :obj:`int`, `optional`):
+                    logit encoding length, default bittensor.__network_dim__ length
+
+            Returns:
+                outputs (:obj:`torch.FloatTensor`):
+                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+        """
+        tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
+
+        if self.config.neuron.training or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            pre_model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                              attention_mask=tokens['attention_mask'],
+                                              output_hidden_states=True)
+        else:
+            with torch.no_grad():
+                pre_model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                  attention_mask=tokens['attention_mask'],
+                                                  output_hidden_states=True)
+
+        pre_logits = pre_model_output.logits
+
+        with torch.no_grad():
+            probs_std = translate_logits_to_probs_std(pre_logits,
+                                                      tokens['offset_mapping'], tokens['offset_mapping_std'],
+                                                      self.tokenizer, self.std_tokenizer,
+                                                      self.split_map_cache,
+                                                      self.to_translation_map, self.from_translation_map,
+                                                      tokens['input_ids'], token_batch)
+        probs_std = probs_std.to(self.device)
+        logits_std = torch.log(probs_std + 1e-64)
+
+        # with torch.no_grad():
+        #     original_loss = self.get_loss_fct(pre_logits.cpu(), tokens['input_ids'])
+        #     translated_loss = self.get_loss_fct(logits_std, token_batch.cpu())
+
+        return logits_std
+
+    def remapping_token_causallm(self, token_batch, std_tokenizer=None):
+        r""" Tokenizer remapping; decodes the message and then remaps the message using a new tokenizer
+            Args:
+                token_batch ( :obj:`torch.LongTensor`, `required`):
+                    token_batch to be retokenized, [batch_size, sequence_len]
+                std_tokenizer ( transformers.Tokenizer, `optional`):
+                    The standard tokenizer which was used to tokenize the input.
+        """
+        if std_tokenizer is None:
+            std_tokenizer = self.std_tokenizer
+
+        text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
+        result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
+        to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
+
+        std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
+        tokens = self.tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+
+        # pad offsets so that special token offset widths match for continued correct alignment
+        std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
+        tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+
+        tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
+
+        for key in ['input_ids', 'attention_mask']:  # form a torch batch tensor
+            tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
+            tokens[key] = torch.LongTensor(tokens[key])
+
+        return tokens
+
+    def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
+        """
+        Calculate loss_fct, CausalLM loss, next-token prediction loss.
+            Args:
+                logits (:obj:`torch.FloatTensor`, `required`):
+                    [batch_size, sequence_len, bittensor.__network_dim__]
+                labels (:obj:`torch.LongTensor`, `required`):
+                    [batch_size, sequence_len]
+
+            Returns:
+                loss (:obj:`torch.FloatTensor`):
+                    scalar
+        """
+        shift_logits = logits[..., :-1, :].contiguous()
+        shift_labels = labels[..., 1:].contiguous()
+        loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+
+        return loss
+
     def check(self):
         r"""Checks the server settings
         """
