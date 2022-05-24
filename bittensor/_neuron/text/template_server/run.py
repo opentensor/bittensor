@@ -217,10 +217,11 @@ def serve(
             try: 
                 last_set_block = current_block
                 # Set self weights to maintain activity.
-                chain_weights = torch.zeros(metagraph.n)
+                # --- query the chain for the most current number of peers on the network
+                chain_weights = torch.zeros(subtensor.n)
                 chain_weights [ uid ] = 1 
                 did_set = subtensor.set_weights(
-                    uids=metagraph.uids,
+                    uids=torch.arange(0,subtensor.n),
                     weights = chain_weights,
                     wait_for_inclusion = False,
                     wallet = wallet,
