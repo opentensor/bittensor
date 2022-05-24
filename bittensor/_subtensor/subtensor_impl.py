@@ -26,6 +26,7 @@ import bittensor.utils.weight_utils as weight_utils
 from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
+from bittensor.utils import is_valid_destination_address
 from types import SimpleNamespace
 
 # Mocking imports
@@ -757,10 +758,18 @@ To run a local node (See: docs/running_a_validator.md) \n
                 Flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
         """
+        # Validate destination address.
+        if not is_valid_destination_address( dest ):
+            return False
+
+        if isinstance( dest, bytes):
+            # Convert bytes to hex string.
+            dest = "0x" + dest.hex()
+
         # Unlock wallet coldkey.
         wallet.coldkey
 
-        # Covert to bittensor.Balance
+        # Convert to bittensor.Balance
         if not isinstance(amount, bittensor.Balance ):
             transfer_balance = bittensor.Balance.from_tao( amount )
         else:

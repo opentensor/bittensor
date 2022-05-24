@@ -202,5 +202,33 @@ def test_solve_for_difficulty_fast_missing_hash():
     _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
     assert bittensor.utils.seal_meets_difficulty(seal, 10)
 
+def test_is_valid_ss58_address():
+    keypair = bittensor.Keypair.create_from_mnemonic(
+        bittensor.Keypair.generate_mnemonic(
+            words=12
+        ), ss58_format=bittensor.__ss58_format__
+    )
+    good_address = keypair.ss58_address
+    bad_address = good_address[:-1] + 'a'
+    assert bittensor.utils.is_valid_ss58_address(good_address)
+    assert not bittensor.utils.is_valid_ss58_address(bad_address)
+
+def test_is_valid_ed25519_pubkey():
+    keypair = bittensor.Keypair.create_from_mnemonic(
+        bittensor.Keypair.generate_mnemonic(
+            words=12
+        ), ss58_format=bittensor.__ss58_format__
+    )
+    good_pubkey = keypair.public_key.hex()
+    bad_pubkey = good_pubkey[:-1] # needs to be 64 chars
+    assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
+    assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+
+    # Test with bytes
+    good_pubkey = keypair.public_key
+    bad_pubkey = good_pubkey[:-1] # needs to be 32 bytes
+    assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
+    assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()
