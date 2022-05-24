@@ -554,23 +554,10 @@ class cli:
         # Get destination.
         if not config.dest:
             dest = Prompt.ask("Enter destination public key: (ss58 or ed2519)")
-            if len(dest) == 48:
-                try:
-                    ss58_decode(dest)
-                    config.dest = str(dest)
-                except ValueError:
-                    console.print(":cross_mark:[red] Invalid public key format[/red] [bold white]{}[/bold white]".format(dest))
-                    sys.exit()
-            elif len(dest) == 66 or len(dest) == 64:
-                try:
-                    ss58_encode(dest)
-                    config.dest = str(dest)
-                except ValueError:
-                    console.print(":cross_mark:[red] Invalid ss58 address format[/red] [bold white]{}[/bold white]".format(dest))
-                    sys.exit()
-            else:
-                console.print(":cross_mark:[red] Invalid address format[/red] [bold white]{}[/bold white]".format(dest))
+            if not bittensor.utils.is_valid_destination_address( dest ):
                 sys.exit()
+            else:
+                config.dest = str(dest)
                     
         # Get amount.
         if not config.amount:
