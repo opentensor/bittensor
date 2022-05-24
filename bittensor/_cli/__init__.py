@@ -730,7 +730,7 @@ class cli:
 
     def check_regen_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name")
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if config.mnemonic == None and config.seed == None:
             prompt_answer = Prompt.ask("Enter mnemonic or seed")
