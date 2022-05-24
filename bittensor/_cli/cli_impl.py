@@ -410,6 +410,11 @@ class CLI:
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
         all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
+        
+        if self.config.wallet.hotkeys:
+            # Only show hotkeys for wallets in the list
+            all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
+            
         neurons = []
         block = subtensor.block
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
