@@ -149,6 +149,19 @@ class TestCli(unittest.TestCase):
             cli = bittensor.cli(config)
             cli.run()
 
+    def test_overview_without_no_cache_confg( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        # Don't specify no_cache in config
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
     def test_overview_with_hotkeys_config( self ):
         bittensor.subtensor.register = MagicMock(return_value = True)  
         
