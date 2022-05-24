@@ -128,9 +128,11 @@ class wallet:
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
-        """ Check config for wallet name/hotkey/path
+        """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """
         assert 'wallet' in config
         assert isinstance(config.wallet.name, str)
         assert isinstance(config.wallet.hotkey, str)
         assert isinstance(config.wallet.path, str)
+        assert isinstance(config.wallet.hotkeys, list)
+        assert isinstance(config.wallet.sort_by, str)
