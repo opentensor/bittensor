@@ -370,15 +370,22 @@ class neuron:
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
         """
+        old_hotkeys = self.metagraph.hotkeys 
         self.metagraph.sync()
         
+        # === Create if None
         if self.moving_avg_scores == None:
             self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
-        
+
+        # === Match size for the moving average score
         if self.metagraph.n > len(self.moving_avg_scores):
             size_incerease = self.metagraph.n - len(self.moving_avg_scores)
             self.moving_avg_scores = torch.concat([self.moving_avg_scores, torch.ones(size_incerease) * -1]) 
 
+        # === Reset moving average score if uid got replaced
+        for uid, old_hotkey in enumerate(old_hotkeys):
+            if old_hotkey != self.metagraph.hotkeys[uid]:
+                self.moving_avg_scores[uid] = -1
 class PositionalEncoding(nn.Module):
     r""" Positional Encoder which adds information based on the relative position of each token
     

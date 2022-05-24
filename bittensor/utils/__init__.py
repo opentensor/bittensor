@@ -11,6 +11,8 @@ import time
 import torch
 import numbers
 import pandas
+from substrateinterface.utils import ss58
+from substrateinterface import Keypair, KeypairType
 from typing import Any, Tuple, List, Union, Optional
 
 
@@ -226,3 +228,84 @@ def create_pow( subtensor, wallet ):
         'block_hash': block_hash, 
         'work': binascii.hexlify(seal)
     }
+
+def is_valid_ss58_address( address: str ) -> bool:
+    """
+    Checks if the given address is a valid ss58 address.
+
+    Args:
+        address(str): The address to check.
+
+    Returns:
+        True if the address is a valid ss58 address for Bittensor, False otherwise.
+    """
+    try:
+        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ )
+    except (IndexError):
+        return False
+
+def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
+    """
+    Checks if the given public_key is a valid ed25519 key.
+
+    Args:
+        public_key(Union[str, bytes]): The public_key to check.
+
+    Returns:    
+        True if the public_key is a valid ed25519 key, False otherwise.
+    
+    """
+    try:
+        if isinstance( public_key, str ):
+            if len(public_key) != 64 and len(public_key) != 66:
+                raise ValueError( "a public_key should be 64 or 66 characters" )
+        elif isinstance( public_key, bytes ):
+            if len(public_key) != 32:
+                raise ValueError( "a public_key should be 32 bytes" )
+        else:
+            raise ValueError( "public_key must be a string or bytes" )
+
+        keypair = Keypair(
+            public_key=public_key,
+            ss58_format=bittensor.__ss58_format__
+        )
+
+        ss58_addr = keypair.ss58_address
+        return ss58_addr is not None
+
+    except (ValueError, IndexError):
+        return False
+
+def is_valid_destination_address( address: Union[str, bytes] ) -> bool:
+    """
+    Checks if the given address is a valid destination address.
+
+    Args:
+        address(Union[str, bytes]): The address to check.
+
+    Returns:
+        True if the address is a valid destination address, False otherwise.
+    """
+    if isinstance( address, str ):
+        # Check if ed25519
+        if address.startswith('0x'):
+            if not is_valid_ed25519_pubkey( address ):
+                bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( address ))
+                return False
+        # Assume ss58 address
+        else:
+            if not is_valid_ss58_address( address ):
+                bittensor.__console__.print(":cross_mark: [red]Invalid Destination Address[/red]: {}".format( address ))
+                return False
+    elif isinstance( address, bytes ):
+        # Check if ed25519
+        if not is_valid_ed25519_pubkey( address ):
+            bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( address ))
+            return False
+    else:
+        bittensor.__console__.print(":cross_mark: [red]Invalid Destination[/red]: {}".format( address ))
+        return False
+        
+    return True
+
+
