@@ -21,6 +21,7 @@ from types import SimpleNamespace
 
 import bittensor
 from bittensor.utils.balance import Balance
+from fuzzywuzzy import fuzz
 from rich import print
 from rich.prompt import Confirm
 from rich.table import Table
@@ -511,6 +512,17 @@ class CLI:
         table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
 
         console.clear()
+
+        sort_by: str = self.config.wallet.sort_by
+        if sort_by is not None:
+            column_to_sort_by: int = 0
+            for index, column in zip(range(len(table.columns)), table.columns):
+                # Fuzzy match the column name. Default to the first column.
+                if fuzz.ratio(sort_by.lower(), column.header.lower().replace('[overline white]', '')) > 80:
+                    column_to_sort_by = index
+                    break
+            TABLE_DATA.sort(key=lambda row: row[column_to_sort_by])
+
         for row in TABLE_DATA:
             table.add_row(*row)
         table.box = None

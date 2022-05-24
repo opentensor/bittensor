@@ -187,6 +187,44 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+    def test_overview_with_sort_by_config( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+        config.wallet.sort_by = "rank"
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_with_sort_by_bad_column_name( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+        config.wallet.sort_by = "totallynotmatchingcolumnname"
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_without_sort_by_config( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
     def test_register( self ):
 
         config = self.config

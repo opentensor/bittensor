@@ -107,6 +107,8 @@ class wallet:
             parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
             parser.add_argument('--wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
             parser.add_argument('--wallet.hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name.''')
+            parser.add_argument('--wallet.sort_by', required=False, action='store', default=bittensor.defaults.wallet.sort_by, type=str, help='''Sort the hotkeys by the specified criteria.''')
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -122,6 +124,7 @@ class wallet:
         defaults.wallet._mock = os.getenv('BT_WALLET_MOCK') if os.getenv('BT_WALLET_MOCK') != None else False
         # CLI defaults for Overview
         defaults.wallet.hotkeys = []
+        defaults.wallet.sort_by = None
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
