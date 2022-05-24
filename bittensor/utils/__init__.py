@@ -6,6 +6,7 @@ import hashlib
 from Crypto.Hash import keccak
 import math
 import bittensor
+import random
 import rich
 import time
 import torch
@@ -128,21 +129,23 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
         block_hash = subtensor.substrate.get_block_hash( block_number )
     block_bytes = block_hash.encode('utf-8')[2:]
     
-    nonce = 0
     limit = int(math.pow(2,256)) - 1
+    nonce_limit = int(math.pow(2,64)) - 1
+    nonce = random.randint( 0, nonce_limit )
     start_time = time.time()
 
     console = bittensor.__console__
     status = console.status("Solving")
 
-    found_solution = multiprocessing.Value('q', -1, lock=False) # int
+    #found_solution = multiprocessing.Value('q', -1, lock=False) # int
+    found_solution = multiprocessing.Array('Q', [0, 0, 0], lock=True) # [valid, nonce_high, nonce_low]
     best_raw = struct.pack("d", float('inf'))
     best = multiprocessing.Array(ctypes.c_char, best_raw, lock=True) # byte array to get around int size of ctypes
     best_seal = multiprocessing.Array('h', 32, lock=True) # short array should hold bytes (0, 256)
     
     with multiprocessing.Pool(processes=num_processes, initializer=initProcess_, initargs=(solve_, found_solution, best, best_seal)) as pool:
         status.start()
-        while found_solution.value == -1 and not wallet.is_registered(subtensor):
+        while found_solution[0] == 0 and not wallet.is_registered(subtensor):
             iterable = [( nonce_start, 
                             nonce_start + update_interval , 
                             block_bytes, 
@@ -153,6 +156,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
             result = pool.starmap(solve_, iterable=iterable)
             old_nonce = nonce
             nonce += update_interval*num_processes
+            nonce = nonce % nonce_limit
             itrs_per_sec = update_interval*num_processes / (time.time() - start_time)
             start_time = time.time()
             difficulty = subtensor.difficulty
@@ -173,11 +177,12 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
                 status.update(message.replace(" ", ""))
         
         # exited while, found_solution contains the nonce or wallet is registered
-        if found_solution.value == -1: # didn't find solution
+        if found_solution[0] == 0: # didn't find solution
             status.stop()
             return None, None, None, None, None
         
-        nonce, block_number, block_hash, difficulty, seal = result[ math.floor( (found_solution.value-old_nonce) / update_interval) ]
+        found_unpacked: int = found_solution[1] << 32 | found_solution[2]
+        nonce, block_number, block_hash, difficulty, seal = result[ math.floor( (found_unpacked-old_nonce) / update_interval) ]
         status.stop()
         return nonce, block_number, block_hash, difficulty, seal
 
@@ -201,7 +206,10 @@ def solve_(nonce_start, nonce_end, block_bytes, difficulty, block_hash, block_nu
         product = seal_number * difficulty
 
         if product < limit:
-            solve_.found.value = nonce
+            with solve_.found.get_lock():
+                solve_.found[0] = 1;
+                solve_.found[1] = nonce >> 32
+                solve_.found[2] = nonce & 0xFFFFFFFF # low 32 bits
             return (nonce, block_number, block_hash, difficulty, seal)
 
         if (product - limit) < best_local: 
