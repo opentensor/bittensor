@@ -570,7 +570,9 @@ class nucleus( torch.nn.Module ):
         # topk_routing_weights.shape = [ self.config.nucleus.topk ]
         # topk_routing_uids: (torch.LongTensor): uids with highest scores.
         # topk_routing_uids.shape = [ self.config.nucleus.topk ]
-        top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, self.config.nucleus.topk, dim=0)
+        #TODO: only needed in nobunaga, not in nakamoto
+        min_peers= torch.min([self.config.nucleus.topk, self.metagraph.n])
+        top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, min_peers, dim=0)
 
         # === Get endpoint information for the highest scoring uids ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
