@@ -485,16 +485,17 @@ class nucleus( torch.nn.Module ):
     # the joined responses as a hidden unit input.
     # target_loss: (torch.float64): loss after decoding responses to targets.
     # target_loss.shape = [ 1 ]
-    def get_target_loss ( self, hidden, targets ):
+    def get_target_loss ( self, logits, targets ):
         # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
         #   Token targets,
-        src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
-        src_mask = src_mask.to(self.config.neuron.device)
-        encoded_hidden = self.encoder( hidden, mask = src_mask )
-        decoded_targets = self.decoder( encoded_hidden )
-        shift_logits = decoded_targets[..., :-1, :].contiguous()
+        #src_mask = torch.triu(torch.ones(hidden.size(1), hidden.size(1)) * float('-inf'), diagonal=1)
+        #src_mask = src_mask.to(self.config.neuron.device)
+        #encoded_hidden = self.encoder( hidden, mask = src_mask )
+        #decoded_targets = self.decoder( encoded_hidden )
+        #shift_logits = decoded_targets[..., :-1, :].contiguous()
+        shift_logits = logits[..., :-1, :].contiguous()]
         shift_labels = targets[..., 1:].contiguous()
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
@@ -603,8 +604,11 @@ class nucleus( torch.nn.Module ):
         )
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
-        for response in query_responses:
-            response.to( self.device )
+        for responses in query_responses:
+            print(len(responses))
+            for response in responses:
+                print(response.size())
+                response.to( self.device )
 
         # === Compute global loss ===
         # Computes the global training loss for the nucleus by decoding all the responses
