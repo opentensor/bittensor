@@ -495,7 +495,7 @@ class nucleus( torch.nn.Module ):
         #encoded_hidden = self.encoder( hidden, mask = src_mask )
         #decoded_targets = self.decoder( encoded_hidden )
         #shift_logits = decoded_targets[..., :-1, :].contiguous()
-        shift_logits = logits[..., :-1, :].contiguous()]
+        shift_logits = logits[..., :-1, :].contiguous()
         shift_labels = targets[..., 1:].contiguous()
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
