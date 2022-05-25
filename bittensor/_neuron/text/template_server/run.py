@@ -80,6 +80,9 @@ def serve(
             num_beams=synapse.num_beams, 
             no_repeat_ngram_size=synapse.no_repeat_ngram_size,
             early_stopping = synapse.early_stopping,
+            do_sample=synapse.do_sample, 
+            top_p=synapse.top_p, 
+            num_return_sequences=synapse.num_return_sequences,
         )
         return output
 

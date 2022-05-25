@@ -578,6 +578,13 @@ class nucleus( torch.nn.Module ):
         # len(neurons) == self.config.nucleus.topk
         routing_endpoints = [ metagraph.endpoints[ uid ] for uid in routing_uids ]
 
+        # === Define which synapse we want to use ===
+        # The synapse defines the task we are sending to the servers
+        # synapses: List[bittensor.synapse]: synapse information 
+        # TODO: WORK IN PROGRESS, prototype
+        synapses = [bittensor.synapse.TextCausalLM(topk=1000)]
+
+
         # === Query the endpoints ===
         # Makes the dendrite call into the network returning the representations 
         # for each of the endpoints. The return ops can be used to filter weights and outputs.
@@ -585,9 +592,12 @@ class nucleus( torch.nn.Module ):
         # query_responses.shape = self.config.nucleus.topk * [ batch_size, sequence_len, __network_dim__ ]
         # return_ops: (torch.int64): Return ops.
         # return_ops.shape = [ self.config.nucleus.topk ]
-        query_responses, return_ops, times = dendrite.forward_text ( 
+         # TODO: WORK IN PROGRESS, prototype
+        query_responses, return_ops, times = dendrite.text ( 
             endpoints = routing_endpoints, 
-            inputs = inputs
+            inputs = inputs,
+            synapses = synapses,
+            timeout = 100
         )
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
