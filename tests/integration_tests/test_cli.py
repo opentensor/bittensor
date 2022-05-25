@@ -225,6 +225,45 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+    def test_overview_with_sort_order_config( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.wallet.sort_order = "desc" # Set descending sort order
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_with_sort_order_config_bad_sort_type( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.wallet.sort_order = "nowaythisshouldmatchanyorderingchoice" 
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_without_sort_order_config( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        # Don't specify sort_order in config
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
     def test_register( self ):
 
         config = self.config

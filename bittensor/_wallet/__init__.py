@@ -108,6 +108,7 @@ class wallet:
             parser.add_argument('--wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
             parser.add_argument('--wallet.hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name.''')
             parser.add_argument('--wallet.sort_by', required=False, action='store', default=bittensor.defaults.wallet.sort_by, type=str, help='''Sort the hotkeys by the specified criteria.''')
+            parser.add_argument('--wallet.sort_order', required=False, action='store', default=bittensor.defaults.wallet.sort_order, type=str, help='''Sort the hotkeys in the specified ordering.''')
 
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -125,6 +126,7 @@ class wallet:
         # CLI defaults for Overview
         defaults.wallet.hotkeys = []
         defaults.wallet.sort_by = ""
+        defaults.wallet.sort_order = "ascending"
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
@@ -136,3 +138,4 @@ class wallet:
         assert isinstance(config.wallet.path, str)
         assert isinstance(config.wallet.hotkeys, list)
         assert isinstance(config.wallet.sort_by, str)
+        assert isinstance(config.wallet.sort_order, str)

@@ -514,14 +514,23 @@ class CLI:
         console.clear()
 
         sort_by: str = self.config.wallet.sort_by
+        sort_order: str = self.config.wallet.sort_order
+
         if sort_by != "":
             column_to_sort_by: int = 0
+            sort_descending: bool = False # Default sort_order to ascending
+
             for index, column in zip(range(len(table.columns)), table.columns):
                 # Fuzzy match the column name. Default to the first column.
                 if fuzz.ratio(sort_by.lower(), column.header.lower().replace('[overline white]', '')) > 80:
                     column_to_sort_by = index
                     break
-            TABLE_DATA.sort(key=lambda row: row[column_to_sort_by])
+            
+            if fuzz.ratio(sort_order.lower(), 'desc') > 80 or fuzz.ratio(sort_order.lower(), 'descending') > 80:
+                # Sort descending if the sort_order fuzzy-matches desc or descending
+                sort_descending = True
+                
+            TABLE_DATA.sort(key=lambda row: row[column_to_sort_by], reverse=sort_descending)
 
         for row in TABLE_DATA:
             table.add_row(*row)
