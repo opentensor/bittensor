@@ -117,6 +117,19 @@ class cli:
             default='None', 
         )
 
+        update_parser = cmd_parsers.add_parser(
+            'update', 
+            add_help=False,
+            help='''Update bittensor '''
+        )
+        update_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to skip prompt from update.''',
+            default=False,
+        )
+
         inspect_parser = cmd_parsers.add_parser(
             'inspect', 
             help='''Inspect a wallet (cold, hot) pair'''
@@ -520,6 +533,8 @@ class cli:
             cli.check_query_config( config )
         elif config.command == "help":
             cli.check_help_config(config)
+        elif config.command == "update":
+            cli.check_update_config(config)
 
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.network == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -751,3 +766,8 @@ class cli:
         if config.model == 'None':
             model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'template_miner')
             config.model = model
+    
+    def check_update_config( config: 'bittensor.Config'):
+        if not config.no_prompt:
+            answer = Prompt.ask('This will update the local bittensor package', choices = ['Y','N'], default = 'Y')
+            config.answer = answer
