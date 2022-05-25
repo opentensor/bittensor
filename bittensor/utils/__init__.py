@@ -12,6 +12,7 @@ import time
 import torch
 import numbers
 import pandas
+import requests
 from substrateinterface.utils import ss58
 from substrateinterface import Keypair, KeypairType
 from typing import Any, Tuple, List, Union, Optional
@@ -188,7 +189,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
 
 def initProcess_(f, found_solution, best, best_seal):
     f.found = found_solution
-    f.best = best
+    f.best = best 
     f.best_seal = best_seal
 
 def solve_(nonce_start, nonce_end, block_bytes, difficulty, block_hash, block_number, limit):
@@ -236,6 +237,15 @@ def create_pow( subtensor, wallet ):
         'block_hash': block_hash, 
         'work': binascii.hexlify(seal)
     }
+
+def version_checking():
+    response = requests.get(bittensor.__pipaddress__)
+    latest_version = response.json()['info']['version']
+    version_split = latest_version.split(".")
+    latest_version_as_int = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
+
+    if latest_version_as_int > bittensor.__version_as_int__:
+        print('\u001b[31m Current Bittensor Version: {}, Latest Bittensor Version {} \n Please update to the latest version'.format(bittensor.__version__,latest_version))
 
 def is_valid_ss58_address( address: str ) -> bool:
     """

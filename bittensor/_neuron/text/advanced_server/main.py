@@ -24,4 +24,5 @@ Example:
 
 import bittensor
 if __name__ == "__main__":
+    bittensor.utils.check_version()
     template = bittensor.neurons.advanced_server.neuron().run()
