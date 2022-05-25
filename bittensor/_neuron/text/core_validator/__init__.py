@@ -571,7 +571,7 @@ class nucleus( torch.nn.Module ):
         # topk_routing_uids: (torch.LongTensor): uids with highest scores.
         # topk_routing_uids.shape = [ self.config.nucleus.topk ]
         #TODO: only needed in nobunaga, not in nakamoto
-        min_peers= torch.min([self.config.nucleus.topk, noisy_routing_weights.size(0)])
+        min_peers= min([self.config.nucleus.topk, noisy_routing_weights.size(0)])
         top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, min_peers, dim=0)
 
         # === Get endpoint information for the highest scoring uids ===
