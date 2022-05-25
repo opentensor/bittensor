@@ -422,14 +422,17 @@ class CLI:
             try:
                 if self.config.subtensor.network not in ('local', 'nakamoto'):
                     # We only cache neurons for local/nakamoto.
-                    raise Exception("This network is not cached, defaulting to regular overview.")
+                    raise CacheException("This network is not cached, defaulting to regular overview.")
             
-                if self.config.no_cache:
-                    raise Exception("Flag was set to not use cache, defaulting to regular overview.")
+                if self.config.get('no_cache'):
+                    raise CacheException("Flag was set to not use cache, defaulting to regular overview.")
 
                 metagraph: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor )
-                # Grab cached neurons from IPFS
-                all_neurons = metagraph.retrieve_cached_neurons()
+                try:
+                    # Grab cached neurons from IPFS
+                    all_neurons = metagraph.retrieve_cached_neurons()
+                except Exception:
+                    raise CacheException("Failed to retrieve cached neurons, defaulting to regular overview.")
                 # Map the hotkeys to uids
                 hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
                 for wallet in tqdm(all_hotkeys):
@@ -437,7 +440,7 @@ class CLI:
                     if uid is not None:
                         nn = all_neurons[uid]
                         neurons.append( (nn, wallet) )
-            except Exception as e:
+            except CacheException:
                 for wallet in tqdm(all_hotkeys):
                     # Get overview without cache
                     nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
@@ -538,3 +541,8 @@ class CLI:
         table.pad_edge = False
         table.width = None
         console.print(table)
+
+class CacheException(Exception):
+    """
+    Exception raised when the cache has an issue or should not be used.
+    """
