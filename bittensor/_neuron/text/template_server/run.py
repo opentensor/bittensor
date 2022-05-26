@@ -84,7 +84,7 @@ def serve(
         return output
 
     def forward_hidden_state(inputs_x, synapse):
-        output = model.pre_model(inputs_x, output_hidden_states=True).hidden_states[-1]
+        output = model.pre_model(inputs_x.to(model.device), output_hidden_states=True).hidden_states[-1]
         padding_r = (1024-output.size(2))
         encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
         return encoded_hidden
