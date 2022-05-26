@@ -485,7 +485,7 @@ class nucleus( torch.nn.Module ):
     # the joined responses as a hidden unit input.
     # target_loss: (torch.float64): loss after decoding responses to targets.
     # target_loss.shape = [ 1 ]
-    def get_target_loss ( self, logits, targets ):
+    def get_target_loss_casuallm ( self, logits, targets ):
         # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
@@ -495,7 +495,7 @@ class nucleus( torch.nn.Module ):
         #encoded_hidden = self.encoder( hidden, mask = src_mask )
         #decoded_targets = self.decoder( encoded_hidden )
         #shift_logits = decoded_targets[..., :-1, :].contiguous()
-        shift_logits = logits[..., :-1, :].contiguous()
+        shift_logits = logits[0][..., :-1, :].contiguous()
         shift_labels = targets[..., 1:].contiguous()
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
@@ -585,7 +585,7 @@ class nucleus( torch.nn.Module ):
         # The synapse defines the task we are sending to the servers
         # synapses: List[bittensor.synapse]: synapse information 
         # TODO: WORK IN PROGRESS, prototype
-        synapses = [bittensor.synapse.TextCausalLM(topk=1000)]
+        synapses = [bittensor.synapse.TextCausalLM()]
 
 
         # === Query the endpoints ===
@@ -605,9 +605,7 @@ class nucleus( torch.nn.Module ):
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
         for responses in query_responses:
-            print(len(responses))
             for response in responses:
-                print(response.size())
                 response.to( self.device )
 
         # === Compute global loss ===
@@ -615,8 +613,8 @@ class nucleus( torch.nn.Module ):
         # onto the targets.
         # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
         # target_loss.shape = [ 1 ]
-        responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses) 
-        target_loss = self.get_target_loss ( responses_hidden, inputs )
+        responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses, synapses) 
+        target_loss = self.get_target_loss_casuallm( responses_hidden, inputs )
         print ('Loss\t|\t{}'.format( target_loss.item() ))
 
         # === Compute Importance loss ===
@@ -636,7 +634,8 @@ class nucleus( torch.nn.Module ):
             return_ops = return_ops,
             responses_hidden = responses_hidden,
             loss = loss,
-            n = metagraph.n.item()
+            n = metagraph.n.item(),
+            synapses = synapses
         )
         
         return state_dict
@@ -652,7 +651,8 @@ class nucleus( torch.nn.Module ):
             state_dict.return_ops, 
             state_dict.routing_uids, 
             state_dict.batchwise_routing_weights[state_dict.routing_uids],  
-            state_dict.query_responses
+            state_dict.query_responses,
+            state_dict.synapses
             )
         # Turn off gradient computation for shapely scores.
         # shapely_scores.shape = [ nucleus.topk ]
@@ -662,14 +662,13 @@ class nucleus( torch.nn.Module ):
         with torch.no_grad():
             self.eval()
 
-            unmasked_loss = self.get_target_loss(state_dict.responses_hidden, state_dict.inputs)
+            unmasked_loss = self.get_target_loss_casuallm(state_dict.responses_hidden, state_dict.inputs)
             # Iterate over all responses creating a masked context.
             for i, uid in enumerate(masked_contexts):
                 # Create mask by zeroing out the response at index.              
-                masked_loss = self.get_target_loss ( masked_contexts[uid], state_dict.inputs )
+                masked_loss = self.get_target_loss_casuallm( masked_contexts[uid], state_dict.inputs )
                 shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i].sum()))
-                shapely_scores[ i ] = -shapely_score if not torch.abs(1 - state_dict.query_responses[i].std()).item() < 0.05 else -1
+                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i][0].sum()))
 
         # Ensures that the nonresponsive peers are not rewarded
         shapely_scores[state_dict.return_ops != 1 ]  = -1

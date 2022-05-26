@@ -9,6 +9,7 @@ from concurrent.futures import Future
 import queue
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 
 def update_metagraph_peerweight(metagraph, nucleus, device):
     r"""
@@ -95,7 +96,7 @@ def fisher_score_approximation(loss, peer_weights, ):
     validator_scores =  second_order + first_order
     return validator_scores
 
-def joining_context(return_ops, topk_weights, responses):
+def joining_context(return_ops, topk_weights, responses, synapses):
     """
     Joins response embbedings depending on the return codes 
         Args:
@@ -113,14 +114,22 @@ def joining_context(return_ops, topk_weights, responses):
                 The uids used to create output
     
     """
-    joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-    joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-    output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__))
-    for index, joining_weight in enumerate( joining_weights ):
-        output += responses[joining_uids[index]]* joining_weight
-    return output, joining_uids
+    # TODO : Test for different modalities (currently works for casuallm)
+    codes = torch.stack(return_ops)
+    outputs = []
+    for index_s, synapse in enumerate(synapses):
+        joining_uids= torch.where( codes[:,index_s] == bittensor.proto.ReturnCode.Success )[0]
+        joining_weights = F.softmax( topk_weights[(codes[:,index_s] == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
+        if len(joining_uids) != 0:
+            output = torch.zeros_like(responses[joining_uids[0]][index_s] )
+            for index, joining_weight in enumerate( joining_weights ):
+                output += responses[joining_uids[index]][index_s]* joining_weight
+            outputs.append(output)
+        else:
+            outputs.append([])
+    return outputs, joining_uids
 
-def partial_contexts(return_ops, topk_uids, topk_weights, responses):
+def partial_contexts(return_ops, topk_uids, topk_weights, responses, synapses):
     """
     Creates the partial contexts which are used to calculate the shapley scores 
 
@@ -139,16 +148,15 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
                 A dict containing all of joinned contexts with a single peer masked out 
     
     """
+    # TODO : Test for different modalities (currently works for casuallm)
     partial_context = {}
     with torch.no_grad():
         for i, uid in enumerate(topk_uids):
-            partial_return_ops = return_ops.clone()
+            partial_return_ops = deepcopy(return_ops)
             # --- Only mask peers that successfully
-            if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
-                pass
-            else:
-                partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
-            partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
+            partial_return_ops[i][ partial_return_ops[i] == bittensor.proto.ReturnCode.Success ] = bittensor.proto.ReturnCode.NoReturn
+
+            partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses, synapses)
     return partial_context
     
 class ThreadQueue(threading.Thread):
