@@ -135,6 +135,8 @@ class server(torch.nn.Module):
             else:
                 logger.warning(f'Cannot identify the last layer of the model with name {last_layer_name}, setting to finetune on all of the parameters.')
 
+        return reached_last_layer, last_layer_name
+
     def forward(self, inputs,tokenizer=None):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
