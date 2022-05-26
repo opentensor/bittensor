@@ -356,7 +356,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         for synapse_wire_proto in request.synapses:
             synapses.append( bittensor.synapse.deserialize( synapse_wire_proto ) )
 
-
         # ===================================
         # ==== Init params from synapses ====        
         # ===================================
@@ -379,7 +378,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     return False
             return True
 
-
         # ==============================================================
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
@@ -400,7 +398,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapse = synapse.synapse_type
                 )
 
-
         # ======================================
         # ==== Check request length ====
         # ======================================
@@ -414,7 +411,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             synapse_messages = [ message for _ in synapses ]
             finalize_codes_stats_and_logs()
             return [], bittensor.proto.ReturnCode.ResponseShapeException, request.synapses
-
 
         # ===================================
         # ==== Deserialize/Decode inputs ====
@@ -437,6 +433,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Make backward calls. =========
         # ===================================
         try:
+            finalize_codes_stats_and_logs()
+            synapse_is_response = [ True for _ in synapses ]
             if self.priority != None:
                 # No wait on backward calls.
                 priority = self.priority( request.hotkey, inputs_x = deserialized_forward_tensors, request_type = bittensor.proto.RequestType.BACKWARD )
@@ -474,8 +472,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
         finalize_codes_stats_and_logs()
         return [], bittensor.proto.ReturnCode.Success, request.synapses
-
-
 
     def default_forward_callback(self, inputs_x:torch.FloatTensor, synapses=[] ):
         """
