@@ -529,8 +529,8 @@ class CLI:
                     column_to_sort_by = index
                     break
             
-            if sort_order.lower() == 'desc' or sort_order.lower() == 'descending' or sort_order.lower() == 'reverse':
-                # Sort descending if the sort_order matches desc or descending
+            if sort_order.lower() in { 'desc', 'descending', 'reverse'}:
+                # Sort descending if the sort_order matches desc, descending, or reverse
                 sort_descending = True
                 
             TABLE_DATA.sort(key=lambda row: row[column_to_sort_by], reverse=sort_descending)
