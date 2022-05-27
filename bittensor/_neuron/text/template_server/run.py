@@ -84,10 +84,10 @@ def serve(
         return output
 
     def forward_hidden_state(inputs_x, synapse):
-        output = model.pre_model(inputs_x.to(model.device), output_hidden_states=True).hidden_states[-1]
-        padding_r = (1024-output.size(2))
-        encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
-        return encoded_hidden
+        output = model.pre_model(inputs_x.to(model.device)) # .hidden_states[-1]
+        # padding_r = (1024-output.size(2))
+        # encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
+        return torch.rand(10, 64, 1024)# encoded_hidden
 
     def forward_casual_lm(inputs_x, synapse):
         output = model.pre_model(input_ids=inputs_x).logits

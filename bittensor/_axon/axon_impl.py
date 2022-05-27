@@ -342,7 +342,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         s = io.StringIO()
         sortby = SortKey.CUMULATIVE
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats()
+        ps.print_stats(.1)
         print(s.getvalue())
 
         return synapse_responses, bittensor.proto.ReturnCode.Success, response_synapses

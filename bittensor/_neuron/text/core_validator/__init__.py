@@ -42,7 +42,6 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
-import cProfile
 from threading import Lock
 
 logger = logger.opt( colors=True )
