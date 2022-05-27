@@ -39,6 +39,7 @@ class CLI:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
         """
+        bittensor.utils.version_checking()
         self.config = config
 
     def run ( self ):
@@ -78,6 +79,8 @@ class CLI:
             self.query()
         elif self.config.command == "help":
             self.help()
+        elif self.config.command == 'update':
+            self.update()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -213,6 +216,11 @@ class CLI:
             bittensor.neurons.multitron_server.neuron().run()
 
 
+    def update ( self ):
+        if self.config.no_prompt or self.config.answer == 'Y':
+            os.system(' (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )')
+            os.system('pip install -e ~/.bittensor/bittensor/')
+
     def register( self ):
         r""" Register neuron.
         """
@@ -257,7 +265,10 @@ class CLI:
     def _get_hotkey_wallets_for_wallet( wallet ):
         hotkey_wallets = []
         hotkeys_path = wallet.path + '/' + wallet.name + '/hotkeys'
-        hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        try:
+            hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        except StopIteration:
+            hotkey_files = []
         for hotkey_file_name in hotkey_files:
             hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
         return hotkey_wallets
@@ -265,7 +276,12 @@ class CLI:
     def list(self):
         r""" Lists wallets.
         """
-        wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        try:
+            wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        except StopIteration:
+            # No wallet files found.
+            wallets = []
+
         root = Tree("Wallets")
         for w_name in wallets:
             wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
@@ -293,8 +309,10 @@ class CLI:
                             hotkey_str = '?'
                         wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
             except:
-                pass
+                continue
 
+        if len(wallets) == 0:
+            root.add("[bold red]No wallets found.")
         print(root)
 
     def metagraph(self):
@@ -409,6 +427,11 @@ class CLI:
         """
         console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
+
+        if not wallet.coldkeypub_file.exists_on_device():
+            console.print("[bold red]No wallets found.")
+            return
+
         subtensor = bittensor.subtensor( config = self.config )
         all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
         
