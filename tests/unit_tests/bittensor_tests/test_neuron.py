@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-adv_server = bittensor._neuron.text.advanced_server.server()
 
 def test_set_fine_tuning_params():
     class Model(nn.Module):
@@ -16,6 +15,7 @@ def test_set_fine_tuning_params():
             self.encoder2 = TransformerEncoder( self.encoder_layers, nlayers_2 )
             self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
           
+    adv_server = bittensor._neuron.text.advanced_server.server()
     # test for the basic default gpt2 case
     assert adv_server.set_fine_tuning_params() == (True, 'h.11')
     

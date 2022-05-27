@@ -91,9 +91,23 @@ class server(torch.nn.Module):
 
     def set_fine_tuning_params(self):
         r''' Set to tune only the parameter of the last layer
+            Returns: 
+                reached_last_layer (:type:`bool`):
+                    If we have set partial of the model to requires grad.
+                
+                last_layer_name (:type:`string`):
+                    The name of the last layer that user specified or we found.
+                    None if the user did not specify and we couldnt find it. 
         '''
         def find_last_layer(model):    
             r''' Recursively find the last layer in a nn.ModuleList
+                Args:
+                    model (:obj:`torch.module`):
+                        The model (or sub-model) to fine the last layer from. 
+                Returns:
+                    name (:type:`str`):
+                        The name (or sub-name) of the last layer.
+                        None if not found
             '''
             reverted_child_list = [(name, child) for name, child in model.named_children()]
             reverted_child_list.reverse()
