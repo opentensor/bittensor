@@ -23,4 +23,5 @@ Example:
 """
 import bittensor
 if __name__ == "__main__":
+    bittensor.utils.check_version()
     bittensor.neurons.template_miner.neuron().run()
