@@ -100,7 +100,7 @@ class server(torch.nn.Module):
                     The name of the last layer that user specified or we found.
                     None if the user did not specify and we couldnt find it. 
         '''
-        def find_last_layer(model: torch.module) -> Optional[str]:    
+        def find_last_layer(model: torch.nn.Module) -> Optional[str]:    
             r''' Recursively find the last layer in a nn.ModuleList
                 Args:
                     model (:obj:`torch.module`):
