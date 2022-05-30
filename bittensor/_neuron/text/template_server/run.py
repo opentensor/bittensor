@@ -84,14 +84,19 @@ def serve(
         return output
 
     def forward_hidden_state(inputs_x, synapse):
+        print('forward_hidden_state')
         output = model.pre_model(inputs_x.to(model.device)) # .hidden_states[-1]
+        print('forward_hidden_state end')
+
         # padding_r = (1024-output.size(2))
         # encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
-        return torch.rand(10, 64, 1024)# encoded_hidden
+        return torch.rand(10, inputs_x.size(1), 1024)# encoded_hidden
 
     def forward_casual_lm(inputs_x, synapse):
-        output = model.pre_model(input_ids=inputs_x).logits
-        return output
+        print('forward_casual lm')
+        output = model.pre_model(input_ids=inputs_x) # .logits
+        print('forward_casual lm end')
+        return torch.rand(10, inputs_x.size(1), 50378) # output
 
     def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.

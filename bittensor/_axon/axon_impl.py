@@ -508,6 +508,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response_messages: (:obj: list of strings, `required`)
                     return message associated with synapse call
         """
+        idx = torch.randint(0, 20, (1,)).item()
+        print(f"ALERTTTT I AM STARTING {idx}")
         # --- initialize response variables --- 
         response_tensors = []
         response_codes = []
@@ -530,6 +532,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response_tensors.append(None)
                 response_codes.append(bittensor.proto.ReturnCode.UnknownException)
                 response_messages.append(str(e))
+        
+        print(f"ALERTTTT I HAVE FINISHED {idx}")
+
         return response_tensors, response_codes, response_messages
 
     def default_backward_callback(self, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
