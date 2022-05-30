@@ -6,6 +6,7 @@ from torch import nn
 from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils.rnn import pad_sequence
 from loguru import logger; logger = logger.opt(colors=True)
+from typing import Tuple, Optional
 
 class server(torch.nn.Module):
     def __init__(self, 
@@ -89,7 +90,7 @@ class server(torch.nn.Module):
         self.backward_gradients = 0 
         self.set_fine_tuning_params()
 
-    def set_fine_tuning_params(self):
+    def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
             Returns: 
                 reached_last_layer (:type:`bool`):
@@ -99,7 +100,7 @@ class server(torch.nn.Module):
                     The name of the last layer that user specified or we found.
                     None if the user did not specify and we couldnt find it. 
         '''
-        def find_last_layer(model):    
+        def find_last_layer(model: torch.module) -> Optional[str]:    
             r''' Recursively find the last layer in a nn.ModuleList
                 Args:
                     model (:obj:`torch.module`):
@@ -124,7 +125,7 @@ class server(torch.nn.Module):
                 if name_ != None:
                     return (name+'.'+ name_)
 
-            return (None)     
+            return None     
 
         if self.config.neuron.finetune.layer_name == None:
             last_layer_name = find_last_layer(self.pre_model)
@@ -134,14 +135,17 @@ class server(torch.nn.Module):
         reached_last_layer = False
 
         # set the non-last layer parameters not to require grads
-        if (not self.config.neuron.finetune.all) and (last_layer_name != None):
-            logger.success(f'Set to finetune layer {last_layer_name} and onwards')
-            for name, param in self.pre_model.named_parameters():
-                if last_layer_name in name or reached_last_layer == True:
-                    param.requires_grad = True
-                    reached_last_layer = True
-                else:
-                    param.requires_grad = False
+        if (self.config.neuron.finetune.all) or (last_layer_name == None):
+            return False, last_layer_name
+
+        logger.success(f'Set to finetune layer {last_layer_name} and onwards')
+        
+        for name, param in self.pre_model.named_parameters():
+            if last_layer_name in name or reached_last_layer == True:
+                param.requires_grad = True
+                reached_last_layer = True
+            else:
+                param.requires_grad = False
 
         if reached_last_layer == False:
             if self.config.neuron.finetune.all:
