@@ -66,6 +66,21 @@ class cli:
             help='''Set true to protect the generated bittensor key with a password.''',
             default=False,
         )
+        overview_parser.add_argument(
+            '--no_cache', 
+            dest='no_cache', 
+            action='store_true', 
+            help='''Set true to avoid using the cached overview from IPFS.''',
+            default=False,
+        )
+        overview_parser.add_argument(
+            '--width', 
+            dest='width', 
+            action='store',
+            type=int, 
+            help='''Set the output width of the overview. Defaults to automatic width from terminal.''',
+            default=None,
+        )
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
