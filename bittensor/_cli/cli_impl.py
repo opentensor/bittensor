@@ -1,5 +1,4 @@
 # The MIT License (MIT)
-# The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
@@ -16,17 +15,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
 import os
 import sys
-from rich.tree import Tree
-from rich import print
-from tqdm import tqdm
-from rich.table import Table
-from rich.prompt import Confirm
+from types import SimpleNamespace
 
+import bittensor
 from bittensor.utils.balance import Balance
+from fuzzywuzzy import fuzz
+from rich import print
+from rich.prompt import Confirm
+from rich.table import Table
+from rich.tree import Tree
+from tqdm import tqdm
+
 
 class CLI:
     """
@@ -433,13 +434,42 @@ class CLI:
 
         subtensor = bittensor.subtensor( config = self.config )
         all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
+        
+        if self.config.wallet.hotkeys:
+            # Only show hotkeys for wallets in the list
+            all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
+            
         neurons = []
         block = subtensor.block
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            for wallet in tqdm(all_hotkeys):
-                nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                if not nn.is_null:
-                    neurons.append( (nn, wallet) )
+            try:
+                if self.config.subtensor.network not in ('local', 'nakamoto'):
+                    # We only cache neurons for local/nakamoto.
+                    raise CacheException("This network is not cached, defaulting to regular overview.")
+            
+                if self.config.get('no_cache'):
+                    raise CacheException("Flag was set to not use cache, defaulting to regular overview.")
+
+                metagraph: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor )
+                try:
+                    # Grab cached neurons from IPFS
+                    all_neurons = metagraph.retrieve_cached_neurons()
+                except Exception:
+                    raise CacheException("Failed to retrieve cached neurons, defaulting to regular overview.")
+                # Map the hotkeys to uids
+                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+                for wallet in tqdm(all_hotkeys):
+                    uid = hotkey_to_neurons.get(wallet.hotkey.ss58_address)
+                    if uid is not None:
+                        nn = all_neurons[uid]
+                        neurons.append( (nn, wallet) )
+            except CacheException:
+                for wallet in tqdm(all_hotkeys):
+                    # Get overview without cache
+                    nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                    if not nn.is_null:
+                      neurons.append( (nn, wallet) )
+                      
             balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         TABLE_DATA = []  
@@ -449,7 +479,8 @@ class CLI:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0     
+        total_emission = 0   
+
         for nn, hotwallet in tqdm(neurons):
             uid = nn.uid
             active = nn.active
@@ -486,7 +517,7 @@ class CLI:
             TABLE_DATA.append(row)
             
         total_neurons = len(neurons)                
-        table = Table(show_footer=False)
+        table = Table(show_footer=False, width=self.config.get('width', None), pad_edge=False, box=None)
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
@@ -507,9 +538,32 @@ class CLI:
         table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
 
         console.clear()
+
+        sort_by: str = self.config.wallet.sort_by
+        sort_order: str = self.config.wallet.sort_order
+
+        if sort_by != "":
+            column_to_sort_by: int = 0
+            sort_descending: bool = False # Default sort_order to ascending
+
+            for index, column in zip(range(len(table.columns)), table.columns):
+                # Fuzzy match the column name. Default to the first column.
+                if fuzz.ratio(sort_by.lower(), column.header.lower().replace('[overline white]', '')) > 80:
+                    column_to_sort_by = index
+                    break
+            
+            if sort_order.lower() in { 'desc', 'descending', 'reverse'}:
+                # Sort descending if the sort_order matches desc, descending, or reverse
+                sort_descending = True
+                
+            TABLE_DATA.sort(key=lambda row: row[column_to_sort_by], reverse=sort_descending)
+
         for row in TABLE_DATA:
             table.add_row(*row)
-        table.box = None
-        table.pad_edge = False
-        table.width = None
-        console.print(table)
+        
+        console.print(table, width=self.config.get('width', None))
+
+class CacheException(Exception):
+    """
+    Exception raised when the cache has an issue or should not be used.
+    """
