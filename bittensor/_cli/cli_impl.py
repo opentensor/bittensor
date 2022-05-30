@@ -517,7 +517,7 @@ class CLI:
             TABLE_DATA.append(row)
             
         total_neurons = len(neurons)                
-        table = Table(show_footer=False)
+        table = Table(show_footer=False, width=self.config.get('width', None), pad_edge=False, box=None)
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
@@ -560,10 +560,8 @@ class CLI:
 
         for row in TABLE_DATA:
             table.add_row(*row)
-        table.box = None
-        table.pad_edge = False
-        table.width = None
-        console.print(table)
+        
+        console.print(table, width=self.config.get('width', None))
 
 class CacheException(Exception):
     """
