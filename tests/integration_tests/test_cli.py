@@ -303,6 +303,33 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+
+    def test_overview_with_width_config( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.width = 100
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_without_width_config( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        # Don't specify width in config
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
     def test_register( self ):
 
         config = self.config
