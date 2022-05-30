@@ -3,7 +3,7 @@ import bittensor
 import torch
 import torch.nn.functional as F
 
-from transformers import AutoModel,AutoModelForCausalLM,AutoTokenizer,AutoConfig
+from transformers import AutoModel,AutoTokenizer,AutoConfig# , AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 
 from loguru import logger; logger = logger.opt(colors=True)

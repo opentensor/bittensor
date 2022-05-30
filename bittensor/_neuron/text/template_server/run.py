@@ -223,7 +223,6 @@ def serve(
         ps.print_stats(.1)
         print(s.getvalue())
 
-
         current_block = subtensor.get_current_block()
         end_block = current_block + config.neuron.blocks_per_epoch
         while end_block >= current_block:
