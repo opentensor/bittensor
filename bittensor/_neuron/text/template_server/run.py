@@ -33,6 +33,10 @@ from loguru import logger; logger = logger.opt(colors=True)
 from datetime import datetime,timedelta
 import torch.nn.functional as F
 
+
+import cProfile, pstats, io
+from pstats import SortKey
+
 def serve( 
         config, 
         model,
@@ -206,11 +210,24 @@ def serve(
 
     # --- Run Forever.
     while True:
-        
+
+        pr = cProfile.Profile()
+        pr.enable()
+
+        forward_hidden_state(torch.rand(10, 64).to(torch.long), None)
+
+        pr.disable()
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats(.1)
+        print(s.getvalue())
+
+
         current_block = subtensor.get_current_block()
         end_block = current_block + config.neuron.blocks_per_epoch
         while end_block >= current_block:
-            time.sleep( bittensor.__blocktime__ )
+            # time.sleep( bittensor.__blocktime__ )
             current_block = subtensor.get_current_block()
 
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
