@@ -34,10 +34,10 @@ class Synapse:
                 Synapse (:obj:`Synapse`, `required`):
                     Synapse super class.
         """
-        self.forward_request_serializer_type = forward_request_serializer_type
-        self.forward_response_serializer_type = forward_response_serializer_type
-        self.backward_request_serializer_type = backward_request_serializer_type
-        self.backward_response_serializer_type = backward_response_serializer_type
+        # self.forward_request_serializer_type = forward_request_serializer_type
+        # self.forward_response_serializer_type = forward_response_serializer_type
+        # self.backward_request_serializer_type = backward_request_serializer_type
+        # self.backward_response_serializer_type = backward_response_serializer_type
 
     def __repr__(self) -> str: return self.__str__()
     def __str__(self) -> str: return "Synapse"
@@ -118,48 +118,55 @@ class Synapse:
     def decode_backward_response_gradient ( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor: return backward_response_gradient
 
     def serialize_forward_request_tensor( self, forward_request_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:        
-        self.check_forward_request_tensor ( forward_request_tensor )
-        forward_request_tensor = self.encode_forward_request_tensor ( forward_request_tensor )
-        tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
-        return tensor_serialzier.serialize( tensor_obj = forward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
+        pass
+        # self.check_forward_request_tensor ( forward_request_tensor )
+        # forward_request_tensor = self.encode_forward_request_tensor ( forward_request_tensor )
+        # tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
+        # return tensor_serialzier.serialize( tensor_obj = forward_request_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
     def deserialize_forward_request_tensor( self, forward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
-        tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
-        forward_request_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_request_proto, to_type = bittensor.proto.TensorType.TORCH )
-        forward_request_tensor = self.decode_forward_request_tensor ( forward_request_tensor )
-        self.check_forward_request_tensor ( forward_request_tensor )
-        return forward_request_tensor
+        pass
+        # tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
+        # forward_request_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_request_proto, to_type = bittensor.proto.TensorType.TORCH )
+        # forward_request_tensor = self.decode_forward_request_tensor ( forward_request_tensor )
+        # self.check_forward_request_tensor ( forward_request_tensor )
+        # return forward_request_tensor
 
     def serialize_forward_response_tensor( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a bittensor.proto.Tensor to be sent on the wire after relevant serialization applied. """        
-        encoded_tensor = self.encode_forward_response_tensor ( forward_response_tensor )
-        self.check_forward_response_tensor ( forward_request_tensor, encoded_tensor )
-        tensor_serialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
-        return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
+        pass
+        # encoded_tensor = self.encode_forward_response_tensor ( forward_response_tensor )
+        # self.check_forward_response_tensor ( forward_request_tensor, encoded_tensor )
+        # tensor_serialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
+        # return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
     def deserialize_forward_response_proto( self, forward_request_tensor: torch.Tensor, forward_response_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a torch.Tensor from wire proto.Tensor after relevant deserialization has been applied. """
-        tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
-        forward_response_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
-        self.check_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
-        forward_response_tensor = self.decode_forward_response_tensor ( forward_response_tensor )
-        return forward_response_tensor
+        pass
+        # tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
+        # forward_response_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
+        # self.check_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
+        # forward_response_tensor = self.decode_forward_response_tensor ( forward_response_tensor )
+        # return forward_response_tensor
 
     def serialize_backward_request_gradient( self, forward_request_tensor: torch.Tensor, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a bittensor.proto.Tensor gradient to be sent on the wire after relevant serialization applied. """
-        self.check_backward_request_gradient ( forward_request_tensor, backward_request_gradient )
-        encoded_tensor = self.encode_backward_request_gradient ( backward_request_gradient )
-        tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
-        return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
+        pass
+        # self.check_backward_request_gradient ( forward_request_tensor, backward_request_gradient )
+        # encoded_tensor = self.encode_backward_request_gradient ( backward_request_gradient )
+        # tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
+        # return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
     def deserialize_backward_request_gradient( self, forward_request_tensor: torch.Tensor, backward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-        tensor_deserialzier = bittensor.serializer( serializer_type = self.backward_request_serializer_type )
-        backward_request_gradient = tensor_deserialzier.deserialize( tensor_pb2 = backward_request_proto, to_type = bittensor.proto.TensorType.TORCH )
-        backward_request_gradient = self.decode_backward_request_gradient ( backward_request_gradient )
-        self.check_backward_request_gradient (forward_request_tensor,  backward_request_gradient )
-        return backward_request_gradient
+        pass
+        # tensor_deserialzier = bittensor.serializer( serializer_type = self.backward_request_serializer_type )
+        # backward_request_gradient = tensor_deserialzier.deserialize( tensor_pb2 = backward_request_proto, to_type = bittensor.proto.TensorType.TORCH )
+        # backward_request_gradient = self.decode_backward_request_gradient ( backward_request_gradient )
+        # self.check_backward_request_gradient (forward_request_tensor,  backward_request_gradient )
+        # return backward_request_gradient
 
     def empty(self):
-        tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
-        return tensor_deserialzier.empty()
+        pass
+        # tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
+        # return tensor_deserialzier.empty()

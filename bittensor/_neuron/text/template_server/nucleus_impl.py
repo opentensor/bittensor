@@ -241,7 +241,7 @@ class server(torch.nn.Module):
 
 
         bittensor.wallet.add_args( parser )
-        bittensor.axon.add_args( parser )
+        # bittensor.axon.add_args( parser )
         bittensor.subtensor.add_args( parser )
         bittensor.logging.add_args( parser )
         bittensor.wandb.add_args(parser)
