@@ -250,7 +250,7 @@ def test_tokenizer_translation():
                   ('English-1', 'benjamin/gerpt2-large', 95),
                   ('German-1', 'benjamin/gerpt2-large', 172)]
 
-    encodings_cache_file = 'test_tokenizer_utils.pt'
+    encodings_cache_file = "tests/unit_tests/bittensor_tests/utils/test_tokenizer_utils.pt"
 
     try:
         encodings = torch.load(encodings_cache_file)
