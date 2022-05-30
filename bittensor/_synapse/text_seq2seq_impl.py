@@ -1,8 +1,24 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+
 import bittensor
 import torch
 from typing import Union, List, Tuple, Optional
 
-from bittensor._serializer import serializer
 from .synapse_impl import Synapse
 
 class TextSeq2Seq (Synapse):
@@ -17,6 +33,8 @@ class TextSeq2Seq (Synapse):
         no_repeat_ngram_size: int = 2,
         early_stopping: bool = True,
         num_return_sequences: int = 1,
+        do_sample: bool = False,
+        top_p: float = 0.95, 
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -28,6 +46,18 @@ class TextSeq2Seq (Synapse):
                 The top k number of logits to compress and send over the wire 
             num_to_generate (:obj: int, :default: 512):
                 The number of tokens to generate using the language model
+            num_beams (:obj: int, :default: 5):
+                The number of beams to keep during beam search
+            no_repeat_ngram_size (:obj: int, :default: 2):
+                The number of repeat n gram allowed
+            early_stopping: (:obj: bool, :default: True):
+                If the model should early stop if the probabilty drops a certain threshold
+            num_return_sequences: (:obj: int, :default: 1):
+                How many sequences should the model return
+            do_sample (:obj: bool, :default: False):
+                If the model should do sample its probablity during generation
+            top_p (:obj: float, :default: 0.95): 
+                probability cutoff for top p sampling
             forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
                 Serializer used to pack torch tensors on forward request.
             forward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
@@ -52,6 +82,8 @@ class TextSeq2Seq (Synapse):
         self.no_repeat_ngram_size = no_repeat_ngram_size
         self.early_stopping = early_stopping
         self.num_return_sequences = num_return_sequences
+        self.do_sample = do_sample
+        self.top_p = top_p
         self.synapse_type = TextSeq2Seq.synapse_type
 
     def __repr__(self) -> str: return self.__str__()
@@ -67,6 +99,8 @@ class TextSeq2Seq (Synapse):
             no_repeat_ngram_size = instance_proto.no_repeat_ngram_size,
             early_stopping = instance_proto.early_stopping,
             num_return_sequences = instance_proto.num_return_sequences,
+            do_sample = instance_proto.do_sample,
+            top_p = instance_proto.top_p,
             forward_request_serializer_type = instance_proto.forward_request_serializer_type,
             forward_response_serializer_type = instance_proto.forward_response_serializer_type,
             backward_request_serializer_type = instance_proto.backward_request_serializer_type,
@@ -89,6 +123,8 @@ class TextSeq2Seq (Synapse):
             no_repeat_ngram_size = self.no_repeat_ngram_size,
             early_stopping = self.early_stopping,
             num_return_sequences = self.num_return_sequences,
+            do_sample = self.do_sample,
+            top_p = self.top_p,
             forward_request_serializer_type = self.forward_request_serializer_type,
             forward_response_serializer_type = self.forward_response_serializer_type,
             backward_request_serializer_type = self.backward_request_serializer_type,
@@ -110,7 +146,7 @@ class TextSeq2Seq (Synapse):
 
     def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
         if ( len( forward_response_tensor.shape ) != 2 or
-             forward_response_tensor.size(0) != forward_request_tensor.size(0) or
+             forward_response_tensor.size(0) != self.num_return_sequences or
              forward_response_tensor.size(1) > self.num_to_generate 
             ):
             raise ValueError( "forward_response_tensor.shape must be in [{}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, list(forward_response_tensor.shape), self ) ) 

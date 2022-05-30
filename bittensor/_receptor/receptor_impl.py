@@ -249,14 +249,14 @@ class Receptor(nn.Module):
         serialized_synapses = []
         for index, synapse in enumerate( synapses ):
             try:
-                serialized_forward_tensors [ index ] = synapse.serialize_forward_request_tensor( inputs )
-                serialized_backward_grads [ index ] = synapse.serialize_backward_request_gradient ( grads[index] )
-                serialized_synapses [ index ] = synapse.serialize_to_wire_proto()
+                serialized_forward_tensors.append(synapse.serialize_forward_request_tensor( inputs ))
+                serialized_backward_grads.append(synapse.serialize_backward_request_gradient (inputs, grads[index] ))
+                serialized_synapses.append(synapse.serialize_to_wire_proto())
             except Exception as e:
                 # Input Serialization failed.
                 synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
                 synapse_call_times [index] = clock.time() - start_time
-                synapse_messages [message] = 'Input serialization exception with error:{}'.format(str(e))
+                synapse_messages [index] = 'Input serialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_stats_and_logs()
