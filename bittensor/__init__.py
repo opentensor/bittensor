@@ -117,7 +117,11 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-from bittensor._ipfs.ipfs_impl import Ipfs
+from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
+from bittensor._synapse.synapse_impl import Synapse as Synapse
+from bittensor._synapse.text_causallm_impl import TextCausalLM as TextCausalLM
+from bittensor._synapse.text_lasthiddenstate_impl import TextLastHiddenState as TextLastHiddenState
+from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
 
 # DEFAULTS
 defaults = Config()
