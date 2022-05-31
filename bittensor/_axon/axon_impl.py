@@ -137,7 +137,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     proto response carring the nucleus backward output or None under failure.
         """
         backward_response_tensors, code, synapses = self._backward( request )
-        # TODO(eugene) Shouldnt we be signing these responses ?
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
@@ -215,6 +214,20 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapse = synapse.synapse_type
                 )
 
+        # ======================================
+        # ==== Check Empty request ====
+        # ======================================
+        if len(request.tensors) == 0:
+            code = bittensor.proto.ReturnCode.EmptyRequest
+            message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
+            call_time = clock.time() - start_time
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], code, request.synapses
+
+        
         # ======================================
         # ==== Check response length ====
         # ======================================
@@ -695,6 +708,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             avg_out_bytes_per_pubkey = {}
         )
 
+    #TODO: Replace/update axon and dendrite stats 
     def update_stats_for_request(self, request, response, time, code):
         r""" Updates statistics for this request and response.
             Args:
