@@ -56,8 +56,8 @@ class prioritythreadpool:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--axon.priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = 1)
-            parser.add_argument('--axon.priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = 20)
+            parser.add_argument('--axon.priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
+            parser.add_argument('--axon.priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
             
         except argparse.ArgumentError:
             # re-parsing arguments.

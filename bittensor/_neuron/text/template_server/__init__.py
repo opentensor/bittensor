@@ -100,7 +100,7 @@ class neuron:
         bittensor.subtensor.check_config( config )
         bittensor.metagraph.check_config( config )
         bittensor.dataset.check_config( config )
-        # bittensor.axon.check_config( config )
+        bittensor.axon.check_config( config )
         bittensor.wandb.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)

@@ -187,15 +187,15 @@ def serve(
 
 
     # Create our axon server and subscribe it to the network.
-    # if axon == None:
-    #     axon = bittensor.axon (
-    #         config = config,
-    #         wallet = wallet,
-    #         synapse_last_hidden = forward_hidden_state,
-    #         synapse_causal_lm = forward_casual_lm,
-    #         synapse_seq_2_seq = forward_generate,
-    #         blacklist = blacklist,
-    #     ).start().serve(subtensor=subtensor)
+    if axon == None:
+        axon = bittensor.axon (
+            config = config,
+            wallet = wallet,
+            synapse_last_hidden = forward_hidden_state,
+            synapse_causal_lm = forward_casual_lm,
+            synapse_seq_2_seq = forward_generate,
+            blacklist = blacklist,
+        ).start().serve(subtensor=subtensor)
 
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
@@ -245,11 +245,11 @@ def serve(
 
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'w_i_{}'.format(nn.uid), index = metagraph.uids, values = metagraph.W[:, uid] ),
-                # axon.to_dataframe( metagraph = metagraph ),
+                axon.to_dataframe( metagraph = metagraph ),
             ], axis = 1)
             df['uid'] = df.index
-            # wandb_info_axon = axon.to_wandb()                
-            # wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
+            wandb_info_axon = axon.to_wandb()                
+            wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         if current_block - last_set_block > config.neuron.blocks_per_set_weights:

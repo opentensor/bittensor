@@ -86,7 +86,7 @@ from bittensor.utils import unbiased_topk as unbiased_topk
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli
-# from bittensor._axon import axon as axon
+from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
 from bittensor._keyfile import keyfile as keyfile
 from bittensor._receptor import receptor as receptor
@@ -96,7 +96,7 @@ from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
-# from bittensor._synapse import synapse  as synapse 
+from bittensor._synapse import synapse  as synapse 
 from bittensor._dataset import dataset as dataset
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
@@ -104,7 +104,7 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-# from bittensor._axon.axon_impl import Axon as Axon
+from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._config.config_impl import Config as Config
 from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
@@ -123,7 +123,7 @@ from bittensor._ipfs.ipfs_impl import Ipfs
 defaults = Config()
 subtensor.add_defaults( defaults )
 dendrite.add_defaults( defaults )
-# axon.add_defaults( defaults )
+axon.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
