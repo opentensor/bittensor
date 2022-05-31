@@ -300,9 +300,8 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            forward_results = self.forward_thread_queue.get()
+            loss, scores, uids = self.forward_thread_queue.get()
             print(f'Run\t| Got forward result in {round(time.time() - start_time, 3)}')
-            loss, scores, uids = self.nucleus.compute_shapely_scores(forward_results)
             # === Scoring ===
             # Updates moving averages and history.
             self.moving_avg_scores[uids] = self.moving_avg_scores[uids]*(0.99) + scores*(0.01)
@@ -450,6 +449,9 @@ class nucleus( torch.nn.Module ):
     
         # SGMOE Gates: Instantiating the gates per expert.
         self.gates = torch.nn.Linear( bittensor.__network_dim__, self.max_n, bias=True ).to( self.device )
+
+        self.sigmoid = torch.nn.Sigmoid()
+
         self.reset_weights()
 
     @classmethod
@@ -502,7 +504,7 @@ class nucleus( torch.nn.Module ):
         #encoded_hidden = self.encoder( hidden, mask = src_mask )
         #decoded_targets = self.decoder( encoded_hidden )
         #shift_logits = decoded_targets[..., :-1, :].contiguous()
-        shift_logits = logits[0][..., :-1, :].contiguous()
+        shift_logits = logits[..., :-1, :].contiguous()
         shift_labels = targets[..., 1:].contiguous()
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
@@ -553,40 +555,25 @@ class nucleus( torch.nn.Module ):
         # routing_context.shape = [ batch size, __network_dim__ ]
         routing_context = self.routing_encoder( pos_embedding, mask = src_mask )
 
-        # === Get weights for uids. ===
-        # We iterate over each of the network uids and compute a querying score for each
+        # === Get gate values for UIDs. ===
+        # We iterate over each of the network UIDs and compute a querying score for each
         # using the gating function. This returns a score per endpoint per example.
-        # routing_weights: (torch.FloatTensor): score per example, per endpoint.
-        # routing_weights.shape = [ batch size, __network_n__ ]
+        # routing_score: (torch.FloatTensor): score per example, per endpoint.
+        # routing_score.shape = [ batch size, __network_n__ ]
         # The gates act over the last embedding of the routing_context.
-        routing_weights = self.gates( routing_context[:,-1,:] )
+        routing_score = self.sigmoid(self.gates(routing_context[:, -1, :]))
 
-        # === Normalize routing_weights across batch dimension and add noise. ===
-        # We are summing across the batch dimension to create a per-batch score per endpoint.
-        # The resulting routing_weights tensor is a score per expert.
-        # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
-        # routing_weights.shape = [ n_filtered ]
-        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)[:metagraph.n]
-        noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
-        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights * self.config.nucleus.noise_multiplier
-        
+        # Ensure number of queried servers does not exceed metagraph.n
+        num_servers = min([self.config.nucleus.topk, metagraph.n])
 
-        # === Get indices and values for uids with highest scores ===
-        # We are taking the topk routing weights and returning their uids.
-        # First we ensure topk is smaller than the network size then use the torch.topk.
-        # topk_routing_weights: (torch.float64): scores of uids with highest scores.
-        # topk_routing_weights.shape = [ self.config.nucleus.topk ]
-        # topk_routing_uids: (torch.LongTensor): uids with highest scores.
-        # topk_routing_uids.shape = [ self.config.nucleus.topk ]
-        #TODO: only needed in nobunaga, not in nakamoto
-        min_peers= min([self.config.nucleus.topk, noisy_routing_weights.size(0)])
-        top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, min_peers, dim=0)
+        # === Randomly select num_servers UIDs ===
+        random_uids = torch.randint(metagraph.n, (num_servers,))
 
-        # === Get endpoint information for the highest scoring uids ===
+        # === Get endpoint information for the selected UIDs ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
-        # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
+        # random_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
         # len(neurons) == self.config.nucleus.topk
-        routing_endpoints = [ metagraph.endpoints[ uid ] for uid in routing_uids ]
+        random_endpoints = [metagraph.endpoints[uid] for uid in random_uids]
 
         # === Define which synapse we want to use ===
         # The synapse defines the task we are sending to the servers
@@ -594,17 +581,16 @@ class nucleus( torch.nn.Module ):
         # TODO: WORK IN PROGRESS, prototype
         synapses = [bittensor.synapse.TextCausalLM()]
 
-
         # === Query the endpoints ===
         # Makes the dendrite call into the network returning the representations 
         # for each of the endpoints. The return ops can be used to filter weights and outputs.
         # query_responses: (List[torch.float64]): responses from each endpoint.
-        # query_responses.shape = self.config.nucleus.topk * [ batch_size, sequence_len, __network_dim__ ]
+        # query_responses.shape = self.config.nucleus.topk * num_synapses * [batch_size, sequence_len, synapse_dim]
         # return_ops: (torch.int64): Return ops.
-        # return_ops.shape = [ self.config.nucleus.topk ]
+        # return_ops.shape = self.config.nucleus.topk * [num_synapses]
          # TODO: WORK IN PROGRESS, prototype
         query_responses, return_ops, times = dendrite.text ( 
-            endpoints = routing_endpoints, 
+            endpoints = random_endpoints,
             inputs = inputs,
             synapses = synapses,
             timeout = 100
@@ -615,70 +601,73 @@ class nucleus( torch.nn.Module ):
             for response in responses:
                 response.to( self.device )
 
-        # === Compute global loss ===
-        # Computes the global training loss for the nucleus by decoding all the responses
-        # onto the targets.
-        # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
-        # target_loss.shape = [ 1 ]
-        responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses, synapses) 
-        target_loss = self.get_target_loss_casuallm( responses_hidden, inputs )
-        print ('Loss\t|\t{}'.format( target_loss.item() ))
+        uids = []
+        logits = []
+        losses = []
+        base_params = []
+        synergies = []
+        routing_losses = []
 
-        # === Compute Importance loss ===
-        # Computes the importance loss based on the stardard error of batchwise_routing_weights
-        # This ensures that gates do not converge onto a few experts
-        # importance_loss: (torch.float64) the importance loss based on the stardard error
-        # target_loss: (torch.float64): the total loss (global training loss + importance loss)
-        # target_loss.shape = [ 1 ]
-        importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
-        loss = target_loss + importance_loss
-        
-        state_dict = SimpleNamespace(
-            inputs = inputs,
-            batchwise_routing_weights = batchwise_routing_weights,
-            routing_uids = routing_uids,
-            query_responses = query_responses,
-            return_ops = return_ops,
-            responses_hidden = responses_hidden,
-            loss = loss,
-            n = metagraph.n.item(),
-            synapses = synapses
-        )
-        
-        return state_dict
+        # (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
+        def get_num_params(_loss): return torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(_loss) / 0.076)
 
-    def compute_shapely_scores(self, state_dict):
-        
-        # === Compute shapely scores ===
-        # Computes shapely scores for each endpoint by masking the response and
-        # computing the change in loss induced.
-        # shapely_scores: (torch.float32): shapely scores per query_response
-        # shapely_scores.shape = [ metagraph.n ]
-        masked_contexts = partial_contexts(
-            state_dict.return_ops, 
-            state_dict.routing_uids, 
-            state_dict.batchwise_routing_weights[state_dict.routing_uids],  
-            state_dict.query_responses,
-            state_dict.synapses
-            )
-        # Turn off gradient computation for shapely scores.
-        # shapely_scores.shape = [ nucleus.topk ]
-        # This sets non queried peers as if non-responsive
-        shapely_scores = torch.zeros( state_dict.routing_uids.size())
-        # Turn off gradient computation for shapely scores.
-        with torch.no_grad():
-            self.eval()
+        # === Base parameter estimation ===
+        # Shapley values - base level - coalition size 1
+        # Collect successful server responses, calculate base Shapley values.
+        # Measured in effective number of model parameters, according to OpenAI scaling laws.
+        index_s = 0  # synapse = bittensor.synapse.TextCausalLM()
+        for index in range(num_servers):
+            if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+                _uid = random_uids[index]
+                _logits = query_responses[index][index_s]
+                with torch.no_grad():
+                    _loss = self.get_target_loss_casuallm(_logits, inputs)  # CausalLM loss
+                _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
 
-            unmasked_loss = self.get_target_loss_casuallm(state_dict.responses_hidden, state_dict.inputs)
-            # Iterate over all responses creating a masked context.
-            for i, uid in enumerate(masked_contexts):
-                # Create mask by zeroing out the response at index.              
-                masked_loss = self.get_target_loss_casuallm( masked_contexts[uid], state_dict.inputs )
-                shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i][0].sum()))
+                uids += [_uid]
+                logits += [_logits]
+                losses += [_loss]
+                base_params += [_num_params]
+                synergies += [0]
 
-        # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[state_dict.return_ops != 1 ]  = -1
-        
-        # === Done ===
-        return state_dict.loss, shapely_scores, state_dict.routing_uids
+                # === Add routing loss ===
+                # MSE loss between predicted routing score and ideal target routing score.
+                # The Bayes risk approx. 1.69, i.e. the minimal loss achievable for next-token
+                # prediction on the full distribution 𝑃, a.k.a the "entropy of natural text"
+                # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
+                routing_losses += [(routing_score[_uid] - torch.exp(-torch.clamp(_loss - 1.69, 0))) ** 2]  # MSE loss
+            else:
+                print('Unsuccessful\t|\tuid: {}\tcode: {}'.format(random_uids[index], return_ops[index][index_s]))
+
+        # === Shapley synergy approximation ===
+        # Shapley values - second level - coalition size 2
+        # Synergy = measured performance above expected performance
+        # Measured in effective number of model parameters, just like base Shapley values.
+        for first in range(len(uids) - 1):
+            for second in range(first + 1, len(uids)):
+                expected_loss = (losses[first] + losses[second]) / 2
+                combined_logits = (logits[first] + logits[second]) / 2
+                with torch.no_grad():
+                    measured_loss = self.get_target_loss_casuallm(combined_logits, inputs)  # CausalLM loss
+
+                expected_num_params = get_num_params(expected_loss)  # estimate the effective number of model parameters
+                measured_num_params = get_num_params(measured_loss)
+
+                synergy = torch.clamp(measured_num_params - expected_num_params, 0)  # ignore unbeneficial cooperation
+                synergies[first] += synergy / 2  # share synergy amongst coalition members
+                synergies[second] += synergy / 2
+
+        # === Shapley value combination ===
+        # Combine base values with synergy approximation to get final Shapley values.
+        shapley_values = []
+        routing_loss = 0
+        for i in range(len(uids)):
+            shapley_values += [base_params[i] + synergies[i]]
+            routing_loss += routing_losses[i]
+            print('Shapely\t|\tuid: {}\trouting_loss: {}\tmodel_loss: {}\t'
+                  'base_params: {}\tsynergy: {}'.format(uids[i], routing_losses[i].item(), losses[i].item(),
+                                                        base_params[i].item(), synergies[i].item()))
+
+        shapley_values = torch.stack(shapley_values)
+
+        return routing_loss, shapley_values, uids
