@@ -88,8 +88,9 @@ def serve(
         return output
 
     def forward_hidden_state(inputs_x, synapse):
+        inputs_x = torch.rand((10, 64))
         print('forward_hidden_state')
-        output = model.pre_model(inputs_x.to(model.device)) # .hidden_states[-1]
+        output = model.encode_forward(inputs_x.to(model.device)) # .hidden_states[-1]
         print('forward_hidden_state end')
 
         # padding_r = (1024-output.size(2))
