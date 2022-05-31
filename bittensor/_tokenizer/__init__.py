@@ -76,7 +76,7 @@ class tokenizer:
     
     @staticmethod
     def prep_tokenizer(tokenizer):
-        tokenizer.padding_side = "left"
+        # tokenizer.padding_side = "left"
         # tokenizer.add_prefix_space = False
         # tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
         # tokenizer.add_special_tokens({'eos_token': "[EOS]"}) # A special token representing the end of a sentence.
