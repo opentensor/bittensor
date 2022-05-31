@@ -257,23 +257,25 @@ def test_tokenizer_translation():
 
     except FileNotFoundError as e:
         print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
-        print('Will first run server models (requires CUDA)...')
+        raise
 
-        # === Run server models to obtain encoded logits ===
-        encodings = {}
-        for text_name, model_name, max_length in test_pairs:
-            result = tokenizer_translation(sample_text[text_name], model_name, max_length, topk=128)
-            original_loss, encoded_loss, translated_loss, enc_pre_logits = result
-            encodings[(text_name, model_name)] = (encoded_loss, translated_loss, enc_pre_logits)
-
-            print(text_name, model_name, original_loss, encoded_loss, translated_loss)
-
-            # English-1 EleutherAI/gpt-j-6B tensor(1.2531) tensor(1.3274) tensor(1.3274)
-            # English-1 benjamin/gerpt2-large tensor(3.7499) tensor(4.2219) tensor(4.5502)
-            # German-1 benjamin/gerpt2-large tensor(3.5197) tensor(4.0664) tensor(4.1428)
-
-        torch.save(encodings, encodings_cache_file)
-        encodings = torch.load(encodings_cache_file)
+        # # === Run server models to obtain encoded logits ===
+        # print('Will first run server models (requires CUDA)...')
+        #
+        # encodings = {}
+        # for text_name, model_name, max_length in test_pairs:
+        #     result = tokenizer_translation(sample_text[text_name], model_name, max_length, topk=128)
+        #     original_loss, encoded_loss, translated_loss, enc_pre_logits = result
+        #     encodings[(text_name, model_name)] = (encoded_loss, translated_loss, enc_pre_logits)
+        #
+        #     print(text_name, model_name, original_loss, encoded_loss, translated_loss)
+        #
+        #     # English-1 EleutherAI/gpt-j-6B tensor(1.2531) tensor(1.3274) tensor(1.3274)
+        #     # English-1 benjamin/gerpt2-large tensor(3.7499) tensor(4.2219) tensor(4.5502)
+        #     # German-1 benjamin/gerpt2-large tensor(3.5197) tensor(4.0664) tensor(4.1428)
+        #
+        # torch.save(encodings, encodings_cache_file)
+        # encodings = torch.load(encodings_cache_file)
 
     # === Run token translations on saved encoded logits ===
     for text_name, model_name, max_length in test_pairs:
