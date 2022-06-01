@@ -137,7 +137,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     proto response carring the nucleus backward output or None under failure.
         """
         backward_response_tensors, code, synapses = self._backward( request )
-        # TODO(eugene) Shouldnt we be signing these responses ?
         response = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__, 
             hotkey = self.wallet.hotkey.ss58_address, 
@@ -216,35 +215,55 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 )
 
         # ======================================
-        # ==== Check response length ====
+        # ==== Check Empty request ====
+        # ======================================
+        if len(request.tensors) == 0:
+            code = bittensor.proto.ReturnCode.EmptyRequest
+            message = "Forward request contains {} tensors, expected 1 tensor in the forward call".format(len(request.tensors))
+            call_time = clock.time() - start_time
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], code, request.synapses
+
+        
+        # ======================================
+        # ==== Check request length ====
         # ======================================
         if len( request.tensors ) != len( synapses ):
             # Not enough responses per request.
-            code = bittensor.proto.ReturnCode.ResponseShapeException
+            code = bittensor.proto.ReturnCode.RequestShapeException
             call_time = clock.time() - start_time
             message = "Request length doesn't match synape length."
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
             finalize_codes_stats_and_logs()
-            return [], bittensor.proto.ReturnCode.ResponseShapeException, request.synapses
+            return [], bittensor.proto.ReturnCode.RequestShapeException, request.synapses
 
 
         # ===================================
-        # ==== Deeerialize/Decode inputs ====
+        # ==== Deserialize/Check inputs ====
         # ===================================
         deserialized_forward_tensors = [ None for _ in synapses]
         for index, synapse in enumerate( synapses ):
             try:
                 deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
+
+            except ValueError as e:
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestShapeException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [index] = 'Input shape exception with error:{}'.format(str(e))
+
             except Exception as e:
-                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestDeserializationException
                 synapse_call_times [index] = clock.time() - start_time
                 synapse_messages [index] = 'Input deserialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_codes_stats_and_logs()
-            return [], bittensor.proto.ReturnCode.RequestSerializationException, request.synapses
+            return [], synapse_codes[0] , request.synapses
 
 
         # ===================================
@@ -262,6 +281,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 )
                 forward_response_tensors, forward_codes, forward_messages = future.result( timeout= self.forward_timeout )
             else:
+                
                 forward_response_tensors, forward_codes, forward_messages = self.forward_callback(
                     inputs_x = deserialized_forward_tensors,
                     synapses = synapses,
@@ -313,6 +333,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapse_responses [ index ] = synapse.empty()
                 response_synapses.append(synapse.serialize_to_wire_proto(code = synapse_codes[index], message= synapse_messages[index] ))
 
+            except ValueError as e:
+                if str(e) == 'Empty Response':
+                    synapse_codes [ index ]= bittensor.proto.ReturnCode.EmptyResponse
+                else:
+                    synapse_codes [ index ]= bittensor.proto.ReturnCode.ResponseShapeException
+
+                synapse_call_times [ index ] = clock.time() - start_time
+                synapse_messages [index] = "Synapse response shape exception with error: {}".format( str( e ) )
+
             except Exception as e:
                 synapse_codes [ index ]= bittensor.proto.ReturnCode.ResponseSerializationException
                 synapse_call_times [ index ] = clock.time() - start_time
@@ -320,7 +349,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_codes_stats_and_logs()
-            return [], bittensor.proto.ReturnCode.ResponseSerializationException, request.synapses
+            return [], synapse_codes[0], request.synapses
 
 
         # =========================================================
@@ -399,18 +428,44 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 )
 
         # ======================================
+        # ==== Check Empty request ====
+        # ======================================
+        if len(request.tensors) == 0:
+            code = bittensor.proto.ReturnCode.EmptyRequest
+            message = "Empty Request"
+            call_time = clock.time() - start_time
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], code, request.synapses
+
+        # ======================================
+        # ==== Check Invalid request ====
+        # ======================================
+        if len(request.tensors) < 2:
+            code = bittensor.proto.ReturnCode.InvalidRequest
+            message = "Backward request contains {} tensors, expected atleast 2 tensor in the backward call".format(len(request.tensors))
+            call_time = clock.time() - start_time
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], code, request.synapses
+
+        # ======================================
         # ==== Check request length ====
         # ======================================
         if len( request.tensors ) != 2 * len( synapses ): # 2 per synapse (1 input + 1 grad).
             # Not enough responses per request.
-            code = bittensor.proto.ReturnCode.ResponseShapeException
+            code = bittensor.proto.ReturnCode.RequestShapeException
             call_time = clock.time() - start_time
             message = "Request length doesn't match synape length."
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
             finalize_codes_stats_and_logs()
-            return [], bittensor.proto.ReturnCode.ResponseShapeException, request.synapses
+            return [], code, request.synapses
 
         # ===================================
         # ==== Deserialize/Decode inputs ====
@@ -420,13 +475,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
                 deserialized_forward_gradients [index] = synapse.deserialize_backward_request_gradient ( deserialized_forward_tensors [index],  request.tensors [ len( synapses ) + index ] )
             except Exception as e:
-                synapse_codes [index] = bittensor.proto.ReturnCode.RequestSerializationException
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestDeserializationException
                 synapse_call_times [index] = clock.time() - start_time
                 synapse_messages [index] = 'Input deserialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_codes_stats_and_logs()
-            return [], bittensor.proto.ReturnCode.RequestSerializationException, request.synapses
+            return [], bittensor.proto.ReturnCode.RequestDeserializationException, request.synapses
 
 
         # ===================================
@@ -695,6 +750,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             avg_out_bytes_per_pubkey = {}
         )
 
+    #TODO: Replace/update axon and dendrite stats 
     def update_stats_for_request(self, request, response, time, code):
         r""" Updates statistics for this request and response.
             Args:

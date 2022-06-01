@@ -254,7 +254,7 @@ class axon:
             backward_callback(sample_input,grads_raw)
 
     @staticmethod
-    def check_forward_callback( forward_callback:Callable, pubkey:str = '_'):
+    def check_forward_callback( forward_callback:Callable, synapses:list = []):
         """ Check and test axon forward callback function
         """
         if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
@@ -265,7 +265,7 @@ class axon:
             raise ValueError('The axon forward callback must have signature Callable[ inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         
         sample_input = torch.randint(0,1,(3, 3))
-        forward_callback(sample_input)
+        forward_callback([sample_input], synapses)
 
 class AuthInterceptor(grpc.ServerInterceptor):
     """ Creates a new server interceptor that authenticates incoming messages from passed arguments.
