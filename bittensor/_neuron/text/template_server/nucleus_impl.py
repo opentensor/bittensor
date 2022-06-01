@@ -132,8 +132,9 @@ class server(torch.nn.Module):
                     The tokenizer which was used to tokenize the inputs
 
             Returns:
-                outputs (:obj:`torch.FloatTensor`):
-                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+                model_outputs (:type:`SimpleNamespace`[logits (:obj:`torch.tensor`), hidden (:obj:`torch.tensor`)], `required`):
+                    logits: The logits output as a torch tensor of shape [batch_size, sequence_len, __vocab_size__ ]
+                    hidden: The hidden layer output as a torch tensor of shape [batch_size, sequence_len, __network_dim__ ]
         """
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer).to(self.device)

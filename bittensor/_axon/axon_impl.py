@@ -494,7 +494,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 response_messages: (:obj: list of strings, `required`)
                     return message associated with synapse call
         """
-        idx = torch.randint(0, 20, (1,)).item()
         # --- initialize response variables --- 
         response_tensors = []
         response_codes = []
