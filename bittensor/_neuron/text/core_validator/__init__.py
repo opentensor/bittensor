@@ -609,7 +609,8 @@ class nucleus( torch.nn.Module ):
         routing_losses = []
 
         # (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
-        def get_num_params(_loss): return torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(_loss) / 0.076)
+        def get_num_params(_loss):
+            return torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(torch.clamp(_loss, 1.69)) / 0.076)
 
         # === Base parameter estimation ===
         # Shapley values - base level - coalition size 1
