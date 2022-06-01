@@ -33,10 +33,6 @@ from loguru import logger; logger = logger.opt(colors=True)
 from datetime import datetime,timedelta
 import torch.nn.functional as F
 
-
-import cProfile, pstats, io
-from pstats import SortKey
-
 def serve( 
         config, 
         model,
@@ -77,7 +73,7 @@ def serve(
     timecheck = {}
     n_topk_peer_weights = subtensor.min_allowed_weights
 
-    def forward_generate( inputs_x:torch.FloatTensor, model_output = None):
+    def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
         output = model.pre_model.generate(
             input_ids=inputs_x, 
             max_length=synapse.num_to_generate, 
@@ -87,7 +83,7 @@ def serve(
         )
         return model_output, output
 
-    def forward_hidden_state(inputs_x, model_output = None):
+    def forward_hidden_state(inputs_x, synapse, model_output = None):
         if model_output == None:
             model_output = model.encode_forward(inputs_x.to(model.device))
         
@@ -96,7 +92,7 @@ def serve(
         encoded_hidden = F.pad(hidden, (0, padding_r),  "constant", 0)
         return model_output, encoded_hidden
 
-    def forward_casual_lm(inputs_x, model_output = None):
+    def forward_casual_lm(inputs_x, synapse, model_output = None):
         if model_output == None:
             model_output = model.encode_forward(inputs_x.to(model.device))
         

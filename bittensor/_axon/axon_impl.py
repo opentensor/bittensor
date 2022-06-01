@@ -33,9 +33,6 @@ import concurrent
 import bittensor
 import bittensor.utils.stats as stat_utils
 
-import cProfile, pstats, io
-from pstats import SortKey
-
 logger = logger.opt(colors=True)
 
 class Axon( bittensor.grpc.BittensorServicer ):
@@ -167,9 +164,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapses (:obj:`List[ 'bittensor.proto.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
                     Synapse wire protos with return codes from forward request.
         """
-        pr = cProfile.Profile()
-        pr.enable()
-
         # ===================================================================
         # ==== First deserialize synapse wire protos to instance objects ====        
         # ===================================================================
@@ -337,14 +331,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapse_call_times[index] = clock.time() - start_time
 
         finalize_codes_stats_and_logs()
-
-        pr.disable()
-        s = io.StringIO()
-        sortby = SortKey.CUMULATIVE
-        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats(.1)
-        print(s.getvalue())
-
         return synapse_responses, bittensor.proto.ReturnCode.Success, response_synapses
  
     def _backward(self, request):
@@ -519,7 +505,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         for index, synapse in enumerate(synapses):
             try:
                 if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
-                    model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], model_output)
+                    model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
                     response_tensors.append(response_tensor)
                     response_codes.append(bittensor.proto.ReturnCode.Success)
                     response_messages.append('Success')
