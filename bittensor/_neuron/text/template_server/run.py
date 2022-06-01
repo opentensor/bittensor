@@ -77,7 +77,7 @@ def serve(
     timecheck = {}
     n_topk_peer_weights = subtensor.min_allowed_weights
 
-    def forward_generate( inputs_x:torch.FloatTensor, synapse):
+    def forward_generate( inputs_x:torch.FloatTensor, model_output = None):
         output = model.pre_model.generate(
             input_ids=inputs_x, 
             max_length=synapse.num_to_generate, 
@@ -85,23 +85,22 @@ def serve(
             no_repeat_ngram_size=synapse.no_repeat_ngram_size,
             early_stopping = synapse.early_stopping,
         )
-        return output
+        return model_output, output
 
-    def forward_hidden_state(inputs_x, synapse):
-        inputs_x = torch.rand((10, 64))
-        print('forward_hidden_state')
-        output = model.encode_forward(inputs_x.to(model.device)) # .hidden_states[-1]
-        print('forward_hidden_state end')
+    def forward_hidden_state(inputs_x, model_output = None):
+        if model_output == None:
+            model_output = model.encode_forward(inputs_x.to(model.device))
+        
+        hidden = model_output.hidden
+        padding_r = (1024-hidden.size(2))
+        encoded_hidden = F.pad(hidden, (0, padding_r),  "constant", 0)
+        return model_output, encoded_hidden
 
-        # padding_r = (1024-output.size(2))
-        # encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
-        return torch.rand(10, inputs_x.size(1), 1024)# encoded_hidden
-
-    def forward_casual_lm(inputs_x, synapse):
-        print('forward_casual lm')
-        output = model.pre_model(input_ids=inputs_x) # .logits
-        print('forward_casual lm end')
-        return torch.rand(10, inputs_x.size(1), 50378) # output
+    def forward_casual_lm(inputs_x, model_output = None):
+        if model_output == None:
+            model_output = model.encode_forward(inputs_x.to(model.device))
+        
+        return model_output, model_output.logits
 
     def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
@@ -208,26 +207,13 @@ def serve(
 
     last_set_block = subtensor.get_current_block()
 
-
     # --- Run Forever.
     while True:
-
-        pr = cProfile.Profile()
-        pr.enable()
-
-        forward_hidden_state(torch.rand(10, 64).to(torch.long), None)
-
-        pr.disable()
-        s = io.StringIO()
-        sortby = SortKey.CUMULATIVE
-        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats(.1)
-        print(s.getvalue())
 
         current_block = subtensor.get_current_block()
         end_block = current_block + config.neuron.blocks_per_epoch
         while end_block >= current_block:
-            # time.sleep( bittensor.__blocktime__ )
+            time.sleep( bittensor.__blocktime__ )
             current_block = subtensor.get_current_block()
 
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
