@@ -95,6 +95,10 @@ def serve(
     def forward_casual_lm(inputs_x, synapse):
         output = model.pre_model(input_ids=inputs_x).logits
         return output
+    
+    def optimizer_step():
+        optimizer.step()
+        optimizer.zero_grad()
 
     def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
@@ -189,7 +193,9 @@ def serve(
             synapse_seq_2_seq = forward_generate,
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
-
+    
+    axon.optimizer_step = optimizer_step
+    
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
         bittensor.wandb(
