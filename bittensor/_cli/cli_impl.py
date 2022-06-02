@@ -544,15 +544,17 @@ class CLI:
 
         if sort_by != "":
             column_to_sort_by: int = 0
+            highest_matching_ratio: int = 0
             sort_descending: bool = False # Default sort_order to ascending
 
             for index, column in zip(range(len(table.columns)), table.columns):
                 # Fuzzy match the column name. Default to the first column.
                 column_name = column.header.lower().replace('[overline white]', '')
                 match_ratio = fuzz.ratio(sort_by.lower(), column_name)
-                if  match_ratio > 70:
+                # Finds the best matching column
+                if  match_ratio > highest_matching_ratio:
+                    highest_matching_ratio = match_ratio
                     column_to_sort_by = index
-                    break
             
             if sort_order.lower() in { 'desc', 'descending', 'reverse'}:
                 # Sort descending if the sort_order matches desc, descending, or reverse
