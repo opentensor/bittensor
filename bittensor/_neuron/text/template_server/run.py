@@ -90,10 +90,7 @@ def serve(
         if model_output == None:
             model_output = model.encode_forward(inputs_x.to(model.device))
         
-        hidden = model_output.hidden
-        padding_r = (1024-hidden.size(2))
-        encoded_hidden = F.pad(hidden, (0, padding_r),  "constant", 0)
-        return model_output, encoded_hidden
+        return model_output, model_output.hidden
 
     def forward_casual_lm(inputs_x, synapse, model_output = None):
         if model_output == None:
