@@ -80,6 +80,9 @@ def serve(
             num_beams=synapse.num_beams, 
             no_repeat_ngram_size=synapse.no_repeat_ngram_size,
             early_stopping = synapse.early_stopping,
+            do_sample=synapse.do_sample, 
+            top_p=synapse.top_p, 
+            num_return_sequences=synapse.num_return_sequences,
         )
         return model_output, output
 
@@ -97,6 +100,10 @@ def serve(
             model_output = model.encode_forward(inputs_x.to(model.device))
         
         return model_output, model_output.logits
+    
+    def optimizer_step():
+        optimizer.step()
+        optimizer.zero_grad()
 
     def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
@@ -191,7 +198,9 @@ def serve(
             synapse_seq_2_seq = forward_generate,
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
-
+    
+    axon.optimizer_step = optimizer_step
+    
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
         bittensor.wandb(
@@ -238,10 +247,11 @@ def serve(
             try: 
                 last_set_block = current_block
                 # Set self weights to maintain activity.
-                chain_weights = torch.zeros(metagraph.n)
+                # --- query the chain for the most current number of peers on the network
+                chain_weights = torch.zeros(subtensor.n)
                 chain_weights [ uid ] = 1 
                 did_set = subtensor.set_weights(
-                    uids=metagraph.uids,
+                    uids=torch.arange(0,subtensor.n),
                     weights = chain_weights,
                     wait_for_inclusion = False,
                     wallet = wallet,

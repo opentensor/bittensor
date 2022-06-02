@@ -43,6 +43,12 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
+# Pip address for versioning
+__pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
+
+# Substrate ss58_format
+__ss58_format__ = 42
+
 __networks__ = [ 'local', 'nobunaga', 'nakamoto']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
@@ -60,10 +66,10 @@ __local_entrypoints__ = [
 ]
 
 # Avoid collisions with other processes
-import os
-pid_port = 8192 + (os.getpid() % 8192)
+from .utils.test_utils import get_random_unused_port
+mock_subtensor_port = get_random_unused_port()
 __mock_entrypoints__ = [
-    f"localhost:{pid_port}"
+    f"localhost:{mock_subtensor_port}"
 ]
 
 
@@ -117,7 +123,11 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-from bittensor._ipfs.ipfs_impl import Ipfs
+from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
+from bittensor._synapse.synapse_impl import Synapse as Synapse
+from bittensor._synapse.text_causallm_impl import TextCausalLM as TextCausalLM
+from bittensor._synapse.text_lasthiddenstate_impl import TextLastHiddenState as TextLastHiddenState
+from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
 
 # DEFAULTS
 defaults = Config()
