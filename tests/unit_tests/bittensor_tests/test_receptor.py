@@ -46,6 +46,12 @@ channel = grpc.insecure_channel('localhost',
                      ('grpc.max_receive_message_length', -1)])          
 stub = bittensor.grpc.BittensorStub(channel)
 
+synapses = [
+    bittensor.synapse.TextLastHiddenState(),
+    bittensor.synapse.TextCausalLM(), 
+    bittensor.synapse.TextSeq2Seq(num_to_generate=70)
+    ]
+
 def test_print():
     print(receptor)
     print(str(receptor))
@@ -56,8 +62,8 @@ def test_dummy_forward():
     endpoint = bittensor.endpoint.dummy()
     dummy_receptor = bittensor.receptor ( endpoint= endpoint, wallet=wallet)
     assert dummy_receptor.endpoint.uid == 0
-    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    out, ops, time = dummy_receptor.forward( x, bittensor.proto.Modality.TEXT, timeout=1)
+    x = torch.empty(0)
+    out, ops, time = dummy_receptor.forward( synapses, x, timeout=1)
     assert ops == bittensor.proto.ReturnCode.EmptyRequest
     assert list(out.shape) == [2, 4, bittensor.__network_dim__]
 
@@ -793,5 +799,6 @@ def test_axon_receptor_connection_backward_timeout():
     axon.stop()
 
 if __name__ == "__main__":
-    test_axon_receptor_connection_backward_unauthenticated()
+    test_dummy_forward()
+    # test_axon_receptor_connection_backward_unauthenticated()
 

@@ -419,8 +419,6 @@ class Receptor(nn.Module):
             synapse_messages = [ message for _ in synapses ]
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
-
-
         
         # ========================
         # ==== Check endpoint ====
@@ -435,7 +433,6 @@ class Receptor(nn.Module):
             synapse_messages = [ message for _ in synapses ]
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
-
 
         # ==========================
         # ==== Serialize inputs ====
@@ -455,7 +452,6 @@ class Receptor(nn.Module):
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
             
-        
         # ============================
         # ==== Build proto request ====
         # ============================
@@ -478,7 +474,6 @@ class Receptor(nn.Module):
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
-        
         # =======================
         # ==== Fire RPC Call ====
         # =======================
