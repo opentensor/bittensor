@@ -138,10 +138,9 @@ class server(torch.nn.Module):
         """
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer).to(self.device)
-        if self.config.neuron.training:
-            pre_hidden = self.pre_model(inputs).last_hidden_state
-        elif self.config.neuron.autocast and self.device == 'cuda':
-            pre_hidden = self.pre_model(inputs).last_hidden_state
+        if self.config.neuron.training or self.config.neuron.autocast and self.device == 'cuda':
+            output = self.pre_model(inputs, output_hidden_states=True)
+            pre_hidden = output.hidden_states[-1]
         else:
             with torch.no_grad():
                 output = self.pre_model(inputs, output_hidden_states=True)
