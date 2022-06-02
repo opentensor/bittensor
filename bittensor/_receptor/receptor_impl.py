@@ -475,7 +475,6 @@ class Receptor(nn.Module):
         # =======================
         # ==== Fire RPC Call ====
         # =======================
-        print('fire rpv call', clock.time() - start_time)
         grpc_response = None
         try:
             self.stats.forward_qps.update(1)
@@ -494,7 +493,6 @@ class Receptor(nn.Module):
             synapse_is_response = [ True for _ in synapses ]
             # Set successful response booleans to true
 
-            print('rpc call return', clock.time() - start_time)
         # ====================================
         # ==== Handle GRPC Errors ====
         # ====================================
@@ -608,7 +606,6 @@ class Receptor(nn.Module):
             if synapse_codes[index] == bittensor.proto.ReturnCode.Success:
                 synapse_call_times[index] = clock.time() - start_time
         finalize_stats_and_logs()
-        print('finish forward', clock.time() - start_time)
         return synapse_responses, synapse_codes, synapse_call_times       
             
 
