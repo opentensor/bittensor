@@ -95,6 +95,10 @@ def serve(
     def forward_casual_lm(inputs_x, synapse):
         output = model.encode_forward_causallm(inputs_x.to(model.device))
         return output
+    
+    def optimizer_step():
+        optimizer.step()
+        optimizer.zero_grad()
 
     def backward_causal_lm(inputs_x, grads_dy):
         r"""Single threaded backwards function that is called when the axon receives
@@ -205,7 +209,9 @@ def serve(
             synapse_seq_2_seq = forward_generate,
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
-
+    
+    axon.optimizer_step = optimizer_step
+    
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
         bittensor.wandb(

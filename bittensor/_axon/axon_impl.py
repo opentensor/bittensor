@@ -81,7 +81,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.synapse_callbacks = synapses
         self.stats = self._init_stats()
         self.started = None
-        self.optimizer = None
+        self.optimizer_step = None
         
         # -- Priority 
         self.priority = priority 
@@ -474,6 +474,12 @@ class Axon( bittensor.grpc.BittensorServicer ):
             try:
                 deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
                 deserialized_forward_gradients [index] = synapse.deserialize_backward_request_gradient ( deserialized_forward_tensors [index],  request.tensors [ len( synapses ) + index ] )
+
+            except ValueError as e:
+                synapse_codes [index] = bittensor.proto.ReturnCode.RequestShapeException
+                synapse_call_times [index] = clock.time() - start_time
+                synapse_messages [index] = 'Input shape exception with error:{}'.format(str(e))
+
             except Exception as e:
                 synapse_codes [index] = bittensor.proto.ReturnCode.RequestDeserializationException
                 synapse_call_times [index] = clock.time() - start_time
@@ -481,7 +487,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_codes_stats_and_logs()
-            return [], bittensor.proto.ReturnCode.RequestDeserializationException, request.synapses
+            return [], synapse_codes[0], request.synapses
 
 
         # ===================================
@@ -500,10 +506,30 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapses = synapses,
                     priority = priority
                 )
+
             else:
                 # Calling default
-                # TODO(eugene): does this create a waiting operation.
-                self.backward_callback ( deserialized_forward_tensors, deserialized_forward_gradients, synapses = synapses )
+                backward_response_tensors, backward_codes, backward_messages = self.backward_callback ( deserialized_forward_tensors, deserialized_forward_gradients, synapses = synapses )
+            
+                # ========================================
+                # ==== Fill codes from forward calls ====
+                # ========================================
+                for index, synapse in enumerate(synapses):
+                    synapse_codes [ index ] = backward_codes [ index ]
+                    synapse_messages [index] = backward_messages [ index ]
+
+        # ========================================
+        # ==== Catch backward request timeouts ====
+        # ========================================
+        except concurrent.futures.TimeoutError:
+            code = bittensor.proto.ReturnCode.Timeout
+            call_time = clock.time() - start_time
+            message = "Request reached timeout"
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_codes_stats_and_logs()
+            return [], bittensor.proto.ReturnCode.Timeout, request.synapses
 
         # ==================================
         # ==== Catch unknown exceptions ====
@@ -517,6 +543,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
             synapse_messages = [ message for _ in synapses ]
             finalize_codes_stats_and_logs()
             return [], bittensor.proto.ReturnCode.UnknownException, request.synapses
+
+        # Check if the call can stop here.
+        if check_if_should_return():
+            finalize_codes_stats_and_logs()
+            return [], synapse_codes[0], request.synapses
 
         # ==============================
         # ==== Finalize call times =====
@@ -619,8 +650,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     response_codes.append(bittensor.proto.ReturnCode.UnknownException)
                     response_messages.append(str(e))
 
-        self.optimizer.step()
-        self.optimizer.zero_grad()
+        if self.optimizer_step != None:
+            self.optimizer_step()
         
         return response_tensors, response_codes, response_messages
 
@@ -643,7 +674,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.synapse_callbacks[synapse_type] = synapse_callback
 
-    def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ], modality: int ):
+    def attach_backward_callback(self, backward_callback: Callable[ [str, torch.Tensor, torch.Tensor, int], torch.Tensor ] ):
         """ Assigns the backward_callback call to this neuron.
 
             Returns:

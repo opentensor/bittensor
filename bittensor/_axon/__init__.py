@@ -236,22 +236,18 @@ class axon:
         bittensor.wallet.check_config( config )
 
     @staticmethod
-    def check_backward_callback( backward_callback:Callable, modality:int, pubkey:str = '_' ):
+    def check_backward_callback( backward_callback:Callable, pubkey:str = '_' ):
         """ Check and test axon backward callback function
         """
         if not inspect.ismethod(backward_callback) and not inspect.isfunction(backward_callback):
             raise ValueError('The axon backward callback must be a function with signature Callable[inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(backward_callback))        
-        if len( inspect.signature(backward_callback).parameters) != 2:
-            raise ValueError('The axon backward callback must have signature Callable[ inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
+        if len( inspect.signature(backward_callback).parameters) != 3:
+            raise ValueError('The axon backward callback must have signature Callable[ inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
         if 'inputs_x' not in inspect.signature(backward_callback).parameters:
             raise ValueError('The axon backward callback must have signature Callable[inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
         if 'grads_dy' not in inspect.signature(backward_callback).parameters:
             raise ValueError('The axon backward callback must have signature Callable[inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor ) -> torch.FloatTensor:, got {}'.format(inspect.signature(backward_callback)))
  
-        if modality == bittensor.proto.Modality.TEXT:
-            sample_input = torch.randint(0,1,(3, 3))
-            grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
-            backward_callback(sample_input,grads_raw)
 
     @staticmethod
     def check_forward_callback( forward_callback:Callable, synapses:list = []):

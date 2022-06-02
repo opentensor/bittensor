@@ -119,7 +119,15 @@ class TextLastHiddenState (Synapse):
             ):
             raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(forward_response_tensor.shape), self ) ) 
    
-    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): pass
+    def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): 
+        if ( 
+             len( backward_request_gradient.shape ) != 3 or
+             backward_request_gradient.size(0) != forward_request_tensor.size(0) or
+             backward_request_gradient.size(1) != forward_request_tensor.size(1) or
+             backward_request_gradient.size(2) != bittensor.__network_dim__
+            ):
+            raise ValueError( "backward_request_gradient.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(backward_request_gradient.shape), self ) ) 
+
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
