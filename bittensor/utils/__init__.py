@@ -296,10 +296,10 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             print(f"Found solution for bn: {block_number}; Newest: {new_bn}")            
             return solution, block_number, block_hash, difficulty, seal
 
-        nonce += update_interval*TPB
+        nonce += update_interval
         if (nonce >= int(math.pow(2,63))):
             nonce = 0
-        itrs_per_sec = update_interval*TPB / (time.time() - interval_time)
+        itrs_per_sec = update_interval / (time.time() - interval_time)
         interval_time = time.time()
         difficulty = subtensor.difficulty
         block_number = subtensor.get_current_block()
