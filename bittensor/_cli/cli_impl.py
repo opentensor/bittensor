@@ -1,5 +1,4 @@
 # The MIT License (MIT)
-# The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
@@ -16,17 +15,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
 import os
 import sys
-from rich.tree import Tree
-from rich import print
-from tqdm import tqdm
-from rich.table import Table
-from rich.prompt import Confirm
+from types import SimpleNamespace
 
+import bittensor
 from bittensor.utils.balance import Balance
+from fuzzywuzzy import fuzz
+from rich import print
+from rich.prompt import Confirm
+from rich.table import Table
+from rich.tree import Tree
+from tqdm import tqdm
+
 
 class CLI:
     """
@@ -38,6 +39,7 @@ class CLI:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
         """
+        bittensor.utils.version_checking()
         self.config = config
 
     def run ( self ):
@@ -77,6 +79,8 @@ class CLI:
             self.query()
         elif self.config.command == "help":
             self.help()
+        elif self.config.command == 'update':
+            self.update()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -212,6 +216,11 @@ class CLI:
             bittensor.neurons.multitron_server.neuron().run()
 
 
+    def update ( self ):
+        if self.config.no_prompt or self.config.answer == 'Y':
+            os.system(' (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )')
+            os.system('pip install -e ~/.bittensor/bittensor/')
+
     def register( self ):
         r""" Register neuron.
         """
@@ -256,7 +265,10 @@ class CLI:
     def _get_hotkey_wallets_for_wallet( wallet ):
         hotkey_wallets = []
         hotkeys_path = wallet.path + '/' + wallet.name + '/hotkeys'
-        hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        try:
+            hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        except StopIteration:
+            hotkey_files = []
         for hotkey_file_name in hotkey_files:
             hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
         return hotkey_wallets
@@ -264,7 +276,12 @@ class CLI:
     def list(self):
         r""" Lists wallets.
         """
-        wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        try:
+            wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        except StopIteration:
+            # No wallet files found.
+            wallets = []
+
         root = Tree("Wallets")
         for w_name in wallets:
             wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
@@ -292,8 +309,10 @@ class CLI:
                             hotkey_str = '?'
                         wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
             except:
-                pass
+                continue
 
+        if len(wallets) == 0:
+            root.add("[bold red]No wallets found.")
         print(root)
 
     def metagraph(self):
@@ -408,15 +427,49 @@ class CLI:
         """
         console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
+
+        if not wallet.coldkeypub_file.exists_on_device():
+            console.print("[bold red]No wallets found.")
+            return
+
         subtensor = bittensor.subtensor( config = self.config )
         all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
+        
+        if self.config.wallet.hotkeys:
+            # Only show hotkeys for wallets in the list
+            all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
+            
         neurons = []
         block = subtensor.block
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            for wallet in tqdm(all_hotkeys):
-                nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                if not nn.is_null:
-                    neurons.append( (nn, wallet) )
+            try:
+                if self.config.subtensor.network not in ('local', 'nakamoto'):
+                    # We only cache neurons for local/nakamoto.
+                    raise CacheException("This network is not cached, defaulting to regular overview.")
+            
+                if self.config.get('no_cache'):
+                    raise CacheException("Flag was set to not use cache, defaulting to regular overview.")
+
+                metagraph: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor )
+                try:
+                    # Grab cached neurons from IPFS
+                    all_neurons = metagraph.retrieve_cached_neurons()
+                except Exception:
+                    raise CacheException("Failed to retrieve cached neurons, defaulting to regular overview.")
+                # Map the hotkeys to uids
+                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+                for wallet in tqdm(all_hotkeys):
+                    uid = hotkey_to_neurons.get(wallet.hotkey.ss58_address)
+                    if uid is not None:
+                        nn = all_neurons[uid]
+                        neurons.append( (nn, wallet) )
+            except CacheException:
+                for wallet in tqdm(all_hotkeys):
+                    # Get overview without cache
+                    nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                    if not nn.is_null:
+                      neurons.append( (nn, wallet) )
+                      
             balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         TABLE_DATA = []  
@@ -426,7 +479,8 @@ class CLI:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0     
+        total_emission = 0   
+
         for nn, hotwallet in tqdm(neurons):
             uid = nn.uid
             active = nn.active
@@ -463,7 +517,7 @@ class CLI:
             TABLE_DATA.append(row)
             
         total_neurons = len(neurons)                
-        table = Table(show_footer=False)
+        table = Table(show_footer=False, width=self.config.get('width', None), pad_edge=False, box=None)
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
@@ -484,9 +538,32 @@ class CLI:
         table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
 
         console.clear()
+
+        sort_by: str = self.config.wallet.sort_by
+        sort_order: str = self.config.wallet.sort_order
+
+        if sort_by != "":
+            column_to_sort_by: int = 0
+            sort_descending: bool = False # Default sort_order to ascending
+
+            for index, column in zip(range(len(table.columns)), table.columns):
+                # Fuzzy match the column name. Default to the first column.
+                if fuzz.ratio(sort_by.lower(), column.header.lower().replace('[overline white]', '')) > 80:
+                    column_to_sort_by = index
+                    break
+            
+            if sort_order.lower() in { 'desc', 'descending', 'reverse'}:
+                # Sort descending if the sort_order matches desc, descending, or reverse
+                sort_descending = True
+                
+            TABLE_DATA.sort(key=lambda row: row[column_to_sort_by], reverse=sort_descending)
+
         for row in TABLE_DATA:
             table.add_row(*row)
-        table.box = None
-        table.pad_edge = False
-        table.width = None
-        console.print(table)
+        
+        console.print(table, width=self.config.get('width', None))
+
+class CacheException(Exception):
+    """
+    Exception raised when the cache has an issue or should not be used.
+    """

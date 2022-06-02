@@ -43,7 +43,6 @@ __type_registery__ = {
 
 GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
 
-
 class mock_subtensor():
     r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
         Optionall creates the background process if it does not exist.
@@ -62,7 +61,7 @@ class mock_subtensor():
         endpoint = bittensor.__mock_entrypoints__[0]
         port = int(endpoint.split(':')[1])
         substrate = SubstrateInterface(
-            ss58_format = 42,
+            ss58_format = bittensor.__ss58_format__,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
             url = "ws://{}".format('localhost:{}'.format(port)),
@@ -85,7 +84,8 @@ class mock_subtensor():
         """
         for p in psutil.process_iter():
             if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
-               return True
+                print(f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}")
+                return True
         return False
 
     @classmethod
@@ -96,6 +96,7 @@ class mock_subtensor():
             if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() :
                 p.terminate()
                 p.kill()
+        time.sleep(2) # Buffer to ensure the processes actually die
 
     @classmethod
     def create_global_mock_process(self):
@@ -161,6 +162,8 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 self._owned_mock_subtensor_process.terminate()
                 self._owned_mock_subtensor_process.kill()
                 os.system("kill %i" % self._owned_mock_subtensor_process.pid)
-            except:
+                time.sleep(2) # Buffer to ensure the processes actually die
+            except Exception as e:
+                print(f"failed to kill owned mock instance: {e}")
                 # Occasionally 
                 pass
