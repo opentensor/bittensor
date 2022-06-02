@@ -240,7 +240,7 @@ def millify(n: int):
 
     return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 100000, TPB: int = 512, dev_id: int = 0 ) -> Tuple[int, int, Any, int, Any]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 5_000_000, TPB: int = 512, dev_id: int = 0 ) -> Tuple[int, int, Any, int, Any]:
     """
     Solves the registration fast using CUDA
     Args:
