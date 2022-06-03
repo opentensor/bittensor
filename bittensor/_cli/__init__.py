@@ -234,6 +234,13 @@ class cli:
             'register', 
             help='''Register a wallet to a network.'''
         )
+        register_parser.add_argument(
+            '--TPB',
+            type=int,
+            default=256,
+            help='''Set the number of Threads per block for CUDA.'''
+        )
+
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
