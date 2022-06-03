@@ -240,6 +240,12 @@ class cli:
             default=256,
             help='''Set the number of Threads per block for CUDA.'''
         )
+        register_parser.add_argument(
+            '--update_interval',
+            type=int,
+            default=1_000_000,
+            help='''Set the number of nonces per network update.'''
+        )
 
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 

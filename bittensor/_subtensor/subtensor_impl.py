@@ -444,6 +444,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         cuda: bool = False,
         dev_id: int = 0,
         TPB: int = 256,
+        update_interval: int = 1_000_000,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -489,7 +490,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         while True:
             # Solve latest POW.
             if cuda:
-                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB )
+                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, update_interval )
             else:
                 pow_result = bittensor.utils.create_pow( self, wallet, cuda )
             with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:

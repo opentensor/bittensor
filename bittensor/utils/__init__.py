@@ -329,9 +329,9 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         status.stop()
         return None, None, None, None, None
 
-def create_pow( subtensor, wallet, cuda: bool = False, dev_id: int = 0, tpb: int = 256 ):
+def create_pow( subtensor, wallet, cuda: bool = False, dev_id: int = 0, tpb: int = 256, update_interval: int = 1_000_000 ):
     if cuda:
-        nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast_cuda( subtensor, wallet, dev_id=dev_id, TPB=tpb )
+        nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast_cuda( subtensor, wallet, dev_id=dev_id, TPB=tpb, update_interval=update_interval )
     else:
         nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet )
     return None if nonce is None else {
