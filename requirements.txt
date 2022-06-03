@@ -7,7 +7,7 @@ fuzzywuzzy==0.18.0
 python-levenshtein==0.12
 google-api-python-client
 googleapis-common-protos<=1.56.0
-google-api-core>=2.7.3,<2.8.0
+google-api-core<=2.8.0
 grpcio==1.42.0
 grpcio-tools==1.42.0
 loguru
