@@ -315,10 +315,10 @@ class neuron:
             if self.config.using_wandb:
                 wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
                            'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
-                           'epoch/time': step_time}, step= current_block )
+                           'epoch/time': step_time}, step=current_block)
                 for uid, vals in self.server_stats.items():
                     for key in vals:  # detailed server evaluation fields, e.g. loss, shapley_values, synergy
-                        wandb.log({'weights/{}_{}'.format(key, uid): vals[key]}, step=current_block)
+                        wandb.log({'stats/{}_{}'.format(key, uid): vals[key]}, step=current_block)
 
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
@@ -670,7 +670,7 @@ class nucleus( torch.nn.Module ):
         for s in stats:
             for ext in ['', '_val']:
                 s['shapley_values' + ext] = s['base_params' + ext] + s['synergy' + ext]
-                del s['logits' + ext]  # remove logits - not needed for stats
+                del s['logits' + ext]  # remove logits - not needed for stats anymore
 
             output = 'Shapely\t|\tuid: ' + str(s['uid'])
             for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff', 'shapley_values_val']:
