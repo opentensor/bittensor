@@ -294,20 +294,13 @@ class neuron:
             # === Scoring ===
             # Updates moving averages and history.
             for s in stats:
-                history = self.server_stats.setdefault(s['uid'], {})
-                if 'updates' not in history:
-                    history['updates'] = 0
-                sum_ratio = 1. / min(20, history['updates'] + 1)
-
-                for key in s:
-                    if key in ['logits', 'logits_val']:
-                        continue
-                    if history['updates'] == 0:
-                        history[key] = s[key]
-                    else:
-                        history[key] = (1 - sum_ratio) * history[key] + sum_ratio * s[key]
-
-                history['updates'] += 1
+                history = self.server_stats.setdefault(s['uid'], s)
+                history.setdefault('updates', 0)  # add updates fields for new uid entries
+                history['updates'] += 1  # increase number of updates made
+                sum_ratio = 1. / min(20, history['updates'])  # moving average window size of 20 max
+                for key in s:  # detailed server evaluation fields, e.g. loss, shapley_values, synergy
+                    if key not in ['updates']:
+                        history[key] = (1 - sum_ratio) * history[key] + sum_ratio * s[key]  # update EMA
 
             # === State update ===
             # Prints step logs to screen.
@@ -323,13 +316,9 @@ class neuron:
                 wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
                            'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
                            'epoch/time': step_time}, step= current_block )
-                step_topk_normalized, step_topk_uids, step_topk_vals = self.unbiased_topk()
-                for i, w, v in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist(), step_topk_vals)):
-                    wandb.log({'weights/w_{}'.format(i): w}, step=current_block)
-                    for key in ['loss', 'loss_val', 'shapley_values', 'shapley_values_val',
-                                'base_params', 'base_params_val', 'synergy', 'synergy_val',
-                                'synergy_loss_diff', 'synergy_loss_diff_val']:
-                        wandb.log({'weights/{}_{}'.format(key, i): v[key]}, step=current_block)
+                for uid, vals in self.server_stats.items():
+                    for key in vals:  # detailed server evaluation fields, e.g. loss, shapley_values, synergy
+                        wandb.log({'weights/{}_{}'.format(key, uid): vals[key]}, step=current_block)
 
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
@@ -348,9 +337,12 @@ class neuron:
         self.epoch += 1
 
         # === Set weights ===
+        score_key = 'shapley_values_val'  # server score based on validation Shapley value approximation
+        moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet minimum topk
+        moving_avg_scores[list(self.server_stats.keys())] = torch.tensor([s[score_key].item() for s in self.server_stats.values()])
         # Find the n_topk_peer_weights peers to set weights to.
-        # We use the mean of the epoch weights.
-        topk_scores, topk_uids, topk_vals = self.unbiased_topk()
+        topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
+        topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
         print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
                 '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
         self.subtensor.set_weights(
@@ -372,20 +364,6 @@ class neuron:
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
-
-    def unbiased_topk(self, score_key='shapley_values_val'):
-        n_topk_peer_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
-
-        scores = [(self.server_stats[uid][score_key].item(), self.server_stats[uid]) for uid in self.server_stats]
-        random.shuffle(scores)
-        topk_items = sorted(scores)[-n_topk_peer_weights:]
-        topk_uids = torch.tensor([val[1]['uid'] for val in topk_items])
-        topk_vals = [val[1] for val in topk_items]
-        topk_scores = torch.tensor([val[0] for val in topk_items])
-        topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores,
-                                                                              multiple=max_allowed_ratio)
-        return topk_uids, topk_normalized, topk_vals
 
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
@@ -623,9 +601,11 @@ class nucleus( torch.nn.Module ):
         stats = []
         routing_loss = 0
 
-        # (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
         def get_num_params(_loss):
-            return torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(torch.clamp(_loss, 1.69)) / 0.076)
+            # (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
+            num_params = torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(torch.clamp(_loss, 1.69)) / 0.076)
+            scaled_num_params = torch.pow(num_params, 0.5)  # powered down number of params, dynamic range 3 → 6 nats
+            return scaled_num_params  # modified scaling law, powered down to improve dynamic range
 
         # === Base parameter estimation ===
         # Shapley values - base level - coalition size 1
@@ -673,11 +653,11 @@ class nucleus( torch.nn.Module ):
 
                 with torch.no_grad():
                     for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
-                        expected_loss = (first['loss' + ext] + second['loss' + ext]) / 2
-                        combined_logits = (first['logits' + ext] + second['logits' + ext]) / 2
-                        measured_loss = self.get_target_loss_casuallm(combined_logits, target)  # CausalLM loss
+                        expected_loss = (first['loss' + ext] + second['loss' + ext]) / 2  # expecting mean loss
+                        combined_logits = (first['logits' + ext] + second['logits' + ext]) / 2  # combined logits
+                        measured_loss = self.get_target_loss_casuallm(combined_logits, target)  # actual loss
 
-                        loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2
+                        loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
                         first['synergy_loss_diff' + ext] += loss_diff_share
                         second['synergy_loss_diff' + ext] += loss_diff_share
 
@@ -690,9 +670,10 @@ class nucleus( torch.nn.Module ):
         for s in stats:
             for ext in ['', '_val']:
                 s['shapley_values' + ext] = s['base_params' + ext] + s['synergy' + ext]
+                del s['logits' + ext]  # remove logits - not needed for stats
 
             output = 'Shapely\t|\tuid: ' + str(s['uid'])
-            for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff']:
+            for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff', 'shapley_values_val']:
                 output += '\t' + key + ': ' + str(s[key].item())
 
             print(output)
