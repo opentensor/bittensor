@@ -73,7 +73,7 @@ def serve(
     timecheck = {}
     n_topk_peer_weights = subtensor.min_allowed_weights
 
-    def forward_generate( inputs_x:torch.FloatTensor, synapse):
+    def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
         output = model.pre_model.generate(
             input_ids=inputs_x, 
             max_length=synapse.num_to_generate, 
@@ -84,17 +84,19 @@ def serve(
             top_p=synapse.top_p, 
             num_return_sequences=synapse.num_return_sequences,
         )
-        return output
+        return model_output, output
 
-    def forward_hidden_state(inputs_x, synapse):
-        output = model.pre_model(inputs_x, output_hidden_states=True).hidden_states[-1]
-        padding_r = (1024-output.size(2))
-        encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
-        return encoded_hidden
+    def forward_hidden_state(inputs_x, synapse, model_output = None):
+        if model_output == None:
+            model_output = model.encode_forward(inputs_x.to(model.device))
+        
+        return model_output, model_output.hidden
 
-    def forward_casual_lm(inputs_x, synapse):
-        output = model.pre_model(input_ids=inputs_x).logits
-        return output
+    def forward_casual_lm(inputs_x, synapse, model_output = None):
+        if model_output == None:
+            model_output = model.encode_forward(inputs_x.to(model.device))
+        
+        return model_output, model_output.logits
     
     def optimizer_step():
         optimizer.step()
@@ -207,10 +209,9 @@ def serve(
 
     last_set_block = subtensor.get_current_block()
 
-
     # --- Run Forever.
     while True:
-        
+
         current_block = subtensor.get_current_block()
         end_block = current_block + config.neuron.blocks_per_epoch
         while end_block >= current_block:
