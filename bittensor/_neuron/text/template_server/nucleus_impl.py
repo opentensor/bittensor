@@ -2,8 +2,9 @@ import argparse
 import bittensor
 import torch
 import torch.nn.functional as F
+from types import SimpleNamespace
 
-from transformers import AutoModel,AutoModelForCausalLM,AutoTokenizer,AutoConfig
+from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import get_translation_map, translate_logits_to_probs_std, \
     translate_special_token_text, pad_offsets
@@ -118,7 +119,7 @@ class server(torch.nn.Module):
                     Decoded predictions of the next token in the sentence.
 
         """
-        decoded_targets = self.decoder(self.encode_forward(inputs,tokenizer))
+        decoded_targets = self.decoder(self.encode_forward(inputs,tokenizer).hidden)
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()     
@@ -137,19 +138,20 @@ class server(torch.nn.Module):
                     The tokenizer which was used to tokenize the inputs
 
             Returns:
-                outputs (:obj:`torch.FloatTensor`):
-                    The nucleus's outputs as a torch tensor of shape [batch_size, sequence_len, __network_dim__]
+                model_outputs (:type:`SimpleNamespace`[logits (:obj:`torch.tensor`), hidden (:obj:`torch.tensor`)], `required`):
+                    logits: The logits output as a torch tensor of shape [batch_size, sequence_len, __vocab_size__ ]
+                    hidden: The hidden layer output as a torch tensor of shape [batch_size, sequence_len, __network_dim__ ]
         """
         sen_len = inputs.size()
         inputs = self.token_remap(inputs,tokenizer).to(self.device)
-        if self.config.neuron.training:
-            pre_hidden = self.pre_model(inputs).last_hidden_state
-        elif self.config.neuron.autocast and self.device == 'cuda':
-            pre_hidden = self.pre_model(inputs).last_hidden_state
+        if self.config.neuron.training or self.config.neuron.autocast and self.device == 'cuda':
+            output = self.pre_model(inputs, output_hidden_states=True)
+            pre_hidden = output.hidden_states[-1]
         else:
             with torch.no_grad():
-                pre_hidden = self.pre_model(inputs).last_hidden_state
-        
+                output = self.pre_model(inputs, output_hidden_states=True)
+                pre_hidden = output.hidden_states[-1]
+
         if self.interpolate and sen_len[1] != pre_hidden.size()[1]:
             down= F.interpolate(pre_hidden.unsqueeze(1),size=[sen_len[1],pre_hidden.size()[2]],mode=self.inter_degree).squeeze(1)
         elif self.mapping_function:
@@ -157,14 +159,18 @@ class server(torch.nn.Module):
         else:
             down = pre_hidden
 
-
         if self.padding:
             padding_l = (self.final_dim-self.pre_dimension)//2
             padding_r = (self.final_dim-self.pre_dimension) - padding_l
             encoded_hidden = F.pad(down, (padding_l, padding_r),  "constant", 0)
         else:
             encoded_hidden = self.mapping(down)
-        return encoded_hidden
+
+        model_output = SimpleNamespace(
+            logits = output.logits,
+            hidden = encoded_hidden
+        )
+        return model_output
 
     def remapping_token(self,input, old_tokenizer=None):
         r""" Default remapping of tokenizers; decodes the message and then remaps the message using a new tokenizer

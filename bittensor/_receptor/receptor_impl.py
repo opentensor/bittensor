@@ -325,8 +325,6 @@ class Receptor(nn.Module):
         finalize_stats_and_logs()
         return synapse_responses, synapse_codes, synapse_call_times       
 
-
-
     def forward (
         self, 
         synapses: List[ 'bittensor.Synapse' ],
@@ -383,7 +381,6 @@ class Receptor(nn.Module):
                     return False
             return True
 
-
         # ==============================================================
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
@@ -405,7 +402,6 @@ class Receptor(nn.Module):
                     synapse = synapse.synapse_type
                 )
 
-
         # ===========================
         # ==== Check inputs size ====
         # ===========================
@@ -419,8 +415,6 @@ class Receptor(nn.Module):
             synapse_messages = [ message for _ in synapses ]
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
-
-
         
         # ========================
         # ==== Check endpoint ====
@@ -435,7 +429,6 @@ class Receptor(nn.Module):
             synapse_messages = [ message for _ in synapses ]
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
-
 
         # ==========================
         # ==== Serialize inputs ====
@@ -496,7 +489,7 @@ class Receptor(nn.Module):
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
-            self.stats.forward_bytes_in.update( sys.getsizeof( grpc_response ) )
+            self.stats.forward_bytes_in.update( grpc_response.ByteSize() )
             synapse_is_response = [ True for _ in synapses ]
             # Set successful response booleans to true
 

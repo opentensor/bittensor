@@ -73,7 +73,7 @@ def serve(
     timecheck = {}
     n_topk_peer_weights = subtensor.min_allowed_weights
 
-    def forward_generate( inputs_x:torch.FloatTensor, synapse):
+    def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
         output = model.pre_model.generate(
             input_ids=inputs_x, 
             max_length=synapse.num_to_generate, 
@@ -84,17 +84,19 @@ def serve(
             top_p=synapse.top_p, 
             num_return_sequences=synapse.num_return_sequences,
         )
-        return output
+        return model_output, output
 
-    def forward_hidden_state(inputs_x, synapse):
-        output = model.pre_model(inputs_x, output_hidden_states=True).hidden_states[-1]
-        padding_r = (1024-output.size(2))
-        encoded_hidden = F.pad(output, (0, padding_r),  "constant", 0)
-        return encoded_hidden
+    def forward_hidden_state(inputs_x, synapse, model_output = None):
+        if model_output == None:
+            model_output = model.encode_forward(inputs_x.to(model.device))
 
-    def forward_casual_lm(inputs_x, synapse):
-        output = model.encode_forward_causallm(inputs_x.to(model.device))
-        return output
+        return model_output, model_output.hidden
+
+    def forward_casual_lm(inputs_x, synapse, model_output = None):
+        if model_output == None:
+            model_output = model.encode_forward_causallm(inputs_x.to(model.device))
+
+        return model_output, model_output.logits
     
     def optimizer_step():
         optimizer.step()
@@ -103,7 +105,7 @@ def serve(
     def backward_causal_lm(inputs_x, grads_dy):
         r"""Single threaded backwards function that is called when the axon receives
             a backwards request from other peers.
-            Updates the server parameters with gradients through the chain.             
+            Updates the server parameters with gradients through the chain.
         """
         if config.neuron.training:
             with mutex:
@@ -119,7 +121,7 @@ def serve(
 
     def backward_text ( inputs_x, grads_dy ):
         r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
-            Updates the server parameters with gradients through the chain.
+            Updates the server parameters with gradients through the chain.             
         """
         if config.neuron.training:
             with mutex:
@@ -132,6 +134,7 @@ def serve(
                             )
                         optimizer.step()
                         optimizer.zero_grad()
+    
 
     def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
