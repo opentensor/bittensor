@@ -625,7 +625,7 @@ class nucleus( torch.nn.Module ):
                         _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target)  # CausalLM loss
                         _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
 
-                        _stats.update({'loss' + ext: _loss, 'base_params' + ext: _num_params,
+                        _stats.update({'loss' + ext: _loss.item(), 'base_params' + ext: _num_params.item(),
                                        'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
 
                 # === Add routing loss ===
@@ -637,7 +637,7 @@ class nucleus( torch.nn.Module ):
                 _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
                 routing_loss += _routing_loss
 
-                _stats.update({'routing_score_target': routing_score_target, 'routing_loss': _routing_loss})
+                _stats.update({'routing_score_target': routing_score_target.item(), 'routing_loss': _routing_loss.item()})
                 stats += [_stats]
             else:
                 print('Unsuccessful\t|\tuid: {}\tcode: {}'.format(_uid, return_ops[index][index_s]))
@@ -658,18 +658,18 @@ class nucleus( torch.nn.Module ):
                         measured_loss = self.get_target_loss_casuallm(combined_logits, target)  # actual loss
 
                         loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
-                        first['synergy_loss_diff' + ext] += loss_diff_share
-                        second['synergy_loss_diff' + ext] += loss_diff_share
+                        first['synergy_loss_diff' + ext] += loss_diff_share.item()
+                        second['synergy_loss_diff' + ext] += loss_diff_share.item()
 
                         synergy_share = torch.clamp(get_num_params(measured_loss) - get_num_params(expected_loss), 0) / 2
-                        first['synergy' + ext] += synergy_share  # share synergy amongst coalition members
-                        second['synergy' + ext] += synergy_share
+                        first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
+                        second['synergy' + ext] += synergy_share.item()
 
         # === Shapley value combination ===
         # Combine base values with synergy approximation to get final Shapley values.
         for s in stats:
             for ext in ['', '_val']:
-                s['shapley_values' + ext] = s['base_params' + ext] + s['synergy' + ext]
+                s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext]).item()
                 del s['logits' + ext]  # remove logits - not needed for stats anymore
 
             output = 'Shapely\t|\tuid: ' + str(s['uid'])
