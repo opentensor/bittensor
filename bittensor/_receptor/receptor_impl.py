@@ -541,8 +541,9 @@ class Receptor(nn.Module):
             # Request failed with unknown exception.
             call_time = clock.time() - start_time
             synapse_call_times = [call_time for _ in synapses ]
-            synapse_codes = [synapse.return_code for synapse in grpc_response.synapses ]
-            synapse_messages = ['Remote Server Failure: '+ synapse.message for synapse in grpc_response.synapses ]
+            if len(grpc_response.synapses) == len(synapses):
+                synapse_codes = [synapse.return_code for synapse in grpc_response.synapses ]
+                synapse_messages = ['Remote Server Failure: '+ synapse.message for synapse in grpc_response.synapses ]
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 

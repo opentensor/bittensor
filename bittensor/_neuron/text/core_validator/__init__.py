@@ -205,12 +205,14 @@ class neuron:
         r""" Run the nucleus forward request
         This function is supposed to be ran multi-threaded.
         """
-        result = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
+        loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
                 
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
-        (result.loss / self.config.neuron.forward_num).backward()
-        return result
+        # TODO: this loss backward breaks when all responses failed, need a check
+        print(loss)
+        (loss / self.config.neuron.forward_num).backward()
+        return loss, stats
 
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
@@ -287,7 +289,7 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            loss, stats = self.forward_thread_queue.get()
+            loss, stats = self.forward()
             print(f'Run\t| Got forward result in {round(time.time() - start_time, 3)}')
 
             # === Scoring ===
@@ -327,7 +329,7 @@ class neuron:
                 # Applies local gradients to parameters.
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
-                self.optimizer.zero_grad()    
+                self.optimizer.zero_grad()   
                 
                 # === Get another round of forward requests ===
                 self.forward_thread_queue.resume()
@@ -487,7 +489,7 @@ class nucleus( torch.nn.Module ):
     # the joined responses as a hidden unit input.
     # target_loss: (torch.float64): loss after decoding responses to targets.
     # target_loss.shape = [ 1 ]
-    def get_target_loss_casuallm ( self, logits, targets ):
+    def get_target_loss_casuallm ( self, logits, targets, eval_type = '' ):
         # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
@@ -497,8 +499,12 @@ class nucleus( torch.nn.Module ):
         #encoded_hidden = self.encoder( hidden, mask = src_mask )
         #decoded_targets = self.decoder( encoded_hidden )
         #shift_logits = decoded_targets[..., :-1, :].contiguous()
-        shift_logits = logits[..., :-1, :].contiguous()
-        shift_labels = targets[..., 1:].contiguous()
+        if eval_type == '':
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = targets[..., 1:].contiguous()
+        elif eval_type == '_val':
+            shift_logits = logits.contiguous()
+            shift_labels = targets.contiguous()
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
     def forward ( 
@@ -557,7 +563,7 @@ class nucleus( torch.nn.Module ):
         # routing_score: (torch.FloatTensor): score per example, per endpoint.
         # routing_score.shape = [ batch size, __network_n__ ]
         # The gates act over the last embedding of the routing_context.
-        routing_score = self.sigmoid(self.gates(routing_context[:, -1, :]))
+        routing_score = torch.mean(self.sigmoid(self.gates(routing_context[:, -1, :])), axis=0)
 
         # Ensure number of queried servers does not exceed metagraph.n
         num_servers = min([self.config.nucleus.topk, metagraph.n])
@@ -621,7 +627,7 @@ class nucleus( torch.nn.Module ):
                                    'logits_val': query_responses[index][index_s][:, -1:, :]})
 
                     for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
-                        _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target)  # CausalLM loss
+                        _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
                         _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
 
                         _stats.update({'loss' + ext: _loss.item(), 'base_params' + ext: _num_params.item(),
@@ -635,8 +641,7 @@ class nucleus( torch.nn.Module ):
                 routing_score_target = torch.exp(-torch.clamp(_loss - 1.69, 0))
                 _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
                 routing_loss += _routing_loss
-
-                _stats.update({'routing_score_target': routing_score_target.item(), 'routing_loss': _routing_loss.item()})
+                _stats.update({'routing_score_target': routing_score_target.detach(), 'routing_loss': _routing_loss.item()})
                 stats += [_stats]
             else:
                 print('Unsuccessful\t|\tuid: {}\tcode: {}'.format(_uid, return_ops[index][index_s]))
@@ -649,32 +654,31 @@ class nucleus( torch.nn.Module ):
             first = stats[_first]
             for _second in range(_first + 1, len(stats)):
                 second = stats[_second]
+                if return_ops[_first][index_s] == bittensor.proto.ReturnCode.Success and  return_ops[_second][index_s] == bittensor.proto.ReturnCode.Success:
+                    with torch.no_grad():
+                        for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
+                            expected_loss = (first['loss' + ext] + second['loss' + ext]) / 2  # expecting mean loss
+                            combined_logits = (first['logits' + ext] + second['logits' + ext]) / 2  # combined logits
+                            measured_loss = self.get_target_loss_casuallm(combined_logits, target, eval_type=ext)  # actual loss
 
-                with torch.no_grad():
-                    for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
-                        expected_loss = (first['loss' + ext] + second['loss' + ext]) / 2  # expecting mean loss
-                        combined_logits = (first['logits' + ext] + second['logits' + ext]) / 2  # combined logits
-                        measured_loss = self.get_target_loss_casuallm(combined_logits, target)  # actual loss
+                            loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
+                            first['synergy_loss_diff' + ext] += loss_diff_share.item()
+                            second['synergy_loss_diff' + ext] += loss_diff_share.item()
 
-                        loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
-                        first['synergy_loss_diff' + ext] += loss_diff_share.item()
-                        second['synergy_loss_diff' + ext] += loss_diff_share.item()
-
-                        synergy_share = torch.clamp(get_num_params(measured_loss) - get_num_params(expected_loss), 0) / 2
-                        first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
-                        second['synergy' + ext] += synergy_share.item()
+                            synergy_share = torch.clamp(get_num_params(measured_loss) - get_num_params(expected_loss), 0) / 2
+                            first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
+                            second['synergy' + ext] += synergy_share.item()
 
         # === Shapley value combination ===
         # Combine base values with synergy approximation to get final Shapley values.
         for s in stats:
             for ext in ['', '_val']:
-                s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext]).item()
+                s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
                 del s['logits' + ext]  # remove logits - not needed for stats anymore
 
             output = 'Shapely\t|\tuid: ' + str(s['uid'])
             for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff', 'shapley_values_val']:
-                output += '\t' + key + ': ' + str(s[key].item())
+                output += '\t' + key + ': ' + str(s[key])
 
             print(output)
-
         return routing_loss, stats
