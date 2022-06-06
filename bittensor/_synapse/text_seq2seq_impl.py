@@ -156,8 +156,7 @@ class TextSeq2Seq (Synapse):
             raise ValueError( "forward_response_tensor.shape must be in [{}, {}], got: {} for synapse: {}".format( self.num_return_sequences , self.num_to_generate, list(forward_response_tensor.shape), self ) ) 
 
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
-        if list( backward_request_gradient.shape ) != list( forward_request_tensor.shape ):
-            raise ValueError( "backward_request_gradient.shape: {} must be equivalent to forward_request_tensor.shape: {} for synapse: {}".format( list( backward_request_gradient.shape ), list(forward_request_tensor.shape), self ) ) 
+        return
 
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: 
         return forward_request_tensor
@@ -183,8 +182,14 @@ class TextSeq2Seq (Synapse):
 
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite forward call when the call fails."""
-        return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
+        try:
+            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
+        except:
+            return torch.tensor([])
 
     def nill_backward_response_gradient( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite backward call when the call fails."""
-        return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
+        try:
+            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
+        except:
+            return torch.tensor([])
