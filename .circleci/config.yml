@@ -53,10 +53,9 @@ jobs:
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            pytest -n2 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            pytest -n2 --reruns 2 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
-            --reruns 2 \ 
             tests/unit_tests/
 
       - run:
@@ -64,10 +63,9 @@ jobs:
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            pytest -n2 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            pytest -n2 --reruns 2 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
-            --reruns 2 \
             tests/integration_tests/
 
       - store_test_results:
