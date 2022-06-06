@@ -15,6 +15,7 @@ miniupnpc
 munch
 netaddr==0.8.0
 pandas
+flaky
 psutil
 password_strength==0.0.3.post2
 protobuf==3.13.0
