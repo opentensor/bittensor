@@ -6,8 +6,6 @@ idna>=2.10
 fuzzywuzzy==0.18.0
 python-levenshtein==0.12
 google-api-python-client
-googleapis-common-protos<=1.56.0
-google-api-core<=2.8.0
 grpcio==1.42.0
 grpcio-tools==1.42.0
 loguru
@@ -19,7 +17,7 @@ netaddr==0.8.0
 pandas
 psutil
 password_strength==0.0.3.post2
-protobuf==3.13.0
+protobuf>=3.15.0
 pycryptodome==3.11.0
 py-sr25519-bindings>=0.1.4,<1
 py-ed25519-bindings>=1.0,<2
