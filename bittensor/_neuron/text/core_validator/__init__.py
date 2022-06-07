@@ -209,9 +209,12 @@ class neuron:
                 
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
-        if loss is not None:
-            print('Loss: {}'.format(loss))
+        print('Loss: {}'.format(loss))
+        try:
             (loss / self.config.neuron.forward_num).backward()
+        except RuntimeError as e:
+            # RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn
+            print(e)
 
         return loss, stats
 
@@ -605,7 +608,7 @@ class nucleus( torch.nn.Module ):
                 response.to( self.device )
 
         stats = []
-        routing_loss = None
+        routing_loss = torch.tensor(0.)
         unsuccessful = []
 
         def get_num_params(_loss):
@@ -642,10 +645,7 @@ class nucleus( torch.nn.Module ):
                 # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
                 routing_score_target = torch.exp(-torch.clamp(_loss - 1.69, 0))
                 _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
-                if routing_loss is None:
-                    routing_loss = _routing_loss
-                else:
-                    routing_loss += _routing_loss
+                routing_loss += _routing_loss
                 _stats.update({'routing_score_target': routing_score_target.detach(), 'routing_loss': _routing_loss.item()})
                 stats += [_stats]
             else:
