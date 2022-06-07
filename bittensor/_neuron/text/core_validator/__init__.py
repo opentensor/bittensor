@@ -606,6 +606,7 @@ class nucleus( torch.nn.Module ):
 
         stats = []
         routing_loss = None
+        unsuccessful = []
 
         def get_num_params(_loss):
             # (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
@@ -648,7 +649,12 @@ class nucleus( torch.nn.Module ):
                 _stats.update({'routing_score_target': routing_score_target.detach(), 'routing_loss': _routing_loss.item()})
                 stats += [_stats]
             else:
-                print('Unsuccessful\t|\tuid: {}\tcode: {}'.format(_uid, return_ops[index][index_s]))
+                unsuccessful += [(_uid, return_ops[index][index_s])]
+
+        print('Unsuccessful UID[return_op]: ', end='')
+        for _uid, _return_op in unsuccessful:
+            print('{}[{}], '.format(_uid, _return_op), end='')
+        print()
 
         # === Shapley synergy approximation ===
         # Shapley values - second level - coalition size 2
