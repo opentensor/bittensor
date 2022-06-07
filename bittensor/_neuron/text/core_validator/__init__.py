@@ -676,9 +676,9 @@ class nucleus( torch.nn.Module ):
                 s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
                 del s['logits' + ext]  # remove logits - not needed for stats anymore
 
-            output = 'Shapely\t|\tuid: ' + str(s['uid'])
+            output = 'Shapely\t|\tuid: {}'.format(s['uid'])
             for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff', 'shapley_values_val']:
-                output += '\t' + key + ': ' + str(s[key])
+                output += '\t{}: {:.3f}'.format(key, s[key])
 
             print(output)
         return routing_loss, stats
