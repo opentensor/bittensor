@@ -1,24 +1,26 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@1.5.0
+  python: circleci/python@2.0.3
 
 jobs:
   build-and-test:
-    docker:
-      - image: cimg/python:3.8
     resource_class: medium
     parallelism: 2
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
 
     steps:
       - checkout
 
-      # TODO: Add Python version (matrix strategy)
       - restore_cache:
           name: Restore cached venv
           keys:
-            - v1-pypi-py3.8-{{ checksum "requirements.txt" }}
-            - v1-pypi-py3.8-
+            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements.txt" }}
+            - v1-pypi-py<< parameters.python-version >>
 
       - run:
           name: Update & Activate venv
@@ -31,7 +33,7 @@ jobs:
           name: Save cached venv
           paths:
             - "env/"
-          key: v1-pypi-py3.8-{{ checksum "requirements.txt" }}
+          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements.txt" }}
 
       - run:
           name: Install Bittensor
@@ -51,7 +53,7 @@ jobs:
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            pytest -n2 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            pytest -n2 --reruns 2 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
             tests/unit_tests/
@@ -61,7 +63,7 @@ jobs:
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            pytest -n2 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            pytest -n2 --reruns 2 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
             tests/integration_tests/
@@ -74,4 +76,7 @@ jobs:
 workflows:
   pre-pr:
     jobs:
-      - build-and-test
+      - build-and-test:
+          matrix:
+            parameters:
+              python-version: ["3.7", "3.8", "3.9", "3.10"]
