@@ -309,77 +309,6 @@ def test_receptor_neuron_mock_server_backward():
     out, ops, time  = receptor.backward(synapses, x, [hidden_grads, causal_grads, seq_2_seq_grads], timeout=1)
     assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
 
-def test_receptor_neuron_mock_server_deserialization_error_backward():
-    y = dict() # bad response
-    mock_return_val = bittensor.proto.TensorMessage(
-            version = bittensor.__version_as_int__,
-            hotkey = "0x" + wallet.hotkey.public_key.hex(),
-            return_code = bittensor.proto.ReturnCode.Success,
-            tensors = [y])
-
-    stub.Backward = MagicMock( return_value = mock_return_val )
-    receptor.stub = stub
-
-    x = torch.rand(3, 3)
-    hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
-    causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    seq_2_seq_grads = torch.tensor([])
-    out, ops, time  = receptor.backward(synapses, x, [hidden_grads, causal_grads, seq_2_seq_grads], timeout=1)
-
-    print(ops, )
-    assert ops == [bittensor.proto.ReturnCode.ResponseDeserializationException] * len(synapses)
-    assert list(out.shape) == [3, 3, bittensor.__network_dim__]
-
-
-def test_receptor_neuron_mock_server_shape_error_backward():
-    y = torch.rand(1, 3, bittensor.__network_dim__)
-
-    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-   
-    mock_return_val = bittensor.proto.TensorMessage(
-            version = bittensor.__version_as_int__,
-            hotkey = "0x" + wallet.hotkey.public_key.hex(),
-            return_code = bittensor.proto.ReturnCode.Success,
-            tensors = [y_serialized])
-
-    stub.Backward = MagicMock( return_value = mock_return_val )
-    receptor.stub = stub
-
-    x = torch.rand(3, 3)
-    hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
-    causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    seq_2_seq_grads = torch.tensor([])
-    out, ops, time  = receptor.backward(synapses, x, [hidden_grads, causal_grads, seq_2_seq_grads], timeout=1)
-
-    assert ops == [bittensor.proto.ReturnCode.ResponseShapeException] * len(synapses)
-    assert list(out.shape) == [3, 3, bittensor.__network_dim__]
-
-def test_receptor_neuron_server_response_with_nans_backward():
-    import numpy as np
-    y = torch.rand(3, 3, bittensor.__network_dim__)
-    y[0][0][0] = np.nan
-
-    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-   
-    mock_return_val = bittensor.proto.TensorMessage(
-            version = bittensor.__version_as_int__,
-            hotkey = "0x" + wallet.hotkey.public_key.hex(),
-            return_code = bittensor.proto.ReturnCode.Success,
-            tensors = [y_serialized])
-
-    stub.Backward = MagicMock( return_value = mock_return_val )
-    receptor.stub = stub
-
-    x = torch.rand(3, 3)
-    hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
-    causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    seq_2_seq_grads = torch.tensor([])
-    out, ops, time  = receptor.backward(synapses, x, [hidden_grads, causal_grads, seq_2_seq_grads], timeout=1)
-
-    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
-    assert out[0][0][0] == 0
 # -- no return code -- 
 
 def test_receptor_forward_no_return():
@@ -798,8 +727,9 @@ if __name__ == "__main__":
     # test_receptor_neuron_server_response_with_nans()
     # test_receptor_neuron_text_backward()
     # test_receptor_neuron_grads_misshape()
-    test_receptor_neuron_mock_server_deserialization_error_backward()
+    # test_receptor_neuron_mock_server_deserialization_error_backward()
     # test_receptor_neuron_backward_empty_response()
+    test_receptor_forward_no_return()
     # test_receptor_neuron_mock_server()
     # test_receptor_neuron_mock_server_backward()
     # test_receptor_neuron_server_response_with_nans()
