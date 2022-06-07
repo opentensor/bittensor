@@ -149,16 +149,29 @@ class server(torch.nn.Module):
                     The hidden layer output as a torch tensor of shape [batch_size, sequence_len, __network_dim__ ]
         """
         sen_len = inputs.size()
-        inputs = self.token_remap(inputs,tokenizer).to(self.device)
+        # inputs = self.token_remap(inputs,tokenizer).to(self.device)
         
-        if model_output == None:
-            if self.config.neuron.training or self.config.neuron.autocast and self.device == 'cuda':
-                model_output = self.pre_model(inputs, output_hidden_states=True)
+        # if model_output == None:
+        #     if self.config.neuron.training or self.config.neuron.autocast and self.device == 'cuda':
+        #         model_output = self.pre_model(inputs, output_hidden_states=True)
 
+        #     else:
+        #         with torch.no_grad():
+        #             model_output = self.pre_model(inputs, output_hidden_states=True)
+
+        tokens = self.remapping_token_causallm(inputs, tokenizer)  # remap to server tokenizer
+
+        if model_output == None:
+            if self.config.neuron.training or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+                model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                attention_mask=tokens['attention_mask'],
+                                                output_hidden_states=True)
             else:
                 with torch.no_grad():
-                    model_output = self.pre_model(inputs, output_hidden_states=True)
-        
+                    model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                    attention_mask=tokens['attention_mask'],
+                                                    output_hidden_states=True)
+
         pre_hidden = model_output.hidden_states[-1]
 
         if self.interpolate and sen_len[1] != pre_hidden.size()[1]:
