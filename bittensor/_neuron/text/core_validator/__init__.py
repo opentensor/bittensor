@@ -569,7 +569,7 @@ class nucleus( torch.nn.Module ):
         num_servers = min([self.config.nucleus.topk, metagraph.n])
 
         # === Randomly select num_servers UIDs ===
-        random_uids = torch.randint(metagraph.n, (num_servers,))
+        random_uids = torch.randperm(metagraph.n)[:num_servers]
 
         # === Get endpoint information for the selected UIDs ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
