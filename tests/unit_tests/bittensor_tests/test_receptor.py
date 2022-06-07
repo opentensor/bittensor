@@ -192,7 +192,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
                                             [3, 70, bittensor.__vocab_size__]]
 
 def test_receptor_neuron_mock_server_shape_error():
-    y = torch.rand(1, 3, bittensor.__network_dim__)
+    y = torch.rand(3, 3, bittensor.__network_dim__)
 
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
@@ -262,7 +262,6 @@ def test_receptor_neuron_text_backward():
     out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, seq_2_seq_grads], timeout=1)
     assert ops == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
 
-
 def test_receptor_neuron_grads_misshape():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     grads = torch.zeros([0,1,2,3,4])
@@ -297,6 +296,7 @@ def test_receptor_neuron_mock_server_backward():
             version = bittensor.__version_as_int__,
             hotkey = "0x" + wallet.hotkey.public_key.hex(),
             return_code = bittensor.proto.ReturnCode.Success,
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses],
             tensors = [y_serialized])
 
     stub.Backward = MagicMock( return_value = mock_return_val )
@@ -320,6 +320,7 @@ def test_receptor_forward_no_return():
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
             hotkey = wallet.hotkey.ss58_address,
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses],
             tensors = [y_serialized])
 
     stub.Forward = MagicMock( return_value = mock_return_val )
@@ -327,6 +328,7 @@ def test_receptor_forward_no_return():
 
     x = torch.rand(3, 3)
     out, ops, time  = receptor.forward( synapses, x, timeout=1)
+    print(ops, bittensor.proto.ReturnCode.NoReturn)
     assert ops == [bittensor.proto.ReturnCode.NoReturn] * len(synapses)
 
 def test_receptor_backward_no_return():
