@@ -96,7 +96,7 @@ def serve(
         if model_output == None:
             model_output = model.encode_forward_causallm(inputs_x.to(model.device))
 
-        return model_output, model_output.logits
+        return model_output, model_output
     
     def optimizer_step():
         optimizer.step()
