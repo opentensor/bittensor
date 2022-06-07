@@ -209,9 +209,10 @@ class neuron:
                 
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
-        # TODO: this loss backward breaks when all responses failed, need a check
-        print(loss)
-        (loss / self.config.neuron.forward_num).backward()
+        if loss is not None:
+            print('Loss: {}'.format(loss))
+            (loss / self.config.neuron.forward_num).backward()
+
         return loss, stats
 
     def run ( self ):
@@ -604,7 +605,7 @@ class nucleus( torch.nn.Module ):
                 response.to( self.device )
 
         stats = []
-        routing_loss = 0
+        routing_loss = None
 
         def get_num_params(_loss):
             # (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
@@ -640,7 +641,10 @@ class nucleus( torch.nn.Module ):
                 # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
                 routing_score_target = torch.exp(-torch.clamp(_loss - 1.69, 0))
                 _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
-                routing_loss += _routing_loss
+                if routing_loss is None:
+                    routing_loss = _routing_loss
+                else:
+                    routing_loss += _routing_loss
                 _stats.update({'routing_score_target': routing_score_target.detach(), 'routing_loss': _routing_loss.item()})
                 stats += [_stats]
             else:
