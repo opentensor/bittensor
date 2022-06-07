@@ -80,7 +80,7 @@ jobs:
           name: Convert coverage
           command: |
             . env/bin/activate
-            coverage-lcov --output_file_path coverage/lcov.info
+            coverage-lcov
 
       - coveralls/upload:
           parallel: true
