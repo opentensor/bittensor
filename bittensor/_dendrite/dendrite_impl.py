@@ -616,7 +616,7 @@ class Dendrite(torch.autograd.Function):
         elif isinstance(inputs, list) and len(inputs) > 0 and isinstance(inputs[0], str):
             # Encode to tensors.
             tokenizer = bittensor.tokenizer()
-            tokenized_sentences = tokenizer(inputs, padding=True, truncation=True)['input_ids']
+            tokenized_sentences = tokenizer(inputs, truncation=True)['input_ids']
             tokenizer_tensor = cast_and_check_tensor_input(torch.tensor(tokenized_sentences, dtype=torch.int64))
             formatted_inputs = [tokenizer_tensor for _ in formatted_endpoints]
 
