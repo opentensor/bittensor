@@ -17,7 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from transformers import GPT2Tokenizer
+from transformers import AutoTokenizer
 import bittensor 
 
 class tokenizer:
@@ -43,7 +43,7 @@ class tokenizer:
     def get_tokenizer_for_version( cls, version = bittensor.__version__ ):
         """ Return the GPT2 tokenizer with bittersor's special tokens
         """
-        _tokenizer = GPT2Tokenizer.from_pretrained("gpt2", local_files_only=False)
+        _tokenizer = AutoTokenizer.from_pretrained('gpt2', local_files_only=False)
         # _tokenizer.padding_side = "left"
         # _tokenizer.add_prefix_space = False
         # _tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
