@@ -9,7 +9,7 @@ google-api-python-client
 grpcio==1.42.0
 grpcio-tools==1.42.0
 loguru
-msgpack==1.0.2
+msgpack==1.0.4
 msgpack-numpy==0.4.7.1
 miniupnpc
 munch
@@ -25,13 +25,14 @@ py-bip39-bindings>=0.1.9,<1
 pytest>=6.2.4
 pytest-split
 pytest-xdist
+pytest-rerunfailures
 pyyaml
 rich
 retry
 requests>=2.25.0
 scalecodec>=1.0.35
 termcolor
-torch==1.10
+torch==1.11
 transformers>=4.5.0
 numpy
 wheel
