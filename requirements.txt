@@ -26,8 +26,8 @@ pytest>=6.2.4
 pytest-split
 pytest-xdist
 pytest-rerunfailures
+coveralls
 pytest-cov
-coverage-lcov
 pyyaml
 rich
 retry

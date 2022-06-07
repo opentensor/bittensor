@@ -77,22 +77,25 @@ jobs:
           path: test-results
 
       - run:
-          name: Convert coverage
+          name: Upload Coverage
           command: |
-            . env/bin/activate
-            coverage-lcov
+            . env/bin/activate && coveralls
+          env:
+            CI_NAME: "circleci"
+            CI_BUILD_NUMBER: $CIRCLE_BUILD_NUM
+            CI_BUILD_URL: $CIRCLE_BUILD_URL
+            CI_BRANCH: $CIRCLE_BRANCH
+            CI_JOB_ID: $CIRCLE_NODE_INDEX
+            COVERALLS_PARALLEL: true
 
-      - coveralls/upload:
-          parallel: true
-          flag_name: test $((CIRCLE_NODE_INDEX))
-          path_to_lcov: ./lcov.info
-
-  coverage:
+  coveralls:
     docker:
-      - image: 'circleci/node:10.0.0'
+      - image: cimg/python:3.10
     steps:
-      - coveralls/upload:
-          parallel_finished: true
+      - name: Combine Coverage
+          command: |
+            pip3 install --upgrade coveralls
+            coveralls --finish
 
 workflows:
   pre-pr:
@@ -100,7 +103,8 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.7", "3.8", "3.9", "3.10"]
+              #python-version: ["3.7", "3.8", "3.9", "3.10"]
+              python-version: ["3.10"]
       - coverage:
           requires:
             - build-and-test
