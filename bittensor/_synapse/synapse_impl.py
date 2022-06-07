@@ -107,13 +107,13 @@ class Synapse:
         """
         raise NotImplementedError("nill_forward_response_tensor should be implemented by the subclass.")
 
-    def nill_backward_response_gradient ( self, forward_request_tensor : torch.Tensor ) -> torch.Tensor:
+    def nill_backward_response_tensor ( self, forward_request_tensor : torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite backward call when the call fails.
             Args:
                 forward_request_tensor  (:obj:`torch.Tensor`, `required`):
                     Tensor being sent as forward request.
             Returns:
-                nill_backward_response_gradient  (:obj:`torch.Tensor`, `required`):
+                nill_backward_response_tensor  (:obj:`torch.Tensor`, `required`):
                     Zeroed backward response gradient.
         """
         raise NotImplementedError("nill_backward_response_tensor should be implemented by the subclass.")
@@ -158,13 +158,17 @@ class Synapse:
         forward_response_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
         self.check_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
         forward_response_tensor = self.decode_forward_response_tensor ( forward_response_tensor )
+        forward_response_tensor = torch.nan_to_num( forward_response_tensor, nan=0)
         return forward_response_tensor
 
     def serialize_backward_request_gradient( self, forward_request_tensor: torch.Tensor, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a bittensor.proto.Tensor gradient to be sent on the wire after relevant serialization applied. """
+        print('serialize backward request grad', self, backward_request_gradient.shape)
         self.check_backward_request_gradient ( forward_request_tensor, backward_request_gradient )
+        print(self, backward_request_gradient.shape)
         encoded_tensor = self.encode_backward_request_gradient ( backward_request_gradient )
         tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
+        print(self, backward_request_gradient.shape)
         return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
     def deserialize_backward_request_gradient( self, forward_request_tensor: torch.Tensor, backward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:

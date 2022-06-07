@@ -149,13 +149,17 @@ class TextSeq2Seq (Synapse):
             raise ValueError('Empty Response')
 
         if (
-             len( forward_response_tensor.shape ) != 2 or
-             forward_response_tensor.size(0) != self.num_return_sequences or
-             forward_response_tensor.size(1) > self.num_to_generate 
+             len( forward_response_tensor.shape ) != 3 or
+             forward_response_tensor.size(0) != forward_request_tensor.size(0) or
+             forward_response_tensor.size(1) != self.num_to_generate or
+             forward_response_tensor.size(2) != self.topk*2
             ):
-            raise ValueError( "forward_response_tensor.shape must be in [{}, {}], got: {} for synapse: {}".format( self.num_return_sequences , self.num_to_generate, list(forward_response_tensor.shape), self ) ) 
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , self.num_to_generate, self.topk*2, list(forward_response_tensor.shape), self ) ) 
 
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
+        if len(backward_request_gradient.shape) > 1 or ( torch.numel(backward_request_gradient) >= 1 ): # the gradient for seq2seq should always be torch.tensor([])
+            raise ValueError( "backward_request_gradient.shape must be in [0], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(backward_request_gradient.shape), self ) ) 
+
         return
 
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: 
@@ -170,7 +174,20 @@ class TextSeq2Seq (Synapse):
 
     def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
         # Decode topk logit encoding.
-        return forward_response_tensor
+        batch_size, sequence_len, _ = forward_response_tensor.shape
+        encoded_probs = forward_response_tensor  # encoded probabilities: [batch_size, sequence_len, topk + topk]
+        topk_values = encoded_probs[..., :self.topk]  # topk probs: [batch_size, sequence_len, topk]
+        topk_indices = encoded_probs[..., self.topk:].long()  # topk probs indices: [batch_size, sequence_len, topk]
+
+        topk_pmass = topk_values.sum(dim=-1)  # topk probability mass: [batch_size, sequence_len]
+        remainder_pmass = torch.clamp(1 - topk_pmass, 1e-64, 1)  # remainder probability mass: [batch_size, sequence_len]
+        remainder_floor = remainder_pmass / (bittensor.__vocab_size__ - self.topk)  # divide remainder: [batch_size, sequence_len]
+
+        logits = torch.ones((batch_size, sequence_len, bittensor.__vocab_size__)).to(topk_values.device)
+        logits *= torch.log(remainder_floor)[:, :, None]  # set probability floor: [batch_size, sequence_len, vocab_size]
+        logits.scatter_(-1, topk_indices, torch.log(topk_values + 1e-64))  # insert topk probs: [batch_size, sequence_len, vocab_size]
+
+        return logits  # [batch_size, sequence_len, vocab_size]
 
     def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: 
         # Apply topk logit encoding for gradients.
@@ -183,13 +200,14 @@ class TextSeq2Seq (Synapse):
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite forward call when the call fails."""
         try:
-            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
+            if forward_request_tensor.size(0) == 0 :
+                return torch.tensor([])
+
+            return torch.zeros( ( forward_request_tensor.size(0), self.num_to_generate, bittensor.__vocab_size__), dtype=torch.float32)
         except:
             return torch.tensor([])
 
-    def nill_backward_response_gradient( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
+    def nill_backward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite backward call when the call fails."""
-        try:
-            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
-        except:
-            return torch.tensor([])
+
+        return torch.tensor([])

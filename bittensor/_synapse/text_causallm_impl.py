@@ -97,6 +97,7 @@ class TextCausalLM (Synapse):
 
     def check_forward_request_tensor     ( self, forward_request_tensor ): 
         if len( forward_request_tensor.shape ) != 2 or forward_request_tensor.shape[0] == 0 or forward_request_tensor.shape[1] == 0:
+            print(forward_request_tensor.shape)
             raise ValueError( "forward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(forward_request_tensor.shape), self ) ) 
 
     def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
@@ -115,7 +116,7 @@ class TextCausalLM (Synapse):
         if ( len( backward_request_gradient.shape ) != 3 or
              backward_request_gradient.size(0) != forward_request_tensor.size(0) or
              backward_request_gradient.size(1) != forward_request_tensor.size(1) or 
-             backward_request_gradient.size(2) != bittensor.__network_dim__ 
+             backward_request_gradient.size(2) != bittensor.__vocab_size__ 
             ):   
             raise ValueError( "backward_request_gradient.shape: {} must be equivalent to forward_request_tensor.shape: {} for synapse: {}".format( list( backward_request_gradient.shape ), list(forward_request_tensor.shape), self ) ) 
 
@@ -185,6 +186,6 @@ class TextCausalLM (Synapse):
 
     def nill_backward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         try:
-            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
+            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
         except:
             return torch.tensor([])
