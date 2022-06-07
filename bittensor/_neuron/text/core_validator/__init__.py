@@ -664,20 +664,19 @@ class nucleus( torch.nn.Module ):
             first = stats[_first]
             for _second in range(_first + 1, len(stats)):
                 second = stats[_second]
-                if return_ops[_first][index_s] == bittensor.proto.ReturnCode.Success and  return_ops[_second][index_s] == bittensor.proto.ReturnCode.Success:
-                    with torch.no_grad():
-                        for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
-                            expected_loss = (first['loss' + ext] + second['loss' + ext]) / 2  # expecting mean loss
-                            combined_logits = (first['logits' + ext] + second['logits' + ext]) / 2  # combined logits
-                            measured_loss = self.get_target_loss_casuallm(combined_logits, target, eval_type=ext)  # actual loss
+                with torch.no_grad():
+                    for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
+                        expected_loss = (first['loss' + ext] + second['loss' + ext]) / 2  # expecting mean loss
+                        combined_logits = (first['logits' + ext] + second['logits' + ext]) / 2  # combined logits
+                        measured_loss = self.get_target_loss_casuallm(combined_logits, target, eval_type=ext)  # actual loss
 
-                            loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
-                            first['synergy_loss_diff' + ext] += loss_diff_share.item()
-                            second['synergy_loss_diff' + ext] += loss_diff_share.item()
+                        loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
+                        first['synergy_loss_diff' + ext] += loss_diff_share.item()
+                        second['synergy_loss_diff' + ext] += loss_diff_share.item()
 
-                            synergy_share = torch.clamp(get_num_params(measured_loss) - get_num_params(expected_loss), 0) / 2
-                            first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
-                            second['synergy' + ext] += synergy_share.item()
+                        synergy_share = torch.clamp(get_num_params(measured_loss) - get_num_params(expected_loss), 0) / 2
+                        first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
+                        second['synergy' + ext] += synergy_share.item()
 
         # === Shapley value combination ===
         # Combine base values with synergy approximation to get final Shapley values.
