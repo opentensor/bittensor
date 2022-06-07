@@ -674,7 +674,8 @@ class nucleus( torch.nn.Module ):
                         first['synergy_loss_diff' + ext] += loss_diff_share.item()
                         second['synergy_loss_diff' + ext] += loss_diff_share.item()
 
-                        synergy_share = torch.clamp(get_num_params(measured_loss) - get_num_params(expected_loss), 0) / 2
+                        synergy_share = torch.clamp(get_num_params(measured_loss) -
+                                                    get_num_params(torch.tensor(expected_loss)), 0) / 2
                         first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
                         second['synergy' + ext] += synergy_share.item()
 
