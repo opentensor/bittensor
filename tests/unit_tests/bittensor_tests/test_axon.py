@@ -78,8 +78,8 @@ def test_forward_not_implemented():
     assert synapses[0].return_code == bittensor.proto.ReturnCode.NotImplemented
 
 def test_forward_last_hidden_success():
-    def forward( inputs_x: torch.FloatTensor, synapse):
-        return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
+        return dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
 
     inputs_raw = torch.rand(3, 3)
@@ -96,8 +96,8 @@ def test_forward_last_hidden_success():
     assert synapses[0].return_code == bittensor.proto.ReturnCode.Success
 
 def test_forward_causallm_success():
-    def forward( inputs_x: torch.FloatTensor, synapse):
-        return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    def forward( inputs_x: torch.FloatTensor, synapse, model_output = None):
+        return dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
 
     inputs_raw = torch.rand(3, 3)
@@ -113,8 +113,8 @@ def test_forward_causallm_success():
     assert code == bittensor.proto.ReturnCode.Success
     
 def test_forward_seq_2_seq_success():
-    def forward( inputs_x: torch.FloatTensor, synapse):
-        return torch.zeros( [synapse.num_return_sequences, synapse.num_to_generate])
+    def forward( inputs_x: torch.FloatTensor, synapse, model_output = None):
+        return dict(), torch.zeros( [synapse.num_return_sequences, synapse.num_to_generate])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
 
     inputs_raw = torch.rand(3, 3)
@@ -226,8 +226,8 @@ def test_forward_seq_2_seq_shape_error():
 
 
 def test_forward_deserialization_empty():
-    def forward( inputs_x: torch.FloatTensor, synapse):
-        return None
+    def forward( inputs_x: torch.FloatTensor, synapse, model_output = None):
+        return dict(), None
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
 
     inputs_raw = torch.rand(3, 3)
@@ -245,8 +245,8 @@ def test_forward_deserialization_empty():
     assert code == bittensor.proto.ReturnCode.EmptyResponse
 
 def test_forward_response_deserialization_error():
-    def forward( inputs_x: torch.FloatTensor, synapse):
-        return dict()
+    def forward( inputs_x: torch.FloatTensor, synapse, model_output = None):
+        return dict(), dict()
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
 
     inputs_raw = torch.rand(3, 3)
@@ -269,7 +269,7 @@ def test_forward_response_deserialization_error():
     assert code == bittensor.proto.ReturnCode.ResponseSerializationException
 
 def test_forward_last_hidden_state_exception():
-    def forward( inputs_x: torch.FloatTensor , synapse):
+    def forward( inputs_x: torch.FloatTensor , synapse , model_output = None):
         if inputs_x.size() == (1,1,1):
             return None
         else:
@@ -290,7 +290,7 @@ def test_forward_last_hidden_state_exception():
     assert code == bittensor.proto.ReturnCode.UnknownException
 
 def test_forward_causal_lm_state_exception():
-    def forward( inputs_x: torch.FloatTensor , synapse):
+    def forward( inputs_x: torch.FloatTensor , synapse, model_output = None):
         if inputs_x.size() == (1,1,1):
             return None
         else:
@@ -311,7 +311,7 @@ def test_forward_causal_lm_state_exception():
     assert code == bittensor.proto.ReturnCode.UnknownException
 
 def test_forward_seq_2_seq_state_exception():
-    def forward( inputs_x: torch.FloatTensor , synapse):
+    def forward( inputs_x: torch.FloatTensor , synapse, model_output = None):
         if inputs_x.size() == (1,1,1):
             return None
         else:
@@ -355,7 +355,7 @@ def test_forward_timeout():
     assert code == bittensor.proto.ReturnCode.Timeout
 
 def test_forward_unknown_error():
-    def forward( inputs_x: torch.FloatTensor,modality):
+    def forward( inputs_x: torch.FloatTensor,modality, model_output = None):
         raise Exception('Unknown')
 
     with mock.patch.object(axon, 'forward_callback', new=forward):
@@ -473,8 +473,8 @@ def test_backward_grads_shape_error():
 
 
 def test_backward_response_success_hidden():
-    def forward( inputs_x:torch.FloatTensor, synapse):
-        return torch.zeros( [1, 1, bittensor.__network_dim__], requires_grad=True)
+    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
+        return dict(), torch.zeros( [1, 1, bittensor.__network_dim__], requires_grad=True)
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__network_dim__)
@@ -492,8 +492,8 @@ def test_backward_response_success_hidden():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm():
-    def forward( inputs_x:torch.FloatTensor, synapse):
-        return torch.zeros( [1, 1, bittensor.__vocab_size__], requires_grad=True)
+    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
+        return dict(), torch.zeros( [1, 1, bittensor.__vocab_size__], requires_grad=True)
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__vocab_size__)
@@ -559,8 +559,8 @@ def test_forward_tensor_success_priority():
 
     axon = bittensor.axon(wallet = wallet, priority= priority)
 
-    def forward( inputs_x: torch.FloatTensor, synapses):
-        return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
+        return dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     inputs_raw = torch.rand(3, 3)
     synapses = [bittensor.synapse.TextLastHiddenState()]
@@ -581,8 +581,8 @@ def test_backward_response_success_text_priority():
 
     axon = bittensor.axon(wallet = wallet, priority= priority)
 
-    def forward( inputs_x: torch.FloatTensor, synapses):
-        return torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    def forward( inputs_x: torch.FloatTensor, synapses, model_output = None):
+        return dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
 
     inputs_raw = torch.ones((1, 1))
@@ -603,8 +603,8 @@ def test_backward_response_success_text_priority():
 
 
 def test_grpc_forward_works():
-    def forward( inputs_x:torch.FloatTensor, synapse):
-        return torch.zeros( [3, 3, bittensor.__network_dim__])
+    def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
+        return dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         port = 7084,
         ip = '127.0.0.1',
@@ -644,8 +644,8 @@ def test_grpc_forward_works():
 
 
 def test_grpc_backward_works():
-    def forward( inputs_x:torch.FloatTensor, synapse):
-        return torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
+    def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
+        return dict(), torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
 
     axon = bittensor.axon (
         port = 7086,
@@ -682,8 +682,8 @@ def test_grpc_backward_works():
     axon.stop()
 
 def test_grpc_forward_fails():
-    def forward( inputs_x:torch.FloatTensor, synapse):
-        return torch.zeros( [3, 3, bittensor.__network_dim__])
+    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
+        return dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
         port = 7084,
         ip = '127.0.0.1',
@@ -806,4 +806,4 @@ if __name__ == "__main__":
     #test_backward_response_serialization_error()
     #test_axon_is_destroyed()
     #test_forward_wandb()
-    test_grpc_backward_fails()
+    test_forward_last_hidden_success()
