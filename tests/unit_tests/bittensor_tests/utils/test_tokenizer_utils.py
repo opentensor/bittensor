@@ -218,7 +218,7 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
         original_loss = get_loss_fct(pre_logits.cpu(), tokens['input_ids'])
         enc_pre_logits = encode_forward_response_tensor(pre_logits, topk=topk).cpu()
 
-    dec_pre_logits = decode_forward_response_tensor(enc_pre_logits, tokenizer.vocab_size, topk=topk)
+    dec_pre_logits = decode_forward_response_tensor(enc_pre_logits, len(tokenizer.vocab), topk=topk)
     encoded_loss = get_loss_fct(dec_pre_logits, tokens['input_ids'])
 
     # ============================================
