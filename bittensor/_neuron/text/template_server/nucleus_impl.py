@@ -254,7 +254,7 @@ class server(torch.nn.Module):
                                                       self.to_translation_map, self.from_translation_map,
                                                       tokens['input_ids'], token_batch)
         probs_std = probs_std.to(self.device)
-        logits_std = torch.log(probs_std + 1e-64)
+        logits_std = torch.log(probs_std + 1e-40)
 
         # with torch.no_grad():
         #     original_loss = self.get_loss_fct(pre_logits.cpu(), tokens['input_ids'])

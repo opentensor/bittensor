@@ -22,7 +22,7 @@ import torch
 from typing import List, Dict, Tuple, Any
 from transformers import PreTrainedTokenizerBase
 
-EPSILON = 1e-64
+EPSILON = 1e-40
 
 
 def get_tokenizer_alignment_splits(offset_mapping: List[tuple], offset_mapping_std: List[tuple]) -> Dict[int, tuple]:
