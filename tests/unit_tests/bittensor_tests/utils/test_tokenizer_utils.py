@@ -54,7 +54,7 @@ def test_tokenizer_equivalence():
     test_pairs = [('gpt2', 'gpt2', True),
                   ('gpt2', 'EleutherAI/gpt-neo-125M', True),
                   ('gpt2', 'EleutherAI/gpt-neo-2.7B', True),
-                  ('gpt2', 'EleutherAI/gpt-j-6B', True),
+                  ('gpt2', 'EleutherAI/gpt-j-6B', False),
                   ('gpt2', 'KoboldAI/fairseq-dense-2.7B', False),
                   ('gpt2', 'bert-base-uncased', False),
                   ('gpt2', 'xlnet-base-cased', False),
