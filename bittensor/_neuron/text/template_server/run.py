@@ -87,16 +87,12 @@ def serve(
         return model_output, output
 
     def forward_hidden_state(inputs_x, synapse, model_output = None):
-        if model_output == None:
-            model_output = model.encode_forward(inputs_x.to(model.device))
-
-        return model_output, model_output.hidden
+        model_output, hidden = model.encode_forward(inputs_x.to(model.device), model_output = model_output)
+        return model_output, hidden
 
     def forward_casual_lm(inputs_x, synapse, model_output = None):
-        if model_output == None:
-            model_output = model.encode_forward_causallm(inputs_x.to(model.device))
-
-        return model_output, model_output
+        model_output, logits = model.encode_forward_causallm(inputs_x.to(model.device), model_output = model_output)
+        return model_output, logits
     
     def optimizer_step():
         optimizer.step()
