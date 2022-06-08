@@ -24,7 +24,7 @@ from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import *
 
-EPSILON = 1e-64
+EPSILON = 1e-40
 
 sample_text = {'English-1': ['''The Three Laws of Robotics (often shortened to The Three Laws or known as Asimov's Laws) are a set of rules devised by science fiction author Isaac Asimov. The rules were introduced in his 1942 short story "Runaround" (included in the 1950 collection I, Robot), although they had been foreshadowed in some earlier stories. The Three Laws, quoted from the "Handbook of Robotics, 56th Edition, 2058 A.D.", are:''',
 
@@ -54,7 +54,7 @@ def test_tokenizer_equivalence():
     test_pairs = [('gpt2', 'gpt2', True),
                   ('gpt2', 'EleutherAI/gpt-neo-125M', True),
                   ('gpt2', 'EleutherAI/gpt-neo-2.7B', True),
-                  ('gpt2', 'EleutherAI/gpt-j-6B', True),
+                  ('gpt2', 'EleutherAI/gpt-j-6B', False),
                   ('gpt2', 'KoboldAI/fairseq-dense-2.7B', False),
                   ('gpt2', 'bert-base-uncased', False),
                   ('gpt2', 'xlnet-base-cased', False),
@@ -109,12 +109,12 @@ def decode_forward_response_tensor(forward_response_tensor: torch.Tensor,
     topk_indices = encoded_probs[..., topk:].long()  # topk probs indices: [batch_size, sequence_len, topk]
 
     topk_pmass = topk_values.sum(dim=-1)  # topk probability mass: [batch_size, sequence_len]
-    remainder_pmass = torch.clamp(1 - topk_pmass, 1e-64, 1)  # remainder probability mass: [batch_size, sequence_len]
+    remainder_pmass = torch.clamp(1 - topk_pmass, 1e-40, 1)  # remainder probability mass: [batch_size, sequence_len]
     remainder_floor = remainder_pmass / (vocab_size - topk)  # divide remainder: [batch_size, sequence_len]
 
     logits = torch.ones((batch_size, sequence_len, vocab_size)).to(topk_values.device)
     logits *= torch.log(remainder_floor)[:, :, None]  # set probability floor: [batch_size, sequence_len, vocab_size]
-    logits.scatter_(-1, topk_indices, torch.log(topk_values + 1e-64))  # insert topk probs: [batch_size, sequence_len, vocab_size]
+    logits.scatter_(-1, topk_indices, torch.log(topk_values + 1e-40))  # insert topk probs: [batch_size, sequence_len, vocab_size]
 
     return logits  # [batch_size, sequence_len, vocab_size]
 
@@ -218,7 +218,7 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
         original_loss = get_loss_fct(pre_logits.cpu(), tokens['input_ids'])
         enc_pre_logits = encode_forward_response_tensor(pre_logits, topk=topk).cpu()
 
-    dec_pre_logits = decode_forward_response_tensor(enc_pre_logits, tokenizer.vocab_size, topk=topk)
+    dec_pre_logits = decode_forward_response_tensor(enc_pre_logits, len(tokenizer.vocab), topk=topk)
     encoded_loss = get_loss_fct(dec_pre_logits, tokens['input_ids'])
 
     # ============================================

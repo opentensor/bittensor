@@ -209,12 +209,9 @@ class neuron:
                 
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
-        print('Loss: {}'.format(loss))
-        try:
+        if hasattr(loss, 'grad_fn'):
+            print('Loss: {}'.format(loss))
             (loss / self.config.neuron.forward_num).backward()
-        except RuntimeError as e:
-            # RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn
-            print(e)
 
         return loss, stats
 
