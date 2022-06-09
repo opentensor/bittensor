@@ -344,9 +344,9 @@ class neuron:
         # === Set weights ===
         score_key = 'shapley_values_val'  # server score based on validation Shapley value approximation
         moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet minimum topk
-        print(self.server_stats.values())
-        moving_avg_scores[list(self.server_stats.keys())] = torch.tensor([s[score_key] for s in self.server_stats.values()])
-        print(moving_avg_scores)
+
+        for key in self.server_stats:
+            moving_avg_scores[key] = torch.tensor([self.server_stats[key][score_key]])
         # Find the n_topk_peer_weights peers to set weights to.
         topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
@@ -627,7 +627,7 @@ class nucleus( torch.nn.Module ):
         for index in range(num_servers):
             _uid = random_uids[index]
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
-                _stats = {'uid': _uid, 'routing_score': routing_score[_uid]}
+                _stats = {'uid': _uid, 'routing_score': routing_score[_uid].detach()}
 
                 with torch.no_grad():
                     _stats.update({'logits': query_responses[index][index_s],
