@@ -149,29 +149,34 @@ def test_dendrite_backward_large():
     assert x.grad.tolist() == y.tolist()
 
 def test_dendrite_backward_no_grad():
-    x = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
-    y = torch.ones((1, 1, bittensor.__network_dim__))
-    nill_response = torch.zeros((1, 1, bittensor.__network_dim__))
-    dendrite_no_grad.receptor_pool.forward = MagicMock(return_value = [ [y], [0], [0]]) 
-    dendrite_no_grad.receptor_pool.backward = MagicMock(return_value = [ [y], [0], [0]]) 
-    tensors, codes, times = dendrite_no_grad.forward_tensor( endpoints = [ endpoint ], inputs=[ x ])
-    tensors[0].sum().backward()
+    x = Variable(torch.rand((1, 1), dtype=torch.float32), requires_grad=True)
+    y = torch.ones((1, 1))
+    nill_response = torch.zeros((1, 1))
+    dendrite_no_grad.receptor_pool.forward = MagicMock(return_value = [ [[y]], [[0]], [[0]]]) 
+    dendrite_no_grad.receptor_pool.backward = MagicMock(return_value = [ [[y]], [[0]], [[0]]]) 
+    dendrite_no_grad.format_text_inputs = MagicMock(return_value = ( [ endpoint ], [ x ] ))
+    synapses = [bittensor.synapse.TextCausalLM()]
+    tensors, codes, times = dendrite_no_grad.text( endpoints = [ endpoint ], inputs=[ x ], synapses=synapses)
+    tensors[0][0].sum().backward()
     assert x.grad.shape == y.shape
     assert x.grad.tolist() == nill_response.tolist()
 
 
 def test_dendrite_backward_multiple():
-    x1 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
-    x2 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
-    x3 = Variable(torch.rand((1, 1, bittensor.__network_dim__), dtype=torch.float32), requires_grad=True)
-    y1 = torch.ones(1, 1, bittensor.__network_dim__)
-    y2 = torch.ones(1, 1, bittensor.__network_dim__)
-    y3 = torch.ones(1, 1, bittensor.__network_dim__)
+    x1 = Variable(torch.rand((1, 1), dtype=torch.float32), requires_grad=True)
+    x2 = Variable(torch.rand((1, 1), dtype=torch.float32), requires_grad=True)
+    x3 = Variable(torch.rand((1, 1), dtype=torch.float32), requires_grad=True)
+    y1 = torch.ones(1, 1)
+    y2 = torch.ones(1, 1)
+    y3 = torch.ones(1, 1)
 
-    dendrite_mock.receptor_pool.forward = MagicMock(return_value = [ [y1, y2, y3], [1,1,1], [0,0,0]]) 
-    dendrite_mock.receptor_pool.backward = MagicMock(return_value = [ [y1, y2, y3], [1,1,1], [0,0,0]]) 
-    tensors, codes, times = dendrite_mock.forward_tensor( endpoints = [endpoint, endpoint, endpoint], inputs=[ x1, x2, x3 ])
-    tensors[0].sum().backward()
+    dendrite_mock.receptor_pool.forward = MagicMock(return_value = [ [[y1], [y2], [y3]], [[1],[1],[1]], [[0],[0],[0]]]) 
+    dendrite_mock.receptor_pool.backward = MagicMock(return_value = [ [[y1], [y2], [y3]], [[1],[1],[1]], [[0],[0],[0]]]) 
+    dendrite_mock.format_text_inputs = MagicMock(return_value = ( [ endpoint, endpoint, endpoint ], [  x1, x2, x3  ] ))
+
+    synapses = [bittensor.synapse.TextCausalLM()]
+    tensors, codes, times = dendrite_mock.text( endpoints = [endpoint, endpoint, endpoint], inputs=[ x1, x2, x3 ], synapses=synapses)
+    tensors[0][0].sum().backward()
     assert x1.grad.shape == y1.shape
     assert x2.grad.shape == y2.shape
     assert x3.grad.shape == y3.shape
@@ -180,9 +185,9 @@ def test_dendrite_backward_multiple():
     assert x3.grad.tolist() == y3.tolist()
 
 def test_axon_receptor_forward_works():
-    def forward( inputs_x:torch.FloatTensor):
-        time.sleep(0.2)
-        return torch.zeros([3, 3, bittensor.__network_dim__])
+    def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
+        return dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
+    
 
     axon_port = get_random_unused_port()
     axon = bittensor.axon (
@@ -190,7 +195,7 @@ def test_axon_receptor_forward_works():
         ip = '0.0.0.0',
         wallet = wallet,
     )
-    axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
+    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     axon.start()
     endpoints = []
     for i in range(20):
@@ -206,31 +211,33 @@ def test_axon_receptor_forward_works():
             coldkey = wallet.coldkey.ss58_address
         )
         endpoints += [endpoint]
-    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
-    tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
+    x = torch.zeros(3, 3)
+    synapses = [bittensor.synapse.TextLastHiddenState()]
+
+    tensors, codes, times = dendrite.text( endpoints=endpoints, inputs=[x for i in endpoints], synapses=synapses)
     receptors_states = dendrite.receptor_pool.get_receptors_state()
     # TODO: Fails locally independent of multiprocessing.
     assert receptors_states[endpoint.hotkey] == receptors_states[endpoint.hotkey].READY
-    assert codes[0].item() == bittensor.proto.ReturnCode.Success
-    assert list(tensors[0].shape) == [3, 3, bittensor.__network_dim__]
+    assert codes[0][0].item() == bittensor.proto.ReturnCode.Success
+    assert list(tensors[0][0].shape) == [3, 3, bittensor.__network_dim__]
     print('assertions passed')
     axon.stop()
 
 def test_dendrite_call_time():
-    def forward( inputs_x:torch.FloatTensor):
+    def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
         time.sleep(12)
-        return torch.zeros([3, 3, bittensor.__network_dim__])
-
+        return dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
+    
     axon_port = get_random_unused_port()
     axon = bittensor.axon (
         port = axon_port,
         ip = '0.0.0.0',
         wallet = wallet,
     )
-    axon.attach_forward_callback( forward,  modality = bittensor.proto.Modality.TENSOR )
+    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     axon.start()
     endpoints = []
-    for i in range(100):
+    for i in range(10):
         wallet.create_new_hotkey( use_password=False, overwrite = True)
         endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
@@ -243,9 +250,11 @@ def test_dendrite_call_time():
             coldkey = wallet.coldkey.ss58_address
         )
         endpoints += [endpoint]
-    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
+    x = torch.zeros(3, 3)
+    synapses = [bittensor.synapse.TextLastHiddenState()]
     start_time = time.time()
-    tensors, codes, times = dendrite.forward_tensor( endpoints=endpoints, inputs=[x for i in endpoints])
+
+    tensors, codes, times = dendrite.text( endpoints=endpoints, inputs=[x for i in endpoints], synapses=synapses)
     total_time = time.time() - start_time
     axon.stop()
 
@@ -256,5 +265,5 @@ def test_dendrite_del():
     del dendrite_mock
 
 if __name__  == "__main__":
-    test_dendrite_backward()
+    test_dendrite_backward_multiple()
 
