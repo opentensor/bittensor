@@ -96,7 +96,7 @@ jobs:
           name: Combine Coverage
           command: |
             pip3 install --upgrade coveralls
-            coveralls --finish --config_file .coveragerc
+            coveralls --finish --rcfile .coveragerc
 
 workflows:
   pre-pr:
