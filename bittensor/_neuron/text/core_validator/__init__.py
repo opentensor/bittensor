@@ -345,6 +345,7 @@ class neuron:
         score_key = 'shapley_values_val'  # server score based on validation Shapley value approximation
         moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet minimum topk
         moving_avg_scores[list(self.server_stats.keys())] = torch.tensor([s[score_key].item() for s in self.server_stats.values()])
+        print(moving_avg_scores)
         # Find the n_topk_peer_weights peers to set weights to.
         topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
