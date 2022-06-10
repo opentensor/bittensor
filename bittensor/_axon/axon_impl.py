@@ -634,7 +634,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             for index, synapse in enumerate(synapses):
                 try:
                     if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
-                        response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
+                        model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
                         torch.autograd.backward (
                             tensors = [ response_tensor ],
                             grad_tensors = [ grads_dy[index] ],
