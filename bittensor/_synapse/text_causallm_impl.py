@@ -18,7 +18,6 @@
 import bittensor
 import torch
 from typing import Union, List, Tuple, Optional
-
 from .synapse_impl import Synapse
 
 class TextCausalLM (Synapse):
@@ -126,12 +125,8 @@ class TextCausalLM (Synapse):
         """ Returns topk tokens/probabilities given unnormalized logits as input. """
         logits = forward_response_tensor  # unnormalized logit scores: [batch_size, sequence_len, vocab_size]
         probs = torch.softmax(logits, dim=-1)  # normalized probabilities: [batch_size, sequence_len, vocab_size]
-
-        values, indices = probs.sort(dim=-1, descending=True)  # descend sort probs
-        topk_values = values[..., :self.topk]  # topk probs: [batch_size, sequence_len, topk]
-        topk_indices = indices[..., :self.topk]  # topk probs indices: [batch_size, sequence_len, topk]
+        topk_values, topk_indices = torch.topk(probs, self.topk) # topk probs and indices: [batch_size, sequence_len, topk]
         encoded_probs = torch.cat((topk_values, topk_indices), dim=-1)  # [batch_size, sequence_len, topk + topk]
-
         return encoded_probs  # [batch_size, sequence_len, topk + topk]
 
     def decode_forward_response_tensor( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor:
@@ -142,12 +137,12 @@ class TextCausalLM (Synapse):
         topk_indices = encoded_probs[..., self.topk:].long()  # topk probs indices: [batch_size, sequence_len, topk]
 
         topk_pmass = topk_values.sum(dim=-1)  # topk probability mass: [batch_size, sequence_len]
-        remainder_pmass = torch.clamp(1 - topk_pmass, 1e-64, 1)  # remainder probability mass: [batch_size, sequence_len]
+        remainder_pmass = torch.clamp(1 - topk_pmass, 1e-40, 1)  # remainder probability mass: [batch_size, sequence_len]
         remainder_floor = remainder_pmass / (bittensor.__vocab_size__ - self.topk)  # divide remainder: [batch_size, sequence_len]
 
         logits = torch.ones((batch_size, sequence_len, bittensor.__vocab_size__)).to(topk_values.device)
         logits *= torch.log(remainder_floor)[:, :, None]  # set probability floor: [batch_size, sequence_len, vocab_size]
-        logits.scatter_(-1, topk_indices, torch.log(topk_values + 1e-64))  # insert topk probs: [batch_size, sequence_len, vocab_size]
+        logits.scatter_(-1, topk_indices, torch.log(topk_values + 1e-40))  # insert topk probs: [batch_size, sequence_len, vocab_size]
 
         return logits  # [batch_size, sequence_len, vocab_size]
 

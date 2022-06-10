@@ -643,7 +643,7 @@ class GenesisTextDataset( Dataset ):
         start_idx = (idx * self.block_size) % len(self.data)
         end_idx = start_idx + self.block_size
         if self.no_tokenizer == False:
-            tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), padding=True, truncation=True)['input_ids'], dtype=torch.long)
+            tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), truncation=True)['input_ids'], dtype=torch.long)
         elif self.no_tokenizer == True:
             tokenized_text = " ".join(self.data[start_idx:end_idx])
 

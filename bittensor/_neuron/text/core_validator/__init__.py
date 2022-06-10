@@ -31,6 +31,7 @@ import os
 import wandb
 import math
 import pandas
+import random
 import traceback
 from rich import print
 from rich.console import Console
@@ -42,7 +43,6 @@ from torch.nn.utils import clip_grad_norm_
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
-import cProfile
 from threading import Lock
 
 logger = logger.opt( colors=True )
@@ -109,13 +109,16 @@ class neuron:
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet ) if dendrite == None else dendrite
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
-        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length ) if dataset == None else dataset
-        
+        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length + 1 ) if dataset == None else dataset
+        self.optimizer = torch.optim.SGD(
+            self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
+        )
+
         # === Create thread queue ===
         self.forward_thread_queue = ThreadQueue(num_jobs = self.config.neuron.forward_num, target = self.forward)
         self.loss = None
         self.loss_agg_mutex = Lock()
-        self.moving_avg_scores = None
+        self.server_stats = {}
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -202,12 +205,15 @@ class neuron:
         r""" Run the nucleus forward request
         This function is supposed to be ran multi-threaded.
         """
-        result = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
+        loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
                 
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
-        (result.loss / self.config.neuron.forward_num).backward()
-        return result
+        if hasattr(loss, 'grad_fn'):
+            print('Loss: {}'.format(loss))
+            (loss / self.config.neuron.forward_num).backward()
+
+        return loss, stats
 
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
@@ -251,11 +257,16 @@ class neuron:
         # Pulling the latest chain parameters.
         current_block = self.subtensor.block
         batch_size = self.subtensor.validator_batch_size 
-        sequence_length = self.subtensor.validator_sequence_length
+        sequence_length = self.subtensor.validator_sequence_length + 1  # add validation token
         n_topk_peer_weights = self.subtensor.min_allowed_weights
         max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+
+        # === Update dataset size ===
+        if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
+            self.dataset.set_data_size(batch_size, sequence_length)
+
         # === Logs ===
         print ( '\nEra:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
                 '\n\t max_allowed_ratio:', max_allowed_ratio, '\n\t blocks_per_epoch:', blocks_per_epoch, '\n\t epochs_until_reset:', epochs_until_reset, 
@@ -272,27 +283,6 @@ class neuron:
         self.metagraph_sync() # Reset metagraph.
         epoch_steps = 0
 
-        # === Reset Epochs with new params. ===
-        # Pulls new default validator training parameters and resets 
-        # the model and dataset for the following epoch.
-        if self.epoch % epochs_until_reset == 0:
-            print ('\n\n=== Reset ===\n\n')
-            # === Resetting model + dataset ===
-            if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
-                self.dataset.set_data_size(batch_size, sequence_length)
-
-            self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
-            self.optimizer = torch.optim.SGD ( 
-                self.nucleus.parameters(), lr = self.config.neuron.learning_rate, momentum = self.config.neuron.momentum 
-            )
-
-            # === Reset Scores ===
-            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
-
-        # Checks if moving avg has been initiated
-        if self.moving_avg_scores == None:
-            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
-
         start_block = self.subtensor.block
         while self.subtensor.block < start_block + blocks_per_epoch:
             start_time = time.time()
@@ -300,13 +290,20 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            forward_results = self.forward_thread_queue.get()
+            loss, stats = self.forward()
             print(f'Run\t| Got forward result in {round(time.time() - start_time, 3)}')
-            loss, scores, uids = self.nucleus.compute_shapely_scores(forward_results)
+
             # === Scoring ===
             # Updates moving averages and history.
-            self.moving_avg_scores[uids] = self.moving_avg_scores[uids]*(0.99) + scores*(0.01)
-        
+            for s in stats:
+                history = self.server_stats.setdefault(s['uid'], s)
+                history.setdefault('updates', 0)  # add updates fields for new uid entries
+                history['updates'] += 1  # increase number of updates made
+                sum_ratio = 1. / min(20, history['updates'])  # moving average window size of 20 max
+                for key in s:  # detailed server evaluation fields, e.g. loss, shapley_values, synergy
+                    if key not in ['updates']:
+                        history[key] = (1 - sum_ratio) * history[key] + sum_ratio * s[key]  # update EMA
+
             # === State update ===
             # Prints step logs to screen.
             epoch_steps += 1
@@ -318,11 +315,12 @@ class neuron:
             print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t epoch_steps:', epoch_steps, '\n\t global_steps:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
                    '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
             if self.config.using_wandb:
-                wandb.log( { 'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps, 'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(), 'epoch/time': step_time }, step = current_block )
-                step_topk_scores, step_topk_uids = bittensor.unbiased_topk( self.moving_avg_scores, k = n_topk_peer_weights )
-                step_topk_normalized = bittensor.utils.weight_utils.normalize_max_multiple( x = step_topk_scores, multiple = max_allowed_ratio )
-                for i, w in list(zip(step_topk_uids.tolist(), step_topk_normalized.tolist()) ):
-                    wandb.log( {'weights/w_{}'.format( i ): w }, step = current_block )
+                wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
+                           'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
+                           'epoch/time': step_time}, step=current_block)
+                for uid, vals in self.server_stats.items():
+                    for key in vals:  # detailed server evaluation fields, e.g. loss, shapley_values, synergy
+                        wandb.log({'stats/{}_{}'.format(key, uid): vals[key]}, step=current_block)
 
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
@@ -332,7 +330,7 @@ class neuron:
                 # Applies local gradients to parameters.
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
-                self.optimizer.zero_grad()    
+                self.optimizer.zero_grad()   
                 
                 # === Get another round of forward requests ===
                 self.forward_thread_queue.resume()
@@ -341,10 +339,12 @@ class neuron:
         self.epoch += 1
 
         # === Set weights ===
+        score_key = 'shapley_values_val'  # server score based on validation Shapley value approximation
+        moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet minimum topk
+        moving_avg_scores[list(self.server_stats.keys())] = torch.tensor([s[score_key].item() for s in self.server_stats.values()])
         # Find the n_topk_peer_weights peers to set weights to.
-        # We use the mean of the epoch weights.
-        topk_scores, topk_uids = bittensor.unbiased_topk(self.moving_avg_scores, k = n_topk_peer_weights )
-        topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
+        topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
+        topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
         print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
                 '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
         self.subtensor.set_weights(
@@ -366,26 +366,20 @@ class neuron:
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
             wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
-    
+
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
         """
         old_hotkeys = self.metagraph.hotkeys 
         self.metagraph.sync()
-        
-        # === Create if None
-        if self.moving_avg_scores == None:
-            self.moving_avg_scores = torch.ones_like( self.metagraph.S ) * -1
 
-        # === Match size for the moving average score
-        if self.metagraph.n > len(self.moving_avg_scores):
-            size_incerease = self.metagraph.n - len(self.moving_avg_scores)
-            self.moving_avg_scores = torch.concat([self.moving_avg_scores, torch.ones(size_incerease) * -1]) 
-
-        # === Reset moving average score if uid got replaced
+        # === Reset server stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.metagraph.hotkeys[uid]:
-                self.moving_avg_scores[uid] = -1
+                if uid in self.server_stats:
+                    del self.server_stats[uid]
+
+
 class PositionalEncoding(nn.Module):
     r""" Positional Encoder which adds information based on the relative position of each token
     
@@ -419,6 +413,7 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[0, :x.size(1)]
         return self.dropout(x)
 
+
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
     """
@@ -450,6 +445,9 @@ class nucleus( torch.nn.Module ):
     
         # SGMOE Gates: Instantiating the gates per expert.
         self.gates = torch.nn.Linear( bittensor.__network_dim__, self.max_n, bias=True ).to( self.device )
+
+        self.sigmoid = torch.nn.Sigmoid()
+
         self.reset_weights()
 
     @classmethod
@@ -492,7 +490,7 @@ class nucleus( torch.nn.Module ):
     # the joined responses as a hidden unit input.
     # target_loss: (torch.float64): loss after decoding responses to targets.
     # target_loss.shape = [ 1 ]
-    def get_target_loss_casuallm ( self, logits, targets ):
+    def get_target_loss_casuallm ( self, logits, targets, eval_type = '' ):
         # hidden: (torch.float64): [ batch_size, sequence_len, __network_dim__ ]
         #   Hidden units which are encoded and decoded onto targets for loss computation.
         # targets: (torch.float64): [n]
@@ -502,8 +500,12 @@ class nucleus( torch.nn.Module ):
         #encoded_hidden = self.encoder( hidden, mask = src_mask )
         #decoded_targets = self.decoder( encoded_hidden )
         #shift_logits = decoded_targets[..., :-1, :].contiguous()
-        shift_logits = logits[0][..., :-1, :].contiguous()
-        shift_labels = targets[..., 1:].contiguous()
+        if eval_type == '':
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = targets[..., 1:].contiguous()
+        elif eval_type == '_val':
+            shift_logits = logits.contiguous()
+            shift_labels = targets.contiguous()
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
     def forward ( 
@@ -525,14 +527,17 @@ class nucleus( torch.nn.Module ):
                     Loss for training validator nucleus.
                 scores (torch.FloatTensor, [ metagraph.n ]):
                     Scores per endpoint for this batch.
-        """        
+        """
+        inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len]
+        inputs_val = inputs[..., -1]  # input validation with last token [batch_size]
+
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
         # this context can be used as input to the gates in the next step.
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        embedding =  self.token_embedding( inputs )* math.sqrt( bittensor.__network_dim__ )
+        embedding = self.token_embedding(inputs_seq) * math.sqrt(bittensor.__network_dim__)
         
         # === Create an attention mask ===
         # The attention mask will mask out parts of the context
@@ -553,40 +558,25 @@ class nucleus( torch.nn.Module ):
         # routing_context.shape = [ batch size, __network_dim__ ]
         routing_context = self.routing_encoder( pos_embedding, mask = src_mask )
 
-        # === Get weights for uids. ===
-        # We iterate over each of the network uids and compute a querying score for each
+        # === Get gate values for UIDs. ===
+        # We iterate over each of the network UIDs and compute a querying score for each
         # using the gating function. This returns a score per endpoint per example.
-        # routing_weights: (torch.FloatTensor): score per example, per endpoint.
-        # routing_weights.shape = [ batch size, __network_n__ ]
+        # routing_score: (torch.FloatTensor): score per example, per endpoint.
+        # routing_score.shape = [ batch size, __network_n__ ]
         # The gates act over the last embedding of the routing_context.
-        routing_weights = self.gates( routing_context[:,-1,:] )
+        routing_score = torch.mean(self.sigmoid(self.gates(routing_context[:, -1, :])), axis=0)
 
-        # === Normalize routing_weights across batch dimension and add noise. ===
-        # We are summing across the batch dimension to create a per-batch score per endpoint.
-        # The resulting routing_weights tensor is a score per expert.
-        # routing_weights: (torch.FloatTensor): normalized weights across batch dimension with noise.
-        # routing_weights.shape = [ n_filtered ]
-        batchwise_routing_weights = torch.mean(routing_weights, axis = 0)[:metagraph.n]
-        noisy_routing_weights = torch.normal( 0, torch.std(batchwise_routing_weights).item(), size=( batchwise_routing_weights.size())).to( self.config.neuron.device )
-        noisy_routing_weights =  batchwise_routing_weights + noisy_routing_weights * self.config.nucleus.noise_multiplier
-        
+        # Ensure number of queried servers does not exceed metagraph.n
+        num_servers = min([self.config.nucleus.topk, metagraph.n])
 
-        # === Get indices and values for uids with highest scores ===
-        # We are taking the topk routing weights and returning their uids.
-        # First we ensure topk is smaller than the network size then use the torch.topk.
-        # topk_routing_weights: (torch.float64): scores of uids with highest scores.
-        # topk_routing_weights.shape = [ self.config.nucleus.topk ]
-        # topk_routing_uids: (torch.LongTensor): uids with highest scores.
-        # topk_routing_uids.shape = [ self.config.nucleus.topk ]
-        #TODO: only needed in nobunaga, not in nakamoto
-        min_peers= min([self.config.nucleus.topk, noisy_routing_weights.size(0)])
-        top_k_routing_weights, routing_uids = torch.topk( noisy_routing_weights, min_peers, dim=0)
+        # === Randomly select num_servers UIDs ===
+        random_uids = torch.randperm(metagraph.n)[:num_servers]
 
-        # === Get endpoint information for the highest scoring uids ===
+        # === Get endpoint information for the selected UIDs ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
-        # routing_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
+        # random_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
         # len(neurons) == self.config.nucleus.topk
-        routing_endpoints = [ metagraph.endpoints[ uid ] for uid in routing_uids ]
+        random_endpoints = [metagraph.endpoints[uid] for uid in random_uids]
 
         # === Define which synapse we want to use ===
         # The synapse defines the task we are sending to the servers
@@ -594,20 +584,19 @@ class nucleus( torch.nn.Module ):
         # TODO: WORK IN PROGRESS, prototype
         synapses = [bittensor.synapse.TextCausalLM()]
 
-
         # === Query the endpoints ===
         # Makes the dendrite call into the network returning the representations 
         # for each of the endpoints. The return ops can be used to filter weights and outputs.
         # query_responses: (List[torch.float64]): responses from each endpoint.
-        # query_responses.shape = self.config.nucleus.topk * [ batch_size, sequence_len, __network_dim__ ]
+        # query_responses.shape = self.config.nucleus.topk * num_synapses * [batch_size, sequence_len, synapse_dim]
         # return_ops: (torch.int64): Return ops.
-        # return_ops.shape = [ self.config.nucleus.topk ]
+        # return_ops.shape = self.config.nucleus.topk * [num_synapses]
          # TODO: WORK IN PROGRESS, prototype
-        query_responses, return_ops, times = dendrite.text ( 
-            endpoints = routing_endpoints, 
-            inputs = inputs,
-            synapses = synapses,
-            timeout = 100
+        query_responses, return_ops, times = dendrite.text(
+            endpoints=random_endpoints,
+            inputs=inputs_seq,
+            synapses=synapses,
+            timeout=100
         )
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
@@ -615,70 +604,88 @@ class nucleus( torch.nn.Module ):
             for response in responses:
                 response.to( self.device )
 
-        # === Compute global loss ===
-        # Computes the global training loss for the nucleus by decoding all the responses
-        # onto the targets.
-        # target_loss: (torch.float64): loss after decoding all responses and a variance loss.
-        # target_loss.shape = [ 1 ]
-        responses_hidden, _ = joining_context( return_ops, batchwise_routing_weights[routing_uids], query_responses, synapses) 
-        target_loss = self.get_target_loss_casuallm( responses_hidden, inputs )
-        print ('Loss\t|\t{}'.format( target_loss.item() ))
+        stats = []
+        routing_loss = torch.tensor(0.)
+        unsuccessful = []
 
-        # === Compute Importance loss ===
-        # Computes the importance loss based on the stardard error of batchwise_routing_weights
-        # This ensures that gates do not converge onto a few experts
-        # importance_loss: (torch.float64) the importance loss based on the stardard error
-        # target_loss: (torch.float64): the total loss (global training loss + importance loss)
-        # target_loss.shape = [ 1 ]
-        importance_loss = self.config.nucleus.importance  * (torch.std(batchwise_routing_weights)/torch.mean(batchwise_routing_weights))**2
-        loss = target_loss + importance_loss
-        
-        state_dict = SimpleNamespace(
-            inputs = inputs,
-            batchwise_routing_weights = batchwise_routing_weights,
-            routing_uids = routing_uids,
-            query_responses = query_responses,
-            return_ops = return_ops,
-            responses_hidden = responses_hidden,
-            loss = loss,
-            n = metagraph.n.item(),
-            synapses = synapses
-        )
-        
-        return state_dict
+        def get_num_params(_loss):
+            # (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
+            num_params = torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(torch.clamp(_loss, 1.69)) / 0.076)
+            scaled_num_params = torch.pow(num_params, 0.5)  # powered down number of params, dynamic range 3 → 6 nats
+            return scaled_num_params  # modified scaling law, powered down to improve dynamic range
 
-    def compute_shapely_scores(self, state_dict):
-        
-        # === Compute shapely scores ===
-        # Computes shapely scores for each endpoint by masking the response and
-        # computing the change in loss induced.
-        # shapely_scores: (torch.float32): shapely scores per query_response
-        # shapely_scores.shape = [ metagraph.n ]
-        masked_contexts = partial_contexts(
-            state_dict.return_ops, 
-            state_dict.routing_uids, 
-            state_dict.batchwise_routing_weights[state_dict.routing_uids],  
-            state_dict.query_responses,
-            state_dict.synapses
-            )
-        # Turn off gradient computation for shapely scores.
-        # shapely_scores.shape = [ nucleus.topk ]
-        # This sets non queried peers as if non-responsive
-        shapely_scores = torch.zeros( state_dict.routing_uids.size())
-        # Turn off gradient computation for shapely scores.
-        with torch.no_grad():
-            self.eval()
+        # === Base parameter estimation ===
+        # Shapley values - base level - coalition size 1
+        # Collect successful server responses, calculate base Shapley values.
+        # Measured in effective number of model parameters, according to OpenAI scaling laws.
+        index_s = 0  # synapse = bittensor.synapse.TextCausalLM()
+        for index in range(num_servers):
+            _uid = random_uids[index]
+            if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+                _stats = {'uid': _uid, 'routing_score': routing_score[_uid].detach()}
 
-            unmasked_loss = self.get_target_loss_casuallm(state_dict.responses_hidden, state_dict.inputs)
-            # Iterate over all responses creating a masked context.
-            for i, uid in enumerate(masked_contexts):
-                # Create mask by zeroing out the response at index.              
-                masked_loss = self.get_target_loss_casuallm( masked_contexts[uid], state_dict.inputs )
-                shapely_score = unmasked_loss - masked_loss
-                print ('Shapely\t|\tuid: {}\tweight: {}\tscore: {}\tcode: {}\tsum: {}'.format( uid, state_dict.batchwise_routing_weights[state_dict.routing_uids][i], -shapely_score.item(), state_dict.return_ops[i], state_dict.query_responses[i][0].sum()))
+                with torch.no_grad():
+                    _stats.update({'logits': query_responses[index][index_s],
+                                   'logits_val': query_responses[index][index_s][:, -1:, :]})
 
-        # Ensures that the nonresponsive peers are not rewarded
-        shapely_scores[state_dict.return_ops != 1 ]  = -1
-        
-        # === Done ===
-        return state_dict.loss, shapely_scores, state_dict.routing_uids
+                    for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
+                        _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
+                        _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
+
+                        _stats.update({'loss' + ext: _loss.item(), 'base_params' + ext: _num_params.item(),
+                                       'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
+
+                # === Add routing loss ===
+                # MSE loss between predicted routing score and ideal target routing score.
+                # The Bayes risk approx. 1.69, i.e. the minimal loss achievable for next-token
+                # prediction on the full distribution 𝑃, a.k.a the "entropy of natural text"
+                # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
+                routing_score_target = torch.exp(-torch.clamp(_loss - 1.69, 0))
+                _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
+                routing_loss += _routing_loss
+                _stats.update({'routing_score_target': routing_score_target.detach(), 'routing_loss': _routing_loss.item()})
+                stats += [_stats]
+            else:
+                unsuccessful += [(_uid, return_ops[index][index_s])]
+
+        print('Unsuccessful UID[return_op]: ', end='')
+        for _uid, _return_op in unsuccessful:
+            print('{}[{}], '.format(_uid, _return_op), end='')
+        print()
+
+        # === Shapley synergy approximation ===
+        # Shapley values - second level - coalition size 2
+        # Synergy = measured performance above expected performance
+        # Measured in effective number of model parameters, just like base Shapley values.
+        for _first in range(len(stats) - 1):
+            first = stats[_first]
+            for _second in range(_first + 1, len(stats)):
+                second = stats[_second]
+                with torch.no_grad():
+                    for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
+                        expected_loss = (first['loss' + ext] + second['loss' + ext]) / 2  # expecting mean loss
+                        combined_logits = (first['logits' + ext] + second['logits' + ext]) / 2  # combined logits
+                        measured_loss = self.get_target_loss_casuallm(combined_logits, target, eval_type=ext)  # actual loss
+
+                        loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
+                        first['synergy_loss_diff' + ext] += loss_diff_share.item()
+                        second['synergy_loss_diff' + ext] += loss_diff_share.item()
+
+                        synergy_share = torch.clamp(get_num_params(measured_loss) -
+                                                    get_num_params(torch.tensor(expected_loss)), 0) / 2
+                        first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
+                        second['synergy' + ext] += synergy_share.item()
+
+        # === Shapley value combination ===
+        # Combine base values with synergy approximation to get final Shapley values.
+        for s in stats:
+            for ext in ['', '_val']:
+                s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
+                del s['logits' + ext]  # remove logits - not needed for stats anymore
+
+            output = 'Shapely\t|\tuid: {}'.format(s['uid'])
+            for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff', 'shapley_values_val']:
+                output += '\t{}: {:.3f}'.format(key, s[key])
+
+            print(output)
+        return routing_loss, stats
