@@ -292,7 +292,7 @@ class Dendrite(torch.autograd.Function):
 
         # Split times into num_synapse lists of codes
         # split_times is a list of tensors times each with length num_synapses
-        times: torch.FloatTensor  = forward_response[0]
+        times: torch.FloatTensor  = forward_response[1]
         packed_times: List[torch.FloatTensor] = torch.split( times, len( synapses ) )
 
         # Output responses is a list with length num_endpoints num_synapses
@@ -352,7 +352,7 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`List [ torch.FloatTensor ]` of shape :obj:`[ num_endpoints ]`, `required`):
                         Times per call per synapse.
             """
-        formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
+        formatted_endpoints, formatted_inputs = self.format_text_inputs ( 
             endpoints = endpoints, 
             inputs = inputs
         )
@@ -420,7 +420,7 @@ class Dendrite(torch.autograd.Function):
             raise ValueError( "Passed synapse must have type: {} got {} instead".formate( bittensor.proto.Synapse.SynapseType.TextCausalLM, synapses.synapse_type ) )
 
         # Format inputs.
-        formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
+        formatted_endpoints, formatted_inputs = self.format_text_inputs ( 
             endpoints = endpoints, 
             inputs = inputs
         )
@@ -490,7 +490,7 @@ class Dendrite(torch.autograd.Function):
             raise ValueError( "Passed synapse must have type:{} got:{} instead".formate( bittensor.proto.Synapse.SynapseType.TextLastHiddenState, synapses.synapse_type ) )
 
         # Format inputs.
-        formatted_endpoints, formatted_inputs = self.__format_text_inputs ( 
+        formatted_endpoints, formatted_inputs = self.format_text_inputs ( 
             endpoints = endpoints, 
             inputs = inputs
         )
@@ -508,7 +508,7 @@ class Dendrite(torch.autograd.Function):
         return outputs[0], codes[0], times[0]
 
 
-    def __format_text_inputs (
+    def format_text_inputs (
         self,
         endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
         inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
@@ -538,7 +538,6 @@ class Dendrite(torch.autograd.Function):
                 formatted_inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
                     A list of tensor of type long each representing a tokenized sentence to be sent to each endpoint.
         """
-
         # To be filled. Inputs and endpoint must be list with the same number of elements.
         formatted_inputs = []
         formatted_endpoints = []
@@ -793,40 +792,3 @@ class Dendrite(torch.autograd.Function):
             bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
             return {}
 
-
-    def forward_text_seq2seq(
-            self,
-            endpoints,
-            inputs,
-            synapses_args,
-            timeout: int = None,
-            requires_grad: bool = None,
-            ):
-
-        self.forward_text(
-                    endpoints= endpoints,
-                    inputs = inputs,
-                    syanpse = [bittensor.proto.SynapseType.TEXT_SEQ_2_SEQ],
-                    synapse_args = synapse_args,
-                    timeout=timeout,
-                    requires_grad = requires_grad
-                    )
-
-    
-    def forward_text_causal_LM(
-            self,
-            endpoints,
-            inputs,
-            synapses_args,
-            timeout: int = None,
-            requires_grad: bool = None,
-            ):
-
-        self.forward_text(
-                    endpoints= endpoints,
-                    inputs = inputs,
-                    syanpse = [bittensor.proto.SynapseType.TEXT_CAUSAL_LM],
-                    synapse_args = synapse_args,
-                    timeout=timeout,
-                    requires_grad = requires_grad
-                    )

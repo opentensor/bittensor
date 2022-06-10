@@ -175,4 +175,4 @@ class TextCausalLM (Synapse):
         return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
 
     def nill_backward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
-        return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), forward_request_tensor.size(2) ), dtype=torch.float32)
+        return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
