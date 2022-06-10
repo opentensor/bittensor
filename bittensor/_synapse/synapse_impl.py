@@ -162,12 +162,9 @@ class Synapse:
 
     def serialize_backward_request_gradient( self, forward_request_tensor: torch.Tensor, backward_request_gradient: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
         """ Returns a bittensor.proto.Tensor gradient to be sent on the wire after relevant serialization applied. """
-        print('serialize backward request grad', self, backward_request_gradient.shape)
         self.check_backward_request_gradient ( forward_request_tensor, backward_request_gradient )
-        print(self, backward_request_gradient.shape)
         encoded_tensor = self.encode_backward_request_gradient ( backward_request_gradient )
         tensor_serialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
-        print(self, backward_request_gradient.shape)
         return tensor_serialzier.serialize( tensor_obj = encoded_tensor, from_type = bittensor.proto.TensorType.TORCH )
 
     def deserialize_backward_request_gradient( self, forward_request_tensor: torch.Tensor, backward_request_proto: bittensor.proto.Tensor ) -> Tuple[ 'torch.Tensor', 'bittensor.proto.ReturnCode',  str ]:

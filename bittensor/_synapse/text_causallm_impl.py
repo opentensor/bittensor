@@ -97,7 +97,6 @@ class TextCausalLM (Synapse):
 
     def check_forward_request_tensor     ( self, forward_request_tensor ): 
         if len( forward_request_tensor.shape ) != 2 or forward_request_tensor.shape[0] == 0 or forward_request_tensor.shape[1] == 0:
-            print(forward_request_tensor.shape)
             raise ValueError( "forward_request_tensor.shape must be in [-1, -1], got: {} for synapse: {}".format( list(forward_request_tensor.shape), self ) ) 
 
     def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):

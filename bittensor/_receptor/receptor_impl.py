@@ -200,9 +200,9 @@ class Receptor(nn.Module):
         # ==================================================================
         def check_if_should_return() -> bool:
             for code in synapse_codes:
-                if code != bittensor.proto.ReturnCode.Success:
-                    return True
-            return False
+                if code == bittensor.proto.ReturnCode.Success:
+                    return False
+            return True
 
         # ==============================================================
         # ==== Function which prints all log statements per synapse ====
@@ -343,7 +343,8 @@ class Receptor(nn.Module):
         # ==== Finalize backward call times ====
         # ======================================
         for index, _ in enumerate( synapses ):
-            synapse_call_times[index] = clock.time() - start_time
+            if synapse_codes[index] == bittensor.proto.ReturnCode.Success:
+                synapse_call_times[index] = clock.time() - start_time
         finalize_stats_and_logs()
         return synapse_responses, synapse_codes, synapse_call_times       
 
