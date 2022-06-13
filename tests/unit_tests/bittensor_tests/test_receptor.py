@@ -396,14 +396,14 @@ def test_receptor_backward_endpoint_exception():
 #-- axon receptor connection -- 
 
 def test_axon_receptor_connection_forward_works():
-    def forward_generate( input, synapse ):
-        return torch.zeros( [3, 70])
+    def forward_generate( input, synapse, model_output = None):
+        return None, torch.zeros( [3, 70])
 
-    def forward_hidden_state( input, synapse ):
-        return torch.zeros( [3, 3, bittensor.__network_dim__])
+    def forward_hidden_state( input, synapse, model_output = None):
+        return None, torch.zeros( [3, 3, bittensor.__network_dim__])
 
-    def forward_casual_lm( input, synapse ):
-        return torch.zeros( [3, 3, bittensor.__vocab_size__])
+    def forward_casual_lm( input, synapse, model_output = None):
+        return None, torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     axon = bittensor.axon (
         port = 8081,
@@ -438,14 +438,14 @@ def test_axon_receptor_connection_forward_works():
 
 
 def test_axon_receptor_connection_forward_unauthenticated():
-    def forward_generate( input, synapse ):
-        return torch.zeros( [3, 70])
+    def forward_generate( input, synapse, model_output = None ):
+        return None, torch.zeros( [3, 70])
 
-    def forward_hidden_state( input, synapse ):
-        return torch.zeros( [3, 3, bittensor.__network_dim__])
+    def forward_hidden_state( input, synapse, model_output = None ):
+        return None, torch.zeros( [3, 3, bittensor.__network_dim__])
 
-    def forward_casual_lm( input, synapse ):
-        return torch.zeros( [3, 3, bittensor.__vocab_size__])
+    def forward_casual_lm( input, synapse, model_output = None ):
+        return None, torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     axon = bittensor.axon (
         port = 8081,
@@ -605,15 +605,15 @@ def test_axon_receptor_connection_forward_unimplemented():
 
 def test_axon_receptor_connection_forward_timeout():
 
-    def forward_generate( inputs, synapse ):
+    def forward_generate( inputs, synapse, model_output = None):
         clock.sleep(5)
         raise TimeoutError('Timeout')
 
-    def forward_hidden_state( inputs, synapse ):
+    def forward_hidden_state( inputs, synapse, model_output = None ):
         clock.sleep(5)
         raise TimeoutError('Timeout')
 
-    def forward_casual_lm( inputs, synapse ):
+    def forward_casual_lm( inputs, synapse, model_output = None ):
         clock.sleep(5)
         raise TimeoutError('Timeout')
 
@@ -723,7 +723,8 @@ if __name__ == "__main__":
     # test_axon_receptor_connection_forward_unauthenticated()
     # test_axon_receptor_connection_forward_timeout()
     # test_axon_receptor_connection_backward_works()
-    test_axon_receptor_connection_backward_unimplemented()
+    # test_axon_receptor_connection_backward_unimplemented()
+    test_axon_receptor_connection_forward_works()
     # test_receptor_neuron_mock_server()
     # test_receptor_neuron_mock_server_backward()
     # test_receptor_neuron_server_response_with_nans()
