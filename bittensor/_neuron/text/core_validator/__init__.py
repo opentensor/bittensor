@@ -339,8 +339,8 @@ class neuron:
         self.epoch += 1
 
         # === Set weights ===
-        score_key = 'shapley_values_val'  # server score based on validation Shapley value approximation
-        moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet minimum topk
+        score_key = 'shapley_values_min'  # server score based on Shapley value approximation
+        moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet min topk
 
         for key in self.server_stats:
             moving_avg_scores[key] = torch.tensor([self.server_stats[key][score_key]])
@@ -684,6 +684,9 @@ class nucleus( torch.nn.Module ):
             for ext in ['', '_val']:
                 s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
                 del s['logits' + ext]  # remove logits - not needed for stats anymore
+
+            # use minimum of sequence/validation Shapley values, for added adversarial resilience
+            s['shapley_values_min'] = torch.min(s['shapley_values'], s['shapley_values_val'])
 
             for key in s:
                 if hasattr(s[key], 'item'):
