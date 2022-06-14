@@ -52,7 +52,7 @@ synapses = [
     bittensor.synapse.TextLastHiddenState(),
     bittensor.synapse.TextCausalLM(), 
     bittensor.synapse.TextSeq2Seq(num_to_generate=70)
-    ]
+]
 
 def test_print():
     print(receptor)
