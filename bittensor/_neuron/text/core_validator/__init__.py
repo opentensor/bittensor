@@ -624,7 +624,7 @@ class nucleus( torch.nn.Module ):
         for index in range(num_servers):
             _uid = random_uids[index]
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
-                _stats = {'uid': _uid, 'routing_score': routing_score[_uid].detach()}
+                _stats = {'uid': _uid, 'routing_score': routing_score[_uid]}
 
                 with torch.no_grad():
                     _stats.update({'logits': query_responses[index][index_s],
@@ -634,7 +634,7 @@ class nucleus( torch.nn.Module ):
                         _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
                         _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
 
-                        _stats.update({'loss' + ext: _loss.item(), 'base_params' + ext: _num_params.item(),
+                        _stats.update({'loss' + ext: _loss, 'base_params' + ext: _num_params,
                                        'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
 
                 # === Add routing loss ===
@@ -642,10 +642,10 @@ class nucleus( torch.nn.Module ):
                 # The Bayes risk approx. 1.69, i.e. the minimal loss achievable for next-token
                 # prediction on the full distribution 𝑃, a.k.a the "entropy of natural text"
                 # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
-                routing_score_target = torch.exp(-torch.clamp(_loss - 1.69, 0))
+                routing_score_target = torch.exp(-torch.clamp(_stats['loss'] - 1.69, 0))
                 _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
                 routing_loss += _routing_loss
-                _stats.update({'routing_score_target': routing_score_target.detach(), 'routing_loss': _routing_loss.item()})
+                _stats.update({'routing_score_target': routing_score_target, 'routing_loss': _routing_loss})
                 stats += [_stats]
             else:
                 unsuccessful += [(_uid, return_ops[index][index_s])]
@@ -670,13 +670,13 @@ class nucleus( torch.nn.Module ):
                         measured_loss = self.get_target_loss_casuallm(combined_logits, target, eval_type=ext)  # actual loss
 
                         loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
-                        first['synergy_loss_diff' + ext] += loss_diff_share.item()
-                        second['synergy_loss_diff' + ext] += loss_diff_share.item()
+                        first['synergy_loss_diff' + ext] += loss_diff_share
+                        second['synergy_loss_diff' + ext] += loss_diff_share
 
                         synergy_share = torch.clamp(get_num_params(measured_loss) -
-                                                    get_num_params(torch.tensor(expected_loss)), 0) / 2
-                        first['synergy' + ext] += synergy_share.item()  # share synergy amongst coalition members
-                        second['synergy' + ext] += synergy_share.item()
+                                                    get_num_params(expected_loss), 0) / 2
+                        first['synergy' + ext] += synergy_share  # share synergy amongst coalition members
+                        second['synergy' + ext] += synergy_share
 
         # === Shapley value combination ===
         # Combine base values with synergy approximation to get final Shapley values.
@@ -684,6 +684,10 @@ class nucleus( torch.nn.Module ):
             for ext in ['', '_val']:
                 s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
                 del s['logits' + ext]  # remove logits - not needed for stats anymore
+
+            for key in s:
+                if hasattr(s[key], 'item'):
+                    s[key] = s[key].item()
 
             output = 'Shapely\t|\tuid: {}'.format(s['uid'])
             for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff', 'shapley_values_val']:
