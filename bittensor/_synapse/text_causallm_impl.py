@@ -108,12 +108,13 @@ class TextCausalLM (Synapse):
              forward_response_tensor.size(1) != forward_request_tensor.size(1) or
              forward_response_tensor.size(2) != self.topk*2
             ):
-            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), self.topk, list(forward_response_tensor.shape), self ) ) 
+            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), self.topk*2, list(forward_response_tensor.shape), self ) ) 
 
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ):
         if ( len( backward_request_gradient.shape ) != 3 or
              backward_request_gradient.size(0) != forward_request_tensor.size(0) or
-             backward_request_gradient.size(1) != forward_request_tensor.size(1)
+             backward_request_gradient.size(1) != forward_request_tensor.size(1) or 
+             backward_request_gradient.size(2) != bittensor.__vocab_size__ 
             ):   
             raise ValueError( "backward_request_gradient.shape: {} must be equivalent to forward_request_tensor.shape: {} for synapse: {}".format( list( backward_request_gradient.shape ), list(forward_request_tensor.shape), self ) ) 
 
@@ -172,7 +173,13 @@ class TextCausalLM (Synapse):
         return gradients  # [batch_size, sequence_len, vocab_size]
 
     def nill_forward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
-        return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
+        try:
+            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
+        except:
+            return torch.tensor([])
 
     def nill_backward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
-        return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
+        try:
+            return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__vocab_size__ ), dtype=torch.float32)
+        except:
+            return torch.tensor([])

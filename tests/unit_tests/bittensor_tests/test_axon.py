@@ -29,7 +29,7 @@ import concurrent
 
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon(wallet = wallet)
-
+bittensor.logging(debug = True)
 """
 TODO: Tests that need to be added
  - Different synapses in combination
@@ -114,7 +114,7 @@ def test_forward_causallm_success():
     
 def test_forward_seq_2_seq_success():
     def forward( inputs_x: torch.FloatTensor, synapse, model_output = None):
-        return dict(), torch.zeros( [synapse.num_return_sequences, synapse.num_to_generate])
+        return dict(), torch.zeros( [inputs_x.shape[0], synapse.num_to_generate])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
 
     inputs_raw = torch.rand(3, 3)
@@ -124,7 +124,7 @@ def test_forward_seq_2_seq_success():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ] 
+        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
@@ -806,4 +806,5 @@ if __name__ == "__main__":
     #test_backward_response_serialization_error()
     #test_axon_is_destroyed()
     #test_forward_wandb()
-    test_forward_last_hidden_success()
+    # test_forward_last_hidden_success()
+    test_forward_seq_2_seq_success()
