@@ -209,7 +209,7 @@ class neuron:
                 
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
-        if hasattr(loss, 'grad_fn'):
+        if hasattr(loss, 'grad_fn') and loss.grad_fn is not None:
             print('Loss: {}'.format(loss))
             (loss / self.config.neuron.forward_num).backward()
 
