@@ -209,9 +209,7 @@ class Dendrite(torch.autograd.Function):
         # output_grads is a list of gradients per synapse. They need to be packed (unflattened)
         # into a list of lists.
         packed_grads: List[ List [ torch.FloatTensor ] ] = [ output_grads[ s : s + len(ctx.synapses) ] for s in range (0, len(output_grads), len( ctx.synapses )) ]
-
         if ctx.does_requires_grad:
-            grads_cpu = [x.cpu().clone().detach() for x in output_grads]
             input_grads, _, _ = ctx.receptor_pool.backward(
                 endpoints = ctx.endpoints,
                 inputs = ctx.inputs,

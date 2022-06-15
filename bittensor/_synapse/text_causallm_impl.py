@@ -145,21 +145,16 @@ class TextCausalLM (Synapse):
 
         return logits  # [batch_size, sequence_len, vocab_size]
 
-    def encode_backward_request_gradient( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
-    def decode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
+    def encode_backward_response_gradient( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
+    def decode_backward_response_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
 
-    def encode_backward_response_gradient( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor:
+    def encode_backward_request_gradient( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor:
         """ Return topk most negative token grads given full logit gradients. """
-        logit_gradients = backward_response_gradient  # logit gradients: [batch_size, sequence_len, vocab_size]
-        values, indices = logit_gradients.sort(dim=-1)  # ascend sort to get most negative gradients - informs on ideal logits
-
-        topk_values = values[..., :self.topk]  # topk gradients: [batch_size, sequence_len, topk]
-        topk_indices = indices[..., :self.topk]  # topk grad indices: [batch_size, sequence_len, topk]
-        encoded_grads = torch.cat((topk_values, topk_indices), dim=-1)  # [batch_size, sequence_len, topk + topk]
-
+        values, indices = torch.topk(backward_response_gradient, self.topk) # ascend sort to get most negative gradients - informs on ideal logits
+        encoded_grads = torch.cat((values, indices), dim=-1)  # [batch_size, sequence_len, topk + topk]
         return encoded_grads  # [batch_size, sequence_len, topk + topk]
 
-    def decode_backward_response_gradient( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor:
+    def decode_backward_request_gradient( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor:
         """ Return full gradients by decoding topk-encoding input. """
         batch_size, sequence_len, _ = backward_response_gradient.shape
         encoded_grads = backward_response_gradient  # encoded gradients: [batch_size, sequence_len, topk + topk]
