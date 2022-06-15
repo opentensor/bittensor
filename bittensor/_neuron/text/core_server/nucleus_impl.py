@@ -1,4 +1,5 @@
 import argparse
+import math
 import bittensor
 import torch
 import torch.nn.functional as F
@@ -97,6 +98,7 @@ class server(torch.nn.Module):
         
         self.outputs_cache = None
         self.gradients_cache = None
+        self.best_loss = math.inf
 
         #checking if the parameters of the server makes sense
         if self.checking and pretrained == True:
@@ -356,7 +358,8 @@ class server(torch.nn.Module):
             state_dict = {
                 'model': self.pretrained,
                 'pretrained_model': self.pre_model.state_dict(), 
-                'decoder': self.decoder.state_dict()
+                'decoder': self.decoder.state_dict(),
+                'best_loss': self.best_loss,
             }
             if self.padding == False:
                 state_dict['mapping'] = self.mapping.state_dict()
@@ -373,7 +376,7 @@ class server(torch.nn.Module):
                 self.decoder.load_state_dict(state_dict['decoder'])
                 if self.padding == False:
                     self.mapping.load_state_dict(state_dict['mapping'])
-
+                self.best_loss = state_dict['best_loss']
                 bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
 
 

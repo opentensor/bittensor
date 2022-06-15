@@ -293,7 +293,7 @@ def serve(
                 optimizer.step()
                 optimizer.zero_grad()
                 logger.info('Backpropagation Successful: Model updated')
-                local_data = {'local/avg_loss': losses.detach().item() / interation}
+                local_data = {'local/loss': losses.detach().item() / interation}
 
         wandb_data = {            
             'stake': nn.stake,
@@ -314,6 +314,10 @@ def serve(
             wandb_info_axon = axon.to_wandb()                
             wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+
+        if local_data['local/loss'] < model.best_loss:
+            model.best_loss = local_data['local/loss']
+            model.save(config.neuron.full_path)
 
         if current_block - last_set_block > config.neuron.blocks_per_set_weights:
             try: 
