@@ -290,7 +290,7 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            loss, stats = self.forward()
+            loss, stats = self.forward_thread_queue.get()
             print(f'Run\t| Got forward result in {round(time.time() - start_time, 3)}')
 
             # === Scoring ===
@@ -626,16 +626,15 @@ class nucleus( torch.nn.Module ):
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
                 _stats = {'uid': _uid, 'routing_score': routing_score[_uid]}
 
-                with torch.no_grad():
-                    _stats.update({'logits': query_responses[index][index_s],
-                                   'logits_val': query_responses[index][index_s][:, -1:, :]})
+                _stats.update({'logits': query_responses[index][index_s],
+                                'logits_val': query_responses[index][index_s][:, -1:, :]})
 
-                    for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
-                        _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
-                        _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
+                for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
+                    _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
+                    _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
 
-                        _stats.update({'loss' + ext: _loss, 'base_params' + ext: _num_params,
-                                       'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
+                    _stats.update({'loss' + ext: _loss, 'base_params' + ext: _num_params,
+                                    'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
 
                 # === Add routing loss ===
                 # MSE loss between predicted routing score and ideal target routing score.
