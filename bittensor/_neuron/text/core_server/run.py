@@ -95,7 +95,9 @@ def serve(
 
 
     def forward_casual_lm(inputs_x:torch.FloatTensor, synapse, model_output = None):
+        print('forward_casual_lm | inputs_x.shape', inputs_x.shape)
         model_output, logits = model.encode_forward_causallm(inputs_x.to(model.device), model_output = model_output)
+        print('forward_casual_lm | logits.shape', logits.shape)
         return model_output, logits
     
     def optimizer_step():
@@ -185,7 +187,9 @@ def serve(
     # Training Data
     if config.neuron.local_train:
         dataset = bittensor.dataset(config=config)
+        dataset.set_data_size(10, 64)
         data = next(dataset)
+        print('data.shape', data.shape)
 
     # load our old model
     if not config.neuron.restart :
@@ -235,7 +239,7 @@ def serve(
                 optimizer.step()
                 optimizer.zero_grad()
                 logger.info('Backpropagation Successful: Model updated')
-                local_data = {'local/avg_loss': losses.detach() / interation}
+                local_data = {'local/avg_loss': losses.detach().item() / interation}
 
         wandb_data = {            
             'stake': nn.stake,

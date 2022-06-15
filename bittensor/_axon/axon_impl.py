@@ -250,6 +250,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         for index, synapse in enumerate( synapses ):
             try:
                 deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
+                print('deserialized_forward_tensors[index].shape', index, deserialized_forward_tensors[index].shape)
 
             except ValueError as e:
                 synapse_codes [index] = bittensor.proto.ReturnCode.RequestShapeException
@@ -280,6 +281,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     priority = priority
                 )
                 forward_response_tensors, forward_codes, forward_messages = future.result( timeout= self.forward_timeout )
+                print('forward_response_tensors', forward_response_tensors.shape)
             else:
                 
                 forward_response_tensors, forward_codes, forward_messages = self.forward_callback(
