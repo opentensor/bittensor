@@ -170,6 +170,60 @@ def serve(
         except Exception as e:
             return True
 
+    def backward_callback(inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
+        """
+            The default forward callback when no callback is attached: Is used to call specific synapse functions
+
+            Args:
+                inputs_x (:obj:`torch.FloatTensor`, `required`): 
+                    The inputs that will be passed to the synapse functions
+                
+                synapses (:obj: list of bittensor.proto.SynapseArgs, 'Optional')
+                    The proto message that contains additional args for individual synapse functions
+
+            Returns:
+                response_tensors: (:obj: list of bittensor.proto.Tensor, `required`): 
+                    serialized tensor response from the nucleus call or None.
+                response_codes: (:obj: list of bittensor.proto.ReturnCode, `required`)
+                    return code associated with forward call i.e. Success of Timeout.
+                response_messages: (:obj: list of strings, `required`)
+                    return message associated with synapse call
+        """
+        # --- initialize response variables --- 
+        response_tensors = []
+        response_codes = []
+        response_messages = []
+        
+        if not config.neuron.remote_train:
+            return response_tensors, response_codes, response_messages
+
+
+        # --- calling attached synapses ---
+        with mutex and torch.enable_grad() and torch.autograd.set_detect_anomaly(True):
+            for index, synapse in enumerate(synapses):
+                try:
+                    if synapse.synapse_type in axon.synapse_callbacks and axon.synapse_callbacks[synapse.synapse_type] != None:
+                        model_output, response_tensor = axon.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
+                        grads_dy_norm = grads_dy[index]/(grads_dy[index].sum() + 0.00001)
+                        torch.autograd.backward (
+                            tensors = [ response_tensor ],
+                            grad_tensors = [ grads_dy_norm ],
+                            retain_graph=True
+                        )                        
+                        response_tensors.append(None)
+                        response_codes.append(bittensor.proto.ReturnCode.Success)
+                        response_messages.append('Success')
+                    else:
+                        response_tensors.append(None)
+                        response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
+                        response_messages.append('Not Implemented')
+                except Exception as e:
+                    # --- Exception Hit in Synapse ---
+                    response_tensors.append(None)
+                    response_codes.append(bittensor.proto.ReturnCode.UnknownException)
+                    response_messages.append(str(e)+'kill yourself')
+
+        return response_tensors, response_codes, response_messages
 
     # Create our axon server and subscribe it to the network.
     if axon == None:
@@ -183,7 +237,7 @@ def serve(
         ).start().serve(subtensor=subtensor)
     
     axon.optimizer_step = optimizer_step
-    
+    axon.attach_backward_callback(backward_callback)
     # Training Data
     if config.neuron.local_train:
         dataset = bittensor.dataset(config=config)
@@ -220,7 +274,7 @@ def serve(
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
-                    loss, _ = model( next( dataset ).to(model.device), train = True )
+                    loss, _ = model( next( dataset ).to(model.device) )
                     if interation > 0 : 
                         losses += loss
                     else:
