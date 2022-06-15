@@ -597,7 +597,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
                     response_messages.append('Not Implemented')
 
-            except Exception as e:
+            except Exception as e:                
                 # --- Exception Hit in Synapse ---
                 response_tensors.append(None)
                 response_codes.append(bittensor.proto.ReturnCode.UnknownException)
