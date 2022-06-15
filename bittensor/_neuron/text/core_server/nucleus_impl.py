@@ -105,7 +105,7 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients = 0 
         
-    def forward(self, inputs,tokenizer=None):
+    def forward(self, inputs, tokenizer=None, train = False):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
 
@@ -121,7 +121,7 @@ class server(torch.nn.Module):
                     Decoded predictions of the next token in the sentence.
 
         """
-        decoded_targets = self.decoder(self.encode_forward(inputs,tokenizer).hidden)
+        decoded_targets = self.encode_forward_causallm(inputs,tokenizer, train = train)[1]
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()     
@@ -129,7 +129,7 @@ class server(torch.nn.Module):
 
         return loss, decoded_targets
     
-    def encode_forward(self,inputs,tokenizer=None, model_output = None):
+    def encode_forward(self,inputs,tokenizer=None, model_output = None, train = False):
         r""" Forward pass through the pretrained model and possible mappings between hidden units. 
              The response tensor should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
 
@@ -140,6 +140,8 @@ class server(torch.nn.Module):
                     The tokenizer which was used to tokenize the inputs
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
                     The output of huggingface auto model.
+                train (:type:`bool`, `optional`):
+                    To run for inference or not. Default False.
 
             Returns:
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
@@ -162,7 +164,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(inputs, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.training or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if train or self.config.neuron.training or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -208,7 +210,7 @@ class server(torch.nn.Module):
         new_data = pad_sequence(new_data,batch_first=True)
         return new_data
 
-    def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
+    def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None, train = False):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
              The response tensor should be the hidden units computed using the local context and
              with shape: [batch_size, sequence_len, __network_dim__].
@@ -222,6 +224,8 @@ class server(torch.nn.Module):
                     logit encoding length, default bittensor.__network_dim__ length
                 model_output (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
                     The output of huggingface auto model.
+                train (:type:`bool`, `optional`):
+                    To run for inference or not. Default False.
                 
 
             Returns:
@@ -234,7 +238,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.training or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if train or self.config.neuron.training or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -246,19 +250,24 @@ class server(torch.nn.Module):
 
         pre_logits = model_output.logits
 
-        with torch.no_grad():
+        if train or self.config.neuron.training or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
             probs_std = translate_logits_to_probs_std(pre_logits,
-                                                      tokens['offset_mapping'], tokens['offset_mapping_std'],
-                                                      self.tokenizer, self.std_tokenizer,
-                                                      self.split_map_cache,
-                                                      self.to_translation_map, self.from_translation_map,
-                                                      tokens['input_ids'], token_batch)
+                                                        tokens['offset_mapping'], tokens['offset_mapping_std'],
+                                                        self.tokenizer, self.std_tokenizer,
+                                                        self.split_map_cache,
+                                                        self.to_translation_map, self.from_translation_map,
+                                                        tokens['input_ids'], token_batch)
+        
+        else:
+            with torch.no_grad():
+                probs_std = translate_logits_to_probs_std(pre_logits,
+                                                            tokens['offset_mapping'], tokens['offset_mapping_std'],
+                                                            self.tokenizer, self.std_tokenizer,
+                                                            self.split_map_cache,
+                                                            self.to_translation_map, self.from_translation_map,
+                                                            tokens['input_ids'], token_batch)
         probs_std = probs_std.to(self.device)
         logits_std = torch.log(probs_std + 1e-40)
-
-        # with torch.no_grad():
-        #     original_loss = self.get_loss_fct(pre_logits.cpu(), tokens['input_ids'])
-        #     translated_loss = self.get_loss_fct(logits_std, token_batch.cpu())
 
         return model_output, logits_std
 
@@ -360,7 +369,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
         parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
         parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='advanced_server')
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
         parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=10)
@@ -371,6 +380,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
         parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
+        parser.add_argument('--neuron.local_train', action='store_true', help='''If true, allow local training''', default=False)
 
 
         bittensor.wallet.add_args( parser )
