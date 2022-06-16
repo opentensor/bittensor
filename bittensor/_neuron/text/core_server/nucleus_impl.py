@@ -166,7 +166,6 @@ class server(torch.nn.Module):
                                                     attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
-        print('local forward logit shape', model_output.logits.shape)
         return model_output, model_output.logits
     
     def encode_forward(self,inputs,tokenizer=None, model_output = None):
@@ -293,7 +292,6 @@ class server(torch.nn.Module):
                                                             tokens['input_ids'], token_batch)
         probs_std = probs_std.to(self.device)
         logits_std = torch.log(probs_std + 1e-40)
-        print('causallm forward logit shape', logits_std.shape)
 
         return model_output, logits_std
 
