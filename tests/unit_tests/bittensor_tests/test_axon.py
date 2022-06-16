@@ -378,7 +378,7 @@ def test_forward_unknown_error():
 def test_backward_invalid_request():
     inputs_raw = torch.rand(3, 3)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
 
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -408,7 +408,7 @@ def test_backward_last_hidden_shape_error():
     synapses = [bittensor.synapse.TextLastHiddenState()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized =  synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -421,11 +421,11 @@ def test_backward_last_hidden_shape_error():
 
 def test_backward_causal_lm_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
-    grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
+    grads_raw = torch.rand(1, 1, bittensor.__vocab_size__)
     synapses = [bittensor.synapse.TextCausalLM()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -439,11 +439,11 @@ def test_backward_causal_lm_shape_error():
 
 def test_backward_seq_2_seq_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
-    grads_raw = torch.rand(1, 1, bittensor.__network_dim__)
+    grads_raw = torch.tensor([])
     synapses = [bittensor.synapse.TextSeq2Seq()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, from_type = bittensor.proto.TensorType.TORCH)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -460,8 +460,8 @@ def test_backward_grads_shape_error():
     grads_raw = torch.rand(1, 1, 1, bittensor.__network_dim__)
     synapses = [bittensor.synapse.TextLastHiddenState()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = serializer.serialize(grads_raw, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -480,8 +480,8 @@ def test_backward_response_success_hidden():
     grads_raw = torch.zeros(1, 1, bittensor.__network_dim__)
     synapses = [bittensor.synapse.TextLastHiddenState()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized =  synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -494,13 +494,14 @@ def test_backward_response_success_hidden():
 def test_backward_response_success_causal_lm():
     def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
         return dict(), torch.zeros( [1, 1, bittensor.__vocab_size__], requires_grad=True)
+
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__vocab_size__)
     synapses = [bittensor.synapse.TextCausalLM()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw,grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -519,8 +520,8 @@ def test_backward_response_timeout():
     grads_raw = torch.rand(2, 2, bittensor.__network_dim__)
     synapses = [bittensor.synapse.TextLastHiddenState()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized =  synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized =  synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -539,8 +540,8 @@ def test_backward_response_exception():
     synapses = [bittensor.synapse.TextLastHiddenState()]
     grads_raw = torch.rand(2, 2, bittensor.__network_dim__)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized =  synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -565,7 +566,7 @@ def test_forward_tensor_success_priority():
     inputs_raw = torch.rand(3, 3)
     synapses = [bittensor.synapse.TextLastHiddenState()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized =  synapses[0].serialize_forward_request_tensor(inputs_raw)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
@@ -590,8 +591,8 @@ def test_backward_response_success_text_priority():
     synapses = [bittensor.synapse.TextLastHiddenState()]
 
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version=bittensor.__version_as_int__,
         hotkey = axon.wallet.hotkey.ss58_address,
@@ -621,8 +622,9 @@ def test_grpc_forward_works():
 
     inputs_raw = torch.rand(3, 3)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
     synapses = [bittensor.synapse.TextLastHiddenState()]
+
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
 
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -664,8 +666,8 @@ def test_grpc_backward_works():
     inputs_raw = torch.rand(3, 3)
     grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         hotkey = '1092310312914',
@@ -700,8 +702,9 @@ def test_grpc_forward_fails():
 
     inputs_raw = torch.rand(3, 3)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
     synapses = [bittensor.synapse.TextLastHiddenState()]
+
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
 
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
@@ -738,8 +741,8 @@ def test_grpc_backward_fails():
     inputs_raw = torch.rand(3, 3)
     grads_raw = torch.rand(3, 3, bittensor.__network_dim__)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    grads_serialized = serializer.serialize(grads_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         hotkey = '1092310312914',
@@ -807,4 +810,4 @@ if __name__ == "__main__":
     #test_axon_is_destroyed()
     #test_forward_wandb()
     # test_forward_last_hidden_success()
-    test_forward_seq_2_seq_success()
+    test_backward_seq_2_seq_shape_error()
