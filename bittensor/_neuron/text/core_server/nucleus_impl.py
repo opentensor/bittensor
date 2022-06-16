@@ -284,13 +284,13 @@ class server(torch.nn.Module):
                                                         tokens['input_ids'], token_batch)
         
         else:
-            # with torch.no_grad():
-            probs_std = translate_logits_to_probs_std(pre_logits,
-                                                        tokens['offset_mapping'], tokens['offset_mapping_std'],
-                                                        self.tokenizer, self.std_tokenizer,
-                                                        self.split_map_cache,
-                                                        self.to_translation_map, self.from_translation_map,
-                                                        tokens['input_ids'], token_batch)
+            with torch.no_grad():
+                probs_std = translate_logits_to_probs_std(pre_logits,
+                                                            tokens['offset_mapping'], tokens['offset_mapping_std'],
+                                                            self.tokenizer, self.std_tokenizer,
+                                                            self.split_map_cache,
+                                                            self.to_translation_map, self.from_translation_map,
+                                                            tokens['input_ids'], token_batch)
         probs_std = probs_std.to(self.device)
         logits_std = torch.log(probs_std + 1e-40)
         print('causallm forward logit shape', logits_std.shape)
@@ -311,18 +311,20 @@ class server(torch.nn.Module):
         text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
         result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
         to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
-
+        
         std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
         tokens = self.tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
 
         # pad offsets so that special token offset widths match for continued correct alignment
         std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
         tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
-
+        
         tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
 
         for key in ['input_ids', 'attention_mask']:  # form a torch batch tensor
-            tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
+            padded_tokens= pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
+            tokens[key] = torch.zeros(token_batch.shape, dtype = torch.long)
+            tokens[key][:, :padded_tokens.shape[1]] = padded_tokens
             tokens[key] = torch.LongTensor(tokens[key])
 
         return tokens
