@@ -208,6 +208,7 @@ def serve(
                             grad_tensors = [ grads_dy_norm ],
                             retain_graph=True
                         )                        
+                        model.backward_gradients_count += inputs_x[index].size(0)
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.Success)
                         response_messages.append('Success')
@@ -282,13 +283,21 @@ def serve(
             
             # --- Update parameters
             if interation != 0:
+                # Custom learning rate
+                if model.backward_gradients_count > 0:
+                    optimizer.param_groups[0]['lr'] =  0.1/(model.backward_gradients_count)
+                else:
+                    optimizer.param_groups[0]['lr'] =  0.1
+
                 logger.info('Backpropagation Started')
+                
                 if interation != 0:
-                    losses.backward()
+                    (losses/interation).backward()
                 clip_grad_norm_(model.parameters(), 1.0)
                 
                 optimizer.step()
                 optimizer.zero_grad()
+                model.backward_gradients = 0
                 logger.info('Backpropagation Successful: Model updated')
                 local_data = {'local/loss': losses.detach().item() / interation}
 

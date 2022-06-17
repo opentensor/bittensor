@@ -105,7 +105,7 @@ class server(torch.nn.Module):
             self.check()
         
         # -- keeps track of gradients applied
-        self.backward_gradients = 0 
+        self.backward_gradients_count = 0 
         
     def forward(self, inputs, tokenizer=None):
         """
