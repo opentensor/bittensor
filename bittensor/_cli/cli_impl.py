@@ -17,7 +17,7 @@
 
 import os
 import sys
-from types import SimpleNamespace
+from typing import List
 
 import bittensor
 from bittensor.utils.balance import Balance
@@ -236,18 +236,95 @@ class CLI:
         subtensor.transfer( wallet = wallet, dest = self.config.dest, amount = self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
     def unstake( self ):
-        r""" Unstake token of amount from uid.
-        """
+        r""" Unstake token of amount from hotkey(s).
+        """        
+        config = self.config.copy()
+        config.hotkey = None
         wallet = bittensor.wallet( config = self.config )
-        subtensor = bittensor.subtensor( config = self.config )
-        subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
+        wallets_to_unstake_from: List[bittensor.wallet]
+        if self.config.wallet.get('all_hotkeys'):
+            # Unstake from all hotkeys.
+            all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
+            # Exclude hotkeys that are specified.
+            wallets_to_unstake_from = [
+                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
+            ]
+
+        else:
+            # Unstake from specific hotkeys.
+            if self.config.wallet.get('hotkeys'):
+                wallets_to_unstake_from = [
+                    bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
+                ]
+            else:
+                wallets_to_unstake_from = [wallet]
+
+        for wallet in tqdm(wallets_to_unstake_from):
+            wallet: bittensor.wallet
+            if not wallet.is_registered():
+                # Skip unregistered hotkeys.
+                continue
+            wallet_stake: Balance = wallet.get_stake()
+            unstake_amount_tao: float = self.config.get('amount')
+            if self.config.get('max_stake'):
+                unstake_amount_tao: float = wallet_stake.tao - self.config.get('max_stake')   
+                self.config.amount = unstake_amount_tao  
+                if unstake_amount_tao < 0:
+                    # Skip if max_stake is greater than current stake.
+                    continue
+
+            subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
 
     def stake( self ):
-        r""" Stake token of amount to uid.
+        r""" Stake token of amount to hotkey(s).
         """
-        wallet = bittensor.wallet( config = self.config )
-        subtensor = bittensor.subtensor( config = self.config )
-        subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+        config = self.config.copy()
+        config.hotkey = None
+        wallet = bittensor.wallet( config = config )
+
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
+        wallets_to_stake_to: List[bittensor.wallet]
+        if self.config.wallet.get('all_hotkeys'):
+            # Stake to all hotkeys.
+            all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
+            # Exclude hotkeys that are specified.
+            wallets_to_stake_to = [
+                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
+            ]
+
+        else:
+            # Stake to specific hotkeys.
+            if self.config.wallet.get('hotkeys'):
+                wallets_to_stake_to = [
+                    bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
+                ]
+            else:
+                wallets_to_stake_to = [wallet]
+
+        for wallet in tqdm(wallets_to_stake_to):
+            wallet: bittensor.wallet            
+            if not wallet.is_registered():
+                # Skip unregistered hotkeys.
+                continue
+            # Get coldkey balance
+            wallet_balance: Balance = wallet.get_balance()
+
+            wallet_stake: Balance = wallet.get_stake()
+            stake_amount_tao: float = self.config.get('amount')
+            if self.config.get('max_stake'):
+                stake_amount_tao: float =  self.config.get('max_stake') - wallet_stake.tao
+                # If the max_stake is greater than the current wallet balance, stake the entire balance.
+                stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
+                self.config.amount = stake_amount_tao  
+                if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
+                    # Skip hotkey if max_stake is less than current stake.
+                    continue
+
+            subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
 
     def set_weights( self ):
         r""" Set weights and uids on chain.
@@ -262,7 +339,8 @@ class CLI:
             prompt = not self.config.no_prompt 
         )
 
-    def _get_hotkey_wallets_for_wallet( wallet ):
+    @staticmethod
+    def _get_hotkey_wallets_for_wallet( wallet ) -> List['bittensor.wallet']:
         hotkey_wallets = []
         hotkeys_path = wallet.path + '/' + wallet.name + '/hotkeys'
         try:

@@ -427,6 +427,15 @@ class cli:
             required=False
         )
         unstake_parser.add_argument(
+            '--max_stake', 
+            dest="max_stake",
+            type=float,
+            required=False,
+            action='store',
+            default=None,
+            help='''Specify the maximum amount of Tao to have staked in each hotkey.'''
+        )
+        unstake_parser.add_argument(
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
@@ -454,6 +463,15 @@ class cli:
             dest="amount", 
             type=float, 
             required=False
+        )        
+        stake_parser.add_argument(
+            '--max_stake', 
+            dest="max_stake",
+            type=float,
+            required=False,
+            action='store',
+            default=None,
+            help='''Specify the maximum amount of Tao to have staked in each hotkey.'''
         )
         stake_parser.add_argument(
             '--no_prompt', 
@@ -606,13 +624,20 @@ class cli:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
-        if not config.amount and not config.unstake_all:
-            if not Confirm.ask("Unstake all Tao from: [bold]'{}'[/bold]?".format(config.wallet.hotkey)):
+        if not config.amount and not config.unstake_all and not config.get('max_stake'):
+            hotkeys: str = ''
+            if config.get('all_hotkeys'):
+                hotkeys = "all hotkeys"
+            elif config.get('hotkeys'):
+                hotkeys = str(config.hotkeys).replace('[', '').replace(']', '')
+            else:
+                hotkeys = str(config.wallet.hotkey)
+            if not Confirm.ask("Unstake all Tao from: [bold]'{}'[/bold]?".format(hotkeys)):
                 amount = Prompt.ask("Enter Tao amount to unstake")
                 config.unstake_all = False
                 try:
@@ -683,12 +708,12 @@ class cli:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+        if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
-        if not config.amount and not config.stake_all:
+        if not config.amount and not config.stake_all and not config.get('max_stake'):
             if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.name)):
                 amount = Prompt.ask("Enter Tao amount to stake")
                 try:
