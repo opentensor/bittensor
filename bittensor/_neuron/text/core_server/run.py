@@ -281,25 +281,24 @@ def serve(
                     current_block = subtensor.get_current_block()
                     logger.info(f'local training\tinteration: {interation}\tloss: {loss}')
             
-            # --- Update parameters
             if interation != 0:
-                # Custom learning rate
-                if model.backward_gradients_count > 0:
-                    optimizer.param_groups[0]['lr'] =  0.1/(model.backward_gradients_count)
-                else:
-                    optimizer.param_groups[0]['lr'] =  0.1
+                (losses/interation).backward()
 
-                logger.info('Backpropagation Started')
-                
-                if interation != 0:
-                    (losses/interation).backward()
-                clip_grad_norm_(model.parameters(), 1.0)
-                
-                optimizer.step()
-                optimizer.zero_grad()
-                model.backward_gradients = 0
-                logger.info('Backpropagation Successful: Model updated')
-                local_data = {'local/loss': losses.detach().item() / interation}
+        # --- Update parameters
+        if (config.neuron.local_train and interation > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
+            # Custom learning rate
+            if model.backward_gradients_count > 0:
+                optimizer.param_groups[0]['lr'] =  0.1/(model.backward_gradients_count)
+            else:
+                optimizer.param_groups[0]['lr'] =  0.1
+
+            logger.info('Backpropagation Started')
+            clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            optimizer.zero_grad()
+            model.backward_gradients = 0
+            logger.info('Backpropagation Successful: Model updated')
+            local_data = {'local/loss': losses.detach().item() / interation}
 
         wandb_data = {            
             'stake': nn.stake,
