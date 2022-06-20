@@ -731,6 +731,28 @@ class nucleus( torch.nn.Module ):
                 if hasattr(s[key], 'item'):
                     s[key] = s[key].item()
 
+        # === Synergy table ===
+        # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
+        sort = sorted([(s['uid'], s['shapley_values_min']) for s in stats], reverse=True, key=lambda _row: _row[1])
+        uid_col = neuron_stats_columns[0]  # [Column_name, key_name, format_string, rich_style]
+        columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
+        rows = [[uid_col[2].format(s[0])] +
+                [('[bright_cyan]{:.2f}[/bright_cyan]' if t == s else
+                  '[magenta]{:.2f}[/magenta]' if syn_loss_diff[s[0]][t[0]] > 0 else
+                  '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]) for t in sort] for s in sort]
+
+        table = Table(width=self.config.get('width', None), box=None)
+        table.title = f'[white] Synergy [/white]'
+        table.caption = f'loss decrease'
+        for col, _, _, stl in columns:
+            table.add_column(col, style=stl, justify='right')
+        for row in rows:
+            table.add_row(*row)
+
+        if len(rows):
+            print(table)
+            print()
+
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
         columns = [_[:] for _ in neuron_stats_columns if _[0] not in ['Upd', 'Weight']]
