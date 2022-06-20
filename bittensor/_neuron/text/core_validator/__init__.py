@@ -317,7 +317,6 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.forward_thread_queue.get()
-            print(f'Run\t| Got forward result in {round(time.time() - start_time, 3)}')
 
             # === Scoring ===
             # Updates moving averages and history.
