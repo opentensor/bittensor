@@ -18,15 +18,18 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
 import os
 import sys
-import argparse
+from typing import List
 
 import bittensor
-from rich.prompt import Prompt
-from rich.prompt import Confirm
+import torch
+from rich.prompt import Confirm, Prompt
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
+
 from . import cli_impl
+
 console = bittensor.__console__
 
 class cli:
@@ -233,18 +236,42 @@ class cli:
         register_parser = cmd_parsers.add_parser(
             'register', 
             help='''Register a wallet to a network.'''
+        )        
+        register_parser.add_argument(
+            '--cuda.use_cuda',
+            '--subtensor.cuda.use_cuda',
+            dest='subtensor.cuda.use_cuda',
+            default=bittensor.defaults.subtensor.cuda.use_cuda,
+            help='''Set true to use CUDA.''',
+            action='store_true',
+            required=False
         )
         register_parser.add_argument(
-            '--TPB',
+            '--cuda.dev_id',
+            '--subtensor.cuda.dev_id',
+            dest='subtensor.cuda.dev_id',
             type=int,
-            default=256,
-            help='''Set the number of Threads per block for CUDA.'''
+            default=bittensor.defaults.subtensor.cuda.dev_id,
+            help='''Set the CUDA device id. Goes by the order of speed. (i.e. 0 is the fastest).''',
+            required=False
         )
         register_parser.add_argument(
-            '--update_interval',
+            '--cuda.TPB',
+            '--subtensor.cuda.TPB',
+            dest='subtensor.cuda.TPB',
             type=int,
-            default=1_000_000,
-            help='''Set the number of nonces per network update.'''
+            default=bittensor.defaults.subtensor.cuda.TPB,
+            help='''Set the number of Threads Per Block for CUDA.''',
+            required=False
+        )
+        register_parser.add_argument(
+            '--cuda.update_interval',
+            '--subtensor.cuda.update_interval',
+            dest='subtensor.cuda.update_interval',
+            type=int,
+            default=bittensor.defaults.subtensor.cuda.update_interval,
+            help='''Set the number of nonces per network update.''',
+            required=False
         )
 
         unstake_parser = cmd_parsers.add_parser(
@@ -731,6 +758,28 @@ class cli:
         if config.wallet.hotkey == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
+        if not config.no_prompt and config.subtensor.cuda.use_cuda == bittensor.defaults.subtensor.cuda.use_cuda:
+            # Ask about cuda registration only if a CUDA device is available.
+            if torch.cuda.is_available():
+                cuda = Confirm.ask("Would you like to try CUDA registration?\n")
+                config.subtensor.cuda.use_cuda = cuda
+                # Only ask about which CUDA device if the user has more than one CUDA device.
+                if cuda and config.subtensor.cuda.dev_id == bittensor.defaults.subtensor.cuda.dev_id and torch.cuda.device_count > 0:
+                    devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
+                    device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
+                    console.print("Available CUDA devices:")
+                    choices_str: str = ""
+                    for i, device in enumerate(devices):
+                        choices_str += ("  {}: {}\n".format(device, device_names[i]))
+                    console.print(choices_str)
+                    dev_id = Prompt.ask("Which GPU would you like to use?", choices=devices, default=str(bittensor.defaults.subtensor.cuda.dev_id))
+                    try:
+                        dev_id = int(dev_id)
+                    except ValueError:
+                        console.error(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
+                        sys.exit(1)
+                    config.subtensor.cuda.dev_id = dev_id
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:

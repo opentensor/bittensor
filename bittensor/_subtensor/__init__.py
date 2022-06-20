@@ -195,6 +195,12 @@ class subtensor:
         defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
+        defaults.subtensor.cuda = bittensor.Config()
+
+        defaults.subtensor.cuda.dev_id = 0
+        defaults.subtensor.cuda.use_cuda = False
+        defaults.subtensor.cuda.update_interval = 10_000
+        defaults.subtensor.cuda.TPB = 256
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):

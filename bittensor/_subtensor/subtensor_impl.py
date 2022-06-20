@@ -476,20 +476,13 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # Attempt rolling registration.
         attempts = 1
-        if prompt:
-            if torch.cuda.is_available():
-                cuda = Confirm.ask("Would you like to try CUDA registration?\n")
-                if cuda:
-                    devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
-                    device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
-                    print("Available CUDA devices:")
-                    for i, device in enumerate(devices):
-                        print("  {}: {}".format(device, device_names[i]))
-                    dev_id = Prompt.ask("Which GPU would you like to use?", choices=devices, default="0")
-                    dev_id = int(dev_id)
         while True:
             # Solve latest POW.
             if cuda:
+                if not torch.cuda.is_available():
+                    if prompt:
+                        bittensor.__console__.error('CUDA is not available.')
+                    return False
                 pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, update_interval )
             else:
                 pow_result = bittensor.utils.create_pow( self, wallet, cuda )
