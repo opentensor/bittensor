@@ -678,6 +678,7 @@ class nucleus( torch.nn.Module ):
         """
         start_time = time.time()
         batch_size, sequence_len = inputs.shape
+        print(f'Forward \t| Model forward ... ', end='')
 
         inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len-1]
         inputs_val = inputs[..., -1]  # input validation with last token [batch_size]
@@ -720,6 +721,9 @@ class nucleus( torch.nn.Module ):
         # Ensure number of queried servers does not exceed metagraph.n
         num_servers = min([self.config.nucleus.topk, metagraph.n])
 
+        print(f'\[{time.time() - start_time:.3g}s] ... '
+              f'Request {num_servers} x \[{batch_size}, {sequence_len - 1}, {bittensor.__network_dim__}] ... ', end='')
+
         # === Randomly select num_servers UIDs ===
         random_uids = torch.randperm(metagraph.n)[:num_servers]
 
@@ -749,6 +753,9 @@ class nucleus( torch.nn.Module ):
             synapses=synapses,
             timeout=100
         )
+
+        print(f'\[{time.time() - start_time:.3g}s]')
+
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
         for responses in query_responses:
