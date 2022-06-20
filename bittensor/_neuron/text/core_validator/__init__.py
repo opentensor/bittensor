@@ -369,15 +369,13 @@ class neuron:
             print()
 
             # === Logs ===
-            print( '\nStep:', '\n\t epoch:', self.epoch, '\n\t epoch_steps:', epoch_steps, '\n\t global_steps:', self.global_step, '\n\t step_time:', step_time, '\n\t loss:', loss.item(),
-                   '\n\t current_block', current_block, '\n\t blocks remaining:', current_block - start_block, '/', blocks_per_epoch, '\n')
             if self.config.using_wandb:
                 wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
                            'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
                            'epoch/time': step_time}, step=current_block)
                 for uid, vals in self.server_stats.items():
                     for key in vals:  # detailed server evaluation fields, e.g. loss, shapley_values, synergy
-                        wandb.log({'stats/{}_{}'.format(key, uid): vals[key]}, step=current_block)
+                        wandb.log({f'stats/{key}_{uid}': vals[key]}, step=current_block)
 
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
