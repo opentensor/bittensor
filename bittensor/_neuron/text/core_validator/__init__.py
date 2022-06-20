@@ -406,6 +406,48 @@ class neuron:
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
         print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
                 '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
+
+        # === Set weights (table) ===
+        # Prints exponential moving average statistics of valid neurons and latest weights
+        columns = [_[:] for _ in neuron_stats_columns]  # clone neuron_stats_columns
+        rows = []
+        unvalidated = []  # unsuccessful neurons that still receive a weighting
+        for i in range(len(topk_uids)):
+            _weight = topk_scores[i].item()
+            _uid = topk_uids[i].item()
+            if _uid in self.server_stats:
+                _stats = {k: v for k, v in self.server_stats[_uid].items()}
+                _stats['weight'] = _weight  # add weight entry into _stats dictionary
+                rows += [[txt.format(_stats[key]) for _, key, txt, _ in columns]]
+            else:
+                unvalidated += [_uid]
+
+        sort_col = [_[0] for _ in columns].index('Weight')  # sort column with key of weight
+        columns[sort_col][0] += '\u2193'  # ↓ downwards arrow (sort)
+        rows = sorted(rows, reverse=True, key=lambda _row: float(_row[sort_col]))  # sort according to weights
+
+        table = Table(width=self.config.get('width', None), box=None, row_styles=[Style(bgcolor='grey15'), ""])
+        table.title = f'[white] Set weights [/white] | [bold]UID {self.uid}[/bold] ' \
+                      f'\[{self.dendrite.receptor_pool.external_ip}] ' \
+                      f'({self.wallet.name}:[bold]{self.wallet.coldkeypub.ss58_address[:7]}[/bold]/' \
+                      f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])'
+        table.caption = f'Validated [bold]{(n_topk_peer_weights - len(unvalidated))}[/bold]' \
+                        f'/{n_topk_peer_weights}/{self.metagraph.n} (valid/min/total) | ' \
+                        f'sum:{topk_scores.sum().item():.2g} ' \
+                        f'[white] max:[bold]{topk_scores.max().item():.4g}[/bold] / ' \
+                        f'min:[bold]{topk_scores.min().item():.4g}[/bold] [/white] ' \
+                        f'\[{topk_scores.max().item() / topk_scores.min().item():.1f}:1] ' \
+                        f'({max_allowed_ratio} allowed)'
+
+        for col, _, _, stl in columns:
+            table.add_column(col, style=stl, justify='right')
+        for row in rows:
+            table.add_row(*row)
+
+        print(table)
+        print(f'Unvalidated \t| [dim]\[weight={topk_scores.min().item():.4g}][/dim]: {unvalidated}')
+        print()
+
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
             weights = topk_scores.detach().to('cpu'),
