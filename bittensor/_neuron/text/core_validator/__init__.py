@@ -206,12 +206,14 @@ class neuron:
         This function is supposed to be ran multi-threaded.
         """
         loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
-                
+
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
         if hasattr(loss, 'grad_fn') and loss.grad_fn is not None:
-            print('Loss: {}'.format(loss))
+            print(f'Backward \t| Loss: {loss:.3f} ... backpropagation ... ', end='')
+            start_time = time.time()
             (loss / self.config.neuron.forward_num).backward()
+            print(f'complete [{time.time() - start_time:.3g}s]')
 
         return loss, stats
 
