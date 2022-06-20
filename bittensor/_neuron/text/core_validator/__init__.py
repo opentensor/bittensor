@@ -655,17 +655,19 @@ class nucleus( torch.nn.Module ):
         for index in range(num_servers):
             _uid = random_uids[index]
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
-                _stats = {'uid': _uid, 'response_time': times[index][index_s], 'routing_score': routing_score[_uid]}
+                _stats = {'uid': _uid.item(),
+                          'response_time': times[index][index_s],
+                          'routing_score': routing_score[_uid]}
 
                 _stats.update({'logits': query_responses[index][index_s],
-                                'logits_val': query_responses[index][index_s][:, -1:, :]})
+                               'logits_val': query_responses[index][index_s][:, -1:, :]})
 
                 for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
                     _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
                     _num_params = get_num_params(_loss)  # estimate the effective number of model parameters
 
                     _stats.update({'loss' + ext: _loss, 'base_params' + ext: _num_params,
-                                    'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
+                                   'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
 
                 # === Add routing loss ===
                 # MSE loss between predicted routing score and ideal target routing score.
@@ -684,10 +686,18 @@ class nucleus( torch.nn.Module ):
         # Shapley values - second level - coalition size 2
         # Synergy = measured performance above expected performance
         # Measured in effective number of model parameters, just like base Shapley values.
-        for _first in range(len(stats) - 1):
+        syn_loss_diff = {}  # expected_loss - measured_loss (where > 0)
+        for _first in range(len(stats)):
             first = stats[_first]
+            first_diff = syn_loss_diff.setdefault(first['uid'], {})
+            first_diff[first['uid']] = torch.min(first['loss'], first['loss_val'])  # diagonal keeps best direct loss
+
             for _second in range(_first + 1, len(stats)):
                 second = stats[_second]
+                second_diff = syn_loss_diff.setdefault(second['uid'], {})
+                second_diff.setdefault(first['uid'], torch.tensor(0.))
+                first_diff.setdefault(second['uid'], torch.tensor(0.))
+
                 with torch.no_grad():
                     for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
                         expected_loss = torch.min(first['loss' + ext], second['loss' + ext])  # expecting min loss
@@ -697,6 +707,10 @@ class nucleus( torch.nn.Module ):
                         loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
                         first['synergy_loss_diff' + ext] += loss_diff_share
                         second['synergy_loss_diff' + ext] += loss_diff_share
+
+                        # pairwise loss reduction of expected and measured loss due to synergy between first and second
+                        first_diff[second['uid']] = torch.max(loss_diff_share, first_diff[second['uid']])
+                        second_diff[first['uid']] = torch.max(loss_diff_share, second_diff[first['uid']])
 
                         synergy_share = torch.clamp(get_num_params(measured_loss) -
                                                     get_num_params(expected_loss), 0) / 2
