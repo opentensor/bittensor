@@ -19,7 +19,7 @@
 
 Example:
     $ import neurons
-    $ neurons.text.template_server.neuron().run()
+    $ neurons.text.core_server.neuron().run()
 """
 
 import bittensor
@@ -48,7 +48,7 @@ class neuron:
 
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> server = bittensor.neuron.text.template_server.neuron(subtensor=subtensor)
+            >>> server = bittensor.neuron.text.core_server.neuron(subtensor=subtensor)
             >>> server.run()
     """
     def __init__(

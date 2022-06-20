@@ -2,7 +2,7 @@ import os, sys
 
 from bittensor._neuron.text.template_miner import neuron as template_miner
 from bittensor._neuron.text.core_validator import neuron as core_validator
-from bittensor._neuron.text.template_server import server as template_server
+from bittensor._neuron.text.core_server import server as core_server
 from bittensor._neuron.text.advanced_server import server as advanced_server
 from bittensor._neuron.text.multitron_server import server as multitron_server
 
@@ -33,11 +33,11 @@ def test_run_core_validator_config():
     assert config['logging']['logging_dir'] == '~/.bittensor/miners'
     assert config['neuron']['clip_gradients'] == 1.0
 
-def test_run_template_server_config():
+def test_run_core_server_config():
 
-    PATH = '/tests/config_tests/template_server_sample_config.txt'
+    PATH = '/tests/config_tests/core_server_sample_config.txt'
     sys.argv = [sys.argv[0], '--config', PATH]
-    config = template_server.config()
+    config = core_server.config()
 
     assert config['axon']['backward_timeout'] == 20
     assert config['dataset']['data_dir'] == '~/.bittensor/data/'
@@ -59,5 +59,5 @@ def test_run_advanced_server_config():
 
 if __name__ == "__main__":
     test_run_template_miner_config()
-    test_run_template_server_config()
+    test_run_core_server_config()
     test_run_advanced_server_config()

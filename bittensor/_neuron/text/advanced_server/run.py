@@ -273,17 +273,17 @@ def serve(
             # --- Run 
             current_block = subtensor.get_current_block()
             end_block = current_block + config.neuron.blocks_per_epoch
-            interation = 0
+            iteration = 0
 
             # --- Training step.
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
                     loss, _ = gp_server( next( dataset ).to(gp_server.device) )
-                    if interation > 0 : 
+                    if iteration > 0 : 
                         losses += loss
                     else:
                         losses = loss
-                    interation += 1
+                    iteration += 1
                     current_block = subtensor.get_current_block()
 
         
@@ -294,10 +294,10 @@ def serve(
                 optimizer.param_groups[0]['lr'] =  0.1
             
             # --- Update parameters
-            if interation != 0 or gp_server.backward_gradients != 0:
+            if iteration != 0 or gp_server.backward_gradients != 0:
                 with mutex:
                     logger.info('Backpropagation Started')
-                    if interation != 0:
+                    if iteration != 0:
                         losses.backward()
                     clip_grad_norm_(gp_server.parameters(), 1.0)
                     
@@ -311,7 +311,7 @@ def serve(
             # --- logging data
             wandb_data = {
                 'block': end_block,
-                'loss': losses.cpu().item()/interation,
+                'loss': losses.cpu().item()/iteration,
                 'stake': nn.stake,
                 'rank': nn.rank,
                 'incentive': nn.incentive,

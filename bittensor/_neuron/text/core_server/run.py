@@ -157,11 +157,11 @@ def serve(
 
         # Black list or not
         try:
-            #registration_check()
+            registration_check()
 
-            #stake_check()
+            stake_check()
 
-            #validator_check()
+            validator_check()
             
             return False
 
@@ -170,12 +170,13 @@ def serve(
 
     def backward_callback(inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
         """
-            The default forward callback when no callback is attached: Is used to call specific synapse functions
+            The default backward callback when no callback is attached: Is used to call specific synapse functions
 
             Args:
                 inputs_x (:obj:`torch.FloatTensor`, `required`): 
                     The inputs that will be passed to the synapse functions
-                
+                grads_dy (:obj:`torch.FloatTensor`, `required`):
+                    The gradients that will be passed to the synapse functions
                 synapses (:obj: list of bittensor.proto.SynapseArgs, 'Optional')
                     The proto message that contains additional args for individual synapse functions
 
@@ -220,7 +221,7 @@ def serve(
                     # --- Exception Hit in Synapse ---
                     response_tensors.append(None)
                     response_codes.append(bittensor.proto.ReturnCode.UnknownException)
-                    response_messages.append(str(e)+'kill yourself')
+                    response_messages.append(str(e))
 
         return response_tensors, response_codes, response_messages
 
@@ -262,7 +263,7 @@ def serve(
     # --- Run Forever.
     while True:
         
-        interation = 0
+        iteration = 0
         local_data = {}
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
@@ -273,19 +274,19 @@ def serve(
             while end_block >= current_block:
                 if current_block != subtensor.get_current_block():
                     loss, _ = model( next( dataset ).to(model.device) )
-                    if interation > 0 : 
+                    if iteration > 0 : 
                         losses += loss
                     else:
                         losses = loss
-                    interation += 1
+                    iteration += 1
                     current_block = subtensor.get_current_block()
-                    logger.info(f'local training\tinteration: {interation}\tloss: {loss}')
+                    logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
             
-            if interation != 0:
-                (losses/interation).backward()
+            if iteration != 0:
+                (losses/iteration).backward()
 
         # --- Update parameters
-        if (config.neuron.local_train and interation > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
+        if (config.neuron.local_train and iteration > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
             # Custom learning rate
             if model.backward_gradients_count > 0:
                 optimizer.param_groups[0]['lr'] =  0.1/(model.backward_gradients_count)
@@ -298,7 +299,7 @@ def serve(
             optimizer.zero_grad()
             model.backward_gradients = 0
             logger.info('Backpropagation Successful: Model updated')
-            local_data = {'local/loss': losses.detach().item() / interation}
+            local_data = {'local/loss': losses.detach().item() / iteration}
 
         wandb_data = {            
             'stake': nn.stake,

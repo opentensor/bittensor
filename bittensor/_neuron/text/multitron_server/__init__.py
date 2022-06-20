@@ -64,6 +64,6 @@ class neuron:
         bittensor.wandb.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
-        assert config.neuron.device != 'cpu', "multitron_server must be ran on cuda device. Please consider mining with template_server or advanced_server instead."
+        assert config.neuron.device != 'cpu', "multitron_server must be ran on cuda device. Please consider mining with core_server or advanced_server instead."
         if not os.path.exists(config.neuron.full_path):
             os.makedirs(config.neuron.full_path)

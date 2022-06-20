@@ -607,12 +607,13 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
     def default_backward_callback(self, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
         """
-            The default forward callback when no callback is attached: Is used to call specific synapse functions
+            The default backward callback when no callback is attached: Is used to call specific synapse functions
 
             Args:
                 inputs_x (:obj:`torch.FloatTensor`, `required`): 
                     The inputs that will be passed to the synapse functions
-                
+                grads_dy (:obj:`torch.FloatTensor`, `required`):
+                    The gradients that will be passed to the synapse functions
                 synapses (:obj: list of bittensor.proto.SynapseArgs, 'Optional')
                     The proto message that contains additional args for individual synapse functions
 

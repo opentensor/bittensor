@@ -18,10 +18,10 @@
 """ Run the template server
 
 Example:
-    $ python3 miners/template_server.py ... args
+    $ python3 miners/core_server.py ... args
 
 """
 
 import bittensor
 if __name__ == "__main__":
-    template = bittensor.neurons.template_server.neuron().run()
+    template = bittensor.neurons.core_server.neuron().run()
