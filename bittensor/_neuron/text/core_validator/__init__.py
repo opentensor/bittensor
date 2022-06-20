@@ -717,9 +717,4 @@ class nucleus( torch.nn.Module ):
                 if hasattr(s[key], 'item'):
                     s[key] = s[key].item()
 
-            output = 'Shapely\t|\tuid: {}'.format(s['uid'])
-            for key in ['routing_loss', 'loss', 'loss_val', 'base_params', 'synergy_loss_diff', 'shapley_values_val']:
-                output += '\t{}: {:.3f}'.format(key, s[key])
-
-            print(output)
         return routing_loss, stats
