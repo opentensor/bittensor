@@ -35,6 +35,8 @@ import random
 import traceback
 from rich import print
 from rich.console import Console
+from rich.style import Style
+from rich.table import Table
 from rich.traceback import install
 from ..neuron_utilities import joining_context, partial_contexts, ThreadQueue
 import torch.nn as nn
@@ -556,7 +558,10 @@ class nucleus( torch.nn.Module ):
                 scores (torch.FloatTensor, [ metagraph.n ]):
                     Scores per endpoint for this batch.
         """
-        inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len]
+        start_time = time.time()
+        batch_size, sequence_len = inputs.shape
+
+        inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len-1]
         inputs_val = inputs[..., -1]  # input validation with last token [batch_size]
 
         # === Create the local context used to select endpoints ===
@@ -673,7 +678,7 @@ class nucleus( torch.nn.Module ):
                 _stats.update({'routing_score_target': routing_score_target, 'routing_loss': _routing_loss})
                 stats += [_stats]
             else:
-                unsuccessful += [(_uid, return_ops[index][index_s])]
+                unsuccessful += [(_uid, return_ops[index][index_s], times[index][index_s])]
 
         # === Shapley synergy approximation ===
         # Shapley values - second level - coalition size 2
@@ -711,5 +716,31 @@ class nucleus( torch.nn.Module ):
             for key in s:
                 if hasattr(s[key], 'item'):
                     s[key] = s[key].item()
+
+        # === Neuron responses (table) ===
+        # Prints the evaluation of the neuron responses to the validator request
+        columns = [_[:] for _ in neuron_stats_columns if _[0] not in ['Upd', 'Weight']]
+        sort_col = [_[0] for _ in columns].index('mShap')  # sort column with key of shapley_values_min
+        columns[sort_col][0] += '\u2193'  # ↓ downwards arrow (sort)
+        rows = [[txt.format(s[key]) for _, key, txt, _ in columns] for s in stats]
+        rows = sorted(rows, reverse=True, key=lambda _row: int(_row[sort_col]))  # sort according to mShap column
+
+        table = Table(width=self.config.get('width', None), box=None, row_styles=[Style(bgcolor='grey15'), ""])
+        table.title = f'[white] Neuron responses [/white] | Validator forward'
+        table.caption = f'[bold]{num_servers}[/bold]/{metagraph.n} (topk/total) | [bold]TextCausalLM[/bold] | ' \
+                        f'[white] {len(stats)} x \[{batch_size}, {sequence_len - 1}, {bittensor.__network_dim__}] ' \
+                        f'\[{time.time() - start_time:.3g}s] [/white]'
+
+        for col, _, _, stl in columns:
+            table.add_column(col, style=stl, justify='right')
+        for row in rows:
+            table.add_row(*row)
+
+        print(table)
+
+        unsuccess_txt = f'Unsuccessful \t| [cyan]UID[/cyan]\[[red]return_op[/red], [yellow]time[/yellow]]: '
+        for _uid, _return_op, _time in unsuccessful:
+            unsuccess_txt += f'{_uid}[[red]{_return_op}[/red], [yellow]{_time}[/yellow]] '
+        print(unsuccess_txt)
 
         return routing_loss, stats
