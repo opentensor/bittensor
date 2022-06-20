@@ -360,6 +360,11 @@ class neuron:
             for row in rows:
                 table.add_row(*row)
 
+            print(f'UID {self.uid}   \t| '
+                  f'Updated {current_block - self.metagraph.last_update[self.uid]} [white]blocks ago[/white] | '
+                  f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
+                  f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
+                  f'[dim](retrieved {current_block - start_block} blocks ago from {self.subtensor.network})[/dim]')
             print(table)
             print()
 
