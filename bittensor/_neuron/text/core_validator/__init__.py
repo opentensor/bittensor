@@ -326,13 +326,15 @@ class neuron:
 
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
-                print('Run\t| Model update')
+                start_time = time.time()
+                print('Model update \t| Optimizer step ... ', end='')
 
                 # === Apply gradients ===
                 # Applies local gradients to parameters.
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
-                self.optimizer.zero_grad()   
+                self.optimizer.zero_grad()
+                print(f'complete [{time.time() - start_time:.3g}s]')
                 
                 # === Get another round of forward requests ===
                 self.forward_thread_queue.resume()
