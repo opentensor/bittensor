@@ -721,8 +721,8 @@ class nucleus( torch.nn.Module ):
         # Ensure number of queried servers does not exceed metagraph.n
         num_servers = min([self.config.nucleus.topk, metagraph.n])
 
-        print(f'complete \[{time.time() - start_time:.3g}s] ... '
-              f'Request {num_servers} x \[{batch_size}, {sequence_len - 1}, {bittensor.__network_dim__}] ... ', end='')
+        print(f'complete \[{time.time() - start_time:.3g}s]')
+        print(f'Dendrite \t| Request {num_servers} x \[{batch_size}, {sequence_len - 1}, {bittensor.__network_dim__}] ... ', end='')
         request_start_time = time.time()
 
         # === Randomly select num_servers UIDs ===
@@ -755,8 +755,8 @@ class nucleus( torch.nn.Module ):
             timeout=100
         )
 
-        print(f'\[{time.time() - request_start_time:.3g}s]')
-        print(f'Shapley calc \t| Starting ... ', end='')
+        print(f'complete \[{time.time() - request_start_time:.3g}s]')
+        print(f'Shapley values \t| Calculating ... ', end='')
         shapley_start_time = time.time()
 
         # Send responses to device. This is required to ensure we move the responses
