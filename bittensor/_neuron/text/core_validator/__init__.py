@@ -721,8 +721,9 @@ class nucleus( torch.nn.Module ):
         # Ensure number of queried servers does not exceed metagraph.n
         num_servers = min([self.config.nucleus.topk, metagraph.n])
 
-        print(f'\[{time.time() - start_time:.3g}s] ... '
+        print(f'complete \[{time.time() - start_time:.3g}s] ... '
               f'Request {num_servers} x \[{batch_size}, {sequence_len - 1}, {bittensor.__network_dim__}] ... ', end='')
+        request_start_time = time.time()
 
         # === Randomly select num_servers UIDs ===
         random_uids = torch.randperm(metagraph.n)[:num_servers]
@@ -754,7 +755,9 @@ class nucleus( torch.nn.Module ):
             timeout=100
         )
 
-        print(f'\[{time.time() - start_time:.3g}s]')
+        print(f'\[{time.time() - request_start_time:.3g}s]')
+        print(f'Shapley calc \t| Starting ... ', end='')
+        shapley_start_time = time.time()
 
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
@@ -855,6 +858,8 @@ class nucleus( torch.nn.Module ):
             for key in s:
                 if hasattr(s[key], 'item'):
                     s[key] = s[key].item()
+
+        print(f'complete \[{time.time() - shapley_start_time:.3g}s]')
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
