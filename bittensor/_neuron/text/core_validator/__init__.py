@@ -404,8 +404,6 @@ class neuron:
         # Find the n_topk_peer_weights peers to set weights to.
         topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
-        print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
-                '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
 
         # === Set weights (table) ===
         # Prints exponential moving average statistics of valid neurons and latest weights
