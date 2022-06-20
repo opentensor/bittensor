@@ -895,9 +895,9 @@ class nucleus( torch.nn.Module ):
 
         print(table)
 
-        unsuccess_txt = f'Unsuccessful \t| [cyan]UID[/cyan]\[[red]return_op[/red], [yellow]time[/yellow]]: '
+        unsuccess_txt = f'Unsuccessful \t| [cyan]UID[/cyan]\[[red]return_op[/red] [yellow]time[/yellow]]: '
         for _uid, _return_op, _time in unsuccessful:
-            unsuccess_txt += f'{_uid}[[red]{_return_op}[/red], [yellow]{_time}[/yellow]] '
+            unsuccess_txt += f'{_uid}[[red]{_return_op}[/red] [yellow not bold]{_time:.2f}[/yellow not bold]] '
         print(unsuccess_txt)
 
         return routing_loss, stats
