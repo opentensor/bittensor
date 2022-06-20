@@ -294,13 +294,11 @@ class neuron:
             self.dataset.set_data_size(batch_size, sequence_length)
 
         # === Logs ===
-        print ( '\nEra:', '\n\t batch_size:', batch_size, '\n\t sequence_length:', sequence_length, '\n\t n_topk_peer_weights:', n_topk_peer_weights,
-                '\n\t max_allowed_ratio:', max_allowed_ratio, '\n\t blocks_per_epoch:', blocks_per_epoch, '\n\t epochs_until_reset:', epochs_until_reset, 
-                '\n\t until_reset:', self.epoch % epochs_until_reset, '\n\t current_block:', current_block, '\n')
         if self.config.using_wandb:
-            wandb.log( {    'era/batch_size': batch_size, 'era/sequence_length': sequence_length, 'era/n_topk_peer_weights': n_topk_peer_weights, 
-                            'era/max_allowed_ratio': max_allowed_ratio, 'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset, 
-                }, step = current_block )
+            wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
+                       'era/n_topk_peer_weights': n_topk_peer_weights, 'era/max_allowed_ratio': max_allowed_ratio,
+                       'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
+                      step=current_block)
 
         # === Run Epoch ===
         # Each block length lasts blocks_per_epoch blocks.
