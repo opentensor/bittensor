@@ -624,7 +624,7 @@ class nucleus( torch.nn.Module ):
         for index in range(num_servers):
             _uid = random_uids[index]
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
-                _stats = {'uid': _uid, 'routing_score': routing_score[_uid]}
+                _stats = {'uid': _uid, 'response_time': times[index][index_s], 'routing_score': routing_score[_uid]}
 
                 _stats.update({'logits': query_responses[index][index_s],
                                 'logits_val': query_responses[index][index_s][:, -1:, :]})
