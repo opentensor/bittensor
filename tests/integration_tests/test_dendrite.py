@@ -133,50 +133,50 @@ def test_dendrite_forward_text_list_string():
 def test_dendrite_forward_tensor_shape_error():
     x = torch.rand(3, 3, 3, dtype=torch.float32)
     with pytest.raises(ValueError):
-        dendrite.forward_tensor( [neuron_obj], [x])
+        dendrite.text( endpoints = [neuron_obj], inputs = [x], synapses = synapses)
 
 def test_dendrite_forward_tensor_type_error():
     x = torch.zeros(3, 3, bittensor.__network_dim__, dtype=torch.int32)
     with pytest.raises(ValueError):
-        dendrite.forward_tensor( [neuron_obj], x)
+        dendrite.text( endpoints = [neuron_obj], inputs = x, synapses = synapses)
 
 def test_dendrite_forward_tensor_endpoint_type_error():
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     with pytest.raises(ValueError):
-        dendrite.forward_tensor( [dict()], [x])
+        dendrite.text( endpoints = [dict()], inputs = [x], synapses = synapses)
 
 def test_dendrite_forward_tensor_endpoint_len_error():
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     with pytest.raises(ValueError):
-        dendrite.forward_tensor( [], [x])
+        dendrite.text( endpoints = [], inputs = [x], synapses = synapses)
 
 def test_dendrite_forward_tensor_input_len_error():
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     with pytest.raises(ValueError):
-        dendrite.forward_tensor( [neuron_obj], [])
+        dendrite.text( endpoints = [neuron_obj], inputs = [], synapses = synapses)
 
 def test_dendrite_forward_tensor_mismatch_len_error():
     x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
     with pytest.raises(ValueError):
-        dendrite.forward_tensor( [neuron_obj], [x,x])
+        dendrite.text( endpoints = [neuron_obj], inputs = [x, x], synapses = synapses)
 
 def test_dendrite_forward_text_non_list():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, ops, times = dendrite.text( endpoints = neuron_obj, inputs = x, synapses = synapses )
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [2, 4, bittensor.__network_dim__]
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    check_resp_shape(out, 1,2,4)
 
 def test_dendrite_forward_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, ops, times = dendrite.text( endpoints = [neuron_obj], inputs = [x], synapses = synapses )
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [2, 4, bittensor.__network_dim__]
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    check_resp_shape(out, 1,2,4)
 
 def test_dendrite_forward_tensor():
-    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
-    out, ops, times = dendrite.forward_tensor( [neuron_obj], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+    x = torch.rand(3, 3, dtype=torch.float32)
+    out, ops, times = dendrite.text( endpoints = [neuron_obj], inputs = [x], synapses = synapses)
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    check_resp_shape(out, 1, 3, 3)
 
 def test_dendrite_backoff():
     _dendrite = bittensor.dendrite( wallet = wallet )
@@ -193,10 +193,10 @@ def test_dendrite_backoff():
     print (_endpoint_obj)
     
     # Normal call.
-    x = torch.rand(3, 3, bittensor.__network_dim__, dtype=torch.float32)
-    out, ops, times = _dendrite.forward_tensor( [_endpoint_obj], [x])
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
-    assert list(out[0].shape) == [3, 3, bittensor.__network_dim__]
+    x = torch.rand(3, 3, dtype=torch.float32)
+    out, ops, times = _dendrite.text( endpoints = [_endpoint_obj], inputs = [x], synapses = synapses)
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    check_resp_shape(out, 1, 3, 3)
     del _dendrite
 
 def test_dendrite_multiple():
@@ -228,34 +228,26 @@ def test_dendrite_multiple():
     dend3 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     dend4 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     
-    out, ops, times = dend1.forward_text( endpoint_obj, x )
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+    out, ops, times = dend1.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
 
-    out, ops, times = dend2.forward_text( endpoint_obj, x )
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+    out, ops, times = dend2.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
 
-    out, ops, times = dend3.forward_text( endpoint_obj, x )
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+    out, ops, times = dend3.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
 
-    out, ops, times = dend4.forward_text( endpoint_obj, x )
-    assert ops[0].item() == bittensor.proto.ReturnCode.Unavailable
+    out, ops, times = dend4.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
 
     assert len(receptor_pool.receptors) == 1 
-
     assert manager_server.connected_count == 4
-
     dend4.__del__()
-
     assert manager_server.connected_count == 3
-
     dend3.__del__()
-
     assert manager_server.connected_count == 2
-
     dend2.__del__()
-
     assert manager_server.connected_count == 1
-
     dend1.__del__()
 
 
@@ -267,5 +259,4 @@ def test_dend_del():
     
 if __name__ == "__main__":
     bittensor.logging(debug = True)
-    # test_dendrite_multiple()
-    test_dendrite_forward_text_endpoints_tensor()
+    test_dendrite_forward_tensor()
