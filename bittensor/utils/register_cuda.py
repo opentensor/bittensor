@@ -9,26 +9,26 @@ from bittensor_register_cuda import solve_cuda as solve_cuda_c
 from Crypto.Hash import keccak
 
 
-def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, bn: int, difficulty: np.int64, limit: np.int64, dev_id: int = 0) -> Tuple[np.int64, bytes]:
+def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, bn: int, difficulty: int, limit: int, dev_id: int = 0) -> Tuple[np.int64, bytes]:
     """
     Solves the PoW problem using CUDA.
     Args:
-        nonce_start: int32
+        nonce_start: int64
             Starting nonce.
-        update_interval: int32
+        update_interval: int64
             Number of nonces to solve before updating block information.
         TPB: int
             Threads per block.
         block_bytes: bytes
             Bytes of the block hash. 64 bytes.
-        difficulty: int32
+        difficulty: int256
             Difficulty of the PoW problem.
-        limit: int32
+        limit: int256
             Upper limit of the nonce.
         dev_id: int (default=0)
             The CUDA device ID
     Returns:
-        Tuple[int32, bytes]
+        Tuple[int64, bytes]
             Tuple of the nonce and the seal corresponding to the solution.  
             Returns -1 for nonce if no solution is found.     
     """  
