@@ -16,18 +16,21 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import sys
 import unittest
 from types import SimpleNamespace
 from typing import Dict
-from unittest.mock import MagicMock, call, patch, ANY
+from unittest.mock import ANY, MagicMock, call, patch
 
 import bittensor
 from bittensor._subtensor.subtensor_mock import mock_subtensor
+from bittensor.utils.balance import Balance
 from substrateinterface.base import Keypair
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.utils.balance import Balance
 from ..helpers import CLOSE_IN_VALUE
+
+
 class TestCli(unittest.TestCase):
 
     def setUp(self):
@@ -686,7 +689,12 @@ class TestCli(unittest.TestCase):
                 )
                 mock_unstake.assert_called()
                 for mock_call in mock_unstake.mock_calls:
-                    mock_wallet = mock_call.args[0]
+                    # Python 3.7 
+                    ## https://docs.python.org/3.7/library/unittest.mock.html#call
+                    ## Uses the 1st index as args list
+                    ## call.args only works in Python 3.8+
+                    mock_wallet = mock_call[1][0]
+
                     # We shouldn't unstake from hk1 as it has less than max_stake staked
                     assert mock_wallet.hotkey_str != 'hk1'
 
@@ -1032,7 +1040,12 @@ class TestCli(unittest.TestCase):
                 
                 total_staked = 0.0
                 for mock_call in mock_add_stake.mock_calls:
-                    staked_this_call = mock_call.kwargs['amount']
+                    # Python 3.7 
+                    ## https://docs.python.org/3.7/library/unittest.mock.html#call
+                    ## Uses the 2nd index as kwargs dict
+                    ## call.kwargs only works in Python 3.8+
+                    staked_this_call = mock_call[2]['amount']
+                    
                     total_staked += staked_this_call
                 # We should not try to stake more than the mock_balance
                 assert CLOSE_IN_VALUE(total_staked, 0.001) == mock_balance.tao
