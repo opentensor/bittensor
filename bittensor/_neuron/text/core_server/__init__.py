@@ -15,27 +15,52 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-""" Advanced server neurons
+""" Template server.
 
 Example:
     $ import neurons
-    $ neurons.text.multitron_server().run()
-
+    $ neurons.text.core_server.neuron().run()
 """
 
 import bittensor
 import os
 
 from .nucleus_impl import server
-from .ddp_run import Server
+from .run import serve
 
 class neuron:
+    r"""
+    Creates a bittensor neuron that specializes in the serving. The template server miner
+    serves a NLP model from huggingface on the bittensor network. By default, the model does 
+    not train itself and thus requires less memory to run. 
 
-    def __new__(
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+            subtensor (:obj:bittensor.subtensor , `optional`):
+                bittensor subtensor connection
+            wallet (:obj:bittensor.wallet, `optional`):
+                bittensor wallet object
+            axon (:obj:bittensor.axon, `optional`):
+                bittensor axon object
+            metagraph (:obj:bittensor.metagraph, `optional`):
+                bittensor metagraph object
+
+    Examples:: 
+            >>> subtensor = bittensor.subtensor(network='nakamoto')
+            >>> server = bittensor.neuron.text.core_server.neuron(subtensor=subtensor)
+            >>> server.run()
+    """
+    def __init__(
         self, 
-        config: 'bittensor.config' = None
+        config: 'bittensor.config' = None,
+        subtensor: 'bittensor.subtensor' = None,
+        wallet: 'bittensor.wallet' = None,
+        axon: 'bittensor.axon' = None,
+        metagraph: 'bittensor.metagraph' = None,
+
     ):
-        if config == None: config = neuron.config()
+        if config == None: config = server.config()
         config = config; 
         self.check_config( config )
         bittensor.logging (
@@ -43,12 +68,27 @@ class neuron:
             logging_dir = config.neuron.full_path,
         )
 
-        self.model = server(config=config)
+        self.model = server(config = config)
         self.config = config
-        return Server(self.config, self.model)
 
-    @staticmethod
-    def config ():
+        self.subtensor = subtensor
+        self.wallet = wallet
+        self.axon = axon
+        self.metagraph = metagraph
+
+    def run(self):
+        serve(
+            self.config,
+            self.model,
+            subtensor = self.subtensor,
+            wallet = self.wallet,
+            axon = self.axon,
+            metagraph= self.metagraph,
+        )
+
+
+    @classmethod
+    def config(cls):
         return server.config()
 
     @staticmethod
@@ -64,6 +104,5 @@ class neuron:
         bittensor.wandb.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
-        assert config.neuron.device != 'cpu', "multitron_server must be ran on cuda device. Please consider mining with template_server or advanced_server instead."
         if not os.path.exists(config.neuron.full_path):
             os.makedirs(config.neuron.full_path)

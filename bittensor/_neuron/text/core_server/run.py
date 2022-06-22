@@ -23,15 +23,17 @@ Example:
 """
 import bittensor
 import sys
-import torch
 import time
-import wandb
-import pandas
 import datetime
 from threading import Lock
-from loguru import logger; logger = logger.opt(colors=True)
 from datetime import datetime,timedelta
+from loguru import logger; logger = logger.opt(colors=True)
+
+import wandb
+import pandas
+import torch
 import torch.nn.functional as F
+from torch.nn.utils import clip_grad_norm_
 
 def serve( 
         config, 
@@ -75,22 +77,24 @@ def serve(
 
     def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
         output = model.pre_model.generate(
-            input_ids=inputs_x, 
-            max_length=synapse.num_to_generate, 
-            num_beams=synapse.num_beams, 
+            input_ids=inputs_x,
+            max_length=synapse.num_to_generate,
+            num_beams=synapse.num_beams,
             no_repeat_ngram_size=synapse.no_repeat_ngram_size,
             early_stopping = synapse.early_stopping,
-            do_sample=synapse.do_sample, 
-            top_p=synapse.top_p, 
+            do_sample=synapse.do_sample,
+            top_p=synapse.top_p,
             num_return_sequences=synapse.num_return_sequences,
         )
         return model_output, output
 
-    def forward_hidden_state(inputs_x, synapse, model_output = None):
+
+    def forward_hidden_state(inputs_x:torch.FloatTensor, synapse, model_output = None):
         model_output, hidden = model.encode_forward(inputs_x.to(model.device), model_output = model_output)
         return model_output, hidden
 
-    def forward_casual_lm(inputs_x, synapse, model_output = None):
+
+    def forward_casual_lm(inputs_x:torch.FloatTensor, synapse, model_output = None):
         model_output, logits = model.encode_forward_causallm(inputs_x.to(model.device), model_output = model_output)
         return model_output, logits
     
@@ -98,39 +102,6 @@ def serve(
         optimizer.step()
         optimizer.zero_grad()
 
-    def backward_causal_lm(inputs_x, grads_dy):
-        r"""Single threaded backwards function that is called when the axon receives
-            a backwards request from other peers.
-            Updates the server parameters with gradients through the chain.
-        """
-        if config.neuron.training:
-            with mutex:
-                with torch.enable_grad():
-                    with torch.autograd.set_detect_anomaly(True):
-                        outputs_y = model.encode_forward_causallm(inputs_x.to(model.device))
-                        torch.autograd.backward (
-                            tensors = [ outputs_y ],
-                            grad_tensors = [ grads_dy ]
-                            )
-                        optimizer.step()
-                        optimizer.zero_grad()
-
-    def backward_text ( inputs_x, grads_dy ):
-        r"""Single threaded backwards function that is called when the axon recieves a backwards request from other peers.
-            Updates the server parameters with gradients through the chain.             
-        """
-        if config.neuron.training:
-            with mutex:
-                with torch.enable_grad():
-                    with torch.autograd.set_detect_anomaly(True):
-                        outputs_y = model.encode_forward( inputs_x )
-                        torch.autograd.backward (
-                            tensors = [ outputs_y ],
-                            grad_tensors = [ grads_dy ]
-                            )
-                        optimizer.step()
-                        optimizer.zero_grad()
-    
 
     def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
@@ -186,21 +157,77 @@ def serve(
 
         # Black list or not
         try:
-            #registration_check()
+            registration_check()
 
-            #stake_check()
+            stake_check()
 
-            #validator_check()
+            validator_check()
             
             return False
 
         except Exception as e:
             return True
 
+    def backward_callback(inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
+        """
+            The default backward callback when no callback is attached: Is used to call specific synapse functions
+
+            Args:
+                inputs_x (:obj:`torch.FloatTensor`, `required`): 
+                    The inputs that will be passed to the synapse functions
+                grads_dy (:obj:`torch.FloatTensor`, `required`):
+                    The gradients that will be passed to the synapse functions
+                synapses (:obj: list of bittensor.proto.SynapseArgs, 'Optional')
+                    The proto message that contains additional args for individual synapse functions
+
+            Returns:
+                response_tensors: (:obj: list of bittensor.proto.Tensor, `required`): 
+                    serialized tensor response from the nucleus call or None.
+                response_codes: (:obj: list of bittensor.proto.ReturnCode, `required`)
+                    return code associated with forward call i.e. Success of Timeout.
+                response_messages: (:obj: list of strings, `required`)
+                    return message associated with synapse call
+        """
+        # --- initialize response variables --- 
+        response_tensors = []
+        response_codes = []
+        response_messages = []
+        
+        if not config.neuron.remote_train:
+            return response_tensors, response_codes, response_messages
+
+
+        # --- calling attached synapses ---
+        with mutex and torch.enable_grad() and torch.autograd.set_detect_anomaly(True):
+            for index, synapse in enumerate(synapses):
+                try:
+                    if synapse.synapse_type in axon.synapse_callbacks and axon.synapse_callbacks[synapse.synapse_type] != None:
+                        model_output, response_tensor = axon.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
+                        grads_dy_norm = grads_dy[index]/(grads_dy[index].sum() + 0.00001)
+                        torch.autograd.backward (
+                            tensors = [ response_tensor ],
+                            grad_tensors = [ grads_dy_norm ],
+                            retain_graph=True
+                        )                        
+                        model.backward_gradients_count += inputs_x[index].size(0)
+                        response_tensors.append(None)
+                        response_codes.append(bittensor.proto.ReturnCode.Success)
+                        response_messages.append('Success')
+                    else:
+                        response_tensors.append(None)
+                        response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
+                        response_messages.append('Not Implemented')
+                except Exception as e:
+                    # --- Exception Hit in Synapse ---
+                    response_tensors.append(None)
+                    response_codes.append(bittensor.proto.ReturnCode.UnknownException)
+                    response_messages.append(str(e))
+
+        return response_tensors, response_codes, response_messages
 
     # Create our axon server and subscribe it to the network.
     if axon == None:
-        axon = bittensor.axon (
+        axon = bittensor.axon(
             config = config,
             wallet = wallet,
             synapse_last_hidden = forward_hidden_state,
@@ -210,7 +237,17 @@ def serve(
         ).start().serve(subtensor=subtensor)
     
     axon.optimizer_step = optimizer_step
-    
+    axon.attach_backward_callback(backward_callback)
+    # Training Data
+    if config.neuron.local_train:
+        dataset = bittensor.dataset(config=config)
+        dataset.set_data_size(10, 64)
+        data = next(dataset)
+
+    # load our old model
+    if not config.neuron.restart :
+        model.load(config.neuron.full_path)
+
     if config.wandb.api_key != 'default':
         # --- Init Wandb.
         bittensor.wandb(
@@ -226,15 +263,45 @@ def serve(
     # --- Run Forever.
     while True:
         
-        current_block = subtensor.get_current_block()
-        end_block = current_block + config.neuron.blocks_per_epoch
-        while end_block >= current_block:
-            time.sleep( bittensor.__blocktime__ )
-            current_block = subtensor.get_current_block()
-
+        iteration = 0
+        local_data = {}
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
-        wandb_data = {
+        current_block = subtensor.get_current_block()
+        end_block = current_block + config.neuron.blocks_per_epoch
+        if config.neuron.local_train:
+            # --- Training step.
+            while end_block >= current_block:
+                if current_block != subtensor.get_current_block():
+                    loss, _ = model( next( dataset ).to(model.device) )
+                    if iteration > 0 : 
+                        losses += loss
+                    else:
+                        losses = loss
+                    iteration += 1
+                    current_block = subtensor.get_current_block()
+                    logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
+            
+            if iteration != 0:
+                (losses/iteration).backward()
+
+        # --- Update parameters
+        if (config.neuron.local_train and iteration > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
+            # Custom learning rate
+            if model.backward_gradients_count > 0:
+                optimizer.param_groups[0]['lr'] =  0.1/(model.backward_gradients_count)
+            else:
+                optimizer.param_groups[0]['lr'] =  0.1
+
+            logger.info('Backpropagation Started')
+            clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            optimizer.zero_grad()
+            model.backward_gradients = 0
+            logger.info('Backpropagation Successful: Model updated')
+            local_data = {'local/loss': losses.detach().item() / iteration}
+
+        wandb_data = {            
             'stake': nn.stake,
             'rank': nn.rank,
             'trust': nn.trust,
@@ -242,7 +309,7 @@ def serve(
             'incentive': nn.incentive,
             'emission': nn.emission,
         }
-        bittensor.__console__.print('[green]Current Status:[/green]', wandb_data)
+        bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
         if config.wandb.api_key != 'default':
 
             df = pandas.concat( [
@@ -251,8 +318,12 @@ def serve(
             ], axis = 1)
             df['uid'] = df.index
             wandb_info_axon = axon.to_wandb()                
-            wandb.log( { **wandb_data, **wandb_info_axon }, step = current_block )
+            wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+
+        if local_data['local/loss'] < model.best_loss:
+            model.best_loss = local_data['local/loss']
+            model.save(config.neuron.full_path)
 
         if current_block - last_set_block > config.neuron.blocks_per_set_weights:
             try: 
