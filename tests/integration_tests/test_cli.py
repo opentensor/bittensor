@@ -27,8 +27,7 @@ from substrateinterface.base import Keypair
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.utils.balance import Balance
-
-
+from ..helpers import CLOSE_IN_VALUE
 class TestCli(unittest.TestCase):
 
     def setUp(self):
@@ -535,7 +534,82 @@ class TestCli(unittest.TestCase):
                 )
 
     def test_unstake_with_multiple_hotkeys_max_stake( self ):
-        pass
+        bittensor.subtensor.register = MagicMock(return_value = True)
+        
+        config = self.config
+        config.command = "unstake"
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True 
+        # Notie amount is not specified
+        config.max_stake = 5.0 # The keys should have at most 5.0 tao staked after
+        config.wallet.name = "fake_wallet"
+        config.wallet.hotkeys = [
+            'hk0', 'hk1', 'hk2'
+        ]   
+        config.wallet.all_hotkeys = False
+        # Notice no max_stake specified
+
+        mock_coldkey = "" # Not None
+
+        mock_stakes: Dict[str, float] = {
+            # All have more than 5.0 stake
+            'hk0': bittensor.Balance.from_float(10.0),
+            'hk1': bittensor.Balance.from_float(11.1),
+            'hk2': bittensor.Balance.from_float(12.2),
+        }
+
+        mock_wallets = [
+            SimpleNamespace(
+                name = config.wallet.name,
+                hotkey_str = config.wallet.hotkeys[0],
+                get_stake = MagicMock(
+                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                ),
+                is_registered = MagicMock(
+                    return_value = True
+                ),
+
+                _coldkey = mock_coldkey,
+                coldkey =  MagicMock(
+                            return_value=mock_coldkey
+                        )
+            ) 
+        ] + [
+            SimpleNamespace(
+                name = config.wallet.name,
+                hotkey_str = hk,
+                get_stake = MagicMock(
+                    return_value = mock_stakes[hk]
+                ),
+                is_registered = MagicMock(
+                    return_value = True
+                )
+            ) for hk in config.wallet.hotkeys
+        ]
+
+        # The 0th wallet is created twice during unstake
+        mock_wallets[1]._coldkey = mock_coldkey
+        mock_wallets[1].coldkey = MagicMock(
+                                    return_value=mock_coldkey
+                                )
+        
+        cli = bittensor.cli(config)
+
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_wallets
+            with patch('bittensor.Subtensor.unstake', return_value=True) as mock_unstake:
+                cli.run()
+                mock_create_wallet.assert_has_calls(
+                    [
+                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                    ],
+                    any_order=True
+                )
+                mock_unstake.assert_has_calls(
+                    [call(mock_wallet, amount=CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str] - config.max_stake).tao, 0.001), wait_for_inclusion=True, prompt=False) for mock_wallet in mock_wallets[1:]],
+                    any_order = True
+                )
 
     def test_unstake_with_multiple_hotkeys_max_stake_not_enough_stake( self ):
         pass
@@ -717,7 +791,87 @@ class TestCli(unittest.TestCase):
                 )
 
     def test_stake_with_multiple_hotkeys_max_stake( self ):
-        pass
+        bittensor.subtensor.register = MagicMock(return_value = True)
+        
+        config = self.config
+        config.command = "stake"
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True 
+        # Notie amount is not specified
+        config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
+        config.wallet.name = "fake_wallet"
+        config.wallet.hotkeys = [
+            'hk0', 'hk1', 'hk2'
+        ]   
+        config.wallet.all_hotkeys = False
+        # Notice no max_stake specified
+
+        mock_balance = bittensor.Balance(15.0 * 3) # Enough to stake 15.0 on each hotkey
+
+        mock_coldkey = "" # Not None
+
+        mock_stakes: Dict[str, float] = {
+            # All have more than 5.0 stake
+            'hk0': bittensor.Balance.from_float(10.0),
+            'hk1': bittensor.Balance.from_float(11.1),
+            'hk2': bittensor.Balance.from_float(12.2),
+        }
+
+        mock_wallets = [
+            SimpleNamespace(
+                name = config.wallet.name,
+                hotkey_str = config.wallet.hotkeys[0],
+                get_stake = MagicMock(
+                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                ),
+                is_registered = MagicMock(
+                    return_value = True
+                ),
+
+                _coldkey = mock_coldkey,
+                coldkey =  MagicMock(
+                            return_value=mock_coldkey
+                        )
+            ) 
+        ] + [
+            SimpleNamespace(
+                name = config.wallet.name,
+                hotkey_str = hk,
+                get_stake = MagicMock(
+                    return_value = mock_stakes[hk]
+                ),
+                is_registered = MagicMock(
+                    return_value = True
+                )
+            ) for hk in config.wallet.hotkeys
+        ]
+
+        # The 0th wallet is created twice during unstake
+        mock_wallets[1]._coldkey = mock_coldkey
+        mock_wallets[1].coldkey = MagicMock(
+                                    return_value=mock_coldkey
+                                )
+        mock_wallets[1].get_balance = MagicMock(
+            return_value = mock_balance
+        )
+        
+        cli = bittensor.cli(config)
+
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_wallets
+            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+                cli.run()
+                mock_create_wallet.assert_has_calls(
+                    [
+                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                    ],
+                    any_order=True
+                )
+                mock_add_stake.assert_has_calls(
+                    [call(mock_wallet, amount=CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001), wait_for_inclusion=True, prompt=False) for mock_wallet in mock_wallets[1:]],
+                    any_order = True
+                )
 
     def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance( self ):
         pass
