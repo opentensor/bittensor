@@ -608,7 +608,7 @@ class cli:
                 config.dest = str(dest)
                     
         # Get amount.
-        if not config.amount:
+        if not config.get('amount'):
             amount = Prompt.ask("Enter Tao amount to transfer")
             try:
                 config.amount = float(amount)
@@ -629,7 +629,7 @@ class cli:
             config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
-        if not config.amount and not config.unstake_all and not config.get('max_stake'):
+        if not config.get('amount') and not config.get('unstake_all') and not config.get('max_stake'):
             hotkeys: str = ''
             if config.get('all_hotkeys'):
                 hotkeys = "all hotkeys"
@@ -713,7 +713,7 @@ class cli:
             config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
-        if not config.amount and not config.stake_all and not config.get('max_stake'):
+        if not config.get('amount') and not config.get('stake_all') and not config.get('max_stake'):
             if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.name)):
                 amount = Prompt.ask("Enter Tao amount to stake")
                 try:
