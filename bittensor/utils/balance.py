@@ -1,5 +1,3 @@
-""" Represent bittensor balance of the wallet with rao and tao
-"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -20,23 +18,29 @@ from typing import Union
 
 
 class Balance:
-    """Represent bittensor balance of the wallet with rao and tao"""
+    """
+    Represents the bittensor balance of the wallet, stored as rao (int)
+    The Balance object is immutable, and can be used as a number or as a string
+    Can only guarantee that the balance is accurate to 9 decimal places (tao)
+    """
 
-    unit = "\u03C4"
+    unit: str = "\u03C4" # This is the tao unit
+    rao_unit: str = "\u03C1" # This is the rao unit
     rao: int
     tao: float
 
-    # Balance should always be an int and represent the satoshi of our token:rao
     def __init__(self, balance: Union[int, float]):
         if isinstance(balance, int):
             self.rao = balance
-            self.tao = self.rao / pow(10, 9)
         elif isinstance(balance, float):
             # Assume tao value for the float
-            self.tao = balance
-            self.rao = self.tao * pow(10, 9)
+            self.rao = balance * pow(10, 9)
         else:
             raise TypeError("balance must be an int (rao) or a float (tao)")
+
+    @property
+    def tao(self):
+        return self.rao / pow(10, 9)
 
     def __int__(self):
         return self.rao
@@ -45,22 +49,20 @@ class Balance:
         return self.tao
 
     def __str__(self):
-        return "\u03C4{}\u002C{}".format(
-            format(float(self.tao), "f").split(".")[0],
-            format(float(self.tao), "f").split(".")[1],
-        )
+        return f"{self.unit}{float(self.tao):,.9f}".replace(".", ",")
 
     def __rich__(self):
-        return "[green]\u03C4[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
+        return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
+            self.unit,
             format(float(self.tao), "f").split(".")[0],
             format(float(self.tao), "f").split(".")[1],
         )
 
     def __str_rao__(self):
-        return "\u03C1{}".format(int(self.rao))
+        return f"{self.rao_unit}{int(self.rao)}"
 
     def __rich_rao__(self):
-        return "[green]\u03C1{}[/green]".format(int(self.rao))
+        return f"[green]{self.rao_unit}{int(self.rao)}[/green]"
 
     def __repr__(self):
         return self.__str__()
@@ -68,66 +70,99 @@ class Balance:
     def __eq__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return self.rao == other.rao
-        else:
+        elif isinstance(other, (int, float)):
             # Attempt to cast
             other = Balance(other)
             return self.rao == other.rao
+        else:
+            raise NotImplemented("Unsupported type")
 
     def __ne__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return self.rao != other.rao
-        else:
-            # Attempt to cast
-            other = Balance(other)
-            return self.rao != other.rao
+        return not self == other
 
     def __gt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return self.rao > other.rao
-        else:
+        elif isinstance(other, (int, float)):
             # Attempt to cast
             other = Balance(other)
             return self.rao > other.rao
+        else:
+            raise NotImplemented("Unsupported type")
 
     def __lt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return self.rao < other.rao
-        else:
+        elif isinstance(other, (int, float)):
             # Attempt to cast
             other = Balance(other)
             return self.rao < other.rao
+        else:
+            raise NotImplemented("Unsupported type")
 
     def __le__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return self.rao <= other.rao
-        else:
-            # Attempt to cast
-            other = Balance(other)
-            return self.rao <= other.rao
+        return self < other or self == other
 
     def __ge__(self, other: Union[int, float, "Balance"]):
-        if hasattr(other, "rao"):
-            return self.rao >= other.rao
-        else:
-            # Attempt to cast
-            other = Balance(other)
-            return self.rao >= other.rao
+        return self > other or self == other
 
     def __add__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(self.rao + other.rao))
-        else:
+        elif isinstance(other, (int, float)):
             # Attempt to cast
             other = Balance(other)
             return Balance(int(self.rao + other.rao))
+        else:
+            raise NotImplemented("Unsupported type")
+
+    def __radd__(self, other: Union[int, float, "Balance"]):
+        return self + other
 
     def __sub__(self, other: Union[int, float, "Balance"]):
+        return self + -other
+
+    def __rsub__(self, other: Union[int, float, "Balance"]):
+        return -self + other
+
+    def __mul__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao - other.rao))
-        else:
+            return Balance(int(self.rao * other.rao))
+        elif isinstance(other, (int, float)):
             # Attempt to cast
             other = Balance(other)
-            return Balance(int(self.rao - other.rao))
+            return Balance(int(self.rao * other.rao))
+        else:
+            raise NotImplemented("Unsupported type")
+
+    def __truediv__(self, other: Union[int, float, "Balance"]):
+        if hasattr(other, "rao"):
+            return Balance(int(self.rao / other.rao))
+        elif isinstance(other, (int, float)):
+            # Attempt to cast
+            other = Balance(other)
+            return Balance(int(self.rao / other.rao))
+        else:
+            raise NotImplemented("Unsupported type")
+
+    def __floordiv__(self, other: Union[int, float, "Balance"]):
+        if hasattr(other, "rao"):
+            return Balance(int(self.tao // other.tao))
+        elif isinstance(other, (int, float)):
+            # Attempt to cast
+            other = Balance(other)
+            return Balance(int(self.tao // other.tao))
+        else:
+            raise NotImplemented("Unsupported type")
+
+    def __int__(self) -> int:
+        return self.rao
+
+    def __float__(self) -> float:
+        return self.tao
+
+    def __nonzero__(self) -> bool:
+        return bool(self.rao)
 
     def __neg__(self):
         return Balance(-self.rao)
