@@ -17,7 +17,7 @@
 
 import os
 import sys
-from typing import List
+from typing import List, Union
 
 import bittensor
 from bittensor.utils.balance import Balance
@@ -253,30 +253,54 @@ class CLI:
                 wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
             ]
 
-        else:
+        elif self.config.wallet.get('hotkeys'):
             # Unstake from specific hotkeys.
-            if self.config.wallet.get('hotkeys'):
-                wallets_to_unstake_from = [
-                    bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
-                ]
-            else:
-                wallets_to_unstake_from = [wallet]
+            wallets_to_unstake_from = [
+                bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
+            ]
+        else:
+            # Do regular unstake
+            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
+            return None
 
+        wallet_0: 'bittensor.wallet' = wallets_to_unstake_from[0]
+        # Decrypt coldkey for all wallet(s) to use
+        wallet_0.coldkey
+
+        final_wallets: List['bittensor.wallet'] = [] 
+        final_amounts: List[Union[float, Balance]] = []
         for wallet in tqdm(wallets_to_unstake_from):
             wallet: bittensor.wallet
             if not wallet.is_registered():
                 # Skip unregistered hotkeys.
                 continue
-            wallet_stake: Balance = wallet.get_stake()
+            # Assign decrypted coldkey from wallet_0
+            #  so we don't have to decrypt again
+            wallet._coldkey = wallet_0._coldkey
+
             unstake_amount_tao: float = self.config.get('amount')
             if self.config.get('max_stake'):
+                wallet_stake: Balance = wallet.get_stake()
                 unstake_amount_tao: float = wallet_stake.tao - self.config.get('max_stake')   
                 self.config.amount = unstake_amount_tao  
                 if unstake_amount_tao < 0:
                     # Skip if max_stake is greater than current stake.
                     continue
+                    
+            final_wallets.append(wallet)
+            final_amounts.append(unstake_amount_tao)
 
-            subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+        # Ask to unstake
+        if not self.config.no_prompt:
+            if not Confirm.ask("Do you want to unstake from the following keys:\n" + \
+                    "".join([
+                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                    ])
+                ):
+                return None
+
+        for wallet, amount in zip(final_wallets, final_amounts):
+            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else amount, wait_for_inclusion = True, prompt = False )
 
 
     def stake( self ):
@@ -297,35 +321,60 @@ class CLI:
                 wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
             ]
 
-        else:
+        elif self.config.wallet.get('hotkeys'):
             # Stake to specific hotkeys.
-            if self.config.wallet.get('hotkeys'):
-                wallets_to_stake_to = [
-                    bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
-                ]
-            else:
-                wallets_to_stake_to = [wallet]
+            wallets_to_stake_to = [
+                bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
+            ]
+        else:
+            # Do regular stake
+            subtensor.add_stake( wallet, amount = None if self.config.get('stake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
+            return None
+           
+        # Otherwise we stake to multiple wallets
 
+        wallet_0: 'bittensor.wallet' = wallets_to_stake_to[0]
+        # Decrypt coldkey for all wallet(s) to use
+        wallet_0.coldkey
+
+        # Get coldkey balance
+        wallet_balance: Balance = wallet_0.get_balance()
+        final_wallets: List['bittensor.wallet'] = [] 
+        final_amounts: List[Union[float, Balance]] = []
         for wallet in tqdm(wallets_to_stake_to):
             wallet: bittensor.wallet            
             if not wallet.is_registered():
                 # Skip unregistered hotkeys.
                 continue
-            # Get coldkey balance
-            wallet_balance: Balance = wallet.get_balance()
+            
+            # Assign decrypted coldkey from wallet_0
+            #  so we don't have to decrypt again
+            wallet._coldkey = wallet_0._coldkey
 
-            wallet_stake: Balance = wallet.get_stake()
             stake_amount_tao: float = self.config.get('amount')
             if self.config.get('max_stake'):
+                wallet_stake: Balance = wallet.get_stake()
                 stake_amount_tao: float =  self.config.get('max_stake') - wallet_stake.tao
                 # If the max_stake is greater than the current wallet balance, stake the entire balance.
                 stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
-                self.config.amount = stake_amount_tao  
                 if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
                     # Skip hotkey if max_stake is less than current stake.
                     continue
+                wallet_balance -= stake_amount_tao
+            final_amounts.append(stake_amount_tao)
+            final_wallets.append(wallet)
 
-            subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+        # Ask to stake
+        if not self.config.no_prompt:
+            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n  " + \
+                    "".join([
+                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                    ])
+                ):
+                return None
+
+        for wallet, amount in zip(final_wallets, final_amounts):
+            subtensor.add_stake( wallet, amount = None if self.config.get('stake_all') else amount, wait_for_inclusion = True, prompt = False )
 
 
     def set_weights( self ):
