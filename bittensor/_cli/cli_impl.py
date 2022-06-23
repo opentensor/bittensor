@@ -130,7 +130,7 @@ class CLI:
         dendrite = bittensor.dendrite( wallet = wallet )
 
         
-        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.network)):
+        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             
             if self.config.wallet.hotkey == 'None':
                 wallet.coldkeypub
