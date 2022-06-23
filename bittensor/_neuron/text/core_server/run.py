@@ -86,7 +86,9 @@ def serve(
             top_p=synapse.top_p,
             num_return_sequences=synapse.num_return_sequences,
         )
-        return model_output, output
+        raw_text = model.tokenizer.decode(output[0])
+        bittensor_output = model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate]
+        return model_output, bittensor_output
 
 
     def forward_hidden_state(inputs_x:torch.FloatTensor, synapse, model_output = None):
@@ -324,7 +326,7 @@ def serve(
             'incentive': nn.incentive,
             'emission': nn.emission,
         }
-        bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+        
         if config.wandb.api_key != 'default':
 
             df = pandas.concat( [
@@ -336,12 +338,14 @@ def serve(
             wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-        if local_data['local/loss'] < model.best_loss:
+        if 'local/loss' in local_data.keys() and local_data['local/loss'] < model.best_loss:
             model.best_loss = local_data['local/loss']
             model.save(config.neuron.full_path)
 
         if current_block - last_set_block > config.neuron.blocks_per_set_weights:
             try: 
+                bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+                
                 last_set_block = current_block
                 # Set self weights to maintain activity.
                 # --- query the chain for the most current number of peers on the network
