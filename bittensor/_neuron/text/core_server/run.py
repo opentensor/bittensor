@@ -167,6 +167,21 @@ def serve(
 
         except Exception as e:
             return True
+    
+    def synapse_check(synapse, hotkey):
+        """
+        Custom synapse function to blacklist certain synapse functions depending on the stake
+        """
+        #TODO turn on synapse checking function
+        if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
+            pass
+            
+        elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
+            pass
+            
+        elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
+            pass
+
 
     def backward_callback(inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
         """
@@ -230,9 +245,9 @@ def serve(
         axon = bittensor.axon(
             config = config,
             wallet = wallet,
-            synapse_last_hidden = forward_hidden_state,
-            synapse_causal_lm = forward_casual_lm,
-            synapse_seq_2_seq = forward_generate,
+            synapse_last_hidden = forward_hidden_state if model.config.neuron.lasthidden else None,
+            synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
+            synapse_seq_2_seq = forward_generate if model.config.neuron.seq2seq else None ,
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
     

@@ -58,10 +58,18 @@ class neuron:
         wallet: 'bittensor.wallet' = None,
         axon: 'bittensor.axon' = None,
         metagraph: 'bittensor.metagraph' = None,
+        lasthidden = None,
+        causallm = None,
+        seq2seq = None,
 
     ):
         if config == None: config = server.config()
         config = config; 
+
+        config.neuron.lasthidden = lasthidden if lasthidden != None else config.neuron.lasthidden
+        config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
+        config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
+
         self.check_config( config )
         bittensor.logging (
             config = config,

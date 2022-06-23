@@ -146,7 +146,7 @@ class Synapse:
         return forward_request_tensor
 
     def serialize_forward_response_tensor( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> Tuple[ 'bittensor.proto.Tensor', 'bittensor.proto.ReturnCode',  str ]:
-        """ Returns a bittensor.proto.Tensor to be sent on the wire after relevant serialization applied. """        
+        """ Returns a bittensor.proto.Tensor to be sent on the wire after relevant serialization applied. """  
         encoded_tensor = self.encode_forward_response_tensor ( forward_response_tensor )
         self.check_forward_response_tensor ( forward_request_tensor, encoded_tensor )
         tensor_serialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )

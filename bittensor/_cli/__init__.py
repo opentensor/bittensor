@@ -103,6 +103,15 @@ class cli:
             default='None', 
             help='''Miners available through bittensor.neurons'''
         )
+
+        run_parser.add_argument(
+            '--synapse', 
+            type=str, 
+            choices= list(bittensor.synapse.__synapses_types__), 
+            default='None', 
+            help='''Synapses available through bittensor.synapse'''
+        )
+        
         bittensor.subtensor.add_args( run_parser )
         bittensor.wallet.add_args( run_parser )
 
@@ -776,6 +785,10 @@ class cli:
         if config.model == 'None' and not config.no_prompt:
             model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'template_miner')
             config.model = model
+
+        if 'server' in config.model and not config.no_prompt:
+            synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__), default = 'All')
+            config.synapse = synapse
                 
     def check_help_config( config: 'bittensor.Config'):
         if config.model == 'None':

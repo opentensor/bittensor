@@ -408,7 +408,12 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
         parser.add_argument('--neuron.local_train', action='store_true', help='''If true, allow local training''', default=False)
         parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
-
+        parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
+        parser.add_argument('--neuron.causallm', action='store_false', help='To turn off causallm synapse', default=True)
+        parser.add_argument('--neuron.seq2seq', action='store_false', help='To turn off seq2seq synapse', default=True)
+        parser.add_argument('--neuron.lasthidden_stake', type = float, help='the amount of stake to run last hidden synapse',default=0)
+        parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
+        parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run  seq2seq synapse',default=0)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
