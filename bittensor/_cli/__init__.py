@@ -560,7 +560,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             if not Confirm.ask("Show all weights?"):
                 wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
                 config.wallet.name = str(wallet_name)
@@ -578,7 +578,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -603,7 +603,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -625,7 +625,7 @@ class cli:
                 config.unstake_all = True
 
     def check_query_config( config: 'bittensor.Config' ):
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -648,7 +648,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -668,7 +668,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -680,7 +680,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -690,7 +690,7 @@ class cli:
                     
         # Get amount.
         if not config.amount and not config.stake_all:
-            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.name)):
+            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
                 amount = Prompt.ask("Enter Tao amount to stake")
                 try:
                     config.amount = float(amount)
@@ -704,7 +704,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if config.wallet.name is None  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -712,7 +712,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.wallet.name is None and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -721,12 +721,12 @@ class cli:
             config.wallet.hotkey = str(hotkey)
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
-        if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if config.wallet.name is None  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
     def check_new_hotkey_config( config: 'bittensor.Config' ):
-        if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if config.wallet.name is None  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -735,7 +735,7 @@ class cli:
             config.wallet.hotkey = str(hotkey)
 
     def check_regen_hotkey_config( config: 'bittensor.Config' ):
-        if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if config.wallet.name is None  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
@@ -747,7 +747,7 @@ class cli:
             config.mnemonic = Prompt.ask("Enter mnemonic")
 
     def check_regen_coldkey_config( config: 'bittensor.Config' ):
-        if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if config.wallet.name is None  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if config.mnemonic == None and config.seed == None:
@@ -764,7 +764,7 @@ class cli:
         if config.subtensor.network is None and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.name == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if config.wallet.name is None  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
