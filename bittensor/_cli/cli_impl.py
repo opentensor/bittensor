@@ -132,7 +132,7 @@ class CLI:
         
         with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             
-            if self.config.wallet.hotkey == 'None':
+            if self.config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) == 'None':
                 wallet.coldkeypub
                 cold_balance = wallet.get_balance( subtensor = subtensor )
                 bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)

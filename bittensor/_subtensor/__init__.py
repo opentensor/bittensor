@@ -170,7 +170,7 @@ class subtensor:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
         try:
-            parser.add_argument('--subtensor.network', default = None, type=str, 
+            parser.add_argument('--subtensor.network', default = argparse.SUPPRESS, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- nobunaga (staging network)
                                         -- nakamoto (master network)
