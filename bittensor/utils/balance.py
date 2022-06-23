@@ -34,7 +34,7 @@ class Balance:
             self.rao = balance
         elif isinstance(balance, float):
             # Assume tao value for the float
-            self.rao = balance * pow(10, 9)
+            self.rao = int(balance * pow(10, 9))
         else:
             raise TypeError("balance must be an int (rao) or a float (tao)")
 
@@ -135,6 +135,9 @@ class Balance:
         else:
             raise NotImplemented("Unsupported type")
 
+    def __rmul__(self, other: Union[int, float, "Balance"]):
+        return self * other
+
     def __truediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(self.rao / other.rao))
@@ -145,6 +148,16 @@ class Balance:
         else:
             raise NotImplemented("Unsupported type")
 
+    def __rtruediv__(self, other: Union[int, float, "Balance"]):
+        if hasattr(other, "rao"):
+            return Balance(int(other.rao / self.rao))
+        elif isinstance(other, (int, float)):
+            # Attempt to cast
+            other = Balance(other)
+            return Balance(int(other.rao / self.rao))
+        else:
+            raise NotImplemented("Unsupported type")
+
     def __floordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(self.tao // other.tao))
@@ -152,6 +165,16 @@ class Balance:
             # Attempt to cast
             other = Balance(other)
             return Balance(int(self.tao // other.tao))
+        else:
+            raise NotImplemented("Unsupported type")
+
+    def __rfloordiv__(self, other: Union[int, float, "Balance"]):
+        if hasattr(other, "rao"):
+            return Balance(int(other.tao // self.tao))
+        elif isinstance(other, (int, float)):
+            # Attempt to cast
+            other = Balance(other)
+            return Balance(int(other.tao // self.tao))
         else:
             raise NotImplemented("Unsupported type")
 
