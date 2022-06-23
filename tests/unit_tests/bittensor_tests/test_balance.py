@@ -266,9 +266,64 @@ class TestBalance(unittest.TestCase):
         elif isinstance(balance2, float):
             rao2_ = int(balance2 * pow(10, 9))
 
-        quot_ =  balance2_ / balance_ # This is an rmul
+        quot_ =  balance2_ / balance_ # This is an rtruediv
         assert isinstance(quot_, Balance)
         assert CLOSE_IN_VALUE(quot_.rao, 5) == rao2_ / rao_
 
-    
+    @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy.filter(remove_zero_filter)) # Avoid zero division
+    def test_balance_floordiv(self, balance: Union[int, float], balance2: Union[int, float]):
+        balance_ = Balance(balance)
+        balance2_ = Balance(balance2)
+        rao_: int
+        rao2_: int
+        if isinstance(balance, int):
+            rao_ = balance
+        elif isinstance(balance, float):
+            rao_ = int(balance * pow(10, 9))
+        if isinstance(balance2, int):
+            rao2_ = balance2
+        elif isinstance(balance2, float):
+            rao2_ = int(balance2 * pow(10, 9))
+
+        quot_ = balance_ // balance2_
+        assert isinstance(quot_, Balance)
+        assert CLOSE_IN_VALUE(quot_.rao, 5) == rao_ // rao2_
+
+    @given(balance=valid_tao_numbers_strategy,  balance2=valid_tao_numbers_strategy.filter(remove_zero_filter))
+    def test_balance_floordiv_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+        balance_ = Balance(balance)
+        balance2_ = balance2
+        rao_: int
+        rao2_: int
+        if isinstance(balance, int):
+            rao_ = balance
+        elif isinstance(balance, float):
+            rao_ = int(balance * pow(10, 9))
+        if isinstance(balance2, int):
+            rao2_ = balance2
+        elif isinstance(balance2, float):
+            rao2_ = int(balance2 * pow(10, 9))
+
+        quot_ = balance_ // balance2_
+        assert isinstance(quot_, Balance)
+        assert CLOSE_IN_VALUE(quot_.rao, 5) == rao_ // rao2_
+
+    @given(balance=valid_tao_numbers_strategy.filter(remove_zero_filter), balance2=valid_tao_numbers_strategy) # This is a filter to avoid division by zero
+    def test_balance_rfloordiv_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+        balance_ = Balance(balance)
+        balance2_ = balance2
+        rao_: int
+        rao2_: int
+        if isinstance(balance, int):
+            rao_ = balance
+        elif isinstance(balance, float):
+            rao_ = int(balance * pow(10, 9))
+        if isinstance(balance2, int):
+            rao2_ = balance2
+        elif isinstance(balance2, float):
+            rao2_ = int(balance2 * pow(10, 9))
+
+        quot_ =  balance2_ // balance_ # This is an rfloordiv
+        assert isinstance(quot_, Balance)
+        assert CLOSE_IN_VALUE(quot_.rao, 5) == rao2_ // rao_   
 
