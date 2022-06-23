@@ -158,12 +158,13 @@ def serve(
                 return False
 
         # Black list or not
+        #TODO: Turn on blacklist
         try:
-            registration_check()
+            #registration_check()
 
-            stake_check()
+            #stake_check()
 
-            validator_check()
+            #validator_check()
             
             return False
 
@@ -345,7 +346,7 @@ def serve(
         if current_block - last_set_block > config.neuron.blocks_per_set_weights:
             try: 
                 bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
-                
+
                 last_set_block = current_block
                 # Set self weights to maintain activity.
                 # --- query the chain for the most current number of peers on the network
