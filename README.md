@@ -59,7 +59,7 @@ $ python3 -m pip install -e bittensor/
 
 ## 3. Using Bittensor
 
-The following examples showcase how to use the Bittensor API for 3 seperate purposes.
+The following examples showcase how to use the Bittensor API for 3 separate purposes.
 
 ### 3.1. Client 
 
