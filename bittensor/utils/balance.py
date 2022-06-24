@@ -70,12 +70,13 @@ class Balance:
     def __eq__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return self.rao == other.rao
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return self.rao == other.rao
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return self.rao == other.rao
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __ne__(self, other: Union[int, float, "Balance"]):
         return not self == other
@@ -83,22 +84,24 @@ class Balance:
     def __gt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return self.rao > other.rao
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return self.rao > other.rao
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return self.rao > other.rao
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __lt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return self.rao < other.rao
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return self.rao < other.rao
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return self.rao < other.rao
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __le__(self, other: Union[int, float, "Balance"]):
         return self < other or self == other
@@ -109,12 +112,13 @@ class Balance:
     def __add__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(self.rao + other.rao))
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return Balance(int(self.rao + other.rao))
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return Balance(int(self.rao + other.rao))
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __radd__(self, other: Union[int, float, "Balance"]):
         return self + other
@@ -128,12 +132,13 @@ class Balance:
     def __mul__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(self.rao * other.rao))
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return Balance(int(self.rao * other.rao))
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return Balance(int(self.rao * other.rao))
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __rmul__(self, other: Union[int, float, "Balance"]):
         return self * other
@@ -141,42 +146,46 @@ class Balance:
     def __truediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(self.rao / other.rao))
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return Balance(int(self.rao / other.rao))
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return Balance(int(self.rao / other.rao))
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __rtruediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(other.rao / self.rao))
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return Balance(int(other.rao / self.rao))
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return Balance(int(other.rao / self.rao))
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __floordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(self.tao // other.tao))
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return Balance(int(self.tao // other.tao))
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return Balance(int(self.tao // other.tao))
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __rfloordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return Balance(int(other.tao // self.tao))
-        elif isinstance(other, (int, float)):
-            # Attempt to cast
-            other = Balance(other)
-            return Balance(int(other.tao // self.tao))
         else:
-            raise NotImplemented("Unsupported type")
+            try:
+                # Attempt to cast
+                other = Balance(other)
+                return Balance(int(other.tao // self.tao))
+            except TypeError:
+                raise NotImplemented("Unsupported type")
 
     def __int__(self) -> int:
         return self.rao
