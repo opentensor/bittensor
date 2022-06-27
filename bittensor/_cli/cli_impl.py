@@ -189,12 +189,10 @@ class CLI:
         # Run miner.
         if self.config.model == 'template_miner':
             bittensor.neurons.template_miner.neuron().run()
-        elif self.config.model == 'template_server':
-            bittensor.neurons.template_server.neuron().run()
+        elif self.config.model == 'core_server':
+            bittensor.neurons.core_server.neuron().run()
         elif self.config.model == 'core_validator':
             bittensor.neurons.core_validator.neuron().run()
-        elif self.config.model == 'advanced_server':
-            bittensor.neurons.advanced_server.neuron().run()
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
 
@@ -206,12 +204,10 @@ class CLI:
         # Run miner.
         if self.config.model == 'template_miner':
             bittensor.neurons.template_miner.neuron().run()
-        elif self.config.model == 'template_server':
-            bittensor.neurons.template_server.neuron().run()
+        elif self.config.model == 'core_server':
+            bittensor.neurons.core_server.neuron().run()
         elif self.config.model == 'core_validator':
             bittensor.neurons.core_validator.neuron().run()
-        elif self.config.model == 'advanced_server':
-            bittensor.neurons.advanced_server.neuron().run()
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
 
