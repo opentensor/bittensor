@@ -6,3 +6,9 @@ dataset = Munch().fromDict(
     'num_batches': 10
   }
 )
+
+synapse = Munch().fromDict(
+  {
+    'num_to_generate': 70,
+  }
+)

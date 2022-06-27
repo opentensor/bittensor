@@ -18,7 +18,7 @@
 import torch
 import pytest
 import bittensor
-from multiprocessing import Pool
+import constant 
 
 wallet = bittensor.wallet.mock()
 dendrite = bittensor.dendrite( wallet = wallet )
@@ -33,13 +33,13 @@ neuron_obj = bittensor.endpoint(
     modality = 0
 )
 
-synapses = [bittensor.synapse.TextLastHiddenState(),bittensor.synapse.TextCausalLM(), bittensor.synapse.TextSeq2Seq(num_to_generate=70)]
+synapses = [bittensor.synapse.TextLastHiddenState(),bittensor.synapse.TextCausalLM(), bittensor.synapse.TextSeq2Seq(num_to_generate=constant.synapse.num_to_generate)]
 
 def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
     assert list(resp[0][0].shape) == [block_size, seq_len, bittensor.__network_dim__]
     assert list(resp[0][1].shape) == [block_size, seq_len, bittensor.__vocab_size__]
-    assert list(resp[0][2].shape) == [block_size, 70]
+    assert list(resp[0][2].shape) == [block_size, constant.synapse.num_to_generate]
     
 def test_dendrite_forward_text_endpoints_tensor():
     endpoints = neuron_obj.to_tensor()
