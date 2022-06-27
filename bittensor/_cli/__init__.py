@@ -698,8 +698,8 @@ class cli:
             config.wallet.name = str(wallet_name)
 
         if config.wallet.get('hotkey') is None and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name (optional)", default = 'None')
-            config.wallet.hotkey = str(hotkey)
+            hotkey = Prompt.ask("Enter hotkey name (optional)", default = None)
+            config.wallet.hotkey = hotkey
 
     def check_stake_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') is None and not config.no_prompt:
