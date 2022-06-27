@@ -16,12 +16,18 @@ jobs:
 
     steps:
       - checkout
+      -
+      - run:
+          name: Check Python Minor Version
+          command: |
+            export PYTHON_VERSION=$(python -V)
+            echo $PYTHON_VERSION
 
       - restore_cache:
           name: Restore cached venv
           keys:
-            - v1-pypi-py{{ checksum "~/.pyenv/versions/*/bin/python" }}-{{ checksum "requirements.txt" }}
-            - v1-pypi-py{{ checksum "~/.pyenv/versions/*/bin/python" }}
+            - v1-pypi-py{{ .Environment.PYTHON_VERSION }}-{{ checksum "requirements.txt" }}
+            - v1-pypi-py{{ .Environment.PYTHON_VERSION }}
 
       - run:
           name: Update & Activate venv
@@ -34,7 +40,7 @@ jobs:
           name: Save cached venv
           paths:
             - "env/"
-          key: v1-pypi-py{{ checksum "~/.pyenv/versions/*/bin/python" }}-{{ checksum "requirements.txt" }}
+          key: v1-pypi-py{{ .Environment.PYTHON_VERSION }}-{{ checksum "requirements.txt" }}
 
       - run:
           name: Install Bittensor
