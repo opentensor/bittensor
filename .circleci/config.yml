@@ -88,12 +88,13 @@ jobs:
             CI_JOB_ID: $CIRCLE_NODE_INDEX
             COVERALLS_PARALLEL: true
 
-  test-all-versions:
+  unit-tests-all-python-versions:
     docker:
       - image: cimg/python:3.10
     steps:
       - run:
-          echo "Success"
+          name: Placeholder command
+          command: echo "Success, only runs if all python versions ran"
 
   coveralls:
     docker:
@@ -112,9 +113,9 @@ workflows:
           matrix:
             parameters:
               python-version: ["3.7", "3.8", "3.9", "3.10.5"]
-      - test-all-versions:
-          - requires:
-              - build-and-test
+      - unit-tests-all-python-versions:
+          requires:
+            - build-and-test
       - coveralls:
           requires:
             - build-and-test
