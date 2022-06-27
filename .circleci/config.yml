@@ -20,7 +20,7 @@ jobs:
       - run:
           name: Check Python Minor Version
           command: |
-            echp 'export PYTHON_VERSION=$(python -V)' >> $BASH_ENV
+            echo 'export PYTHON_VERSION=$(python -V)' >> $BASH_ENV
             python -V
 
       - restore_cache:
