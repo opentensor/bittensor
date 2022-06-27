@@ -88,6 +88,13 @@ jobs:
             CI_JOB_ID: $CIRCLE_NODE_INDEX
             COVERALLS_PARALLEL: true
 
+  test-all-versions:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - run:
+          echo "Success"
+
   coveralls:
     docker:
       - image: cimg/python:3.10
@@ -105,6 +112,9 @@ workflows:
           matrix:
             parameters:
               python-version: ["3.7", "3.8", "3.9", "3.10.5"]
+      - test-all-versions:
+          - requires:
+              - build-and-test
       - coveralls:
           requires:
             - build-and-test
