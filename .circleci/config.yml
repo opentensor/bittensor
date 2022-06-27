@@ -88,6 +88,14 @@ jobs:
             CI_JOB_ID: $CIRCLE_NODE_INDEX
             COVERALLS_PARALLEL: true
 
+  unit-tests-all-python-versions:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - run:
+          name: Placeholder command
+          command: echo "Success, only runs if all python versions ran"
+
   coveralls:
     docker:
       - image: cimg/python:3.10
@@ -96,7 +104,7 @@ jobs:
           name: Combine Coverage
           command: |
             pip3 install --upgrade coveralls
-            coveralls --finish --rcfile .coveragerc
+            coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
 
 workflows:
   pre-pr:
@@ -104,7 +112,10 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.7", "3.8", "3.9", "3.10"]
+              python-version: ["3.7", "3.8", "3.9", "3.10.5"]
+      - unit-tests-all-python-versions:
+          requires:
+            - build-and-test
       - coveralls:
           requires:
             - build-and-test
