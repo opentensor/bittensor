@@ -20,8 +20,8 @@ jobs:
       - restore_cache:
           name: Restore cached venv
           keys:
-            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements.txt" }}
-            - v1-pypi-py<< parameters.python-version >>
+            - v1-pypi-py{{ checksum "~/.pyenv/versions/*/bin/python" }}-{{ checksum "requirements.txt" }}
+            - v1-pypi-py{{ checksum "~/.pyenv/versions/*/bin/python" }}
 
       - run:
           name: Update & Activate venv
@@ -34,7 +34,7 @@ jobs:
           name: Save cached venv
           paths:
             - "env/"
-          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements.txt" }}
+          key: v1-pypi-py{{ checksum "~/.pyenv/versions/*/bin/python" }}-{{ checksum "requirements.txt" }}
 
       - run:
           name: Install Bittensor
