@@ -130,9 +130,10 @@ class CLI:
         dendrite = bittensor.dendrite( wallet = wallet )
 
         
-        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.network)):
+        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             
-            if self.config.wallet.hotkey == 'None':
+            if self.config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) is None:
+                # If no hotkey is provided, inspect just the coldkey
                 wallet.coldkeypub
                 cold_balance = wallet.get_balance( subtensor = subtensor )
                 bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)
@@ -163,7 +164,7 @@ class CLI:
         # Check coldkey.
         wallet = bittensor.wallet( config = self.config )
         if not wallet.coldkeypub_file.exists_on_device():
-            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
+            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.get('name', bittensor.defaults.wallet.name))):
                 wallet.create_new_coldkey()
             else:
                 sys.exit()
@@ -402,6 +403,14 @@ class CLI:
             hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
         return hotkey_wallets
 
+    def _get_coldkey_wallets(self):
+        try:
+            wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        except StopIteration:
+            # No wallet files found.
+            wallets = []
+        return wallets
+
     def list(self):
         r""" Lists wallets.
         """
@@ -523,7 +532,7 @@ class CLI:
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )
         wallet = bittensor.wallet( config = self.config )
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             metagraph.load()
             metagraph.sync()
             metagraph.save()
@@ -570,9 +579,9 @@ class CLI:
             
         neurons = []
         block = subtensor.block
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             try:
-                if self.config.subtensor.network not in ('local', 'nakamoto'):
+                if self.config.subtensor.get('network', bittensor.defaults.subtensor.network) not in ('local', 'nakamoto'):
                     # We only cache neurons for local/nakamoto.
                     raise CacheException("This network is not cached, defaulting to regular overview.")
             
