@@ -20,10 +20,13 @@
 import argparse
 import copy
 import os
+from typing import Optional
 
 import bittensor
-from . import wallet_impl
-from . import wallet_mock
+
+from . import wallet_impl, wallet_mock
+
+
 class wallet:
     """ Create and init wallet that stores hot and coldkey
     """
@@ -136,7 +139,7 @@ class wallet:
         """
         assert 'wallet' in config
         assert isinstance(config.wallet.get('name', bittensor.defaults.wallet.name), str)
-        assert isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), str | None)
+        assert isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), Optional[str])
         assert isinstance(config.wallet.path, str)
         assert isinstance(config.wallet.hotkeys, list)
         assert isinstance(config.wallet.sort_by, str)
