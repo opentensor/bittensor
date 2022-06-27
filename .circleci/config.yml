@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - checkout
-      -
+
       - run:
           name: Check Python Minor Version
           command: |
