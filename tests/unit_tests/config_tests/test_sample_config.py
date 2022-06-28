@@ -1,17 +1,13 @@
-import os, sys
+import sys
 
 from bittensor._neuron.text.template_miner import neuron as template_miner
 from bittensor._neuron.text.core_validator import neuron as core_validator
 from bittensor._neuron.text.template_server import server as template_server
 from bittensor._neuron.text.advanced_server import server as advanced_server
-from bittensor._neuron.text.multitron_server import server as multitron_server
-
-# TODO: Fix pathing issues in this file so it actually does something.
-# These tests were not running on github actions, and most of them just work without reading the config files.
 
 def test_run_template_miner_config():
 
-    PATH = '/tests/config_tests/template_miner_sample_config.txt'
+    PATH = 'sample_configs/template_miner_sample_config.txt'
     sys.argv = [sys.argv[0], '--config', PATH]
     config = template_miner.config()
 
@@ -19,12 +15,11 @@ def test_run_template_miner_config():
     assert config['dataset']['data_dir'] == '~/.bittensor/data/'
     assert config['dendrite']['requires_grad'] == True
 
-    # TODO: Properly read in config so this works.
-    # assert config['nucleus']['punishment'] == 0.001
+    assert config['nucleus']['punishment'] == 0.001
 
 def test_run_core_validator_config():
 
-    PATH = '/tests/config_tests/template_validator_sample_config.txt'
+    PATH = 'sample_configs/template_validator_sample_config.txt'
     sys.argv = [sys.argv[0], '--config', PATH]
     config = core_validator.config()
 
@@ -35,7 +30,7 @@ def test_run_core_validator_config():
 
 def test_run_template_server_config():
 
-    PATH = '/tests/config_tests/template_server_sample_config.txt'
+    PATH = 'sample_configs/template_server_sample_config.txt'
     sys.argv = [sys.argv[0], '--config', PATH]
     config = template_server.config()
 
@@ -47,7 +42,7 @@ def test_run_template_server_config():
 
 def test_run_advanced_server_config():
 
-    PATH = '/tests/config_tests/advanced_server_sample_config.txt'
+    PATH = 'sample_configs/advanced_server_sample_config.txt'
     sys.argv = [sys.argv[0], '--config', PATH]
     config = advanced_server.config()
 
