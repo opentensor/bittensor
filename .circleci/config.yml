@@ -43,8 +43,9 @@ jobs:
             pip install -e .
 
       - run:
-          name: Instantiate Mock Wallet & Protos
+          name: Set up mock resources
           command: |
+            git lfs install
             . env/bin/activate
             ./scripts/create_wallet.sh && ./scripts/build_protos.sh
 
