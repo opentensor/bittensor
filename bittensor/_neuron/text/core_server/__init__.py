@@ -133,7 +133,7 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.wandb.check_config( config )
-        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
+        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.get('name', bittensor.defaults.wallet.name), config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.neuron.full_path):
             os.makedirs(config.neuron.full_path)

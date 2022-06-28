@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-import constant
+from . import constant
 from unittest.mock import MagicMock
 logging = bittensor.logging()
 
