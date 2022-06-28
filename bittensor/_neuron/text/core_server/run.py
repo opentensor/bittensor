@@ -76,8 +76,9 @@ def serve(
     n_topk_peer_weights = subtensor.min_allowed_weights
 
     def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
+        tokens = model.token_remap(inputs_x)
         output = model.pre_model.generate(
-            input_ids=inputs_x,
+            input_ids=tokens,
             max_length=synapse.num_to_generate,
             num_beams=synapse.num_beams,
             no_repeat_ngram_size=synapse.no_repeat_ngram_size,
@@ -86,7 +87,9 @@ def serve(
             top_p=synapse.top_p,
             num_return_sequences=synapse.num_return_sequences,
         )
-        return model_output, output
+        raw_text = model.tokenizer.decode(output[0])
+        bittensor_output = model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate]
+        return model_output, bittensor_output
 
 
     def forward_hidden_state(inputs_x:torch.FloatTensor, synapse, model_output = None):
@@ -156,17 +159,35 @@ def serve(
                 return False
 
         # Black list or not
+        #TODO: Turn on blacklist
         try:
-            registration_check()
+            #registration_check()
 
-            stake_check()
+            #stake_check()
 
-            validator_check()
+            #validator_check()
             
             return False
 
         except Exception as e:
             return True
+    
+    def synapse_check(synapse, hotkey):
+        """
+        Custom synapse function to blacklist certain synapse functions depending on the stake
+        """
+        #TODO turn on synapse checking function
+        if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
+            pass
+            
+        elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
+            pass
+            
+        elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
+            pass
+        
+        return True
+
 
     def backward_callback(inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
         """
@@ -230,9 +251,9 @@ def serve(
         axon = bittensor.axon(
             config = config,
             wallet = wallet,
-            synapse_last_hidden = forward_hidden_state,
-            synapse_causal_lm = forward_casual_lm,
-            synapse_seq_2_seq = forward_generate,
+            synapse_last_hidden = forward_hidden_state if model.config.neuron.lasthidden else None,
+            synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
+            synapse_seq_2_seq = forward_generate if model.config.neuron.seq2seq else None ,
             blacklist = blacklist,
         ).start().serve(subtensor=subtensor)
     
@@ -309,7 +330,7 @@ def serve(
             'incentive': nn.incentive,
             'emission': nn.emission,
         }
-        bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+        
         if config.wandb.api_key != 'default':
 
             df = pandas.concat( [
@@ -321,12 +342,14 @@ def serve(
             wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-        if local_data['local/loss'] < model.best_loss:
+        if 'local/loss' in local_data.keys() and local_data['local/loss'] < model.best_loss:
             model.best_loss = local_data['local/loss']
             model.save(config.neuron.full_path)
 
         if current_block - last_set_block > config.neuron.blocks_per_set_weights:
             try: 
+                bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+
                 last_set_block = current_block
                 # Set self weights to maintain activity.
                 # --- query the chain for the most current number of peers on the network

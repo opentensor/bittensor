@@ -54,6 +54,7 @@ class axon:
             synapse_last_hidden: 'Callable' = None,
             synapse_causal_lm: 'Callable' = None,
             synapse_seq_2_seq: 'Callable' = None,
+            synapse_checks: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             server: 'grpc._Server' = None,
             port: int = None,
@@ -81,7 +82,9 @@ class axon:
                 synapse_causal_lm (:obj:`callable`, `optional`):
                     function which is called by the causal lm synapse
                 synapse_seq_2_seq (:obj:`callable`, `optional`):
-                    function which is called by the seq2seq synapse           
+                    function which is called by the seq2seq synapse   
+                synapse_checks (:obj:`callable`, 'optional'):
+                    function which is called before each synapse to check for stake        
                 thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
                     Threadpool used for processing server queries.
                 server (:obj:`grpc._Server`, `required`):
@@ -141,6 +144,8 @@ class axon:
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM] = synapse_causal_lm
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ] = synapse_seq_2_seq
         
+        synapse_check_function = synapse_checks if synapse_checks != None else axon.default_synapse_check
+
         if priority != None:
             priority_threadpool = bittensor.prioritythreadpool(config=config)
         else: 
@@ -154,6 +159,7 @@ class axon:
             forward = forward_text,
             backward = backward_text,
             synapses = synapses,
+            synapse_checks = synapse_check_function,
             priority = priority,
             priority_threadpool = priority_threadpool,
             forward_timeout = config.axon.forward_timeout,
@@ -235,6 +241,15 @@ class axon:
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
         bittensor.wallet.check_config( config )
 
+    @classmethod   
+    def default_synapse_check(cls, synapse, hotkey ):
+        """ default synapse check function
+        """
+        if len(hotkey) == bittensor.__ss58_address_length__:
+            return True
+        
+        return False
+
     @staticmethod
     def check_backward_callback( backward_callback:Callable, pubkey:str = '_' ):
         """ Check and test axon backward callback function
@@ -255,13 +270,13 @@ class axon:
         """
         if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
             raise ValueError('The axon forward callback must be a function with signature Callable[inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(forward_callback))   
-        if len( inspect.signature(forward_callback).parameters) != 2:
-            raise ValueError('The axon forward callback must have signature Callable[ inputs_x: torch.Tensor, synapses] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+        if len( inspect.signature(forward_callback).parameters) != 3:
+            raise ValueError('The axon forward callback must have signature Callable[ inputs_x: torch.Tensor, synapses, hotkey] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         if 'inputs_x' not in inspect.signature(forward_callback).parameters:
             raise ValueError('The axon forward callback must have signature Callable[ inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         
         sample_input = torch.randint(0,1,(3, 3))
-        forward_callback([sample_input], synapses)
+        forward_callback([sample_input], synapses, hotkey='')
 
 class AuthInterceptor(grpc.ServerInterceptor):
     """ Creates a new server interceptor that authenticates incoming messages from passed arguments.

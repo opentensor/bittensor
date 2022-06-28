@@ -18,7 +18,7 @@
 import torch
 import pytest
 import bittensor
-import constant 
+from . import constant
 
 wallet = bittensor.wallet.mock()
 dendrite = bittensor.dendrite( wallet = wallet )

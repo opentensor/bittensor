@@ -49,6 +49,9 @@ __pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
 # Substrate ss58_format
 __ss58_format__ = 42
 
+# Wallet ss58 address length
+__ss58_address_length__ = 48
+
 __networks__ = [ 'local', 'nobunaga', 'nakamoto']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
