@@ -2,8 +2,10 @@ import argparse
 import math
 import bittensor
 import torch
+from torch import nn
 import torch.nn.functional as F
 from types import SimpleNamespace
+from typing import Tuple, Optional
 
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
@@ -106,6 +108,72 @@ class server(torch.nn.Module):
         
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
+        self.set_fine_tuning_params()
+
+    def set_fine_tuning_params(self) -> Tuple[bool, str]:
+        r''' Set to tune only the parameter of the last layer
+            Returns: 
+                reached_last_layer (:type:`bool`):
+                    If we have set partial of the model to requires grad.
+                
+                last_layer_name (:type:`string`):
+                    The name of the last layer that user specified or we found.
+                    None if the user did not specify and we couldnt find it. 
+        '''
+        def find_last_layer(model: torch.nn.Module) -> Optional[str]:    
+            r''' Recursively find the last layer in a nn.ModuleList
+                Args:
+                    model (:obj:`torch.module`):
+                        The model (or sub-model) to fine the last layer from. 
+                Returns:
+                    name (:type:`str`):
+                        The name (or sub-name) of the last layer.
+                        None if not found
+            '''
+            reverted_child_list = [(name, child) for name, child in model.named_children()]
+            reverted_child_list.reverse()
+
+            for name, child in reverted_child_list:    
+                if isinstance(child, nn.ModuleList):
+                    if self.config.neuron.finetune.num_layers > len(child):
+                        logger.warning(f'Number of finetune layers was set higher then the layers avaliable {len(child)}')
+                        return None
+                    return (name + '.' +str(len(child) - self.config.neuron.finetune.num_layers))
+                
+            for name, child in reverted_child_list:    
+                name_ = find_last_layer(child)
+                if name_ != None:
+                    return (name+'.'+ name_)
+
+            return None     
+
+        if self.config.neuron.finetune.layer_name == None:
+            last_layer_name = find_last_layer(self.pre_model)
+        else:
+            last_layer_name = self.config.neuron.finetune.layer_name
+
+        reached_last_layer = False
+
+        # set the non-last layer parameters not to require grads
+        if (self.config.neuron.finetune.all) or (last_layer_name == None):
+            return False, last_layer_name
+
+        logger.success(f'Set to finetune layer {last_layer_name} and onwards')
+        
+        for name, param in self.pre_model.named_parameters():
+            if last_layer_name in name or reached_last_layer == True:
+                param.requires_grad = True
+                reached_last_layer = True
+            else:
+                param.requires_grad = False
+
+        if reached_last_layer == False:
+            if self.config.neuron.finetune.all:
+                logger.warning('Set to finetune the whole model, this will significantly increase the memory usage.')
+            else:
+                logger.warning(f'Cannot identify the last layer of the model with name {last_layer_name}, setting to finetune on all of the parameters.')
+
+        return reached_last_layer, last_layer_name
         
     def forward(self, inputs, tokenizer=None):
         """
