@@ -43,6 +43,9 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
+# Pip address for versioning
+__pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
+
 # Substrate ss58_format
 __ss58_format__ = 42
 
