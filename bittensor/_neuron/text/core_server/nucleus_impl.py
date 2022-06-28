@@ -260,7 +260,6 @@ class server(torch.nn.Module):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
-
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
@@ -318,13 +317,12 @@ class server(torch.nn.Module):
         tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
         
         tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
-
+        
         for key in ['input_ids', 'attention_mask']:  # form a torch batch tensor
             padded_tokens= pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
-            tokens[key] = torch.zeros(token_batch.shape, dtype = torch.long)
+            tokens[key] = torch.zeros(padded_tokens.shape, dtype = torch.long)
             tokens[key][:, :padded_tokens.shape[1]] = padded_tokens
             tokens[key] = torch.LongTensor(tokens[key])
-
         return tokens
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:

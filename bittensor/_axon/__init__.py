@@ -245,7 +245,10 @@ class axon:
     def default_synapse_check(cls, synapse, hotkey ):
         """ default synapse check function
         """
-        assert len(hotkey) == 48
+        if len(hotkey) == bittensor.__ss58_address_length__:
+            return True
+        
+        return False
 
     @staticmethod
     def check_backward_callback( backward_callback:Callable, pubkey:str = '_' ):

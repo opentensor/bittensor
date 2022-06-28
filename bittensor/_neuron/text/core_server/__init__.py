@@ -45,6 +45,14 @@ class neuron:
                 bittensor axon object
             metagraph (:obj:bittensor.metagraph, `optional`):
                 bittensor metagraph object
+            lasthidden (:obj:bool, `optional`):
+                lasthidden synapse control
+            causallm (:obj:bool, `optional`):
+                causallm synapse control
+            seq2seq (:obj:bittensor.metagraph, `optional`):
+                seq2seq synapse control
+            synapse_list (:obj:list of int, `optional`):
+                
 
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
@@ -61,10 +69,25 @@ class neuron:
         lasthidden = None,
         causallm = None,
         seq2seq = None,
+        synapse_list = None,
 
     ):
         if config == None: config = server.config()
         config = config; 
+
+        if synapse_list != None:
+            config.neuron.lasthidden = False
+            config.neuron.causallm = False
+            config.neuron.seq2seq = False
+
+            if bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE in synapse_list:
+                config.neuron.lasthidden = True
+            
+            if bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM in synapse_list:
+                config.neuron.causallm = True
+            
+            if bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ in synapse_list:
+                config.neuron.seq2seq = True
 
         config.neuron.lasthidden = lasthidden if lasthidden != None else config.neuron.lasthidden
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm

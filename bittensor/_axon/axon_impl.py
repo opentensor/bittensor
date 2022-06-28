@@ -591,18 +591,25 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # --- calling attached synapses ---
         for index, synapse in enumerate(synapses):
             try:
-                if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
-                    self.synapse_checks(synapse, hotkey)
+                synapse_check =  self.synapse_checks(synapse, hotkey)
+
+                if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None and synapse_check:
                     model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
                     response_tensors.append(response_tensor)
                     response_codes.append(bittensor.proto.ReturnCode.Success)
                     response_messages.append('Success')
+                
+                elif not synapse_check:
+                    response_tensors.append(None)
+                    response_codes.append(bittensor.proto.ReturnCode.UnknownException)
+                    response_messages.append(str(e))
+
                 else:
                     response_tensors.append(None)
                     response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
                     response_messages.append('Not Implemented')
 
-            except Exception as e:                
+            except Exception as e: 
                 # --- Exception Hit in Synapse ---
                 response_tensors.append(None)
                 response_codes.append(bittensor.proto.ReturnCode.UnknownException)
