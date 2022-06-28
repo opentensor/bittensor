@@ -112,10 +112,13 @@ def test_prefix():
     bittensor.logging( config_strict.second )
     bittensor.logging( config_non_strict.second )
 
-    bittensor.wandb( config_strict )
-    bittensor.wandb( config_non_strict )
-    bittensor.wandb( config_strict.second )
-    bittensor.wandb( config_non_strict.second )
+    # This is the only place we call bittensor.wandb() outside of neuron code.
+    # It fails because we don't have a key set up for this.
+    # TODO: Actually test bittensor.wandb
+    #bittensor.wandb( config_strict )
+    #bittensor.wandb( config_non_strict )
+    #bittensor.wandb( config_strict.second )
+    #bittensor.wandb( config_non_strict.second )
 
 
 def construct_config():
