@@ -45,7 +45,7 @@ jobs:
       - run:
           name: Set up mock resources
           command: |
-            sudo apt-get install git-lfs
+            sudo apt-get update && sudo apt-get install git-lfs
             git lfs install && git lfs pull
             . env/bin/activate
             ./scripts/create_wallet.sh && ./scripts/build_protos.sh
