@@ -602,7 +602,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 elif not synapse_check:
                     response_tensors.append(None)
                     response_codes.append(bittensor.proto.ReturnCode.UnknownException)
-                    response_messages.append(str(e))
+                    response_messages.append('Synapse Check Failed')
 
                 else:
                     response_tensors.append(None)

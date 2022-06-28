@@ -271,7 +271,7 @@ class axon:
         if not inspect.ismethod(forward_callback) and not inspect.isfunction(forward_callback):
             raise ValueError('The axon forward callback must be a function with signature Callable[inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(forward_callback))   
         if len( inspect.signature(forward_callback).parameters) != 3:
-            raise ValueError('The axon forward callback must have signature Callable[ inputs_x: torch.Tensor, synapses] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
+            raise ValueError('The axon forward callback must have signature Callable[ inputs_x: torch.Tensor, synapses, hotkey] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         if 'inputs_x' not in inspect.signature(forward_callback).parameters:
             raise ValueError('The axon forward callback must have signature Callable[ inputs_x: torch.Tensor] -> torch.FloatTensor:, got {}'.format(inspect.signature(forward_callback)))
         

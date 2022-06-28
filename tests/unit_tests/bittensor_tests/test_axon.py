@@ -72,7 +72,8 @@ def test_forward_not_implemented():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]   
+        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address,   
     )
     response, code, synapses = axon._forward( request )
     assert synapses[0].return_code == bittensor.proto.ReturnCode.NotImplemented
@@ -813,5 +814,5 @@ if __name__ == "__main__":
     #test_backward_response_serialization_error()
     #test_axon_is_destroyed()
     #test_forward_wandb()
-     test_forward_tensor_success_priority()
+     test_forward_not_implemented()
     #test_backward_seq_2_seq_shape_error()
