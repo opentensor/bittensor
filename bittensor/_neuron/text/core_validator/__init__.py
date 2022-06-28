@@ -570,6 +570,8 @@ class nucleus( torch.nn.Module ):
         self.config = config
         self.device = device
         self.max_n = subtensor.max_n 
+        tokenizer = bittensor.tokenizer()
+        self.pad_token = tokenizer(tokenizer.pad_token)['input_ids'][0]
 
         # Token embeddings project int64 tokens onto representations.
         self.token_embedding = torch.nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
@@ -679,9 +681,9 @@ class nucleus( torch.nn.Module ):
         start_time = time.time()
         batch_size, sequence_len = inputs.shape
         print(f'Forward \t| Model forward ... ', end='')
-
+        non_eos_indices = torch.cat([ (i != self.pad_token).nonzero()[-1] for i in inputs ]).reshape(len(inputs),1)
         inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len-1]
-        inputs_val = inputs[..., -1]  # input validation with last token [batch_size]
+        inputs_val = inputs.gather(1, non_eos_indices).flatten()  # input validation with last token [batch_size]
 
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
@@ -786,9 +788,9 @@ class nucleus( torch.nn.Module ):
                 _stats = {'uid': _uid.item(),
                           'response_time': times[index][index_s],
                           'routing_score': routing_score[_uid]}
-
+                
                 _stats.update({'logits': query_responses[index][index_s],
-                               'logits_val': query_responses[index][index_s][:, -1:, :]})
+                               'logits_val': torch.cat([ res[idx-1].reshape() for res, idx in zip (query_responses[index][index_s], non_eos_indices)])})
 
                 for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
                     _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss

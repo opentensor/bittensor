@@ -44,13 +44,13 @@ class tokenizer:
         """ Return the GPT2 tokenizer with bittersor's special tokens
         """
         _tokenizer = AutoTokenizer.from_pretrained('gpt2', local_files_only=False)
+        _tokenizer.add_special_tokens({'pad_token': "[EOS]"}) # A special token used to make arrays of tokens the same size for batching purpose. Will then be ignored by attention mechanisms or loss computation.
         # _tokenizer.padding_side = "left"
         # _tokenizer.add_prefix_space = False
         # _tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
         # _tokenizer.add_special_tokens({'eos_token': "[EOS]"}) # A special token representing the end of a sentence.
         # _tokenizer.add_special_tokens({'unk_token': "[UNK]"}) # A special token representing an out-of-vocabulary token.
         # _tokenizer.add_special_tokens({'sep_token': "[SEP]"}) # A special token separating two different sentences in the same input (used by BERT for instance)
-        # _tokenizer.add_special_tokens({'pad_token': "[PAD]"}) # A special token used to make arrays of tokens the same size for batching purpose. Will then be ignored by attention mechanisms or loss computation.
         # _tokenizer.add_special_tokens({'cls_token': "[CLS]"}) # A special token representing the class of the input (used by BERT for instance).
         # _tokenizer.add_special_tokens({'mask_token': "[MASK]"}) # A special token representing a masked token (used by masked-language modeling pretraining objectives, like BERT).
         # additional_special_tokens = [
@@ -76,13 +76,13 @@ class tokenizer:
     
     @staticmethod
     def prep_tokenizer(tokenizer):
+        tokenizer.add_special_tokens({'pad_token': "[EOS]"}) # A special token used to make arrays of tokens the same size for batching purpose. Will then be ignored by attention mechanisms or loss computation.
         # tokenizer.padding_side = "left"
         # tokenizer.add_prefix_space = False
         # tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
         # tokenizer.add_special_tokens({'eos_token': "[EOS]"}) # A special token representing the end of a sentence.
         # tokenizer.add_special_tokens({'unk_token': "[UNK]"}) # A special token representing an out-of-vocabulary token.
         # tokenizer.add_special_tokens({'sep_token': "[SEP]"}) # A special token separating two different sentences in the same input (used by BERT for instance)
-        # tokenizer.add_special_tokens({'pad_token': "[PAD]"}) # A special token used to make arrays of tokens the same size for batching purpose. Will then be ignored by attention mechanisms or loss computation.
         # tokenizer.add_special_tokens({'cls_token': "[CLS]"}) # A special token representing the class of the input (used by BERT for instance).
         # tokenizer.add_special_tokens({'mask_token': "[MASK]"}) # A special token representing a masked token (used by masked-language modeling pretraining objectives, like BERT).
         # additional_special_tokens = [
