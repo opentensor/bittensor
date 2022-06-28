@@ -43,6 +43,12 @@ __network_dim__ = 1024 # All network responses have shape = [ __batch_size__, __
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
+# Pip address for versioning
+__pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
+
+# Substrate ss58_format
+__ss58_format__ = 42
+
 __networks__ = [ 'local', 'nobunaga', 'nakamoto']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
@@ -60,10 +66,10 @@ __local_entrypoints__ = [
 ]
 
 # Avoid collisions with other processes
-import os
-pid_port = 8192 + (os.getpid() % 8192)
+from .utils.test_utils import get_random_unused_port
+mock_subtensor_port = get_random_unused_port()
 __mock_entrypoints__ = [
-    f"localhost:{pid_port}"
+    f"localhost:{mock_subtensor_port}"
 ]
 
 

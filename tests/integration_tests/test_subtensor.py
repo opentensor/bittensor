@@ -279,6 +279,38 @@ class TestSubtensor(unittest.TestCase):
                             )
         assert fail == False
 
+    def test_transfer_invalid_dest(self ):
+        neuron = self.neurons[ 1 ]
+
+        fail = self.subtensor.transfer(self.wallet,
+                            neuron.hotkey[:-1], # invalid dest
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert fail == False
+
+    def test_transfer_dest_as_bytes(self ):
+        class success():
+            def __init__(self):
+                self.is_success = True
+            def process_events(self):
+                return True
+            block_hash: str = '0x'
+
+        neuron = self.neurons[ 1 ]
+        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
+        self.subtensor.register = MagicMock(return_value = True) 
+        self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        self.subtensor.get_balance = MagicMock(return_value = self.balance)
+
+        dest_as_bytes: bytes = Keypair(neuron.hotkey).public_key
+        success = self.subtensor.transfer(self.wallet,
+                            dest_as_bytes, # invalid dest
+                            amount = 200,
+                            wait_for_inclusion = True
+                            )
+        assert success == True
+
     def test_set_weights( self ):
         chain_weights = [0]
         class success():

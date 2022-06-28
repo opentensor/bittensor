@@ -1,0 +1,121 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@2.0.3
+  coveralls: coveralls/coveralls@1.0.6
+
+jobs:
+  build-and-test:
+    resource_class: medium
+    parallelism: 2
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore cached venv
+          keys:
+            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements.txt" }}
+            - v1-pypi-py<< parameters.python-version >>
+
+      - run:
+          name: Update & Activate venv
+          command: |
+            python -m venv env/
+            . env/bin/activate
+            pip install -r requirements.txt
+
+      - save_cache:
+          name: Save cached venv
+          paths:
+            - "env/"
+          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements.txt" }}
+
+      - run:
+          name: Install Bittensor
+          command: |
+            . env/bin/activate
+            pip install -e .
+
+      - run:
+          name: Instantiate Mock Wallet & Protos
+          command: |
+            . env/bin/activate
+            ./scripts/create_wallet.sh && ./scripts/build_protos.sh
+
+      # TODO: Update test durations on different runs
+      - run:
+          name: Unit Tests
+          command: |
+            . env/bin/activate
+            export PYTHONUNBUFFERED=1
+            pytest -n2 --reruns 3 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            --cov=. --cov-append --cov-config .coveragerc \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
+            tests/unit_tests/
+
+      - run:
+          name: Integration Tests
+          command: |
+            . env/bin/activate
+            export PYTHONUNBUFFERED=1
+            pytest -n2 --reruns 3 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            --cov=. --cov-append --cov-config .coveragerc \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
+            tests/integration_tests/
+
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+
+      - run:
+          name: Upload Coverage
+          command: |
+            . env/bin/activate && coveralls
+          env:
+            CI_NAME: circleci
+            CI_BUILD_NUMBER: $CIRCLE_BUILD_NUM
+            CI_BUILD_URL: $CIRCLE_BUILD_URL
+            CI_BRANCH: $CIRCLE_BRANCH
+            CI_JOB_ID: $CIRCLE_NODE_INDEX
+            COVERALLS_PARALLEL: true
+
+  unit-tests-all-python-versions:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - run:
+          name: Placeholder command
+          command: echo "Success, only runs if all python versions ran"
+
+  coveralls:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - run:
+          name: Combine Coverage
+          command: |
+            pip3 install --upgrade coveralls
+            coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
+
+workflows:
+  pre-pr:
+    jobs:
+      - build-and-test:
+          matrix:
+            parameters:
+              python-version: ["3.7", "3.8", "3.9", "3.10.5"]
+      - unit-tests-all-python-versions:
+          requires:
+            - build-and-test
+      - coveralls:
+          requires:
+            - build-and-test

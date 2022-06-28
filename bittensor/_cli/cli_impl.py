@@ -1,5 +1,4 @@
 # The MIT License (MIT)
-# The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
@@ -16,17 +15,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
 import os
 import sys
-from rich.tree import Tree
-from rich import print
-from tqdm import tqdm
-from rich.table import Table
-from rich.prompt import Confirm
+from typing import List, Union
 
+import bittensor
 from bittensor.utils.balance import Balance
+from fuzzywuzzy import fuzz
+from rich import print
+from rich.prompt import Confirm
+from rich.table import Table
+from rich.tree import Tree
+from tqdm import tqdm
+
 
 class CLI:
     """
@@ -38,6 +39,7 @@ class CLI:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
         """
+        bittensor.utils.version_checking()
         self.config = config
 
     def run ( self ):
@@ -77,6 +79,8 @@ class CLI:
             self.query()
         elif self.config.command == "help":
             self.help()
+        elif self.config.command == 'update':
+            self.update()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -126,9 +130,10 @@ class CLI:
         dendrite = bittensor.dendrite( wallet = wallet )
 
         
-        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.network)):
+        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             
-            if self.config.wallet.hotkey == 'None':
+            if self.config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) is None:
+                # If no hotkey is provided, inspect just the coldkey
                 wallet.coldkeypub
                 cold_balance = wallet.get_balance( subtensor = subtensor )
                 bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)
@@ -159,7 +164,7 @@ class CLI:
         # Check coldkey.
         wallet = bittensor.wallet( config = self.config )
         if not wallet.coldkeypub_file.exists_on_device():
-            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.name)):
+            if Confirm.ask("Coldkey: [bold]'{}'[/bold] does not exist, do you want to create it".format(self.config.wallet.get('name', bittensor.defaults.wallet.name))):
                 wallet.create_new_coldkey()
             else:
                 sys.exit()
@@ -212,6 +217,11 @@ class CLI:
             bittensor.neurons.multitron_server.neuron().run()
 
 
+    def update ( self ):
+        if self.config.no_prompt or self.config.answer == 'Y':
+            os.system(' (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )')
+            os.system('pip install -e ~/.bittensor/bittensor/')
+
     def register( self ):
         r""" Register neuron.
         """
@@ -227,18 +237,146 @@ class CLI:
         subtensor.transfer( wallet = wallet, dest = self.config.dest, amount = self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
     def unstake( self ):
-        r""" Unstake token of amount from uid.
-        """
+        r""" Unstake token of amount from hotkey(s).
+        """        
+        # TODO: Implement this without re-unlocking the coldkey.
+        config = self.config.copy()
+        config.hotkey = None
         wallet = bittensor.wallet( config = self.config )
-        subtensor = bittensor.subtensor( config = self.config )
-        subtensor.unstake( wallet, amount = None if self.config.unstake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
+        wallets_to_unstake_from: List[bittensor.wallet]
+        if self.config.wallet.get('all_hotkeys'):
+            # Unstake from all hotkeys.
+            all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
+            # Exclude hotkeys that are specified.
+            wallets_to_unstake_from = [
+                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
+            ]
+
+        elif self.config.wallet.get('hotkeys'):
+            # Unstake from specific hotkeys.
+            wallets_to_unstake_from = [
+                bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
+            ]
+        else:
+            # Do regular unstake
+            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
+            return None
+
+        wallet_0: 'bittensor.wallet' = wallets_to_unstake_from[0]
+        # Decrypt coldkey for all wallet(s) to use
+        wallet_0.coldkey
+
+        final_wallets: List['bittensor.wallet'] = [] 
+        final_amounts: List[Union[float, Balance]] = []
+        for wallet in tqdm(wallets_to_unstake_from):
+            wallet: bittensor.wallet
+            if not wallet.is_registered():
+                # Skip unregistered hotkeys.
+                continue
+            # Assign decrypted coldkey from wallet_0
+            #  so we don't have to decrypt again
+            wallet._coldkey = wallet_0._coldkey
+
+            unstake_amount_tao: float = self.config.get('amount')
+            if self.config.get('max_stake'):
+                wallet_stake: Balance = wallet.get_stake()
+                unstake_amount_tao: float = wallet_stake.tao - self.config.get('max_stake')   
+                self.config.amount = unstake_amount_tao  
+                if unstake_amount_tao < 0:
+                    # Skip if max_stake is greater than current stake.
+                    continue
+                    
+            final_wallets.append(wallet)
+            final_amounts.append(unstake_amount_tao)
+
+        # Ask to unstake
+        if not self.config.no_prompt:
+            if not Confirm.ask("Do you want to unstake from the following keys:\n" + \
+                    "".join([
+                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                    ])
+                ):
+                return None
+
+        for wallet, amount in zip(final_wallets, final_amounts):
+            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else amount, wait_for_inclusion = True, prompt = False )
+
 
     def stake( self ):
-        r""" Stake token of amount to uid.
+        r""" Stake token of amount to hotkey(s).
         """
-        wallet = bittensor.wallet( config = self.config )
-        subtensor = bittensor.subtensor( config = self.config )
-        subtensor.add_stake( wallet, amount = None if self.config.stake_all else self.config.amount, wait_for_inclusion = True, prompt = not self.config.no_prompt )
+        # TODO: Implement this without re-unlocking the coldkey.
+        config = self.config.copy()
+        config.hotkey = None
+        wallet = bittensor.wallet( config = config )
+
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
+        wallets_to_stake_to: List[bittensor.wallet]
+        if self.config.wallet.get('all_hotkeys'):
+            # Stake to all hotkeys.
+            all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
+            # Exclude hotkeys that are specified.
+            wallets_to_stake_to = [
+                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
+            ]
+
+        elif self.config.wallet.get('hotkeys'):
+            # Stake to specific hotkeys.
+            wallets_to_stake_to = [
+                bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
+            ]
+        else:
+            # Do regular stake
+            subtensor.add_stake( wallet, amount = None if self.config.get('stake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
+            return None
+           
+        # Otherwise we stake to multiple wallets
+
+        wallet_0: 'bittensor.wallet' = wallets_to_stake_to[0]
+        # Decrypt coldkey for all wallet(s) to use
+        wallet_0.coldkey
+
+        # Get coldkey balance
+        wallet_balance: Balance = wallet_0.get_balance()
+        final_wallets: List['bittensor.wallet'] = [] 
+        final_amounts: List[Union[float, Balance]] = []
+        for wallet in tqdm(wallets_to_stake_to):
+            wallet: bittensor.wallet            
+            if not wallet.is_registered():
+                # Skip unregistered hotkeys.
+                continue
+            
+            # Assign decrypted coldkey from wallet_0
+            #  so we don't have to decrypt again
+            wallet._coldkey = wallet_0._coldkey
+
+            stake_amount_tao: float = self.config.get('amount')
+            if self.config.get('max_stake'):
+                wallet_stake: Balance = wallet.get_stake()
+                stake_amount_tao: float =  self.config.get('max_stake') - wallet_stake.tao
+                # If the max_stake is greater than the current wallet balance, stake the entire balance.
+                stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
+                if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
+                    # Skip hotkey if max_stake is less than current stake.
+                    continue
+                wallet_balance -= stake_amount_tao
+            final_amounts.append(stake_amount_tao)
+            final_wallets.append(wallet)
+
+        # Ask to stake
+        if not self.config.no_prompt:
+            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n  " + \
+                    "".join([
+                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                    ])
+                ):
+                return None
+
+        for wallet, amount in zip(final_wallets, final_amounts):
+            subtensor.add_stake( wallet, amount = None if self.config.get('stake_all') else amount, wait_for_inclusion = True, prompt = False )
+
 
     def set_weights( self ):
         r""" Set weights and uids on chain.
@@ -253,18 +391,35 @@ class CLI:
             prompt = not self.config.no_prompt 
         )
 
-    def _get_hotkey_wallets_for_wallet( wallet ):
+    @staticmethod
+    def _get_hotkey_wallets_for_wallet( wallet ) -> List['bittensor.wallet']:
         hotkey_wallets = []
         hotkeys_path = wallet.path + '/' + wallet.name + '/hotkeys'
-        hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        try:
+            hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+        except StopIteration:
+            hotkey_files = []
         for hotkey_file_name in hotkey_files:
             hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
         return hotkey_wallets
 
+    def _get_coldkey_wallets(self):
+        try:
+            wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        except StopIteration:
+            # No wallet files found.
+            wallets = []
+        return wallets
+
     def list(self):
         r""" Lists wallets.
         """
-        wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        try:
+            wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        except StopIteration:
+            # No wallet files found.
+            wallets = []
+
         root = Tree("Wallets")
         for w_name in wallets:
             wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
@@ -292,8 +447,10 @@ class CLI:
                             hotkey_str = '?'
                         wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
             except:
-                pass
+                continue
 
+        if len(wallets) == 0:
+            root.add("[bold red]No wallets found.")
         print(root)
 
     def metagraph(self):
@@ -375,7 +532,7 @@ class CLI:
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )
         wallet = bittensor.wallet( config = self.config )
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             metagraph.load()
             metagraph.sync()
             metagraph.save()
@@ -408,15 +565,49 @@ class CLI:
         """
         console = bittensor.__console__
         wallet = bittensor.wallet( config = self.config )
+
+        if not wallet.coldkeypub_file.exists_on_device():
+            console.print("[bold red]No wallets found.")
+            return
+
         subtensor = bittensor.subtensor( config = self.config )
         all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
+        
+        if self.config.wallet.hotkeys:
+            # Only show hotkeys for wallets in the list
+            all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
+            
         neurons = []
         block = subtensor.block
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            for wallet in tqdm(all_hotkeys):
-                nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                if not nn.is_null:
-                    neurons.append( (nn, wallet) )
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
+            try:
+                if self.config.subtensor.get('network', bittensor.defaults.subtensor.network) not in ('local', 'nakamoto'):
+                    # We only cache neurons for local/nakamoto.
+                    raise CacheException("This network is not cached, defaulting to regular overview.")
+            
+                if self.config.get('no_cache'):
+                    raise CacheException("Flag was set to not use cache, defaulting to regular overview.")
+
+                metagraph: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor )
+                try:
+                    # Grab cached neurons from IPFS
+                    all_neurons = metagraph.retrieve_cached_neurons()
+                except Exception:
+                    raise CacheException("Failed to retrieve cached neurons, defaulting to regular overview.")
+                # Map the hotkeys to uids
+                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+                for wallet in tqdm(all_hotkeys):
+                    uid = hotkey_to_neurons.get(wallet.hotkey.ss58_address)
+                    if uid is not None:
+                        nn = all_neurons[uid]
+                        neurons.append( (nn, wallet) )
+            except CacheException:
+                for wallet in tqdm(all_hotkeys):
+                    # Get overview without cache
+                    nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                    if not nn.is_null:
+                      neurons.append( (nn, wallet) )
+                      
             balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         TABLE_DATA = []  
@@ -426,7 +617,8 @@ class CLI:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0     
+        total_emission = 0   
+
         for nn, hotwallet in tqdm(neurons):
             uid = nn.uid
             active = nn.active
@@ -463,7 +655,7 @@ class CLI:
             TABLE_DATA.append(row)
             
         total_neurons = len(neurons)                
-        table = Table(show_footer=False)
+        table = Table(show_footer=False, width=self.config.get('width', None), pad_edge=False, box=None)
         table.title = (
             "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
         )
@@ -484,9 +676,45 @@ class CLI:
         table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
 
         console.clear()
+
+        sort_by: str = self.config.wallet.sort_by
+        sort_order: str = self.config.wallet.sort_order
+
+        if sort_by != "":
+            column_to_sort_by: int = 0
+            highest_matching_ratio: int = 0
+            sort_descending: bool = False # Default sort_order to ascending
+
+            for index, column in zip(range(len(table.columns)), table.columns):
+                # Fuzzy match the column name. Default to the first column.
+                column_name = column.header.lower().replace('[overline white]', '')
+                match_ratio = fuzz.ratio(sort_by.lower(), column_name)
+                # Finds the best matching column
+                if  match_ratio > highest_matching_ratio:
+                    highest_matching_ratio = match_ratio
+                    column_to_sort_by = index
+            
+            if sort_order.lower() in { 'desc', 'descending', 'reverse'}:
+                # Sort descending if the sort_order matches desc, descending, or reverse
+                sort_descending = True
+            
+            def overview_sort_function(row):
+                data = row[column_to_sort_by]
+                # Try to convert to number if possible
+                try:
+                    data = float(data)
+                except ValueError:
+                    pass
+                return data
+
+            TABLE_DATA.sort(key=overview_sort_function, reverse=sort_descending)
+
         for row in TABLE_DATA:
             table.add_row(*row)
-        table.box = None
-        table.pad_edge = False
-        table.width = None
-        console.print(table)
+        
+        console.print(table, width=self.config.get('width', None))
+
+class CacheException(Exception):
+    """
+    Exception raised when the cache has an issue or should not be used.
+    """
