@@ -38,7 +38,7 @@ class wandb:
             directory: str = None,
             cold_pubkey: str = None,
             hot_pubkey: str = None,
-            root_dir: str = None
+            root_dir: str = '~/.bittensor/miners/'
         ):
         r""" Initializes a bittensor wandb backend logging object.
             Args:
@@ -82,17 +82,18 @@ class wandb:
         wb.init(config = config, config_exclude_keys = ['wandb'])
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser ):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Accepting specific argument from parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--wandb.api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default='default')
-            parser.add_argument('--wandb.name', type=str, help='''Optionally pass wandb run name for use_wandb''', default = bittensor.defaults.wandb.name)
-            parser.add_argument('--wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default = bittensor.defaults.wandb.project)
-            parser.add_argument('--wandb.tags', type=str, help='''Optionally pass wandb tags for use_wandb''', default = bittensor.defaults.wandb.tags)
-            parser.add_argument('--wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default = bittensor.defaults.wandb.run_group)
-            parser.add_argument('--wandb.directory', type = str, help='''Optionally pass wandb directory for use_wandb''', default = bittensor.defaults.wandb.directory)
-            parser.add_argument('--wandb.offline', type = bool, help='''Optionally pass wandb offline option for use_wandb''', default = bittensor.defaults.wandb.offline)
+            parser.add_argument('--' + prefix_str + 'wandb.api_key', type = str, help='''Optionally pass wandb api key for use_wandb''', default='default')
+            parser.add_argument('--' + prefix_str + 'wandb.name', type=str, help='''Optionally pass wandb run name for use_wandb''', default = bittensor.defaults.wandb.name)
+            parser.add_argument('--' + prefix_str + 'wandb.project', type=str, help='''Optionally pass wandb project name for use_wandb''', default = bittensor.defaults.wandb.project)
+            parser.add_argument('--' + prefix_str + 'wandb.tags', type=str, help='''Optionally pass wandb tags for use_wandb''', default = bittensor.defaults.wandb.tags)
+            parser.add_argument('--' + prefix_str + 'wandb.run_group', type = str, help='''Optionally pass wandb group name for use_wandb''', default = bittensor.defaults.wandb.run_group)
+            parser.add_argument('--' + prefix_str + 'wandb.directory', type = str, help='''Optionally pass wandb directory for use_wandb''', default = bittensor.defaults.wandb.directory)
+            parser.add_argument('--' + prefix_str + 'wandb.offline', type = bool, help='''Optionally pass wandb offline option for use_wandb''', default = bittensor.defaults.wandb.offline)
             
         except argparse.ArgumentError:
             # re-parsing arguments.

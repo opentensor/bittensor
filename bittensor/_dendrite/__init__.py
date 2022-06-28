@@ -142,22 +142,23 @@ class dendrite:
         parser.print_help()
 
     @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
+    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Accept specific arguments from parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--dendrite.max_worker_threads', type=int, help='''Max number of concurrent threads used for sending RPC requests.''', default = bittensor.defaults.dendrite.max_worker_threads)
-            parser.add_argument('--dendrite.max_active_receptors', type=int, help='''Max number of concurrently active receptors / tcp-connections''',  default = bittensor.defaults.dendrite.max_active_receptors) 
-            parser.add_argument('--dendrite.timeout', type=int, help='''Default request timeout.''', default = bittensor.defaults.dendrite.timeout)
-            parser.add_argument('--dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
-            parser.add_argument('--dendrite.no_requires_grad', dest='dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
-            parser.add_argument('--dendrite.multiprocessing', dest='dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
-            parser.add_argument('--dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
-            parser.add_argument('--dendrite._mock', action='store_true', help='To turn on dendrite mocking for testing purposes.', default=False)
+            parser.add_argument('--' + prefix_str + 'dendrite.max_worker_threads', type=int, help='''Max number of concurrent threads used for sending RPC requests.''', default = bittensor.defaults.dendrite.max_worker_threads)
+            parser.add_argument('--' + prefix_str + 'dendrite.max_active_receptors', type=int, help='''Max number of concurrently active receptors / tcp-connections''',  default = bittensor.defaults.dendrite.max_active_receptors) 
+            parser.add_argument('--' + prefix_str + 'dendrite.timeout', type=int, help='''Default request timeout.''', default = bittensor.defaults.dendrite.timeout)
+            parser.add_argument('--' + prefix_str + 'dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
+            parser.add_argument('--' + prefix_str + 'dendrite.no_requires_grad', dest = prefix_str + 'dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
+            parser.add_argument('--' + prefix_str + 'dendrite.multiprocessing', dest = prefix_str + 'dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
+            parser.add_argument('--' + prefix_str + 'dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
+            parser.add_argument('--' + prefix_str + 'dendrite._mock', action='store_true', help='To turn on dendrite mocking for testing purposes.', default=False)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
-        bittensor.wallet.add_args( parser )
+        bittensor.wallet.add_args( parser, prefix = prefix)
 
     @classmethod   
     def add_defaults(cls, defaults):
