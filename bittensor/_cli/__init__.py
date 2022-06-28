@@ -632,9 +632,9 @@ class cli:
         # Get amount.
         if not config.get('amount') and not config.get('unstake_all') and not config.get('max_stake'):
             hotkeys: str = ''
-            if config.get('all_hotkeys'):
+            if config.wallet.get('all_hotkeys'):
                 hotkeys = "all hotkeys"
-            elif config.get('hotkeys'):
+            elif config.wallet.get('hotkeys'):
                 hotkeys = str(config.hotkeys).replace('[', '').replace(']', '')
             else:
                 hotkeys = str(config.wallet.hotkey)
