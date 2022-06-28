@@ -105,15 +105,15 @@ class wallet:
         """
         prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--' + prefix_str + '--wallet.name',required=False, default=argparse.SUPPRESS, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
-            parser.add_argument('--' + prefix_str + '--wallet.hotkey', required=False, default=argparse.SUPPRESS, help='''The name of wallet's hotkey.''')
-            parser.add_argument('--' + prefix_str + '--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
-            parser.add_argument('--' + prefix_str + '--wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
-            parser.add_argument('--' + prefix_str + '--wallet.hotkeys', '--wallet.exclude_hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)''')
-            parser.add_argument('--' + prefix_str + '--wallet.all_hotkeys', required=False, action='store_true', default=bittensor.defaults.wallet.all_hotkeys, help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.''')
-            parser.add_argument('--' + prefix_str + '--wallet.sort_by', required=False, action='store', default=bittensor.defaults.wallet.sort_by, type=str, help='''Sort the hotkeys by the specified column title (e.g. name, uid, axon).''')
-            parser.add_argument('--' + prefix_str + '--wallet.sort_order', required=False, action='store', default=bittensor.defaults.wallet.sort_order, type=str, help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)''')
-        except argparse.ArgumentError:
+            parser.add_argument('--' + prefix_str + 'wallet.name', required=False, default=argparse.SUPPRESS, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
+            parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=argparse.SUPPRESS, help='''The name of wallet's hotkey.''')
+            parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
+            parser.add_argument('--' + prefix_str + 'wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
+            parser.add_argument('--' + prefix_str + 'wallet.hotkeys', '--' + prefix_str + 'wallet.exclude_hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)''')
+            parser.add_argument('--' + prefix_str + 'wallet.all_hotkeys', required=False, action='store_true', default=bittensor.defaults.wallet.all_hotkeys, help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.''')
+            parser.add_argument('--' + prefix_str + 'wallet.sort_by', required=False, action='store', default=bittensor.defaults.wallet.sort_by, type=str, help='''Sort the hotkeys by the specified column title (e.g. name, uid, axon).''')
+            parser.add_argument('--' + prefix_str + 'wallet.sort_order', required=False, action='store', default=bittensor.defaults.wallet.sort_order, type=str, help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)''')
+        except argparse.ArgumentError as e:
             # re-parsing arguments.
             pass
 
