@@ -91,16 +91,18 @@ class metagraph:
         parser.print_help()
 
     @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
+    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Add specific arguments from parser, 
         which is the identical to subtensor  
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--metagraph._mock', action='store_true', help='To turn on metagraph mocking for testing purposes.', default=False)
+            parser.add_argument('--' + prefix_str + 'metagraph._mock', action='store_true', help='To turn on metagraph mocking for testing purposes.', default=False)
             bittensor.subtensor.add_args( parser )
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
+        bittensor.subtensor.add_args( parser, prefix = prefix )
 
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):

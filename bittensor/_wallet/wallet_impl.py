@@ -213,9 +213,9 @@ class Wallet():
 
     def register ( 
             self, 
+            subtensor: 'bittensor.Subtensor' = None, 
             wait_for_inclusion: bool = False,
             wait_for_finalization: bool = True,
-            subtensor: 'bittensor.Subtensor' = None, 
             prompt: bool = False
         ) -> 'bittensor.Wallet':
         """ Registers this wallet on the chain.
