@@ -128,8 +128,8 @@ class subtensor:
             config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
          
         # Select using config.subtensor.network
-        elif config.subtensor.network != None:
-            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.network )
+        elif config.subtensor.get('network', bittensor.defaults.subtensor.network) != None:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.get('network', bittensor.defaults.subtensor.network) )
             config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
             
         # Fallback to defaults.
