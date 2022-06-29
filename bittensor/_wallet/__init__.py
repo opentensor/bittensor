@@ -104,8 +104,8 @@ class wallet:
         """ Accept specific arguments from parser
         """
         try:
-            parser.add_argument('--wallet.name',required=False, default=argparse.SUPPRESS, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
-            parser.add_argument('--wallet.hotkey', required=False, default=argparse.SUPPRESS, help='''The name of wallet's hotkey.''')
+            parser.add_argument('--wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
+            parser.add_argument('--wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
             parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
             parser.add_argument('--wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
             parser.add_argument('--wallet.hotkeys', '--wallet.exclude_hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)''')

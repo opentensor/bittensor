@@ -170,7 +170,7 @@ class subtensor:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
         try:
-            parser.add_argument('--subtensor.network', default = argparse.SUPPRESS, type=str, 
+            parser.add_argument('--subtensor.network', default = bittensor.defaults.subtensor.network, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- nobunaga (staging network)
                                         -- nakamoto (master network)
@@ -199,7 +199,7 @@ class subtensor:
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
         assert config.subtensor
-        assert config.subtensor.network != None
+        #assert config.subtensor.network != None
 
     @staticmethod
     def determine_chain_endpoint(network: str):

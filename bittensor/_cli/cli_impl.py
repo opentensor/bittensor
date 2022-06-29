@@ -188,11 +188,8 @@ class CLI:
         self.register()
 
         # Run miner.
-        if self.config.model == 'template_miner':
-            bittensor.neurons.template_miner.neuron().run()
-
-        elif self.config.model == 'core_server':
-
+        if self.config.model == 'core_server':
+            
             if self.config.synapse == 'TextLastHiddenState':
                 bittensor.neurons.core_server.neuron(lasthidden=True, causallm=False, seq2seq = False).run()
             elif self.config.synapse == 'TextCausalLM':

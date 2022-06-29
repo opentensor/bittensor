@@ -790,7 +790,7 @@ class nucleus( torch.nn.Module ):
                           'routing_score': routing_score[_uid]}
                 
                 _stats.update({'logits': query_responses[index][index_s],
-                               'logits_val': torch.cat([ res[idx-1].reshape() for res, idx in zip (query_responses[index][index_s], non_eos_indices)])})
+                               'logits_val': torch.cat([ res[idx-1] for res, idx in zip (query_responses[index][index_s], non_eos_indices)])})
 
                 for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
                     _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
