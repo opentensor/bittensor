@@ -229,7 +229,7 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
             KeyFileError:
                 Raised if the file is corrupted or if the password is incorrect.
     """
-    if coldkey_name is not None:
+    if coldkey_name is not None and password is not None:
         password = get_coldkey_password_from_environment(coldkey_name)
 
     try:
