@@ -305,6 +305,12 @@ def serve(
             
             if iteration != 0:
                 (losses/iteration).backward()
+        
+        else:
+            while end_block >= current_block:
+                time.sleep(12)
+                current_block = subtensor.get_current_block()
+
 
         # --- Update parameters
         if (config.neuron.local_train and iteration > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
@@ -321,6 +327,10 @@ def serve(
             model.backward_gradients = 0
             logger.info('Backpropagation Successful: Model updated')
             local_data = {'local/loss': losses.detach().item() / iteration}
+
+            if local_data['local/loss'] < model.best_loss:
+                model.best_loss = local_data['local/loss']
+                model.save(config.neuron.full_path)
 
         wandb_data = {            
             'stake': nn.stake,
@@ -341,10 +351,6 @@ def serve(
             wandb_info_axon = axon.to_wandb()                
             wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
-
-        if 'local/loss' in local_data.keys() and local_data['local/loss'] < model.best_loss:
-            model.best_loss = local_data['local/loss']
-            model.save(config.neuron.full_path)
 
         if current_block - last_set_block > config.neuron.blocks_per_set_weights:
             try: 
