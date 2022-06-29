@@ -72,7 +72,8 @@ def test_forward_not_implemented():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]   
+        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address,   
     )
     response, code, synapses = axon._forward( request )
     assert synapses[0].return_code == bittensor.proto.ReturnCode.NotImplemented
@@ -89,7 +90,8 @@ def test_forward_last_hidden_success():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ] 
+        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address, 
     )
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
@@ -107,7 +109,8 @@ def test_forward_causallm_success():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ] 
+        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address,
     )
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
@@ -124,7 +127,8 @@ def test_forward_seq_2_seq_success():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]
+        synapses = [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address,
     )
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
@@ -332,7 +336,7 @@ def test_forward_seq_2_seq_state_exception():
     assert code == bittensor.proto.ReturnCode.UnknownException
 
 def test_forward_timeout():
-    def forward( inputs_x: torch.FloatTensor, synapses):
+    def forward( inputs_x: torch.FloatTensor, synapses, hotkey):
         if inputs_x[0].size() == (3,3):
             return None
         else:
@@ -347,7 +351,7 @@ def test_forward_timeout():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        hotkey= '123',
+        hotkey = axon.wallet.hotkey.ss58_address,
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
 
@@ -570,7 +574,8 @@ def test_forward_tensor_success_priority():
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
         tensors=[inputs_serialized],
-        synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
+        synapses= [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address,
     )
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
@@ -628,7 +633,7 @@ def test_grpc_forward_works():
 
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        hotkey = '1092310312914',
+        hotkey = axon.wallet.hotkey.ss58_address,
         tensors = [inputs_serialized],
         synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
@@ -809,5 +814,5 @@ if __name__ == "__main__":
     #test_backward_response_serialization_error()
     #test_axon_is_destroyed()
     #test_forward_wandb()
-    # test_forward_last_hidden_success()
-    test_backward_seq_2_seq_shape_error()
+     test_forward_not_implemented()
+    #test_backward_seq_2_seq_shape_error()
