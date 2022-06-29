@@ -52,13 +52,13 @@ class prioritythreadpool:
         return priority_thread_pool_impl.PriorityThreadPoolExecutor(maxsize = config.axon.priority.maxsize, max_workers = config.axon.priority.max_workers)
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser ):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Accept specific arguments from parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--axon.priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
-            parser.add_argument('--axon.priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
-            
+            parser.add_argument('--' + prefix_str + 'axon.priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
+            parser.add_argument('--' + prefix_str + 'axon.priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)  
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
