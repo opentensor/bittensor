@@ -189,34 +189,35 @@ class axon:
         parser.print_help()
 
     @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
+    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None  ):
         """ Accept specific arguments from parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--axon.port', type=int, 
+            parser.add_argument('--' + prefix_str + 'axon.port', type=int, 
                     help='''The port this axon endpoint is served on. i.e. 8091''', default = bittensor.defaults.axon.port)
-            parser.add_argument('--axon.ip', type=str, 
+            parser.add_argument('--' + prefix_str + 'axon.ip', type=str, 
                 help='''The local ip this axon binds to. ie. [::]''', default = bittensor.defaults.axon.ip)
-            parser.add_argument('--axon.max_workers', type=int, 
+            parser.add_argument('--' + prefix_str + 'axon.max_workers', type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
-            parser.add_argument('--axon.maximum_concurrent_rpcs', type=int, 
+            parser.add_argument('--' + prefix_str + 'axon.maximum_concurrent_rpcs', type=int, 
                 help='''Maximum number of allowed active connections''',  default = bittensor.defaults.axon.maximum_concurrent_rpcs)
-            parser.add_argument('--axon.backward_timeout', type=int,
-                help='Number of seconds to wait for backward axon request', default=20)
-            parser.add_argument('--axon.forward_timeout', type=int,
+            parser.add_argument('--' + prefix_str + 'axon.backward_timeout', type=int,
+                help='Number of seconds to wait for backward axon request', default=2*bittensor.__blocktime__)
+            parser.add_argument('--' + prefix_str + 'axon.forward_timeout', type=int,
                 help='Number of seconds to wait for forward axon request', default=bittensor.__blocktime__)
-            parser.add_argument('--axon.priority.max_workers', type = int,
+            parser.add_argument('--' + prefix_str + 'axon.priority.max_workers', type = int,
                 help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
-            parser.add_argument('--axon.priority.maxsize', type=int, 
+            parser.add_argument('--' + prefix_str + 'axon.priority.maxsize', type=int, 
                 help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
-            parser.add_argument('--axon.compression', type=str, 
+            parser.add_argument('--' + prefix_str + 'axon.compression', type=str, 
                 help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.axon.compression)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
 
-        bittensor.wallet.add_args( parser )
+        bittensor.wallet.add_args( parser, prefix = prefix )
 
     @classmethod   
     def add_defaults(cls, defaults):

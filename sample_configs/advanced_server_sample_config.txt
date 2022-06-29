@@ -17,44 +17,27 @@ dataset.no_tokenizer: false
 dataset.num_workers: 0
 dataset.save_dataset: false
 
-dendrite.max_active_receptors: 500
-dendrite.max_worker_threads: 150
-dendrite.requires_grad: true
-dendrite.timeout: 12
-
 logging.debug: false
 logging.logging_dir: ~/.bittensor/miners
 logging.record_log: false
 logging.trace: false
 
-neuron.accumulate_remote_gradients: false
-neuron.batch_size_train: 2
-neuron.blacklist: 0
-neuron.blacklist_allow_non_registered: true
+neuron.blacklist.stake.backward: 100
+neuron.blacklist.stake.forward: 10
+neuron.blacklist.time: 2
+neuron.blocks_per_epoch: 2
+neuron.checking: true
 neuron.clip_gradients: 1.0
-neuron.compute_remote_gradients: false
 neuron.device: cpu
-neuron.epoch_length: 100
-neuron.learning_rate: 1
-neuron.learning_rate_chain: 1
+neuron.inter_degree: nearest
+neuron.interpolate: true
+neuron.learning_rate: 0.01
+neuron.model_name: gpt2
 neuron.momentum: 0.8
-neuron.n_epochs: 9223372036854775807
-neuron.n_topk_peer_weights: 100
-neuron.name: template_neuron
+neuron.name: advanced_server
 neuron.restart: false
-neuron.restart_on_failure: true
-neuron.sync_block_time: 100
-neuron.timeout: 10
-neuron.use_upnpc: false
-neuron.use_wandb: false
-neuron.weight_decay: 0.25
-
-nucleus.dropout: 0.2
-nucleus.nhead: 2
-nucleus.nhid: 200
-nucleus.nlayers: 2
-nucleus.punishment: 0.001
-nucleus.topk: 20
+neuron.padding: true
+neuron.pretrained: true
 
 subtensor.chain_endpoint: null
 subtensor.network: nakamoto
