@@ -47,6 +47,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         forward: 'Callable',
         backward: 'Callable',
         synapses: dict,
+        synapse_checks: 'Callable',
         priority:  'Callable' = None,
         priority_threadpool: 'bittensor.prioritythreadpool' = None,
         forward_timeout: int = None,
@@ -79,6 +80,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.forward_timeout = forward_timeout
         self.backward_timeout = backward_timeout
         self.synapse_callbacks = synapses
+        self.synapse_checks = synapse_checks
         self.stats = self._init_stats()
         self.started = None
         self.optimizer_step = None
@@ -277,7 +279,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     self.forward_callback,
                     inputs_x = deserialized_forward_tensors, 
                     synapses = synapses,
-                    priority = priority
+                    priority = priority,
+                    hotkey= request.hotkey
                 )
                 forward_response_tensors, forward_codes, forward_messages = future.result( timeout= self.forward_timeout )
             else:
@@ -285,8 +288,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 forward_response_tensors, forward_codes, forward_messages = self.forward_callback(
                     inputs_x = deserialized_forward_tensors,
                     synapses = synapses,
+                    hotkey= request.hotkey
                 )
-            
             synapse_is_response = [ True for _ in synapses ]
             # ========================================
             # ==== Fill codes from forward calls ====
@@ -294,7 +297,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             for index, synapse in enumerate(synapses):
                 synapse_codes [ index ] = forward_codes [ index ]
                 synapse_messages [index] = forward_messages [ index ]
-
         # ========================================
         # ==== Catch forward request timeouts ====
         # ========================================
@@ -350,7 +352,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         if check_if_should_return():
             finalize_codes_stats_and_logs()
             return [], synapse_codes[0], request.synapses
-
 
         # =========================================================
         # ==== Set return times for successfull forward ===========
@@ -559,7 +560,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         finalize_codes_stats_and_logs()
         return [], bittensor.proto.ReturnCode.Success, request.synapses
 
-    def default_forward_callback(self, inputs_x:torch.FloatTensor, synapses=[] ):
+    def default_forward_callback(self, inputs_x:torch.FloatTensor, synapses=[], hotkey = None):
         """
             The default forward callback when no callback is attached: Is used to call specific synapse functions
 
@@ -569,6 +570,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 
                 synapses (:obj: list of bittensor.proto.SynapseArgs, 'Optional')
                     The proto message that contains additional args for individual synapse functions
+
+                hotkey (:obj: str of the hotkey, 'Optional')
+                    The hotkey of the validator who sent the request
 
             Returns:
                 response_tensors: (:obj: list of bittensor.proto.Tensor, `required`): 
@@ -587,17 +591,25 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # --- calling attached synapses ---
         for index, synapse in enumerate(synapses):
             try:
-                if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
+                synapse_check =  self.synapse_checks(synapse, hotkey)
+
+                if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None and synapse_check:
                     model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
                     response_tensors.append(response_tensor)
                     response_codes.append(bittensor.proto.ReturnCode.Success)
                     response_messages.append('Success')
+                
+                elif not synapse_check:
+                    response_tensors.append(None)
+                    response_codes.append(bittensor.proto.ReturnCode.UnknownException)
+                    response_messages.append('Synapse Check Failed')
+
                 else:
                     response_tensors.append(None)
                     response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
                     response_messages.append('Not Implemented')
 
-            except Exception as e:                
+            except Exception as e: 
                 # --- Exception Hit in Synapse ---
                 response_tensors.append(None)
                 response_codes.append(bittensor.proto.ReturnCode.UnknownException)

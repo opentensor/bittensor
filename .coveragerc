@@ -12,3 +12,4 @@ omit =
   ./bittensor/_dataset/dataset_mock.py
   ./bittensor/_metagraph/metagraph_mock.py
   ./benchmarks/*
+  ./env/*

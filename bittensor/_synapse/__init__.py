@@ -27,6 +27,9 @@ from .synapse_impl import Synapse
 from .text_causallm_impl import TextCausalLM
 from .text_lasthiddenstate_impl import TextLastHiddenState
 from .text_seq2seq_impl import TextSeq2Seq
+
+
+
 class synapse:
     """
     Factory class for the synapse objects. The synapses are designed to work the bittensor protocol and is 
@@ -38,6 +41,8 @@ class synapse:
         >>> dendrite.text(endpoints = [..], inputs = [..], synapses= [causallm_synapse] )
     
     """
+    __synapses_types__ = ['TextLastHiddenState', 'TextCausalLM', 'TextSeq2Seq']
+
     @staticmethod
     def TextLastHiddenState (
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,

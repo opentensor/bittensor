@@ -328,7 +328,6 @@ class server(torch.nn.Module):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
-
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
@@ -386,13 +385,12 @@ class server(torch.nn.Module):
         tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
         
         tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
-
+        
         for key in ['input_ids', 'attention_mask']:  # form a torch batch tensor
             padded_tokens= pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
-            tokens[key] = torch.zeros(token_batch.shape, dtype = torch.long)
+            tokens[key] = torch.zeros(padded_tokens.shape, dtype = torch.long)
             tokens[key][:, :padded_tokens.shape[1]] = padded_tokens
             tokens[key] = torch.LongTensor(tokens[key])
-
         return tokens
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
@@ -476,6 +474,12 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
         parser.add_argument('--neuron.local_train', action='store_true', help='''If true, allow local training''', default=False)
         parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
+        parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
+        parser.add_argument('--neuron.causallm', action='store_false', help='To turn off causallm synapse', default=True)
+        parser.add_argument('--neuron.seq2seq', action='store_false', help='To turn off seq2seq synapse', default=True)
+        parser.add_argument('--neuron.lasthidden_stake', type = float, help='the amount of stake to run last hidden synapse',default=0)
+        parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
+        parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run  seq2seq synapse',default=0)
         parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
         parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
         parser.add_argument('--neuron.finetune.layer_name', type=str, help='Specify since which layer to finetune. eg. encoder.layer.11', default=None)

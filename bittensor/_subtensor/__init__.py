@@ -104,7 +104,7 @@ class subtensor:
 
         # Returns a mocked connection with a background chain connection.
         config.subtensor._mock = _mock if _mock != None else config.subtensor._mock
-        if config.subtensor._mock == True or network == 'mock' or config.subtensor.network == 'mock':
+        if config.subtensor._mock == True or network == 'mock' or config.subtensor.get('network', bittensor.defaults.subtensor.network) == 'mock':
             config.subtensor._mock = True
             return subtensor_mock.mock_subtensor.mock()
         
@@ -125,12 +125,12 @@ class subtensor:
         # Select using config.subtensor.chain_endpoint
         elif config.subtensor.chain_endpoint != None:
             config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
-            config.subtensor.network = config.subtensor.network
+            config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
          
         # Select using config.subtensor.network
-        elif config.subtensor.network != None:
-            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.network )
-            config.subtensor.network = config.subtensor.network
+        elif config.subtensor.get('network', bittensor.defaults.subtensor.network) != None:
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.get('network', bittensor.defaults.subtensor.network) )
+            config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
             
         # Fallback to defaults.
         else:
@@ -148,7 +148,7 @@ class subtensor:
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
             substrate = substrate,
-            network = config.subtensor.network,
+            network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
             chain_endpoint = config.subtensor.chain_endpoint,
         )
 
@@ -170,7 +170,7 @@ class subtensor:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
         try:
-            parser.add_argument('--subtensor.network', default = bittensor.defaults.subtensor.network, type=str, 
+            parser.add_argument('--subtensor.network', default = argparse.SUPPRESS, type=str, 
                                 help='''The subtensor network flag. The likely choices are:
                                         -- nobunaga (staging network)
                                         -- nakamoto (master network)
