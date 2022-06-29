@@ -49,7 +49,7 @@ class Balance:
         return self.tao
 
     def __str__(self):
-        return f"{self.unit}{float(self.tao):,.9f}".replace(".", ",")
+        return f"{self.unit}{float(self.tao):,.9f}"
 
     def __rich__(self):
         return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
