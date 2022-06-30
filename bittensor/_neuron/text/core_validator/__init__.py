@@ -609,6 +609,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
+        parser.add_argument('--nucleus.dendrite_backward', type=bool, help='Pass backward request to the server side or not', default=False )
 
     @classmethod
     def config ( cls ):
@@ -756,6 +757,11 @@ class nucleus( torch.nn.Module ):
             synapses=synapses,
             timeout=100
         )
+
+        if not self.config.nucleus.dendrite_backward:
+            query_responses = query_responses.detach()
+            return_ops = return_ops.detach()
+            times = times.detach()
 
         print(f'complete \[{time.time() - request_start_time:.3g}s]')
         print(f'Shapley values \t| Calculating ... ', end='')
