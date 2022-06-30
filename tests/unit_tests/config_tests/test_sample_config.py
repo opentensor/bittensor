@@ -7,17 +7,6 @@ from bittensor._neuron.text.core_server import server as core_server
 # TODO: Fix pathing issues in this file so it actually does something.
 # These tests were not running on github actions, and most of them just work without reading the config files.
 
-def test_run_template_miner_config():
-
-    PATH = 'sample_configs/template_miner_sample_config.txt'
-    sys.argv = [sys.argv[0], '--config', PATH]
-    config = template_miner.config()
-
-    assert config['axon']['ip'] == '[::]'
-    assert config['dataset']['data_dir'] == '~/.bittensor/data/'
-    assert config['dendrite']['requires_grad'] == True
-
-    assert config['nucleus']['punishment'] == 0.001
 
 def test_run_core_validator_config():
 
@@ -32,15 +21,14 @@ def test_run_core_validator_config():
 
 def test_run_core_server_config():
 
-    PATH = '/tests/config_tests/core_server_sample_config.txt'
+    PATH = 'tests/unit_tests/config_tests/core_server_sample_config.txt'
     sys.argv = [sys.argv[0], '--config', PATH]
     config = core_server.config()
-
+    
     assert config['axon']['backward_timeout'] == 20
     assert config['dataset']['data_dir'] == '~/.bittensor/data/'
     assert config['logging']['debug'] == False
     assert config['wandb']['api_key'] == 'default'
 
 if __name__ == "__main__":
-    test_run_template_miner_config()
     test_run_core_server_config()

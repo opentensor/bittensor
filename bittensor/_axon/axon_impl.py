@@ -181,7 +181,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         synapse_messages = [ "Success" for _ in synapses ]
         synapse_codes = [ bittensor.proto.ReturnCode.Success for _ in synapses ]
         synapse_inputs = [ None for _ in synapses ]
-        synapse_responses = [ None for _ in synapses ] # We fill nones for non success.
+        synapse_responses = [ synapse.empty() for synapse in synapses ] # We fill nones for non success.
         synapse_is_response = [ False for _ in synapses ]
         synapse_call_times = [ 0 for _ in synapses ]
         start_time = clock.time()
@@ -333,7 +333,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapse_responses [ index ] = synapse.serialize_forward_response_tensor( deserialized_forward_tensors[ index ], forward_response_tensors [ index ] )
                 else:
                     synapse_responses [ index ] = synapse.empty()
-                response_synapses.append(synapse.serialize_to_wire_proto(code = synapse_codes[index], message= synapse_messages[index] ))
 
             except ValueError as e:
                 if str(e) == 'Empty Response':
@@ -343,11 +342,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
 
                 synapse_call_times [ index ] = clock.time() - start_time
                 synapse_messages [index] = "Synapse response shape exception with error: {}".format( str( e ) )
+                synapse_responses [ index ] = synapse.empty()
 
             except Exception as e:
                 synapse_codes [ index ]= bittensor.proto.ReturnCode.ResponseSerializationException
                 synapse_call_times [ index ] = clock.time() - start_time
                 synapse_messages [index] = "Synapse response serialization exception with error: {}".format( str( e ) )
+                synapse_responses [ index ] = synapse.empty()
+            
+            response_synapses.append(synapse.serialize_to_wire_proto(code = synapse_codes[index], message= synapse_messages[index] ))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_codes_stats_and_logs()
