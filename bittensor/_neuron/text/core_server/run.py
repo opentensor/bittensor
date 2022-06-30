@@ -79,7 +79,7 @@ def serve(
         tokens = model.token_remap(inputs_x)
         output = model.pre_model.generate(
             input_ids=tokens,
-            max_length=synapse.num_to_generate,
+            max_length=max( tokens.shape[1] + 1, synapse.num_to_generate),
             num_beams=synapse.num_beams,
             no_repeat_ngram_size=synapse.no_repeat_ngram_size,
             early_stopping = synapse.early_stopping,
@@ -87,15 +87,13 @@ def serve(
             top_p=synapse.top_p,
             num_return_sequences=synapse.num_return_sequences,
         )
-        raw_text = model.tokenizer.decode(output[0])
-        bittensor_output = model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate]
+        raw_texts = [model.tokenizer.decode(out) for out in output]
+        bittensor_output = torch.cat([model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate] for raw_text in raw_texts])
         return model_output, bittensor_output
-
 
     def forward_hidden_state(inputs_x:torch.FloatTensor, synapse, model_output = None):
         model_output, hidden = model.encode_forward(inputs_x.to(model.device), model_output = model_output)
         return model_output, hidden
-
 
     def forward_casual_lm(inputs_x:torch.FloatTensor, synapse, model_output = None):
         model_output, logits = model.encode_forward_causallm(inputs_x.to(model.device), model_output = model_output)
@@ -104,7 +102,6 @@ def serve(
     def optimizer_step():
         optimizer.step()
         optimizer.zero_grad()
-
 
     def blacklist(pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
@@ -188,7 +185,6 @@ def serve(
         
         return True
 
-
     def backward_callback(inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
         """
             The default backward callback when no callback is attached: Is used to call specific synapse functions
@@ -216,7 +212,6 @@ def serve(
         
         if not config.neuron.remote_train:
             return response_tensors, response_codes, response_messages
-
 
         # --- calling attached synapses ---
         with mutex and torch.enable_grad() and torch.autograd.set_detect_anomaly(True):
