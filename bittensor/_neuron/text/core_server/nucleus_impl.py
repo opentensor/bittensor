@@ -77,6 +77,8 @@ class server(torch.nn.Module):
         else:
             self.pre_model.eval()
 
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token  # Define PAD Token = EOS Token (GPT2 convention)
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
         self.split_map_cache = {}
@@ -386,8 +388,14 @@ class server(torch.nn.Module):
         
         tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
         
-        for key in ['input_ids', 'attention_mask']:  # form a torch batch tensor
-            tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
+        # === Pad tokens ===
+        # Use pad_token_id to right pad batch, right-padding required for logit translation.
+        # Note that tokenizer(padding=True, ...) is not used because
+        # unpadded offset_mapping is required for logit translation operations.
+        tokens['input_ids'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['input_ids']],
+                                           batch_first=True, padding_value=self.tokenizer.pad_token_id)
+        tokens['attention_mask'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['attention_mask']],
+                                                batch_first=True)
 
         return tokens
 
