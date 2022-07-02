@@ -364,13 +364,18 @@ class server(torch.nn.Module):
 
         return model_output, logits_std
 
-    def remapping_token_causallm(self, token_batch, std_tokenizer=None):
+    def remapping_token_causallm(self, token_batch, std_tokenizer=None, tokenizer_padding=True,
+                                 return_offsets_mapping=False):
         r""" Tokenizer remapping; decodes the message and then remaps the message using a new tokenizer
             Args:
                 token_batch ( :obj:`torch.LongTensor`, `required`):
                     token_batch to be retokenized, [batch_size, sequence_len]
-                std_tokenizer ( transformers.Tokenizer, `optional`):
+                std_tokenizer ( :obj:`transformers.Tokenizer`, `optional`):
                     The standard tokenizer which was used to tokenize the input.
+                tokenizer_padding ( :obj:`bool`, `required`):
+                    Use built-in tokenizer padding, otherwise use pad_sequence.
+                return_offsets_mapping ( :obj:`bool`, `required`):
+                    Return offsets_mapping in tokenization to delineate token segment positions.
         """
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer
@@ -378,24 +383,26 @@ class server(torch.nn.Module):
         text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
         result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
         to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
-        
-        std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
-        tokens = self.tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
 
-        # pad offsets so that special token offset widths match for continued correct alignment
-        std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
-        tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
-        
-        tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
-        
-        # === Pad tokens ===
-        # Use pad_token_id to right pad batch, right-padding required for logit translation.
-        # Note that tokenizer(padding=True, ...) is not used because
-        # unpadded offset_mapping is required for logit translation operations.
-        tokens['input_ids'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['input_ids']],
-                                           batch_first=True, padding_value=self.tokenizer.pad_token_id)
-        tokens['attention_mask'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['attention_mask']],
-                                                batch_first=True)
+        tokens = self.tokenizer(to_text_batch, padding=tokenizer_padding, return_offsets_mapping=return_offsets_mapping,
+                                truncation=True, add_special_tokens=False)  # assume tokenizer.padding_side = 'left'
+
+        if not tokenizer_padding:  # create batch tensor with pad_sequence
+            # Use pad_token_id to right pad batch, right-padding required for logit translation.
+            # Note that tokenizer(padding=True, ...) is not used because
+            # unpadded offset_mapping is required for logit translation operations.
+            tokens['input_ids'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['input_ids']],
+                                               batch_first=True, padding_value=self.tokenizer.pad_token_id)
+            tokens['attention_mask'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['attention_mask']],
+                                                    batch_first=True)
+
+        if return_offsets_mapping:  # get offsets_mapping in tokenization to delineate token segment positions
+            std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
+
+            # pad offsets so that special token offset widths match for continued correct alignment
+            std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
+            tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+            tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
 
         return tokens
 
