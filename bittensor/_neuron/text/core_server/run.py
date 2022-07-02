@@ -78,7 +78,8 @@ def serve(
     def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
         tokens = model.token_remap(inputs_x)
         output = model.pre_model.generate(
-            input_ids=tokens,
+            input_ids=tokens['input_ids'],
+            attention_mask=tokens['attention_mask'],
             max_length=max( tokens.shape[1] + 1, synapse.num_to_generate),
             num_beams=synapse.num_beams,
             no_repeat_ngram_size=synapse.no_repeat_ngram_size,

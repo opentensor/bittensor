@@ -92,7 +92,7 @@ class server(torch.nn.Module):
         self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
         self.checking = checking if checking != None else config.neuron.checking
         self.mapping_function= mapping_function
-        self.token_remap = token_remap if token_remap != None else self.remapping_token
+        self.token_remap = token_remap if token_remap is not None else self.remapping_token
 
         if self.config.neuron.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
@@ -223,7 +223,7 @@ class server(torch.nn.Module):
                 logits (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-        tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
+        tokens = self.token_remap(token_batch, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
             if self.config.neuron.local_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
@@ -258,7 +258,7 @@ class server(torch.nn.Module):
                     The hidden layer output as a torch tensor of shape [batch_size, sequence_len, __network_dim__ ]
         """
         sen_len = inputs.size()
-        tokens = self.remapping_token_causallm(inputs, tokenizer)  # remap to server tokenizer
+        tokens = self.token_remap(inputs, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
@@ -289,83 +289,8 @@ class server(torch.nn.Module):
 
         return model_output, encoded_hidden
 
-    def remapping_token(self,input, old_tokenizer=None):
-        r""" Default remapping of tokenizers; decodes the message and then remaps the message using a new tokenizer
-            Args:
-                inputs_x ( :obj:`torch.Tensor`, `required`):
-                    torch inputs to be forward processed.
-                old_tokenizer ( huggingface.tokenizer, `required`):
-                    The tokenizer which was used to tokenize the input  (defaults to bittensor tokenizer if none is given)
-        """
-        if old_tokenizer == None:
-            old_tokenizer = bittensor.tokenizer()
-        new_data = []
-        for i in range(input.shape[0]):
-            decoded = old_tokenizer.decode(input[i]) 
-            hugging = self.tokenizer(decoded)
-            new_data += [torch.LongTensor(hugging.input_ids)]
-        new_data = pad_sequence(new_data,batch_first=True)
-        return new_data
-
-    def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
-        r""" Forward pass through the pretrained model and possible mappings between hidden units.
-             The response tensor should be the hidden units computed using the local context and
-             with shape: [batch_size, sequence_len, __vocab_size__].
-
-            Args:
-                token_batch ( :obj:`torch.LongTensor`, `required`):
-                    torch inputs to be forward processed, [batch_size, sequence_len]
-                tokenizer ( huggingface.tokenizer, `optional`):
-                    The tokenizer which was used to tokenize the inputs
-                encode_len ( :obj:`int`, `optional`):
-                    logit encoding length, default bittensor.__network_dim__ length
-                model_output (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
-                    The output of huggingface auto model.
-
-            Returns:
-                model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
-                    The output of huggingface auto model.
-                
-                logits_std (:obj:`torch.FloatTensor`):
-                    The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
-        """
-        tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
-        if model_output == None:
-            if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
-                model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                attention_mask=tokens['attention_mask'],
-                                                output_hidden_states=True)
-            else:
-                with torch.no_grad():
-                    model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                    attention_mask=tokens['attention_mask'],
-                                                    output_hidden_states=True)
-
-        pre_logits = model_output.logits
-
-        if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
-            probs_std = translate_logits_to_probs_std(pre_logits,
-                                                        tokens['offset_mapping'], tokens['offset_mapping_std'],
-                                                        self.tokenizer, self.std_tokenizer,
-                                                        self.split_map_cache,
-                                                        self.to_translation_map, self.from_translation_map,
-                                                        tokens['input_ids'], token_batch)
-        
-        else:
-            with torch.no_grad():
-                probs_std = translate_logits_to_probs_std(pre_logits,
-                                                            tokens['offset_mapping'], tokens['offset_mapping_std'],
-                                                            self.tokenizer, self.std_tokenizer,
-                                                            self.split_map_cache,
-                                                            self.to_translation_map, self.from_translation_map,
-                                                            tokens['input_ids'], token_batch)
-        probs_std = probs_std.to(self.device)
-        logits_std = torch.log(probs_std + 1e-40)
-
-        return model_output, logits_std
-
-    def remapping_token_causallm(self, token_batch, std_tokenizer=None, tokenizer_padding=True,
-                                 return_offsets_mapping=False):
+    def remapping_token(self, token_batch, std_tokenizer=None, tokenizer_padding=True,
+                        return_offsets_mapping=False):
         r""" Tokenizer remapping; decodes the message and then remaps the message using a new tokenizer
             Args:
                 token_batch ( :obj:`torch.LongTensor`, `required`):
@@ -400,11 +325,69 @@ class server(torch.nn.Module):
             std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
 
             # pad offsets so that special token offset widths match for continued correct alignment
-            std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
+            std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch,
+                                                       pad_offsets_batch)
             tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
             tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
 
         return tokens
+
+    def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
+        r""" Forward pass through the pretrained model and possible mappings between hidden units.
+             The response tensor should be the hidden units computed using the local context and
+             with shape: [batch_size, sequence_len, __vocab_size__].
+
+            Args:
+                token_batch ( :obj:`torch.LongTensor`, `required`):
+                    torch inputs to be forward processed, [batch_size, sequence_len]
+                tokenizer ( huggingface.tokenizer, `optional`):
+                    The tokenizer which was used to tokenize the inputs
+                encode_len ( :obj:`int`, `optional`):
+                    logit encoding length, default bittensor.__network_dim__ length
+                model_output (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
+                    The output of huggingface auto model.
+
+            Returns:
+                model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
+                    The output of huggingface auto model.
+                
+                logits_std (:obj:`torch.FloatTensor`):
+                    The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
+        """
+        tokens = self.token_remap(token_batch, tokenizer)  # remap to server tokenizer
+        if model_output == None:
+            if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+                model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                attention_mask=tokens['attention_mask'],
+                                                output_hidden_states=True)
+            else:
+                with torch.no_grad():
+                    model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                    attention_mask=tokens['attention_mask'],
+                                                    output_hidden_states=True)
+
+        pre_logits = model_output.logits
+
+        if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            probs_std = translate_logits_to_probs_std(pre_logits,
+                                                        tokens['offset_mapping'], tokens['offset_mapping_std'],
+                                                        self.tokenizer, self.std_tokenizer,
+                                                        self.split_map_cache,
+                                                        self.to_translation_map, self.from_translation_map,
+                                                        tokens['input_ids'], token_batch)
+        
+        else:
+            with torch.no_grad():
+                probs_std = translate_logits_to_probs_std(pre_logits,
+                                                            tokens['offset_mapping'], tokens['offset_mapping_std'],
+                                                            self.tokenizer, self.std_tokenizer,
+                                                            self.split_map_cache,
+                                                            self.to_translation_map, self.from_translation_map,
+                                                            tokens['input_ids'], token_batch)
+        probs_std = probs_std.to(self.device)
+        logits_std = torch.log(probs_std + 1e-40)
+
+        return model_output, logits_std
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
         """
