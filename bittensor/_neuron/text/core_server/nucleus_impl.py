@@ -387,10 +387,8 @@ class server(torch.nn.Module):
         tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
         
         for key in ['input_ids', 'attention_mask']:  # form a torch batch tensor
-            padded_tokens= pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
-            tokens[key] = torch.zeros(padded_tokens.shape, dtype = torch.long)
-            tokens[key][:, :padded_tokens.shape[1]] = padded_tokens
-            tokens[key] = torch.LongTensor(tokens[key])
+            tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
+
         return tokens
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
