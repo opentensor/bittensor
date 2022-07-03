@@ -768,7 +768,8 @@ class nucleus( torch.nn.Module ):
                 response.to( self.device )
 
         stats = []
-        routing_loss = torch.tensor(0.)
+        server_loss = torch.tensor(0.)  # server losses to accumulate to then backward() via dendrite
+        routing_loss = torch.tensor(0.)  # validator routing loss for local model update
         unsuccessful = []
 
         def get_num_params(_loss):
@@ -799,12 +800,14 @@ class nucleus( torch.nn.Module ):
                     _stats.update({'loss' + ext: _loss, 'base_params' + ext: _num_params,
                                    'synergy' + ext: 0, 'synergy_loss_diff' + ext: 0})
 
+                server_loss += _stats['loss']  # add sequence loss to be backward() to server
+
                 # === Add routing loss ===
                 # MSE loss between predicted routing score and ideal target routing score.
                 # The Bayes risk approx. 1.69, i.e. the minimal loss achievable for next-token
                 # prediction on the full distribution 𝑃, a.k.a the "entropy of natural text"
                 # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
-                routing_score_target = torch.exp(-torch.clamp(_stats['loss'] - 1.69, 0))
+                routing_score_target = torch.exp(-torch.clamp(_stats['loss'].detach() - 1.69, 0))
                 _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
                 routing_loss += _routing_loss
                 _stats.update({'routing_score_target': routing_score_target, 'routing_loss': _routing_loss})
@@ -911,4 +914,4 @@ class nucleus( torch.nn.Module ):
             unsuccess_txt += f'{_uid}[[red]{_return_op}[/red] [yellow not bold]{_time:.2f}[/yellow not bold]] '
         print(unsuccess_txt)
 
-        return routing_loss, stats
+        return server_loss + routing_loss, stats
