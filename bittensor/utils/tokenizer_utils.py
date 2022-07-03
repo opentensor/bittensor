@@ -866,6 +866,75 @@ def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_ind
     return topk_tokens, topk_probs, floor_probs
 
 
+def phrase_cross_entropy(target_phrases: List[int],
+                         topk_tokens: torch.Tensor, topk_probs: torch.Tensor, floor_probs: torch.Tensor,
+                         ignore_index: int = -100, reduce=True, reduction='mean',
+                         vocab_size_min: int = 50257) -> torch.Tensor:
+    r"""
+    Calculates the cross entropy of a phrase prediction against a target phrase, so that this is a multi-token
+    extension of typical cross entropy calculated for next token prediction.
+        Args:
+            target_phrases (:obj:`List[int]`, `required`):
+                [batch_size] Target phrases in standard token sequence list.
+            topk_tokens (:obj:`torch.Tensor`, `required`):
+                [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
+            topk_probs (:obj:`torch.Tensor`, `required`):
+                [batch_size, topk] Probabilities for each phrase in topk.
+            floor_probs (:obj:`torch.Tensor`, `required`):
+                [batch_size] Floor probabilities as mean probability for non-topk tokens.
+            ignore_index (:obj:`int`, `optional`):
+                Padding value to use for unfilled token positions in a shorter token phrase.
+            reduce (:obj:`bool`, `optional`):
+                Whether to reduce the cross entropy over the batch dimension.
+            reduction (:obj:`str`, `optional`):
+                Reduction function to perform when reduce is True.
+            vocab_size_min (:obj:`int`, `optional`):
+                Minimum server vocab_size expected, should set to nominal 50257,
+                used to prevent the floor_probs from being too large.
+        Returns:
+            loss (:obj:`torch.Tensor`, `required`):
+                Phrase cross entropy loss, either scalar if reduce or [batch_size].
+    """
+
+    batch_size, topk, max_len = topk_tokens.shape
+
+    # === Ensure total probability is 1 ===
+    total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
+    n_topk_probs = topk_probs / total_probs[:, None]  # [batch_size, topk] normalized topk_probs
+    n_floor_probs = floor_probs / total_probs  # [batch_size] normalized floor_probs
+
+    match_probs = torch.zeros(batch_size)  # accumulate probabilities when sub target matches phrase
+    for b in range(batch_size):
+        # === Integrate sub target matches ===
+        target_phrase = torch.tensor(target_phrases[b])
+        check_len = min(max_len, len(target_phrase))
+
+        for c in range(1, check_len + 1):  # progressively increase sub target length
+            target = ignore_index * torch.ones(check_len, dtype=torch.int32)  # [-100, ..., -100]
+            target[:c] = target_phrase[:c]  # [tok0, tok1, ...tokc, -100, ..., -100]
+
+            # Find sub target matches
+            match = (topk_tokens[b, :, :check_len] == target)
+            match_idx = torch.where(match.sum(dim=-1) == check_len)[0]  # phrase indices which match sub target
+
+            if len(match_idx):  # at least one match
+                match_probs[b] += n_topk_probs[b, match_idx].sum()  # accumulate all matches
+            else:  # no matches
+                match_probs[b] += n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
+
+    match_probs = torch.clamp(match_probs, 0, 1)  # [batch_size] ensure 0 <= total probability <= 1
+    loss = - torch.log(match_probs + 1e-40)  # [batch_size] calculate cross entropy loss
+
+    if reduce:
+        if not hasattr(loss, reduction):
+            raise RuntimeError(f'phase_cross_entropy(): Reduction function {reduction} not found.')
+        loss = getattr(loss, reduction)()
+        if loss.numel() > 1:
+            raise ValueError(f'phase_cross_entropy(): Expected reduction to scalar, obtained {loss.shape} instead.')
+
+    return loss
+
+
 def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
                                 target_tokenizer: PreTrainedTokenizerBase) -> bool:
     r"""
