@@ -354,7 +354,10 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-        tokens = self.token_remap(token_batch, tokenizer)  # remap to server tokenizer
+        # remap to server tokenizer
+        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, tokenizer_padding=False,
+                                  return_offsets_mapping=True)
+
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
