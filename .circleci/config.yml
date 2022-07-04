@@ -80,7 +80,7 @@ jobs:
 
       - when:
           condition:
-            equal: ["3.10.5", << parameters.python_version >> ]
+            equal: ["3.10.5", << parameters.python-version >> ]
           steps:
             - run:
                 name: Upload Coverage
