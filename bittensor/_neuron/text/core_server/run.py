@@ -76,7 +76,7 @@ def serve(
     n_topk_peer_weights = subtensor.min_allowed_weights
 
     def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        tokens = model.token_remap(inputs_x)
+        tokens = model.token_remap(inputs_x.to(model.device))
         output = model.pre_model.generate(
             input_ids=tokens,
             max_length=max( tokens.shape[1] + 1, synapse.num_to_generate),

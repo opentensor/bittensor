@@ -260,13 +260,13 @@ class server(torch.nn.Module):
 
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
-                model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                attention_mask=tokens['attention_mask'],
+                model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
+                                                attention_mask=tokens['attention_mask'].to(self.device),
                                                 output_hidden_states=True)
             else:
                 with torch.no_grad():
-                    model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                    attention_mask=tokens['attention_mask'],
+                    model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
+                                                    attention_mask=tokens['attention_mask'].to(self.device),
                                                     output_hidden_states=True)
 
         pre_hidden = model_output.hidden_states[-1]
@@ -303,7 +303,7 @@ class server(torch.nn.Module):
             hugging = self.tokenizer(decoded)
             new_data += [torch.LongTensor(hugging.input_ids)]
         new_data = pad_sequence(new_data,batch_first=True)
-        return new_data
+        return new_data.to(self.device)
 
     def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
@@ -327,16 +327,19 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
+
+
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
+
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
-                model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                attention_mask=tokens['attention_mask'],
+                model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
+                                                attention_mask=tokens['attention_mask'].to(self.device),
                                                 output_hidden_states=True)
             else:
                 with torch.no_grad():
-                    model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                    attention_mask=tokens['attention_mask'],
+                    model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
+                                                    attention_mask=tokens['attention_mask'].to(self.device),
                                                     output_hidden_states=True)
 
         pre_logits = model_output.logits
