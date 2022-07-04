@@ -171,7 +171,7 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--' + prefix_str + 'subtensor.network', default = argparse.SUPPRESS, type=str, 
+            parser.add_argument('--' + prefix_str + 'subtensor.network', default = bittensor.defaults.subtensor.network, type=str,
                                 help='''The subtensor network flag. The likely choices are:
                                         -- nobunaga (staging network)
                                         -- nakamoto (master network)
