@@ -191,28 +191,11 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
 
 def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
 
-    # hey bro i heard u like list comprehensions
-    try:
-        return str(
-            os.environ[
-                [
-                    x
-                    for x in list(
-                        map(
-                            lambda x: x if coldkey_name in x.lower() else None,
-                            {
-                                env_var
-                                for env_var in os.environ
-                                if "bittensor_cold_pw_" in env_var.lower()
-                            },
-                        )
-                    )
-                    if x is not None
-                ][0]
-            ]
-        )
-    except IndexError:
-        return None
+    candidate_pw_vars = set()
+    for env_var in os.environ:
+        if env_var.lower().startswith("bittensor_cold_pw_") and coldkey_name.lower() in env_var.lower():
+            return os.getenv(env_var)
+    return None
 
 
 def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name: Optional[str] = None) -> bytes:
