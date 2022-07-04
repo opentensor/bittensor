@@ -1,0 +1,2 @@
+bin/chain/Linux/node-subtensor filter=lfs diff=lfs merge=lfs -text
+bin/chain/OSX/node-subtensor filter=lfs diff=lfs merge=lfs -text
