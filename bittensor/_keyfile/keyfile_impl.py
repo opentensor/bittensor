@@ -188,12 +188,13 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
         vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
 
-
 def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
 
-    candidate_pw_vars = set()
     for env_var in os.environ:
-        if env_var.lower().startswith("bittensor_cold_pw_") and coldkey_name.lower() in env_var.lower():
+        if (
+            env_var.lower().startswith("bittensor_cold_pw_")
+            and coldkey_name.lower() in env_var.lower()
+        ):
             return os.getenv(env_var)
     return None
 
