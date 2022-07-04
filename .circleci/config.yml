@@ -43,10 +43,8 @@ jobs:
             pip install -e .
 
       - run:
-          name: Set up mock resources
+          name: Instantiate Mock Wallet & Protos
           command: |
-            sudo apt-get update && sudo apt-get install git-lfs
-            git lfs install && git lfs pull
             . env/bin/activate
             ./scripts/create_wallet.sh && ./scripts/build_protos.sh
 
