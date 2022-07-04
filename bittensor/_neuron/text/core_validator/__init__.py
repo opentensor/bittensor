@@ -175,6 +175,7 @@ class neuron:
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
+        parser.add_argument('--neuron.reregister', type=bool, help='If set, reregister the neuron if it is de-registered.', default=True)
 
     @classmethod
     def config ( cls ):
@@ -206,9 +207,18 @@ class neuron:
         r""" Sanity checks and begin validator.
         """
         # === Wallet ===
-        # Connects wallett to network. 
+        # Connects wallet to network. 
+        self.wallet.create()
+        # Check if wallet is registered and optionally reregister if not.
         # NOTE: This registration step should likely be solved offline first.
-        self.wallet.create().register( subtensor = self.subtensor )
+        if not self.wallet.is_registered( subtensor = self.subtensor ):
+            logger.info(f'Wallet is not registered on {str(self.subtensor.network)}.')
+            if self.config.neuron.reregister:
+                self.wallet.register( subtensor = self.subtensor )
+            else:
+                # Exit if we are not registered and we do not want to reregister.
+                logger.info('The --neuron.reregister flag is set to False. Exiting.')
+                return None
 
         # === UID ===
         # Get our uid from the chain. 
