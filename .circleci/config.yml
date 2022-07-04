@@ -76,17 +76,21 @@ jobs:
       - store_artifacts:
           path: test-results
 
-      - run:
-          name: Upload Coverage
-          command: |
-            . env/bin/activate && coveralls
-          env:
-            CI_NAME: circleci
-            CI_BUILD_NUMBER: $CIRCLE_BUILD_NUM
-            CI_BUILD_URL: $CIRCLE_BUILD_URL
-            CI_BRANCH: $CIRCLE_BRANCH
-            CI_JOB_ID: $CIRCLE_NODE_INDEX
-            COVERALLS_PARALLEL: true
+      - when:
+          condition:
+            equal: ["3.10.5", << parameters.python-version >> ]
+          steps:
+            - run:
+                name: Upload Coverage
+                command: |
+                  . env/bin/activate && coveralls
+                env:
+                  CI_NAME: circleci
+                  CI_BUILD_NUMBER: $CIRCLE_BUILD_NUM
+                  CI_BUILD_URL: $CIRCLE_BUILD_URL
+                  CI_BRANCH: $CIRCLE_BRANCH
+                  CI_JOB_ID: $CIRCLE_NODE_INDEX
+                  COVERALLS_PARALLEL: true
 
   unit-tests-all-python-versions:
     docker:
