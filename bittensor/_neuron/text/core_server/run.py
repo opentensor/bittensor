@@ -156,11 +156,10 @@ def serve(
                 return False
 
         # Black list or not
-        #TODO: Turn on blacklist
         try:
-            #registration_check()
+            registration_check()
 
-            #stake_check()
+            stake_check()
 
             #validator_check()
             

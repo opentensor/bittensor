@@ -260,13 +260,13 @@ class server(torch.nn.Module):
 
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
-                model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
-                                                attention_mask=tokens['attention_mask'].to(self.device),
+                model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
             else:
                 with torch.no_grad():
-                    model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
-                                                    attention_mask=tokens['attention_mask'].to(self.device),
+                    model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                    attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
         pre_hidden = model_output.hidden_states[-1]
@@ -333,13 +333,13 @@ class server(torch.nn.Module):
 
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
-                model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
-                                                attention_mask=tokens['attention_mask'].to(self.device),
+                model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
             else:
                 with torch.no_grad():
-                    model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
-                                                    attention_mask=tokens['attention_mask'].to(self.device),
+                    model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                                    attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
         pre_logits = model_output.logits
@@ -393,7 +393,7 @@ class server(torch.nn.Module):
             padded_tokens= pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
             tokens[key] = torch.zeros(padded_tokens.shape, dtype = torch.long)
             tokens[key][:, :padded_tokens.shape[1]] = padded_tokens
-            tokens[key] = torch.LongTensor(tokens[key])
+            tokens[key] = torch.LongTensor(tokens[key]).to(self.device)
         return tokens
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
