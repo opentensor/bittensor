@@ -52,9 +52,9 @@ def serve(
 
     # Load/Create our bittensor wallet.
     if wallet == None:
-        wallet = bittensor.wallet( config = config ).create().register(subtensor=subtensor) 
+        wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor) 
     else:
-        wallet.register(subtensor=subtensor)
+        wallet.reregister(subtensor=subtensor)
 
 
     # Load/Sync/Save our metagraph.
