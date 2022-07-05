@@ -58,8 +58,8 @@ class wallet:
         if config == None: 
             config = wallet.config()
         config = copy.deepcopy( config )
-        config.wallet.name = name if name != None else bittensor.defaults.wallet.name
-        config.wallet.hotkey = hotkey if hotkey != None else bittensor.defaults.wallet.hotkey
+        config.wallet.name = name if name != None else config.wallet.name
+        config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         config.wallet.path = path if path != None else config.wallet.path
         config.wallet._mock = _mock if _mock != None else config.wallet._mock
         wallet.check_config( config )
