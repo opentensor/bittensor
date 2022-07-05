@@ -436,6 +436,7 @@ class Dendrite(torch.autograd.Function):
         self.update_stats( formatted_endpoints, synapses, formatted_inputs, outputs, codes, times )
         return outputs[0], codes[0], times[0]
 
+
     def text_last_hidden_state( 
             self,
             endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
@@ -503,6 +504,7 @@ class Dendrite(torch.autograd.Function):
         # Return.
         self.update_stats( formatted_endpoints, synapses, formatted_inputs, outputs, codes, times )
         return outputs[0], codes[0], times[0]
+
 
     def format_text_inputs (
         self,

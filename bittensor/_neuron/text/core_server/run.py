@@ -89,7 +89,7 @@ def serve(
             num_return_sequences=synapse.num_return_sequences,
         )
         raw_texts = [model.tokenizer.decode(out) for out in output]
-        tokens = torch.cat([model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate] for raw_text in raw_texts])
+        tokens = torch.cat([model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate].view(-1) for raw_text in raw_texts])
         bittensor_output = pad_sequence([tensor for tensor in tokens], batch_first=True)
         return model_output, bittensor_output
 
