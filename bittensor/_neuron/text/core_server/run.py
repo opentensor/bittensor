@@ -28,6 +28,7 @@ import datetime
 from threading import Lock
 from datetime import datetime,timedelta
 from loguru import logger; logger = logger.opt(colors=True)
+from torch.nn.utils.rnn import pad_sequence
 
 import wandb
 import pandas
@@ -51,9 +52,9 @@ def serve(
 
     # Load/Create our bittensor wallet.
     if wallet == None:
-        wallet = bittensor.wallet( config = config ).create().register(subtensor=subtensor) 
+        wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor) 
     else:
-        wallet.register(subtensor=subtensor)
+        wallet.reregister(subtensor=subtensor)
 
 
     # Load/Sync/Save our metagraph.
@@ -88,7 +89,8 @@ def serve(
             num_return_sequences=synapse.num_return_sequences,
         )
         raw_texts = [model.tokenizer.decode(out) for out in output]
-        bittensor_output = torch.cat([model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate] for raw_text in raw_texts])
+        tokens = torch.cat([model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate] for raw_text in raw_texts])
+        bittensor_output = pad_sequence([tensor for tensor in tokens], batch_first=True)
         return model_output, bittensor_output
 
     def forward_hidden_state(inputs_x:torch.FloatTensor, synapse, model_output = None):
