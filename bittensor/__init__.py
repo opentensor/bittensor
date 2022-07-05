@@ -34,7 +34,7 @@ def turn_console_off():
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
-__vocab_size__ = 50257
+__vocab_size__ = 50258
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
