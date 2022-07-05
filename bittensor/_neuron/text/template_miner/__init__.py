@@ -228,9 +228,9 @@ class neuron:
         r""" Sanity checks and begin miner-validator.
         """
         # === Wallet ===
-        # Connects wallett to network. 
+        # Connects wallet to network. 
         # NOTE: This registration step should likely be solved offline first.
-        self.wallet.register( subtensor = self.subtensor )
+        self.wallet.reregister( subtensor = self.subtensor )
 
         # === UID ===
         # Get our uid from the chain. 
