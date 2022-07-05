@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+from more_itertools import side_effect
 
 import pytest
 
@@ -64,124 +65,101 @@ def test_set_fine_tuning_params():
 
 def test_coreserver_reregister_flag_false_exit():
     config = bittensor.Config()
-    config.neuron = bittensor.Config()
-    config.neuron.reregister = False
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = False # don't reregister the wallet
 
-    mock_wallet = MagicMock(
-        is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        model=MagicMock(),
+        axon=MagicMock(),
+        metagraph=MagicMock(),
+        spec=bittensor.neurons.core_server.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
     )
-    mock_subtensor = MagicMock()
-    mock_model = MagicMock(
-        to=MagicMock(return_value=None),
-        device=None
-    )
 
-    with patch('bittensor.metagraph') as mock_metagraph:
-        class MockException(Exception):
-            pass
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should exit without calling register
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            # Should not raise MockException
+            bittensor.neurons.core_server.neuron.run(
+                self=mock_self_neuron
+            )
 
-        def exit_early():
-            raise MockException('exit_early')
-
-        mock_metagraph.return_value = MagicMock(
-            load=exit_early
-        )
-
-        # Should not raise MockException
-        bittensor.neurons.core_server.run.serve(
-                config=config,
-                model=mock_model,
-                subtensor=mock_subtensor,
-                wallet=mock_wallet,
-                axon=None,
-                metagraph=None,
-        )
-
-        # Should have exited before creating a metagraph object
-        mock_metagraph.assert_not_called()
+        # Should not try to register the neuron
+        mock_register.assert_not_called()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 0 # No error
 
 def test_coreserver_reregister_flag_true():
     config = bittensor.Config()
-    config.neuron = bittensor.Config()
-    config.neuron.reregister = True
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = True # try to reregister the wallet
 
-    mock_wallet = MagicMock(
-        is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        model=MagicMock(),
+        axon=MagicMock(),
+        metagraph=MagicMock(),
+        spec=bittensor.neurons.core_server.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
     )
-    mock_subtensor = MagicMock()
-    mock_model = MagicMock(
-        to=MagicMock(return_value=None),
-        device=None
-    )
 
-    with patch('bittensor.metagraph') as mock_metagraph:
-        class MockException(Exception):
-            pass
-
-        def exit_early():
-            raise MockException('exit_early')
-
-        mock_metagraph.return_value = MagicMock(
-            load=exit_early
-        )
-
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should not exit
         with pytest.raises(MockException):
             # Should raise MockException
-            bittensor.neurons.core_server.run.serve(
-                    config=config,
-                    model=mock_model,
-                    subtensor=mock_subtensor,
-                    wallet=mock_wallet,
-                    axon=None,
-                    metagraph=None,
+            bittensor.neurons.core_server.neuron.run(
+                self=mock_self_neuron
             )
 
-        # Should have continued to creating a metagraph object
-        mock_metagraph.assert_called_once()
+        # Should try to register the neuron
+        mock_register.assert_called_once()
 
 def test_corevalidator_reregister_flag_false_exit():
     config = bittensor.Config()
-    config.neuron = bittensor.Config()
-    config.neuron.reregister = False
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = False # don't reregister the wallet
 
-    mock_register_func = MagicMock()
-
-    class MockException(Exception):
-        pass
-
-    def exit_early(*args, **kwargs):
-        raise MockException('exit_early')
-
-    mock_wallet = MagicMock(
-        is_registered=MagicMock(return_value=False), # mock the wallet as not registered
-        create=MagicMock(return_value=None),
-        register=mock_register_func,
-        get_uid=exit_early
-    )
-
-    mock_self_neuron=MagicMock(
-        wallet=mock_wallet,
-        spec=bittensor.neurons.core_validator.neuron,
-        subtensor=MagicMock(
-            network="mock"
-        ),
-        config=config,
-    )
-
-    # Should not raise MockException
-    bittensor.neurons.core_validator.neuron.__enter__(
-        self=mock_self_neuron
-    )
-
-    # Should not try to register the neuron
-    mock_register_func.assert_not_called()
-
-def test_corevalidator_reregister_flag_true():
-    config = bittensor.Config()
-    config.neuron = bittensor.Config()
-    config.neuron.reregister = True
-
-    mock_register_func = MagicMock()
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
 
     class MockException(Exception):
         pass
@@ -189,85 +167,7 @@ def test_corevalidator_reregister_flag_true():
     def exit_early(*args, **kwargs):
         raise MockException('exit_early')
 
-    mock_wallet = MagicMock(
-        is_registered=MagicMock(return_value=False), # mock the wallet as not registered
-        create=MagicMock(return_value=None),
-        register=mock_register_func,
-        get_uid=exit_early
-    )
-
-    mock_self_neuron=MagicMock(
-        wallet=mock_wallet,
-        spec=bittensor.neurons.core_validator.neuron,
-        subtensor=MagicMock(
-            network="mock"
-        ),
-        config=config,
-    )
-
-    with pytest.raises(MockException):
-        # Should raise MockException
-        bittensor.neurons.core_validator.neuron.__enter__(
-            self=mock_self_neuron
-        )
-
-    # Should try to register the neuron
-    mock_register_func.assert_called_once()
-
-def test_templateminer_reregister_flag_false_exit():
-    config = bittensor.Config()
-    config.neuron = bittensor.Config()
-    config.neuron.reregister = False
-
-    mock_register_func = MagicMock()
-
-    class MockException(Exception):
-        pass
-
-    def exit_early(*args, **kwargs):
-        raise MockException('exit_early')
-
-    mock_wallet = MagicMock(
-        is_registered=MagicMock(return_value=False), # mock the wallet as not registered
-        register=mock_register_func,
-        get_uid=exit_early
-    )
-
-    mock_self_neuron=MagicMock(
-        wallet=mock_wallet,
-        spec=bittensor.neurons.core_validator.neuron,
-        subtensor=MagicMock(
-            network="mock"
-        ),
-        config=config,
-    )
-
-    # Should not raise MockException
-    bittensor.neurons.template_miner.neuron.__enter__(
-        self=mock_self_neuron
-    )
-
-    # Should not try to register the neuron
-    mock_register_func.assert_not_called()
-
-def test_templateminer_reregister_flag_true():
-    config = bittensor.Config()
-    config.neuron = bittensor.Config()
-    config.neuron.reregister = True
-
-    mock_register_func = MagicMock()
-
-    class MockException(Exception):
-        pass
-
-    def exit_early(*args, **kwargs):
-        raise MockException('exit_early')
-
-    mock_wallet = MagicMock(
-        is_registered=MagicMock(return_value=False), # mock the wallet as not registered
-        register=mock_register_func,
-        get_uid=exit_early
-    )
+    mock_register = MagicMock(side_effect=exit_early)
 
     mock_self_neuron=MagicMock(
         wallet=mock_wallet,
@@ -278,14 +178,148 @@ def test_templateminer_reregister_flag_true():
         config=config,
     )
 
-    with pytest.raises(MockException):
-        # Should raise MockException
-        bittensor.neurons.core_validator.neuron.__enter__(
-            self=mock_self_neuron
-        )
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should exit without calling register
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            # Should not raise MockException
+            bittensor.neurons.template_miner.neuron.__enter__(
+                self=mock_self_neuron
+            )
 
-    # Should try to register the neuron
-    mock_register_func.assert_called_once()
+        # Should not try to register the neuron
+        mock_register.assert_not_called()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 0 # No error
+
+def test_corevalidator_reregister_flag_true():
+    config = bittensor.Config()
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = True # try to reregister the wallet
+
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        spec=bittensor.neurons.core_validator.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
+    )
+
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should not exit
+        with pytest.raises(MockException):
+            # Should raise MockException
+            bittensor.neurons.core_validator.neuron.__enter__(
+                self=mock_self_neuron
+            )
+
+        # Should try to register the neuron
+        mock_register.assert_called_once()
+
+def test_templateminer_reregister_flag_false_exit():
+    config = bittensor.Config()
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = False # don't reregister the wallet
+
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        spec=bittensor.neurons.template_miner.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
+    )
+
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should exit without calling register
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            # Should not raise MockException
+            bittensor.neurons.template_miner.neuron.__enter__(
+                self=mock_self_neuron
+            )
+
+        # Should not try to register the neuron
+        mock_register.assert_not_called()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 0 # No error
+
+def test_templateminer_reregister_flag_true():
+    config = bittensor.Config()
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = True # try to reregister the wallet
+
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        spec=bittensor.neurons.template_miner.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
+    )
+
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should not exit
+        with pytest.raises(MockException):
+            # Should raise MockException
+            bittensor.neurons.template_miner.neuron.__enter__(
+                self=mock_self_neuron
+            )
+
+        # Should try to register the neuron
+        mock_register.assert_called_once()
 
 
 if __name__ == '__main__':
