@@ -51,18 +51,9 @@ def serve(
 
     # Load/Create our bittensor wallet.
     if wallet == None:
-        wallet = bittensor.wallet( config = config ).create()
-    
-    # Check if wallet is registered. 
-    ## Optionally, register the wallet.
-    if not wallet.is_registered(subtensor=subtensor):
-        logger.info(f'Wallet is not registered on {str(subtensor.network)}.')
-        if config.neuron.reregister:
-            wallet.register(subtensor=subtensor)
-        else:
-            # Exit if we are not registered and we do not want to reregister.
-            logger.info('The --neuron.reregister flag is set to False. Exiting.')
-            return None
+        wallet = bittensor.wallet( config = config ).create().register(subtensor=subtensor) 
+    else:
+        wallet.register(subtensor=subtensor)
 
 
     # Load/Sync/Save our metagraph.
