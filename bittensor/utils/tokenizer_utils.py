@@ -19,7 +19,7 @@
 
 import torch
 
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Union
 from transformers import PreTrainedTokenizerBase
 
 EPSILON = 1e-40
@@ -866,7 +866,7 @@ def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_ind
     return topk_tokens, topk_probs, floor_probs
 
 
-def phrase_cross_entropy(target_phrases: List[int],
+def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
                          topk_tokens: torch.Tensor, topk_probs: torch.Tensor, floor_probs: torch.Tensor,
                          ignore_index: int = -100, reduce=True, reduction='mean',
                          vocab_size_min: int = 50257) -> torch.Tensor:
@@ -906,7 +906,9 @@ def phrase_cross_entropy(target_phrases: List[int],
     match_probs = torch.zeros(batch_size)  # accumulate probabilities when sub target matches phrase
     for b in range(batch_size):
         # === Integrate sub target matches ===
-        target_phrase = torch.tensor(target_phrases[b])
+        target_phrase = target_phrases[b]
+        if not isinstance(target_phrase, torch.Tensor):
+            target_phrase = torch.tensor(target_phrases[b])
         check_len = min(max_len, len(target_phrase))
 
         for c in range(1, check_len + 1):  # progressively increase sub target length
