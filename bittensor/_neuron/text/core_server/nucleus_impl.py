@@ -303,7 +303,7 @@ class server(torch.nn.Module):
             hugging = self.tokenizer(decoded)
             new_data += [torch.LongTensor(hugging.input_ids)]
         new_data = pad_sequence(new_data,batch_first=True)
-        return new_data
+        return new_data.to(self.device)
 
     def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
@@ -327,7 +327,10 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
+
+
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
+
         if model_output == None:
             if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
@@ -390,7 +393,7 @@ class server(torch.nn.Module):
             padded_tokens= pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
             tokens[key] = torch.zeros(padded_tokens.shape, dtype = torch.long)
             tokens[key][:, :padded_tokens.shape[1]] = padded_tokens
-            tokens[key] = torch.LongTensor(tokens[key])
+            tokens[key] = torch.LongTensor(tokens[key]).to(self.device)
         return tokens
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
