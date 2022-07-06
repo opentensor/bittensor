@@ -764,10 +764,6 @@ class nucleus( torch.nn.Module ):
             return_ops = [ops.detach() for ops in return_ops]
             times = [t.detach() for t in times]
 
-        print(f'complete \[{time.time() - request_start_time:.3g}s]')
-        print(f'Shapley values \t| Calculating ... ', end='')
-        shapley_start_time = time.time()
-
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
         for responses in query_responses:
