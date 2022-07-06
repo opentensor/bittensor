@@ -33,7 +33,10 @@ neuron_obj = bittensor.endpoint(
     modality = 0
 )
 
-synapses = [bittensor.synapse.TextLastHiddenState(),bittensor.synapse.TextCausalLM(), bittensor.synapse.TextSeq2Seq(num_to_generate=constant.synapse.num_to_generate)]
+synapses = [bittensor.synapse.TextLastHiddenState(),
+            bittensor.synapse.TextCausalLM(),
+            bittensor.synapse.TextCausalLMNext(),
+            bittensor.synapse.TextSeq2Seq(num_to_generate=constant.synapse.num_to_generate)]
 
 def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
