@@ -114,6 +114,24 @@ def test_forward_causallm_success():
     )
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
+
+def test_forward_causallmnext_success():
+    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):
+        return dict(), torch.zeros([inputs_x.shape[0] * (2 * synapse.topk + 1)])
+    axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+
+    inputs_raw = torch.rand(3, 3)
+    serializer = bittensor.serializer(serializer_type=bittensor.proto.Serializer.MSGPACK)
+    synapses = [bittensor.synapse.TextCausalLMNext()]
+    inputs_serialized = serializer.serialize(inputs_raw, from_type=bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        synapses=[syn.serialize_to_wire_proto() for syn in synapses],
+        hotkey=axon.wallet.hotkey.ss58_address,
+    )
+    response, code, synapses = axon._forward(request)
+    assert code == bittensor.proto.ReturnCode.Success
     
 def test_forward_seq_2_seq_success():
     def forward( inputs_x: torch.FloatTensor, synapse, model_output = None):
@@ -214,6 +232,21 @@ def test_forward_causallm_shape_error():
     response, code, synapses  = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.RequestShapeException
 
+def test_forward_causallmnext_shape_error():
+    inputs_raw = torch.rand(1, 1, 1)
+    synapses = [bittensor.synapse.TextCausalLMNext()]
+    serializer = bittensor.serializer(serializer_type=bittensor.proto.Serializer.MSGPACK)
+    inputs_serialized = serializer.serialize(inputs_raw, modality=bittensor.proto.Modality.TEXT,
+                                             from_type=bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey=axon.wallet.hotkey.ss58_address,
+        tensors=[inputs_serialized],
+        synapses=[syn.serialize_to_wire_proto() for syn in synapses]
+    )
+    response, code, synapses = axon._forward(request)
+    assert code == bittensor.proto.ReturnCode.RequestShapeException
+
 def test_forward_seq_2_seq_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     synapses = [bittensor.synapse.TextSeq2Seq()]
@@ -312,6 +345,28 @@ def test_forward_causal_lm_state_exception():
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
     response, code, synapses = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.UnknownException
+
+def test_forward_causal_lm_next_state_exception():
+    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):
+        if inputs_x.size() == (1, 1, 1):
+            return None
+        else:
+            raise Exception('Mock')
+    axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+
+    inputs_raw = torch.rand(3, 3)
+    synapses = [bittensor.synapse.TextCausalLMNext()]
+    serializer = bittensor.serializer(serializer_type=bittensor.proto.Serializer.MSGPACK)
+    inputs_serialized = serializer.serialize(inputs_raw, modality=bittensor.proto.Modality.TENSOR,
+                                             from_type=bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        hotkey='123',
+        synapses=[syn.serialize_to_wire_proto() for syn in synapses]
+    )
+    response, code, synapses = axon._forward(request)
     assert code == bittensor.proto.ReturnCode.UnknownException
 
 def test_forward_seq_2_seq_state_exception():
@@ -441,6 +496,24 @@ def test_backward_causal_lm_shape_error():
     assert synapses[0].return_code == bittensor.proto.ReturnCode.RequestShapeException
 
 
+def test_backward_causal_lm_next_shape_error():
+    synapses = [bittensor.synapse.TextCausalLMNext()]
+    inputs_raw = torch.rand(1, 1)
+    grads_raw = torch.rand(1 * (2 * synapses[0].topk + 1))
+    serializer = bittensor.serializer(serializer_type=bittensor.proto.Serializer.MSGPACK)
+    inputs_serialized = serializer.serialize(inputs_raw, from_type=bittensor.proto.TensorType.TORCH)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey=axon.wallet.hotkey.ss58_address,
+        tensors=[inputs_serialized, grads_serialized],
+        synapses=[syn.serialize_to_wire_proto() for syn in synapses]
+    )
+    response, code, synapses = axon._backward(request)
+    assert code == bittensor.proto.ReturnCode.RequestShapeException
+    assert synapses[0].return_code == bittensor.proto.ReturnCode.RequestShapeException
+
+
 def test_backward_seq_2_seq_shape_error():
     inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.tensor([])
@@ -513,6 +586,27 @@ def test_backward_response_success_causal_lm():
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
     response, code, synapses = axon._backward( request )
+    assert code == bittensor.proto.ReturnCode.Success
+
+def test_backward_response_success_causal_lm_next():
+    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):
+        return dict(), torch.zeros([1 * (2 * synapses[0].topk + 1)], requires_grad=True)
+
+    axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+    synapses = [bittensor.synapse.TextCausalLMNext()]
+
+    inputs_raw = torch.ones(1, 1)
+    grads_raw = torch.zeros(1 * (2 * synapses[0].topk + 1))
+
+    inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
+    grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
+    request = bittensor.proto.TensorMessage(
+        version=bittensor.__version_as_int__,
+        hotkey=axon.wallet.hotkey.ss58_address,
+        tensors=[inputs_serialized, grads_serialized],
+        synapses=[syn.serialize_to_wire_proto() for syn in synapses]
+    )
+    response, code, synapses = axon._backward(request)
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_timeout():
