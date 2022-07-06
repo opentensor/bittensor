@@ -134,3 +134,5 @@ def code_to_synapse( code: 'bittensor.proto.Synapse.SynapseType'):
         return 'text_causal_lm'
     elif code == 2:
         return 'text_seq_2_seq'
+    elif code == 3:
+        return 'text_causal_lm_next'
