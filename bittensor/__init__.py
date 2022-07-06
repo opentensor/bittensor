@@ -129,6 +129,7 @@ from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolEx
 from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
 from bittensor._synapse.synapse_impl import Synapse as Synapse
 from bittensor._synapse.text_causallm_impl import TextCausalLM as TextCausalLM
+from bittensor._synapse.text_causallmnext_impl import TextCausalLMNext as TextCausalLMNext
 from bittensor._synapse.text_lasthiddenstate_impl import TextLastHiddenState as TextLastHiddenState
 from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
 
