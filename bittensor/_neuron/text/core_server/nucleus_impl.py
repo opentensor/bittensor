@@ -396,7 +396,7 @@ class server(torch.nn.Module):
         r"""
         Forward pass through the pretrained model and select topk tokenizer logits and retokenize with std_tokenizer,
         then compact new token phrases and probabilities
-        into 1-D tensor [ > batch_size * 2 * topk + 1] prob + at least 1 token per phrase + floor_prob.
+        into 1-D tensor [ >= batch_size * (2 * topk + 1)] prob + at least 1 token per phrase + floor_prob.
         The floor probability is the mean probability of token phrases not captured in topk, required since
         the server tokenizer vocab_size may not be known to the receiver/validator.
 
@@ -414,7 +414,7 @@ class server(torch.nn.Module):
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
                     The output of transformers AutoModel.
                 compact_topk (:obj:`torch.Tensor`, `required`):
-                    [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor > batch_size * 2 * topk + 1,
+                    [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
                     since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
                     floor probability (rest).
                     Content structure:
@@ -438,7 +438,7 @@ class server(torch.nn.Module):
             # then compact new token phrases and probabilities into 1-D tensor
             result = topk_token_phrases(last_logits, self.tokenizer, std_tokenizer, topk=topk)
             compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
-            # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor > batch_size * 2 * topk + 1
+            # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
             return _model_output, compact_topk
 
@@ -531,9 +531,11 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
         parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
         parser.add_argument('--neuron.causallm', action='store_false', help='To turn off causallm synapse', default=True)
+        parser.add_argument('--neuron.causallmnext', action='store_false', help='To turn off causallmnext synapse', default=True)
         parser.add_argument('--neuron.seq2seq', action='store_false', help='To turn off seq2seq synapse', default=True)
         parser.add_argument('--neuron.lasthidden_stake', type = float, help='the amount of stake to run last hidden synapse',default=0)
         parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
+        parser.add_argument('--neuron.causallmnext_stake',  type = float, help='the amount of stake to run causallmnext synapse',default=0)
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run  seq2seq synapse',default=0)
         parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
         parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)

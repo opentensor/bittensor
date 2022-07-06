@@ -700,7 +700,7 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
                                                                      torch.Tensor]:
     r"""
     Select topk tokenizer logits and retokenize with to_tokenizer, then compact new token phrases and probabilities
-    into 1-D tensor [ > batch_size * 2 * topk + 1] prob + at least 1 token per phrase + floor_prob.
+    into 1-D tensor [ >= batch_size * (2 * topk + 1)] prob + at least 1 token per phrase + floor_prob.
     The floor probability is the mean probability of token phrases not captured in topk, required since
     the tokenizer vocab_size may not be known to the receiver.
         Args:
@@ -717,7 +717,7 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
 
         Returns:
             compact_topk (:obj:`torch.Tensor`, `required`):
-                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor > batch_size * 2 * topk + 1,
+                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
                 since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
                 floor probability (rest).
                 Content structure:
@@ -792,7 +792,7 @@ def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_ind
     Unravel topk token phrases input_tensor from 1-D to [batch_size, topk, max_len].
         Args:
             input_tensor (:obj:`torch.Tensor`, `required`):
-                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor > batch_size * 2 * topk + 1,
+                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
                 since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
                 floor probability (rest).
                 Content structure:
