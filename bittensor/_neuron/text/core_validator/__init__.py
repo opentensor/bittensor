@@ -762,7 +762,7 @@ class nucleus( torch.nn.Module ):
         if not self.config.nucleus.dendrite_backward:
             query_responses = [res.detach() for res in query_responses]
             return_ops = [ops.detach() for ops in return_ops]
-            times = [time.detach() for time in times]
+            times = [t.detach() for t in times]
 
         print(f'complete \[{time.time() - request_start_time:.3g}s]')
         print(f'Shapley values \t| Calculating ... ', end='')
