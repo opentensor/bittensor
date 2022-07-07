@@ -120,8 +120,8 @@ def test_receptor_pool_forward_timeout():
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
-    assert codes == [[bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout],
-    [bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout]]
+    assert codes == [[bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout],
+    [bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout]]
 
 def test_receptor_pool_backward_hang():
     endpoints = [neuron_obj,neuron_obj]
