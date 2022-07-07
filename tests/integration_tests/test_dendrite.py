@@ -42,7 +42,8 @@ def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
     assert list(resp[0][0].shape) == [block_size, seq_len, bittensor.__network_dim__]
     assert list(resp[0][1].shape) == [block_size, seq_len, bittensor.__vocab_size__]
-    assert list(resp[0][2].shape) == [block_size, constant.synapse.num_to_generate]
+    assert list(resp[0][2].shape) == [block_size * (2 * synapses[2].topk + 1)]
+    assert list(resp[0][3].shape) == [block_size, constant.synapse.num_to_generate]
     
 def test_dendrite_forward_text_endpoints_tensor():
     endpoints = neuron_obj.to_tensor()

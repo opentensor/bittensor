@@ -498,7 +498,7 @@ def test_backward_causal_lm_shape_error():
 
 def test_backward_causal_lm_next_shape_error():
     synapses = [bittensor.synapse.TextCausalLMNext()]
-    inputs_raw = torch.rand(1, 1)
+    inputs_raw = torch.rand(1, 1, 1)
     grads_raw = torch.rand(1 * (2 * synapses[0].topk + 1))
     serializer = bittensor.serializer(serializer_type=bittensor.proto.Serializer.MSGPACK)
     inputs_serialized = serializer.serialize(inputs_raw, from_type=bittensor.proto.TensorType.TORCH)
