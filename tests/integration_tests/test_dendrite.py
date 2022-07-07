@@ -167,19 +167,19 @@ def test_dendrite_forward_tensor_mismatch_len_error():
 def test_dendrite_forward_text_non_list():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, ops, times = dendrite.text( endpoints = neuron_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
     check_resp_shape(out, 1,2,4)
 
 def test_dendrite_forward_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     out, ops, times = dendrite.text( endpoints = [neuron_obj], inputs = [x], synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
     check_resp_shape(out, 1,2,4)
 
 def test_dendrite_forward_tensor():
     x = torch.rand(3, 3, dtype=torch.float32)
     out, ops, times = dendrite.text( endpoints = [neuron_obj], inputs = [x], synapses = synapses)
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
     check_resp_shape(out, 1, 3, 3)
 
 def test_dendrite_backoff():
@@ -199,7 +199,7 @@ def test_dendrite_backoff():
     # Normal call.
     x = torch.rand(3, 3, dtype=torch.float32)
     out, ops, times = _dendrite.text( endpoints = [_endpoint_obj], inputs = [x], synapses = synapses)
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
     check_resp_shape(out, 1, 3, 3)
     del _dendrite
 
@@ -233,16 +233,16 @@ def test_dendrite_multiple():
     dend4 = bittensor.dendrite( wallet = wallet, multiprocess=True)
     
     out, ops, times = dend1.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
 
     out, ops, times = dend2.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
 
     out, ops, times = dend3.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
 
     out, ops, times = dend4.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable]*3
+    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
 
     assert len(receptor_pool.receptors) == 1 
     assert manager_server.connected_count == 4
