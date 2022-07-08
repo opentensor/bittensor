@@ -170,4 +170,4 @@ class synapse:
         elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
         else:
-            return TextLastHiddenState()
+            return Synapse()
