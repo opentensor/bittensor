@@ -52,9 +52,9 @@ def serve(
 
     # Load/Create our bittensor wallet.
     if wallet == None:
-        wallet = bittensor.wallet( config = config ).create().register(subtensor=subtensor) 
+        wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor) 
     else:
-        wallet.register(subtensor=subtensor)
+        wallet.reregister(subtensor=subtensor)
 
 
     # Load/Sync/Save our metagraph.
@@ -77,7 +77,7 @@ def serve(
     n_topk_peer_weights = subtensor.min_allowed_weights
 
     def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        tokens = model.token_remap(inputs_x)
+        tokens = model.token_remap(inputs_x.to(model.device))
         output = model.pre_model.generate(
             input_ids=tokens,
             max_length=max( tokens.shape[1] + 1, synapse.num_to_generate),
@@ -158,11 +158,10 @@ def serve(
                 return False
 
         # Black list or not
-        #TODO: Turn on blacklist
         try:
-            #registration_check()
+            registration_check()
 
-            #stake_check()
+            stake_check()
 
             #validator_check()
             
