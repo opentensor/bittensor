@@ -792,15 +792,6 @@ class nucleus( torch.nn.Module ):
         return loss, stats
 
 
-def calc_loss_fct(loss_fct, logits, labels):
-    r""" Calculates self.loss_fct with logits and labels that are expected to be aligned already.
-    """
-    _logits = logits.contiguous()
-    _labels = labels.contiguous()
-    loss = loss_fct(_logits.view(-1, _logits.size(-1)), _labels.view(-1))
-    return loss
-
-
 def scaling_law_loss_to_params(loss):
     r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
     """
