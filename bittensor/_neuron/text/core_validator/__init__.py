@@ -501,6 +501,8 @@ class neuron:
         return topk_uids, topk_weights
 
     def weights_table(self, topk_uids, topk_weights):
+        r""" Prints weights table given topk_uids and topk_weights
+        """
         n_topk_peer_weights = self.subtensor.min_allowed_weights
         max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
