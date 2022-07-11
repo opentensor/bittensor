@@ -63,7 +63,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         overview_parser.add_argument(
@@ -93,7 +93,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         run_parser.add_argument(
@@ -123,7 +123,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.subtensor.add_args( metagraph_parser )
@@ -162,7 +162,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( inspect_parser )
@@ -184,7 +184,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( query_parser )
@@ -200,7 +200,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( weights_parser )
@@ -214,7 +214,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         set_weights_parser.add_argument ("--uids", type=int, required=False, nargs='*', action='store', help="Uids to set.")
@@ -230,7 +230,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( list_parser )
@@ -298,7 +298,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         regen_coldkey_parser.add_argument(
@@ -334,7 +334,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         regen_hotkey_parser.add_argument(
@@ -372,7 +372,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         new_coldkey_parser.add_argument(
@@ -410,7 +410,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         new_hotkey_parser.add_argument(
@@ -448,7 +448,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( unstake_parser )
@@ -486,7 +486,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( stake_parser )
@@ -510,7 +510,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( transfer_parser )
@@ -522,7 +522,7 @@ class cli:
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
-            help='''Set true to protect the generated bittensor key with a password.''',
+            help='''Set true to avoid prompting the user.''',
             default=False,
         )
         bittensor.wallet.add_args( register_parser )
