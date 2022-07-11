@@ -347,12 +347,12 @@ class neuron:
         topk_scores = bittensor.utils.weight_utils.normalize_max_multiple( x = topk_scores, multiple = max_allowed_ratio )
         print( '\nScores:', '\n\t weights:', topk_scores.sort()[0].tolist(), '\n\t sum:', topk_scores.sum().item(), 
                 '\n\t min:', topk_scores.min().item(), '\n\t max:', topk_scores.max().item(), '\n\t max/min:', (topk_scores.max()/topk_scores.min()).item() )
-        self.subtensor.set_weights(
-            uids = topk_uids.detach().to('cpu'),
-            weights = topk_scores.detach().to('cpu'),
-            wallet = self.wallet,
-            wait_for_finalization = self.config.neuron.wait_for_finalization,
-        )
+        #self.subtensor.set_weights(
+        #    uids = topk_uids.detach().to('cpu'),
+        #    weights = topk_scores.detach().to('cpu'),
+        #    wallet = self.wallet,
+        #    wait_for_finalization = self.config.neuron.wait_for_finalization,
+        #)
 
         # === Wandb Logs ===
         # Optionally send validator logs to wandb.
@@ -531,7 +531,10 @@ class nucleus( torch.nn.Module ):
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        embedding =  self.token_embedding( inputs.to( self.device ) )* math.sqrt( bittensor.__network_dim__ )
+        
+        # Send inputs to device
+        inputs = inputs.to( self.device )
+        embedding =  self.token_embedding( inputs )* math.sqrt( bittensor.__network_dim__ )
         
         # === Create an attention mask ===
         # The attention mask will mask out parts of the context
@@ -598,8 +601,10 @@ class nucleus( torch.nn.Module ):
         )
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
-        for response in query_responses:
-            response.to( self.device )
+        query_responses = [ response.to( self.device ) for response in query_responses ]
+
+        # Put return_ops on the device
+        return_ops = return_ops.to( self.device )
 
         # === Compute global loss ===
         # Computes the global training loss for the nucleus by decoding all the responses
