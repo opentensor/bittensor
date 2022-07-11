@@ -1088,13 +1088,13 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
     r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
     """
-    sort = sorted([(_s['uid'], _s[sort_col]) for _s in stats], reverse=True, key=lambda _row: _row[1])
+    sort = sorted([(s['uid'], s[sort_col]) for s in stats.values()], reverse=True, key=lambda _row: _row[1])
     uid_col = neuron_stats_columns[0]  # [Column_name, key_name, format_string, rich_style]
     columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
-    rows = [[uid_col[2].format(_s[0])] +
-            [('[bright_cyan]{:.2f}[/bright_cyan]' if _t == _s else
-              '[magenta]{:.2f}[/magenta]' if syn_loss_diff[_s[0]][_t[0]] > 0 else
-              '[dim]{:.0f}[/dim]').format(syn_loss_diff[_s[0]][_t[0]]) for _t in sort] for _s in sort]
+    rows = [[uid_col[2].format(s[0])] +
+            [('[bright_cyan]{:.2f}[/bright_cyan]' if t == s else
+              '[magenta]{:.2f}[/magenta]' if syn_loss_diff[s[0]][t[0]] > 0 else
+              '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]) for t in sort] for s in sort]
 
     # === Synergy table ===
     table = Table(width=console_width, box=None)
