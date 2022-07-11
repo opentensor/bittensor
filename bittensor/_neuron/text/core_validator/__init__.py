@@ -731,7 +731,7 @@ class nucleus( torch.nn.Module ):
             _loss, stats = validate_func(*validation_params, synapse=synapse, index_s=i)  # validate individual synapse
             loss += _loss  # add neuron_loss and routing_loss
 
-            for _uid, _stats in stats:
+            for _uid, _stats in stats.items():
                 neuron_stats.setdefault(_uid, {})
                 neuron_stats[_uid].update(_stats)  # gather neuron synapse validation measures and statistics
 
