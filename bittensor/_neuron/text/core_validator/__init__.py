@@ -60,7 +60,8 @@ install(show_locals=True)
 neuron_stats_columns = [
     ['UID', 'uid', '{:.0f}', 'cyan'],  # neuron UID
     ['Upd!', 'updates!', '{}', 'bright_yellow'],  # number of exponential moving average updates with zeroing on
-    ['Upd', 'updates', '{}', 'bright_yellow'],  # number of exponential moving average updates
+    ['mUpd', 'updates_mShap', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
+    ['nUpd', 'updates_nShap', '{}', 'bright_yellow'],  # number of exponential moving average updates to nShap
     ['sTime', 'response_time', '{:.2f}', 'yellow'],  # response time to TextCausalLM forward requests
     ['nTime', 'response_time_nxt', '{:.2f}', 'yellow'],  # response time to TextCausalLMNext forward requests
     ['Route', 'routing_score', '{:.3f}', 'grey30'],  # validator routing score (higher preferred)
@@ -472,10 +473,13 @@ class neuron:
             # If synapse responsive push available values into EMA for normal update.
             # Normal EMA values provide a view on neuron performance if fully responsive.
             if len(_stats):
-                if 'updates' in stats:
-                    stats['updates'] += 1  # increment number of normal EMA updates made
-                else:
-                    stats.setdefault('updates', 1)  # add updates fields for new uid entries
+                for key in self.zeroing_keys:
+                    if key in _stats:
+                        updates = 'updates_' + key
+                        if updates in stats:
+                            stats[updates] += 1  # increment number of normal EMA updates made
+                        else:
+                            stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
                 for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
                     if key in stats:
