@@ -1002,7 +1002,7 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                       'response_time' + ext: times[index][index_s],
                       'routing_score': routing_score[_uid]}
 
-            base_params(query_responses[index][index_s])
+            base_params(_stats, query_responses[index][index_s])
 
             neuron_loss += _stats['loss' + ext]  # add sequence loss to be backward() to neuron
 
