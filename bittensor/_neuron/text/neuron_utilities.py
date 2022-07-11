@@ -115,7 +115,7 @@ def joining_context(return_ops, topk_weights, responses):
     """
     joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
     joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-    output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__))
+    output = torch.zeros_like( responses[joining_uids[0]] * joining_weights[0] )
     for index, joining_weight in enumerate( joining_weights ):
         output += responses[joining_uids[index]]* joining_weight
     return output, joining_uids
