@@ -60,8 +60,8 @@ install(show_locals=True)
 neuron_stats_columns = [
     ['UID', 'uid', '{:.0f}', 'cyan'],  # neuron UID
     ['Upd!', 'updates!', '{}', 'bright_yellow'],  # number of exponential moving average updates with zeroing on
-    ['mUpd', 'updates_mShap', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
-    ['nUpd', 'updates_nShap', '{}', 'bright_yellow'],  # number of exponential moving average updates to nShap
+    ['mUpd', 'updates_shapley_values_min', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
+    ['nUpd', 'updates_shapley_values_nxt', '{}', 'bright_yellow'],  # number of exponential moving average updates to nShap
     ['sTime', 'response_time', '{:.2f}', 'yellow'],  # response time to TextCausalLM forward requests
     ['nTime', 'response_time_nxt', '{:.2f}', 'yellow'],  # response time to TextCausalLMNext forward requests
     ['Route', 'routing_score', '{:.3f}', 'grey30'],  # validator routing score (higher preferred)
