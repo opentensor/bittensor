@@ -532,8 +532,9 @@ class neuron:
             else:
                 unvalidated += [uid]
 
+        print()
         stats_table(_neuron_stats, 'weight', self.config.get('width', None),
-                    f'[white] Set weights [/white] | ' + str(self),  # title
+                    f'[white] Neuron weights [/white] | ' + str(self),  # title
                     f'Validated [bold]{(n_topk_peer_weights - len(unvalidated))}[/bold]'
                     f'/{n_topk_peer_weights}/{self.metagraph.n} (valid/min/total) | '
                     f'sum:{topk_weights.sum().item():.2g} '
