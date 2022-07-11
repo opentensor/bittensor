@@ -178,3 +178,30 @@ class Synapse:
     def empty(self):
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
         return tensor_deserialzier.empty()
+
+
+class UnknownSynapse (Synapse):
+    """ Unknown Synapse type 
+    """
+    synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.UNKNOWN_SYNAPSE
+
+    def __init__( 
+        self
+    ) -> 'TextLastHiddenState':
+        """ Unknown Synapse initializer.
+            Returns:
+                Unknown (:obj:`Unknown`, `required`):
+                    Unknown instance adapter class.
+        """
+        super().__init__ ()
+        self.synapse_type = UnknownSynapse.synapse_type
+
+    def __repr__(self) -> str: return self.__str__()
+    def __str__(self) -> str: return "Unknown"
+
+    def serialize_to_wire_proto ( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> bittensor.proto.Synapse:
+        return bittensor.proto.Synapse (
+                synapse_type = UnknownSynapse.synapse_type,
+                return_code = code,
+                message = message
+            )

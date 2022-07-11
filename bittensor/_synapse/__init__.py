@@ -23,7 +23,7 @@ import torch
 from typing import Union, List, Tuple, Optional
 
 from bittensor._serializer import serializer
-from .synapse_impl import Synapse
+from .synapse_impl import Synapse, UnknownSynapse
 from .text_causallm_impl import TextCausalLM
 from .text_lasthiddenstate_impl import TextLastHiddenState
 from .text_seq2seq_impl import TextSeq2Seq
@@ -170,4 +170,4 @@ class synapse:
         elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
         else:
-            return Synapse()
+            return UnknownSynapse()
