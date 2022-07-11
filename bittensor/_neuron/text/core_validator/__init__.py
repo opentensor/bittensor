@@ -372,7 +372,9 @@ class neuron:
 
             # === Print stats update (table) ===
             # Prints exponential moving average statistics of valid neurons from latest validator forward
-            stats_table({uid: self.neuron_stats[uid] for uid in stats}, self.weight_key, self.config.get('width', None),
+            stats_table({uid: self.neuron_stats[uid]
+                         for uid, stat in stats.items() if len(set(stat.keys()) & set(self.zeroing_keys))},
+                        self.weight_key, self.config.get('width', None),
                         f'[white] Stats update [/white] | ' + str(self),  # title
                         f'#{current_block}: '
                         f'[bold]{current_block - start_block}[/bold]/{blocks_per_epoch} (blocks/epoch) | '
