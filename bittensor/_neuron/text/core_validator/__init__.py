@@ -464,13 +464,13 @@ class neuron:
             for key in self.zeroing_keys:
                 zkey = key + '!'
                 if zkey in stats:
-                    if zkey in _stats:
-                        stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[zkey]
+                    if key in _stats:
+                        stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
                     else:
                         stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
                 else:
-                    if zkey in _stats:
-                        stats[zkey] = _stats[zkey]
+                    if key in _stats:
+                        stats[zkey] = _stats[key]
                     else:
                         stats.setdefault(zkey, 0.)
 
