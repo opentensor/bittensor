@@ -805,7 +805,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
     def _base_params(_stats, query_response):
         _stats.update({'logits': query_response[:, :-1, :],
-                       'logits_val': query_responses[:, -1:, :]})
+                       'logits_val': query_response[:, -1:, :]})
 
         for target, _ext in [(inputs_seq[:, 1:], ''), (inputs_val, '_val')]:
             _loss = calc_loss_fct(loss_fct, _stats['logits' + _ext], target)  # CausalLM loss
