@@ -96,9 +96,10 @@ message TensorMessage {
 message Synapse {
 	
 	enum SynapseType {
-		TEXT_LAST_HIDDEN_STATE = 0;
-		TEXT_CAUSAL_LM = 1;
-		TEXT_SEQ_2_SEQ = 2;
+		UNKNOWN_SYNAPSE = 0;
+		TEXT_LAST_HIDDEN_STATE = 1;
+		TEXT_CAUSAL_LM = 2;
+		TEXT_SEQ_2_SEQ = 3;
 	}
 
 	// Position of Tensor inputs for corresponding synapse call.

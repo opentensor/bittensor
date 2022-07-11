@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x8f\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0b\n\x03uid\x18\x02 \x01(\x03\x12\x0e\n\x06hotkey\x18\x03 \x01(\t\x12\x0f\n\x07\x63oldkey\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x0c\n\x04port\x18\x06 \x01(\x05\x12\x0f\n\x07ip_type\x18\x07 \x01(\x05\x12\x1b\n\x08modality\x18\x08 \x01(\x0e\x32\t.Modality\"\xb0\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x18\n\x07tensors\x18\x05 \x03(\x0b\x32\x07.Tensor\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x07 \x01(\t\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08\x12\x1a\n\x08synapses\x18\t \x03(\x0b\x32\x08.Synapse\"\xd0\n\n\x07Synapse\x12\x12\n\ntensor_pos\x18\x01 \x03(\x05\x12\x14\n\x0csynapse_data\x18\x02 \x01(\x0c\x12*\n\x0csynapse_type\x18\x03 \x01(\x0e\x32\x14.Synapse.SynapseType\x12 \n\x0breturn_code\x18\x04 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x05 \x01(\t\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08\x1a\xb4\x02\n\x13TextLastHiddenState\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x02 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08\x1a\xbb\x02\n\x0cTextCausalLM\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x06 \x01(\x0e\x32\x0b.Serializer\x12\x15\n\rrequires_grad\x18\x07 \x01(\x08\x1a\xdc\x03\n\x0bTextSeq2Seq\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x17\n\x0fnum_to_generate\x18\x03 \x01(\x05\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x06 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x07 \x01(\x0e\x32\x0b.Serializer\x12\x11\n\tnum_beams\x18\x08 \x01(\x05\x12\x1c\n\x14no_repeat_ngram_size\x18\t \x01(\x05\x12\x16\n\x0e\x65\x61rly_stopping\x18\n \x01(\x08\x12\x1c\n\x14num_return_sequences\x18\x0b \x01(\x05\x12\x11\n\tdo_sample\x18\x0c \x01(\x08\x12\r\n\x05top_p\x18\r \x01(\x02\x12\x15\n\rrequires_grad\x18\x0e \x01(\x08\"Q\n\x0bSynapseType\x12\x1a\n\x16TEXT_LAST_HIDDEN_STATE\x10\x00\x12\x12\n\x0eTEXT_CAUSAL_LM\x10\x01\x12\x12\n\x0eTEXT_SEQ_2_SEQ\x10\x02\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06*+\n\x08Modality\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\n\n\x06TENSOR\x10\x02*8\n\x0bRequestType\x12\x0e\n\nNOTDEFINED\x10\x00\x12\x0b\n\x07\x46ORWARD\x10\x01\x12\x0c\n\x08\x42\x41\x43KWARD\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x8f\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0b\n\x03uid\x18\x02 \x01(\x03\x12\x0e\n\x06hotkey\x18\x03 \x01(\t\x12\x0f\n\x07\x63oldkey\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x0c\n\x04port\x18\x06 \x01(\x05\x12\x0f\n\x07ip_type\x18\x07 \x01(\x05\x12\x1b\n\x08modality\x18\x08 \x01(\x0e\x32\t.Modality\"\xb0\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x18\n\x07tensors\x18\x05 \x03(\x0b\x32\x07.Tensor\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x07 \x01(\t\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08\x12\x1a\n\x08synapses\x18\t \x03(\x0b\x32\x08.Synapse\"\xe5\n\n\x07Synapse\x12\x12\n\ntensor_pos\x18\x01 \x03(\x05\x12\x14\n\x0csynapse_data\x18\x02 \x01(\x0c\x12*\n\x0csynapse_type\x18\x03 \x01(\x0e\x32\x14.Synapse.SynapseType\x12 \n\x0breturn_code\x18\x04 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x05 \x01(\t\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08\x1a\xb4\x02\n\x13TextLastHiddenState\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x02 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08\x1a\xbb\x02\n\x0cTextCausalLM\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x06 \x01(\x0e\x32\x0b.Serializer\x12\x15\n\rrequires_grad\x18\x07 \x01(\x08\x1a\xdc\x03\n\x0bTextSeq2Seq\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x17\n\x0fnum_to_generate\x18\x03 \x01(\x05\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x06 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x07 \x01(\x0e\x32\x0b.Serializer\x12\x11\n\tnum_beams\x18\x08 \x01(\x05\x12\x1c\n\x14no_repeat_ngram_size\x18\t \x01(\x05\x12\x16\n\x0e\x65\x61rly_stopping\x18\n \x01(\x08\x12\x1c\n\x14num_return_sequences\x18\x0b \x01(\x05\x12\x11\n\tdo_sample\x18\x0c \x01(\x08\x12\r\n\x05top_p\x18\r \x01(\x02\x12\x15\n\rrequires_grad\x18\x0e \x01(\x08\"f\n\x0bSynapseType\x12\x13\n\x0fUNKNOWN_SYNAPSE\x10\x00\x12\x1a\n\x16TEXT_LAST_HIDDEN_STATE\x10\x01\x12\x12\n\x0eTEXT_CAUSAL_LM\x10\x02\x12\x12\n\x0eTEXT_SEQ_2_SEQ\x10\x03\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06*+\n\x08Modality\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\n\n\x06TENSOR\x10\x02*8\n\x0bRequestType\x12\x0e\n\nNOTDEFINED\x10\x00\x12\x0b\n\x07\x46ORWARD\x10\x01\x12\x0c\n\x08\x42\x41\x43KWARD\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -158,8 +158,8 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1929,
-  serialized_end=2514,
+  serialized_start=1950,
+  serialized_end=2535,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
@@ -184,8 +184,8 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2516,
-  serialized_end=2554,
+  serialized_start=2537,
+  serialized_end=2575,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
@@ -215,8 +215,8 @@ _TENSORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2556,
-  serialized_end=2606,
+  serialized_start=2577,
+  serialized_end=2627,
 )
 _sym_db.RegisterEnumDescriptor(_TENSORTYPE)
 
@@ -266,8 +266,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2608,
-  serialized_end=2702,
+  serialized_start=2629,
+  serialized_end=2723,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -297,8 +297,8 @@ _MODALITY = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2704,
-  serialized_end=2747,
+  serialized_start=2725,
+  serialized_end=2768,
 )
 _sym_db.RegisterEnumDescriptor(_MODALITY)
 
@@ -328,8 +328,8 @@ _REQUESTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2749,
-  serialized_end=2805,
+  serialized_start=2770,
+  serialized_end=2826,
 )
 _sym_db.RegisterEnumDescriptor(_REQUESTTYPE)
 
@@ -387,17 +387,22 @@ _SYNAPSE_SYNAPSETYPE = _descriptor.EnumDescriptor(
   create_key=_descriptor._internal_create_key,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='TEXT_LAST_HIDDEN_STATE', index=0, number=0,
+      name='UNKNOWN_SYNAPSE', index=0, number=0,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='TEXT_CAUSAL_LM', index=1, number=1,
+      name='TEXT_LAST_HIDDEN_STATE', index=1, number=1,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='TEXT_SEQ_2_SEQ', index=2, number=2,
+      name='TEXT_CAUSAL_LM', index=2, number=2,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='TEXT_SEQ_2_SEQ', index=3, number=3,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
@@ -405,7 +410,7 @@ _SYNAPSE_SYNAPSETYPE = _descriptor.EnumDescriptor(
   containing_type=None,
   serialized_options=None,
   serialized_start=1641,
-  serialized_end=1722,
+  serialized_end=1743,
 )
 _sym_db.RegisterEnumDescriptor(_SYNAPSE_SYNAPSETYPE)
 
@@ -890,7 +895,7 @@ _SYNAPSE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=362,
-  serialized_end=1722,
+  serialized_end=1743,
 )
 
 
@@ -970,8 +975,8 @@ _TENSOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1725,
-  serialized_end=1926,
+  serialized_start=1746,
+  serialized_end=1947,
 )
 
 _NEURON.fields_by_name['modality'].enum_type = _MODALITY
@@ -1076,8 +1081,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2807,
-  serialized_end=2909,
+  serialized_start=2828,
+  serialized_end=2930,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
