@@ -469,7 +469,10 @@ class neuron:
                     else:
                         stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
                 else:
-                    stats.setdefault(zkey, 0.)
+                    if zkey in _stats:
+                        stats[zkey] = _stats[zkey]
+                    else:
+                        stats.setdefault(zkey, 0.)
 
             # === EMA normal update ===
             # If synapse responsive push available values into EMA for normal update.
