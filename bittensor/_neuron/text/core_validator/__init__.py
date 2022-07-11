@@ -1135,7 +1135,7 @@ def stats_table(stats, sort_col, console_width, title, caption):
     if sort_col in col_keys:
         sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
         columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
-        rows = sorted(rows, reverse=True, key=lambda _row: int(_row[sort_idx]))  # sort according to _sortcol
+        rows = sorted(rows, reverse=True, key=lambda _row: _row[sort_idx])  # sort according to _sortcol
 
     # === Instantiate stats table ===
     table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
