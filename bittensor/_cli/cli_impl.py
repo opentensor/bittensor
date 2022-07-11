@@ -106,7 +106,7 @@ class CLI:
         r""" Creates a new coldkeypub under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_coldkeypub( ss58_address=self.config.get('ss58_address'), public_key=self.config.get('public_key_hex'), overwrite = self.config.overwrite_coldkey )
+        wallet.regenerate_coldkeypub( ss58_address=self.config.get('ss58_address'), public_key=self.config.get('public_key_hex'), overwrite = self.config.overwrite_coldkeypub )
 
     def regen_hotkey ( self ):
         r""" Creates a new coldkey under this wallet.
