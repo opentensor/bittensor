@@ -1055,15 +1055,15 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
     for _first, first in stats.items():
         if 'loss' + ext not in first:
             continue
-        first_diff = syn_loss_diff.setdefault(first['uid'], {})
-        first_diff[first['uid']] = first['loss' + ext]  # diagonal keeps direct loss
+        first_diff = syn_loss_diff.setdefault(_first, {})
+        first_diff[_first] = first['loss' + ext]  # diagonal keeps direct loss
 
         for _second, second in stats.items():
             if 'loss' + ext not in second or _second <= _first:
                 continue
-            second_diff = syn_loss_diff.setdefault(second['uid'], {})
-            second_diff.setdefault(first['uid'], torch.tensor(0.))
-            first_diff.setdefault(second['uid'], torch.tensor(0.))
+            second_diff = syn_loss_diff.setdefault(_second, {})
+            second_diff.setdefault(_first, torch.tensor(0.))
+            first_diff.setdefault(_second, torch.tensor(0.))
 
             with torch.no_grad():
                 expected_loss = torch.min(first['loss' + ext], second['loss' + ext])  # expecting min loss
@@ -1075,8 +1075,8 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
                 second['synergy_loss_diff' + ext] += loss_diff_share
 
                 # pairwise loss reduction of expected to measured loss due to synergy between first and second
-                first_diff[second['uid']] = torch.max(loss_diff_share, first_diff[second['uid']])
-                second_diff[first['uid']] = torch.max(loss_diff_share, second_diff[first['uid']])
+                first_diff[_second] = torch.max(loss_diff_share, first_diff[_second])
+                second_diff[_first] = torch.max(loss_diff_share, second_diff[_first])
 
                 synergy_share = torch.clamp(scaling_law_loss_to_params(measured_loss) -
                                             scaling_law_loss_to_params(expected_loss), 0) / 2
