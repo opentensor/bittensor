@@ -80,7 +80,7 @@ class Synapse:
         """
         raise NotImplementedError("deserialize_from_wire_proto should be implemented by the subclass.")
 
-    def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse':
+    def serialize_to_instance_proto( self, *args ) -> 'bittensor.proto.Synapse':
         """ Serializes the class instance to a Synapse instance proto.
             Returns:
                 serialized_synapse_as_instance_proto (:obj:`torch.Tensor`, `required`):
@@ -88,7 +88,7 @@ class Synapse:
         """
         raise NotImplementedError("serialize_to_instance_proto should be implemented by the subclass.")
 
-    def serialize_to_wire_proto( self ) -> 'bittensor.proto.Synapse':
+    def serialize_to_wire_proto( self, *args ) -> 'bittensor.proto.Synapse':
         """ Serializes the class instance to a Synapse wire proto.
             Returns:
                 serialized_synapse_as_wire_proto (:obj:`torch.Tensor`, `required`):
