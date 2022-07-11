@@ -1111,28 +1111,15 @@ def synergy_table(stats, syn_loss_diff, sort_col, console_width):
         print()
 
 
-def synapse_table(name, stats, columns, sort_col, batch_size, sequence_len,
-                  num_endpoints, metagraph_n, console_width, start_time):
+def synapse_table(name, stats, sort_col, console_width, start_time):
     r""" Prints the evaluation of the neuron responses to the validator request
     """
-    sort_col = [c[0] for c in columns].index(sort_col)  # sort column with key of _sort_col
-    columns[sort_col][0] += '\u2193'  # ↓ downwards arrow (sort)
-    rows = [[txt.format(_s[key]) for _, key, txt, _ in columns] for _s in stats]
-    rows = sorted(rows, reverse=True, key=lambda _row: int(_row[sort_col]))  # sort according to _sortcol
 
-    # === Synapse table ===
-    table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
-    table.title = f'[white] \[{name}] responses [/white] | Validator forward'
-    table.caption = f'[bold]{num_endpoints}[/bold]/{metagraph_n} (topk/total) | [bold]TextCausalLM[/bold] | ' \
-                    f'[white] {len(stats)} x \[{batch_size}, {sequence_len}, {bittensor.__network_dim__}] ' \
-                    f'\[{time.time() - start_time:.3g}s] [/white]'
-
-    for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
-        table.add_column(col, style=stl, justify='right')
-    for row in rows:
-        table.add_row(*row)
-
-    print(table)
+    stats_table(stats, sort_col, console_width,
+                f'[white] \[{name}] responses [/white] | Validator forward',  # title
+                f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | '
+                f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
+                )
 
 
 def stats_table(stats, sort_col, console_width, title, caption):
