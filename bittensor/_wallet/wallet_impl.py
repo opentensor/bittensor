@@ -594,7 +594,7 @@ class Wallet():
         """
         self.regenerate_coldkey(mnemonic, seed, use_password, overwrite)
 
-    def regenerate_coldkeypub( self, ss58_address: Optional[str], public_key: Optional[Union[str, bytes]], overwrite: bool = False ) -> 'Wallet':
+    def regenerate_coldkeypub( self, ss58_address: Optional[str] = None, public_key: Optional[Union[str, bytes]] = None, overwrite: bool = False ) -> 'Wallet':
         """ Regenerates the coldkeypub from passed ss58_address or public_key and saves the file
                Requires either ss58_address or public_key to be passed.
             Args:
