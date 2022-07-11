@@ -1129,14 +1129,19 @@ def stats_table(stats, sort_col, console_width, title, caption):
     r""" Gathers data and constructs neuron statistics table and prints it
     """
     # === Gather columns and rows ===
-    stats_keys = set.union(*[set(k for k in stat)
-                             for stat in stats.values() if sort_col in stat])  # all available stats keys with sort_col
+    stats_keys = [set(k for k in stat)
+                  for stat in stats.values() if sort_col in stat]  # all available stats keys with sort_col
+
+    if len(stats_keys) == 0:
+        return  # nothing to print
+
+    stats_keys = set.union(*stats_keys)
     columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
     rows = [['' if key not in stat else txt.format(stat[key]) for _, key, txt, _ in columns]
             for stat in stats.values() if sort_col in stat]  # only keep rows with at least one non-empty cell
 
-    if len(columns) == 0 or len(rows) == 0:  # nothing to print
-        return
+    if len(columns) == 0 or len(rows) == 0:
+        return  # nothing to print
 
     # === Sort rows ===
     col_keys = [c[1] for c in columns]
