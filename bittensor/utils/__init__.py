@@ -294,7 +294,7 @@ def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
     except (ValueError, IndexError):
         return False
 
-def is_valid_destination_address( address: Union[str, bytes] ) -> bool:
+def is_valid_destination_address( address: Union[str, bytes], no_prompt: bool = False ) -> bool:
     """
     Checks if the given address is a valid destination address.
 
@@ -308,20 +308,24 @@ def is_valid_destination_address( address: Union[str, bytes] ) -> bool:
         # Check if ed25519
         if address.startswith('0x'):
             if not is_valid_ed25519_pubkey( address ):
-                bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( address ))
+                if not no_prompt:
+                    bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( address ))
                 return False
         # Assume ss58 address
         else:
             if not is_valid_ss58_address( address ):
-                bittensor.__console__.print(":cross_mark: [red]Invalid Destination Address[/red]: {}".format( address ))
+                if not no_prompt:
+                    bittensor.__console__.print(":cross_mark: [red]Invalid Destination Address[/red]: {}".format( address ))
                 return False
     elif isinstance( address, bytes ):
         # Check if ed25519
         if not is_valid_ed25519_pubkey( address ):
-            bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( address ))
+            if not no_prompt:
+                bittensor.__console__.print(":cross_mark: [red]Invalid Destination Public Key[/red]: {}".format( address ))
             return False
     else:
-        bittensor.__console__.print(":cross_mark: [red]Invalid Destination[/red]: {}".format( address ))
+        if not no_prompt:
+            bittensor.__console__.print(":cross_mark: [red]Invalid Destination[/red]: {}".format( address ))
         return False
         
     return True
