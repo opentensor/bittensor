@@ -479,9 +479,10 @@ class neuron:
                         stats.setdefault(key, _stats[key])
 
     def calculate_weights(self):
-        r"""Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
+        r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
         used to obtain the mapped stat value (typically a Shapley value)
-        that the final set-weights are calculated from."""
+        that the final set-weights are calculated from.
+        """
 
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
         n_topk_peer_weights = self.subtensor.min_allowed_weights
