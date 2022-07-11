@@ -165,7 +165,7 @@ class neuron:
         self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
         self.weight_key = 'shapley_values_min'  # stat key to calculate neuron weights with
         # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
-        self.zeroing_keys = ['shapley_values_min', 'shapley_values_nxt']
+        self.synapse_keys = ['shapley_values_min', 'shapley_values_nxt']
         self.neuron_stats = {}
 
     @classmethod
@@ -373,7 +373,7 @@ class neuron:
             # === Print stats update (table) ===
             # Prints exponential moving average statistics of valid neurons from latest validator forward
             stats_table({uid: self.neuron_stats[uid]
-                         for uid, stat in stats.items() if len(set(stat.keys()) & set(self.zeroing_keys))},
+                         for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
                         self.weight_key, self.config.get('width', None),
                         f'[white] Stats update [/white] | ' + str(self),  # title
                         f'#{current_block}: '
@@ -455,13 +455,13 @@ class neuron:
             stats = self.neuron_stats.setdefault(_uid, {})
 
             # === EMA zeroing update ===
-            # Push zero into EMA for zeroing_keys to exponentially decay weighting keys if neuron non-responsive
+            # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
             if 'updates!' in stats:
                 stats['updates!'] += 1  # increment number of EMA zeroing updates
             else:
                 stats.setdefault('updates!', 1)  # number of EMA zeroing updates init to zero
 
-            for key in self.zeroing_keys:
+            for key in self.synapse_keys:
                 zkey = key + '!'
                 if zkey in stats:
                     if key in _stats:
@@ -478,7 +478,7 @@ class neuron:
             # If synapse responsive push available values into EMA for normal update.
             # Normal EMA values provide a view on neuron performance if fully responsive.
             if len(_stats):
-                for key in self.zeroing_keys:
+                for key in self.synapse_keys:
                     if key in _stats:
                         updates = 'updates_' + key
                         if updates in stats:
