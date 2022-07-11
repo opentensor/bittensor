@@ -727,7 +727,7 @@ class nucleus( torch.nn.Module ):
 
         # === Validate synapse responses ===
         # Iterate over all queried synapses and validate responses
-        for i, synapse, validate_func in enumerate(synapses):
+        for i, (synapse, validate_func) in enumerate(synapses):
             _loss, stats = validate_func(*validation_params, synapse=synapse, index_s=i)  # validate individual synapse
             loss += _loss  # add neuron_loss and routing_loss
 
