@@ -255,6 +255,10 @@ class cli:
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed value'''
         )
+        regen_coldkeypub_parser = cmd_parsers.add_parser(
+            'regen_coldkeypub',
+            help='''Regenerates a coldkeypub from the public part of the coldkey.'''
+        )
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
@@ -306,6 +310,40 @@ class cli:
             default=False,
             action='store_false',
             help='''Overwrite the old coldkey with the newly generated coldkey'''
+        )
+        bittensor.wallet.add_args( regen_coldkey_parser )
+
+
+        regen_coldkeypub_parser.add_argument(
+            "--public_key",
+            "--pubkey", 
+            dest="public_key_hex",
+            required=False,
+            default=None, 
+            type="str",
+            help='The public key (in hex) of the coldkey to regen e.g. 0x1234 ...'
+        )
+        regen_coldkeypub_parser.add_argument(
+            "--ss58_address", 
+            "--addr",
+            "--ss58",
+            dest="ss58_address",
+            required=False,  
+            default=None,
+            help='The ss58 address of the coldkey to regen e.g. 5ABCD ...'
+        )
+        regen_coldkeypub_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        regen_coldkeypub_parser.add_argument(
+            '--overwrite_coldkeypub',
+            default=False,
+            action='store_true',
+            help='''Overwrite the old coldkeypub file with the newly generated coldkeypub'''
         )
         bittensor.wallet.add_args( regen_coldkey_parser )
 
@@ -561,6 +599,8 @@ class cli:
             cli.check_new_hotkey_config( config )
         elif config.command == "regen_coldkey":
             cli.check_regen_coldkey_config( config )
+        elif config.command == "regen_coldkeypub":
+            cli.check_regen_coldkeypub_config( config )
         elif config.command == "regen_hotkey":
             cli.check_regen_hotkey_config( config )
         elif config.command == "metagraph":
@@ -791,6 +831,19 @@ class cli:
                 config.seed = prompt_answer
             else:
                 config.mnemonic = prompt_answer
+
+    def check_regen_coldkeypub_config( config: 'bittensor.Config' ):
+        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+        if config.ss58_address == None and config.public_key_hex == None:
+            prompt_answer = Prompt.ask("Enter the ss58_address or the public key in hex")
+            if prompt_answer.startswith("0x"):
+                config.public_key_hex = prompt_answer
+            else:
+                config.ss58_address = prompt_answer
+        if not bittensor.utils.is_valid_destination_address(address = config.ss58_address if config.ss58_address else config.public_key_hex, no_prompt=config.no_prompt):
+            sys.exit(1)
 
     def check_run_config( config: 'bittensor.Config' ):
 
