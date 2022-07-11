@@ -38,7 +38,7 @@ from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 from rich.traceback import install
-from typing import List, Tuple, Callable, Dict
+from typing import List, Tuple, Callable, Dict, Any
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
 from bittensor.utils.tokenizer_utils import unravel_topk_token_phrases, phrase_cross_entropy
@@ -441,7 +441,7 @@ class neuron:
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
 
-    def neuron_stats_update(self, neuron_stats: Dict[Dict]):
+    def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
         """
         for _uid, _stats in neuron_stats.items():
