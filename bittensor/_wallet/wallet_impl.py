@@ -616,7 +616,7 @@ class Wallet():
         if not is_valid_destination_address(ss58_address if ss58_address is not None else public_key, no_prompt=True):
             raise ValueError(f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}") 
 
-        keypair = Keypair(ss58_address=ss58_address, public_key=public_key)
+        keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=bittensor.__ss58_format__)
 
         # No need to encrypt the public key
         self.set_coldkeypub( keypair, overwrite = overwrite)
