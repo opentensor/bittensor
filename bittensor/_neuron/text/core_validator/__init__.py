@@ -1135,6 +1135,35 @@ def synapse_table(name, stats, columns, sort_col, batch_size, sequence_len,
     print(table)
 
 
+def stats_table(stats, sort_col, console_width, title, caption):
+    r""" Gathers data and constructs neuron statistics table and prints it
+    """
+    # === Gather columns and rows ===
+    stats_keys = set.union(*[set(k for k in stat) for stat in stats])  # all available stats keys
+    columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
+    rows = [['' if s not in key else txt.format(s[key]) for _, key, txt, _ in columns]
+            for s in stats.values() if len(s)]  # only keep rows with at least one non-empty cell
+
+    # === Sort rows ===
+    sort_idx = [c[1] for c in columns].index(sort_col)  # sort column with key of _sort_col
+    if sort_idx != -1:  # sort_col found
+        columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
+        rows = sorted(rows, reverse=True, key=lambda _row: int(_row[sort_idx]))  # sort according to _sortcol
+
+    # === Instantiate stats table ===
+    table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
+    table.title = title
+    table.caption = caption
+
+    for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
+        table.add_column(col, style=stl, justify='right')
+    for row in rows:
+        table.add_row(*row)
+
+    # === Print table ===
+    print(table)
+
+
 def unsuccess(_name, _unsuccessful):
     r""" Prints the return codes and response times of unsuccessful responses
     """
