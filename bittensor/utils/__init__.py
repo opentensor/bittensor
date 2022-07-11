@@ -278,7 +278,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     interval_time = start_time
 
     status.start()
-    while solution == -1: #and not wallet.is_registered(subtensor):
+    while solution == -1 and not wallet.is_registered(subtensor):
         solution, seal = solve_cuda(nonce,
                         update_interval,
                         TPB,
