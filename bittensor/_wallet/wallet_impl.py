@@ -594,6 +594,34 @@ class Wallet():
         """
         self.regenerate_coldkey(mnemonic, seed, use_password, overwrite)
 
+    def regenerate_coldkeypub( self, ss58_address: Optional[str], public_key: Optional[Union[str, bytes]], overwrite: bool = False ) -> 'Wallet':
+        """ Regenerates the coldkeypub from passed ss58_address or public_key and saves the file
+               Requires either ss58_address or public_key to be passed.
+            Args:
+                ss58_address: (str, optional):
+                    Address as ss58 string.
+                public_key: (str | bytes, optional):
+                    Public key as hex string or bytes.
+                overwrite (bool, optional) (default: False):
+                    Will this operation overwrite the coldkeypub (if exists) under the same path <wallet path>/<wallet name>/coldkeypub
+            Returns:
+                wallet (bittensor.Wallet):
+                    newly re-generated Wallet with coldkeypub.
+            
+        """
+        if ss58_address is None and public_key is None:
+            raise ValueError("Either ss58_address or public_key must be passed")
+
+        keypair = Keypair(ss58_address=ss58_address, public_key=public_key)
+
+        # No need to encrypt the public key
+        self.set_coldkeypub( keypair, overwrite = overwrite)
+
+        return self
+
+    # Short name for regenerate_coldkeypub
+    regen_coldkeypub = regenerate_coldkeypub
+
     def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
