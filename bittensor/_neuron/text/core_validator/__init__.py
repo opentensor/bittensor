@@ -1023,7 +1023,9 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
             stats[_uid] = _stats
         else:
-            stats[_uid] = {}  # weight EMA will push zero update to reduce weight of unsuccessful neurons
+            stats[_uid] = {'uid': _uid,
+                           'response_time' + ext: times[index][index_s],
+                           'routing_score': routing_score[_uid]}
             unsuccessful += [(_uid, return_ops[index][index_s], times[index][index_s])]
 
     return neuron_loss + routing_loss, stats, unsuccessful
