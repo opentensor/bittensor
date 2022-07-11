@@ -456,7 +456,7 @@ class neuron:
             if 'updates!' in stats:
                 stats['updates!'] += 1  # increment number of EMA zeroing updates
             else:
-                stats.setdefault('updates!', 0)  # number of EMA zeroing updates init to zero
+                stats.setdefault('updates!', 1)  # number of EMA zeroing updates init to zero
 
             for key in self.zeroing_keys:
                 zkey = key + '!'
@@ -475,7 +475,7 @@ class neuron:
                 if 'updates' in stats:
                     stats['updates'] += 1  # increment number of normal EMA updates made
                 else:
-                    stats.setdefault('updates', 0)  # add updates fields for new uid entries
+                    stats.setdefault('updates', 1)  # add updates fields for new uid entries
 
                 for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
                     if key in stats:
