@@ -346,7 +346,7 @@ class cli:
             action='store_true',
             help='''Overwrite the old coldkeypub file with the newly generated coldkeypub'''
         )
-        bittensor.wallet.add_args( regen_coldkey_parser )
+        bittensor.wallet.add_args( regen_coldkeypub_parser )
 
 
         # Fill arguments for the regen hotkey command.
