@@ -621,10 +621,10 @@ class nucleus( torch.nn.Module ):
         torch.nn.init.xavier_uniform_( self.gates.weight )
 
     def forward(
-        self, 
-        inputs: torch.FloatTensor,
-        metagraph: 'bittensor.Metagraph',
-        dendrite: 'bittensor.Dendrite',
+            self,
+            inputs: torch.FloatTensor,
+            metagraph: 'bittensor.Metagraph',
+            dendrite: 'bittensor.Dendrite',
     ):
         r"""
         Forward validator pass. Selects endpoints to query and validate, calculates routing_score and Shapley values
@@ -639,18 +639,14 @@ class nucleus( torch.nn.Module ):
             Returns:
                 loss (:obj:`torch.FloatTensor`):
                     Loss for training validator nucleus and dendrite backward to endpoints.
-                stats (:obj:`Dict`, `required`):
+                neuron_stats (:obj:`Dict`, `required`):
                     Statistics per endpoint for this batch.
         """
         start_time = time.time()
         print(f'Forward \t| Model forward ... ', end='')
 
         val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
-        inputs_seq = inputs[..., :-val_len]  # input sequence without last token [batch_size, sequence_len]
-        inputs_val = inputs[..., -val_len]  # input validation with next token [batch_size]
-        inputs_nxt = inputs[..., -val_len:]  # input validation with next token target phrase [batch_size, val_len]
-
-        batch_size, sequence_len = inputs_seq.shape
+        inputs_seq = inputs[..., :-val_len]  # input sequence without last validation tokens [batch_size, sequence_len]
 
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
@@ -659,7 +655,7 @@ class nucleus( torch.nn.Module ):
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         embedding = self.token_embedding(inputs_seq) * math.sqrt(bittensor.__network_dim__)
-        
+
         # === Create an attention mask ===
         # The attention mask will mask out parts of the context
         # This prevents cheating and forward-looking when predicting each token in the sequence.
@@ -669,7 +665,7 @@ class nucleus( torch.nn.Module ):
         src_mask = src_mask.to(self.device)
 
         # === Apply the positional encoding to help select endpoints ===
-        # The positional encoder provides information based on the relative postion of each token 
+        # The positional encoder provides information based on the relative postion of each token
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         # pos_embedding: (torch.FloatTensor) positional encoded embedding.
         # pos_embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -691,7 +687,7 @@ class nucleus( torch.nn.Module ):
         num_endpoints = min([self.config.nucleus.topk, metagraph.n])
 
         print(f'complete \[{time.time() - start_time:.3g}s]')
-        print(f'Dendrite \t| Request {num_endpoints} x \[{batch_size}, {sequence_len}, {bittensor.__network_dim__}] ... ', end='')
+        print(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}] ... ', end='')
         request_start_time = time.time()
 
         # === Randomly select num_endpoints UIDs ===
@@ -705,13 +701,13 @@ class nucleus( torch.nn.Module ):
 
         # === Define which synapse we want to use ===
         # The synapse defines the task we are sending to the neurons
-        # synapses: List[bittensor.synapse]: synapse information 
+        # synapses: List[bittensor.synapse]: synapse information
         # TODO: WORK IN PROGRESS, prototype
         synapses = [(bittensor.synapse.TextCausalLM(), textcausallm),
                     (bittensor.synapse.TextCausalLMNext(), textcausallmnext)]
 
         # === Query the endpoints ===
-        # Makes the dendrite call into the network returning the representations 
+        # Makes the dendrite call into the network returning the representations
         # for each of the endpoints. The return ops can be used to filter weights and outputs.
         # query_responses: (List[torch.float64]): responses from each endpoint.
         # query_responses.shape = self.config.nucleus.topk * num_synapses * [batch_size, sequence_len, synapse_dim]
@@ -741,21 +737,22 @@ class nucleus( torch.nn.Module ):
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
         validation_params = (random_uids, query_responses, return_ops, times, routing_score,
-                             inputs_seq, inputs_val, inputs_nxt, self.loss_fct, console_width)
+                             inputs, val_len, self.loss_fct, console_width)
 
         loss = torch.tensor(0.)  # to accumulate neuron_loss and routing_loss over synapses
-        stats = {}  # to gather neuron synapse validation measures and statistics
+        neuron_stats = {}  # to gather neuron synapse validation measures and statistics
 
         # === Validate synapse responses ===
         # Iterate over all queried synapses and validate responses
         for i, synapse, validate_func in enumerate(synapses):
-            _loss, _stats = validate_func(*validation_params, synapse=synapse, index_s=i)  # validate individual synapse
+            _loss, stats = validate_func(*validation_params, synapse=synapse, index_s=i)  # validate individual synapse
             loss += _loss  # add neuron_loss and routing_loss
-            for s in _stats:
-                stats.setdefault(s['uid'], {})
-                stats[s['uid']].update(s)  # gather neuron synapse validation measures and statistics
 
-        return loss, stats
+            for _uid, _stats in stats:
+                neuron_stats.setdefault(_uid, {})
+                neuron_stats[_uid].update(_stats)  # gather neuron synapse validation measures and statistics
+
+        return loss, neuron_stats
 
 
 def scaling_law_loss_to_params(loss):
