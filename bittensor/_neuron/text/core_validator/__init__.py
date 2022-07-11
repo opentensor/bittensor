@@ -209,7 +209,15 @@ class neuron:
         bittensor.dataset.add_args( parser )
         bittensor.wandb.add_args(parser)
         return bittensor.config( parser )
-    
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __str__(self) -> str:
+        return (f'[bold]UID {self.uid}[/bold] \[{self.dendrite.receptor_pool.external_ip}] '
+                f'({self.wallet.name}:[bold]{self.wallet.coldkeypub.ss58_address[:7]}[/bold]/'
+                f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])')
+
     def __del__(self):
         self.__exit__()
 
