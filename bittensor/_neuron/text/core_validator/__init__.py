@@ -340,16 +340,9 @@ class neuron:
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.forward_thread_queue.get()
 
-            # === Scoring ===
+            # === Stats update ===
             # Updates moving averages and history.
-            for s in stats.values():
-                history = self.neuron_stats.setdefault(s['uid'], s)
-                history.setdefault('updates', 0)  # add updates fields for new uid entries
-                history['updates'] += 1  # increase number of updates made
-                sum_ratio = 1. / min(20, history['updates'])  # moving average window size of 20 max
-                for key in s:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
-                    if key not in ['updates']:
-                        history[key] = (1 - sum_ratio) * history[key] + sum_ratio * s[key]  # update EMA
+            self.neuron_stats_update(stats)
 
             # === State update ===
             # Prints step logs to screen.
