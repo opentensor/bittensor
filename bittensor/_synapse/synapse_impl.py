@@ -187,11 +187,11 @@ class UnknownSynapse (Synapse):
 
     def __init__( 
         self
-    ) -> 'TextLastHiddenState':
-        """ Unknown Synapse initializer.
+    ) -> 'UnknownSynapse':
+        """ Unknown Synapse initializer. Used when a request contains synapses that has not been initalized
             Returns:
                 Unknown (:obj:`Unknown`, `required`):
-                    Unknown instance adapter class.
+                    UnknownSynapse instance adapter class.
         """
         super().__init__ ()
         self.synapse_type = UnknownSynapse.synapse_type
