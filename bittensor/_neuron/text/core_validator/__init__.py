@@ -155,6 +155,9 @@ class neuron:
         self.forward_thread_queue = ThreadQueue(num_jobs = self.config.neuron.forward_num, target = self.forward)
         self.loss = None
         self.loss_agg_mutex = Lock()
+
+        # === Neuron statistics variables ===
+        self.weight_key = 'shapley_values_min'  # stat key to calculate neuron weights with
         self.neuron_stats = {}
 
     @classmethod
@@ -544,6 +547,24 @@ class neuron:
             if old_hotkey != self.metagraph.hotkeys[uid]:
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
+
+    def calculate_weights(self):
+        weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
+        n_topk_peer_weights = self.subtensor.min_allowed_weights
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+
+        # === Calculate neuron weights ===
+        neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet min topk
+
+        for uid in self.neuron_stats:
+            if weight_key in self.neuron_stats[uid]:
+                neuron_weights[uid] = torch.tensor([self.neuron_stats[uid][weight_key]])
+
+        # Find the n_topk_peer_weights peers to set weights to.
+        topk_weights, topk_uids = bittensor.unbiased_topk(neuron_weights, k=n_topk_peer_weights)
+        topk_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_weights,
+                                                                           multiple=max_allowed_ratio)
+        return topk_uids, topk_weights
 
     def weights_table(self, topk_uids, topk_weights):
         n_topk_peer_weights = self.subtensor.min_allowed_weights
