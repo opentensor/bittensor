@@ -23,6 +23,7 @@ from types import SimpleNamespace
 from typing import Optional, Union
 
 import bittensor
+from bittensor.utils import is_valid_destination_address
 from substrateinterface import Keypair
 from termcolor import colored
 
@@ -612,7 +613,7 @@ class Wallet():
         if ss58_address is None and public_key is None:
             raise ValueError("Either ss58_address or public_key must be passed")
 
-        if not bittensor.uitls.is_valid_destination_address(ss58_address if ss58_address is not None else public_key, no_prompt=True):
+        if not is_valid_destination_address(ss58_address if ss58_address is not None else public_key, no_prompt=True):
             raise ValueError(f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}") 
 
         keypair = Keypair(ss58_address=ss58_address, public_key=public_key)
