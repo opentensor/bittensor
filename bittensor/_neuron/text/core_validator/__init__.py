@@ -531,7 +531,7 @@ class nucleus( torch.nn.Module ):
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        embedding =  self.token_embedding( inputs )* math.sqrt( bittensor.__network_dim__ )
+        embedding =  self.token_embedding( inputs.to( self.device ) )* math.sqrt( bittensor.__network_dim__ )
         
         # === Create an attention mask ===
         # The attention mask will mask out parts of the context
