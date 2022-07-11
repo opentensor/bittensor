@@ -320,7 +320,7 @@ class cli:
             dest="public_key_hex",
             required=False,
             default=None, 
-            type="str",
+            type=str,
             help='The public key (in hex) of the coldkey to regen e.g. 0x1234 ...'
         )
         regen_coldkeypub_parser.add_argument(
@@ -330,6 +330,7 @@ class cli:
             dest="ss58_address",
             required=False,  
             default=None,
+            type=str,
             help='The ss58 address of the coldkey to regen e.g. 5ABCD ...'
         )
         regen_coldkeypub_parser.add_argument(
