@@ -157,7 +157,10 @@ class neuron:
         self.loss_agg_mutex = Lock()
 
         # === Neuron statistics variables ===
+        self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
         self.weight_key = 'shapley_values_min'  # stat key to calculate neuron weights with
+        # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
+        self.zeroing_keys = ['shapley_values_min', 'shapley_values_nxt']
         self.neuron_stats = {}
 
     @classmethod
@@ -547,6 +550,43 @@ class neuron:
             if old_hotkey != self.metagraph.hotkeys[uid]:
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
+
+    def neuron_stats_update(self, neuron_stats: Dict[Dict]):
+        r""" Updates self.neuron_stats with new individual dictionaries per uid.
+        """
+        for _uid, _stats in neuron_stats.items():
+            stats = self.neuron_stats.setdefault(_uid, {})
+
+            # === EMA zeroing update ===
+            # Push zero into EMA for zeroing_keys to exponentially decay weighting keys if neuron non-responsive
+            if 'updates!' in stats:
+                stats['updates!'] += 1  # increment number of EMA zeroing updates
+            else:
+                stats.setdefault('updates!', 0)  # number of EMA zeroing updates init to zero
+
+            for key in self.zeroing_keys:
+                if key in stats:
+                    if key in _stats:
+                        stats[key + '!'] = (1 - self.alpha) * stats[key + '!'] + self.alpha * _stats[key + '!']
+                    else:
+                        stats[key + '!'] = (1 - self.alpha) * stats[key + '!']  # + self.alpha * 0
+                else:
+                    stats.setdefault(key + '!', 0.)
+
+            # === EMA normal update ===
+            # If synapse responsive push available values into EMA for normal update.
+            # Normal EMA values provide a view on neuron performance if fully responsive.
+            if len(_stats):
+                if 'updates' in stats:
+                    stats['updates'] += 1  # increment number of normal EMA updates made
+                else:
+                    stats.setdefault('updates', 0)  # add updates fields for new uid entries
+
+                for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                    if key in stats:
+                        stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
+                    else:
+                        stats.setdefault(key, _stats[key])
 
     def calculate_weights(self):
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
