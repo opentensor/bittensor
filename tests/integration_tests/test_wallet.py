@@ -108,6 +108,19 @@ def test_wallet_mnemonic_create():
     the_wallet.regen_hotkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse".split(),  use_password=False, overwrite = True )
     check_keys_exists(the_wallet)
 
+def test_wallet_coldkeypub_create():
+    the_wallet = init_wallet()
+    public_key_hex_str = "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
+    the_wallet.regenerate_coldkeypub( public_key = public_key_hex_str, use_password=False, overwrite = True )
+    check_keys_exists(the_wallet)
+    assert the_wallet.coldkeypub.ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+
+    the_wallet = init_wallet()
+    ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+    the_wallet.regen_coldkeypub( ss58_address = ss58_address, use_password=False, overwrite = True )
+    check_keys_exists(the_wallet)
+    assert the_wallet.coldkeypub.ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+
 
 def test_wallet_add_stake():
     subtensor = bittensor.subtensor(network = 'nobunaga')
