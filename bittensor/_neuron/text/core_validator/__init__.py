@@ -1127,9 +1127,13 @@ def stats_table(stats, sort_col, console_width, title, caption):
     rows = [['' if s not in key else txt.format(s[key]) for _, key, txt, _ in columns]
             for s in stats.values() if len(s)]  # only keep rows with at least one non-empty cell
 
+    if len(columns) == 0 or len(rows) == 0:  # nothing to print
+        return
+
     # === Sort rows ===
-    sort_idx = [c[1] for c in columns].index(sort_col)  # sort column with key of _sort_col
-    if sort_idx != -1:  # sort_col found
+    col_keys = [c[1] for c in columns]
+    if sort_col in col_keys:
+        sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
         columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
         rows = sorted(rows, reverse=True, key=lambda _row: int(_row[sort_idx]))  # sort according to _sortcol
 
