@@ -670,7 +670,7 @@ class nucleus( torch.nn.Module ):
         num_endpoints = min([self.config.nucleus.topk, metagraph.n])
 
         print(f'complete \[{time.time() - start_time:.3g}s]')
-        print(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}] ... ', end='')
+        print(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} ... ', end='')
         request_start_time = time.time()
 
         # === Randomly select num_endpoints UIDs ===
