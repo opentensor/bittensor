@@ -1122,7 +1122,7 @@ def stats_table(stats, sort_col, console_width, title, caption):
     r""" Gathers data and constructs neuron statistics table and prints it
     """
     # === Gather columns and rows ===
-    stats_keys = set.union(*[set(k for k in stat) for stat in stats])  # all available stats keys
+    stats_keys = set.union(*[set(k for k in stat) for stat in stats.values()])  # all available stats keys
     columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
     rows = [['' if s not in key else txt.format(s[key]) for _, key, txt, _ in columns]
             for s in stats.values() if len(s)]  # only keep rows with at least one non-empty cell
