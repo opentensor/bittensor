@@ -36,28 +36,32 @@ def init_wallet():
     
     return the_wallet
 
-def check_keys_exists(the_wallet = None):
+def check_keys_exists(the_wallet = None, coldkey_exists = True, hotkey_exists = True, coldkeypub_exists = True):
+    if coldkey_exists:
+        # --- test file and key exists
+        assert os.path.isfile(the_wallet.coldkey_file.path)
+        assert the_wallet._coldkey != None
+        # --- test _load_key()
+        the_wallet._coldkey = None
+        the_wallet.coldkey
+        assert the_wallet._coldkey != None
 
-    # --- test file and key exists
-    assert os.path.isfile(the_wallet.coldkey_file.path)
-    assert os.path.isfile(the_wallet.hotkey_file.path)
-    assert os.path.isfile(the_wallet.coldkeypub_file.path)
-    
-    assert the_wallet._hotkey != None
-    assert the_wallet._coldkey != None
-    
-    # --- test _load_key()
-    the_wallet._hotkey = None
-    the_wallet._coldkey = None
-    the_wallet._coldkeypub = None
-    
-    the_wallet.hotkey
-    the_wallet.coldkey
-    the_wallet.coldkeypub
-    
-    assert the_wallet._hotkey != None
-    assert the_wallet._coldkey != None
-    assert the_wallet._coldkeypub != None
+    if hotkey_exists:
+        # --- test file and key exists
+        assert os.path.isfile(the_wallet.hotkey_file.path)
+        assert the_wallet._hotkey != None
+        # --- test _load_key()
+        the_wallet._hotkey = None
+        the_wallet.hotkey
+        assert the_wallet._hotkey != None
+
+    if coldkeypub_exists:
+        # --- test file and key exists
+        assert os.path.isfile(the_wallet.coldkeypub_file.path)
+        # --- test _load_key()
+        the_wallet._coldkeypub = None
+        the_wallet.coldkeypub
+        assert the_wallet._coldkeypub != None
 
 def test_create_wallet():
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
@@ -112,13 +116,13 @@ def test_wallet_coldkeypub_create():
     the_wallet = init_wallet()
     public_key_hex_str = "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
     the_wallet.regenerate_coldkeypub( public_key = public_key_hex_str, overwrite = True )
-    check_keys_exists(the_wallet)
+    check_keys_exists(the_wallet, coldkey_exists=False, hotkey_exists=False) # Don't check the coldkey or hotkey
     assert the_wallet.coldkeypub.ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
 
     the_wallet = init_wallet()
     ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
     the_wallet.regenerate_coldkeypub( ss58_address = ss58_address, overwrite = True )
-    check_keys_exists(the_wallet)
+    check_keys_exists(the_wallet, coldkey_exists=False, hotkey_exists=False) # Don't check the coldkey or hotkey
     assert the_wallet.coldkeypub.ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
 
 
