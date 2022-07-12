@@ -96,7 +96,7 @@ message TensorMessage {
 message Synapse {
 	
 	enum SynapseType {
-		UNKNOWN_SYNAPSE = 0;
+		NULL_SYNAPSE = 0;
 		TEXT_LAST_HIDDEN_STATE = 1;
 		TEXT_CAUSAL_LM = 2;
 		TEXT_SEQ_2_SEQ = 3;
@@ -196,6 +196,21 @@ message Synapse {
 
 		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
 		bool requires_grad = 14;
+
+		//temperature of the softmax function
+		float temperature = 15;
+
+		//penalty for repeated words
+		float repetition_penalty = 16; 
+
+		//penalty for length 
+		float length_penalty = 17;
+
+		//maximum amount of time 
+		float max_time = 18;
+
+		//groups for beam search
+		int32 num_beam_group = 19;
 	}
 }
 

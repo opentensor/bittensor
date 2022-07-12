@@ -180,28 +180,28 @@ class Synapse:
         return tensor_deserialzier.empty()
 
 
-class UnknownSynapse (Synapse):
-    """ Unknown Synapse type 
+class NullSynapse (Synapse):
+    """ Null Synapse type 
     """
-    synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.UNKNOWN_SYNAPSE
+    synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.NULL_SYNAPSE
 
     def __init__( 
         self
-    ) -> 'UnknownSynapse':
-        """ Unknown Synapse initializer. Used when a request contains synapses that has not been initalized
+    ) -> 'NullSynapse':
+        """ Null Synapse initializer. Used when a request contains synapses that has not been initalized
             Returns:
-                Unknown (:obj:`Unknown`, `required`):
-                    UnknownSynapse instance adapter class.
+                NullSynapse (:obj:`NullSynapse`, `required`):
+                    NullSynapse instance adapter class.
         """
         super().__init__ ()
-        self.synapse_type = UnknownSynapse.synapse_type
+        self.synapse_type = NullSynapse.synapse_type
 
     def __repr__(self) -> str: return self.__str__()
-    def __str__(self) -> str: return "Unknown"
+    def __str__(self) -> str: return "Null"
 
     def serialize_to_wire_proto ( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> bittensor.proto.Synapse:
         return bittensor.proto.Synapse (
-                synapse_type = UnknownSynapse.synapse_type,
+                synapse_type = NullSynapse.synapse_type,
                 return_code = code,
                 message = message
             )

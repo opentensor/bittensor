@@ -135,4 +135,4 @@ def code_to_synapse( code: 'bittensor.proto.Synapse.SynapseType'):
     elif code == 3:
         return 'text_seq_2_seq'
     else:
-        return 'UNKNOWN'
+        return 'Null'
