@@ -229,7 +229,7 @@ def test_receptor_pool_missing_synapse():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_seq_2_seq = torch.rand(2, 70)
+    y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     y_hidden_serialized = serializer.serialize(y_hidden, from_type = bittensor.proto.TensorType.TORCH)
@@ -247,8 +247,8 @@ def test_receptor_pool_missing_synapse():
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
-    assert codes == [[bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException],
-    [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException]]
+    assert codes == [[bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException],
+    [bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException]]
 
 def test_receptor_pool_backward_hang():
     endpoints = [neuron_obj,neuron_obj]
@@ -268,4 +268,5 @@ def test_receptor_pool_backward_hang():
     receptor_pool.backward( endpoints, synapses, x, [[hidden_grads, causal_grads, seq_2_seq_grads], [hidden_grads, causal_grads, seq_2_seq_grads]], timeout=1)
 
 if __name__ == "__main__":
+    test_receptor_pool_missing_synapse()
     pass
