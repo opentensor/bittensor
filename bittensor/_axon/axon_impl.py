@@ -334,8 +334,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 else:
                     synapse_responses [ index ] = synapse.empty()
 
-                response_synapses.append(synapse.serialize_to_wire_proto(code = synapse_codes[index], message= synapse_messages[index] ))
-
             except ValueError as e:
                 if str(e) == 'Empty Response':
                     synapse_codes [ index ]= bittensor.proto.ReturnCode.EmptyResponse
@@ -351,6 +349,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapse_call_times [ index ] = clock.time() - start_time
                 synapse_messages [index] = "Synapse response serialization exception with error: {}".format( str( e ) )
                 synapse_responses [ index ] = synapse.empty()
+
+            response_synapses.append(synapse.serialize_to_wire_proto(code = synapse_codes[index], message= synapse_messages[index] ))
+
             
         # Check if the call can stop here.
         if check_if_should_return():
