@@ -210,7 +210,7 @@ message Synapse {
 		float max_time = 18;
 
 		//groups for beam search
-		int32 num_beam_group = 19;
+		int32 num_beam_groups = 19;
 	}
 }
 
