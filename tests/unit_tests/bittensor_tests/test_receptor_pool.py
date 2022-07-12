@@ -196,7 +196,7 @@ def test_receptor_pool_forward_response_partial_shape_error():
     assert codes == [[bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException],
     [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException]]
 
-def test_receptor_pool_partial_remote_success():
+def test_receptor_pool_partial_remote_success_return_code():
     endpoints = [neuron_obj,neuron_obj]
     x = torch.ones( (2, 3, 3) )    
 
@@ -212,7 +212,8 @@ def test_receptor_pool_partial_remote_success():
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
             hotkey = wallet.hotkey.ss58_address,
-            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses],
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses[:-1]]
+            + [synapses[-1].serialize_to_wire_proto(code = bittensor.proto.ReturnCode.UnknownException, message= 'UnknownException' )],
             return_code = bittensor.proto.ReturnCode.Success,
             tensors = [y_hidden_serialized, y_causallm_serialized, y_seq_2_seq_serialized]
         )
@@ -220,8 +221,8 @@ def test_receptor_pool_partial_remote_success():
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
-    assert codes == [[bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException],
-    [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException]]
+    assert codes == [[bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException],
+    [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException]]
 
 def test_receptor_pool_missing_synapse():
     endpoints = [neuron_obj,neuron_obj]
