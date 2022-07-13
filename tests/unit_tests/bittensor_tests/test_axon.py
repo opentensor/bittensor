@@ -446,7 +446,7 @@ def test_forward_joint_faulty_synapse():
     axon.attach_synapse_callback( faulty, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
     response, code, synapses = axon._forward( request )
     assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.UnknownException] * 3
-
+    
 def test_forward_timeout():
     def forward( inputs_x: torch.FloatTensor, synapses, hotkey):
         if inputs_x[0].size() == (3,3):
