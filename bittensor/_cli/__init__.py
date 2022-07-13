@@ -532,7 +532,7 @@ class cli:
         run_parser.add_argument(
             '--path', 
             dest="path", 
-            default=os.path.expanduser('miners/text/template_miner.py'),
+            default=os.path.expanduser('miners/text/core_server.py'),
             type=str, 
             required=False
         )
@@ -809,7 +809,7 @@ class cli:
 
         # Check Miner
         if config.model == 'None' and not config.no_prompt:
-            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'template_miner')
+            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
             config.model = model
 
         if 'server' in config.model and not config.no_prompt:
@@ -818,7 +818,7 @@ class cli:
                 
     def check_help_config( config: 'bittensor.Config'):
         if config.model == 'None':
-            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'template_miner')
+            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
             config.model = model
     
     def check_update_config( config: 'bittensor.Config'):
