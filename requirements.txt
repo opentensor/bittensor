@@ -37,7 +37,7 @@ requests>=2.25.0
 scalecodec>=1.0.35
 sentencepiece
 termcolor
-torch==1.11
+torch>=1.11
 transformers>=4.5.0
 numpy
 wheel
