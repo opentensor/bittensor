@@ -104,7 +104,7 @@ class synapse:
     @staticmethod
     def TextSeq2Seq ( 
         topk:int = 50, 
-        num_to_generate: int = 512,
+        num_to_generate: int = 256,
         num_beams: int = 1,
         no_repeat_ngram_size: int = 0,
         early_stopping: bool = False,
@@ -125,7 +125,7 @@ class synapse:
         Args:
             Topk (:obj:int, :default: 50):
                 The number of highest probability vocabulary tokens to keep for top-k-filtering. 
-            num_to_generate (:obj: int, :default: 512):
+            num_to_generate (:obj: int, :default: 256):
                 The number of tokens to generate using the language model
             num_beams (:obj: int, :default: 1):
                 The number of beams to keep during beam search
