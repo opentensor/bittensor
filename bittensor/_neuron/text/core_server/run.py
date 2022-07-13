@@ -76,6 +76,26 @@ def serve(
     timecheck = {}
     n_topk_peer_weights = subtensor.min_allowed_weights
 
+    def priority(pubkey:str, request_type:bittensor.proto.RequestType, inputs_x) -> float:
+        r"""Calculates the priority on requests based on stake and size of input
+            Args:
+                pubkey ( str, `required`):
+                    The public key of the caller.
+                inputs_x ( :obj:`torch.Tensor`, `required`):
+                    torch inputs to be forward processed.
+                request_type ( bittensor.proto.RequestType, `required`):
+                    the request type ('FORWARD' or 'BACKWARD').
+        """
+        try:        
+            uid = metagraph.hotkeys.index(pubkey)
+            priority = metagraph.S[uid].item()
+        
+        except:
+            # zero priority for those who are not registered.
+            priority =  0
+
+        return priority
+
     def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
         tokens = model.token_remap(inputs_x.to(model.device))
         output = model.pre_model.generate(
@@ -166,7 +186,7 @@ def serve(
         try:
             registration_check()
 
-            stake_check()
+            #stake_check()
 
             #validator_check()
             
@@ -256,6 +276,7 @@ def serve(
             synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
             synapse_seq_2_seq = forward_generate if model.config.neuron.seq2seq else None ,
             blacklist = blacklist,
+            priority = priority,
         ).start().serve(subtensor=subtensor)
     
     axon.optimizer_step = optimizer_step
