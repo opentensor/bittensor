@@ -72,10 +72,11 @@ class server(torch.nn.Module):
 
         if self.config.neuron.local_train or self.config.neuron.remote_train:
             self.pre_model.train()
-        elif self.config.neuron.autocast and self.device[:4] == 'cuda':
-            self.pre_model.half()
         else:
             self.pre_model.eval()
+
+        if self.config.neuron.autocast and self.device[:4] == 'cuda':
+            self.pre_model.half()
 
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
@@ -223,7 +224,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.local_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if self.config.neuron.local_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -258,7 +259,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(inputs, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if self.config.neuron.remote_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -331,7 +332,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if self.config.neuron.remote_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -343,7 +344,7 @@ class server(torch.nn.Module):
 
         pre_logits = model_output.logits
 
-        if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+        if self.config.neuron.remote_train:
             probs_std = translate_logits_to_probs_std(pre_logits,
                                                         tokens['offset_mapping'], tokens['offset_mapping_std'],
                                                         self.tokenizer, self.std_tokenizer,
