@@ -103,11 +103,11 @@ class synapse:
 
     @staticmethod
     def TextSeq2Seq ( 
-        topk:int = 512, 
+        topk:int = 50, 
         num_to_generate: int = 512,
-        num_beams: int = 5,
-        no_repeat_ngram_size: int = 2,
-        early_stopping: bool = True,
+        num_beams: int = 1,
+        no_repeat_ngram_size: int = 0,
+        early_stopping: bool = False,
         num_return_sequences: int = 1,
         do_sample: bool = False,
         top_p: float = 0.95, 
@@ -122,31 +122,41 @@ class synapse:
         backward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
     ) -> TextSeq2Seq:
         """ Factory function which returns a TextSeq2Seq synapse adapter given arguments.
-            Args:
-                topk (:obj:`int` of shape :obj:`(1)`, `optional`, :default: `512`):
-                    Number of topk logits to return per item in the sequence.
-                num_to_generate (:obj:`int` of shape :obj:`(1)`, `optional`, :default: `512`):
-                    Number of topk logits to generate per example in the batch.
-                num_beams (:obj: int, :default: 5):
-                    The number of beams to keep during beam search
-                no_repeat_ngram_size (:obj: int, :default: 2):
-                    The number of repeat n gram allowed
-                early_stopping: (:obj: bool, :default: True):
-                    If the model should early stop if the probabilty drops a certain threshold
-                num_return_sequences: (:obj: int, :default: 1):
-                    How many sequences should the model return
-                do_sample (:obj: bool, :default: False):
-                    If the model should do sample its probablity during generation
-                top_p (:obj: float, :default: 0.95): 
-                    probability cutoff for top p sampling
-                forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                    Serializer used to pack torch tensors on forward request.
-                forward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                    Serializer used to pack torch tensors on forward response.
-                backward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                    Serializer used to pack torch tensors on forward request.
-                backward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                    Serialzer used to pack torch tensors on backward response.
+        Args:
+            Topk (:obj:int, :default: 50):
+                The number of highest probability vocabulary tokens to keep for top-k-filtering. 
+            num_to_generate (:obj: int, :default: 512):
+                The number of tokens to generate using the language model
+            num_beams (:obj: int, :default: 1):
+                The number of beams to keep during beam search
+            no_repeat_ngram_size (:obj: int, :default: 0):
+                The number of repeat n gram allowed
+            early_stopping: (:obj: bool, :default: True):
+                If the model should early stop if the probabilty drops a certain threshold
+            num_return_sequences: (:obj: int, :default: 1):
+                How many sequences should the model return
+            do_sample (:obj: bool, :default: False):
+                If the model should do sample its probablity during generation
+            top_p (:obj: float, :default: 0.95): 
+                probability cutoff for top p sampling
+            temperature: (:obj: float, :default: 1.0):
+                The value used to module the next token probabilities for the softmax calculation
+            repetition_penalty (:obj: float, :default: 1.0):
+                The parameter for repetition penalty. 1.0 means no penalty.
+            length_penalty (:obj: float, :default: 1.0): 
+                The parameter for length penalty. 0.0 means no penalty, <0 to encourage longer sequences.
+            num_beam_groups (:obj: int, :default: 1):
+                Number of groups to divide num_beams into in order to ensure diversity among different groups of beams. 
+            max_time (:obj: float, :default: 150): 
+                The maximum time that a server can use to generate
+            forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                Serializer used to pack torch tensors on forward request.
+            forward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                Serializer used to pack torch tensors on forward response.
+            backward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                Serializer used to pack torch tensors on forward request.
+            backward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                Serialzer used to pack torch tensors on backward response.
             Returns:
                 TextSeq2Seq (:obj:`TextSeq2Seq`, `required`):
                     TextSeq2Seq instance adapter class.
