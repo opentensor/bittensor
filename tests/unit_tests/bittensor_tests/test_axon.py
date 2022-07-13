@@ -386,6 +386,10 @@ def test_forward_joint_missing_synapse():
     def forward_hidden_state( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, torch.zeros( inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
 
+    axon.attach_synapse_callback( forward_generate, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
+    axon.attach_synapse_callback( forward_causal_lm, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
+    axon.attach_synapse_callback( forward_hidden_state, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+
     inputs_raw = torch.rand(3, 3)
     synapses = [bittensor.synapse.TextCausalLM(), bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextSeq2Seq()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -920,5 +924,5 @@ def test_axon_is_destroyed():
 
 if __name__ == "__main__":
     # test_forward_joint_success()
-    # test_forward_joint_missing_synapse()
-    test_forward_joint_faulty_synapse()
+    test_forward_joint_missing_synapse()
+    # test_forward_joint_faulty_synapse()
