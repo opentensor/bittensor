@@ -72,7 +72,7 @@ class server(torch.nn.Module):
 
         if self.config.neuron.local_train or self.config.neuron.remote_train:
             self.pre_model.train()
-        elif self.config.neuron.autocast and self.device == 'cuda':
+        elif self.config.neuron.autocast and self.device[:4] == 'cuda':
             self.pre_model.half()
         else:
             self.pre_model.eval()
