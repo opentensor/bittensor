@@ -87,6 +87,11 @@ def serve(
             do_sample=synapse.do_sample,
             top_p=synapse.top_p,
             num_return_sequences=synapse.num_return_sequences,
+            temperature = synapse.temperature,
+            repetition_penalty = synapse.repetition_penalty,
+            length_penalty = synapse.length_penalty,
+            max_time = synapse.max_time,
+            num_beam_groups = synapse.num_beam_groups,
         )
         raw_texts = [model.tokenizer.decode(out) for out in output]
         tokens = [model.std_tokenizer.encode(raw_text, return_tensors="pt")[:,:synapse.num_to_generate].view(-1) for raw_text in raw_texts]
