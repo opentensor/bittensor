@@ -23,7 +23,7 @@ import torch
 from typing import Union, List, Tuple, Optional
 
 from bittensor._serializer import serializer
-from .synapse_impl import Synapse
+from .synapse_impl import Synapse, NullSynapse
 from .text_causallm_impl import TextCausalLM
 from .text_lasthiddenstate_impl import TextLastHiddenState
 from .text_seq2seq_impl import TextSeq2Seq
@@ -111,6 +111,11 @@ class synapse:
         num_return_sequences: int = 1,
         do_sample: bool = False,
         top_p: float = 0.95, 
+        temperature: float = 1.0,
+        repetition_penalty: float = 1.0,
+        length_penalty: float = 1.0,
+        max_time: float = 150,
+        num_beam_groups: int = 1,
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -155,6 +160,11 @@ class synapse:
             num_return_sequences = num_return_sequences,
             do_sample = do_sample,
             top_p = top_p, 
+            temperature = temperature,
+            repetition_penalty = repetition_penalty,
+            length_penalty = length_penalty,
+            num_beam_groups = num_beam_groups,
+            max_time = max_time,
             forward_request_serializer_type = forward_request_serializer_type,
             forward_response_serializer_type = forward_response_serializer_type,
             backward_request_serializer_type = backward_request_serializer_type,
@@ -170,4 +180,4 @@ class synapse:
         elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
         else:
-            raise ValueError("Synapse type is unknown.")
+            return NullSynapse()
