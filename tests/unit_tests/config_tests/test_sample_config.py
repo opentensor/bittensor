@@ -1,6 +1,5 @@
 import sys
 
-from bittensor._neuron.text.template_miner import neuron as template_miner
 from bittensor._neuron.text.core_validator import neuron as core_validator
 from bittensor._neuron.text.core_server import server as core_server
 

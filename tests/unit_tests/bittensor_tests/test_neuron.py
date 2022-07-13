@@ -171,7 +171,7 @@ def test_corevalidator_reregister_flag_false_exit():
 
     mock_self_neuron=MagicMock(
         wallet=mock_wallet,
-        spec=bittensor.neurons.template_miner.neuron,
+        spec=bittensor.neurons.core_server.neuron,
         subtensor=MagicMock(
             network="mock"
         ),
@@ -187,7 +187,7 @@ def test_corevalidator_reregister_flag_false_exit():
         # Should exit without calling register
         with pytest.raises(SystemExit) as pytest_wrapped_e:
             # Should not raise MockException
-            bittensor.neurons.template_miner.neuron.__enter__(
+            bittensor.neurons.core_server.neuron.__enter__(
                 self=mock_self_neuron
             )
 
@@ -255,7 +255,7 @@ def test_templateminer_reregister_flag_false_exit():
 
     mock_self_neuron=MagicMock(
         wallet=mock_wallet,
-        spec=bittensor.neurons.template_miner.neuron,
+        spec=bittensor.neurons.core_server.neuron,
         subtensor=MagicMock(
             network="mock"
         ),
@@ -271,7 +271,7 @@ def test_templateminer_reregister_flag_false_exit():
         # Should exit without calling register
         with pytest.raises(SystemExit) as pytest_wrapped_e:
             # Should not raise MockException
-            bittensor.neurons.template_miner.neuron.__enter__(
+            bittensor.neurons.core_server.neuron.__enter__(
                 self=mock_self_neuron
             )
 
@@ -298,7 +298,7 @@ def test_templateminer_reregister_flag_true():
 
     mock_self_neuron=MagicMock(
         wallet=mock_wallet,
-        spec=bittensor.neurons.template_miner.neuron,
+        spec=bittensor.neurons.core_server.neuron,
         subtensor=MagicMock(
             network="mock"
         ),
@@ -314,7 +314,7 @@ def test_templateminer_reregister_flag_true():
         # Should not exit
         with pytest.raises(MockException):
             # Should raise MockException
-            bittensor.neurons.template_miner.neuron.__enter__(
+            bittensor.neurons.core_server.neuron.__enter__(
                 self=mock_self_neuron
             )
 
