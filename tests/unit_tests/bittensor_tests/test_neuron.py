@@ -11,7 +11,6 @@ from bittensor._subtensor import subtensor
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-
 def test_set_fine_tuning_params():
     class Model(nn.Module):
         def __init__(self):
@@ -240,4 +239,4 @@ def test_corevalidator_reregister_flag_true():
 
 
 if __name__ == '__main__':
-    test_set_fine_tuning_params()
+    pass
