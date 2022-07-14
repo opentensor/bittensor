@@ -653,7 +653,7 @@ class cli:
         # Get destination.
         if not config.dest:
             dest = Prompt.ask("Enter destination public key: (ss58 or ed2519)")
-            if not bittensor.utils.is_valid_destination_address( dest ):
+            if not bittensor.utils.is_valid_bittensor_address_or_public_key( dest ):
                 sys.exit()
             else:
                 config.dest = str(dest)
@@ -843,7 +843,7 @@ class cli:
                 config.public_key_hex = prompt_answer
             else:
                 config.ss58_address = prompt_answer
-        if not bittensor.utils.is_valid_destination_address(address = config.ss58_address if config.ss58_address else config.public_key_hex, no_prompt=config.no_prompt):
+        if not bittensor.utils.is_valid_bittensor_address_or_public_key(address = config.ss58_address if config.ss58_address else config.public_key_hex):
             sys.exit(1)
 
     def check_run_config( config: 'bittensor.Config' ):
