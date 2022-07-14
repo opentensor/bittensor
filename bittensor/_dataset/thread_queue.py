@@ -48,11 +48,11 @@ class ProducerThread(threading.Thread):
     def run(self):
         r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
         """
-        while True and (not self.stopped()):
+        while not self.stopped():
             if not self.queue.full():
                 item = self.target(*self.arg, self.queue.qsize()+1 )
                 self.queue.put(item)
-                time.sleep(10)
+            time.sleep(10)
         return
 
     def stop(self):
