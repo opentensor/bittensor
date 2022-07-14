@@ -18,6 +18,7 @@
 import torch
 import pytest
 import bittensor
+from bittensor._proto.bittensor_pb2 import UnknownException
 from . import constant
 
 wallet = bittensor.wallet.mock()
@@ -34,6 +35,7 @@ neuron_obj = bittensor.endpoint(
 )
 
 synapses = [bittensor.synapse.TextLastHiddenState(),bittensor.synapse.TextCausalLM(), bittensor.synapse.TextSeq2Seq(num_to_generate=constant.synapse.num_to_generate)]
+dataset = bittensor.dataset(num_batches=20, dataset_name = ['Books3'])
 
 def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
@@ -256,6 +258,142 @@ def test_dendrite_to_df():
 
 def test_dend_del():
     dendrite.__del__()
+
+def test_successful_synapse():
+    wallet = bittensor.wallet()
+    def forward_generate( inputs_x, synapse, model_output = None):
+        return None, torch.rand(inputs_x.shape[0], synapse.num_to_generate)
+
+    def forward_hidden_state( inputs_x, synapse, model_output = None):
+        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
+
+    def forward_casual_lm(inputs_x, synapse, model_output = None):
+        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+
+    axon = bittensor.axon (
+        port = 8096,
+        ip = '0.0.0.0',
+        wallet = wallet,
+    )
+
+    axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
+    axon.attach_synapse_callback( forward_generate,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
+    axon.attach_synapse_callback( forward_casual_lm,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM )
+    axon.start()
+
+    endpoint = bittensor.endpoint(
+        version = bittensor.__version_as_int__,
+        uid = 0,
+        hotkey = wallet.hotkey.ss58_address,
+        ip = '0.0.0.0', 
+        ip_type = 4, 
+        port = 8096, 
+        modality = 0, 
+        coldkey = wallet.coldkeypub.ss58_address
+    )
+
+    dendrite = bittensor.dendrite()
+    inputs = next(dataset)
+    synapses = [bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextCausalLM(), bittensor.synapse.TextSeq2Seq(num_to_generate=20)]
+
+    return_tensors, codes, times = dendrite.text( endpoints=endpoint, inputs = inputs, synapses=synapses)
+    axon.stop()
+
+    print(codes)
+    assert list(codes[0]) == [bittensor.proto.ReturnCode.Success] * 3
+
+def test_failing_synapse():
+    wallet = bittensor.wallet()
+    def faulty( inputs_x, synapse, model_output = None):
+        raise UnknownException
+
+    def forward_hidden_state( inputs_x, synapse, model_output = None):
+        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
+
+    def forward_casual_lm(inputs_x, synapse, model_output = None):
+        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+
+    axon = bittensor.axon (
+        port = 8097,
+        ip = '0.0.0.0',
+        wallet = wallet,
+    )
+
+    axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
+    axon.attach_synapse_callback( faulty,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
+    axon.attach_synapse_callback( forward_casual_lm,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM )
+    axon.start()
+
+    endpoint = bittensor.endpoint(
+        version = bittensor.__version_as_int__,
+        uid = 0,
+        hotkey = wallet.hotkey.ss58_address,
+        ip = '0.0.0.0', 
+        ip_type = 4, 
+        port = 8097, 
+        modality = 0, 
+        coldkey = wallet.coldkeypub.ss58_address
+    )
+
+    dendrite = bittensor.dendrite()
+    inputs = next(dataset)
+    synapses = [bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextCausalLM(), bittensor.synapse.TextSeq2Seq(num_to_generate=20)]
+
+    return_tensors, codes, times = dendrite.text( endpoints=endpoint, inputs = inputs, synapses=synapses)
+    assert list(codes[0]) == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException]
+
+    axon.attach_synapse_callback( faulty,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
+    return_tensors, codes, times = dendrite.text( endpoints=endpoint, inputs = inputs, synapses=synapses)
+    assert list(codes[0]) == [bittensor.proto.ReturnCode.UnknownException, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException]
+
+    axon.attach_synapse_callback( faulty,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM )
+    return_tensors, codes, times = dendrite.text( endpoints=endpoint, inputs = inputs, synapses=synapses)
+    assert list(codes[0]) == [bittensor.proto.ReturnCode.UnknownException, bittensor.proto.ReturnCode.UnknownException, bittensor.proto.ReturnCode.UnknownException]
+
+def test_missing_synapse():
+    wallet = bittensor.wallet()
+    def forward_hidden_state( inputs_x, synapse, model_output = None):
+        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
+
+    def forward_casual_lm(inputs_x, synapse, model_output = None):
+        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+
+    axon = bittensor.axon (
+        port = 8098,
+        ip = '0.0.0.0',
+        wallet = wallet,
+    )
+
+    axon.start()
+
+    endpoint = bittensor.endpoint(
+        version = bittensor.__version_as_int__,
+        uid = 0,
+        hotkey = wallet.hotkey.ss58_address,
+        ip = '0.0.0.0', 
+        ip_type = 4, 
+        port = 8098, 
+        modality = 0, 
+        coldkey = wallet.coldkeypub.ss58_address
+    )
+
+    dendrite = bittensor.dendrite()
+    inputs = next(dataset)
+    synapses = [bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextCausalLM(), bittensor.synapse.TextSeq2Seq(num_to_generate=20)]
+
+    return_tensors, codes, times = dendrite.text( endpoints=endpoint, inputs = inputs, synapses=synapses)
+    assert list(codes[0]) == [bittensor.proto.ReturnCode.NotImplemented, bittensor.proto.ReturnCode.NotImplemented, bittensor.proto.ReturnCode.NotImplemented]
+
+    axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
+    return_tensors, codes, times = dendrite.text( endpoints=endpoint, inputs = inputs, synapses=synapses)
+    assert list(codes[0]) == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.NotImplemented, bittensor.proto.ReturnCode.NotImplemented]
+
+    axon.attach_synapse_callback( forward_casual_lm,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM )
+    return_tensors, codes, times = dendrite.text( endpoints=endpoint, inputs = inputs, synapses=synapses)
+    assert list(codes[0]) == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.NotImplemented]
+
+def test_clear():
+    dataset.close()
     
 if __name__ == "__main__":
     bittensor.logging(debug = True)

@@ -104,9 +104,9 @@ class synapse:
     @staticmethod
     def TextSeq2Seq ( 
         topk:int = 50, 
-        num_to_generate: int = 512,
-        num_beams: int = 1,
-        no_repeat_ngram_size: int = 0,
+        num_to_generate: int = 256,
+        num_beams: int = 5,
+        no_repeat_ngram_size: int = 2,
         early_stopping: bool = False,
         num_return_sequences: int = 1,
         do_sample: bool = False,
@@ -125,11 +125,11 @@ class synapse:
         Args:
             Topk (:obj:int, :default: 50):
                 The number of highest probability vocabulary tokens to keep for top-k-filtering. 
-            num_to_generate (:obj: int, :default: 512):
+            num_to_generate (:obj: int, :default: 256):
                 The number of tokens to generate using the language model
-            num_beams (:obj: int, :default: 1):
+            num_beams (:obj: int, :default: 5):
                 The number of beams to keep during beam search
-            no_repeat_ngram_size (:obj: int, :default: 0):
+            no_repeat_ngram_size (:obj: int, :default: 2):
                 The number of repeat n gram allowed
             early_stopping: (:obj: bool, :default: True):
                 If the model should early stop if the probabilty drops a certain threshold
