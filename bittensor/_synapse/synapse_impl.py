@@ -80,7 +80,7 @@ class Synapse:
         """
         raise NotImplementedError("deserialize_from_wire_proto should be implemented by the subclass.")
 
-    def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse':
+    def serialize_to_instance_proto( self, **kwargs ) -> 'bittensor.proto.Synapse':
         """ Serializes the class instance to a Synapse instance proto.
             Returns:
                 serialized_synapse_as_instance_proto (:obj:`torch.Tensor`, `required`):
@@ -88,7 +88,7 @@ class Synapse:
         """
         raise NotImplementedError("serialize_to_instance_proto should be implemented by the subclass.")
 
-    def serialize_to_wire_proto( self ) -> 'bittensor.proto.Synapse':
+    def serialize_to_wire_proto( self, **kwargs ) -> 'bittensor.proto.Synapse':
         """ Serializes the class instance to a Synapse wire proto.
             Returns:
                 serialized_synapse_as_wire_proto (:obj:`torch.Tensor`, `required`):
@@ -178,3 +178,30 @@ class Synapse:
     def empty(self):
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_request_serializer_type )
         return tensor_deserialzier.empty()
+
+
+class NullSynapse (Synapse):
+    """ Null Synapse type 
+    """
+    synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.NULL_SYNAPSE
+
+    def __init__( 
+        self
+    ) -> 'NullSynapse':
+        """ Null Synapse initializer. Used when a request contains synapses that has not been initalized
+            Returns:
+                NullSynapse (:obj:`NullSynapse`, `required`):
+                    NullSynapse instance adapter class.
+        """
+        super().__init__ ()
+        self.synapse_type = NullSynapse.synapse_type
+
+    def __repr__(self) -> str: return self.__str__()
+    def __str__(self) -> str: return "Null"
+
+    def serialize_to_wire_proto ( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> bittensor.proto.Synapse:
+        return bittensor.proto.Synapse (
+                synapse_type = NullSynapse.synapse_type,
+                return_code = code,
+                message = message
+            )
