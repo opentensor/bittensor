@@ -7,6 +7,7 @@ from transformers import AutoModel,AutoTokenizer,AutoConfig
 from torch.nn.utils.rnn import pad_sequence
 from loguru import logger; logger = logger.opt(colors=True)
 from typing import Tuple, Optional
+import os
 
 class server(torch.nn.Module):
     def __init__(self, 
@@ -54,8 +55,20 @@ class server(torch.nn.Module):
         self.model_name = model_name if model_name != None else config.neuron.model_name
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
-            self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
-            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
+            if config.accelerate:
+                if not os.path.exists(config.offload_path):
+                    logger.error(f'Offload path {config.offload_path} does not exist, creating now')
+                    os.makedirs(config.offload_path)
+                self.pre_model = AutoModel.from_pretrained(
+                    self.model_name, 
+                    device_map="auto", 
+                    offload_folder=config.offload_path,
+                    offload_state_dict=True,
+                )
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
+            else:
+                self.pre_model = model if model != None else AutoModel.from_pretrained(self.model_name)
+                self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
         elif self.pretrained == False:
             model_config = AutoConfig.from_pretrained(self.model_name)
             model_config.vocab_size= bittensor.__vocab_size__
@@ -270,6 +283,8 @@ class server(torch.nn.Module):
     def config ():
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
+        parser.add_argument('--accelerate', action='store_true', help='Accelerate the model with a GPUs.', default=False)
+        parser.add_argument('--offload_path', type=str, help='Path of offload folder for accelerate', default='~/.offload')
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
