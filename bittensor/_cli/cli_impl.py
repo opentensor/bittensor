@@ -81,6 +81,8 @@ class CLI:
             self.help()
         elif self.config.command == 'update':
             self.update()
+        elif self.config.command == "full":
+            self.full()
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -713,6 +715,118 @@ class CLI:
             table.add_row(*row)
         
         console.print(table, width=self.config.get('width', None))
+
+    def full(self):
+        r""" Prints an overview for the wallet's colkey.
+        """
+        all_wallets = []
+        wallets_files = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+        for w_name in wallets_files:
+            wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
+            try:
+                if wallet_for_name.coldkeypub_file.exists_on_device() and not wallet_for_name.coldkeypub_file.is_encrypted():
+                    coldkeypub_str = wallet_for_name.coldkeypub.ss58_address
+                    hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
+                    hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
+                    if len( hotkeys ) > 1:
+                        for h_name in hotkeys[2]:
+                            hotkey_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name, hotkey = h_name)
+                            try:
+                                if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
+                                    all_wallets.append( hotkey_for_name )
+                                    print (hotkey_for_name)
+                            except:
+                                pass
+                print(".")
+            except:
+                pass
+        print ('..')
+
+        console = bittensor.__console__
+        subtensor = bittensor.subtensor( config = self.config )
+        meta = bittensor.metagraph( subtensor = subtensor ).sync()
+        neurons = []
+        block = subtensor.block
+        print ("pull")
+
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            for next_wallet in tqdm(all_wallets):
+                if next_wallet.hotkey.ss58_address in meta.hotkeys:
+                    nn = meta.neurons[ meta.hotkeys.index( next_wallet.hotkey.ss58_address ) ]
+                    neurons.append( (nn, next_wallet) )
+            balance = subtensor.get_balance( next_wallet.coldkeypub.ss58_address )
+
+        TABLE_DATA = []  
+        total_stake = 0.0
+        total_rank = 0.0
+        total_trust = 0.0
+        total_consensus = 0.0
+        total_incentive = 0.0
+        total_dividends = 0.0
+        total_emission = 0     
+        for nn, hotwallet in tqdm(neurons):
+            uid = nn.uid
+            active = nn.active
+            stake = nn.stake
+            rank = nn.rank
+            trust = nn.trust
+            consensus = nn.consensus
+            incentive = nn.incentive
+            dividends = nn.dividends
+            emission = int(nn.emission * 1000000000)
+            last_update = int(block -  nn.last_update)
+            row = [
+                hotwallet.hotkey_str,
+                str(uid), 
+                str(active), 
+                '{:.5f}'.format(stake),
+                '{:.5f}'.format(rank), 
+                '{:.5f}'.format(trust), 
+                '{:.5f}'.format(consensus), 
+                '{:.5f}'.format(incentive),
+                '{:.5f}'.format(dividends),
+                '{}'.format(emission),
+                str(last_update),
+                bittensor.utils.networking.int_to_ip( nn.ip) + ':' + str(nn.port) if nn.port != 0 else '[yellow]none[/yellow]', 
+                nn.hotkey
+            ]
+            total_stake += stake
+            total_rank += rank
+            total_trust += trust
+            total_consensus += consensus
+            total_incentive += incentive
+            total_dividends += dividends
+            total_emission += emission
+            TABLE_DATA.append(row)
+            
+        total_neurons = len(neurons)                
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Wallet - {}:{}".format(self.config.wallet.name, hotwallet.coldkeypub.ss58_address)
+        )
+        table.add_column("[overline white]HOTKEY NAME",  str(total_neurons), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
+        table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
+        table.show_footer = True
+        table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
+
+        console.clear()
+        for row in TABLE_DATA:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
 
 class CacheException(Exception):
     """
