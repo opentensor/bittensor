@@ -19,6 +19,8 @@ import os
 import sys
 from typing import List, Union
 
+from cachetools import Cache
+
 import bittensor
 from bittensor.utils.balance import Balance
 from fuzzywuzzy import fuzz
@@ -402,10 +404,15 @@ class CLI:
         except StopIteration:
             hotkey_files = []
         for hotkey_file_name in hotkey_files:
-            hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
+            try:
+                hotkey_for_name = bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name )
+                if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
+                    hotkey_wallets.append( hotkey_for_name )
+            except Exception:
+                pass
         return hotkey_wallets
 
-    def _get_coldkey_wallets(self):
+    def _get_coldkey_wallets(self) -> List[str]:
         try:
             wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
         except StopIteration:
@@ -720,41 +727,67 @@ class CLI:
         r""" Prints an overview for the wallet's colkey.
         """
         all_wallets = []
-        wallets_files = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
-        for w_name in wallets_files:
-            wallet_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name)
-            try:
-                if wallet_for_name.coldkeypub_file.exists_on_device() and not wallet_for_name.coldkeypub_file.is_encrypted():
-                    coldkeypub_str = wallet_for_name.coldkeypub.ss58_address
-                    hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
-                    hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
-                    if len( hotkeys ) > 1:
-                        for h_name in hotkeys[2]:
-                            hotkey_for_name = bittensor.wallet( path = self.config.wallet.path, name = w_name, hotkey = h_name)
-                            try:
-                                if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
-                                    all_wallets.append( hotkey_for_name )
-                                    print (hotkey_for_name)
-                            except:
-                                pass
-                print(".")
-            except:
-                pass
-        print ('..')
+        cold_wallets = self._get_coldkey_wallets()
+
+        for cold_wallet_name in cold_wallets:
+            wallet_for_name = bittensor.wallet( path=self.config.wallet.path, name=cold_wallet_name )
+            if wallet_for_name.coldkeypub_file.exists_on_device() and not wallet_for_name.coldkeypub_file.is_encrypted():
+                all_wallets.append(
+                    CLI._get_hotkey_wallets_for_wallet(
+                        wallet_for_name
+                    )
+                )
+
+        if len(all_wallets) == 0:
+            console.print("[red]No wallets found.[/red]")
+            return
 
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
-        meta = bittensor.metagraph( subtensor = subtensor ).sync()
         neurons = []
         block = subtensor.block
-        print ("pull")
 
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
-            for next_wallet in tqdm(all_wallets):
-                if next_wallet.hotkey.ss58_address in meta.hotkeys:
-                    nn = meta.neurons[ meta.hotkeys.index( next_wallet.hotkey.ss58_address ) ]
-                    neurons.append( (nn, next_wallet) )
-            balance = subtensor.get_balance( next_wallet.coldkeypub.ss58_address )
+            balance = bittensor.Balance(0.0)
+            try:
+                if self.config.subtensor.get('network', bittensor.defaults.subtensor.network) not in ('local', 'nakamoto'):
+                    # We only cache neurons for local/nakamoto.
+                    raise CacheException("This network is not cached, defaulting to regular overview.")
+            
+                if self.config.get('no_cache'):
+                    raise CacheException("Flag was set to not use cache, defaulting to regular overview.")
+
+                meta: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor )
+                try:
+                    # Grab cached neurons from IPFS
+                    all_neurons = meta.retrieve_cached_neurons()
+                except Exception:
+                    raise CacheException("Failed to retrieve cached neurons, defaulting to regular overview.")
+                # Map the hotkeys to uids
+                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+                for next_wallet in tqdm(all_wallets, desc="[white]Getting wallet balances"):
+                    if len(next_wallet) == 0:
+                        # Skip wallets with no hotkeys
+                        continue
+
+                    for hotkey_wallet in next_wallet:
+                        uid = hotkey_to_neurons.get(hotkey_wallet.hotkey.ss58_address)
+                        if uid is not None:
+                            nn = all_neurons[uid]
+                            neurons.append( (nn, hotkey_wallet) )
+            except CacheException:
+                # Get overview without cache
+                for next_wallet in tqdm(all_wallets, desc="[white]Getting wallets without cache"):
+                    if len(next_wallet) == 0:
+                        # Skip wallets with no hotkeys
+                        continue
+
+                    for hotkey_wallet in next_wallet:
+                        nn = subtensor.neuron_for_pubkey( hotkey_wallet.hotkey.ss58_address )
+                        if not nn.is_null:
+                            neurons.append( (nn, hotkey_wallet) )
+                        
+                    balance += subtensor.get_balance( next_wallet[0].coldkeypub.ss58_address )
 
         TABLE_DATA = []  
         total_stake = 0.0

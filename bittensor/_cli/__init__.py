@@ -95,6 +95,13 @@ class cli:
             help='''Set true to protect the generated bittensor key with a password.''',
             default=False,
         )
+        full_parser.add_argument(
+            '--no_cache', 
+            dest='no_cache', 
+            action='store_true', 
+            help='''Set true to avoid using the cached metagraph from IPFS.''',
+            default=False,
+        )
         bittensor.subtensor.add_args( full_parser )
         bittensor.wallet.add_args( full_parser )
         
