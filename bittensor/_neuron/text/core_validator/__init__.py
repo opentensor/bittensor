@@ -685,8 +685,8 @@ class nucleus( torch.nn.Module ):
         batch_size, sequence_len = inputs.shape
         print(f'Forward \t| Model forward ... ', end='')
         non_eos_indices = torch.cat([ (i != self.pad_token).nonzero()[-1] for i in inputs ]).reshape(len(inputs),1)
-        inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len-1]
-        inputs_val = inputs.gather(1, non_eos_indices).flatten()  # input validation with last token [batch_size]
+        inputs_seq = inputs[..., :-1].to( self.device )  # input sequence without last token [batch_size, sequence_len-1]
+        inputs_val = inputs.gather(1, non_eos_indices).flatten().to( self.device )  # input validation with last token [batch_size]
 
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
@@ -695,8 +695,6 @@ class nucleus( torch.nn.Module ):
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         
-        # Send inputs to device
-        inputs_seq = inputs_seq.to( self.device )
         embedding =  self.token_embedding( inputs_seq ) * math.sqrt( bittensor.__network_dim__ )
         
         # === Create an attention mask ===
@@ -780,7 +778,7 @@ class nucleus( torch.nn.Module ):
         return_ops = [ops.to(self.device) for ops in return_ops]
 
         stats = []
-        routing_loss = torch.tensor(0.)
+        routing_loss = torch.tensor(0.).to( self.device )
         unsuccessful = []
 
         def get_num_params(_loss):
