@@ -56,7 +56,7 @@ class server(torch.nn.Module):
         if config == None: config = server.config()
         self.config = config;print(config)
         self.std_tokenizer = bittensor.tokenizer()
-
+        self.device = config.neuron.device
 
         #setting up pretrained model
         self.model_name = model_name if model_name != None else config.neuron.model_name
@@ -72,10 +72,11 @@ class server(torch.nn.Module):
 
         if self.config.neuron.local_train or self.config.neuron.remote_train:
             self.pre_model.train()
-        elif self.config.neuron.autocast and self.device == 'cuda':
-            self.pre_model.half()
         else:
             self.pre_model.eval()
+
+        if self.config.neuron.autocast and self.device[:4] == 'cuda':
+            self.pre_model.half()
 
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
@@ -84,7 +85,6 @@ class server(torch.nn.Module):
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
-        self.device = config.neuron.device
         self.padding = padding if padding != None else config.neuron.padding
         self.interpolate = interpolate if interpolate != None else config.neuron.interpolate
         self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
@@ -224,7 +224,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.local_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if self.config.neuron.local_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -259,7 +259,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(inputs, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if self.config.neuron.remote_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -332,7 +332,7 @@ class server(torch.nn.Module):
         tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
-            if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            if self.config.neuron.remote_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 attention_mask=tokens['attention_mask'],
                                                 output_hidden_states=True)
@@ -344,7 +344,7 @@ class server(torch.nn.Module):
 
         pre_logits = model_output.logits
 
-        if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+        if self.config.neuron.remote_train:
             probs_std = translate_logits_to_probs_std(pre_logits,
                                                         tokens['offset_mapping'], tokens['offset_mapping_std'],
                                                         self.tokenizer, self.std_tokenizer,

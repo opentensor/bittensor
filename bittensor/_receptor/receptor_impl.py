@@ -573,7 +573,7 @@ class Receptor(nn.Module):
         # ======================================
         # ==== Check response length ====
         # ======================================
-        if len( grpc_response.tensors ) != len( synapses ):
+        if ( len(grpc_response.tensors) != len(grpc_response.synapses) ) or ( len(grpc_response.tensors) != len(synapses) ):
             # Not enough responses per request.
             code = bittensor.proto.ReturnCode.ResponseShapeException
             call_time = clock.time() - start_time
