@@ -600,13 +600,15 @@ class CLI:
             # Only show hotkeys for wallets in the list
             all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
             coldkey_wallet = bittensor.wallet( config = self.config )
-            total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
+            if coldkey_wallet.coldkeypub_file.exists_on_device() and not coldkey_wallet.coldkeypub_file.is_encrypted():
+                total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
 
         # We are printing for all keys under the wallet.
         else:
             # We are only printing keys for a single coldkey
             coldkey_wallet = bittensor.wallet( config = self.config )
-            total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
+            if coldkey_wallet.coldkeypub_file.exists_on_device() and not coldkey_wallet.coldkeypub_file.is_encrypted():
+                total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
             if not coldkey_wallet.coldkeypub_file.exists_on_device():
                 console.print("[bold red]No wallets found.")
                 return

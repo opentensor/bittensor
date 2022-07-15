@@ -145,6 +145,7 @@ class TestCli(unittest.TestCase):
             config.subtensor._mock = True
             config.subtensor.network = "mock"
             config.no_prompt = True
+            config.all = False
 
             cli = bittensor.cli(config)
             with patch('os.walk', return_value=iter(
@@ -172,6 +173,7 @@ class TestCli(unittest.TestCase):
             config.subtensor._mock = True
             config.subtensor.network = "mock"
             config.no_prompt = True
+            config.all = False
 
             cli = bittensor.cli(config)
             cli.run()
@@ -185,6 +187,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -198,6 +201,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         with patch('bittensor.Metagraph.retrieve_cached_neurons') as mock_retrieve_cached_neurons:
             # Mock the cache retrieval to fail
@@ -216,6 +220,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -229,6 +234,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.wallet.hotkeys = ['some_hotkey']
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -241,6 +247,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -254,6 +261,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.wallet.sort_by = "rank"
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -267,6 +275,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.wallet.sort_by = "totallynotmatchingcolumnname"
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -279,6 +288,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -292,6 +302,7 @@ class TestCli(unittest.TestCase):
         config.wallet.sort_order = "desc" # Set descending sort order
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -305,6 +316,7 @@ class TestCli(unittest.TestCase):
         config.wallet.sort_order = "nowaythisshouldmatchanyorderingchoice" 
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -318,6 +330,7 @@ class TestCli(unittest.TestCase):
         # Don't specify sort_order in config
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -331,6 +344,7 @@ class TestCli(unittest.TestCase):
         config.width = 100
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -344,7 +358,20 @@ class TestCli(unittest.TestCase):
         # Don't specify width in config
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.all = False
 
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_overview_all( self ):
+        bittensor.subtensor.register = MagicMock(return_value = True)  
+        
+        config = self.config
+        config.command = "overview"
+        config.subtensor._mock = True
+        config.subtensor.network = "mock"
+        config.no_prompt = True
+        config.all = True
         cli = bittensor.cli(config)
         cli.run()
 
