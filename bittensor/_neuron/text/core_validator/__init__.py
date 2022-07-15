@@ -757,7 +757,7 @@ class nucleus( torch.nn.Module ):
             endpoints=random_endpoints,
             inputs=inputs_seq,
             synapses=synapses,
-            timeout=100
+            timeout=bittensor.__blocktime__
         )
 
         if not self.config.nucleus.dendrite_backward:
