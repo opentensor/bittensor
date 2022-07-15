@@ -450,7 +450,7 @@ class neuron:
         score_key = 'shapley_values_min'  # server score based on Shapley value approximation
         moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet min topk
 
-        for key in self.server_stats:
+        for key in self.server_stats:12
             moving_avg_scores[key] = torch.tensor([self.server_stats[key][score_key]])
         # Find the n_topk_peer_weights peers to set weights to.
         topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
@@ -757,7 +757,7 @@ class nucleus( torch.nn.Module ):
             endpoints=random_endpoints,
             inputs=inputs_seq,
             synapses=synapses,
-            timeout=100
+            timeout=bittensor.__blocktime__
         )
 
         if not self.config.nucleus.dendrite_backward:
