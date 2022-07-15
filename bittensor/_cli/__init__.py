@@ -67,6 +67,13 @@ class cli:
             default=False,
         )
         overview_parser.add_argument(
+            '--all', 
+            dest='all', 
+            action='store_true', 
+            help='''View overview for all wallets.''',
+            default=False,
+        )
+        overview_parser.add_argument(
             '--no_cache', 
             dest='no_cache', 
             action='store_true', 
@@ -582,7 +589,6 @@ class cli:
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
         
-
     def check_weights_config( config: 'bittensor.Config'):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
@@ -738,7 +744,7 @@ class cli:
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt and not config.all:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 

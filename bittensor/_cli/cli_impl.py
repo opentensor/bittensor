@@ -19,6 +19,8 @@ import os
 import sys
 from typing import List, Union
 
+from cachetools import Cache
+
 import bittensor
 from bittensor.utils.balance import Balance
 from fuzzywuzzy import fuzz
@@ -401,16 +403,32 @@ class CLI:
         except StopIteration:
             hotkey_files = []
         for hotkey_file_name in hotkey_files:
-            hotkey_wallets.append( bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name ))
+            try:
+                hotkey_for_name = bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name )
+                if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
+                    hotkey_wallets.append( hotkey_for_name )
+            except Exception:
+                pass
         return hotkey_wallets
 
-    def _get_coldkey_wallets(self):
+    @staticmethod
+    def _get_coldkey_wallets_for_path( path: str ) -> List['bittensor.wallet']:
         try:
-            wallets = next(os.walk(os.path.expanduser(self.config.wallet.path)))[1]
+            wallet_names = next(os.walk(os.path.expanduser(path)))[1]
+            return [ bittensor.wallet( path= path, name=name ) for name in wallet_names ]
         except StopIteration:
             # No wallet files found.
             wallets = []
         return wallets
+
+    @staticmethod
+    def _get_all_wallets_for_path( path:str ) -> List['bittensor.wallet']:
+        all_wallets = []
+        cold_wallets = CLI._get_coldkey_wallets_for_path(path)
+        for cold_wallet in cold_wallets:
+            if cold_wallet.coldkeypub_file.exists_on_device() and not cold_wallet.coldkeypub_file.is_encrypted():
+                all_wallets.extend( CLI._get_hotkey_wallets_for_wallet(cold_wallet) )
+        return all_wallets
 
     def list(self):
         r""" Lists wallets.
@@ -565,19 +583,44 @@ class CLI:
         r""" Prints an overview for the wallet's colkey.
         """
         console = bittensor.__console__
-        wallet = bittensor.wallet( config = self.config )
-
-        if not wallet.coldkeypub_file.exists_on_device():
-            console.print("[bold red]No wallets found.")
-            return
-
         subtensor = bittensor.subtensor( config = self.config )
-        all_hotkeys = CLI._get_hotkey_wallets_for_wallet( wallet )
-        
-        if self.config.wallet.hotkeys:
+
+        all_hotkeys = []
+        total_balance = bittensor.Balance(0)
+
+        # We are printing for every wallet.
+        if self.config.all:
+            cold_wallets = CLI._get_coldkey_wallets_for_path(self.config.wallet.path)
+            for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
+                if cold_wallet.coldkeypub_file.exists_on_device() and not cold_wallet.coldkeypub_file.is_encrypted():
+                    total_balance = total_balance + subtensor.get_balance( cold_wallet.coldkeypub.ss58_address )
+            all_hotkeys = CLI._get_all_wallets_for_path( self.config.wallet.path )
+
+        # We are printing for a select number of hotkeys.
+        elif self.config.wallet.hotkeys:
             # Only show hotkeys for wallets in the list
             all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
-            
+            coldkey_wallet = bittensor.wallet( config = self.config )
+            if coldkey_wallet.coldkeypub_file.exists_on_device() and not coldkey_wallet.coldkeypub_file.is_encrypted():
+                total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
+
+        # We are printing for all keys under the wallet.
+        else:
+            # We are only printing keys for a single coldkey
+            coldkey_wallet = bittensor.wallet( config = self.config )
+            if coldkey_wallet.coldkeypub_file.exists_on_device() and not coldkey_wallet.coldkeypub_file.is_encrypted():
+                total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
+            if not coldkey_wallet.coldkeypub_file.exists_on_device():
+                console.print("[bold red]No wallets found.")
+                return
+            all_hotkeys = CLI._get_hotkey_wallets_for_wallet( coldkey_wallet )
+
+        # Check we have keys to display.
+        if len(all_hotkeys) == 0:
+            console.print("[red]No wallets found.[/red]")
+            return
+
+        # Pull neuron info for all keys.            
         neurons = []
         block = subtensor.block
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
@@ -609,7 +652,6 @@ class CLI:
                     if not nn.is_null:
                       neurons.append( (nn, wallet) )
                       
-            balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         TABLE_DATA = []  
         total_stake = 0.0
@@ -632,6 +674,7 @@ class CLI:
             emission = int(nn.emission * 1000000000)
             last_update = int(block -  nn.last_update)
             row = [
+                hotwallet.name,
                 hotwallet.hotkey_str,
                 str(uid), 
                 str(active), 
@@ -657,10 +700,12 @@ class CLI:
             
         total_neurons = len(neurons)                
         table = Table(show_footer=False, width=self.config.get('width', None), pad_edge=False, box=None)
-        table.title = (
-            "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address)
-        )
-        table.add_column("[overline white]HOTKEY NAME",  str(total_neurons), footer_style = "overline white", style='bold white')
+        if not self.config.all:
+            table.title = ( "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address) )
+        else:
+            table.title = ( "[white]All Wallets:" )
+        table.add_column("[overline white]COLDKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='white')
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
@@ -672,9 +717,9 @@ class CLI:
         table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
-        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
+        table.add_column("[overline white]HOTKEY_SS58", style='dim blue', no_wrap=False)
         table.show_footer = True
-        table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
+        table.caption = "[white]Wallet balance: [green]\u03C4" + str(total_balance.tao)
 
         console.clear()
 
@@ -714,6 +759,113 @@ class CLI:
             table.add_row(*row)
         
         console.print(table, width=self.config.get('width', None))
+
+    def full(self):
+        r""" Prints an overview for the wallet's colkey.
+        """
+        all_wallets = CLI._get_all_wallets_for_path( self.config.wallet.path )
+        if len(all_wallets) == 0:
+            console.print("[red]No wallets found.[/red]")
+            return
+
+        console = bittensor.__console__
+        subtensor = bittensor.subtensor( config = self.config )
+        meta: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor )
+        # Get metagraph, use no_cache if flagged
+        meta.sync(cached = not self.config.get('no_cache', False))
+        neurons = []
+        block = subtensor.block
+
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network)):
+            balance = bittensor.Balance(0.0)
+            
+            all_neurons = meta.neurons
+            # Map the hotkeys to uids
+            hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+            for next_wallet in tqdm(all_wallets, desc="[white]Getting wallet balances"):
+                if len(next_wallet) == 0:
+                    # Skip wallets with no hotkeys
+                    continue
+
+                for hotkey_wallet in next_wallet:
+                    uid = hotkey_to_neurons.get(hotkey_wallet.hotkey.ss58_address)
+                    if uid is not None:
+                        nn = all_neurons[uid]
+                        neurons.append( (nn, hotkey_wallet) )
+
+                balance += subtensor.get_balance( next_wallet[0].coldkeypub.ss58_address )
+                        
+        TABLE_DATA = []  
+        total_stake = 0.0
+        total_rank = 0.0
+        total_trust = 0.0
+        total_consensus = 0.0
+        total_incentive = 0.0
+        total_dividends = 0.0
+        total_emission = 0     
+        for nn, hotwallet in tqdm(neurons):
+            uid = nn.uid
+            active = nn.active
+            stake = nn.stake
+            rank = nn.rank
+            trust = nn.trust
+            consensus = nn.consensus
+            incentive = nn.incentive
+            dividends = nn.dividends
+            emission = int(nn.emission * 1000000000)
+            last_update = int(block -  nn.last_update)
+            row = [
+                hotwallet.hotkey_str,
+                str(uid), 
+                str(active), 
+                '{:.5f}'.format(stake),
+                '{:.5f}'.format(rank), 
+                '{:.5f}'.format(trust), 
+                '{:.5f}'.format(consensus), 
+                '{:.5f}'.format(incentive),
+                '{:.5f}'.format(dividends),
+                '{}'.format(emission),
+                str(last_update),
+                bittensor.utils.networking.int_to_ip( nn.ip) + ':' + str(nn.port) if nn.port != 0 else '[yellow]none[/yellow]', 
+                nn.hotkey
+            ]
+            total_stake += stake
+            total_rank += rank
+            total_trust += trust
+            total_consensus += consensus
+            total_incentive += incentive
+            total_dividends += dividends
+            total_emission += emission
+            TABLE_DATA.append(row)
+            
+        total_neurons = len(neurons)                
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Wallet - {}:{}".format(self.config.wallet.name, hotwallet.coldkeypub.ss58_address)
+        )
+        table.add_column("[overline white]HOTKEY NAME",  str(total_neurons), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
+        table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
+        table.show_footer = True
+        table.caption = "[white]Wallet balance: [green]\u03C4" + str(balance.tao)
+
+        console.clear()
+        for row in TABLE_DATA:
+            table.add_row(*row)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
 
 class CacheException(Exception):
     """
