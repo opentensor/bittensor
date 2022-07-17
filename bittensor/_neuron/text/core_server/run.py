@@ -184,7 +184,7 @@ def serve(
 
         # Black list or not
         try:
-            registration_check()
+            #registration_check()
 
             #stake_check()
 
