@@ -317,9 +317,12 @@ class server(torch.nn.Module):
             # Note that tokenizer(padding=True, ...) is not used because
             # unpadded offset_mapping is required for logit translation operations.
             tokens['input_ids'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['input_ids']],
-                                               batch_first=True, padding_value=self.tokenizer.pad_token_id)
+                                               batch_first=True, padding_value=self.tokenizer.pad_token_id).to(self.device)
             tokens['attention_mask'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['attention_mask']],
-                                                    batch_first=True)
+                                                    batch_first=True).to(self.device)
+        else:
+            tokens['input_ids'] = torch.LongTensor(tokens['input_ids'], device=self.device)
+            tokens['attention_mask'] = torch.LongTensor(tokens['attention_mask'], device=self.device)
 
         if return_offsets_mapping:  # get offsets_mapping in tokenization to delineate token segment positions
             std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
@@ -329,9 +332,6 @@ class server(torch.nn.Module):
                                                        pad_offsets_batch)
             tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
             tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
-
-        tokens['input_ids'] = tokens['input_ids'].to(self.device)
-        tokens['attention_mask'] = tokens['attention_mask'].to(self.device)
 
         return tokens
 
