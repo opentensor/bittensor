@@ -92,7 +92,7 @@ class server(torch.nn.Module):
         self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
         self.checking = checking if checking != None else config.neuron.checking
         self.mapping_function= mapping_function
-        self.token_remap = token_remap if token_remap != None else self.remapping_token
+        self.token_remap = token_remap if token_remap is not None else self.remapping_token
 
         if self.config.neuron.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
@@ -223,7 +223,8 @@ class server(torch.nn.Module):
                 logits (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-        tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
+        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, tokenizer_padding=False,
+                                  return_offsets_mapping=True)  # remap to server tokenizer
 
         if model_output == None:
             if self.config.neuron.local_train:
@@ -258,7 +259,7 @@ class server(torch.nn.Module):
                     The hidden layer output as a torch tensor of shape [batch_size, sequence_len, __network_dim__ ]
         """
         sen_len = inputs.size()
-        tokens = self.remapping_token_causallm(inputs, tokenizer)  # remap to server tokenizer
+        tokens = self.token_remap(inputs, tokenizer)  # remap to server tokenizer
 
         if model_output == None:
             if self.config.neuron.remote_train:
@@ -289,7 +290,7 @@ class server(torch.nn.Module):
 
         return model_output, encoded_hidden
 
-    def remapping_token(self,input, old_tokenizer=None):
+    def remapping_token_old(self,input, old_tokenizer=None):
         r""" Default remapping of tokenizers; decodes the message and then remaps the message using a new tokenizer
             Args:
                 inputs_x ( :obj:`torch.Tensor`, `required`):
@@ -367,8 +368,8 @@ class server(torch.nn.Module):
 
         return model_output, logits_std
 
-    def remapping_token_causallm(self, token_batch, std_tokenizer=None, tokenizer_padding=True,
-                                 return_offsets_mapping=False):
+    def remapping_token(self, token_batch, std_tokenizer=None, tokenizer_padding=True,
+                        return_offsets_mapping=False):
         r""" Tokenizer remapping; decodes the message and then remaps the message using a new tokenizer
             Args:
                 token_batch ( :obj:`torch.LongTensor`, `required`):
