@@ -321,8 +321,8 @@ class server(torch.nn.Module):
             tokens['attention_mask'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['attention_mask']],
                                                     batch_first=True).to(self.device)
         else:
-            tokens['input_ids'] = torch.LongTensor(tokens['input_ids'], device=self.device)
-            tokens['attention_mask'] = torch.LongTensor(tokens['attention_mask'], device=self.device)
+            tokens['input_ids'] = torch.LongTensor(tokens['input_ids']).to(self.device)
+            tokens['attention_mask'] = torch.LongTensor(tokens['attention_mask']).to(self.device)
 
         if return_offsets_mapping:  # get offsets_mapping in tokenization to delineate token segment positions
             std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
