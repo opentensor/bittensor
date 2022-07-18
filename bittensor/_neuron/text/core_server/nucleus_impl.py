@@ -223,8 +223,7 @@ class server(torch.nn.Module):
                 logits (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, tokenizer_padding=False,
-                                  return_offsets_mapping=True)  # remap to server tokenizer
+        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer)  # remap to server tokenizer
 
         if model_output == None:
             if self.config.neuron.local_train:
@@ -335,7 +334,7 @@ class server(torch.nn.Module):
         tokens['attention_mask'] = tokens['attention_mask'].to(self.device)
 
         return tokens
-    
+
     def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
              The response tensor should be the hidden units computed using the local context and
@@ -359,8 +358,8 @@ class server(torch.nn.Module):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
 
-
-        tokens = self.remapping_token_causallm(token_batch, tokenizer)  # remap to server tokenizer
+        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, tokenizer_padding=False,
+                                  return_offsets_mapping=True)  # remap to server tokenizer
 
         if model_output == None:
             if self.config.neuron.remote_train:
