@@ -181,7 +181,52 @@ class server(torch.nn.Module):
                 logger.warning(f'Cannot identify the last layer of the model with name {last_layer_name}, setting to finetune on all of the parameters.')
 
         return reached_last_layer, last_layer_name
-        
+
+    def remapping_token(self, token_batch, std_tokenizer=None, tokenizer_padding=True, return_offsets_mapping=False):
+        r""" Tokenizer remapping; decodes the message and then remaps the message using a new tokenizer
+            Args:
+                token_batch ( :obj:`torch.LongTensor`, `required`):
+                    token_batch to be retokenized, [batch_size, sequence_len]
+                std_tokenizer ( :obj:`transformers.Tokenizer`, `optional`):
+                    The standard tokenizer which was used to tokenize the input.
+                tokenizer_padding ( :obj:`bool`, `required`):
+                    Use built-in tokenizer padding, otherwise use pad_sequence.
+                return_offsets_mapping ( :obj:`bool`, `required`):
+                    Return offsets_mapping in tokenization to delineate token segment positions.
+        """
+        if std_tokenizer is None:
+            std_tokenizer = self.std_tokenizer
+
+        text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
+        result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
+        to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
+
+        tokens = self.tokenizer(to_text_batch, padding=tokenizer_padding, return_offsets_mapping=return_offsets_mapping,
+                                truncation=True, add_special_tokens=False)  # assume tokenizer.padding_side = 'left'
+
+        if not tokenizer_padding:  # create batch tensor with pad_sequence
+            # Use pad_token_id to right pad batch, right-padding required for logit translation.
+            # Note that tokenizer(padding=True, ...) is not used because
+            # unpadded offset_mapping is required for logit translation operations.
+            tokens['input_ids'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['input_ids']],
+                                               batch_first=True, padding_value=self.tokenizer.pad_token_id).to(self.device)
+            tokens['attention_mask'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['attention_mask']],
+                                                    batch_first=True).to(self.device)
+        else:
+            tokens['input_ids'] = torch.LongTensor(tokens['input_ids']).to(self.device)
+            tokens['attention_mask'] = torch.LongTensor(tokens['attention_mask']).to(self.device)
+
+        if return_offsets_mapping:  # get offsets_mapping in tokenization to delineate token segment positions
+            std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
+
+            # pad offsets so that special token offset widths match for continued correct alignment
+            std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch,
+                                                       pad_offsets_batch)
+            tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+            tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
+
+        return tokens
+
     def forward(self, inputs, tokenizer=None):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
@@ -293,52 +338,6 @@ class server(torch.nn.Module):
             encoded_hidden = self.mapping(down)
 
         return model_output, encoded_hidden
-
-    def remapping_token(self, token_batch, std_tokenizer=None, tokenizer_padding=True,
-                        return_offsets_mapping=False):
-        r""" Tokenizer remapping; decodes the message and then remaps the message using a new tokenizer
-            Args:
-                token_batch ( :obj:`torch.LongTensor`, `required`):
-                    token_batch to be retokenized, [batch_size, sequence_len]
-                std_tokenizer ( :obj:`transformers.Tokenizer`, `optional`):
-                    The standard tokenizer which was used to tokenize the input.
-                tokenizer_padding ( :obj:`bool`, `required`):
-                    Use built-in tokenizer padding, otherwise use pad_sequence.
-                return_offsets_mapping ( :obj:`bool`, `required`):
-                    Return offsets_mapping in tokenization to delineate token segment positions.
-        """
-        if std_tokenizer is None:
-            std_tokenizer = self.std_tokenizer
-
-        text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
-        result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
-        to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
-
-        tokens = self.tokenizer(to_text_batch, padding=tokenizer_padding, return_offsets_mapping=return_offsets_mapping,
-                                truncation=True, add_special_tokens=False)  # assume tokenizer.padding_side = 'left'
-
-        if not tokenizer_padding:  # create batch tensor with pad_sequence
-            # Use pad_token_id to right pad batch, right-padding required for logit translation.
-            # Note that tokenizer(padding=True, ...) is not used because
-            # unpadded offset_mapping is required for logit translation operations.
-            tokens['input_ids'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['input_ids']],
-                                               batch_first=True, padding_value=self.tokenizer.pad_token_id).to(self.device)
-            tokens['attention_mask'] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens['attention_mask']],
-                                                    batch_first=True).to(self.device)
-        else:
-            tokens['input_ids'] = torch.LongTensor(tokens['input_ids']).to(self.device)
-            tokens['attention_mask'] = torch.LongTensor(tokens['attention_mask']).to(self.device)
-
-        if return_offsets_mapping:  # get offsets_mapping in tokenization to delineate token segment positions
-            std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
-
-            # pad offsets so that special token offset widths match for continued correct alignment
-            std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch,
-                                                       pad_offsets_batch)
-            tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
-            tokens['offset_mapping_std'] = std_tokens['offset_mapping']  # include std token info
-
-        return tokens
 
     def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
