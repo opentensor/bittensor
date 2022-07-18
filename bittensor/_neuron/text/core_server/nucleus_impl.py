@@ -78,8 +78,13 @@ class server(torch.nn.Module):
         if self.config.neuron.autocast and self.device[:4] == 'cuda':
             self.pre_model.half()
 
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token  # Define PAD Token = EOS Token (GPT2 convention)
+        # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
+        # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+        if self.tokenizer.pad_token is None and self.tokenizer.eos_token is not None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+        if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
+            self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
+
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
         self.split_map_cache = {}
