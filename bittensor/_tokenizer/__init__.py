@@ -43,7 +43,7 @@ class tokenizer:
     def get_tokenizer_for_version( cls, version = bittensor.__version__ ):
         """ Return the GPT2 tokenizer with bittersor's special tokens
         """
-        _tokenizer = AutoTokenizer.from_pretrained('gpt2', local_files_only=False, use_fast=False)
+        _tokenizer = AutoTokenizer.from_pretrained('gpt2', local_files_only=False)
         _tokenizer.pad_token = _tokenizer.eos_token  # Define PAD Token = EOS Token = 50256. https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
         _tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
         # _tokenizer.add_prefix_space = False
