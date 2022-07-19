@@ -685,6 +685,7 @@ class nucleus( torch.nn.Module ):
         batch_size, sequence_len = inputs.shape
         print(f'Forward \t| Model forward ... ', end='')
 
+        inputs = inputs.to(self.device)
         inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len-1]
         inputs_val = inputs[..., -1]  # input validation with last token [batch_size]
 
@@ -694,7 +695,8 @@ class nucleus( torch.nn.Module ):
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        embedding = self.token_embedding(inputs_seq) * math.sqrt(bittensor.__network_dim__)
+        
+        embedding =  self.token_embedding( inputs_seq ) * math.sqrt( bittensor.__network_dim__ )
         
         # === Create an attention mask ===
         # The attention mask will mask out parts of the context
@@ -771,12 +773,13 @@ class nucleus( torch.nn.Module ):
 
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
-        for responses in query_responses:
-            for response in responses:
-                response.to( self.device )
+        query_responses = [[response.to(self.device) for response in responses] for responses in query_responses]
+
+        # Send return ops to device.
+        return_ops = [ops.to(self.device) for ops in return_ops]
 
         stats = []
-        routing_loss = torch.tensor(0.)
+        routing_loss = torch.tensor(0.).to( self.device )
         unsuccessful = []
 
         def get_num_params(_loss):
