@@ -684,9 +684,10 @@ class nucleus( torch.nn.Module ):
         start_time = time.time()
         batch_size, sequence_len = inputs.shape
         print(f'Forward \t| Model forward ... ', end='')
-        non_eos_indices = torch.cat([ (i != self.pad_token).nonzero()[-1] for i in inputs ]).reshape(len(inputs),1)
+
+        inputs = inputs.to(self.device)
         inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len-1]
-        inputs_val = inputs.gather(1, non_eos_indices).flatten()  # input validation with last token [batch_size]
+        inputs_val = inputs[..., -1]  # input validation with last token [batch_size]
 
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
@@ -694,7 +695,8 @@ class nucleus( torch.nn.Module ):
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        embedding = self.token_embedding(inputs_seq) * math.sqrt(bittensor.__network_dim__)
+        
+        embedding =  self.token_embedding( inputs_seq ) * math.sqrt( bittensor.__network_dim__ )
         
         # === Create an attention mask ===
         # The attention mask will mask out parts of the context
@@ -757,7 +759,7 @@ class nucleus( torch.nn.Module ):
             endpoints=random_endpoints,
             inputs=inputs_seq,
             synapses=synapses,
-            timeout=100
+            timeout=bittensor.__blocktime__
         )
 
         if not self.config.nucleus.dendrite_backward:
@@ -771,12 +773,13 @@ class nucleus( torch.nn.Module ):
 
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
-        for responses in query_responses:
-            for response in responses:
-                response.to( self.device )
+        query_responses = [[response.to(self.device) for response in responses] for responses in query_responses]
+
+        # Send return ops to device.
+        return_ops = [ops.to(self.device) for ops in return_ops]
 
         stats = []
-        routing_loss = torch.tensor(0.)
+        routing_loss = torch.tensor(0.).to( self.device )
         unsuccessful = []
 
         def get_num_params(_loss):
@@ -798,7 +801,7 @@ class nucleus( torch.nn.Module ):
                           'routing_score': routing_score[_uid]}
                 
                 _stats.update({'logits': query_responses[index][index_s],
-                               'logits_val': torch.cat([ res[idx-1] for res, idx in zip (query_responses[index][index_s], non_eos_indices)])})
+                               'logits_val': query_responses[index][index_s][:, -1:, :]})
 
                 for target, ext in [(inputs_seq, ''), (inputs_val, '_val')]:
                     _loss = self.get_target_loss_casuallm(_stats['logits' + ext], target, eval_type = ext)  # CausalLM loss
