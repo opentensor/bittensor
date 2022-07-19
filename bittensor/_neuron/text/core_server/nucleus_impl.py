@@ -63,7 +63,7 @@ class server(torch.nn.Module):
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
             self.pre_model = model if model != None else AutoModelForCausalLM.from_pretrained(self.model_name)
-            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name)
+            self.tokenizer = tokenizer if tokenizer != None else AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
         elif self.pretrained == False:
             model_config = AutoConfig.from_pretrained(self.model_name)
             model_config.vocab_size= bittensor.__vocab_size__
