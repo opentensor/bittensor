@@ -1,3 +1,5 @@
+// python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=.
+
 syntax = "proto3";
 
 // Service definition for tensor processing servers.
@@ -100,6 +102,7 @@ message Synapse {
 		TEXT_LAST_HIDDEN_STATE = 1;
 		TEXT_CAUSAL_LM = 2;
 		TEXT_SEQ_2_SEQ = 3;
+		TEXT_CAUSAL_LM_NEXT = 4;
 	}
 
 	// Position of Tensor inputs for corresponding synapse call.
@@ -211,6 +214,27 @@ message Synapse {
 
 		//groups for beam search
 		int32 num_beam_groups = 19;
+	}
+
+	message TextCausalLMNext {
+		// Specifies messaging of topk server token phrases with probabilities.
+		// Server last position token predictions are retokenized to token phrases with the bittensor tokenizer.
+		// Allows for zero translation loss CausalLM next generation between different tokenizers.
+
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// Specifies the number of topk server token phrases to return.
+		int32 topk = 2;
+
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 3;
+		Serializer forward_response_serializer_type = 4;
+		Serializer backward_request_serializer_type = 5;
+		Serializer backward_response_serializer_type = 6;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 7;
 	}
 }
 
