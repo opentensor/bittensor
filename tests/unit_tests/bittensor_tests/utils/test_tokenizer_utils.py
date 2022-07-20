@@ -25,6 +25,7 @@ from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import *
 
 EPSILON = 1e-40
+encodings_cache_file = "tests/unit_tests/bittensor_tests/utils/test_tokenizer_utils.pt"
 
 sample_text = {'English-1': ['''The Three Laws of Robotics (often shortened to The Three Laws or known as Asimov's Laws) are a set of rules devised by science fiction author Isaac Asimov. The rules were introduced in his 1942 short story "Runaround" (included in the 1950 collection I, Robot), although they had been foreshadowed in some earlier stories. The Three Laws, quoted from the "Handbook of Robotics, 56th Edition, 2058 A.D.", are:''',
 
@@ -250,8 +251,6 @@ def test_tokenizer_translation():
                   ('English-1', 'benjamin/gerpt2-large', 95),
                   ('German-1', 'benjamin/gerpt2-large', 172)]
 
-    encodings_cache_file = "tests/unit_tests/bittensor_tests/utils/test_tokenizer_utils.pt"
-
     try:
         encodings = torch.load(encodings_cache_file)
 
@@ -287,6 +286,145 @@ def test_tokenizer_translation():
         assert torch.isclose(translated_loss, _translated_loss, rtol=1e-2)
 
 
+def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: int,
+                           enc_pre_logits: torch.FloatTensor = None,
+                           device: str = 'cuda', topk: int = 128):
+    r"""
+    Emulates validator -> server -> validator interaction where the server-side logits phrases are
+    standard tokenized to token sequences / phrase with associated probabilities.
+    This allows the validator to receive full server continuation possibilities consisting of multiple tokens
+    per phrase, and not just a single token, without having to know any server tokenizer/model/decoder particulars.
+    Topk logit encoding is only used to save the server model response to avoid CUDA-device requirement
+    when routinely running the unit test.
+        Args:
+            text_batch (:obj:`List[str]`, `required`):
+                Input text_batch to test tokenizer translation with.
+            model_name (:obj:`str`, `required`):
+                Name of transformer model to use as template server.
+            max_length (:obj:`int`, `required`):
+                Specific tokenization max length, small enough to prevent padding,
+                since GPT2 tokenization doesn't have padding.
+            enc_pre_logits (:obj:`torch.FloatTensor`, `optional`):
+                [batch_size, sequence_len, vocab_size] Encoded pre_logits from saved source, to
+                bypass server model forward call.
+            device (:obj:`str`, `optional`):
+                CUDA device for server model forward call.
+            topk (:obj:`int`, `optional`):
+                Amount of top logits to encode the server model pre_logits with (for saving purposes).
+
+        Returns:
+
+    """
+    # =============================================
+    # ==== Validator-side: CausalLM task setup ====
+    # =============================================
+
+    std_tokenizer = AutoTokenizer.from_pretrained('gpt2')
+
+    input_batch = std_tokenizer(text_batch, return_offsets_mapping=True, add_special_tokens=False,
+                                max_length=max_length, truncation=True, return_tensors='pt')
+
+    token_batch = input_batch['input_ids']
+
+    # ============================
+    # ==== Server-side: Setup ====
+    # ============================
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    # ================================================
+    # ==== Server-side: CausalLM task translation ====
+    # ================================================
+
+    text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
+    result = translate_special_token_text(text_batch, std_tokenizer, tokenizer)
+    to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
+
+    std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode to get offsets
+    tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+
+    std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
+    tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+    tokens['offset_mapping_std'] = std_tokens['offset_mapping']
+
+    for key in ['input_ids', 'attention_mask']:
+        tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
+        tokens[key] = torch.LongTensor(tokens[key])
+
+    # ==============================================
+    # ==== Server-side: CausalLM task execution ====
+    # ==============================================
+
+    if enc_pre_logits is None:
+        server_model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+
+        with torch.no_grad():
+            pre_model_output = server_model(input_ids=tokens['input_ids'].to(device),
+                                            attention_mask=tokens['attention_mask'].to(device),
+                                            output_hidden_states=True)
+            pre_logits = pre_model_output.logits
+
+        enc_pre_logits = encode_forward_response_tensor(pre_logits, topk=topk).cpu()
+
+    dec_pre_logits = decode_forward_response_tensor(enc_pre_logits, len(tokenizer.vocab), topk=topk)
+    # dec_pre_logits.shape = [batch_size, sequence_len, vocab_size]
+
+    last_logits = dec_pre_logits[:, -1, :]  # last token predictions: [batch_size, vocab_size]
+
+    result = topk_token_phrases(last_logits, tokenizer, std_tokenizer, topk=topk)
+    compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
+    # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
+
+    topk_tokens, topk_probs, floor_probs = unravel_topk_token_phrases(compact_topk, topk=topk)
+
+    assert (_topk_tokens - topk_tokens).abs().sum() < 1e-9
+    assert (_topk_probs - topk_probs).abs().sum() < 1e-9
+    assert (_floor_probs - floor_probs).abs().sum() < 1e-9
+
+
+def test_topk_token_phrases():
+    r"""
+    Unit test for topk token phrases raveling and unraveling.
+
+        Returns:
+            Asserts that compact tensor of topk token phrases can be unraveled to recover original topk tensors.
+    """
+    test_pairs = [('English-1', 'EleutherAI/gpt-j-6B', 95),
+                  ('English-1', 'benjamin/gerpt2-large', 95),
+                  ('German-1', 'benjamin/gerpt2-large', 172)]
+
+    try:
+        encodings = torch.load(encodings_cache_file)
+
+    except FileNotFoundError as e:
+        print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
+        raise
+
+        # # === Run server models to obtain encoded logits ===
+        # print('Will first run server models (requires CUDA)...')
+        #
+        # encodings = {}
+        # for text_name, model_name, max_length in test_pairs:
+        #     result = tokenizer_translation(sample_text[text_name], model_name, max_length, topk=128)
+        #     original_loss, encoded_loss, translated_loss, enc_pre_logits = result
+        #     encodings[(text_name, model_name)] = (encoded_loss, translated_loss, enc_pre_logits)
+        #
+        #     print(text_name, model_name, original_loss, encoded_loss, translated_loss)
+        #
+        #     # English-1 EleutherAI/gpt-j-6B tensor(1.2531) tensor(1.3274) tensor(1.3274)
+        #     # English-1 benjamin/gerpt2-large tensor(3.7499) tensor(4.2219) tensor(4.5502)
+        #     # German-1 benjamin/gerpt2-large tensor(3.5197) tensor(4.0664) tensor(4.1428)
+        #
+        # torch.save(encodings, encodings_cache_file)
+        # encodings = torch.load(encodings_cache_file)
+
+    # === Run test on saved encoded logits ===
+    for text_name, model_name, max_length in test_pairs:
+        _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
+        tokenizer_topk_phrases(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
+
+
 if __name__ == '__main__':
     test_tokenizer_equivalence()
     test_tokenizer_translation()
+    test_topk_token_phrases()
