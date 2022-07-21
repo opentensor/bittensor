@@ -133,7 +133,9 @@ class neuron:
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet ) if dendrite == None else dendrite
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
-        self.dataset = bittensor.dataset ( config = self.config, batch_size = self.subtensor.validator_batch_size, block_size = self.subtensor.validator_sequence_length + 1 ) if dataset == None else dataset
+        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
+                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len)
+                        if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
         )
@@ -169,6 +171,7 @@ class neuron:
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8 )
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
         parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = -1 )
+        parser.add_argument('--neuron.validation_len', type=int, help='Number of tokens to holdout for phrase validation beyond sequence context.', default=8)
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
@@ -285,19 +288,21 @@ class neuron:
         # Pulling the latest chain parameters.
         current_block = self.subtensor.block
         batch_size = self.subtensor.validator_batch_size 
-        sequence_length = self.subtensor.validator_sequence_length + 1  # add validation token
+        sequence_length = self.subtensor.validator_sequence_length
+        validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         n_topk_peer_weights = self.subtensor.min_allowed_weights
         max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
 
         # === Update dataset size ===
-        if (batch_size != self.dataset.batch_size) or (sequence_length != self.dataset.block_size):
-            self.dataset.set_data_size(batch_size, sequence_length)
+        if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len != self.dataset.block_size):
+            self.dataset.set_data_size(batch_size, sequence_length + validation_len)
 
         # === Logs ===
         if self.config.using_wandb:
             wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
+                       'era/validation_len': validation_len,
                        'era/n_topk_peer_weights': n_topk_peer_weights, 'era/max_allowed_ratio': max_allowed_ratio,
                        'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
                       step=current_block)
@@ -651,9 +656,10 @@ class nucleus( torch.nn.Module ):
         batch_size, sequence_len = inputs.shape
         print(f'Forward \t| Model forward ... ', end='')
 
+        val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         inputs = inputs.to(self.device)
-        inputs_seq = inputs[..., :-1]  # input sequence without last token [batch_size, sequence_len-1]
-        inputs_val = inputs[..., -1]  # input validation with last token [batch_size]
+        inputs_seq = inputs[..., :-val_len]  # input sequence without last validation tokens [batch_size, sequence_len]
+        inputs_val = inputs[..., -val_len:-val_len + 1]  # input validation with last token [batch_size]
 
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
