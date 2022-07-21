@@ -155,7 +155,6 @@ class neuron:
         # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
         self.synapse_keys = ['shapley_values_min', 'shapley_values_nxt']
         self.neuron_stats = {}
-        self.server_stats = {}
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -379,8 +378,8 @@ class neuron:
                 wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
                            'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
                            'epoch/time': step_time}, step=current_block)
-                for uid, vals in self.server_stats.items():
-                    for key in vals:  # detailed server evaluation fields, e.g. loss, shapley_values, synergy
+                for uid, vals in self.neuron_stats.items():
+                    for key in vals:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
                         wandb.log({f'stats/{key}_{uid}': vals[key]}, step=current_block)
 
             # Do the backward request after the a queue of forward requests got finished.  
@@ -431,11 +430,11 @@ class neuron:
         old_hotkeys = self.metagraph.hotkeys 
         self.metagraph.sync()
 
-        # === Reset server stats if uid got replaced
+        # === Reset neuron stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.metagraph.hotkeys[uid]:
-                if uid in self.server_stats:
-                    del self.server_stats[uid]
+                if uid in self.neuron_stats:
+                    del self.neuron_stats[uid]
 
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
