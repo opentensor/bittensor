@@ -632,13 +632,15 @@ class nucleus( torch.nn.Module ):
             shift_labels = targets.contiguous()
         return self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
-    def forward ( 
-        self, 
-        inputs: torch.FloatTensor,
-        metagraph: 'bittensor.Metagraph',
-        dendrite: 'bittensor.Dendrite',
+    def forward(
+            self,
+            inputs: torch.FloatTensor,
+            metagraph: 'bittensor.Metagraph',
+            dendrite: 'bittensor.Dendrite',
     ):
-        r""" Forward validator pass. Selects peer to query, joins results and computes scoring.
+        r"""
+        Forward validator pass. Selects endpoints to query and validate, calculates routing_score and Shapley values
+        for validated synapses.
             Args:
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, *-1*)`, `required`): 
                     Tensor inputs to distribute to neurons using query context.
@@ -647,10 +649,10 @@ class nucleus( torch.nn.Module ):
                 dendrite (bittensor.Dendrite):
                     Dendrite RPC client used to make network queries.
             Returns:
-                global_loss (torch.FloatTensor, [1] ):
-                    Loss for training validator nucleus.
-                scores (torch.FloatTensor, [ metagraph.n ]):
-                    Scores per endpoint for this batch.
+                loss (:obj:`torch.FloatTensor`):
+                    Loss for training validator nucleus and dendrite backward to endpoints.
+                neuron_stats (:obj:`Dict`, `required`):
+                    Statistics per endpoint for this batch.
         """
         start_time = time.time()
         batch_size, sequence_len = inputs.shape
@@ -667,19 +669,18 @@ class nucleus( torch.nn.Module ):
         # embedding: retrieve learned representation vectors for input vocabulary tokens.
         # inputs.shape = [batch_size, sequence_len]
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
-        
-        embedding =  self.token_embedding( inputs_seq ) * math.sqrt( bittensor.__network_dim__ )
-        
+        embedding = self.token_embedding(inputs_seq) * math.sqrt(bittensor.__network_dim__)
+
         # === Create an attention mask ===
         # The attention mask will mask out parts of the context
         # This prevents cheating and forward-looking when predicting each token in the sequence.
         # src_mask: (torch.FloatTensor) attention mask adds -inf to positions not allowed to attend
         # src_mask.shape = [sequence_len, sequence_len]
         src_mask = torch.triu(torch.ones(embedding.size(1), embedding.size(1)) * float('-inf'), diagonal=1)
-        src_mask = src_mask.to(self.config.neuron.device)
+        src_mask = src_mask.to(self.device)
 
         # === Apply the positional encoding to help select endpoints ===
-        # The positional encoder provides information based on the relative postion of each token 
+        # The positional encoder provides information based on the relative postion of each token
         # embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
         # pos_embedding: (torch.FloatTensor) positional encoded embedding.
         # pos_embedding.shape = [batch_size, sequence_len, bittensor.__network_dim__]
@@ -687,15 +688,15 @@ class nucleus( torch.nn.Module ):
 
         # routing_context: (torch.FloatTensor): context tensor which is used to select endpoints.
         # routing_context.shape = [ batch size, __network_dim__ ]
-        routing_context = self.routing_encoder( pos_embedding, mask = src_mask )
+        routing_context = self.routing_encoder(pos_embedding, mask=src_mask)
 
         # === Get gate values for UIDs. ===
         # We iterate over each of the network UIDs and compute a querying score for each
         # using the gating function. This returns a score per endpoint per example.
         # routing_score: (torch.FloatTensor): score per example, per endpoint.
-        # routing_score.shape = [ batch size, __network_n__ ]
+        # routing_score.shape = [metagraph.n]
         # The gates act over the last embedding of the routing_context.
-        routing_score = torch.mean(self.sigmoid(self.gates(routing_context[:, -1, :])), axis=0)
+        routing_score = torch.mean(self.sigmoid(self.gates(routing_context[:, -1, :])), dim=0)
 
         # Ensure number of queried servers does not exceed metagraph.n
         num_servers = min([self.config.nucleus.topk, metagraph.n])
