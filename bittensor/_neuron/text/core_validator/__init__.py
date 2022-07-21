@@ -698,15 +698,15 @@ class nucleus( torch.nn.Module ):
         # The gates act over the last embedding of the routing_context.
         routing_score = torch.mean(self.sigmoid(self.gates(routing_context[:, -1, :])), dim=0)
 
-        # Ensure number of queried servers does not exceed metagraph.n
-        num_servers = min([self.config.nucleus.topk, metagraph.n])
+        # Ensure number of queried neurons does not exceed metagraph.n
+        num_endpoints = min([self.config.nucleus.topk, metagraph.n])
 
         print(f'complete \[{time.time() - start_time:.3g}s]')
-        print(f'Dendrite \t| Request {num_servers} x \[{batch_size}, {sequence_len - 1}, {bittensor.__network_dim__}] ... ', end='')
+        print(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} ... ', end='')
         request_start_time = time.time()
 
-        # === Randomly select num_servers UIDs ===
-        random_uids = torch.randperm(metagraph.n)[:num_servers]
+        # === Randomly select num_endpoints UIDs ===
+        random_uids = torch.randperm(metagraph.n)[:num_endpoints]
 
         # === Get endpoint information for the selected UIDs ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
@@ -715,13 +715,13 @@ class nucleus( torch.nn.Module ):
         random_endpoints = [metagraph.endpoints[uid] for uid in random_uids]
 
         # === Define which synapse we want to use ===
-        # The synapse defines the task we are sending to the servers
-        # synapses: List[bittensor.synapse]: synapse information 
+        # The synapse defines the task we are sending to the neurons
+        # synapses: List[bittensor.synapse]: synapse information
         # TODO: WORK IN PROGRESS, prototype
         synapses = [bittensor.synapse.TextCausalLM()]
 
         # === Query the endpoints ===
-        # Makes the dendrite call into the network returning the representations 
+        # Makes the dendrite call into the network returning the representations
         # for each of the endpoints. The return ops can be used to filter weights and outputs.
         # query_responses: (List[torch.float64]): responses from each endpoint.
         # query_responses.shape = self.config.nucleus.topk * num_synapses * [batch_size, sequence_len, synapse_dim]
@@ -766,7 +766,7 @@ class nucleus( torch.nn.Module ):
         # Collect successful server responses, calculate base Shapley values.
         # Measured in effective number of model parameters, according to OpenAI scaling laws.
         index_s = 0  # synapse = bittensor.synapse.TextCausalLM()
-        for index in range(num_servers):
+        for index in range(num_endpoints):
             _uid = random_uids[index]
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
                 _stats = {'uid': _uid.item(),
@@ -879,7 +879,7 @@ class nucleus( torch.nn.Module ):
 
         table = Table(width=self.config.get('width', None), box=None, row_styles=[Style(bgcolor='grey15'), ""])
         table.title = f'[white] Neuron responses [/white] | Validator forward'
-        table.caption = f'[bold]{num_servers}[/bold]/{metagraph.n} (topk/total) | [bold]TextCausalLM[/bold] | ' \
+        table.caption = f'[bold]{num_endpoints}[/bold]/{metagraph.n} (topk/total) | [bold]TextCausalLM[/bold] | ' \
                         f'[white] {len(stats)} x \[{batch_size}, {sequence_len - 1}, {bittensor.__network_dim__}] ' \
                         f'\[{time.time() - start_time:.3g}s] [/white]'
 
