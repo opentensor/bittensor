@@ -978,6 +978,63 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     return neuron_loss + routing_loss, stats, unsuccessful
 
 
+def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tensor = None):
+    r"""
+    Calculates Shapley synergy for coalition size 2, measured performance above expected performance.
+    Measured in effective number of model parameters, just like base Shapley values.
+        Args:
+            stats (:obj:`Dict`, `required`):
+                Statistics per endpoint for this batch.
+            synergy (:obj:`Callable`, `required`)
+                Function to calculate measured loss.
+            ext (:obj:`str`, `optional`):
+                Extension to parameter string for stats key.
+            target (:obj:`torch.Tensor`, `optional`):
+                Target to measure loss against.
+
+        Returns:
+            syn_loss_diff (:obj:`Dict`, `required`):
+                Dictionary table of pairwise synergies as loss reductions, with direct loss on diagonal.
+    """
+    # === Shapley synergy approximation ===
+    # Shapley values - second level - coalition size 2
+    # Synergy = measured performance above expected performance
+    # Measured in effective number of model parameters, just like base Shapley values.
+    syn_loss_diff = {}  # expected_loss - measured_loss (where > 0)
+    for _first, first in stats.items():
+        if 'loss' + ext not in first:
+            continue
+        first_diff = syn_loss_diff.setdefault(_first, {})
+        first_diff[_first] = first['loss' + ext]  # diagonal keeps direct loss
+
+        for _second, second in stats.items():
+            if 'loss' + ext not in second or _second <= _first:
+                continue
+            second_diff = syn_loss_diff.setdefault(_second, {})
+            second_diff.setdefault(_first, torch.tensor(0.))
+            first_diff.setdefault(_second, torch.tensor(0.))
+
+            with torch.no_grad():
+                expected_loss = torch.min(first['loss' + ext], second['loss' + ext])  # expecting min loss
+
+                measured_loss = synergy(first, second, target, ext)
+
+                loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
+                first['synergy_loss_diff' + ext] += loss_diff_share
+                second['synergy_loss_diff' + ext] += loss_diff_share
+
+                # pairwise loss reduction of expected to measured loss due to synergy between first and second
+                first_diff[_second] = torch.max(loss_diff_share, first_diff[_second])
+                second_diff[_first] = torch.max(loss_diff_share, second_diff[_first])
+
+                synergy_share = torch.clamp(scaling_law_loss_to_params(measured_loss) -
+                                            scaling_law_loss_to_params(expected_loss), 0) / 2
+                first['synergy' + ext] += synergy_share  # share synergy amongst coalition members
+                second['synergy' + ext] += synergy_share
+
+    return syn_loss_diff
+
+
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
     r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
     """
