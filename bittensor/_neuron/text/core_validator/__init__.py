@@ -899,6 +899,14 @@ class nucleus( torch.nn.Module ):
         return routing_loss, stats
 
 
+def scaling_law_loss_to_params(loss):
+    r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
+    """
+    num_params = torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(torch.clamp(loss, 1.69)) / 0.076)
+    pow_num_params = torch.pow(num_params, 0.5)  # powered down number of params, dynamic range 3 → 6 nats
+    return pow_num_params  # modified scaling law, powered down to improve dynamic range (subject to change)
+
+
 def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  base_params: Callable, index_s: int = 0, ext: str = None) -> Tuple[torch.FloatTensor, Dict, List]:
