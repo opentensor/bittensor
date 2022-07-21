@@ -895,3 +895,29 @@ class nucleus( torch.nn.Module ):
         print(unsuccess_txt)
 
         return routing_loss, stats
+
+
+def synergy_table(stats, syn_loss_diff, sort_col, console_width):
+    r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
+    """
+    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s], reverse=True, key=lambda _row: _row[1])
+    uid_col = neuron_stats_columns[0]  # [Column_name, key_name, format_string, rich_style]
+    columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
+    rows = [[uid_col[2].format(s[0])] +
+            [('[bright_cyan]{:.2f}[/bright_cyan]' if t == s else
+              '[magenta]{:.2f}[/magenta]' if syn_loss_diff[s[0]][t[0]] > 0 else
+              '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]) for t in sort] for s in sort]
+
+    # === Synergy table ===
+    table = Table(width=console_width, box=None)
+    table.title = f'[white] Synergy [/white]'
+    table.caption = f'loss decrease'
+
+    for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
+        table.add_column(col, style=stl, justify='right')
+    for row in rows:
+        table.add_row(*row)
+
+    if len(rows):
+        print(table)
+        print()
