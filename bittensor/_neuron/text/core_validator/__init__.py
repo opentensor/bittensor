@@ -736,20 +736,19 @@ class nucleus( torch.nn.Module ):
         )
 
         if not self.config.nucleus.dendrite_backward:
-            query_responses = [(res[0].detach(),) for res in query_responses]
-            return_ops = [ops.detach() for ops in return_ops]
-            times = [time.detach() for time in times]
+            query_responses = [[syn.detach().to(self.device) for syn in res] for res in query_responses]
+            return_ops = [ops.detach().to(self.device) for ops in return_ops]
+            times = [t.detach().to(self.device) for t in times]
+
+        # Send responses to device. This is required to ensure we move the responses
+        # Onto the correct device.
+        for responses in query_responses:
+            for response in responses:
+                response.to(self.device)
 
         print(f'complete \[{time.time() - request_start_time:.3g}s]')
         print(f'Shapley values \t| Calculating ... ', end='')
         shapley_start_time = time.time()
-
-        # Send responses to device. This is required to ensure we move the responses
-        # Onto the correct device.
-        query_responses = [[response.to(self.device) for response in responses] for responses in query_responses]
-
-        # Send return ops to device.
-        return_ops = [ops.to(self.device) for ops in return_ops]
 
         stats = []
         routing_loss = torch.tensor(0.).to( self.device )
