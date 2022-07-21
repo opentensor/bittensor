@@ -907,6 +907,112 @@ def scaling_law_loss_to_params(loss):
     return pow_num_params  # modified scaling law, powered down to improve dynamic range (subject to change)
 
 
+def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
+                 times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
+                 inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
+                 console_width: int, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
+                 ) -> Tuple[torch.FloatTensor, Dict]:
+    r"""
+    Calculate Shapley values and neuron response validation measure statistics, given TextCausalLM synapse responses.
+        Args:
+            uids (:obj:`torch.Tensor`, `required`): [num_neurons]
+                Neuron UIDs.
+            query_responses (:obj:`List[List[torch.FloatTensor]]`, `required`):
+                List of outputs from synapses, each a list of size num_endpoints of tensors with relevant size. Non-responses are zeroes of relevant
+                synapse shape. Shape num_synapses * ( num_endpoints * ( -1, -1, -1 ) )
+            return_ops (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
+                Return code per call per synapse.
+            times (:obj:`List [torch.FloatTensor]` of shape :obj:`[num_endpoints]`, `required`):
+                Times per call per synapse.
+            routing_score (:obj:`torch.FloatTensor`, `required`):
+                [metagraph.n] Predictive routing score per endpoint in the metagraph, mean over the batch.
+            inputs (:obj:`torch.FloatTensor`, `required`):
+                [batch_size, sequence_len + validation_len] Token batch of original inputs with validation tokens.
+            validation_len (:obj:`int`, `required`):
+                Number of held-out phrase token batch for extended validation, not sent to neurons.
+            loss_fct (:obj:`Callable`, `required`):
+                CrossEntropy loss function to use.
+            console_width (:obj:`int`, `required`):
+                Config console width for table print.
+            synapse (:obj:`bittensor.TextCausalLM`, `optional`):
+                TextCausalLM synapse object.
+            index_s (:obj:`int`, `optional`):
+                Index of synapse to extract responses.
+
+        Returns:
+            loss (:obj:`torch.FloatTensor`):
+                Loss for training validator nucleus and dendrite backward to endpoints.
+            stats (:obj:`Dict`, `required`):
+                Statistics per endpoint for this batch.
+    """
+
+    inputs_seq = inputs[..., :-validation_len]  # input sequence without last token [batch_size, sequence_len]
+    inputs_val = inputs[..., -validation_len]  # input validation with next token [batch_size]
+
+    def _base_params(_stats, query_response):
+        _stats.update({'logits': query_response[:, :-1, :],
+                       'logits_val': query_response[:, -1:, :]})
+
+        for target, _ext in [(inputs_seq[:, 1:], ''), (inputs_val, '_val')]:
+            _loss = calc_loss_fct(loss_fct, _stats['logits' + _ext], target)  # CausalLM loss
+            _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
+
+            _stats.update({'loss' + _ext: _loss, 'base_params' + _ext: _num_params,
+                           'synergy' + _ext: 0, 'synergy_loss_diff' + _ext: 0})
+
+    def _synergy(first, second, target, _ext):
+        # Combined logits: log of average probabilities per token between responses
+        combined_logits = torch.log((torch.softmax(first['logits' + _ext], dim=-1) +
+                                     torch.softmax(second['logits' + _ext], dim=-1)) / 2 + 1e-40)
+        measured_loss = calc_loss_fct(loss_fct, combined_logits, target)  # actual measured loss
+
+        return measured_loss
+
+    print(f'\[{str(synapse)}] Shapley values \t| Calculating base ... ', end='')
+    shapley_start_time = time.time()
+
+    loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
+                                             _base_params, index_s, ext='')
+
+    print(f'\[{time.time() - shapley_start_time:.3g}s] | synergy ... ', end='')
+
+    syn_loss_diff = shapley_synergy(stats, _synergy, ext='', target=inputs_seq[:, 1:])
+    syn_loss_diff_val = shapley_synergy(stats, _synergy, ext='_val', target=inputs_val)
+
+    # === Shapley value combination ===
+    # Combine base values with synergy approximation to get final Shapley values.
+    for s in stats.values():
+        for ext in ['', '_val']:
+            if 'base_params' + ext in s and 'synergy' + ext in s:
+                s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
+
+            if 'logits' + ext in s:
+                del s['logits' + ext]  # remove logits - not needed for stats anymore
+
+        if 'shapley_values' in s and 'shapley_values_val' in s:
+            s['shapley_values_min'] = torch.min(s['shapley_values'], s['shapley_values_val'])
+
+        for key in s:
+            if hasattr(s[key], 'item'):
+                s[key] = s[key].item()
+
+    print(f'complete \[{time.time() - shapley_start_time:.3g}s]')
+
+    # === Synergy table ===
+    # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
+    synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
+
+    # === Neuron responses (table) ===
+    # Prints the evaluation of the neuron responses to the validator request
+    synapse_table(str(synapse), stats, 'shapley_values_min', console_width, shapley_start_time)
+
+    # === Unsuccessful responses ===
+    # Prints the return codes and response times of unsuccessful responses
+    unsuccess(str(synapse), unsuccessful)
+
+    return loss, stats
+
+
 def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  base_params: Callable, index_s: int = 0, ext: str = None) -> Tuple[torch.FloatTensor, Dict, List]:
