@@ -163,7 +163,7 @@ class neuron:
 
         # === Neuron statistics variables ===
         self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
-        self.weight_key = 'shapley_values_min!'  # stat key to calculate neuron weights with
+        self.weight_key = 'shapley_values_min'  # stat key + ! to calculate neuron weights with
         # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
         self.synapse_keys = ['shapley_values_min', 'shapley_values_nxt']
         self.neuron_stats = {}
