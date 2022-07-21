@@ -38,6 +38,8 @@ from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 from rich.traceback import install
+from typing import List, Tuple, Callable, Dict, Any
+
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
 import torch.nn as nn
 import random
@@ -895,6 +897,77 @@ class nucleus( torch.nn.Module ):
         print(unsuccess_txt)
 
         return routing_loss, stats
+
+
+def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
+                 times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
+                 base_params: Callable, index_s: int = 0, ext: str = None) -> Tuple[torch.FloatTensor, Dict, List]:
+    r"""
+    Calculate Shapley base values and neuron response validation measure statistics, given responses from a synapse.
+        Args:
+            uids (:obj:`torch.Tensor`, `required`): [num_neurons]
+                Neuron UIDs.
+            query_responses (:obj:`List[List[torch.FloatTensor]]`, `required`):
+                List of outputs from synapses, each a list of size num_endpoints of tensors with relevant size. Non-responses are zeroes of relevant
+                synapse shape. Shape num_synapses * ( num_endpoints * ( -1, -1, -1 ) )
+            return_ops (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
+                Return code per call per synapse.
+            times (:obj:`List [torch.FloatTensor]` of shape :obj:`[num_endpoints]`, `required`):
+                Times per call per synapse.
+            routing_score (:obj:`torch.FloatTensor`, `required`):
+                [metagraph.n] Predictive routing score per endpoint in the metagraph, mean over the batch.
+            base_params (:obj:`Callable`, `required`):
+                CrossEntropy loss function to use.
+            index_s (:obj:`int`, `optional`):
+                Index of synapse to extract responses.
+            ext (:obj:`str`, `optional`):
+                Extension to parameter string for stats key.
+
+        Returns:
+            loss (:obj:`torch.FloatTensor`):
+                Loss for training validator nucleus and dendrite backward to endpoints.
+            stats (:obj:`Dict`, `required`):
+                Statistics per endpoint for this batch.
+            unsuccessful (:obj:`List`, `required`):
+                Unsuccessful endpoints [(uid, return_op, time)].
+    """
+    stats = {}
+    unsuccessful = []
+    neuron_loss = torch.tensor(0.)  # neuron losses to accumulate to then backward() via dendrite
+    routing_loss = torch.tensor(0.)  # validator routing loss for local model update
+
+    # === Base parameter estimation ===
+    # Shapley values - base level - coalition size 1
+    # Collect successful neuron responses, calculate base Shapley values.
+    # Measured in effective number of model parameters, according to OpenAI scaling laws.
+    for index, _uid in enumerate(uids.tolist()):
+        if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+            _stats = {'uid': _uid,
+                      'response_time' + ext: times[index][index_s],
+                      'routing_score': routing_score[_uid]}
+
+            base_params(_stats, query_responses[index][index_s])
+
+            neuron_loss += _stats['loss' + ext]  # add sequence loss to be backward() to neuron
+
+            # === Add routing loss ===
+            # MSE loss between predicted routing score and ideal target routing score.
+            # The Bayes risk approx. 1.69, i.e. the minimal loss achievable for next-token
+            # prediction on the full distribution 𝑃, a.k.a the "entropy of natural text"
+            # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
+            routing_score_target = torch.exp(-torch.clamp(_stats['loss' + ext].detach() - 1.69, 0))
+            _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
+            routing_loss += _routing_loss
+            _stats.update({'routing_score_target' + ext: routing_score_target, 'routing_loss' + ext: _routing_loss})
+
+            stats[_uid] = _stats
+        else:
+            stats[_uid] = {'uid': _uid,
+                           'response_time' + ext: times[index][index_s],
+                           'routing_score': routing_score[_uid]}
+            unsuccessful += [(_uid, return_ops[index][index_s], times[index][index_s])]
+
+    return neuron_loss + routing_loss, stats, unsuccessful
 
 
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
