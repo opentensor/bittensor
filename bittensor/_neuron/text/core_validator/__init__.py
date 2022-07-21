@@ -392,7 +392,7 @@ class neuron:
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                print(f'complete [{time.time() - start_time:.3g}s]')
+                print(f'complete \[{time.time() - start_time:.3g}s]')
                 
                 # === Get another round of forward requests ===
                 self.forward_thread_queue.resume()
