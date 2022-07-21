@@ -960,3 +960,14 @@ def stats_table(stats, sort_col, console_width, title, caption):
 
     # === Print table ===
     print(table)
+
+
+def synapse_table(name, stats, sort_col, console_width, start_time):
+    r""" Prints the evaluation of the neuron responses to the validator request
+    """
+
+    stats_table(stats, sort_col, console_width,
+                f'[white] \[{name}] responses [/white] | Validator forward',  # title
+                f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | '
+                f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
+                )
