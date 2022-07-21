@@ -545,6 +545,49 @@ class neuron:
                 if uid in self.server_stats:
                     del self.server_stats[uid]
 
+    def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
+        r""" Updates self.neuron_stats with new individual dictionaries per uid.
+        """
+        for _uid, _stats in neuron_stats.items():
+            stats = self.neuron_stats.setdefault(_uid, {})
+
+            # === EMA zeroing update ===
+            # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
+            if 'updates!' in stats:
+                stats['updates!'] += 1  # increment number of EMA zeroing updates
+            else:
+                stats.setdefault('updates!', 1)  # number of EMA zeroing updates init to zero
+
+            for key in self.synapse_keys:
+                zkey = key + '!'
+                if zkey in stats:
+                    if key in _stats:
+                        stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
+                    else:
+                        stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
+                else:
+                    if key in _stats:
+                        stats[zkey] = _stats[key]
+                    else:
+                        stats.setdefault(zkey, 0.)
+
+            # === EMA normal update ===
+            # If synapse responsive push available values into EMA for normal update.
+            # Normal EMA values provide a view on neuron performance if fully responsive.
+            for key in self.synapse_keys:
+                if key in _stats:
+                    updates = 'updates_' + key
+                    if updates in stats:
+                        stats[updates] += 1  # increment number of normal EMA updates made
+                    else:
+                        stats.setdefault(updates, 1)  # add updates fields for new uid entries
+
+            for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                if key in stats:
+                    stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
+                else:
+                    stats.setdefault(key, _stats[key])
+
 
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
