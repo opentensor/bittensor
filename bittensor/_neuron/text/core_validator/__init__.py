@@ -370,57 +370,9 @@ class neuron:
                         f'Epoch {self.epoch} | '
                         f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]')  # caption
 
-            # === Set weights ===
-            score_key = 'shapley_values_min'  # server score based on Shapley value approximation
-            moving_avg_scores = torch.zeros_like(
-                self.metagraph.S)  # allow unevaluated UIDs to be selected to meet min topk
-
-            for key in self.server_stats:
-                moving_avg_scores[key] = torch.tensor([self.server_stats[key][score_key]])
-            # Find the n_topk_peer_weights peers to set weights to.
-            topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
-            topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
-
-            # === Set weights (table) ===
-            # Prints exponential moving average statistics of valid neurons and latest weights
-            columns = [_[:] for _ in neuron_stats_columns]  # clone neuron_stats_columns
-            rows = []
-            unvalidated = []  # unsuccessful neurons that still receive a weighting
-            for i in range(len(topk_uids)):
-                _weight = topk_scores[i].item()
-                _uid = topk_uids[i].item()
-                if _uid in self.server_stats:
-                    _stats = {k: v for k, v in self.server_stats[_uid].items()}
-                    _stats['weight'] = _weight  # add weight entry into _stats dictionary
-                    rows += [[txt.format(_stats[key]) for _, key, txt, _ in columns]]
-                else:
-                    unvalidated += [_uid]
-
-            sort_col = [_[0] for _ in columns].index('Weight')  # sort column with key of weight
-            columns[sort_col][0] += '\u2193'  # ↓ downwards arrow (sort)
-            rows = sorted(rows, reverse=True, key=lambda _row: float(_row[sort_col]))  # sort according to weights
-
-            table = Table(width=self.config.get('width', None), box=None, row_styles=[Style(bgcolor='grey15'), ""])
-            table.title = f'[white] Set weights [/white] | [bold]UID {self.uid}[/bold] ' \
-                          f'\[{self.dendrite.receptor_pool.external_ip}] ' \
-                          f'({self.wallet.name}:[bold]{self.wallet.coldkeypub.ss58_address[:7]}[/bold]/' \
-                          f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])'
-            table.caption = f'Validated [bold]{(n_topk_peer_weights - len(unvalidated))}[/bold]' \
-                            f'/{n_topk_peer_weights}/{self.metagraph.n} (valid/min/total) | ' \
-                            f'sum:{topk_scores.sum().item():.2g} ' \
-                            f'[white] max:[bold]{topk_scores.max().item():.4g}[/bold] / ' \
-                            f'min:[bold]{topk_scores.min().item():.4g}[/bold] [/white] ' \
-                            f'\[{topk_scores.max().item() / topk_scores.min().item():.1f}:1] ' \
-                            f'({max_allowed_ratio} allowed)'
-
-            for col, _, _, stl in columns:
-                table.add_column(col, style=stl, justify='right')
-            for row in rows:
-                table.add_row(*row)
-
-            print(table)
-            print(f'Unvalidated \t| [dim]\[weight={topk_scores.min().item():.4g}][/dim]: {unvalidated}')
-            print()
+            # === Calculate neuron weights ===
+            topk_uids, topk_weights = self.calculate_weights()
+            self.weights_table(topk_uids, topk_weights)  # print weights table
 
             # === Logs ===
             if self.config.using_wandb:
@@ -449,60 +401,13 @@ class neuron:
         # Iterate epochs.
         self.epoch += 1
 
-        # === Set weights ===
-        score_key = 'shapley_values_min'  # server score based on Shapley value approximation
-        moving_avg_scores = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet min topk
-
-        for key in self.server_stats:
-            moving_avg_scores[key] = torch.tensor([self.server_stats[key][score_key]])
-        # Find the n_topk_peer_weights peers to set weights to.
-        topk_scores, topk_uids = bittensor.unbiased_topk(moving_avg_scores, k=n_topk_peer_weights)
-        topk_scores = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_scores, multiple=max_allowed_ratio)
-
-        # === Set weights (table) ===
-        # Prints exponential moving average statistics of valid neurons and latest weights
-        columns = [_[:] for _ in neuron_stats_columns]  # clone neuron_stats_columns
-        rows = []
-        unvalidated = []  # unsuccessful neurons that still receive a weighting
-        for i in range(len(topk_uids)):
-            _weight = topk_scores[i].item()
-            _uid = topk_uids[i].item()
-            if _uid in self.server_stats:
-                _stats = {k: v for k, v in self.server_stats[_uid].items()}
-                _stats['weight'] = _weight  # add weight entry into _stats dictionary
-                rows += [[txt.format(_stats[key]) for _, key, txt, _ in columns]]
-            else:
-                unvalidated += [_uid]
-
-        sort_col = [_[0] for _ in columns].index('Weight')  # sort column with key of weight
-        columns[sort_col][0] += '\u2193'  # ↓ downwards arrow (sort)
-        rows = sorted(rows, reverse=True, key=lambda _row: float(_row[sort_col]))  # sort according to weights
-
-        table = Table(width=self.config.get('width', None), box=None, row_styles=[Style(bgcolor='grey15'), ""])
-        table.title = f'[white] Set weights [/white] | [bold]UID {self.uid}[/bold] ' \
-                      f'\[{self.dendrite.receptor_pool.external_ip}] ' \
-                      f'({self.wallet.name}:[bold]{self.wallet.coldkeypub.ss58_address[:7]}[/bold]/' \
-                      f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])'
-        table.caption = f'Validated [bold]{(n_topk_peer_weights - len(unvalidated))}[/bold]' \
-                        f'/{n_topk_peer_weights}/{self.metagraph.n} (valid/min/total) | ' \
-                        f'sum:{topk_scores.sum().item():.2g} ' \
-                        f'[white] max:[bold]{topk_scores.max().item():.4g}[/bold] / ' \
-                        f'min:[bold]{topk_scores.min().item():.4g}[/bold] [/white] ' \
-                        f'\[{topk_scores.max().item() / topk_scores.min().item():.1f}:1] ' \
-                        f'({max_allowed_ratio} allowed)'
-
-        for col, _, _, stl in columns:
-            table.add_column(col, style=stl, justify='right')
-        for row in rows:
-            table.add_row(*row)
-
-        print(table)
-        print(f'Unvalidated \t| [dim]\[weight={topk_scores.min().item():.4g}][/dim]: {unvalidated}')
-        print()
+        # === Calculate neuron weights ===
+        topk_uids, topk_weights = self.calculate_weights()
+        self.weights_table(topk_uids, topk_weights)  # print weights table
 
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
-            weights = topk_scores.detach().to('cpu'),
+            weights = topk_weights.detach().to('cpu'),
             wallet = self.wallet,
             wait_for_finalization = self.config.neuron.wait_for_finalization,
         )
@@ -512,7 +417,7 @@ class neuron:
         if self.config.using_wandb:
             # Logging history to wandb.
             df = pandas.concat( [
-                bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = topk_uids, values = torch.zeros( self.metagraph.n ).scatter( dim = 0, src = topk_scores, index = topk_uids ) ),
+                bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = topk_uids, values = torch.zeros( self.metagraph.n ).scatter( dim = 0, src = topk_weights, index = topk_uids ) ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1); df['uid'] = df.index
             wandb_data_dend = self.dendrite.to_wandb()
