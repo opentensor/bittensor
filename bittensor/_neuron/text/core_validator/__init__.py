@@ -971,3 +971,13 @@ def synapse_table(name, stats, sort_col, console_width, start_time):
                 f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | '
                 f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
                 )
+
+
+def unsuccess(_name, _unsuccessful):
+    r""" Prints the return codes and response times of unsuccessful responses
+    """
+    # === Unsuccessful responses ===
+    unsuccess_txt = f'\[{_name}] Unsuccessful \t| [cyan]UID[/cyan]\[[red]return_op[/red] [yellow]time[/yellow]]: '
+    for _uid, _return_op, _time in _unsuccessful:
+        unsuccess_txt += f'{_uid}[[red]{_return_op}[/red] [yellow not bold]{_time:.2f}[/yellow not bold]] '
+    print(unsuccess_txt)
