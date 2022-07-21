@@ -618,6 +618,34 @@ class neuron:
                                                                            multiple=max_allowed_ratio)
         return topk_uids, topk_weights
 
+    def weights_table(self, topk_uids, topk_weights):
+        r""" Prints weights table given topk_uids and topk_weights.
+        """
+        n_topk_peer_weights = self.subtensor.min_allowed_weights
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+
+        # === Weight table ===
+        # Prints exponential moving average statistics of valid neurons and latest weights
+        _neuron_stats = {}
+        unvalidated = []
+        for uid, weight in zip(topk_uids.tolist(), topk_weights.tolist()):
+            if uid in self.neuron_stats:
+                _neuron_stats[uid] = {k: v for k, v in self.neuron_stats[uid].items()}
+                _neuron_stats[uid]['weight'] = weight
+            else:
+                unvalidated += [uid]
+
+        print()
+        stats_table(_neuron_stats, 'weight', self.config.get('width', None),
+                    f'[white] Neuron weights [/white] | ' + str(self),  # title
+                    f'Validated [bold]{(n_topk_peer_weights - len(unvalidated))}[/bold]'
+                    f'/{n_topk_peer_weights}/{self.metagraph.n} (valid/min/total) | '
+                    f'sum:{topk_weights.sum().item():.2g} '
+                    f'[white] max:[bold]{topk_weights.max().item():.4g}[/bold] / '
+                    f'min:[bold]{topk_weights.min().item():.4g}[/bold] [/white] '
+                    f'\[{topk_weights.max().item() / topk_weights.min().item():.1f}:1] '
+                    f'({max_allowed_ratio} allowed)')  # caption
+
 
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
