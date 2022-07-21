@@ -126,7 +126,15 @@ def serve(
     def forward_casual_lm(inputs_x:torch.FloatTensor, synapse, model_output = None):
         model_output, logits = model.encode_forward_causallm(inputs_x.to(model.device), model_output = model_output)
         return model_output, logits
-    
+
+    def forward_casual_lm_next(inputs_x: torch.FloatTensor, synapse, model_output=None):
+        model_output, topk_token_phrases = model.encode_forward_causallmnext(inputs_x.to(model.device),
+                                                                             topk=synapse.topk,
+                                                                             model_output=model_output)
+        # topk_token_phrases: [sum_b(sum_k(len(phrase_k) + 1)_b)] contains topk token phrases and probabilities
+        #   Compacted 1-D tensor >= batch_size * (2 * topk + 1)
+        return model_output, topk_token_phrases
+
     def optimizer_step():
         optimizer.step()
         optimizer.zero_grad()
@@ -275,6 +283,7 @@ def serve(
             wallet = wallet,
             synapse_last_hidden = forward_hidden_state if model.config.neuron.lasthidden else None,
             synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
+            synapse_causal_lm_next = forward_casual_lm_next if model.config.neuron.causallmnext else None,
             synapse_seq_2_seq = forward_generate if model.config.neuron.seq2seq else None ,
             blacklist = blacklist,
             priority = priority,
