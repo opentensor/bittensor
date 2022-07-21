@@ -353,36 +353,22 @@ class neuron:
             current_block = self.subtensor.block
             step_time = time.time() - start_time
 
-            # === Stats update (table) ===
-            # Prints exponential moving average statistics of valid neurons from latest validator forward
-            columns = [_[:] for _ in neuron_stats_columns if _[0] not in ['Weight']]
-            sort_col = [_[0] for _ in columns].index('mShap')  # sort column with key of shapley_values_min
-            columns[sort_col][0] += '\u2193'  # ↓ downwards arrow (sort)
-            rows = [[txt.format(self.server_stats[s['uid']][key]) for _, key, txt, _ in columns] for s in stats]
-            rows = sorted(rows, reverse=True, key=lambda _row: int(_row[sort_col]))  # sort according to mShap column
-
-            table = Table(width=self.config.get('width', None), box=None, row_styles=[Style(bgcolor='grey15'), ''])
-            table.title = f'[white] Stats update [/white] | [bold]UID {self.uid}[/bold] ' \
-                          f'\[{self.dendrite.receptor_pool.external_ip}] ' \
-                          f'({self.wallet.name}:[bold]{self.wallet.coldkeypub.ss58_address[:7]}[/bold]/' \
-                          f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])'
-            table.caption = f'#{current_block}: ' \
-                            f'[bold]{current_block - start_block}[/bold]/{blocks_per_epoch} (blocks/epoch) | ' \
-                            f'Epoch {self.epoch} | ' \
-                            f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]'
-
-            for col, _, _, stl in columns:
-                table.add_column(col, style=stl, justify='right')
-            for row in rows:
-                table.add_row(*row)
-
             print(f'UID {self.uid}   \t| '
                   f'Updated {current_block - self.metagraph.last_update[self.uid]} [white]blocks ago[/white] | '
                   f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
                   f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
                   f'[dim](retrieved {current_block - start_block} blocks ago from {self.subtensor.network})[/dim]')
-            print(table)
-            print()
+
+            # === Print stats update (table) ===
+            # Prints exponential moving average statistics of valid neurons from latest validator forward
+            stats_table({uid: self.neuron_stats[uid]
+                         for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
+                        self.weight_key, self.config.get('width', None),
+                        f'[white] Stats update [/white] | ' + str(self),  # title
+                        f'#{current_block}: '
+                        f'[bold]{current_block - start_block}[/bold]/{blocks_per_epoch} (blocks/epoch) | '
+                        f'Epoch {self.epoch} | '
+                        f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]')  # caption
 
             # === Set weights ===
             score_key = 'shapley_values_min'  # server score based on Shapley value approximation
