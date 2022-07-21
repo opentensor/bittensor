@@ -588,6 +588,28 @@ class neuron:
                 else:
                     stats.setdefault(key, _stats[key])
 
+    def calculate_weights(self):
+        r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
+        used to obtain the mapped stat value (typically a Shapley value) that the final set-weights are calculated from.
+        """
+
+        weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
+        n_topk_peer_weights = self.subtensor.min_allowed_weights
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+
+        # === Calculate neuron weights ===
+        neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs to be selected to meet min topk
+
+        for uid in self.neuron_stats:
+            if weight_key in self.neuron_stats[uid]:
+                neuron_weights[uid] = torch.tensor([self.neuron_stats[uid][weight_key]])
+
+        # Find the n_topk_peer_weights peers to set weights to.
+        topk_weights, topk_uids = bittensor.unbiased_topk(neuron_weights, k=n_topk_peer_weights)
+        topk_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=topk_weights,
+                                                                           multiple=max_allowed_ratio)
+        return topk_uids, topk_weights
+
 
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
