@@ -38,7 +38,7 @@ from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 from rich.traceback import install
-from typing import List, Tuple, Callable, Dict, Any
+from typing import List, Tuple, Callable, Dict, Any, Union
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
 from bittensor.utils.tokenizer_utils import unravel_topk_token_phrases, phrase_cross_entropy
@@ -736,7 +736,7 @@ class nucleus( torch.nn.Module ):
         validation_params = (random_uids, query_responses, return_ops, times, routing_score,
                              inputs, val_len, self.loss_fct, console_width)
 
-        loss = torch.tensor(0.)  # to accumulate neuron_loss and routing_loss over synapses
+        loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
 
         # === Validate synapse responses ===
@@ -755,7 +755,7 @@ class nucleus( torch.nn.Module ):
 def scaling_law_loss_to_params(loss):
     r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
     """
-    num_params = torch.exp(torch.log(torch.tensor(8.8e13)) - torch.log(torch.clamp(loss, 1.69)) / 0.076)
+    num_params = torch.exp(torch.log(torch.tensor(8.8e13).to(loss.device)) - torch.log(torch.clamp(loss, 1.69)) / 0.076)
     pow_num_params = torch.pow(num_params, 0.5)  # powered down number of params, dynamic range 3 → 6 nats
     return pow_num_params  # modified scaling law, powered down to improve dynamic range (subject to change)
 
@@ -971,7 +971,9 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
 def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
-                 base_params: Callable, index_s: int = 0, ext: str = None) -> Tuple[torch.FloatTensor, Dict, List]:
+                 base_params: Callable, index_s: int = 0, ext: str = None) -> Tuple[Union[float, torch.FloatTensor],
+                                                                                    Dict,
+                                                                                    List]:
     r"""
     Calculate Shapley base values and neuron response validation measure statistics, given responses from a synapse.
         Args:
@@ -1003,8 +1005,8 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     """
     stats = {}
     unsuccessful = []
-    neuron_loss = torch.tensor(0.)  # neuron losses to accumulate to then backward() via dendrite
-    routing_loss = torch.tensor(0.)  # validator routing loss for local model update
+    neuron_loss = 0.  # neuron losses to accumulate to then backward() via dendrite
+    routing_loss = 0.  # validator routing loss for local model update
 
     # === Base parameter estimation ===
     # Shapley values - base level - coalition size 1
@@ -1073,8 +1075,8 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
             if 'loss' + ext not in second or _second <= _first:
                 continue
             second_diff = syn_loss_diff.setdefault(_second, {})
-            second_diff.setdefault(_first, torch.tensor(0.))
-            first_diff.setdefault(_second, torch.tensor(0.))
+            second_diff.setdefault(_first, 0.)
+            first_diff.setdefault(_second, 0.)
 
             with torch.no_grad():
                 expected_loss = torch.min(first['loss' + ext], second['loss' + ext])  # expecting min loss
