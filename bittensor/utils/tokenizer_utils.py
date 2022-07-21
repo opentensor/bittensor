@@ -907,7 +907,7 @@ def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
     n_topk_probs = topk_probs / total_probs[:, None]  # [batch_size, topk] normalized topk_probs
     n_floor_probs = floor_probs / total_probs  # [batch_size] normalized floor_probs
 
-    match_probs = torch.zeros(batch_size)  # accumulate probabilities when sub target matches phrase
+    match_probs = torch.zeros(batch_size).to(topk_probs.device)  # accumulate probabilities when sub target matches phrase
     for b in range(batch_size):
         # === Integrate sub target matches ===
         target_phrase = target_phrases[b]
