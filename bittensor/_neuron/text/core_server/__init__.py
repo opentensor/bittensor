@@ -49,6 +49,8 @@ class neuron:
                 lasthidden synapse control
             causallm (:obj:bool, `optional`):
                 causallm synapse control
+            causallmnext (:obj:bool, `optional`):
+                causallmnext synapse control
             seq2seq (:obj:bittensor.metagraph, `optional`):
                 seq2seq synapse control
             synapse_list (:obj:list of int, `optional`):
@@ -68,6 +70,7 @@ class neuron:
         metagraph: 'bittensor.metagraph' = None,
         lasthidden = None,
         causallm = None,
+        causallmnext = None,
         seq2seq = None,
         synapse_list = None,
 
@@ -78,6 +81,7 @@ class neuron:
         if synapse_list != None:
             config.neuron.lasthidden = False
             config.neuron.causallm = False
+            config.neuron.causallmnext = False
             config.neuron.seq2seq = False
 
             if bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE in synapse_list:
@@ -85,12 +89,16 @@ class neuron:
             
             if bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM in synapse_list:
                 config.neuron.causallm = True
-            
+
+            if bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT in synapse_list:
+                config.neuron.causallmnext = True
+
             if bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ in synapse_list:
                 config.neuron.seq2seq = True
 
         config.neuron.lasthidden = lasthidden if lasthidden != None else config.neuron.lasthidden
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
+        config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
 
         self.check_config( config )
