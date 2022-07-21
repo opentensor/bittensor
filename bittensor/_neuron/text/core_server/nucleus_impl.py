@@ -10,7 +10,7 @@ from typing import Tuple, Optional
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import get_translation_map, translate_logits_to_probs_std, \
-    translate_special_token_text, pad_offsets
+    translate_special_token_text, pad_offsets, topk_token_phrases
 
 from loguru import logger; logger = logger.opt(colors=True)
 
@@ -399,6 +399,65 @@ class server(torch.nn.Module):
 
         return model_output, logits_std
 
+    def encode_forward_causallmnext(self, token_batch, std_tokenizer=None, topk: int = 4096, model_output=None):
+        r"""
+        Forward pass through the pretrained model and select topk tokenizer logits and retokenize with std_tokenizer,
+        then compact new token phrases and probabilities
+        into 1-D tensor [ >= batch_size * (2 * topk + 1)] prob + at least 1 token per phrase + floor_prob.
+        The floor probability is the mean probability of token phrases not captured in topk, required since
+        the server tokenizer vocab_size may not be known to the receiver/validator.
+
+            Args:
+                token_batch ( :obj:`torch.LongTensor`, `required`):
+                    torch inputs to be forward processed, [batch_size, std_sequence_len].
+                std_tokenizer ( :obj:`PreTrainedTokenizerBase`, `optional`):
+                    The standard tokenizer which was used to tokenize the inputs.
+                topk ( :obj:`int`, `optional`):
+                    Amount of std_tokenized server phrases with highest probability to produce.
+                model_output (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
+                    The output of transformers AutoModel.
+
+            Returns:
+                model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
+                    The output of transformers AutoModel.
+                compact_topk (:obj:`torch.Tensor`, `required`):
+                    [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
+                    since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
+                    floor probability (rest).
+                    Content structure:
+                    [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
+                     prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
+                     ...]
+        """
+        if std_tokenizer is None:
+            std_tokenizer = self.std_tokenizer
+
+        # remap to server tokenizer, expect right-aligned sequences so that last position keeps continuation prediction
+        tokens = self.token_remap(token_batch, std_tokenizer)
+
+        def _forward(_model_output=model_output):
+            if _model_output is None:
+                _model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                               attention_mask=tokens['attention_mask'],
+                                               output_hidden_states=True)
+
+            # model_output.logits: [batch_size, sequence_len, server_vocab_size]
+            last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
+
+            # Select topk tokenizer logits and retokenize with std_tokenizer,
+            # then compact new token phrases and probabilities into 1-D tensor
+            result = topk_token_phrases(last_logits, self.tokenizer, std_tokenizer, topk=topk)
+            compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
+            # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
+
+            return _model_output, compact_topk
+
+        if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+            return _forward()  # track gradients for training
+
+        with torch.no_grad():
+            return _forward()  # no gradients
+
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
         """
         Calculate loss_fct, CausalLM loss, next-token prediction loss.
@@ -482,9 +541,11 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
         parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
         parser.add_argument('--neuron.causallm', action='store_false', help='To turn off causallm synapse', default=True)
+        parser.add_argument('--neuron.causallmnext', action='store_false', help='To turn off causallmnext synapse', default=True)
         parser.add_argument('--neuron.seq2seq', action='store_false', help='To turn off seq2seq synapse', default=True)
         parser.add_argument('--neuron.lasthidden_stake', type = float, help='the amount of stake to run last hidden synapse',default=0)
         parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
+        parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run  seq2seq synapse',default=0)
         parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
         parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
