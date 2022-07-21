@@ -921,3 +921,42 @@ def synergy_table(stats, syn_loss_diff, sort_col, console_width):
     if len(rows):
         print(table)
         print()
+
+
+def stats_table(stats, sort_col, console_width, title, caption):
+    r""" Gathers data and constructs neuron statistics table and prints it
+    """
+    # === Gather columns and rows ===
+    stats_keys = [set(k for k in stat)
+                  for stat in stats.values() if sort_col in stat]  # all available stats keys with sort_col
+
+    if len(stats_keys) == 0:
+        return  # nothing to print
+
+    stats_keys = set.union(*stats_keys)
+    columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
+    rows = [['' if key not in stat else txt.format(stat[key]) for _, key, txt, _ in columns]
+            for stat in stats.values() if sort_col in stat]  # only keep rows with at least one non-empty cell
+
+    if len(columns) == 0 or len(rows) == 0:
+        return  # nothing to print
+
+    # === Sort rows ===
+    col_keys = [c[1] for c in columns]
+    if sort_col in col_keys:
+        sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
+        columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
+        rows = sorted(rows, reverse=True, key=lambda _row: _row[sort_idx])  # sort according to _sortcol
+
+    # === Instantiate stats table ===
+    table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
+    table.title = title
+    table.caption = caption
+
+    for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
+        table.add_column(col, style=stl, justify='right')
+    for row in rows:
+        table.add_row(*row)
+
+    # === Print table ===
+    print(table)
