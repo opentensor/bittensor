@@ -739,7 +739,8 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
     batch_size, vocab_size = logits.shape  # [batch_size, vocab_size] only last token prediction
 
     # Convert logits to probabilities
-    probs = torch.softmax(logits, dim=1).to('cpu').float()  # [batch_size, vocab_size]
+    logits = logits.to('cpu').float()  # ensure further computations done in float32 for improved precision
+    probs = torch.softmax(logits, dim=1)  # [batch_size, vocab_size]
 
     # TopK phrase selection
     topk_probs, topk_indices = torch.topk(probs, topk)  # topk probs and indices: [batch_size, topk]
