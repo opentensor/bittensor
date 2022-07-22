@@ -452,7 +452,7 @@ class server(torch.nn.Module):
 
             return _model_output, compact_topk
 
-        if self.config.neuron.remote_train or (self.config.neuron.autocast and self.device[:4] == 'cuda'):
+        if self.config.neuron.remote_train:
             return _forward()  # track gradients for training
 
         with torch.no_grad():
