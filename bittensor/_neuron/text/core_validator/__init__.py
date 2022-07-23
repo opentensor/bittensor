@@ -920,7 +920,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     def _synergy(first, second, target, ext):
         # average first + second probabilities per batch item, convert to loss
         measured_loss = -torch.log((torch.exp(-first['losses_nxt']) +
-                                    torch.exp(-second['losses_nxt'])) / 2).mean()
+                                    torch.exp(-second['losses_nxt'])) / 2 + 1e-40).mean()
 
         return measured_loss
 
