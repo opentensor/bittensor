@@ -805,6 +805,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
         for target, _ext in [(inputs_seq[:, 1:], ''), (inputs_val, '_val')]:
             _loss = calc_loss_fct(loss_fct, _stats['logits' + _ext], target)  # CausalLM loss
+            if _loss.isnan() or _loss.isinf():
+                _loss = 20  # assign large loss
             _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
 
             _stats.update({'loss' + _ext: _loss, 'base_params' + _ext: _num_params,
@@ -913,6 +915,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         # inputs_nxt: [batch_size] Target phrases in standard token sequence list.
 
         _losses = phrase_cross_entropy(inputs_nxt, topk_tokens, topk_probs, floor_probs, reduce=False)  # [batch_size]
+        _losses[_losses.isnan()] = 20  # assign large loss
+        _losses[_losses.isinf()] = 20  # assign large loss
         _loss = _losses.mean()
         _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
 
