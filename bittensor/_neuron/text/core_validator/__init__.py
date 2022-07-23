@@ -464,7 +464,7 @@ class neuron:
             for key in self.synapse_keys:
                 zkey = key + '!'  # zeroing key
                 stats.setdefault(zkey, 0.)  # initialize zkey val to zero to gradually increase with observations
-                if key in _stats:
+                if key in _stats and not math.isnan(_stats[key]):
                     stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
                 else:
                     stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
@@ -481,6 +481,8 @@ class neuron:
                         stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
             for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                if math.isnan(_stats[key]):
+                    continue
                 if key in stats:
                     stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
                 else:
