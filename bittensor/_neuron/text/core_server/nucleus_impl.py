@@ -78,6 +78,9 @@ class server(torch.nn.Module):
         if self.config.neuron.autocast and self.device[:4] == 'cuda':
             self.pre_model.half()
 
+        # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
+        self.tokenizer.padding_side = "left"
+
         # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
         # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
         if self.tokenizer.pad_token is None and self.tokenizer.eos_token is not None:
