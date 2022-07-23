@@ -462,17 +462,12 @@ class neuron:
                 stats.setdefault('updates!', 1)  # number of EMA zeroing updates init to zero
 
             for key in self.synapse_keys:
-                zkey = key + '!'
-                if zkey in stats:
-                    if key in _stats:
-                        stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
-                    else:
-                        stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
+                zkey = key + '!'  # zeroing key
+                stats.setdefault(zkey, 0.)  # initialize zkey val to zero to gradually increase with observations
+                if key in _stats:
+                    stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
                 else:
-                    if key in _stats:
-                        stats[zkey] = _stats[key]
-                    else:
-                        stats.setdefault(zkey, 0.)
+                    stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
 
             # === EMA normal update ===
             # If synapse responsive push available values into EMA for normal update.
