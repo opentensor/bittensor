@@ -60,12 +60,14 @@ install(show_locals=True)
 neuron_stats_columns = [
     ['UID', 'uid', '{:.0f}', 'cyan'],  # neuron UID
     ['Upd!', 'updates!', '{}', 'bright_yellow'],  # number of exponential moving average updates with zeroing on
-    ['mUpd', 'updates_shapley_values_min', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
     ['nUpd', 'updates_shapley_values_nxt', '{}', 'bright_yellow'],  # number of exponential moving average updates to nShap
-    ['sTime', 'response_time', '{:.2f}', 'yellow'],  # response time to TextCausalLM forward requests
+    ['mUpd', 'updates_shapley_values_min', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
     ['nTime', 'response_time_nxt', '{:.2f}', 'yellow'],  # response time to TextCausalLMNext forward requests
+    ['sTime', 'response_time', '{:.2f}', 'yellow'],  # response time to TextCausalLM forward requests
     ['Route', 'routing_score', '{:.3f}', 'grey30'],  # validator routing score (higher preferred)
     ['Weight', 'weight', '{:.5f}', 'green'],  # weight set on substrate (each epoch)
+    ['nShap!', 'shapley_values_nxt!', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation (zeroing)
+    ['nShap', 'shapley_values_nxt', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation
     ['mShap!', 'shapley_values_min!', '{:.0f}', 'bright_magenta'],  # min(Shap, vShap) of sequence and validation Shapley (zeroing)
     ['mShap', 'shapley_values_min', '{:.0f}', 'bright_magenta'],  # min(Shap, vShap) of sequence and validation Shapley
     ['sLoss', 'loss', '{:.2f}', 'bright_cyan'],  # next token prediction loss average over sequence
@@ -75,8 +77,6 @@ neuron_stats_columns = [
     ['nRLoss', 'routing_loss_nxt', '{:.3f}', 'grey30'],  # MSE between routing_score_nxt and conditioned loss
     ['sShap', 'shapley_values', '{:.0f}', 'magenta'],  # Shapley value (=Base+Syn) over sequence
     ['vShap', 'shapley_values_val', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for validation
-    ['nShap!', 'shapley_values_nxt!', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation (zeroing)
-    ['nShap', 'shapley_values_nxt', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation
     ['sBase', 'base_params', '{:.0f}', ''],  # parameter count estimate via adjusted scaling law
     ['vBase', 'base_params_val', '{:.0f}', ''],  # parameter count estimate for validation task
     ['nBase', 'base_params_nxt', '{:.0f}', ''],  # parameter count estimate for phrase validation task
