@@ -88,13 +88,14 @@ class server(torch.nn.Module):
         if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
             self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
 
-        if not hasattr(self.tokenizer, 'vocab'):
-            if hasattr(self.tokenizer, 'encoder'):
-                self.tokenizer.vocab = self.tokenizer.encoder
-            else:
-                self.tokenizer.vocab = {phrase: idx for idx, phrase in
-                                        zip(range(self.tokenizer.vocab_size),
-                                            self.tokenizer.batch_decode(range(self.tokenizer.vocab_size)))}
+        for _tokenizer in [self.std_tokenizer, self.tokenizer]:
+            if hasattr(_tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
+                _tokenizer.vocab_len = len(_tokenizer.vocab)
+            elif hasattr(_tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
+                _tokenizer.vocab_len = len(_tokenizer.encoder)
+            else:  # revert to vocab_size
+                _tokenizer.vocab_len = _tokenizer.vocab_size
+
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
         self.split_map_cache = {}

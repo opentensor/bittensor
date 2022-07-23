@@ -268,7 +268,7 @@ def get_tokenizer_depth_split_map(tokenizer: PreTrainedTokenizerBase,
     """
     split_map = []
 
-    phrases = tokenizer.batch_decode(range(len(tokenizer.vocab)))  # list of variable len strings (one per token)
+    phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # list of variable len strings (one per token)
 
     # first part of the phrase up to distance characters
     split_phrases = [[phrase[:depths[0]] for phrase in phrases]]
@@ -419,13 +419,13 @@ def get_translation_map(from_tokenizer: PreTrainedTokenizerBase,
     """
     translation_map = {'lengths': {}}
 
-    phrases = from_tokenizer.batch_decode(range(len(from_tokenizer.vocab)))  # tokens to strings
+    phrases = from_tokenizer.batch_decode(range(from_tokenizer.vocab_len))  # tokens to strings
 
     to_tokens = to_tokenizer(phrases)['input_ids']  # convert single token from-phrases to to-tokenization
     to_tokens_lens = [len(p) for p in to_tokens]
     unique_lens = set(to_tokens_lens)
     max_len = max(unique_lens)
-    counts = torch.zeros((max_len, len(to_tokenizer.vocab)), dtype=torch.long)
+    counts = torch.zeros((max_len, to_tokenizer.vocab_len), dtype=torch.long)
 
     for l in unique_lens:  # each unique one-to-many mapping length
         from_idx = [i for i, k in enumerate(to_tokens_lens) if k == l]  # find len l to-tokenizations
@@ -662,17 +662,17 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
     # === Get shape sizes ===
     batch_size, sequence_len, vocab_size = logits.shape
     std_sequence_len = max([len(seq) for seq in offset_mapping_std])
-    std_vocab_size = len(std_tokenizer.vocab)
+    std_vocab_size = std_tokenizer.vocab_len
 
-    if len(tokenizer.vocab) < vocab_size:
-        logits = logits[..., :len(tokenizer.vocab)]
-        vocab_size = len(tokenizer.vocab)
+    if tokenizer.vocab_len < vocab_size:
+        logits = logits[..., :tokenizer.vocab_len]
+        vocab_size = tokenizer.vocab_len
 
     # === Convert logits to probabilities ===
     probs = torch.softmax(logits, dim=2).to(torch.float).to('cpu')  # [batch_size, sequence_len, vocab_size]
 
-    if vocab_size < len(tokenizer.vocab):  # fixes bug when model logits output is not full width
-        padded_probs = torch.zeros((batch_size, sequence_len, len(tokenizer.vocab)))
+    if vocab_size < tokenizer.vocab_len:  # fixes bug when model logits output is not full width
+        padded_probs = torch.zeros((batch_size, sequence_len, tokenizer.vocab_len))
         padded_probs[..., :vocab_size] = probs
         probs = padded_probs
 
@@ -752,7 +752,7 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
 
     # === Tokenizer phrases to memory ===
     if not hasattr(tokenizer, 'phrases'):
-        tokenizer.phrases = tokenizer.batch_decode(range(len(tokenizer.vocab)))  # server tokens to strings
+        tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
 
     tensors = []
     tokens_batch = []
@@ -955,11 +955,11 @@ def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
         Returns:
             result (:obj:`bool`, `required`)
     """
-    if len(tokenizer_to_check.vocab) != len(target_tokenizer.vocab):
+    if tokenizer_to_check.vocab_len != target_tokenizer.vocab_len:
         return False
 
-    to_check_vocab = tokenizer_to_check.batch_decode(range(len(tokenizer_to_check.vocab)))
-    target_vocab = target_tokenizer.batch_decode(range(len(target_tokenizer.vocab)))
+    to_check_vocab = tokenizer_to_check.batch_decode(range(tokenizer_to_check.vocab_len))
+    target_vocab = target_tokenizer.batch_decode(range(target_tokenizer.vocab_len))
 
     return to_check_vocab == target_vocab  # indexed tokenizer vocabularies should match
 
