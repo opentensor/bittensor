@@ -88,6 +88,10 @@ class server(torch.nn.Module):
         if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
             self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
 
+        if not hasattr(self.tokenizer, 'vocab'):
+            self.tokenizer.vocab = {phrase: idx for idx, phrase in
+                                    zip(range(self.tokenizer.vocab_size),
+                                        self.tokenizer.batch_decode(range(self.tokenizer.vocab_size)))}
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
         self.split_map_cache = {}
