@@ -417,6 +417,9 @@ def get_translation_map(from_tokenizer: PreTrainedTokenizerBase,
                 Maps for each observed length, a source token to a token sequence of that length,
                 with source index to target indices.
     """
+    set_vocab_len(from_tokenizer)
+    set_vocab_len(to_tokenizer)
+
     translation_map = {'lengths': {}}
 
     phrases = from_tokenizer.batch_decode(range(from_tokenizer.vocab_len))  # tokens to strings
@@ -654,6 +657,9 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
                     [batch_size, std_sequence_len, std_vocab_size] Output probability distribution over the
                     standard tokenizer vocabulary.
         """
+    set_vocab_len(tokenizer)
+    set_vocab_len(std_tokenizer)
+
     # === Check tokenizer equivalence / Skip if equivalent ===
     if skip_equivalent and check_tokenizer_equivalence(tokenizer, std_tokenizer):
         logits = logits.to(torch.float).to('cpu')
@@ -756,6 +762,7 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
 
     # === Tokenizer phrases to memory ===
     if not hasattr(tokenizer, 'phrases'):
+        set_vocab_len(tokenizer)
         tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
 
     tensors = []
@@ -959,6 +966,24 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
     return loss_val, loss
 
 
+def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
+    r"""
+    Sets the tokenizer.vocab_len if unset, to store the real vocabulary size according to the vocab or encoder.
+        Args:
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set vocab_len for.
+        Returns:
+
+    """
+    if not hasattr(tokenizer, 'vocab_len'):
+        if hasattr(tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
+            tokenizer.vocab_len = len(tokenizer.vocab)
+        elif hasattr(tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
+            tokenizer.vocab_len = len(tokenizer.encoder)
+        else:  # revert to vocab_size
+            tokenizer.vocab_len = tokenizer.vocab_size
+
+
 def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
                                 target_tokenizer: PreTrainedTokenizerBase) -> bool:
     r"""
@@ -972,6 +997,9 @@ def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
         Returns:
             result (:obj:`bool`, `required`)
     """
+    set_vocab_len(tokenizer_to_check)
+    set_vocab_len(target_tokenizer)
+
     if tokenizer_to_check.vocab_len != target_tokenizer.vocab_len:
         return False
 

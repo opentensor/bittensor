@@ -10,7 +10,7 @@ from typing import Tuple, Optional
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import get_translation_map, translate_logits_to_probs_std, \
-    translate_special_token_text, pad_offsets, topk_token_phrases
+    translate_special_token_text, pad_offsets, topk_token_phrases, set_vocab_len
 
 from loguru import logger; logger = logger.opt(colors=True)
 
@@ -93,14 +93,6 @@ class server(torch.nn.Module):
             self.tokenizer.pad_token = self.tokenizer.eos_token
         if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
             self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
-
-        for _tokenizer in [self.std_tokenizer, self.tokenizer]:
-            if hasattr(_tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
-                _tokenizer.vocab_len = len(_tokenizer.vocab)
-            elif hasattr(_tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
-                _tokenizer.vocab_len = len(_tokenizer.encoder)
-            else:  # revert to vocab_size
-                _tokenizer.vocab_len = _tokenizer.vocab_size
 
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
