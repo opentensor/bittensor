@@ -682,10 +682,11 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
     probs_std = torch.zeros(batch_size, std_sequence_len, std_vocab_size)
     for b in range(batch_size):
         probs_b = probs[b][-len(offset_mapping[b]):]  # remove left padding
+        tokens_b = tokens[b][-len(offset_mapping[b]):]  # remove left padding
         translate_tokenizer_probs(probs_b, probs_std[b], offset_mapping[b], offset_mapping_std[b],
                                   tokenizer, std_tokenizer,
                                   split_map_cache, to_translation_map, from_translation_map,
-                                  tokens[b], tokens_std[b])
+                                  tokens_b, tokens_std[b])
 
     # === Correct excess probability mass (haircut) ===
     probs_std_sum = probs_std.sum(dim=-1)  # [batch_size, std_sequence_len]
