@@ -1183,7 +1183,7 @@ def unsuccess(_name, _unsuccessful):
     r""" Prints the return codes and response times of unsuccessful responses
     """
     # === Unsuccessful responses ===
-    unsuccess_txt = f'{_name} (unsuccessful) \t| <cyan>UID</cyan>[<red>return_op</red> <yellow>time</yellow>]: '
+    unsuccess_txt = f'{_name} \t| Unsuccessful <cyan>UID</cyan>[<red>return_op</red> <yellow>time</yellow>]: '
     for _uid, _return_op, _time in _unsuccessful:
         unsuccess_txt += f'{_uid}[<red>{_return_op}</red> <yellow>{_time:.2f}</yellow>] '
     logger.info(unsuccess_txt)
