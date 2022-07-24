@@ -528,7 +528,7 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
         assert (_topk_probs - topk_probs).abs().sum() < 1e-9
         assert (_floor_probs - floor_probs).abs().sum() < 1e-9
 
-        loss = phrase_cross_entropy(target_phrases, topk_tokens, topk_probs, floor_probs)
+        loss_val, loss = phrase_cross_entropy(target_phrases, topk_tokens, topk_probs, floor_probs)
         recorded_losses += [loss.item()]
 
     return recorded_losses
