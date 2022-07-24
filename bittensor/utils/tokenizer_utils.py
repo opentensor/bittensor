@@ -656,7 +656,8 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
         """
     # === Check tokenizer equivalence / Skip if equivalent ===
     if skip_equivalent and check_tokenizer_equivalence(tokenizer, std_tokenizer):
-        probs = torch.softmax(logits, dim=2).to('cpu')
+        logits = logits.to(torch.float).to('cpu')
+        probs = torch.softmax(logits, dim=2)
         return probs
 
     # === Get shape sizes ===
@@ -669,7 +670,8 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
         vocab_size = tokenizer.vocab_len
 
     # === Convert logits to probabilities ===
-    probs = torch.softmax(logits, dim=2).to(torch.float).to('cpu')  # [batch_size, sequence_len, vocab_size]
+    logits = logits.to(torch.float).to('cpu')
+    probs = torch.softmax(logits, dim=2)  # [batch_size, sequence_len, vocab_size]
 
     if vocab_size < tokenizer.vocab_len:  # fixes bug when model logits output is not full width
         padded_probs = torch.zeros((batch_size, sequence_len, tokenizer.vocab_len))
