@@ -163,6 +163,8 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
     # =============================================
 
     std_tokenizer = AutoTokenizer.from_pretrained('gpt2')
+    std_tokenizer.pad_token = std_tokenizer.eos_token  # Define PAD Token = EOS Token = 50256. https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+    std_tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
 
     input_batch = std_tokenizer(text_batch, return_offsets_mapping=True, add_special_tokens=False,
                                 max_length=max_length, truncation=True, return_tensors='pt')
@@ -174,6 +176,13 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
     # ============================
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
+    tokenizer.padding_side = "left"
+
+    # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
+    # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
+        tokenizer.pad_token = tokenizer.eos_token
 
     to_translation_map = get_translation_map(tokenizer, std_tokenizer)
     from_translation_map = get_translation_map(std_tokenizer, tokenizer)
@@ -184,21 +193,19 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
     # ================================================
 
     text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
-    to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = translate_special_token_text(text_batch,
-                                                                                                          std_tokenizer,
-                                                                                                          tokenizer)
+    result = translate_special_token_text(text_batch, std_tokenizer, tokenizer)  # translate special tokens
+    to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
-    std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode to get offsets
-    tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+    tokens = tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
+                       add_special_tokens=False).to(device)  # assume tokenizer.padding_side = 'left'
 
-    std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
-    tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+    # get offsets_mapping in tokenization to delineate token segment positions
+    server_tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+    std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
 
-    tokens['offset_mapping_std'] = std_tokens['offset_mapping']
-
-    for key in ['input_ids', 'attention_mask']:
-        tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
-        tokens[key] = torch.LongTensor(tokens[key])
+    # pad offsets so that special token offset widths match for continued correct alignment
+    tokens['offset_mapping'] = pad_offsets(server_tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+    tokens['offset_mapping_std'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
 
     # ==============================================
     # ==== Server-side: CausalLM task execution ====
@@ -208,6 +215,8 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
 
     if enc_pre_logits is None:
         server_model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+        if server_model.config.pad_token_id is None and server_model.config.eos_token_id is not None:
+            server_model.config.pad_token_id = server_model.config.eos_token_id
 
         with torch.no_grad():
             token_batch = input_batch['input_ids'].to(device)
@@ -320,6 +329,8 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     # =============================================
 
     std_tokenizer = AutoTokenizer.from_pretrained('gpt2')
+    std_tokenizer.pad_token = std_tokenizer.eos_token  # Define PAD Token = EOS Token = 50256. https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+    std_tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
 
     input_batch = std_tokenizer(text_batch, return_offsets_mapping=True, add_special_tokens=False,
                                 max_length=max_length, truncation=True, return_tensors='pt')
@@ -331,25 +342,32 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     # ============================
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
+    tokenizer.padding_side = "left"
+
+    # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
+    # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
+        tokenizer.pad_token = tokenizer.eos_token
 
     # ================================================
     # ==== Server-side: CausalLM task translation ====
     # ================================================
 
     text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
-    result = translate_special_token_text(text_batch, std_tokenizer, tokenizer)
+    result = translate_special_token_text(text_batch, std_tokenizer, tokenizer)  # translate special tokens
     to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
-    std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode to get offsets
-    tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+    tokens = tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
+                       add_special_tokens=False).to(device)  # assume tokenizer.padding_side = 'left'
 
-    std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
-    tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
-    tokens['offset_mapping_std'] = std_tokens['offset_mapping']
+    # get offsets_mapping in tokenization to delineate token segment positions
+    server_tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+    std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
 
-    for key in ['input_ids', 'attention_mask']:
-        tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
-        tokens[key] = torch.LongTensor(tokens[key])
+    # pad offsets so that special token offset widths match for continued correct alignment
+    tokens['offset_mapping'] = pad_offsets(server_tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+    tokens['offset_mapping_std'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
 
     # ==============================================
     # ==== Server-side: CausalLM task execution ====
@@ -357,6 +375,9 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
 
     if enc_pre_logits is None:
         server_model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+        if server_model.config.pad_token_id is None and server_model.config.eos_token_id is not None:
+            server_model.config.pad_token_id = server_model.config.eos_token_id
+
 
         with torch.no_grad():
             pre_model_output = server_model(input_ids=tokens['input_ids'].to(device),
@@ -463,6 +484,8 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
     # =============================================
 
     std_tokenizer = AutoTokenizer.from_pretrained('gpt2')
+    std_tokenizer.pad_token = std_tokenizer.eos_token  # Define PAD Token = EOS Token = 50256. https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+    std_tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
 
     input_batch = std_tokenizer(text_batch, return_offsets_mapping=True, add_special_tokens=False,
                                 max_length=max_length, truncation=True, return_tensors='pt')
@@ -474,25 +497,32 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
     # ============================
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
+    tokenizer.padding_side = "left"
+
+    # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
+    # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
+        tokenizer.pad_token = tokenizer.eos_token
 
     # ================================================
     # ==== Server-side: CausalLM task translation ====
     # ================================================
 
     text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
-    result = translate_special_token_text(text_batch, std_tokenizer, tokenizer)
+    result = translate_special_token_text(text_batch, std_tokenizer, tokenizer)  # translate special tokens
     to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
-    std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode to get offsets
-    tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+    tokens = tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
+                       add_special_tokens=False).to(device)  # assume tokenizer.padding_side = 'left'
 
-    std_tokens['offset_mapping'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
-    tokens['offset_mapping'] = pad_offsets(tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
-    tokens['offset_mapping_std'] = std_tokens['offset_mapping']
+    # get offsets_mapping in tokenization to delineate token segment positions
+    server_tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
+    std_tokens = std_tokenizer(text_batch, return_offsets_mapping=True)  # encode again to get offsets mapping
 
-    for key in ['input_ids', 'attention_mask']:
-        tokens[key] = pad_sequence([torch.LongTensor(tensor) for tensor in tokens[key]], batch_first=True)
-        tokens[key] = torch.LongTensor(tokens[key])
+    # pad offsets so that special token offset widths match for continued correct alignment
+    tokens['offset_mapping'] = pad_offsets(server_tokens['offset_mapping'], to_offsets_batch, pad_offsets_batch)
+    tokens['offset_mapping_std'] = pad_offsets(std_tokens['offset_mapping'], from_offsets_batch, pad_offsets_batch)
 
     # ==============================================
     # ==== Server-side: CausalLM task execution ====
@@ -500,6 +530,8 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
 
     if enc_pre_logits is None:
         server_model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+        if server_model.config.pad_token_id is None and server_model.config.eos_token_id is not None:
+            server_model.config.pad_token_id = server_model.config.eos_token_id
 
         with torch.no_grad():
             pre_model_output = server_model(input_ids=tokens['input_ids'].to(device),
