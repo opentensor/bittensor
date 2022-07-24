@@ -637,9 +637,9 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
                     A dictionary of depths keying split_maps of mappings from original tokens to
                     target tokens at each depth of the split. Adds split_maps to cache for faster future recall.
                 tokens (:obj:`torch.LongTensor`, `required`):
-                    [sequence_len] A sequence of tokens produced by the source tokenizer.
+                    [batch_size, sequence_len] A sequence of tokens produced by the source tokenizer.
                 tokens_std (:obj:`torch.LongTensor`, `required`):
-                    [std_sequence_len] A sequence of tokens produced by the standard tokenizer.
+                    [batch_size, std_sequence_len] A sequence of tokens produced by the standard tokenizer.
                 to_translation_map (:obj:`Dict[str, Any]`, `required`):
                     Maps for each observed length, a source token to a token sequence of that length,
                     with source index to target indices.
@@ -662,7 +662,7 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
 
     # === Get shape sizes ===
     batch_size, sequence_len, vocab_size = logits.shape
-    std_sequence_len = max([len(seq) for seq in offset_mapping_std])
+    std_sequence_len = tokens_std.shape[-1]
     std_vocab_size = std_tokenizer.vocab_len
 
     if tokenizer.vocab_len < vocab_size:
