@@ -427,10 +427,11 @@ class server(torch.nn.Module):
         # remap to server tokenizer, expect right-aligned sequences so that last position keeps continuation prediction
         tokens = self.token_remap(token_batch, std_tokenizer)
 
-        def _forward():
-            _model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                           attention_mask=tokens['attention_mask'],
-                                           output_hidden_states=True)
+        def _forward(_model_output=model_output):
+            if _model_output is None:
+                _model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                               attention_mask=tokens['attention_mask'],
+                                               output_hidden_states=True)
 
             # model_output.logits: [batch_size, sequence_len, server_vocab_size]
             last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
