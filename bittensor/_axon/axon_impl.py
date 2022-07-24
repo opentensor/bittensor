@@ -599,7 +599,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapse_check =  self.synapse_checks(synapse, hotkey)
 
                 if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None and synapse_check:
-                    model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
+                    _model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
+                    if _model_output is not None:  # only when synapse produces model_output that is not None
+                        model_output = _model_output
                     response_tensors.append(response_tensor)
                     response_codes.append(bittensor.proto.ReturnCode.Success)
                     response_messages.append('Success')
