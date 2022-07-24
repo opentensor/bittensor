@@ -875,7 +875,7 @@ def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_ind
     return topk_tokens, topk_probs, floor_probs
 
 
-def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
+def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                          topk_tokens: torch.Tensor, topk_probs: torch.Tensor, floor_probs: torch.Tensor,
                          ignore_index: int = -100, reduce=True, reduction='mean',
                          vocab_size_min: int = 50257) -> torch.Tensor:
@@ -883,8 +883,8 @@ def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
     Calculates the cross entropy of a phrase prediction against a target phrase, so that this is a multi-token
     extension of typical cross entropy calculated for next token prediction.
         Args:
-            target_phrases (:obj:`List[int]`, `required`):
-                [batch_size] Target phrases in standard token sequence list.
+            target_phrases (:obj:`List[List[int]]`, `required`):
+                [batch_size, *] Target phrases in standard token sequence list.
             topk_tokens (:obj:`torch.Tensor`, `required`):
                 [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
             topk_probs (:obj:`torch.Tensor`, `required`):
