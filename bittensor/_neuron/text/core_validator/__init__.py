@@ -270,10 +270,10 @@ class neuron:
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
         if hasattr(loss, 'grad_fn') and loss.grad_fn is not None:
-            print(f'Backward \t| Loss: {loss:.3f} ... backpropagation ... ', end='')
+            logger.info(f'Backward \t| Loss: {loss:.3f}')
             start_time = time.time()
             (loss / self.config.neuron.forward_num).backward()
-            print(f'complete [{time.time() - start_time:.3g}s]')
+            logger.info(f'Backward \t| Backpropagation completed in {time.time() - start_time:.3g}s')
 
         return loss, stats
 
@@ -365,11 +365,11 @@ class neuron:
             current_block = self.subtensor.block
             step_time = time.time() - start_time
 
-            print(f'UID {self.uid}   \t| '
-                  f'Updated {current_block - self.metagraph.last_update[self.uid]} [white]blocks ago[/white] | '
-                  f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
-                  f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
-                  f'[dim](retrieved {current_block - start_block} blocks ago from {self.subtensor.network})[/dim]')
+            logger.info(f'UID {self.uid}   \t| '
+                        f'Updated {current_block - self.metagraph.last_update[self.uid]} <dim>blocks ago</dim> | '
+                        f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
+                        f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
+                        f'<dim>(retrieved {current_block - start_block} blocks ago from {self.subtensor.network})</dim>')
 
             # === Print stats update (table) ===
             # Prints exponential moving average statistics of valid neurons from latest validator forward
@@ -398,14 +398,14 @@ class neuron:
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
                 start_time = time.time()
-                print('Model update \t| Optimizer step ... ', end='')
+                logger.info('Model update \t| Optimizer step')
 
                 # === Apply gradients ===
                 # Applies local gradients to parameters.
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                print(f'complete \[{time.time() - start_time:.3g}s]')
+                logger.info(f'Model update \t| Optimizer step completed in {time.time() - start_time:.3g}s')
                 
                 # === Get another round of forward requests ===
                 self.forward_thread_queue.resume()
@@ -637,7 +637,6 @@ class nucleus( torch.nn.Module ):
                     Statistics per endpoint for this batch.
         """
         start_time = time.time()
-        print(f'Forward \t| Model forward ... ', end='')
 
         val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         inputs = inputs.to(self.device)
@@ -681,8 +680,8 @@ class nucleus( torch.nn.Module ):
         # Ensure number of queried neurons does not exceed metagraph.n
         num_endpoints = min([self.config.nucleus.topk, metagraph.n])
 
-        print(f'complete \[{time.time() - start_time:.3g}s]')
-        print(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} ... ', end='')
+        logger.info(f'Forward \t| Routing forward \t| {time.time() - start_time:.3g}s')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}')
         request_start_time = time.time()
 
         # === Randomly select num_endpoints UIDs ===
@@ -727,7 +726,8 @@ class nucleus( torch.nn.Module ):
             for response in responses:
                 response.to(self.device)
 
-        print(f'complete \[{time.time() - request_start_time:.3g}s]')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} \t| '
+                    f'{time.time() - request_start_time:.3g}s')
 
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
@@ -821,13 +821,14 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
         return measured_loss
 
-    print(f'\[{str(synapse)}] Shapley values \t| Calculating base ... ', end='')
     shapley_start_time = time.time()
 
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='')
 
-    print(f'\[{time.time() - shapley_start_time:.3g}s] | synergy ... ', end='')
+    logger.info(f'{str(synapse)} \t| Shapley base values \t| {time.time() - shapley_start_time:.3g}s')
+
+    synergy_start_time = time.time()
 
     syn_loss_diff = shapley_synergy(stats, _synergy, ext='', target=inputs_seq[:, 1:])
     syn_loss_diff_val = shapley_synergy(stats, _synergy, ext='_val', target=inputs_val)
@@ -849,7 +850,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    print(f'complete \[{time.time() - shapley_start_time:.3g}s]')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values \t| {time.time() - synergy_start_time:.3g}s')
 
     # === Synergy table ===
     # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
@@ -933,13 +934,14 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
         return measured_loss
 
-    print(f'\[{str(synapse)}] Shapley values \t| Calculating base ... ', end='')
     shapley_start_time = time.time()
 
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='_nxt')
 
-    print(f'\[{time.time() - shapley_start_time:.3g}s] | synergy ... ', end='')
+    logger.info(f'{str(synapse)} \t| Shapley base values \t| {time.time() - shapley_start_time:.3g}s')
+
+    synergy_start_time = time.time()
 
     syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt')
 
@@ -956,7 +958,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    print(f'complete \[{time.time() - shapley_start_time:.3g}s]')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values \t| {time.time() - synergy_start_time:.3g}s')
 
     # === Synergy table ===
     # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
@@ -1181,7 +1183,7 @@ def unsuccess(_name, _unsuccessful):
     r""" Prints the return codes and response times of unsuccessful responses
     """
     # === Unsuccessful responses ===
-    unsuccess_txt = f'\[{_name}] Unsuccessful \t| [cyan]UID[/cyan]\[[red]return_op[/red] [yellow]time[/yellow]]: '
+    unsuccess_txt = f'{_name} \t| Unsuccessful \t| <cyan>UID</cyan>[<red>return_op</red> <yellow>time</yellow>]: '
     for _uid, _return_op, _time in _unsuccessful:
-        unsuccess_txt += f'{_uid}[[red]{_return_op}[/red] [yellow not bold]{_time:.2f}[/yellow not bold]] '
-    print(unsuccess_txt)
+        unsuccess_txt += f'{_uid}[<red>{_return_op}</red> <yellow>{_time:.2f}</yellow>] '
+    logger.info(unsuccess_txt)
