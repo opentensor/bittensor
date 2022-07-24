@@ -921,9 +921,11 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
         if not isinstance(target_phrase, torch.Tensor):
             target_phrase = torch.tensor(target_phrases[b])
 
-        match = (topk_tokens[b, :, 0] == target_phrase[0].cpu())
-        match_idx = torch.where(match.sum(dim=-1) == 1)[0]  # indices where first tokens match (validation token)
-        val_probs[b] = n_topk_probs[b, match_idx].sum()  # accumulate all matches
+        match = (topk_tokens[b, :, 0] == target_phrase[0].item())  # bool where first tokens match (validation token)
+        if match.sum() > 0:
+            val_probs[b] = n_topk_probs[b, match].sum()  # accumulate all matches
+        else:  # no matches
+            val_probs[b] = n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
 
         # === Integrate sub target matches ===
         check_len = min(max_len, len(target_phrase))
