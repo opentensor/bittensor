@@ -923,8 +923,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
         _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
 
-        _stats.update({'losses_val_nxt': _losses_val, 'loss_val_nxt': _loss_val,
-                       'losses_nxt': _losses, 'loss_nxt': _loss,
+        _stats.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss,
                        'base_params_nxt': _num_params, 'synergy_nxt': 0, 'synergy_loss_diff_nxt': 0})
 
     def _synergy(first, second, target, ext):
