@@ -270,10 +270,10 @@ class neuron:
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
         if hasattr(loss, 'grad_fn') and loss.grad_fn is not None:
-            logger.info(f'Backward \t| Loss: {loss:.3f}')
+            logger.info(f'Backward <dim>(loss: {loss:.3f})</dim>')
             start_time = time.time()
             (loss / self.config.neuron.forward_num).backward()
-            logger.info(f'Backward \t| Backpropagation completed in {time.time() - start_time:.3g}s')
+            logger.info(f'Backward <dim>[{time.time() - start_time:.3g}s]</dim>')
 
         return loss, stats
 
@@ -405,7 +405,7 @@ class neuron:
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                logger.info(f'Model update \t| Optimizer step completed in {time.time() - start_time:.3g}s')
+                logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
                 
                 # === Get another round of forward requests ===
                 self.forward_thread_queue.resume()
@@ -680,7 +680,7 @@ class nucleus( torch.nn.Module ):
         # Ensure number of queried neurons does not exceed metagraph.n
         num_endpoints = min([self.config.nucleus.topk, metagraph.n])
 
-        logger.info(f'Forward \t| Routing forward \t| {time.time() - start_time:.3g}s')
+        logger.info(f'Forward \t| Routing forward <dim>[{time.time() - start_time:.3g}s]</dim>')
         logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}')
         request_start_time = time.time()
 
@@ -726,8 +726,8 @@ class nucleus( torch.nn.Module ):
             for response in responses:
                 response.to(self.device)
 
-        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} \t| '
-                    f'{time.time() - request_start_time:.3g}s')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} '
+                    f'<dim>[{time.time() - request_start_time:.3g}s]</dim>')
 
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
@@ -826,7 +826,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='')
 
-    logger.info(f'{str(synapse)} \t| Shapley base values \t| {time.time() - shapley_start_time:.3g}s')
+    logger.info(f'{str(synapse)} \t| Shapley base values <dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
 
@@ -850,7 +850,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    logger.info(f'{str(synapse)} \t| Shapley synergy values \t| {time.time() - synergy_start_time:.3g}s')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     # === Synergy table ===
     # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
@@ -939,7 +939,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='_nxt')
 
-    logger.info(f'{str(synapse)} \t| Shapley base values \t| {time.time() - shapley_start_time:.3g}s')
+    logger.info(f'{str(synapse)} \t| Shapley base values <dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
 
@@ -958,7 +958,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    logger.info(f'{str(synapse)} \t| Shapley synergy values \t| {time.time() - synergy_start_time:.3g}s')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     # === Synergy table ===
     # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
@@ -1183,7 +1183,7 @@ def unsuccess(_name, _unsuccessful):
     r""" Prints the return codes and response times of unsuccessful responses
     """
     # === Unsuccessful responses ===
-    unsuccess_txt = f'{_name} \t| Unsuccessful \t| <cyan>UID</cyan>[<red>return_op</red> <yellow>time</yellow>]: '
+    unsuccess_txt = f'{_name} (unsuccessful) \t| <cyan>UID</cyan>[<red>return_op</red> <yellow>time</yellow>]: '
     for _uid, _return_op, _time in _unsuccessful:
         unsuccess_txt += f'{_uid}[<red>{_return_op}</red> <yellow>{_time:.2f}</yellow>] '
     logger.info(unsuccess_txt)
