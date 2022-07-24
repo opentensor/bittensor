@@ -385,8 +385,8 @@ class server(torch.nn.Module):
 
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids'])
             translated_loss = self.get_loss_fct(logits_std, token_batch)
-            bittensor.logging.success(prefix='TextCausalLM', sufix=f"<blue>Server loss: {original_loss: .2f} | "
-                                                                   f"Translated loss: {translated_loss: .2f}</blue>")
+            logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
+
             return _model_output, logits_std
 
         if self.config.neuron.remote_train:
