@@ -380,11 +380,10 @@ class server(torch.nn.Module):
                                                       self.split_map_cache,
                                                       self.to_translation_map, self.from_translation_map,
                                                       tokens['input_ids'], token_batch)
-
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
 
-            return model_output, logits_std
+            return _model_output, logits_std
 
         if self.config.neuron.remote_train:
             return _forward()  # track gradients for training
