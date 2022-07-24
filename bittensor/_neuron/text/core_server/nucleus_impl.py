@@ -341,7 +341,7 @@ class server(torch.nn.Module):
 
         return model_output, encoded_hidden
 
-    def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output = None):
+    def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output=None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
              The response tensor should be the hidden units computed using the local context and
              with shape: [batch_size, sequence_len, __vocab_size__].
@@ -364,42 +364,33 @@ class server(torch.nn.Module):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
 
-        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, tokenizer_padding=False,
-                                  return_offsets_mapping=True)  # remap to server tokenizer
+        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
 
-        if model_output == None:
-            if self.config.neuron.remote_train:
-                model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                attention_mask=tokens['attention_mask'],
-                                                output_hidden_states=True)
-            else:
-                with torch.no_grad():
-                    model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                    attention_mask=tokens['attention_mask'],
-                                                    output_hidden_states=True)
+        def _forward(_model_output=model_output):
+            if _model_output is None:
+                _model_output = self.pre_model(input_ids=tokens['input_ids'],
+                                               attention_mask=tokens['attention_mask'],
+                                               output_hidden_states=True)
 
-        pre_logits = model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
+            pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
+
+            probs_std = translate_logits_to_probs_std(pre_logits,
+                                                      tokens['offset_mapping'], tokens['offset_mapping_std'],
+                                                      self.tokenizer, self.std_tokenizer,
+                                                      self.split_map_cache,
+                                                      self.to_translation_map, self.from_translation_map,
+                                                      tokens['input_ids'], token_batch)
+
+            probs_std = probs_std.to(self.device)
+            logits_std = torch.log(probs_std + 1e-40)
+
+            return model_output, logits_std
 
         if self.config.neuron.remote_train:
-            probs_std = translate_logits_to_probs_std(pre_logits,
-                                                        tokens['offset_mapping'], tokens['offset_mapping_std'],
-                                                        self.tokenizer, self.std_tokenizer,
-                                                        self.split_map_cache,
-                                                        self.to_translation_map, self.from_translation_map,
-                                                        tokens['input_ids'], token_batch)
-        
-        else:
-            with torch.no_grad():
-                probs_std = translate_logits_to_probs_std(pre_logits,
-                                                            tokens['offset_mapping'], tokens['offset_mapping_std'],
-                                                            self.tokenizer, self.std_tokenizer,
-                                                            self.split_map_cache,
-                                                            self.to_translation_map, self.from_translation_map,
-                                                            tokens['input_ids'], token_batch)
-        probs_std = probs_std.to(self.device)
-        logits_std = torch.log(probs_std + 1e-40)
+            return _forward()  # track gradients for training
 
-        return model_output, logits_std
+        with torch.no_grad():
+            return _forward()  # no gradients
 
     def encode_forward_causallmnext(self, token_batch, std_tokenizer=None, topk: int = 4096, model_output=None):
         r"""
