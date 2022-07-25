@@ -3,7 +3,7 @@ import hashlib
 import math
 import multiprocessing
 import numbers
-
+import os
 import random
 import time
 from dataclasses import dataclass
@@ -242,7 +242,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
         to increase the transparency of the process while still keeping the speed.
     """
     if num_processes == None:
-        num_processes = multiprocessing.cpu_count()
+        # get the number of allowed processes for this process
+        num_processes = len(os.sched_getaffinity(0))
 
     if update_interval is None:
         update_interval = 50_000
