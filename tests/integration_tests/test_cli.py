@@ -1055,6 +1055,8 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.subtensor._mock = True
         config.command = "register"
+        config.num_processes = 1
+        config.update_interval = 50_000
         config.subtensor.network = "mock"
         config.no_prompt = True
 
