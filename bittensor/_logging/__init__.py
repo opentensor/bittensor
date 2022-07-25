@@ -138,14 +138,15 @@ class logging:
         parser.print_help()
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Accept specific arguments fro parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default = bittensor.defaults.logging.debug )
-            parser.add_argument('--logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default = bittensor.defaults.logging.trace )
-            parser.add_argument('--logging.record_log', action='store_true', help='''Turns on logging to file.''', default = bittensor.defaults.logging.record_log )
-            parser.add_argument('--logging.logging_dir', type=str, help='Logging default root directory.', default = bittensor.defaults.logging.logging_dir )
+            parser.add_argument('--' + prefix_str + 'logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default = bittensor.defaults.logging.debug )
+            parser.add_argument('--' + prefix_str + 'logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default = bittensor.defaults.logging.trace )
+            parser.add_argument('--' + prefix_str + 'logging.record_log', action='store_true', help='''Turns on logging to file.''', default = bittensor.defaults.logging.record_log )
+            parser.add_argument('--' + prefix_str + 'logging.logging_dir', type=str, help='Logging default root directory.', default = bittensor.defaults.logging.logging_dir )
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass

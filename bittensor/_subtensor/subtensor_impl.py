@@ -444,7 +444,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         cuda: bool = False,
         dev_id: int = 0,
         TPB: int = 256,
-        update_interval: int = 1_000_000,
+        num_processes: int = None,
+        update_interval: int = None,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -483,9 +484,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                     if prompt:
                         bittensor.__console__.error('CUDA is not available.')
                     return False
-                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, update_interval )
+                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval )
             else:
-                pow_result = bittensor.utils.create_pow( self, wallet, cuda )
+                pow_result = bittensor.utils.create_pow( self, wallet, num_processes=num_processes, update_interval=update_interval)
             with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:
 
                 # pow failed

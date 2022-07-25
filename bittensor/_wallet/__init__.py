@@ -22,8 +22,10 @@ import copy
 import os
 
 import bittensor
-from . import wallet_impl
-from . import wallet_mock
+
+from . import wallet_impl, wallet_mock
+
+
 class wallet:
     """ Create and init wallet that stores hot and coldkey
     """
@@ -56,26 +58,26 @@ class wallet:
         if config == None: 
             config = wallet.config()
         config = copy.deepcopy( config )
-        config.wallet.name = name if name != None else config.wallet.name
-        config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
+        config.wallet.name = name if name != None else config.wallet.get('name', bittensor.defaults.wallet.name)
+        config.wallet.hotkey = hotkey if hotkey != None else config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey)
         config.wallet.path = path if path != None else config.wallet.path
         config.wallet._mock = _mock if _mock != None else config.wallet._mock
         wallet.check_config( config )
         # Allows mocking from the command line.
-        if config.wallet.name == 'mock' or config.wallet._mock:
+        if config.wallet.get('name', bittensor.defaults.wallet.name) == 'mock' or config.wallet._mock:
             config.wallet._mock = True
             _mock = True
 
             return wallet_mock.Wallet_mock(
-                name = config.wallet.name, 
-                hotkey = config.wallet.hotkey, 
+                name = config.wallet.get('name', bittensor.defaults.wallet.name), 
+                hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
                 path = config.wallet.path,
                 _mock = True,
             )
 
         return wallet_impl.Wallet(
-            name = config.wallet.name, 
-            hotkey = config.wallet.hotkey, 
+            name = config.wallet.get('name', bittensor.defaults.wallet.name), 
+            hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
             path = config.wallet.path,
         )
 
@@ -98,19 +100,22 @@ class wallet:
         parser.print_help()
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser ):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         """ Accept specific arguments from parser
         """
+        prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--wallet.name',required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
-            parser.add_argument('--wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
-            parser.add_argument('--wallet.path',required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
-            parser.add_argument('--wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
-            parser.add_argument('--wallet.hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)''')
-            parser.add_argument('--wallet.sort_by', required=False, action='store', default=bittensor.defaults.wallet.sort_by, type=str, help='''Sort the hotkeys by the specified column title (e.g. name, uid, axon).''')
-            parser.add_argument('--wallet.sort_order', required=False, action='store', default=bittensor.defaults.wallet.sort_order, type=str, help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)''')
-
-        except argparse.ArgumentError:
+            parser.add_argument('--' + prefix_str + 'wallet.name', required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
+            parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
+            parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
+            parser.add_argument('--' + prefix_str + 'wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
+            parser.add_argument('--' + prefix_str + 'wallet.hotkeys', '--' + prefix_str + 'wallet.exclude_hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)''')
+            parser.add_argument('--' + prefix_str + 'wallet.all_hotkeys', required=False, action='store_true', default=bittensor.defaults.wallet.all_hotkeys, help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.''')
+            parser.add_argument('--' + prefix_str + 'wallet.sort_by', required=False, action='store', default=bittensor.defaults.wallet.sort_by, type=str, help='''Sort the hotkeys by the specified column title (e.g. name, uid, axon).''')
+            parser.add_argument('--' + prefix_str + 'wallet.sort_order', required=False, action='store', default=bittensor.defaults.wallet.sort_order, type=str, help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)''')
+        except argparse.ArgumentError as e:
+            import pdb
+            #pdb.set_trace()
             # re-parsing arguments.
             pass
 
@@ -125,6 +130,7 @@ class wallet:
         defaults.wallet._mock = os.getenv('BT_WALLET_MOCK') if os.getenv('BT_WALLET_MOCK') != None else False
         # CLI defaults for Overview
         defaults.wallet.hotkeys = []
+        defaults.wallet.all_hotkeys = False
         defaults.wallet.sort_by = ""
         defaults.wallet.sort_order = "ascending"
 
@@ -133,8 +139,8 @@ class wallet:
         """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """
         assert 'wallet' in config
-        assert isinstance(config.wallet.name, str)
-        assert isinstance(config.wallet.hotkey, str)
+        assert isinstance(config.wallet.get('name', bittensor.defaults.wallet.name), str)
+        assert isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), (str, None))
         assert isinstance(config.wallet.path, str)
         assert isinstance(config.wallet.hotkeys, list)
         assert isinstance(config.wallet.sort_by, str)
