@@ -599,10 +599,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapse_check =  self.synapse_checks(synapse, hotkey)
 
                 if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None and synapse_check:
-                    model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
+                    message, model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
                     response_tensors.append(response_tensor)
                     response_codes.append(bittensor.proto.ReturnCode.Success)
-                    response_messages.append('Success')
+                    response_messages.append('Success' if message is None else message)
                 
                 elif not synapse_check:
                     response_tensors.append(None)
@@ -652,7 +652,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             for index, synapse in enumerate(synapses):
                 try:
                     if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
-                        model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
+                        message, model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
                         torch.autograd.backward (
                             tensors = [ response_tensor ],
                             grad_tensors = [ grads_dy[index] ],

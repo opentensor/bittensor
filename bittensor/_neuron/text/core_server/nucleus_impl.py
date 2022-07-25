@@ -237,7 +237,7 @@ class server(torch.nn.Module):
                     Decoded predictions of the next token in the sentence.
 
         """
-        decoded_targets = self.local_forward(inputs, tokenizer)[1]
+        message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)[1]
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()     
@@ -280,7 +280,7 @@ class server(torch.nn.Module):
                                                     attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
-        return model_output, model_output.logits
+        return None, model_output, model_output.logits
     
     def encode_forward(self,inputs,tokenizer=None, model_output = None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units. 
@@ -331,7 +331,7 @@ class server(torch.nn.Module):
         else:
             encoded_hidden = self.mapping(down)
 
-        return model_output, encoded_hidden
+        return None, model_output, encoded_hidden
 
     def encode_forward_causallm(self, token_batch, tokenizer=None, encode_len=bittensor.__network_dim__, model_output=None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
@@ -378,9 +378,10 @@ class server(torch.nn.Module):
 
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids'])
             translated_loss = self.get_loss_fct(logits_std, token_batch)
-            logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
+            message = f'Loss: {original_loss: .2f} → {translated_loss: .2f}'
+            # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
-            return _model_output, logits_std
+            return message, _model_output, logits_std
 
         if self.config.neuron.remote_train:
             return _forward()  # track gradients for training
@@ -439,7 +440,10 @@ class server(torch.nn.Module):
             compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
             # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
-            return _model_output, compact_topk
+            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids'])
+            message = f'Loss: {original_loss: .2f}'
+
+            return message, _model_output, compact_topk
 
         if self.config.neuron.remote_train:
             return _forward()  # track gradients for training

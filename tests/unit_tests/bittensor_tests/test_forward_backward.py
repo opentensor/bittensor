@@ -213,7 +213,7 @@ def test_dendrite_backward_multiple():
 
 def test_axon_receptor_forward_works():
     def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
-        return dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
+        return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     
 
     axon_port = get_random_unused_port()
@@ -253,7 +253,7 @@ def test_axon_receptor_forward_works():
 def test_dendrite_call_time():
     def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
         time.sleep(12)
-        return dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
+        return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     
     axon_port = get_random_unused_port()
     axon = bittensor.axon (
