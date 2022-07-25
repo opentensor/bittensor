@@ -2,6 +2,7 @@ from numpy import zeros_like
 import bittensor
 import threading
 import time
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +11,16 @@ import queue
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+
+
+def calc_loss_fct(loss_fct, logits, labels):
+    r""" Calculates self.loss_fct with logits and labels that are expected to be aligned already.
+    """
+    _logits = logits.contiguous()
+    _labels = labels.contiguous()
+    loss = loss_fct(_logits.view(-1, _logits.size(-1)), _labels.view(-1))
+    return loss
+
 
 def update_metagraph_peerweight(metagraph, nucleus, device):
     r"""
@@ -222,3 +233,38 @@ class ThreadQueue(threading.Thread):
         
     def get(self):
         return self.queue.get()
+
+
+class PositionalEncoding(nn.Module):
+    r""" Positional Encoder which adds information based on the relative position of each token
+
+    """
+
+    def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+
+        # === Create position matrix ===
+        # Creates a positional matrix with alternating frequencies
+        # pe: (torch.FloatTensor) positional encoding matrix
+        # pe.shape: [1, max_len, network_dim]
+        pe = torch.zeros(1, max_len, d_model)
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.tensor) -> torch.tensor:
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, embedding_dim]
+        """
+        # === Positional Encoding ===
+        # Inject some information of the relative position of the token in the sequence.
+        #  Finally, Dropout is applied to tokens
+        # x: (torch.FloatTensor) input sequence tokens with position information injected
+        # x.shape: [batch_size, seq_len, network_dim]
+        x = x + self.pe[0, :x.size(1)]
+        return self.dropout(x)

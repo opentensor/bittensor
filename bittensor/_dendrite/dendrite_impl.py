@@ -436,7 +436,80 @@ class Dendrite(torch.autograd.Function):
         self.update_stats( formatted_endpoints, synapses, formatted_inputs, outputs, codes, times )
         return outputs[0], codes[0], times[0]
 
-    def text_last_hidden_state( 
+    def text_causal_lm_next(
+            self,
+            endpoints: Union[torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint'],
+            inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+            synapse: Optional['bittensor.synapse.TextCausalLMNext'] = synapse.TextCausalLMNext(),
+            timeout: Optional[int] = None,
+            requires_grad: Optional[bool] = None,
+    ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
+        r""" Forward text inputs to a list of neuron endpoints and returns logit encodings or timeout.
+
+                Args:
+                    endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                        Endpoints to send inputs to. Endpoint can be one of the following types:
+                            - a single endpoint tensor shape [250]
+                            - a set of endpoint tensors shape [n, 250]
+                            - a list of endpoints tensors each of shape [250]
+                            - a single endpoint object. Inputs will be sent to this endpoint alone.
+                            - a list of endpoint objects. All inputs will be sent to these endpoints.
+
+
+                    inputs (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                        Tokenized sentences to send on the wire. Inputs can be one of the following types:
+                            - a single string: the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings: the strings will be tokenized using the bittensor tokenizer.
+                            - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
+                            - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
+                            - a list of tensors of type long each representing a tokenized sentence to be sent to each endpoint.
+                        If inputs are tensors they will be cast to int64 format before sending on the wire.
+
+                    synapse (:type:`'bittensor.synapse.TextCausalLMNext'`, default = bittensor.synapse.TextCausalLMNext(), `optional`):
+                        Synapse axon function call which defaults to bittensor.synapse.TextCausalLMNext().
+
+                    timeout (:type:`int`, default = dendrite.timeout `optional`):
+                        Request timeout. Queries that do not respond will be replaced by zeros.
+
+                    requires_grad (:type:`int`, default = dendrite.requires_grad, `optional`):
+                        If true, the backward pass triggers passing gradients on the wire.
+
+                Returns:
+                    outputs (:obj:`List[ torch.FloatTensor ]` of shape :obj:`num_endpoints * ( >= batch_size * (2 * topk + 1) )`, `required`):
+                        List of output topk phrases encodings of inputs produced by each remote endpoints.
+                        Non-responses are zeroes of input shape plus output dimension.
+                        The first dimension will match the number of endpoints queried.
+
+                    codes (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                        dendrite call return ops.
+
+                    times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
+                        times per call.
+        """
+        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TextCausalLMNext:
+            raise ValueError(f"Passed synapse must have type: {bittensor.proto.Synapse.SynapseType.TextCausalLMNext} "
+                             f"got {synapse.synapse_type} instead")
+
+        # Format inputs.
+        formatted_endpoints, formatted_inputs = self.format_text_inputs(
+            endpoints=endpoints,
+            inputs=inputs
+        )
+        # Optionally convert synapses and set typing info.
+        synapses = [synapse]
+        # Make calls.
+        outputs, codes, times = self._forward(
+            endpoints=formatted_endpoints,
+            synapses=synapses,
+            inputs=formatted_inputs,
+            timeout=timeout,
+            requires_grad=requires_grad,
+        )
+        # Return.
+        self.update_stats(formatted_endpoints, synapses, formatted_inputs, outputs, codes, times)
+        return outputs[0], codes[0], times[0]
+
+    def text_last_hidden_state(
             self,
             endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],

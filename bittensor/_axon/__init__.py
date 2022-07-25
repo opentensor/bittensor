@@ -53,6 +53,7 @@ class axon:
             backward_text: 'Callable' = None,
             synapse_last_hidden: 'Callable' = None,
             synapse_causal_lm: 'Callable' = None,
+            synapse_causal_lm_next: 'Callable' = None,
             synapse_seq_2_seq: 'Callable' = None,
             synapse_checks: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
@@ -81,6 +82,8 @@ class axon:
                     function which is called by the last hidden synapse
                 synapse_causal_lm (:obj:`callable`, `optional`):
                     function which is called by the causal lm synapse
+                synapse_causal_lm_next (:obj:`callable`, `optional`):
+                    function which is called by the TextCausalLMNext synapse
                 synapse_seq_2_seq (:obj:`callable`, `optional`):
                     function which is called by the seq2seq synapse   
                 synapse_checks (:obj:`callable`, 'optional'):
@@ -142,6 +145,7 @@ class axon:
         synapses = {}
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE] = synapse_last_hidden
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM] = synapse_causal_lm
+        synapses[bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT] = synapse_causal_lm_next
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ] = synapse_seq_2_seq
         
         synapse_check_function = synapse_checks if synapse_checks != None else axon.default_synapse_check
