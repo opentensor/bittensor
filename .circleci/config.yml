@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   python: circleci/python@2.0.3
-  coveralls: coveralls/coveralls@1.0.6
+  # coveralls: coveralls/coveralls@1.0.6
 
 jobs:
   build-and-test:
@@ -120,6 +120,6 @@ workflows:
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
-      - coveralls:
-          requires:
-            - build-and-test
+      #- coveralls:
+          #requires:
+            #- build-and-test
