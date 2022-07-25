@@ -102,7 +102,23 @@ def solve_for_difficulty( block_hash, difficulty ):
             break
     return nonce, seal
 
-def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, update_interval: int = 500000 ) -> Tuple[int, int, Any, int, Any]:
+
+def get_human_readable(num, suffix="H"):
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1000.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1000.0
+    return f"{num:.1f}Y{suffix}"
+
+
+def millify(n: int):
+    millnames = ['',' K',' M',' B',' T']
+    n = float(n)
+    millidx = max(0,min(len(millnames)-1,
+                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
+
+    return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -172,11 +188,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
             with best_seal.get_lock():
                 message = f"""Solving 
                     time spent: {time.time() - start_time}
-                    Nonce: [bold white]{nonce}[/bold white]
-                    Difficulty: [bold white]{difficulty}[/bold white]
-                    Iters: [bold white]{int(itrs_per_sec)}/s[/bold white]
-                    Block: [bold white]{block_number}[/bold white]
-                    Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]
+            Difficulty: [bold white]{millify(difficulty)}[/bold white]
+            Iters: [bold white]{get_human_readable(int(itrs_per_sec), 'H')}/s[/bold white]
                     Best: [bold white]{binascii.hexlify(bytes(best_seal) or bytes(0))}[/bold white]"""
                 status.update(message.replace(" ", ""))
         
