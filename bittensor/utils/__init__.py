@@ -122,6 +122,9 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
     """
     if num_processes == None:
         num_processes = multiprocessing.cpu_count()
+
+    if update_interval is None:
+        update_interval = 500_000
         
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty
@@ -228,8 +231,8 @@ def solve_(nonce_start, nonce_end, block_bytes, difficulty, block_hash, block_nu
 
     return None
 
-def create_pow( subtensor, wallet ):
-    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet )
+def create_pow( subtensor, wallet, num_processes: int = None, update_interval: int = None ) -> Optional[Dict[str, Any]]:
+    nonce, block_number, block_hash, difficulty, seal = solve_for_difficulty_fast( subtensor, wallet, num_processes=num_processes, update_interval=update_interval )
     return None if nonce is None else {
         'nonce': nonce, 
         'difficulty': difficulty,
