@@ -15,13 +15,47 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-""" Run the advanced server
+""" Benchmarking pytest fixture.
 
 Example:
-    $ python3 miners/advanced_server.py ... args
+    $ python3  benchmarks/core_server.py --neuron.model_name albert-base-v1
 
 """
-
+from benchmarks import QueryBenchmark
+import multiprocessing
 import bittensor
-if __name__ == "__main__":
-    template = bittensor.neurons.advanced_server.neuron().run()
+
+class Benchmark ( QueryBenchmark ):
+    r""" Benchmark pytest class.
+    """
+
+    @staticmethod
+    def miner_name() -> str:
+        r""" Return miner name
+        """
+        return 'core_server'
+
+    @staticmethod
+    def run_neuron( config , subtensor, metagraph, wallet ):
+        r""" To be implemented in the subclass, runs the neuron.
+            Args:
+                config (bittensor.Config)
+                    Run config
+        """
+        bittensor.neurons.text.core_server.neuron( config,subtensor=subtensor, metagraph=metagraph,wallet=wallet).run()
+
+    @staticmethod
+    def config() -> 'bittensor.Config':
+        r""" Return config
+            Returns:
+                config (bittensor.Config)
+                    Run config.
+        """
+        config = bittensor.neurons.text.core_server.neuron.config()
+        return config
+
+
+if __name__ == '__main__':
+    benchmark = Benchmark()
+    benchmark.run()
+

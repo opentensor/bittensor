@@ -230,19 +230,19 @@ The template server follows a similar structure as the template miner.
 
 ```bash
 $ cd bittensor
-$ python3 ./bittensor/_neuron/text/template_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ./bittensor/_neuron/text/core_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 or 
 ```python3
 >> import bittensor
->> bittensor.neurons.text.template_server.neuron().run()
+>> bittensor.neurons.text.core_server.neuron().run()
 ```
 
 For the full list of settings, please run
 
 ```bash
 $ cd bittensor
-$ python3 ./bittensor/_neuron/text/template_server/main.py --help
+$ python3 ./bittensor/_neuron/text/core_server/main.py --help
 ```
 
 

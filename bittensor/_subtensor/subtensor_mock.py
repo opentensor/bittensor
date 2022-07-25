@@ -43,7 +43,6 @@ __type_registery__ = {
 
 GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
 
-
 class mock_subtensor():
     r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
         Optionall creates the background process if it does not exist.
