@@ -1,23 +1,22 @@
 import binascii
-from dataclasses import dataclass
-import multiprocessing
-from queue import Empty
-import struct
 import hashlib
-from Crypto.Hash import keccak
 import math
+import multiprocessing
+import numbers
 
 import random
-import bittensor
-import ctypes
 import time
-import torch
-import numbers
+from dataclasses import dataclass
+from queue import Empty
+from typing import Any, Dict, Optional, Tuple, Union
+
+import bittensor
 import pandas
 import requests
+import torch
+from Crypto.Hash import keccak
+from substrateinterface import Keypair
 from substrateinterface.utils import ss58
-from substrateinterface import Keypair, KeypairType
-from typing import Any, Tuple, List, Union, Optional, Dict
 
 
 def indexed_values_to_dataframe ( 
@@ -225,7 +224,7 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
     return None, time.time() - start
 
 
-def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, update_interval: int = 50_000 ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -379,7 +378,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
     return solution
 
 
-def create_pow( subtensor, wallet, num_processes: int = None, update_interval: int = None ) -> Optional[Dict[str, Any]]:
+def create_pow( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[Dict[str, Any]]:
     solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, num_processes=num_processes, update_interval=update_interval )
     nonce, block_number, difficulty, seal = solution.nonce, solution.block_number, solution.difficulty, solution.seal
     return None if nonce is None else {

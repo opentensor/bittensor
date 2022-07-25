@@ -16,8 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm
-from typing import List, Dict, Union
-from multiprocessing import Process
+from typing import List, Dict, Union, Optional
 
 import bittensor
 from tqdm import tqdm
@@ -441,8 +440,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_finalization: bool = True,
         prompt: bool = False,
         max_allowed_attempts: int = 3,
-        num_processes: int = None,
-        update_interval: int = None,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
