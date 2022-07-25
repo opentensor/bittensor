@@ -372,16 +372,11 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
             Best: [bold white]{binascii.hexlify(bytes(best_seal) if best_seal else bytes(0))}[/bold white]"""
         status.update(message.replace(" ", ""))
     
-    # exited while, found_solution contains the nonce or wallet is registered
-    if solution is not None:
-        stopEvent.set() # stop all other processes
-        status.stop()
-
-        return solution
-
+    # exited while, solution contains the nonce or wallet is registered
+    stopEvent.set() # stop all other processes
     status.stop()
-    return None
 
+    return solution
 
 
 def create_pow( subtensor, wallet, num_processes: int = None, update_interval: int = None ) -> Optional[Dict[str, Any]]:
