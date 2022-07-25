@@ -21,7 +21,6 @@ import bittensor
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch import nn
-from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import *
 
 EPSILON = 1e-40
@@ -197,7 +196,7 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
     to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
     tokens = tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
-                       add_special_tokens=False).to(device)  # assume tokenizer.padding_side = 'left'
+                       add_special_tokens=False)  # assume tokenizer.padding_side = 'left'
 
     # get offsets_mapping in tokenization to delineate token segment positions
     server_tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
@@ -220,8 +219,9 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
 
         with torch.no_grad():
             token_batch = input_batch['input_ids'].to(device)
+            # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
             pre_model_output = server_model(input_ids=tokens['input_ids'].to(device),
-                                            attention_mask=tokens['attention_mask'].to(device),
+                                            # attention_mask=tokens['attention_mask'].to(device),
                                             output_hidden_states=True)
             pre_logits = pre_model_output.logits
 
@@ -278,9 +278,9 @@ def test_tokenizer_translation():
         #
         #     print(text_name, model_name, original_loss, encoded_loss, translated_loss)
         #
-        #     # English-1 EleutherAI/gpt-j-6B tensor(1.2531) tensor(1.3274) tensor(1.3274)
-        #     # English-1 benjamin/gerpt2-large tensor(3.7499) tensor(4.2219) tensor(4.5502)
-        #     # German-1 benjamin/gerpt2-large tensor(3.5197) tensor(4.0664) tensor(4.1428)
+        #     # English-1 EleutherAI/gpt-j-6B tensor(1.2530) tensor(1.3275) tensor(1.3275)
+        #     # English-1 benjamin/gerpt2-large tensor(3.7216) tensor(4.1541) tensor(4.6420)
+        #     # German-1 benjamin/gerpt2-large tensor(4.2805) tensor(4.4141) tensor(4.7391)
         #
         # torch.save(encodings, encodings_cache_file)
         # encodings = torch.load(encodings_cache_file)
@@ -359,7 +359,7 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
     tokens = tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
-                       add_special_tokens=False).to(device)  # assume tokenizer.padding_side = 'left'
+                       add_special_tokens=False)  # assume tokenizer.padding_side = 'left'
 
     # get offsets_mapping in tokenization to delineate token segment positions
     server_tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
@@ -378,10 +378,10 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
         if server_model.config.pad_token_id is None and server_model.config.eos_token_id is not None:
             server_model.config.pad_token_id = server_model.config.eos_token_id
 
-
         with torch.no_grad():
+            # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
             pre_model_output = server_model(input_ids=tokens['input_ids'].to(device),
-                                            attention_mask=tokens['attention_mask'].to(device),
+                                            # attention_mask=tokens['attention_mask'].to(device),
                                             output_hidden_states=True)
             pre_logits = pre_model_output.logits
 
@@ -431,10 +431,6 @@ def test_topk_token_phrases():
         #     encodings[(text_name, model_name)] = (encoded_loss, translated_loss, enc_pre_logits)
         #
         #     print(text_name, model_name, original_loss, encoded_loss, translated_loss)
-        #
-        #     # English-1 EleutherAI/gpt-j-6B tensor(1.2531) tensor(1.3274) tensor(1.3274)
-        #     # English-1 benjamin/gerpt2-large tensor(3.7499) tensor(4.2219) tensor(4.5502)
-        #     # German-1 benjamin/gerpt2-large tensor(3.5197) tensor(4.0664) tensor(4.1428)
         #
         # torch.save(encodings, encodings_cache_file)
         # encodings = torch.load(encodings_cache_file)
@@ -514,7 +510,7 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
     to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
     tokens = tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
-                       add_special_tokens=False).to(device)  # assume tokenizer.padding_side = 'left'
+                       add_special_tokens=False)  # assume tokenizer.padding_side = 'left'
 
     # get offsets_mapping in tokenization to delineate token segment positions
     server_tokens = tokenizer(to_text_batch, return_offsets_mapping=True, add_special_tokens=False)
@@ -534,8 +530,9 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
             server_model.config.pad_token_id = server_model.config.eos_token_id
 
         with torch.no_grad():
+            # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
             pre_model_output = server_model(input_ids=tokens['input_ids'].to(device),
-                                            attention_mask=tokens['attention_mask'].to(device),
+                                            # attention_mask=tokens['attention_mask'].to(device),
                                             output_hidden_states=True)
             pre_logits = pre_model_output.logits
 
@@ -573,8 +570,8 @@ def test_topk_phrases_crossentropy():
         Returns:
             Asserts that phrase cross entropy calculation yields previously observed value.
     """
-    test_pairs = [('German-1', 'benjamin/gerpt2-large', 172, list(range(50, 111, 5)),
-                   [1.08, 1.62, 5.00, 1.42, 5.31, 3.66, 4.36, 0.07, 7.11, 14.67, 5.97, 5.85, 92.10])]
+    test_pairs = [('German-1', 'benjamin/gerpt2-large', 172, list(range(50, 110, 5)),
+                   [1.33, 4.07, 6.99, 5.11, 5.60, 2.30, 1.50, 1.51, 4.67, 9.75, 4.83, 3.28])]
 
     try:
         encodings = torch.load(encodings_cache_file)
@@ -593,10 +590,6 @@ def test_topk_phrases_crossentropy():
         #     encodings[(text_name, model_name)] = (encoded_loss, translated_loss, enc_pre_logits)
         #
         #     print(text_name, model_name, original_loss, encoded_loss, translated_loss)
-        #
-        #     # English-1 EleutherAI/gpt-j-6B tensor(1.2531) tensor(1.3274) tensor(1.3274)
-        #     # English-1 benjamin/gerpt2-large tensor(3.7499) tensor(4.2219) tensor(4.5502)
-        #     # German-1 benjamin/gerpt2-large tensor(3.5197) tensor(4.0664) tensor(4.1428)
         #
         # torch.save(encodings, encodings_cache_file)
         # encodings = torch.load(encodings_cache_file)
