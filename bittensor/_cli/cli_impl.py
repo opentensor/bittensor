@@ -67,6 +67,8 @@ class CLI:
             self.create_new_hotkey()
         elif self.config.command == "regen_coldkey":
             self.regen_coldkey()
+        elif self.config.command == "regen_coldkeypub":
+            self.regen_coldkeypub()
         elif self.config.command == "regen_hotkey":
             self.regen_hotkey()
         elif self.config.command == "metagraph":
@@ -101,6 +103,12 @@ class CLI:
         """
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, seed = self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
+
+    def regen_coldkeypub ( self ):
+        r""" Creates a new coldkeypub under this wallet.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        wallet.regenerate_coldkeypub( ss58_address=self.config.get('ss58_address'), public_key=self.config.get('public_key_hex'), overwrite = self.config.overwrite_coldkeypub )
 
     def regen_hotkey ( self ):
         r""" Creates a new coldkey under this wallet.
