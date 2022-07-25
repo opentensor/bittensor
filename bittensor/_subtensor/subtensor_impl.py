@@ -26,7 +26,7 @@ import bittensor.utils.weight_utils as weight_utils
 from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
-from bittensor.utils import is_valid_destination_address
+from bittensor.utils import is_valid_bittensor_address_or_public_key
 from types import SimpleNamespace
 
 # Mocking imports
@@ -759,7 +759,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 If we did not wait for finalization / inclusion, the response is true.
         """
         # Validate destination address.
-        if not is_valid_destination_address( dest ):
+        if not is_valid_bittensor_address_or_public_key( dest ):
+            bittensor.__console__.print(":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {}[/bold white]".format(dest))
             return False
 
         if isinstance( dest, bytes):

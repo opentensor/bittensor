@@ -1163,6 +1163,21 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+    def test_regen_coldkeypub( self ):
+        config = self.config
+        config.wallet.name = "regen_coldkeypub_testwallet"
+        config.command = "regen_coldkeypub"
+        config.subtensor.network = "mock"
+        config.subtensor._mock = True
+        config.ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+        config.public_key = None
+        config.use_password = False
+        config.no_prompt = True
+        config.overwrite_coldkeypub = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
     def test_regen_hotkey( self ):
         config = self.config
         config.wallet.name = "regen_hotkey_testwallet"
