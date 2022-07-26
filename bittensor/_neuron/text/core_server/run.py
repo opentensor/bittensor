@@ -285,8 +285,8 @@ def serve(
             synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
             synapse_causal_lm_next = forward_casual_lm_next if model.config.neuron.causallmnext else None,
             synapse_seq_2_seq = forward_generate if model.config.neuron.seq2seq else None ,
-            blacklist = blacklist,
-            priority = priority,
+            blacklist = blacklist if not model.config.neuron.disable_blacklist else None,
+            priority = priority if not model.config.neuron.disable_priority else None,
         ).start().serve(subtensor=subtensor)
     
     axon.optimizer_step = optimizer_step
