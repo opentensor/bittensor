@@ -268,7 +268,7 @@ def get_tokenizer_depth_split_map(tokenizer: PreTrainedTokenizerBase,
     """
     split_map = []
 
-    phrases = tokenizer.batch_decode(range(len(tokenizer.vocab)))  # list of variable len strings (one per token)
+    phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # list of variable len strings (one per token)
 
     # first part of the phrase up to distance characters
     split_phrases = [[phrase[:depths[0]] for phrase in phrases]]
@@ -417,15 +417,18 @@ def get_translation_map(from_tokenizer: PreTrainedTokenizerBase,
                 Maps for each observed length, a source token to a token sequence of that length,
                 with source index to target indices.
     """
+    set_vocab_len(from_tokenizer)
+    set_vocab_len(to_tokenizer)
+
     translation_map = {'lengths': {}}
 
-    phrases = from_tokenizer.batch_decode(range(len(from_tokenizer.vocab)))  # tokens to strings
+    phrases = from_tokenizer.batch_decode(range(from_tokenizer.vocab_len))  # tokens to strings
 
     to_tokens = to_tokenizer(phrases)['input_ids']  # convert single token from-phrases to to-tokenization
     to_tokens_lens = [len(p) for p in to_tokens]
     unique_lens = set(to_tokens_lens)
     max_len = max(unique_lens)
-    counts = torch.zeros((max_len, len(to_tokenizer.vocab)), dtype=torch.long)
+    counts = torch.zeros((max_len, to_tokenizer.vocab_len), dtype=torch.long)
 
     for l in unique_lens:  # each unique one-to-many mapping length
         from_idx = [i for i, k in enumerate(to_tokens_lens) if k == l]  # find len l to-tokenizations
@@ -637,9 +640,9 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
                     A dictionary of depths keying split_maps of mappings from original tokens to
                     target tokens at each depth of the split. Adds split_maps to cache for faster future recall.
                 tokens (:obj:`torch.LongTensor`, `required`):
-                    [sequence_len] A sequence of tokens produced by the source tokenizer.
+                    [batch_size, sequence_len] A sequence of tokens produced by the source tokenizer.
                 tokens_std (:obj:`torch.LongTensor`, `required`):
-                    [std_sequence_len] A sequence of tokens produced by the standard tokenizer.
+                    [batch_size, std_sequence_len] A sequence of tokens produced by the standard tokenizer.
                 to_translation_map (:obj:`Dict[str, Any]`, `required`):
                     Maps for each observed length, a source token to a token sequence of that length,
                     with source index to target indices.
@@ -654,35 +657,42 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
                     [batch_size, std_sequence_len, std_vocab_size] Output probability distribution over the
                     standard tokenizer vocabulary.
         """
+    set_vocab_len(tokenizer)
+    set_vocab_len(std_tokenizer)
+
     # === Check tokenizer equivalence / Skip if equivalent ===
     if skip_equivalent and check_tokenizer_equivalence(tokenizer, std_tokenizer):
-        probs = torch.softmax(logits, dim=2).to('cpu')
+        logits = logits.to(torch.float).to('cpu')
+        probs = torch.softmax(logits, dim=2)
         return probs
 
     # === Get shape sizes ===
     batch_size, sequence_len, vocab_size = logits.shape
-    std_sequence_len = max([len(seq) for seq in offset_mapping_std])
-    std_vocab_size = len(std_tokenizer.vocab)
+    std_sequence_len = tokens_std.shape[-1]
+    std_vocab_size = std_tokenizer.vocab_len
 
-    if len(tokenizer.vocab) < vocab_size:
-        logits = logits[..., :len(tokenizer.vocab)]
-        vocab_size = len(tokenizer.vocab)
+    if tokenizer.vocab_len < vocab_size:
+        logits = logits[..., :tokenizer.vocab_len]
+        vocab_size = tokenizer.vocab_len
 
     # === Convert logits to probabilities ===
-    probs = torch.softmax(logits, dim=2).to(torch.float).to('cpu')  # [batch_size, sequence_len, vocab_size]
+    logits = logits.to(torch.float).to('cpu')
+    probs = torch.softmax(logits, dim=2)  # [batch_size, sequence_len, vocab_size]
 
-    if vocab_size < len(tokenizer.vocab):  # fixes bug when model logits output is not full width
-        padded_probs = torch.zeros((batch_size, sequence_len, len(tokenizer.vocab)))
+    if vocab_size < tokenizer.vocab_len:  # fixes bug when model logits output is not full width
+        padded_probs = torch.zeros((batch_size, sequence_len, tokenizer.vocab_len))
         padded_probs[..., :vocab_size] = probs
         probs = padded_probs
 
     # === Translate to probabilities over standard tokenizer ===
     probs_std = torch.zeros(batch_size, std_sequence_len, std_vocab_size)
     for b in range(batch_size):
-        translate_tokenizer_probs(probs[b], probs_std[b], offset_mapping[b], offset_mapping_std[b],
+        probs_b = probs[b][-len(offset_mapping[b]):]  # remove left padding
+        tokens_b = tokens[b][-len(offset_mapping[b]):]  # remove left padding
+        translate_tokenizer_probs(probs_b, probs_std[b], offset_mapping[b], offset_mapping_std[b],
                                   tokenizer, std_tokenizer,
                                   split_map_cache, to_translation_map, from_translation_map,
-                                  tokens[b], tokens_std[b])
+                                  tokens_b, tokens_std[b])
 
     # === Correct excess probability mass (haircut) ===
     probs_std_sum = probs_std.sum(dim=-1)  # [batch_size, std_sequence_len]
@@ -739,7 +749,8 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
     batch_size, vocab_size = logits.shape  # [batch_size, vocab_size] only last token prediction
 
     # Convert logits to probabilities
-    probs = torch.softmax(logits, dim=1).to('cpu')  # [batch_size, vocab_size]
+    logits = logits.to('cpu').float()  # ensure further computations done in float32 for improved precision
+    probs = torch.softmax(logits, dim=1)  # [batch_size, vocab_size]
 
     # TopK phrase selection
     topk_probs, topk_indices = torch.topk(probs, topk)  # topk probs and indices: [batch_size, topk]
@@ -751,7 +762,8 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
 
     # === Tokenizer phrases to memory ===
     if not hasattr(tokenizer, 'phrases'):
-        tokenizer.phrases = tokenizer.batch_decode(range(len(tokenizer.vocab)))  # server tokens to strings
+        set_vocab_len(tokenizer)
+        tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
 
     tensors = []
     tokens_batch = []
@@ -774,7 +786,7 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
         tensors += [floor_probs[b]]
         tokens_batch += [token_phrases]
 
-    compact_topk = torch.hstack(tensors).to(torch.float32)  # [sum_b(sum_k(len(phrase_k) + 1)_b)]
+    compact_topk = torch.hstack(tensors).float()  # [sum_b(sum_k(len(phrase_k) + 1)_b)]
 
     # === Tensorize topk token selection ===
     max_len = max([max([len(phrase) for phrase in phrases]) for phrases in tokens_batch])  # max_len
@@ -870,16 +882,16 @@ def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_ind
     return topk_tokens, topk_probs, floor_probs
 
 
-def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
+def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                          topk_tokens: torch.Tensor, topk_probs: torch.Tensor, floor_probs: torch.Tensor,
                          ignore_index: int = -100, reduce=True, reduction='mean',
-                         vocab_size_min: int = 50257) -> torch.Tensor:
+                         vocab_size_min: int = 50257) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
     Calculates the cross entropy of a phrase prediction against a target phrase, so that this is a multi-token
     extension of typical cross entropy calculated for next token prediction.
         Args:
-            target_phrases (:obj:`List[int]`, `required`):
-                [batch_size] Target phrases in standard token sequence list.
+            target_phrases (:obj:`List[List[int]]`, `required`):
+                [batch_size, *] Target phrases in standard token sequence list.
             topk_tokens (:obj:`torch.Tensor`, `required`):
                 [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
             topk_probs (:obj:`torch.Tensor`, `required`):
@@ -896,6 +908,8 @@ def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
                 Minimum server vocab_size expected, should set to nominal 50257,
                 used to prevent the floor_probs from being too large.
         Returns:
+            loss_val (:obj:`torch.Tensor`, `required`):
+                Validation cross entropy loss, either scalar if reduce or [batch_size].
             loss (:obj:`torch.Tensor`, `required`):
                 Phrase cross entropy loss, either scalar if reduce or [batch_size].
     """
@@ -907,14 +921,21 @@ def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
     n_topk_probs = topk_probs / total_probs[:, None]  # [batch_size, topk] normalized topk_probs
     n_floor_probs = floor_probs / total_probs  # [batch_size] normalized floor_probs
 
+    val_probs = torch.zeros(batch_size).to(topk_probs.device)  # accumulate probabilities when first tokens match
     match_probs = torch.zeros(batch_size).to(topk_probs.device)  # accumulate probabilities when sub target matches phrase
     for b in range(batch_size):
-        # === Integrate sub target matches ===
         target_phrase = target_phrases[b]
         if not isinstance(target_phrase, torch.Tensor):
             target_phrase = torch.tensor(target_phrases[b])
-        check_len = min(max_len, len(target_phrase))
 
+        match = (topk_tokens[b, :, 0] == target_phrase[0].item())  # bool where first tokens match (validation token)
+        if match.sum() > 0:
+            val_probs[b] = n_topk_probs[b, match].sum()  # accumulate all matches
+        else:  # no matches
+            val_probs[b] = n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
+
+        # === Integrate sub target matches ===
+        check_len = min(max_len, len(target_phrase))
         for c in range(1, check_len + 1):  # progressively increase sub target length
             target = ignore_index * torch.ones(check_len, dtype=torch.int32)  # [-100, ..., -100]
             target[:c] = target_phrase[:c]  # [tok0, tok1, ...tokc, -100, ..., -100]
@@ -928,17 +949,39 @@ def phrase_cross_entropy(target_phrases: Union[List[int], torch.Tensor],
             else:  # no matches
                 match_probs[b] += n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
 
+    val_probs = torch.clamp(val_probs, 0, 1)  # [batch_size] ensure 0 <= total probability <= 1
+    loss_val = - torch.log(val_probs + 1e-40)  # [batch_size] calculate cross entropy loss
+
     match_probs = torch.clamp(match_probs, 0, 1)  # [batch_size] ensure 0 <= total probability <= 1
     loss = - torch.log(match_probs + 1e-40)  # [batch_size] calculate cross entropy loss
 
     if reduce:
-        if not hasattr(loss, reduction):
+        if not hasattr(loss_val, reduction) or not hasattr(loss, reduction):
             raise RuntimeError(f'phase_cross_entropy(): Reduction function {reduction} not found.')
+        loss_val = getattr(loss_val, reduction)()
         loss = getattr(loss, reduction)()
         if loss.numel() > 1:
             raise ValueError(f'phase_cross_entropy(): Expected reduction to scalar, obtained {loss.shape} instead.')
 
-    return loss
+    return loss_val, loss
+
+
+def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
+    r"""
+    Sets the tokenizer.vocab_len if unset, to store the real vocabulary size according to the vocab or encoder.
+        Args:
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set vocab_len for.
+        Returns:
+
+    """
+    if not hasattr(tokenizer, 'vocab_len'):
+        if hasattr(tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
+            tokenizer.vocab_len = len(tokenizer.vocab)
+        elif hasattr(tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
+            tokenizer.vocab_len = len(tokenizer.encoder)
+        else:  # revert to vocab_size
+            tokenizer.vocab_len = tokenizer.vocab_size
 
 
 def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
@@ -954,11 +997,14 @@ def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
         Returns:
             result (:obj:`bool`, `required`)
     """
-    if len(tokenizer_to_check.vocab) != len(target_tokenizer.vocab):
+    set_vocab_len(tokenizer_to_check)
+    set_vocab_len(target_tokenizer)
+
+    if tokenizer_to_check.vocab_len != target_tokenizer.vocab_len:
         return False
 
-    to_check_vocab = tokenizer_to_check.batch_decode(range(len(tokenizer_to_check.vocab)))
-    target_vocab = target_tokenizer.batch_decode(range(len(target_tokenizer.vocab)))
+    to_check_vocab = tokenizer_to_check.batch_decode(range(tokenizer_to_check.vocab_len))
+    target_vocab = target_tokenizer.batch_decode(range(target_tokenizer.vocab_len))
 
     return to_check_vocab == target_vocab  # indexed tokenizer vocabularies should match
 
