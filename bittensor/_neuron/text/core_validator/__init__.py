@@ -60,32 +60,33 @@ install(show_locals=True)
 neuron_stats_columns = [
     ['UID', 'uid', '{:.0f}', 'cyan'],  # neuron UID
     ['Upd!', 'updates!', '{}', 'bright_yellow'],  # number of exponential moving average updates with zeroing on
-    ['mUpd', 'updates_shapley_values_min', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
     ['nUpd', 'updates_shapley_values_nxt', '{}', 'bright_yellow'],  # number of exponential moving average updates to nShap
+    ['mUpd', 'updates_shapley_values_min', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
+    ['nTime', 'response_time_nxt', '{:.2f}', 'yellow'],  # response time to TextCausalLMNext forward requests [TextCausalLMNext]
     ['sTime', 'response_time', '{:.2f}', 'yellow'],  # response time to TextCausalLM forward requests
-    ['nTime', 'response_time_nxt', '{:.2f}', 'yellow'],  # response time to TextCausalLMNext forward requests
     ['Route', 'routing_score', '{:.3f}', 'grey30'],  # validator routing score (higher preferred)
     ['Weight', 'weight', '{:.5f}', 'green'],  # weight set on substrate (each epoch)
+    ['nShap!', 'shapley_values_nxt!', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation (zeroing) [TextCausalLMNext]
+    ['nShap', 'shapley_values_nxt', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation [TextCausalLMNext]
     ['mShap!', 'shapley_values_min!', '{:.0f}', 'bright_magenta'],  # min(Shap, vShap) of sequence and validation Shapley (zeroing)
     ['mShap', 'shapley_values_min', '{:.0f}', 'bright_magenta'],  # min(Shap, vShap) of sequence and validation Shapley
     ['sLoss', 'loss', '{:.2f}', 'bright_cyan'],  # next token prediction loss average over sequence
     ['vLoss', 'loss_val', '{:.2f}', 'bright_cyan'],  # next token prediction loss for validation task
-    ['nLoss', 'loss_nxt', '{:.2f}', 'bright_cyan'],  # next token phrase prediction loss for phrase validation task
+    ['nvLoss', 'loss_val_nxt', '{:.2f}', 'bright_cyan'],  # next token prediction loss for validation task [TextCausalLMNext]
+    ['nLoss', 'loss_nxt', '{:.2f}', 'bright_cyan'],  # next token phrase prediction loss for phrase validation task [TextCausalLMNext]
     ['RLoss', 'routing_loss', '{:.3f}', 'grey30'],  # MSE between routing_score and conditioned loss
-    ['nRLoss', 'routing_loss_nxt', '{:.3f}', 'grey30'],  # MSE between routing_score_nxt and conditioned loss
+    ['nRLoss', 'routing_loss_nxt', '{:.3f}', 'grey30'],  # MSE between routing_score_nxt and conditioned loss [TextCausalLMNext]
     ['sShap', 'shapley_values', '{:.0f}', 'magenta'],  # Shapley value (=Base+Syn) over sequence
     ['vShap', 'shapley_values_val', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for validation
-    ['nShap!', 'shapley_values_nxt!', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation (zeroing)
-    ['nShap', 'shapley_values_nxt', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation
     ['sBase', 'base_params', '{:.0f}', ''],  # parameter count estimate via adjusted scaling law
     ['vBase', 'base_params_val', '{:.0f}', ''],  # parameter count estimate for validation task
-    ['nBase', 'base_params_nxt', '{:.0f}', ''],  # parameter count estimate for phrase validation task
+    ['nBase', 'base_params_nxt', '{:.0f}', ''],  # parameter count estimate for phrase validation task [TextCausalLMNext]
     ['sSyn', 'synergy', '{:.0f}', 'white'],  # Shapley pairwise synergy over sequence loss (parameter count estimate)
     ['vSyn', 'synergy_val', '{:.0f}', 'white'],  # Shapley pairwise synergy over validation loss (count estimate)
-    ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate)
+    ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate) [TextCausalLMNext]
     ['sSynD', 'synergy_loss_diff', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over sequence loss (loss difference)
     ['vSynD', 'synergy_loss_diff_val', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over validation loss (loss difference)
-    ['nSynD', 'synergy_loss_diff_nxt', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over phrase validation loss (loss difference)
+    ['nSynD', 'synergy_loss_diff_nxt', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over phrase validation loss (loss difference) [TextCausalLMNext]
 ]
 
 
@@ -163,7 +164,7 @@ class neuron:
 
         # === Neuron statistics variables ===
         self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
-        self.weight_key = 'shapley_values_min'  # stat key + ! to calculate neuron weights with
+        self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
         # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
         self.synapse_keys = ['shapley_values_min', 'shapley_values_nxt']
         self.neuron_stats = {}
@@ -269,10 +270,10 @@ class neuron:
         # === Backward ===
         # Backwards gradients through model to train gating and remote endpoints.
         if hasattr(loss, 'grad_fn') and loss.grad_fn is not None:
-            print(f'Backward \t| Loss: {loss:.3f} ... backpropagation ... ', end='')
+            logger.info(f'Backward <dim>(loss: {loss:.3f})</dim>')
             start_time = time.time()
             (loss / self.config.neuron.forward_num).backward()
-            print(f'complete [{time.time() - start_time:.3g}s]')
+            logger.info(f'Backward <dim>[{time.time() - start_time:.3g}s]</dim>')
 
         return loss, stats
 
@@ -364,11 +365,11 @@ class neuron:
             current_block = self.subtensor.block
             step_time = time.time() - start_time
 
-            print(f'UID {self.uid}   \t| '
-                  f'Updated {current_block - self.metagraph.last_update[self.uid]} [white]blocks ago[/white] | '
-                  f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
-                  f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
-                  f'[dim](retrieved {current_block - start_block} blocks ago from {self.subtensor.network})[/dim]')
+            logger.info(f'UID {self.uid}   \t| '
+                        f'Updated {current_block - self.metagraph.last_update[self.uid]} <dim>blocks ago</dim> | '
+                        f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
+                        f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
+                        f'<dim>(retrieved {current_block - start_block} blocks ago from {self.subtensor.network})</dim>')
 
             # === Print stats update (table) ===
             # Prints exponential moving average statistics of valid neurons from latest validator forward
@@ -397,14 +398,14 @@ class neuron:
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
                 start_time = time.time()
-                print('Model update \t| Optimizer step ... ', end='')
+                logger.info('Model update \t| Optimizer step')
 
                 # === Apply gradients ===
                 # Applies local gradients to parameters.
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                print(f'complete \[{time.time() - start_time:.3g}s]')
+                logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
                 
                 # === Get another round of forward requests ===
                 self.forward_thread_queue.resume()
@@ -462,17 +463,12 @@ class neuron:
                 stats.setdefault('updates!', 1)  # number of EMA zeroing updates init to zero
 
             for key in self.synapse_keys:
-                zkey = key + '!'
-                if zkey in stats:
-                    if key in _stats:
-                        stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
-                    else:
-                        stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
+                zkey = key + '!'  # zeroing key
+                stats.setdefault(zkey, 0.)  # initialize zkey val to zero to gradually increase with observations
+                if key in _stats and not math.isnan(_stats[key]):
+                    stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
                 else:
-                    if key in _stats:
-                        stats[zkey] = _stats[key]
-                    else:
-                        stats.setdefault(zkey, 0.)
+                    stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
 
             # === EMA normal update ===
             # If synapse responsive push available values into EMA for normal update.
@@ -486,6 +482,8 @@ class neuron:
                         stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
             for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                if math.isnan(_stats[key]):
+                    continue
                 if key in stats:
                     stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
                 else:
@@ -639,7 +637,6 @@ class nucleus( torch.nn.Module ):
                     Statistics per endpoint for this batch.
         """
         start_time = time.time()
-        print(f'Forward \t| Model forward ... ', end='')
 
         val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         inputs = inputs.to(self.device)
@@ -683,8 +680,8 @@ class nucleus( torch.nn.Module ):
         # Ensure number of queried neurons does not exceed metagraph.n
         num_endpoints = min([self.config.nucleus.topk, metagraph.n])
 
-        print(f'complete \[{time.time() - start_time:.3g}s]')
-        print(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} ... ', end='')
+        logger.info(f'Forward \t| Routing forward <dim>[{time.time() - start_time:.3g}s]</dim>')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}')
         request_start_time = time.time()
 
         # === Randomly select num_endpoints UIDs ===
@@ -729,7 +726,8 @@ class nucleus( torch.nn.Module ):
             for response in responses:
                 response.to(self.device)
 
-        print(f'complete \[{time.time() - request_start_time:.3g}s]')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} '
+                    f'<dim>[{time.time() - request_start_time:.3g}s]</dim>')
 
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
@@ -808,6 +806,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
         for target, _ext in [(inputs_seq[:, 1:], ''), (inputs_val, '_val')]:
             _loss = calc_loss_fct(loss_fct, _stats['logits' + _ext], target)  # CausalLM loss
+            if _loss.isnan() or _loss.isinf():
+                _loss = 20  # assign large loss
             _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
 
             _stats.update({'loss' + _ext: _loss, 'base_params' + _ext: _num_params,
@@ -821,13 +821,14 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
         return measured_loss
 
-    print(f'\[{str(synapse)}] Shapley values \t| Calculating base ... ', end='')
     shapley_start_time = time.time()
 
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='')
 
-    print(f'\[{time.time() - shapley_start_time:.3g}s] | synergy ... ', end='')
+    logger.info(f'{str(synapse)} \t| Shapley base values <dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
+
+    synergy_start_time = time.time()
 
     syn_loss_diff = shapley_synergy(stats, _synergy, ext='', target=inputs_seq[:, 1:])
     syn_loss_diff_val = shapley_synergy(stats, _synergy, ext='_val', target=inputs_val)
@@ -849,7 +850,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    print(f'complete \[{time.time() - shapley_start_time:.3g}s]')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     # === Synergy table ===
     # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
@@ -915,27 +916,32 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         # floor_probs: [batch_size] Floor probabilities as mean probability for non-topk tokens.
         # inputs_nxt: [batch_size] Target phrases in standard token sequence list.
 
-        _losses = phrase_cross_entropy(inputs_nxt, topk_tokens, topk_probs, floor_probs, reduce=False)  # [batch_size]
+        _losses_val, _losses = phrase_cross_entropy(inputs_nxt, topk_tokens, topk_probs, floor_probs, reduce=False)
+        _losses_val[_losses_val.isnan()] = 20  # assign large loss
+        _losses[_losses.isnan()] = 20  # assign large loss
+        _loss_val = _losses_val.mean()
         _loss = _losses.mean()
+
         _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
 
-        _stats.update({'losses_nxt': _losses, 'loss_nxt': _loss,
+        _stats.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss,
                        'base_params_nxt': _num_params, 'synergy_nxt': 0, 'synergy_loss_diff_nxt': 0})
 
     def _synergy(first, second, target, ext):
         # average first + second probabilities per batch item, convert to loss
         measured_loss = -torch.log((torch.exp(-first['losses_nxt']) +
-                                    torch.exp(-second['losses_nxt'])) / 2).mean()
+                                    torch.exp(-second['losses_nxt'])) / 2 + 1e-40).mean()
 
         return measured_loss
 
-    print(f'\[{str(synapse)}] Shapley values \t| Calculating base ... ', end='')
     shapley_start_time = time.time()
 
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='_nxt')
 
-    print(f'\[{time.time() - shapley_start_time:.3g}s] | synergy ... ', end='')
+    logger.info(f'{str(synapse)} \t| Shapley base values <dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
+
+    synergy_start_time = time.time()
 
     syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt')
 
@@ -952,7 +958,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    print(f'complete \[{time.time() - shapley_start_time:.3g}s]')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     # === Synergy table ===
     # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
@@ -1177,7 +1183,7 @@ def unsuccess(_name, _unsuccessful):
     r""" Prints the return codes and response times of unsuccessful responses
     """
     # === Unsuccessful responses ===
-    unsuccess_txt = f'\[{_name}] Unsuccessful \t| [cyan]UID[/cyan]\[[red]return_op[/red] [yellow]time[/yellow]]: '
+    unsuccess_txt = f'{_name} \t| Unsuccessful <cyan>UID</cyan>[<red>return_op</red> <yellow>time</yellow>]: '
     for _uid, _return_op, _time in _unsuccessful:
-        unsuccess_txt += f'{_uid}[[red]{_return_op}[/red] [yellow not bold]{_time:.2f}[/yellow not bold]] '
-    print(unsuccess_txt)
+        unsuccess_txt += f'{_uid}[<red>{_return_op}</red> <yellow>{_time:.2f}</yellow>] '
+    logger.info(unsuccess_txt)
