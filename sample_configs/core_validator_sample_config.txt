@@ -18,16 +18,16 @@ logging.logging_dir: ~/.bittensor/miners
 logging.record_log: false
 logging.trace: false
 
-neuron.name = core_validator
-neuron.learning_rate = 0.1 
-neuron.momentum = 0.8 
-neuron.blocks_per_epoch = 1000 
-neuron.epochs_until_reset = 10 
-neuron.n_topk_peer_weights = 250 
-neuron.device = cpu
-neuron.clip_gradients = 1.0 
-neuron.restart_on_failure = True
-neuron._mock = False
+neuron.name: core_validator
+neuron.learning_rate: 0.1 
+neuron.momentum: 0.8 
+neuron.blocks_per_epoch: 1000 
+neuron.epochs_until_reset: 10 
+neuron.n_topk_peer_weights: 250 
+neuron.device: cpu
+neuron.clip_gradients: 1.0 
+neuron.restart_on_failure: True
+neuron._mock: False
 
 nucleus.dropout: 0.2
 nucleus.importance: 0.01
