@@ -1041,8 +1041,8 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
                 stats[_uid] = _stats
             except Exception as e:
-                logger.warning(f'Synapse {index_s} shapley_base error\t| '
-                               f'UID {_uid} <dim>[{times[index][index_s]}s]</dim>: {e}')
+                logger.warning(f'Synapse {index_s} error (shapley_base)\t| '
+                               f'UID {_uid} <dim>[{times[index][index_s]:.2f}s]</dim>: {e}')
                 stats[_uid] = _stats
                 unsuccessful += [(_uid, return_ops[index][index_s], times[index][index_s])]
         else:
