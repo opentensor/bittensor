@@ -1024,21 +1024,27 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                       'response_time' + ext: times[index][index_s],
                       'routing_score': routing_score[_uid]}
 
-            base_params(_stats, query_responses[index][index_s])
+            try:
+                base_params(_stats, query_responses[index][index_s])
 
-            neuron_loss += _stats['loss' + ext]  # add sequence loss to be backward() to neuron
+                neuron_loss += _stats['loss' + ext]  # add sequence loss to be backward() to neuron
 
-            # === Add routing loss ===
-            # MSE loss between predicted routing score and ideal target routing score.
-            # The Bayes risk approx. 1.69, i.e. the minimal loss achievable for next-token
-            # prediction on the full distribution 𝑃, a.k.a the "entropy of natural text"
-            # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
-            routing_score_target = torch.exp(-torch.clamp(_stats['loss' + ext].detach() - 1.69, 0))
-            _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
-            routing_loss += _routing_loss
-            _stats.update({'routing_score_target' + ext: routing_score_target, 'routing_loss' + ext: _routing_loss})
+                # === Add routing loss ===
+                # MSE loss between predicted routing score and ideal target routing score.
+                # The Bayes risk approx. 1.69, i.e. the minimal loss achievable for next-token
+                # prediction on the full distribution 𝑃, a.k.a the "entropy of natural text"
+                # Hoffmann, Jordan, et al. "Training Compute-Optimal Large Language Models." arXiv:2203.15556 (2022).
+                routing_score_target = torch.exp(-torch.clamp(_stats['loss' + ext].detach() - 1.69, 0))
+                _routing_loss = (routing_score[_uid] - routing_score_target) ** 2  # MSE loss
+                routing_loss += _routing_loss
+                _stats.update({'routing_score_target' + ext: routing_score_target, 'routing_loss' + ext: _routing_loss})
 
-            stats[_uid] = _stats
+                stats[_uid] = _stats
+            except Exception as e:
+                logger.warning(f'Synapse {index_s} error (shapley_base)\t| '
+                               f'UID {_uid} <dim>[{times[index][index_s]:.2f}s]</dim>: {e}')
+                stats[_uid] = _stats
+                unsuccessful += [(_uid, return_ops[index][index_s], times[index][index_s])]
         else:
             stats[_uid] = {'uid': _uid,
                            'response_time' + ext: times[index][index_s],
