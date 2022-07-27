@@ -39,7 +39,7 @@ At Bittensor, we are creating an open, decentralized, peer-to-peer network that 
 https://opentensor.gitbook.io/bittensor/
 
 ## 2. Install
-Three ways to install Bittensor. 
+Three ways to install Bittensor
 
 1. Through the installer:
 ```
