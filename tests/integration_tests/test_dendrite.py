@@ -266,13 +266,13 @@ def test_dend_del():
 def test_successful_synapse():
     wallet = bittensor.wallet()
     def forward_generate( inputs_x, synapse, model_output = None):
-        return None, torch.rand(inputs_x.shape[0], synapse.num_to_generate)
+        return None, None, torch.rand(inputs_x.shape[0], synapse.num_to_generate)
 
     def forward_hidden_state( inputs_x, synapse, model_output = None):
-        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
+        return None, None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
 
     def forward_casual_lm(inputs_x, synapse, model_output = None):
-        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+        return None, None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
 
     axon = bittensor.axon (
         port = 8096,
@@ -312,10 +312,10 @@ def test_failing_synapse():
         raise UnknownException
 
     def forward_hidden_state( inputs_x, synapse, model_output = None):
-        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
+        return None, None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
 
     def forward_casual_lm(inputs_x, synapse, model_output = None):
-        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+        return None, None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
 
     axon = bittensor.axon (
         port = 8097,
@@ -357,10 +357,10 @@ def test_failing_synapse():
 def test_missing_synapse():
     wallet = bittensor.wallet()
     def forward_hidden_state( inputs_x, synapse, model_output = None):
-        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
+        return None, None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
 
     def forward_casual_lm(inputs_x, synapse, model_output = None):
-        return None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+        return None, None, torch.rand(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
 
     axon = bittensor.axon (
         port = 8098,
