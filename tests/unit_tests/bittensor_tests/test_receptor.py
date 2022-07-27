@@ -418,16 +418,16 @@ def test_receptor_backward_endpoint_exception():
 
 def test_axon_receptor_connection_forward_works():
     def forward_generate( input, synapse, model_output = None):
-        return None, torch.zeros( [3, 70])
+        return None, None, torch.zeros( [3, 70])
 
     def forward_hidden_state( input, synapse, model_output = None):
-        return None, torch.zeros( [3, 3, bittensor.__network_dim__])
+        return None, None, torch.zeros( [3, 3, bittensor.__network_dim__])
 
     def forward_casual_lm( input, synapse, model_output = None):
-        return None, torch.zeros( [3, 3, bittensor.__vocab_size__])
+        return None, None, torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     def forward_casual_lm_next(input, synapse, model_output=None):
-        return None, torch.zeros([3 * (2 * synapse.topk + 1)])
+        return None, None, torch.zeros([3 * (2 * synapse.topk + 1)])
 
     axon = bittensor.axon (
         port = 8081,
@@ -464,16 +464,16 @@ def test_axon_receptor_connection_forward_works():
 
 def test_axon_receptor_connection_forward_unauthenticated():
     def forward_generate( input, synapse, model_output = None ):
-        return None, torch.zeros( [3, 70])
+        return None, None, torch.zeros( [3, 70])
 
     def forward_hidden_state( input, synapse, model_output = None ):
-        return None, torch.zeros( [3, 3, bittensor.__network_dim__])
+        return None, None, torch.zeros( [3, 3, bittensor.__network_dim__])
 
     def forward_casual_lm( input, synapse, model_output = None ):
-        return None, torch.zeros( [3, 3, bittensor.__vocab_size__])
+        return None, None, torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     def forward_casual_lm_next(input, synapse, model_output=None):
-        return None, torch.zeros([3 * (2 * synapse.topk + 1)])
+        return None, None, torch.zeros([3 * (2 * synapse.topk + 1)])
 
     axon = bittensor.axon (
         port = 8081,
