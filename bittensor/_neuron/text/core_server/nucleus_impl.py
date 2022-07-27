@@ -10,7 +10,7 @@ from typing import Tuple, Optional
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import get_translation_map, translate_logits_to_probs_std, \
-    translate_special_token_text, pad_offsets, topk_token_phrases, set_vocab_len
+    translate_special_token_text, pad_offsets, topk_token_phrases
 
 from loguru import logger; logger = logger.opt(colors=True)
 
@@ -76,6 +76,16 @@ class server(torch.nn.Module):
             self.pre_model = model if model != None else AutoModel.from_config(model_config)
             self.tokenizer = bittensor.tokenizer()
 
+        # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
+        # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
+        if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
+            self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
+
+        self.tokenizer = self.std_tokenizer.prep_tokenizer(self.tokenizer)
+        self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
+        self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
+        self.split_map_cache = {}
+
         if self.config.neuron.local_train or self.config.neuron.remote_train:
             self.pre_model.train()
         else:
@@ -83,20 +93,6 @@ class server(torch.nn.Module):
 
         if self.config.neuron.autocast and self.device[:4] == 'cuda':
             self.pre_model.half()
-
-        # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
-        self.tokenizer.padding_side = "left"
-
-        # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
-        # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
-        if self.tokenizer.pad_token is None and self.tokenizer.eos_token is not None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-        if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
-            self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
-
-        self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
-        self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
-        self.split_map_cache = {}
 
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__

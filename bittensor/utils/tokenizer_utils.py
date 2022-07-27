@@ -765,6 +765,10 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
         set_vocab_len(tokenizer)
         tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
 
+        set_whitespace_preserving(tokenizer)
+        if not tokenizer.whitespace_preserving:
+            tokenizer.phrases = [' ' + phrase for phrase in tokenizer.phrases]
+
     tensors = []
     tokens_batch = []
 
@@ -859,15 +863,15 @@ def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_ind
 
     tokens_batch += [phrases]
 
+    # === Check batch items for same topk ===
+    if 0 < sum([not len(phrases) == topk for phrases in tokens_batch]):
+        raise ValueError('reshape_topk_token_phrases(): topk lengths unmatched.')
+
     probs_batch += [torch.stack(probs)]
     topk_probs = torch.vstack(probs_batch)  # [batch_size, topk] phrase probability
 
     floor_probs += [prob]  # last floor probability
     floor_probs = torch.stack(floor_probs)  # [batch_size] floor probabilities as mean probability for non-topk tokens
-
-    # === Check batch items for same topk ===
-    if 0 < sum([not len(phrases) == topk for phrases in tokens_batch]):
-        raise ValueError('reshape_topk_token_phrases(): topk lengths unmatched.')
 
     # === Tensorize topk token selection ===
     max_len = max([max([len(phrase) for phrase in phrases]) for phrases in tokens_batch])  # max_len
@@ -982,6 +986,25 @@ def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
             tokenizer.vocab_len = len(tokenizer.encoder)
         else:  # revert to vocab_size
             tokenizer.vocab_len = tokenizer.vocab_size
+
+
+def set_whitespace_preserving(tokenizer: PreTrainedTokenizerBase):
+    r"""
+    Sets the tokenizer.whitespace_preserving if unset, indicates if tokenizer preserves whitespace like GPT-style,
+    or not like BERT-style.
+        Args:
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set vocab_len for.
+        Returns:
+
+    """
+    if not hasattr(tokenizer, 'whitespace_preserving'):
+        space_token = tokenizer(' ', add_special_tokens=False)['input_ids']
+        space_text = tokenizer.decode(space_token)
+        if space_text == ' ':
+            tokenizer.whitespace_preserving = True
+        else:
+            tokenizer.whitespace_preserving = False
 
 
 def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
