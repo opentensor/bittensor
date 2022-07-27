@@ -19,7 +19,7 @@
 
 from transformers import AutoTokenizer
 import bittensor
-from bittensor.utils.tokenizer_utils import set_vocab_len, set_whitespace_preserving
+from bittensor.utils.tokenizer_utils import prep_tokenizer
 
 
 class tokenizer:
@@ -46,46 +46,5 @@ class tokenizer:
         """ Return the GPT2 tokenizer with bittersor's special tokens
         """
         _tokenizer = AutoTokenizer.from_pretrained('gpt2', local_files_only=False)
-        _tokenizer = cls.prep_tokenizer(_tokenizer)
+        _tokenizer = prep_tokenizer(_tokenizer)
         return _tokenizer
-    
-    @staticmethod
-    def prep_tokenizer(tokenizer):
-        tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
-        # tokenizer.add_prefix_space = False
-        # tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
-        # tokenizer.add_special_tokens({'eos_token': "[EOS]"}) # A special token representing the end of a sentence.
-        # tokenizer.add_special_tokens({'unk_token': "[UNK]"}) # A special token representing an out-of-vocabulary token.
-        # tokenizer.add_special_tokens({'sep_token': "[SEP]"}) # A special token separating two different sentences in the same input (used by BERT for instance)
-        # tokenizer.add_special_tokens({'pad_token': "[PAD]"}) # A special token used to make arrays of tokens the same size for batching purpose. Will then be ignored by attention mechanisms or loss computation.
-        # tokenizer.add_special_tokens({'cls_token': "[CLS]"}) # A special token representing the class of the input (used by BERT for instance).
-        # tokenizer.add_special_tokens({'mask_token': "[MASK]"}) # A special token representing a masked token (used by masked-language modeling pretraining objectives, like BERT).
-        # additional_special_tokens = [
-        #     "<s>NOTUSED",  # Used by BARThez
-        #     "</s>NOTUSED", # Used by BARThez
-        #     "<eop>", # Used by MarianMT
-        #     "<eod>", # Used by MarianMT
-        #     "<formula>", # Used by Transformer XL
-        #     "<mask_1>" # Used by Pegasus
-        #     "<special0>", # Used by XLM
-        #     "<special1>", # Used by XLM
-        #     "<special2>", # Used by XLM
-        #     "<special3>", # Used by XLM
-        #     "<special4>", # Used by XLM
-        #     "<special5>", # Used by XLM
-        #     "<special6>", # Used by XLM
-        #     "<special7>", # Used by XLM
-        #     "<special8>", # Used by XLM
-        #     "<special9>", # Used by XLM
-        # ]
-        # tokenizer.additional_special_tokens = additional_special_tokens
-
-        # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
-        # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
-        if tokenizer.pad_token is None and tokenizer.eos_token is not None:
-            tokenizer.pad_token = tokenizer.eos_token
-        set_vocab_len(tokenizer)
-        set_whitespace_preserving(tokenizer)
-
-        return tokenizer
-    

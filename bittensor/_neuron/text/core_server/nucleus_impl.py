@@ -9,7 +9,7 @@ from typing import Tuple, Optional
 
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
-from bittensor.utils.tokenizer_utils import get_translation_map, translate_logits_to_probs_std, \
+from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map, translate_logits_to_probs_std, \
     translate_special_token_text, pad_offsets, topk_token_phrases
 
 from loguru import logger; logger = logger.opt(colors=True)
@@ -81,7 +81,7 @@ class server(torch.nn.Module):
         if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
             self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
 
-        self.tokenizer = self.std_tokenizer.prep_tokenizer(self.tokenizer)
+        self.tokenizer = prep_tokenizer(self.tokenizer)
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
         self.split_map_cache = {}
