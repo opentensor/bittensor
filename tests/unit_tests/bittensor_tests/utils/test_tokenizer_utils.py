@@ -392,8 +392,8 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
 
     last_logits = dec_pre_logits[:, -1, :]  # last token predictions: [batch_size, vocab_size]
 
-    result = topk_token_phrases(last_logits, tokenizer, std_tokenizer, topk=topk)
-    compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
+    topk_tensor = topk_token_phrases(last_logits, tokenizer, topk=topk)  # [batch_size * (topk + 1), max_len]
+    compact_topk = compact_topk_token_phrases(topk_tensor)
     # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
     topk_tokens, topk_probs, floor_probs = unravel_topk_token_phrases(compact_topk, topk=topk)
@@ -547,8 +547,8 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
         target_phrases = tokenizer.batch_decode(tokens['input_ids'][:, last_idx+1:])
         target_phrases = std_tokenizer(target_phrases)['input_ids']
 
-        result = topk_token_phrases(last_logits, tokenizer, std_tokenizer, topk=topk)
-        compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
+        topk_tensor = topk_token_phrases(last_logits, tokenizer, topk=topk)  # [batch_size * (topk + 1), max_len]
+        compact_topk = compact_topk_token_phrases(topk_tensor)
         # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
         topk_tokens, topk_probs, floor_probs = unravel_topk_token_phrases(compact_topk, topk=topk)

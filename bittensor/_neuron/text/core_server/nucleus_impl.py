@@ -10,7 +10,7 @@ from typing import Tuple, Optional
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map, translate_logits_to_probs_std, \
-    translate_special_token_text, pad_offsets, topk_token_phrases
+    translate_special_token_text, pad_offsets, topk_token_phrases, compact_topk_token_phrases
 
 from loguru import logger; logger = logger.opt(colors=True)
 
@@ -432,8 +432,8 @@ class server(torch.nn.Module):
 
             # Select topk tokenizer logits and retokenize with std_tokenizer,
             # then compact new token phrases and probabilities into 1-D tensor
-            result = topk_token_phrases(last_logits, self.tokenizer, std_tokenizer, topk=topk)
-            compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
+            topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size * (topk + 1), max_len]
+            compact_topk = compact_topk_token_phrases(topk_tensor)
             # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids'])
