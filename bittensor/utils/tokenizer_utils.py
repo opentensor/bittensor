@@ -891,8 +891,8 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
 
 
 def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
-                         topk_tokens: torch.Tensor, topk_probs: torch.Tensor, floor_probs: torch.Tensor,
-                         ignore_index: int = -100, reduce=True, reduction='mean',
+                         topk_tensor: torch.Tensor,
+                         topk: int, ignore_index: int = -100, reduce=True, reduction='mean',
                          vocab_size_min: int = 50257) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
     Calculates the cross entropy of a phrase prediction against a target phrase, so that this is a multi-token
@@ -900,12 +900,21 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
         Args:
             target_phrases (:obj:`List[List[int]]`, `required`):
                 [batch_size, *] Target phrases in standard token sequence list.
-            topk_tokens (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
-            topk_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk] Probabilities for each phrase in topk.
-            floor_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size] Floor probabilities as mean probability for non-topk tokens.
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size * (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+                Content structure:
+                [[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                 [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                 [...],
+                 [prob_floor_b=0, ignore_index, ..., ignore_index],
+                 [prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                 [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                 [...],
+                 [prob_floor_b=1, ignore_index, ..., ignore_index],
+                 [...]]
+            topk (:obj:`int`, `required`):
+                Amount of top phrases to expect.
             ignore_index (:obj:`int`, `optional`):
                 Padding value to use for unfilled token positions in a shorter token phrase.
             reduce (:obj:`bool`, `optional`):
@@ -922,7 +931,15 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                 Phrase cross entropy loss, either scalar if reduce or [batch_size].
     """
 
-    batch_size, topk, max_len = topk_tokens.shape
+    first_dim, max_len = topk_tensor.shape  # [batch_size * (topk + 1), max_len]
+    batch_size = first_dim // (topk + 1)
+    assert first_dim == batch_size * (topk + 1)
+
+    topk_tensor_reshape = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len]
+
+    topk_tokens = topk_tensor_reshape[:, :-1, 1:]  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+    topk_probs = topk_tensor_reshape[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+    floor_probs = topk_tensor_reshape[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
 
     # === Ensure total probability is 1 ===
     total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
