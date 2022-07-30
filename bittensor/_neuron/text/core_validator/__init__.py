@@ -909,8 +909,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     inputs_nxt = inputs[..., -validation_len:]  # input validation with next token target phrase [batch_size, val_len]
 
     def _base_params(_stats, query_response):
-        topk_tensor = unravel_topk_token_phrases(query_response, topk=synapse.topk)  # [batch_size, topk + 1, max_len]
-        _losses_val, _losses = phrase_cross_entropy(inputs_nxt, topk_tensor, reduce=False)
+        # topk_tensor = unravel_topk_token_phrases(query_response, topk=synapse.topk)  # [batch_size, topk + 1, max_len]
+        _losses_val, _losses = phrase_cross_entropy(inputs_nxt, query_response, reduce=False)
         _losses_val[_losses_val.isnan()] = 20  # assign large loss
         _losses[_losses.isnan()] = 20  # assign large loss
         _loss_val = _losses_val.mean()

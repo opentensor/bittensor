@@ -18,6 +18,7 @@
 import bittensor
 import torch
 from .synapse_impl import Synapse
+from bittensor.utils.tokenizer_utils import compact_topk_token_phrases, unravel_topk_token_phrases
 
 
 class TextCausalLMNext(Synapse):
@@ -140,10 +141,15 @@ class TextCausalLMNext(Synapse):
         return forward_request_tensor
 
     def encode_forward_response_tensor(self, forward_response_tensor: torch.Tensor) -> torch.Tensor:
-        return forward_response_tensor
+        """ Compact [batch_size, (topk + 1), max_len] topk std_token_phrases to [ >= batch_size * (2 * topk + 1)]. """
+        compact_topk = compact_topk_token_phrases(forward_response_tensor)
+        # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
+        return compact_topk
 
     def decode_forward_response_tensor(self, forward_response_tensor: torch.Tensor) -> torch.Tensor:
-        return forward_response_tensor
+        """ Unravel [ >= batch_size * (2 * topk + 1)] into [batch_size, (topk + 1), max_len] topk std_token_phrases. """
+        topk_tensor = unravel_topk_token_phrases(forward_response_tensor, topk=self.topk)
+        return topk_tensor  # [batch_size, (topk + 1), max_len]
 
     def encode_backward_response_gradient(self, backward_request_gradient: torch.Tensor) -> torch.Tensor:
         return backward_request_gradient
