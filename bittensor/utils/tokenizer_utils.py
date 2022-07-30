@@ -791,6 +791,45 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
     return topk_tensor  # [batch_size * (topk + 1), max_len] (probability gradients attached in first column)
 
 
+def compact_topk_token_phrases(topk_tensor: torch.Tensor):
+    r"""
+    Compact 2D topk_tensor [batch_size * (topk + 1), max_len] by removing ignore_index padding, and also offset
+    tokens by 2 to preserve [0, 1] for probabilities to allow for proper unraveling demarcated by
+    probability boundaries.
+        Args:
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size * (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+                Content structure:
+                [[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                 [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                 [...],
+                 [prob_floor_b=0, ignore_index, ..., ignore_index],
+                 [prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                 [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                 [...],
+                 [prob_floor_b=1, ignore_index, ..., ignore_index],
+                 [...]]
+
+        Returns:
+            compact_topk (:obj:`torch.Tensor`, `required`):
+                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
+                since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
+                floor probability (rest).
+                Content structure:
+                    [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
+                     prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
+                     ...]
+    """
+    topk_tensor_offset = topk_tensor.clone()  # assume topk_tensor may be reused elsewhere so clone
+    topk_tensor_offset[:, 1:] += 2  # add 2 to token ids to preserve [0, 1] for probabilities (in first column)
+
+    flattened = topk_tensor_offset.flatten()  # [batch_size * (topk + 1) * max_len] 1D tensor
+    compact_topk = flattened[flattened > -1]  # remove ignore_index < -1 padding to compact content
+
+    return compact_topk  # [>= batch_size * (2 * topk + 1)]
+
+
 def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_index: int = -100) -> Tuple[torch.Tensor,
                                                                                                          torch.Tensor,
                                                                                                          torch.Tensor]:
