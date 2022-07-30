@@ -707,49 +707,47 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
     return probs_std  # [batch_size, std_sequence_len, std_vocab_size]
 
 
-def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase, to_tokenizer: PreTrainedTokenizerBase,
-                       topk: int, ignore_index: int = -100) -> Tuple[torch.Tensor,
-                                                                     torch.Tensor,
-                                                                     torch.Tensor,
-                                                                     torch.Tensor]:
+def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
+                       topk: int, ignore_index: int = -100) -> torch.Tensor:
     r"""
-    Select topk tokenizer logits and retokenize with to_tokenizer, then compact new token phrases and probabilities
-    into 1-D tensor [ >= batch_size * (2 * topk + 1)] prob + at least 1 token per phrase + floor_prob.
-    The floor probability is the mean probability of token phrases not captured in topk, required since
-    the tokenizer vocab_size may not be known to the receiver.
+    Select topk tokenizer logits/phrases and include std_token_phrases counterparts (std_tokenization of token text)
+    in topk_tensor output of shape [batch_size * (topk + 1), max_len], where max len of all phrase lists
+    (with prob in front) is max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...])).
+    The output topk_tensor also includes a floor_prob for each batch item. The floor probability is the
+    mean probability of token phrases not captured in topk, required since the tokenizer vocab_size may
+    not be known to the receiver.
+    Requires prep_tokenizer(tokenizer, std_tokenizer) to set_std_token_phrases first, to make
+    std_token_phrases available here.
         Args:
             logits (:obj:`torch.Tensor`, `required`):
                 [batch_size, vocab_size] Input source logits for last token over a source tokenizer vocabulary.
             tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
                 Source tokenizer (usually server tokenizer)
-            to_tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                Target tokenizer (usually standard validator tokenizer)
             topk (:obj:`int`, `required`):
                 Amount of top phrases to expect (to check for mismatch)
             ignore_index (:obj:`int`, `optional`):
                 Padding value to use for unfilled token positions in a shorter token phrase.
 
         Returns:
-            compact_topk (:obj:`torch.Tensor`, `required`):
-                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
-                since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
-                floor probability (rest).
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size * (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
                 Content structure:
-                [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
-                 prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
-                 ...]
-            topk_tokens (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
-            topk_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk] Probabilities for each phrase in topk.
-            floor_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size] Floor probabilities as mean probability for non-topk tokens.
+                [[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                 [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                 [...],
+                 [prob_floor_b=0, ignore_index, ..., ignore_index],
+                 [prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                 [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                 [...],
+                 [prob_floor_b=1, ignore_index, ..., ignore_index],
+                 [...]]
     """
     # Get shape sizes
     batch_size, vocab_size = logits.shape  # [batch_size, vocab_size] only last token prediction
 
     # Convert logits to probabilities
-    logits = logits.to('cpu').float()  # ensure further computations done in float32 for improved precision
+    logits = logits.float()  # ensure further computations done in float32 for improved precision
     probs = torch.softmax(logits, dim=1)  # [batch_size, vocab_size]
 
     # TopK phrase selection
@@ -760,49 +758,37 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
     remainder_pmass = torch.clamp(1 - topk_pmass, 1e-40, 1)  # [batch_size] remainder probability mass
     floor_probs = remainder_pmass / (vocab_size - topk)  # [batch_size]divide remainder
 
-    # === Tokenizer phrases to memory ===
-    if not hasattr(tokenizer, 'phrases'):
-        set_vocab_len(tokenizer)
-        tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
+    # convert to list for faster iteration in list comprehension
+    topk_probs_list = topk_probs.tolist()
+    topk_indices_list = topk_indices.tolist()
+    floor_probs_list = floor_probs.tolist()
 
-        set_whitespace_preserving(tokenizer)
-        if not tokenizer.whitespace_preserving:
-            tokenizer.phrases = [' ' + phrase for phrase in tokenizer.phrases]
+    # === Construct topk phrases list ===
+    probs = []  # collect probability tensors with gradients attached (to be grafted into topk_tensor)
+    phrases = []  # form topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
 
-    tensors = []
-    tokens_batch = []
-
-    # === Construct topk batch ===
     for b in range(batch_size):
-        # Select topk phrases
-        phrases = [tokenizer.phrases[i] for i in topk_indices[b]]  # str[topk]
+        # collect probability tensors with gradients attached (to be grafted into topk_tensor)
+        probs += [topk_probs[b], floor_probs[b]]  # [tensor(prob_k=0_b, prob_k=1_b, ...), tensor(prob_floor_b)]
 
-        # Retokenize phrases to new tokenizer
-        to_tokens = to_tokenizer(phrases)['input_ids']  # [topk, max_len] convert phrases to tokens sequences
+        # form topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
+        phrases += [[prob] + tokenizer.std_token_phrases[i]
+                    for prob, i in zip(topk_probs_list[b], topk_indices_list[b])]  # [prob_k, tok_0_k, tok_1_k, ...]
 
-        token_phrases = []
-        # === Reassemble topk info ===
-        for i in range(topk):
-            phrase_tensor = torch.tensor(to_tokens[i], requires_grad=True, dtype=torch.float)
-            token_phrases += [phrase_tensor]
-            tensors += [topk_probs[b, i], phrase_tensor + 2]  # increment 2 to reserve [0, 1] for probs
+        # also add prob_floor for batch item
+        phrases += [[floor_probs_list[b]]]  # [prob_floor_b]
 
-        tensors += [floor_probs[b]]
-        tokens_batch += [token_phrases]
+    # determine width of topk_tensor as max len of all phrase lists (with prob in front)
+    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
 
-    compact_topk = torch.hstack(tensors).float()  # [sum_b(sum_k(len(phrase_k) + 1)_b)]
+    # form single 2D tensor with all phrase and probs (typically to send to axon wire encoding)
+    topk_tensor = torch.tensor([p + [ignore_index] * (max_len - len(p))
+                                for p in phrases]).to(logits.device)  # [batch_size * (topk + 1), max_len]
 
-    # === Tensorize topk token selection ===
-    max_len = max([max([len(phrase) for phrase in phrases]) for phrases in tokens_batch])  # max_len
-    topk_tokens = ignore_index * torch.ones((len(tokens_batch), topk, max_len))  # [batch_size, topk, max_len]
+    # grafting probability tensors into first column to attach gradients
+    topk_tensor[:, 0] = torch.hstack(probs)  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
-    for b, phrases in enumerate(tokens_batch):
-        for k, phrase in enumerate(phrases):
-            topk_tokens[b, k, :len(phrase)] = phrase
-
-    topk_tokens = topk_tokens.to(int)
-
-    return compact_topk, topk_tokens, topk_probs, floor_probs
+    return topk_tensor  # [batch_size * (topk + 1), max_len] (probability gradients attached in first column)
 
 
 def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_index: int = -100) -> Tuple[torch.Tensor,
