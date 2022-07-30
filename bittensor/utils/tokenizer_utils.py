@@ -970,43 +970,6 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
     return loss_val, loss
 
 
-def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
-    r"""
-    Sets the tokenizer.vocab_len if unset, to store the real vocabulary size according to the vocab or encoder.
-        Args:
-            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                Tokenizer to set vocab_len for.
-        Returns:
-
-    """
-    if not hasattr(tokenizer, 'vocab_len'):
-        if hasattr(tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
-            tokenizer.vocab_len = len(tokenizer.vocab)
-        elif hasattr(tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
-            tokenizer.vocab_len = len(tokenizer.encoder)
-        else:  # revert to vocab_size
-            tokenizer.vocab_len = tokenizer.vocab_size
-
-
-def set_whitespace_preserving(tokenizer: PreTrainedTokenizerBase):
-    r"""
-    Sets the tokenizer.whitespace_preserving if unset, indicates if tokenizer preserves whitespace like GPT-style,
-    or not like BERT-style.
-        Args:
-            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                Tokenizer to set vocab_len for.
-        Returns:
-
-    """
-    if not hasattr(tokenizer, 'whitespace_preserving'):
-        space_token = tokenizer(' ', add_special_tokens=False)['input_ids']
-        space_text = tokenizer.decode(space_token)
-        if space_text == ' ':
-            tokenizer.whitespace_preserving = True
-        else:
-            tokenizer.whitespace_preserving = False
-
-
 def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
                                 target_tokenizer: PreTrainedTokenizerBase) -> bool:
     r"""
@@ -1232,7 +1195,71 @@ def translate_special_token_text(text_batch: List[str], from_tokenizer: PreTrain
     return to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch
 
 
-def prep_tokenizer(tokenizer):
+def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
+    r"""
+    Sets the tokenizer.vocab_len if unset, to store the real vocabulary size according to the vocab or encoder.
+        Args:
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set vocab_len for.
+        Returns:
+
+    """
+    if not hasattr(tokenizer, 'vocab_len'):
+        if hasattr(tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
+            tokenizer.vocab_len = len(tokenizer.vocab)
+        elif hasattr(tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
+            tokenizer.vocab_len = len(tokenizer.encoder)
+        else:  # revert to vocab_size
+            tokenizer.vocab_len = tokenizer.vocab_size
+
+
+def set_whitespace_preserving(tokenizer: PreTrainedTokenizerBase):
+    r"""
+    Sets the tokenizer.whitespace_preserving if unset, indicates if tokenizer preserves whitespace like GPT-style,
+    or not like BERT-style.
+        Args:
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set vocab_len for.
+        Returns:
+
+    """
+    if not hasattr(tokenizer, 'whitespace_preserving'):
+        space_token = tokenizer(' ', add_special_tokens=False)['input_ids']
+        space_text = tokenizer.decode(space_token)
+        if space_text == ' ':
+            tokenizer.whitespace_preserving = True
+        else:
+            tokenizer.whitespace_preserving = False
+
+
+def set_std_token_phrases(tokenizer, std_tokenizer):
+    r"""
+    Sets std_token_phrases which are the tokenizer token strings tokenized with std_tokenizer, so
+    the std_tokenizer equivalent of the tokenizer token strings.
+    Used for converting model predictions/logits into std_tokenizer representations, for example in TextCausalLMNext.
+        Args:
+            tokenizer(:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set std_token_phrases for.
+            std_tokenizer(:obj:`PreTrainedTokenizerBase`, `required`):
+                Standard bittensor tokenizer to convert to.
+
+        Returns:
+
+    """
+    # === Tokenizer phrases to memory ===
+    if not hasattr(tokenizer, 'phrases'):
+        if tokenizer.whitespace_preserving:
+            tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
+        else:
+            tokenizer.phrases = [' ' + phrase for phrase in
+                                 tokenizer.batch_decode(range(tokenizer.vocab_len))]  # server tokens to strings
+
+    if not hasattr(tokenizer, 'std_token_phrases'):
+        # Retokenize phrases to new tokenizer
+        tokenizer.std_token_phrases = std_tokenizer(tokenizer.phrases)['input_ids']  # [topk, max_len] convert phrases to tokens sequences
+
+
+def prep_tokenizer(tokenizer, std_tokenizer=None):
     tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
     # tokenizer.add_prefix_space = False
     # tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
@@ -1268,5 +1295,8 @@ def prep_tokenizer(tokenizer):
         tokenizer.pad_token = tokenizer.eos_token
     set_vocab_len(tokenizer)
     set_whitespace_preserving(tokenizer)
+
+    if std_tokenizer is not None:
+        set_std_token_phrases(tokenizer, std_tokenizer)
 
     return tokenizer

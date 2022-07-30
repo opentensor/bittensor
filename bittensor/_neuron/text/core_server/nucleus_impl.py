@@ -81,7 +81,7 @@ class server(torch.nn.Module):
         if self.pre_model.config.pad_token_id is None and self.pre_model.config.eos_token_id is not None:
             self.pre_model.config.pad_token_id = self.pre_model.config.eos_token_id
 
-        self.tokenizer = prep_tokenizer(self.tokenizer)
+        self.tokenizer = prep_tokenizer(self.tokenizer, self.std_tokenizer)
         self.to_translation_map = get_translation_map(self.tokenizer, self.std_tokenizer)
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
         self.split_map_cache = {}
