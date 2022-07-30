@@ -406,14 +406,19 @@ class server(torch.nn.Module):
             Returns:
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
                     The output of transformers AutoModel.
-                compact_topk (:obj:`torch.Tensor`, `required`):
-                    [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
-                    since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
-                    floor probability (rest).
+                topk_tensor (:obj:`torch.Tensor`, `required`):
+                    [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                    in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
                     Content structure:
-                    [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
-                     prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
-                     ...]
+                    [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                      [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                      [...],
+                      [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                     [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                      [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                      [...],
+                      [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                     [...]]
         """
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer
@@ -433,13 +438,11 @@ class server(torch.nn.Module):
             # Select topk tokenizer logits and retokenize with std_tokenizer,
             # then compact new token phrases and probabilities into 1-D tensor
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
-            compact_topk = compact_topk_token_phrases(topk_tensor)
-            # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids'])
             message = f'Loss: {original_loss:.2f}'
 
-            return message, _model_output, compact_topk
+            return message, _model_output, topk_tensor
 
         if self.config.neuron.remote_train:
             return _forward()  # track gradients for training
