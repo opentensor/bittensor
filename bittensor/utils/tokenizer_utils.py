@@ -917,8 +917,6 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                   [...],
                   [prob_floor_b=1, ignore_index, ..., ignore_index]],
                  [...]]
-            topk (:obj:`int`, `required`):
-                Amount of top phrases to expect.
             ignore_index (:obj:`int`, `optional`):
                 Padding value to use for unfilled token positions in a shorter token phrase.
             reduce (:obj:`bool`, `optional`):
@@ -961,9 +959,9 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
             val_probs[b] = n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
 
         # === Integrate sub target matches ===
-        check_len = min(max_len, len(target_phrase))
+        check_len = min(max_len - 1, len(target_phrase))
         for c in range(1, check_len + 1):  # progressively increase sub target length
-            target = ignore_index * torch.ones(check_len, dtype=torch.int32)  # [-100, ..., -100]
+            target = ignore_index * torch.ones(check_len, dtype=torch.int32).to(topk_tensor.device)  # [-100, ..., -100]
             target[:c] = target_phrase[:c]  # [tok0, tok1, ...tokc, -100, ..., -100]
 
             # Find sub target matches
