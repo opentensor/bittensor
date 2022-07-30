@@ -611,7 +611,7 @@ def test_backward_causal_lm_shape_error():
 def test_backward_causal_lm_next_shape_error():
     synapses = [bittensor.synapse.TextCausalLMNext()]
     inputs_raw = torch.rand(1, 1, 1)
-    grads_raw = torch.rand(1 * (2 * synapses[0].topk + 1))
+    grads_raw = torch.rand(2 + 1 * (synapses[0].topk + 1))
     serializer = bittensor.serializer(serializer_type=bittensor.proto.Serializer.MSGPACK)
     inputs_serialized = serializer.serialize(inputs_raw, from_type=bittensor.proto.TensorType.TORCH)
     grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
@@ -702,13 +702,13 @@ def test_backward_response_success_causal_lm():
 
 def test_backward_response_success_causal_lm_next():
     def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):
-        return None, dict(), torch.zeros([1 * (2 * synapses[0].topk + 1)], requires_grad=True)
+        return None, dict(), torch.zeros([2 + 1 * (synapses[0].topk + 1)], requires_grad=True)
 
     axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
     synapses = [bittensor.synapse.TextCausalLMNext()]
 
     inputs_raw = torch.ones(1, 1)
-    grads_raw = torch.zeros(1 * (2 * synapses[0].topk + 1))
+    grads_raw = torch.zeros(2 + 1 * (synapses[0].topk + 1))
 
     inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
     grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)

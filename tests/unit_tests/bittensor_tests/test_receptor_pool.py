@@ -68,7 +68,7 @@ def test_receptor_pool_backward():
     x = torch.ones( (1,2,2) )
     grads = [[torch.ones(2, 2, bittensor.__network_dim__),
               torch.ones(2, 2, bittensor.__vocab_size__),
-              torch.ones(2 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)),
+              torch.ones(2 + 2 * (bittensor.synapse.TextCausalLMNext().topk + 1)),
               torch.tensor([])]]
     receptor_pool.backward( endpoints, synapses, x, grads, timeout=1)
 
@@ -283,7 +283,7 @@ def test_receptor_pool_backward_hang():
     
     hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
     causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+    causallmnext_grads = torch.ones((2 + x.size(0) * (bittensor.synapse.TextCausalLMNext().topk + 1)))
     seq_2_seq_grads = torch.tensor([])
 
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
