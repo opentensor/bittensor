@@ -125,13 +125,13 @@ class TextCausalLMNext(Synapse):
 
     def check_backward_request_gradient(self, forward_request_tensor, backward_request_gradient):
         # forward_request_tensor: [batch_size, sequence_len]
-        # backward_request_gradient: [ >= batch_size * (2 * topk + 1)]
+        # backward_request_gradient: [2 + batch_size * (topk + 1)]
         if (
                 len(backward_request_gradient.shape) != 1 or
-                backward_request_gradient.size(0) < forward_request_tensor.shape[0] * (2 * self.topk + 1)
+                backward_request_gradient.size(0) < 2 + forward_request_tensor.shape[0] * (self.topk + 1)
         ):
             raise ValueError(f"backward_request_gradient.shape must be in "
-                             f"[>={forward_request_tensor.shape[0]} x (2 x {self.topk} + 1)], "
+                             f"[2 + {forward_request_tensor.shape[0]} x ({self.topk} + 1)], "
                              f"got: {backward_request_gradient.size(0)} for synapse: {self}")
 
     def encode_forward_request_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
@@ -158,10 +158,20 @@ class TextCausalLMNext(Synapse):
         return backward_request_gradient
 
     def encode_backward_request_gradient(self, backward_response_gradient: torch.Tensor) -> torch.Tensor:
-        return backward_response_gradient
+        """ Compact gradients of [batch_size, (topk + 1), max_len] to [2 + batch_size * (topk + 1)]. """
+        batch_size, topk_p1, max_len = backward_response_gradient.shape
+        dims = torch.tensor([batch_size, max_len]).to(backward_response_gradient.device)
+        prob_grads = backward_response_gradient[:, :, 0]  # [batch_size, topk + 1] first column w/ prob grads
+        encoded_gradient = torch.hstack((dims, prob_grads.flatten()))  # [2 + batch_size * (topk + 1)]
+        return encoded_gradient  # [2 + batch_size * (topk + 1)]
 
     def decode_backward_request_gradient(self, backward_response_gradient: torch.Tensor) -> torch.Tensor:
-        return backward_response_gradient
+        """ Restructure [2 + batch_size * (topk + 1)] prob grads into [batch_size, (topk + 1), max_len]. """
+        batch_size = backward_response_gradient[0].item()
+        max_len = backward_response_gradient[1].item()
+        decoded_gradient = torch.zeros((batch_size, self.topk + 1, max_len)).to(backward_response_gradient.device)
+        decoded_gradient[:, :, 0] = backward_response_gradient[2:].reshape(batch_size, self.topk + 1)
+        return decoded_gradient  # [batch_size, (topk + 1), max_len]
 
     def nill_forward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
         try:
@@ -171,6 +181,6 @@ class TextCausalLMNext(Synapse):
 
     def nill_backward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
         try:
-            return torch.zeros((forward_request_tensor.shape[0] * (2 * self.topk + 1)), dtype=torch.float32)
+            return torch.zeros((2 + forward_request_tensor.shape[0] * (self.topk + 1)), dtype=torch.float32)
         except:
             return torch.tensor([])
