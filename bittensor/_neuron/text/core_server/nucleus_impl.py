@@ -432,7 +432,7 @@ class server(torch.nn.Module):
 
             # Select topk tokenizer logits and retokenize with std_tokenizer,
             # then compact new token phrases and probabilities into 1-D tensor
-            topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size * (topk + 1), max_len]
+            topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
             compact_topk = compact_topk_token_phrases(topk_tensor)
             # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 

@@ -711,7 +711,7 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
                        topk: int, ignore_index: int = -100) -> torch.Tensor:
     r"""
     Select topk tokenizer logits/phrases and include std_token_phrases counterparts (std_tokenization of token text)
-    in topk_tensor output of shape [batch_size * (topk + 1), max_len], where max len of all phrase lists
+    in topk_tensor output of shape [batch_size, (topk + 1), max_len], where max len of all phrase lists
     (with prob in front) is max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...])).
     The output topk_tensor also includes a floor_prob for each batch item. The floor probability is the
     mean probability of token phrases not captured in topk, required since the tokenizer vocab_size may
@@ -730,17 +730,17 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
 
         Returns:
             topk_tensor (:obj:`torch.Tensor`, `required`):
-                [batch_size * (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
                 in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
                 Content structure:
-                [[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
-                 [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=0, ignore_index, ..., ignore_index],
-                 [prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
-                 [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=1, ignore_index, ..., ignore_index],
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
                  [...]]
     """
     # Get shape sizes
@@ -788,27 +788,29 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
     # grafting probability tensors into first column to attach gradients
     topk_tensor[:, 0] = torch.hstack(probs)  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
-    return topk_tensor  # [batch_size * (topk + 1), max_len] (probability gradients attached in first column)
+    topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
+
+    return topk_tensor  # [batch_size, (topk + 1), max_len] (probability gradients attached in first column)
 
 
 def compact_topk_token_phrases(topk_tensor: torch.Tensor):
     r"""
-    Compact 2D topk_tensor [batch_size * (topk + 1), max_len] by removing ignore_index padding, and also offset
+    Compact 2D topk_tensor [batch_size, (topk + 1), max_len] by removing ignore_index padding, and also offset
     tokens by 2 to preserve [0, 1] for probabilities to allow for proper unraveling demarcated by
     probability boundaries.
         Args:
             topk_tensor (:obj:`torch.Tensor`, `required`):
-                [batch_size * (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
                 in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
                 Content structure:
-                [[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
-                 [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=0, ignore_index, ..., ignore_index],
-                 [prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
-                 [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=1, ignore_index, ..., ignore_index],
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
                  [...]]
 
         Returns:
@@ -822,7 +824,7 @@ def compact_topk_token_phrases(topk_tensor: torch.Tensor):
                      ...]
     """
     topk_tensor_offset = topk_tensor.clone()  # assume topk_tensor may be reused elsewhere so clone
-    topk_tensor_offset[:, 1:] += 2  # add 2 to token ids to preserve [0, 1] for probabilities (in first column)
+    topk_tensor_offset[:, :, 1:] += 2  # add 2 to token ids to preserve [0, 1] for probabilities (in first column)
 
     flattened = topk_tensor_offset.flatten()  # [batch_size * (topk + 1) * max_len] 1D tensor
     compact_topk = flattened[flattened > -1]  # remove ignore_index < -1 padding to compact content
@@ -832,7 +834,7 @@ def compact_topk_token_phrases(topk_tensor: torch.Tensor):
 
 def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_index: int = -100) -> torch.Tensor:
     r"""
-    Unravel topk token phrases input_tensor from 1-D to [batch_size * (topk + 1), max_len] topk_tensor, which
+    Unravel topk token phrases input_tensor from 1-D to [batch_size, (topk + 1), max_len] topk_tensor, which
     includes topk token probabilities (prob_k) + floor_prob in first column with gradients attached, with
     std_tokens in remaining columns with ignore_index padding.
         Args:
@@ -850,17 +852,17 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
                 Padding value to use for unfilled token positions in a shorter token phrase.
         Returns:
             topk_tensor (:obj:`torch.Tensor`, `required`):
-                [batch_size * (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
                 in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
                 Content structure:
-                [[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
-                 [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=0, ignore_index, ..., ignore_index],
-                 [prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
-                 [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=1, ignore_index, ..., ignore_index],
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
                  [...]]
     """
 
@@ -887,12 +889,14 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     # grafting probability tensors into first column to attach gradients
     topk_tensor[:, 0] = compact_topk[prob_idx]  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
-    return topk_tensor  # [batch_size * (topk + 1), max_len]
+    topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
+
+    return topk_tensor  # [batch_size, (topk + 1), max_len]
 
 
 def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                          topk_tensor: torch.Tensor,
-                         topk: int, ignore_index: int = -100, reduce=True, reduction='mean',
+                         ignore_index: int = -100, reduce=True, reduction='mean',
                          vocab_size_min: int = 50257) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
     Calculates the cross entropy of a phrase prediction against a target phrase, so that this is a multi-token
@@ -901,17 +905,17 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
             target_phrases (:obj:`List[List[int]]`, `required`):
                 [batch_size, *] Target phrases in standard token sequence list.
             topk_tensor (:obj:`torch.Tensor`, `required`):
-                [batch_size * (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
                 in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
                 Content structure:
-                [[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
-                 [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=0, ignore_index, ..., ignore_index],
-                 [prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
-                 [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
-                 [...],
-                 [prob_floor_b=1, ignore_index, ..., ignore_index],
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
                  [...]]
             topk (:obj:`int`, `required`):
                 Amount of top phrases to expect.
@@ -931,15 +935,12 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                 Phrase cross entropy loss, either scalar if reduce or [batch_size].
     """
 
-    first_dim, max_len = topk_tensor.shape  # [batch_size * (topk + 1), max_len]
-    batch_size = first_dim // (topk + 1)
-    assert first_dim == batch_size * (topk + 1)
+    batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
+    topk = topk_p1 - 1
 
-    topk_tensor_reshape = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len]
-
-    topk_tokens = topk_tensor_reshape[:, :-1, 1:]  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
-    topk_probs = topk_tensor_reshape[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
-    floor_probs = topk_tensor_reshape[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
+    topk_tokens = topk_tensor[:, :-1, 1:]  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+    topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+    floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
 
     # === Ensure total probability is 1 ===
     total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
