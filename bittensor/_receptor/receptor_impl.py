@@ -612,6 +612,7 @@ class Receptor(nn.Module):
                 synapse_codes[index] = bittensor.proto.ReturnCode.ResponseDeserializationException
                 synapse_call_times[index] = clock.time() - start_time
                 synapse_messages[index] = 'Response deserialization exception with error:{}'.format(str(e) + str(traceback.format_exc()))
+                print(synapse_messages[index])
 
 
         # ======================================
