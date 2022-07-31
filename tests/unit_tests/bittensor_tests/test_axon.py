@@ -734,7 +734,7 @@ def test_backward_response_success_causal_lm_next():
     synapses = [bittensor.synapse.TextCausalLMNext()]
 
     inputs_raw = torch.ones(1, 1)
-    grads_raw = torch.zeros(1, (synapses[0].topk + 1), 1 + 1)
+    grads_raw = torch.zeros([1, (synapses[0].topk + 1), 1 + 1])
 
     inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
     grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)

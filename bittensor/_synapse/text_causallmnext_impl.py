@@ -176,12 +176,12 @@ class TextCausalLMNext(Synapse):
 
     def nill_forward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
         try:
-            return torch.zeros((forward_request_tensor.shape[0] * (2 * self.topk + 1)), dtype=torch.float32)
+            return torch.zeros((forward_request_tensor.shape[0], (self.topk + 1), 1 + 1), dtype=torch.float32)
         except:
             return torch.tensor([])
 
     def nill_backward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
         try:
-            return torch.zeros((2 + forward_request_tensor.shape[0] * (self.topk + 1)), dtype=torch.float32)
+            return torch.zeros((forward_request_tensor.shape[0], (self.topk + 1), 1 + 1), dtype=torch.float32)
         except:
             return torch.tensor([])
