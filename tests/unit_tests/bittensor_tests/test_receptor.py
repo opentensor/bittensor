@@ -124,7 +124,7 @@ def test_receptor_neuron_request_empty():
 def test_receptor_neuron_mock_server():
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1)
+    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -145,8 +145,8 @@ def test_receptor_neuron_mock_server():
 
     x = torch.rand(3, 3)
     out, ops, time  = receptor.forward( synapses, x, timeout=1)
-    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
     print([list(o.shape) for o in out])
+    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
     assert [list(o.shape) for o in out] == [[3, 3, bittensor.__network_dim__],
                                             [3, 3, bittensor.__vocab_size__],
                                             [3, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
