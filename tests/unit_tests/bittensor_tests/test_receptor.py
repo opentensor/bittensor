@@ -241,7 +241,7 @@ def test_receptor_neuron_server_response_with_nans():
     
     y_hidden[0][0][0] = np.nan
     y_causallm[0][0][0] = np.nan
-    y_causallmnext[0] = np.nan
+    y_causallmnext[0] = np.nan  # unravel fails because demarcating probability is replaced by nan, ResponseDeserializationException
     y_seq_2_seq[0][0] = np.nan
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -263,10 +263,10 @@ def test_receptor_neuron_server_response_with_nans():
 
     x = torch.rand(3, 3)
     out, ops, time  = receptor.forward( synapses, x, timeout=1)
-    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
+    assert ops == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,
+                   bittensor.proto.ReturnCode.ResponseDeserializationException, bittensor.proto.ReturnCode.Success]
     assert out[0][0][0][0] != np.nan
     assert out[1][0][0][0] != np.nan
-    assert out[2][0][0][0] != np.nan
     assert out[3][0][0] != np.nan
 
 # -- backwards testing --
