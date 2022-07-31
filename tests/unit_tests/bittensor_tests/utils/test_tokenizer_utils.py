@@ -342,13 +342,7 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     # ============================
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
-    tokenizer.padding_side = "left"
-
-    # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
-    # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
-    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
-        tokenizer.pad_token = tokenizer.eos_token
+    prep_tokenizer(tokenizer, std_tokenizer)
 
     # ================================================
     # ==== Server-side: CausalLM task translation ====
@@ -491,13 +485,7 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
     # ============================
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
-    tokenizer.padding_side = "left"
-
-    # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
-    # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
-    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
-        tokenizer.pad_token = tokenizer.eos_token
+    prep_tokenizer(tokenizer, std_tokenizer)
 
     # ================================================
     # ==== Server-side: CausalLM task translation ====
