@@ -99,7 +99,7 @@ def test_receptor_pool_forward_success():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().template_forward_response_tensor(3)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -128,7 +128,7 @@ def test_receptor_pool_forward_timeout():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().template_forward_response_tensor(3)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -161,7 +161,7 @@ def test_receptor_pool_forward_num_synapse_mismatch():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().template_forward_response_tensor(3)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -190,7 +190,7 @@ def test_receptor_pool_forward_response_partial_shape_error():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().template_forward_response_tensor(3)
     y_seq_2_seq = torch.rand(2, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -219,7 +219,7 @@ def test_receptor_pool_partial_remote_success_return_code():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().template_forward_response_tensor(3)
     y_seq_2_seq = torch.rand(2, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -249,7 +249,7 @@ def test_receptor_pool_missing_synapse():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().template_forward_response_tensor(3)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
