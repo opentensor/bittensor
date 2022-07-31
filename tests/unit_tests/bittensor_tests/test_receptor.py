@@ -266,7 +266,7 @@ def test_receptor_neuron_server_response_with_nans():
     assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
     assert out[0][0][0][0] != np.nan
     assert out[1][0][0][0] != np.nan
-    assert out[2][0] != np.nan
+    assert out[2][0][0][0] != np.nan
     assert out[3][0][0] != np.nan
 
 # -- backwards testing --
