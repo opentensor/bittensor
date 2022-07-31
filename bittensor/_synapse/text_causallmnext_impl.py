@@ -125,14 +125,15 @@ class TextCausalLMNext(Synapse):
 
     def check_backward_request_gradient(self, forward_request_tensor, backward_request_gradient):
         # forward_request_tensor: [batch_size, sequence_len]
-        # backward_request_gradient: [2 + batch_size * (topk + 1)]
+        # backward_request_gradient: [batch_size, (topk + 1), max_len]
         if (
-                len(backward_request_gradient.shape) != 1 or
-                backward_request_gradient.size(0) < 2 + forward_request_tensor.shape[0] * (self.topk + 1)
+                len(backward_request_gradient.shape) != 3 or
+                backward_request_gradient.size(0) != forward_request_tensor.shape[0] or
+                backward_request_gradient.size(1) != (self.topk + 1)
         ):
             raise ValueError(f"backward_request_gradient.shape must be in "
-                             f"[2 + {forward_request_tensor.shape[0]} x ({self.topk} + 1)], "
-                             f"got: {backward_request_gradient.size(0)} for synapse: {self}")
+                             f"[{forward_request_tensor.shape[0]}, ({self.topk} + 1), max_len], "
+                             f"got: {backward_request_gradient.shape} for synapse: {self}")
 
     def encode_forward_request_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
         return forward_request_tensor
