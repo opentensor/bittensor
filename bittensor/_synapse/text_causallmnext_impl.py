@@ -168,6 +168,7 @@ class TextCausalLMNext(Synapse):
 
     def decode_backward_request_gradient(self, backward_response_gradient: torch.Tensor) -> torch.Tensor:
         """ Restructure [2 + batch_size * (topk + 1)] prob grads into [batch_size, (topk + 1), max_len]. """
+        print('decode_backward_request_gradient, backward_response_gradient.shape', backward_response_gradient.shape)
         batch_size = backward_response_gradient[0].item()
         max_len = backward_response_gradient[1].item()
         decoded_gradient = torch.zeros((batch_size, self.topk + 1, max_len)).to(backward_response_gradient.device)
