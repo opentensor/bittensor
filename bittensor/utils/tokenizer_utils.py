@@ -870,8 +870,7 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     prob_idx = torch.where(compact_topk <= 1.5)[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
 
     batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
-    assert (batch_size * (topk + 1) == len(prob_idx),
-            f'{batch_size} * ({topk} + 1) != {len(prob_idx)}')  # decoding irregularity otherwise
+    assert batch_size * (topk + 1) == len(prob_idx), f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
 
     # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
     phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension

@@ -174,20 +174,21 @@ class TextCausalLMNext(Synapse):
         decoded_gradient[:, :, 0] = backward_response_gradient[2:].reshape(batch_size, self.topk + 1)
         return decoded_gradient  # [batch_size, (topk + 1), max_len]
 
-    def nill_forward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
+    def nill_forward_response_tensor(self, forward_request_tensor: torch.Tensor,
+                                     encoded=False, ignore_index=-100) -> torch.Tensor:
         if forward_request_tensor.dim() == 0 or forward_request_tensor.shape[0] == 0:
             return torch.tensor([])
-        return torch.zeros((forward_request_tensor.shape[0], (self.topk + 1), 1 + 1), dtype=torch.float32)
+
+        forward_response_tensor = torch.zeros(forward_request_tensor.shape[0], (self.topk + 1), 1 + 1)
+        forward_response_tensor[:, :, 1] = 2  # set 2 <= token_ids to preserve 0 <= probs <= 1 in column 0
+        forward_response_tensor[:, self.topk::(self.topk + 1), 1] = ignore_index  # add ignore_index padding after floor_prob
+
+        if encoded:
+            return self.encode_forward_response_tensor(forward_response_tensor)
+
+        return forward_response_tensor
 
     def nill_backward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
         if forward_request_tensor.dim() == 0 or forward_request_tensor.shape[0] == 0:
             return torch.tensor([])
         return torch.zeros((forward_request_tensor.shape[0], (self.topk + 1), 1 + 1), dtype=torch.float32)
-
-    def template_forward_response_tensor(self, batch_size: int, encoded=True, ignore_index=-100) -> torch.Tensor:
-        forward_response_tensor = torch.zeros(batch_size, (self.topk + 1), 1 + 1)
-        forward_response_tensor[:, :, 1] = 2  # set 2 <= token_ids to preserve 0 <= probs <= 1 in column 0
-        forward_response_tensor[:, self.topk::(self.topk + 1), 1] = ignore_index  # add ignore_index padding after floor_prob
-        if encoded:
-            return self.encode_forward_response_tensor(forward_response_tensor)
-        return forward_response_tensor
