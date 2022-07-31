@@ -29,7 +29,6 @@ import pandas
 from loguru import logger
 import torch.nn.functional as F
 import concurrent
-import traceback
 
 import bittensor
 import bittensor.utils.stats as stat_utils
@@ -490,7 +489,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
             except Exception as e:
                 synapse_codes [index] = bittensor.proto.ReturnCode.RequestDeserializationException
                 synapse_call_times [index] = clock.time() - start_time
-                synapse_messages [index] = 'Input deserialization exception with error:{}'.format(str(e) + str(traceback.format_exc()))
+                synapse_messages [index] = 'Input deserialization exception with error:{}'.format(str(e))
         # Check if the call can stop here.
         if check_if_should_return():
             finalize_codes_stats_and_logs()
