@@ -16,6 +16,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+import traceback
 
 import bittensor
 from bittensor._synapse import synapse
@@ -610,7 +611,7 @@ class Receptor(nn.Module):
                 # Input Serialization failed.
                 synapse_codes[index] = bittensor.proto.ReturnCode.ResponseDeserializationException
                 synapse_call_times[index] = clock.time() - start_time
-                synapse_messages[index] = 'Response deserialization exception with error:{}'.format(str(e))
+                synapse_messages[index] = 'Response deserialization exception with error:{}'.format(str(e) + str(traceback.format_exc()))
 
 
         # ======================================
