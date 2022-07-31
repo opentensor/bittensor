@@ -116,8 +116,8 @@ def test_forward_causallm_success():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_forward_causallmnext_success():
-    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):
-        return None, dict(), torch.zeros([inputs_x.shape[0] * (2 * synapse.topk + 1)])
+    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):  # [batch_size, (topk + 1), max_len]
+        return None, dict(), torch.zeros([inputs_x.shape[0], (synapse.topk + 1), 1 + 1])
     axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
 
     inputs_raw = torch.rand(3, 3)
@@ -413,94 +413,120 @@ def test_forward_joint_success():
         return None, None, torch.zeros( (inputs_x.shape[0], synapse.num_to_generate) )
     def forward_causal_lm( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, None, torch.zeros(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+    def forward_causal_lm_next(inputs_x: torch.FloatTensor, synapse, model_output = None):
+        return None, None, torch.zeros(inputs_x.shape[0], synapse.topk + 1, 1 + 1)
     def forward_hidden_state( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, None, torch.zeros( inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
 
     axon.attach_synapse_callback( forward_generate, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
     axon.attach_synapse_callback( forward_causal_lm, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
+    axon.attach_synapse_callback(forward_causal_lm_next, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
     axon.attach_synapse_callback( forward_hidden_state, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
 
     inputs_raw = torch.rand(3, 3)
-    synapses = [bittensor.synapse.TextCausalLM(), bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextSeq2Seq()]
+    synapses = [bittensor.synapse.TextCausalLM(), bittensor.synapse.TextCausalLMNext(),
+                bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextSeq2Seq()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        tensors=[inputs_serialized] * 3,
+        tensors=[inputs_serialized] * len(synapses),
         hotkey= axon.wallet.hotkey.ss58_address,
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
     response, code, synapses = axon._forward( request )
-    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success]*3
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success] * len(synapses)
 
 def test_forward_joint_missing_synapse():
     def forward_generate( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, None, torch.zeros( (inputs_x.shape[0], synapse.num_to_generate) )
     def forward_causal_lm( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, None, torch.zeros(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+    def forward_causal_lm_next(inputs_x: torch.FloatTensor, synapse, model_output = None):
+        return None, None, torch.zeros(inputs_x.shape[0], synapse.topk + 1, 1 + 1)
     def forward_hidden_state( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, None, torch.zeros( inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
 
     axon.attach_synapse_callback( forward_generate, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
     axon.attach_synapse_callback( forward_causal_lm, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
+    axon.attach_synapse_callback(forward_causal_lm_next, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
     axon.attach_synapse_callback( forward_hidden_state, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
 
     inputs_raw = torch.rand(3, 3)
-    synapses = [bittensor.synapse.TextCausalLM(), bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextSeq2Seq()]
+    synapses = [bittensor.synapse.TextCausalLM(), bittensor.synapse.TextCausalLMNext(),
+                bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextSeq2Seq()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        tensors=[inputs_serialized] * 3,
+        tensors=[inputs_serialized] * len(synapses),
         hotkey= axon.wallet.hotkey.ss58_address,
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
     axon.attach_synapse_callback( None, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
     response, code, synapses = axon._forward( request )
-    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,bittensor.proto.ReturnCode.NotImplemented]
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,
+                                                     bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.NotImplemented]
 
     axon.attach_synapse_callback( None, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     response, code, synapses = axon._forward( request )
-    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.NotImplemented,bittensor.proto.ReturnCode.NotImplemented]
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,
+                                                     bittensor.proto.ReturnCode.NotImplemented, bittensor.proto.ReturnCode.NotImplemented]
+
+    axon.attach_synapse_callback(None, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+    response, code, synapses = axon._forward(request)
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.NotImplemented,
+                                                     bittensor.proto.ReturnCode.NotImplemented, bittensor.proto.ReturnCode.NotImplemented]
 
     axon.attach_synapse_callback( None, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
     response, code, synapses = axon._forward( request )
-    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.NotImplemented] * 3
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.NotImplemented] * len(synapses)
 
 def test_forward_joint_faulty_synapse():
     def faulty( inputs_x: torch.FloatTensor , synapse, model_output = None):
         raise Exception
     def forward_causal_lm( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, None, torch.zeros(inputs_x.shape[0], inputs_x.shape[1], bittensor.__vocab_size__)
+    def forward_causal_lm_next(inputs_x: torch.FloatTensor, synapse, model_output = None):
+        return None, None, torch.zeros(inputs_x.shape[0], synapse.topk + 1, 1 + 1)
     def forward_hidden_state( inputs_x: torch.FloatTensor , synapse, model_output = None):
         return None, None, torch.zeros( inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__)
 
     axon.attach_synapse_callback( forward_causal_lm, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
     axon.attach_synapse_callback( forward_hidden_state, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    axon.attach_synapse_callback(forward_causal_lm_next, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
     axon.attach_synapse_callback( faulty, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
 
     inputs_raw = torch.rand(3, 3)
-    synapses = [bittensor.synapse.TextCausalLM(), bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextSeq2Seq()]
+    synapses = [bittensor.synapse.TextCausalLM(), bittensor.synapse.TextCausalLMNext(),
+                bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextSeq2Seq()]
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
     inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        tensors=[inputs_serialized] * 3,
+        tensors=[inputs_serialized] * len(synapses),
         hotkey= axon.wallet.hotkey.ss58_address,
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
 
     axon.attach_synapse_callback( faulty, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ)
     response, code, synapses = axon._forward( request )
-    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,bittensor.proto.ReturnCode.UnknownException]
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,
+                                                     bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException]
 
     axon.attach_synapse_callback( faulty, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     response, code, synapses = axon._forward( request )
-    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException, bittensor.proto.ReturnCode.UnknownException]
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,
+                                                     bittensor.proto.ReturnCode.UnknownException, bittensor.proto.ReturnCode.UnknownException]
+
+    axon.attach_synapse_callback(faulty, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+    response, code, synapses = axon._forward(request)
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException,
+                                                     bittensor.proto.ReturnCode.UnknownException, bittensor.proto.ReturnCode.UnknownException]
 
     axon.attach_synapse_callback( faulty, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
     response, code, synapses = axon._forward( request )
-    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.UnknownException] * 3
+    assert [syn.return_code for syn in synapses] == [bittensor.proto.ReturnCode.UnknownException] * len(synapses)
     
 def test_forward_timeout():
     def forward( inputs_x: torch.FloatTensor, synapses, hotkey):
@@ -611,7 +637,7 @@ def test_backward_causal_lm_shape_error():
 def test_backward_causal_lm_next_shape_error():
     synapses = [bittensor.synapse.TextCausalLMNext()]
     inputs_raw = torch.rand(1, 1, 1)
-    grads_raw = torch.rand(2 + 1 * (synapses[0].topk + 1))
+    grads_raw = torch.rand(1, synapses[0].topk + 1, 1 + 1)
     serializer = bittensor.serializer(serializer_type=bittensor.proto.Serializer.MSGPACK)
     inputs_serialized = serializer.serialize(inputs_raw, from_type=bittensor.proto.TensorType.TORCH)
     grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
@@ -701,14 +727,14 @@ def test_backward_response_success_causal_lm():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm_next():
-    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):
-        return None, dict(), torch.zeros([2 + 1 * (synapses[0].topk + 1)], requires_grad=True)
+    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):  # [batch_size, (topk + 1), max_len]
+        return None, dict(), torch.zeros([1, (synapses[0].topk + 1), 1 + 1], requires_grad=True)
 
     axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
     synapses = [bittensor.synapse.TextCausalLMNext()]
 
     inputs_raw = torch.ones(1, 1)
-    grads_raw = torch.zeros(2 + 1 * (synapses[0].topk + 1))
+    grads_raw = torch.zeros(1, (synapses[0].topk + 1), 1 + 1)
 
     inputs_serialized = synapses[0].serialize_forward_request_tensor(inputs_raw)
     grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
