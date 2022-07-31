@@ -171,6 +171,7 @@ class TextCausalLMNext(Synapse):
         print('decode_backward_request_gradient, backward_response_gradient.shape', backward_response_gradient.shape)
         batch_size = backward_response_gradient[0].item()
         max_len = backward_response_gradient[1].item()
+        print('batch_size', batch_size, 'max_len', max_len, 'shape', (batch_size, self.topk + 1, max_len))
         decoded_gradient = torch.zeros((batch_size, self.topk + 1, max_len)).to(backward_response_gradient.device)
         decoded_gradient[:, :, 0] = backward_response_gradient[2:].reshape(batch_size, self.topk + 1)
         return decoded_gradient  # [batch_size, (topk + 1), max_len]
