@@ -371,20 +371,21 @@ class neuron:
                         f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
                         f'<dim>(retrieved {current_block - start_block} blocks ago from {self.subtensor.network})</dim>')
 
-            # === Print stats update (table) ===
-            # Prints exponential moving average statistics of valid neurons from latest validator forward
-            stats_table({uid: self.neuron_stats[uid]
-                         for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
-                        self.weight_key, self.config.get('width', None),
-                        f'[white] Stats update [/white] | ' + str(self),  # title
-                        f'#{current_block}: '
-                        f'[bold]{current_block - start_block}[/bold]/{blocks_per_epoch} (blocks/epoch) | '
-                        f'Epoch {self.epoch} | '
-                        f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]')  # caption
+            if self.config.logging.debug or self.config.logging.trace:
+                # === Print stats update (table) ===
+                # Prints exponential moving average statistics of valid neurons from latest validator forward
+                stats_table({uid: self.neuron_stats[uid]
+                             for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
+                            self.weight_key, self.config.get('width', None),
+                            f'[white] Stats update [/white] | ' + str(self),  # title
+                            f'#{current_block}: '
+                            f'[bold]{current_block - start_block}[/bold]/{blocks_per_epoch} (blocks/epoch) | '
+                            f'Epoch {self.epoch} | '
+                            f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]')  # caption
 
-            # === Calculate neuron weights ===
-            topk_uids, topk_weights = self.calculate_weights()
-            self.weights_table(topk_uids, topk_weights)  # print weights table
+                # === Calculate neuron weights ===
+                topk_uids, topk_weights = self.calculate_weights()
+                self.weights_table(topk_uids, topk_weights)  # print weights table
 
             # === Logs ===
             if self.config.using_wandb:
@@ -415,7 +416,9 @@ class neuron:
 
         # === Calculate neuron weights ===
         topk_uids, topk_weights = self.calculate_weights()
-        self.weights_table(topk_uids, topk_weights)  # print weights table
+
+        if self.config.logging.debug or self.config.logging.trace:
+            self.weights_table(topk_uids, topk_weights)  # print weights table
 
         self.subtensor.set_weights(
             uids = topk_uids.detach().to('cpu'),
@@ -732,7 +735,8 @@ class nucleus( torch.nn.Module ):
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
         validation_params = (random_uids, query_responses, return_ops, times, routing_score,
-                             inputs, val_len, self.loss_fct, console_width)
+                             inputs, val_len, self.loss_fct, console_width,
+                             self.config.logging.debug or self.config.logging.trace)
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -761,7 +765,7 @@ def scaling_law_loss_to_params(loss):
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                 console_width: int, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
+                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLM synapse responses.
@@ -785,6 +789,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 CrossEntropy loss function to use.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
+            logging (:obj:`bool`, `required`):
+                Log tables to console.
             synapse (:obj:`bittensor.TextCausalLM`, `optional`):
                 TextCausalLM synapse object.
             index_s (:obj:`int`, `optional`):
@@ -852,13 +858,14 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
-    # === Synergy table ===
-    # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-    synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
+    if logging:
+        # === Synergy table ===
+        # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
+        synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
 
-    # === Neuron responses (table) ===
-    # Prints the evaluation of the neuron responses to the validator request
-    synapse_table(str(synapse), stats, 'shapley_values_min', console_width, shapley_start_time)
+        # === Neuron responses (table) ===
+        # Prints the evaluation of the neuron responses to the validator request
+        synapse_table(str(synapse), stats, 'shapley_values_min', console_width, shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
@@ -870,7 +877,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                     console_width: int, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
+                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -894,6 +901,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 CrossEntropy loss function to use.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
+            logging (:obj:`bool`, `required`):
+                Log tables to console.
             synapse (:obj:`bittensor.TextCausalLMNext`, `optional`):
                 TextCausalLMNext Synapse object.
             index_s (:obj:`int`, `optional`):
@@ -954,13 +963,14 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
-    # === Synergy table ===
-    # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-    synergy_table(stats, syn_loss_diff, 'shapley_values_nxt', console_width)
+    if logging:
+        # === Synergy table ===
+        # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
+        synergy_table(stats, syn_loss_diff, 'shapley_values_nxt', console_width)
 
-    # === Neuron responses (table) ===
-    # Prints the evaluation of the neuron responses to the validator request
-    synapse_table(str(synapse), stats, 'shapley_values_nxt', console_width, shapley_start_time)
+        # === Neuron responses (table) ===
+        # Prints the evaluation of the neuron responses to the validator request
+        synapse_table(str(synapse), stats, 'shapley_values_nxt', console_width, shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
