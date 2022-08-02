@@ -547,8 +547,8 @@ class neuron:
         print()
         stats_table(_neuron_stats, 'weight', self.config.get('width', None),
                     f'[white] Neuron weights [/white] | ' + str(self),  # title
-                    f'Validated [bold]{(len(self.neuron_stats))}[/bold]'
-                    f'/{n_topk_peer_weights}/{self.metagraph.n} (valid/min/total) | '
+                    f'Validated {n_topk_peer_weights}/'
+                    f'[bold]{len(self.neuron_stats)}[/bold]/{self.metagraph.n} (min/[bold]valid[/bold]/total) | '
                     f'sum:{topk_weights.sum().item():.2g} '
                     f'[white] max:[bold]{topk_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{topk_weights.min().item():.4g}[/bold] [/white] '
