@@ -1166,7 +1166,7 @@ def synergy_table(name, stats, syn_loss_diff, sort_col, console_width):
 
     # === Synergy table ===
     table = Table(width=console_width, box=None)
-    table.title = f'[white] \[{name}] Synergy [/white]'
+    table.title = f'[white] Synergy [/white]'
     table.caption = f'loss decrease'
 
     for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
