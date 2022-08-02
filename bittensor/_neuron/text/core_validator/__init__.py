@@ -536,12 +536,10 @@ class neuron:
             else:
                 unvalidated += [uid]
 
-        avail_include_uids = []
+        avail_include_uids = list(set(_neuron_stats.keys()) & set(include_uids))  # exclude include_uids with no stats
         if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
             remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
             remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
-
-            avail_include_uids = list(set(_neuron_stats.keys()) & set(include_uids))  # exclude include_uids with no stats
             limited_uids = avail_include_uids + remaining_uids[:num_rows - len(include_uids)]
             _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
@@ -1196,7 +1194,7 @@ def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
     stats_keys = set.union(*stats_keys)
     columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
     rows = [[('', 0) if key not in stat
-             else (txt.format(stat[key]) + ('*' if key == 'uid' and mark_uids and stat[key] in mark_uids else ''), stat[key])
+             else (('* ' if key == 'uid' and mark_uids and stat[key] in mark_uids else '') + txt.format(stat[key]), stat[key])
              for _, key, txt, _ in columns]
             for stat in stats.values() if sort_col in stat]  # only keep rows with at least one non-empty cell
 
