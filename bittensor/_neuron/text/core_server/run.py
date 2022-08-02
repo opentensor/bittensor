@@ -175,7 +175,6 @@ def serve(
                     prev_time = timecheck[pubkey]
                     if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
                         timecheck[pubkey] = current_time
-
                     else:
                         timecheck[pubkey] = current_time
                         raise Exception('blacklist')
@@ -200,8 +199,18 @@ def serve(
     
     def synapse_check(synapse, hotkey):
         """
-        Custom synapse function to blacklist certain synapse functions depending on the stake
+            Custom synapse function to protect certain synapse functions depending on the stake and weight.
+            Certain synapses require more compute than others. For instance, TEXT_SEQ_2_SEQ requires a significantly
+            more commitment by the server than a requeset for TEXT_CAUSAL_LM_NEXT.
+
+            Args:
+                synapse (:obj:`bittensor.proto.SynapseArgs`, `required`): 
+                    The proto message that contains additional args for individual synapse functions
+                hotkey (:obj:`torch.FloatTensor`, `required`):
+                    The hotkey that sent the request
+
         """
+        ## Uid that sent the request
         incoming_uid = metagraph.hotkeys.index(hotkey)
         if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
             
@@ -212,7 +221,6 @@ def serve(
 
             if metagraph.S[incoming_uid] < config.neuron.causallm_stake:
                 return False
-            
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
 
@@ -223,6 +231,8 @@ def serve(
 
             if (metagraph.S[incoming_uid] < config.neuron.seq2seq_stake) and (metagraph.S[incoming_uid,  uid]):
                 return False     
+        else:
+            return False
 
         return True
 
