@@ -21,17 +21,14 @@ Example:
     $ python3 miners/text/core_validator.py --logging.debug
 
 """
-import sys
 import argparse
 import time
-from types import SimpleNamespace
 import bittensor
 import torch
 import os
 import wandb
 import math
 import pandas
-import random
 import traceback
 from rich import print
 from rich.console import Console
@@ -43,10 +40,7 @@ from typing import List, Tuple, Callable, Dict, Any, Union
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
 from bittensor.utils.tokenizer_utils import phrase_cross_entropy
 
-import torch.nn as nn
-import random
 from torch.nn.utils import clip_grad_norm_
-import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 from threading import Lock
