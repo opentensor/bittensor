@@ -873,7 +873,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     if logging:
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
+        synergy_table(str(synapse), stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
@@ -986,7 +986,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     if logging:
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        synergy_table(stats, syn_loss_diff, 'shapley_values_nxt', console_width)
+        synergy_table(str(synapse), stats, syn_loss_diff, 'shapley_values_nxt', console_width)
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
@@ -1141,7 +1141,7 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
     return syn_loss_diff
 
 
-def synergy_table(stats, syn_loss_diff, sort_col, console_width):
+def synergy_table(name, stats, syn_loss_diff, sort_col, console_width):
     r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
     """
     sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s], reverse=True, key=lambda _row: _row[1])
@@ -1154,7 +1154,7 @@ def synergy_table(stats, syn_loss_diff, sort_col, console_width):
 
     # === Synergy table ===
     table = Table(width=console_width, box=None)
-    table.title = f'[white] Synergy [/white]'
+    table.title = f'[white] \[{name}] Synergy [/white]'
     table.caption = f'loss decrease'
 
     for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
