@@ -755,14 +755,12 @@ class nucleus( torch.nn.Module ):
         return loss, neuron_stats
 
 
-def scaling_law_loss_to_params(loss, scaling_law_power=0.5):
+def scaling_law_loss_to_params(loss):
     r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
     """
     num_params = torch.exp(torch.log(torch.tensor(8.8e13).to(loss.device)) -
                            torch.log(torch.clamp(loss, 1.69)) / 0.076)  # loss lower bound 1.69 is entropy of natural text
-    # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
-    pow_num_params = torch.pow(num_params, scaling_law_power)
-    return pow_num_params  # modified scaling law, powered down to improve dynamic range (subject to change)
+    return num_params
 
 
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
@@ -822,9 +820,13 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 _loss = 20  # assign large loss
 
             # estimate the effective number of model parameters, modified with the scaling_law_power
-            _num_params = scaling_law_loss_to_params(_loss, scaling_law_power)
+            _num_params = scaling_law_loss_to_params(_loss)
 
-            _stats.update({'loss' + _ext: _loss, 'base_params' + _ext: _num_params,
+            # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
+            _pow_num_params = torch.pow(_num_params, scaling_law_power)
+
+            _stats.update({'loss' + _ext: _loss,
+                           'est_params' + _ext: _num_params, 'base_params' + _ext: _pow_num_params,
                            'synergy' + _ext: 0, 'synergy_loss_diff' + _ext: 0})
 
     def _synergy(first, second, target, _ext):
@@ -844,16 +846,15 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
     synergy_start_time = time.time()
 
-    syn_loss_diff = shapley_synergy(stats, _synergy, ext='', target=inputs_seq[:, 1:])
-    syn_loss_diff_val = shapley_synergy(stats, _synergy, ext='_val', target=inputs_val)
+    syn_loss_diff = shapley_synergy(stats, _synergy, ext='', target=inputs_seq[:, 1:],
+                                    scaling_law_power=scaling_law_power)
+    syn_loss_diff_val = shapley_synergy(stats, _synergy, ext='_val', target=inputs_val,
+                                        scaling_law_power=scaling_law_power)
 
     # === Shapley value combination ===
     # Combine base values with synergy approximation to get final Shapley values.
     for s in stats.values():
         for ext in ['', '_val']:
-            if 'base_params' + ext in s:
-                s['est_params' + ext] = torch.pow(s['base_params' + ext], 1. / scaling_law_power)  # full parameter count estimate
-
             if 'base_params' + ext in s and 'synergy' + ext in s:
                 s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
 
@@ -940,10 +941,14 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         _loss = _losses.mean()
 
         # estimate the effective number of model parameters, modified with the scaling_law_power
-        _num_params = scaling_law_loss_to_params(_loss, scaling_law_power)
+        _num_params = scaling_law_loss_to_params(_loss)
+
+        # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
+        _pow_num_params = torch.pow(_num_params, scaling_law_power)
 
         _stats.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss,
-                       'base_params_nxt': _num_params, 'synergy_nxt': 0, 'synergy_loss_diff_nxt': 0})
+                       'est_params_nxt': _num_params, 'base_params_nxt': _pow_num_params,
+                       'synergy_nxt': 0, 'synergy_loss_diff_nxt': 0})
 
     def _synergy(first, second, target, ext):
         # average first + second probabilities per batch item, convert to loss
@@ -961,14 +966,11 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
     synergy_start_time = time.time()
 
-    syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt')
+    syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt', scaling_law_power=scaling_law_power)
 
     # === Shapley value combination ===
     # Combine base values with synergy approximation to get final Shapley values.
     for s in stats.values():
-        if 'base_params_nxt' in s:
-            s['est_params_nxt'] = torch.pow(s['base_params_nxt'], 1. / scaling_law_power)  # full parameter count estimate
-
         if 'base_params_nxt' in s and 'synergy_nxt' in s:
             s['shapley_values_nxt'] = s['base_params_nxt'] + s['synergy_nxt']
 
@@ -1076,7 +1078,7 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     return neuron_loss + routing_loss, stats, unsuccessful
 
 
-def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tensor = None):
+def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tensor = None, scaling_law_power: float = 0.5):
     r"""
     Calculates Shapley synergy for coalition size 2, measured performance above expected performance.
     Measured in effective number of model parameters, just like base Shapley values.
@@ -1089,6 +1091,8 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
                 Extension to parameter string for stats key.
             target (:obj:`torch.Tensor`, `optional`):
                 Target to measure loss against.
+            scaling_law_power (:obj:`float`, `optional`):
+                Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
 
         Returns:
             syn_loss_diff (:obj:`Dict`, `required`):
@@ -1123,8 +1127,14 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
                 first_diff[_second] = loss_diff_share
                 second_diff[_first] = loss_diff_share
 
-                synergy_share = torch.clamp(scaling_law_loss_to_params(measured_loss) -
-                                            scaling_law_loss_to_params(expected_loss), 0) / 2
+                measured_params = scaling_law_loss_to_params(measured_loss)
+                expected_params = scaling_law_loss_to_params(expected_loss)
+
+                # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
+                pow_measured_params = torch.pow(measured_params, scaling_law_power)
+                pow_expected_params = torch.pow(expected_params, scaling_law_power)
+
+                synergy_share = torch.clamp(pow_measured_params - pow_expected_params, 0) / 2
                 first['synergy' + ext] += synergy_share  # share synergy amongst coalition members
                 second['synergy' + ext] += synergy_share
 
