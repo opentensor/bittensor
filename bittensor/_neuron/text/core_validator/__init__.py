@@ -158,11 +158,17 @@ class neuron:
         self.loss_agg_mutex = Lock()
 
         # === Neuron statistics variables ===
-        self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
-        self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
-        # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
-        self.synapse_keys = ['shapley_values_min', 'shapley_values_nxt']
         self.neuron_stats = {}
+        self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
+
+        if self.config.neuron.validation_synapse == 'TextCausalLMNext':
+            self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
+            # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
+            self.synapse_keys = ['shapley_values_nxt']
+        else:
+            self.weight_key = 'shapley_values_min'  # stat key + ! to calculate neuron weights with
+            # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
+            self.synapse_keys = ['shapley_values_min']
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -196,6 +202,7 @@ class neuron:
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
+        parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
 
     @classmethod
     def config ( cls ):
@@ -709,8 +716,10 @@ class nucleus( torch.nn.Module ):
         # The synapse defines the task we are sending to the neurons
         # synapses: List[bittensor.synapse]: synapse information
         # TODO: WORK IN PROGRESS, prototype
-        synapses = [(bittensor.synapse.TextCausalLM(), textcausallm),
-                    (bittensor.synapse.TextCausalLMNext(), textcausallmnext)]
+        if self.config.neuron.validation_synapse == 'TextCausalLMNext':
+            synapses = [(bittensor.synapse.TextCausalLMNext(), textcausallmnext)]
+        else: 
+            synapses = [(bittensor.synapse.TextCausalLM(), textcausallm)]
 
         # === Query the endpoints ===
         # Makes the dendrite call into the network returning the representations
