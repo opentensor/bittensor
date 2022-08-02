@@ -536,6 +536,7 @@ class neuron:
             else:
                 unvalidated += [uid]
 
+        avail_include_uids = []
         if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
             remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
             remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
@@ -553,7 +554,8 @@ class neuron:
                     f'[white] max:[bold]{topk_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{topk_weights.min().item():.4g}[/bold] [/white] '
                     f'\[{topk_weights.max().item() / topk_weights.min().item():.1f}:1] '
-                    f'({max_allowed_ratio} allowed)')  # caption
+                    f'({max_allowed_ratio} allowed)',  # caption
+                    mark_uids=avail_include_uids)
 
 
 class nucleus( torch.nn.Module ):
@@ -1179,10 +1181,12 @@ def synergy_table(stats, syn_loss_diff, sort_col, console_width):
         print()
 
 
-def stats_table(stats, sort_col, console_width, title, caption):
+def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
     r""" Gathers data and constructs neuron statistics table and prints it
     """
     # === Gather columns and rows ===
+    if mark_uids is None:
+        mark_uids = list()
     stats_keys = [set(k for k in stat)
                   for stat in stats.values() if sort_col in stat]  # all available stats keys with sort_col
 
@@ -1191,7 +1195,9 @@ def stats_table(stats, sort_col, console_width, title, caption):
 
     stats_keys = set.union(*stats_keys)
     columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
-    rows = [[('', 0) if key not in stat else (txt.format(stat[key]), stat[key]) for _, key, txt, _ in columns]
+    rows = [[('', 0) if key not in stat
+             else (txt.format(stat[key]) + ('*' if key == 'uid' and mark_uids and stat[key] in mark_uids else ''), stat[key])
+             for _, key, txt, _ in columns]
             for stat in stats.values() if sort_col in stat]  # only keep rows with at least one non-empty cell
 
     if len(columns) == 0 or len(rows) == 0:
