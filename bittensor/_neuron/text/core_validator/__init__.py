@@ -1190,7 +1190,7 @@ def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
     rows = [[('', 0) if key not in stat
              else (('* ' if key == 'uid' and mark_uids and uid in mark_uids else '') + txt.format(stat[key]), stat[key])
              for _, key, txt, _ in columns]
-            for uid, stat in stats if sort_col in stat]  # only keep rows with at least one non-empty cell
+            for uid, stat in stats.items() if sort_col in stat]  # only keep rows with at least one non-empty cell
 
     if len(columns) == 0 or len(rows) == 0:
         return  # nothing to print
