@@ -386,7 +386,8 @@ class neuron:
 
                 # === Calculate neuron weights ===
                 topk_uids, topk_weights = self.calculate_weights()
-                self.weights_table(topk_uids, topk_weights)  # print weights table
+                self.weights_table(topk_uids, topk_weights,
+                                   include_uids=list(stats.keys()), num_rows=2 * len(stats))  # print weights table
 
             # === Logs ===
             if self.config.using_wandb:
@@ -515,9 +516,12 @@ class neuron:
                                                                            multiple=max_allowed_ratio)
         return topk_uids, topk_weights
 
-    def weights_table(self, topk_uids, topk_weights):
+    def weights_table(self, topk_uids, topk_weights, include_uids=None, num_rows: int = None):
         r""" Prints weights table given topk_uids and topk_weights.
         """
+
+        assert len(include_uids) <= num_rows, f'{len(include_uids)} > {num_rows}'  # ensure all include_uids fit in num_rows
+
         n_topk_peer_weights = self.subtensor.min_allowed_weights
         max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
@@ -532,10 +536,21 @@ class neuron:
             else:
                 unvalidated += [uid]
 
+        if include_uids is not None:
+            for uid in include_uids:
+                if uid not in _neuron_stats:
+                    _neuron_stats[uid] = {'uid': uid, 'weight': 0.}
+
+        if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
+            remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
+            remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
+            limited_uids = include_uids + remaining_uids[:num_rows - len(include_uids)]
+            _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
+
         print()
         stats_table(_neuron_stats, 'weight', self.config.get('width', None),
                     f'[white] Neuron weights [/white] | ' + str(self),  # title
-                    f'Validated [bold]{(n_topk_peer_weights - len(unvalidated))}[/bold]'
+                    f'Validated [bold]{(len(self.neuron_stats))}[/bold]'
                     f'/{n_topk_peer_weights}/{self.metagraph.n} (valid/min/total) | '
                     f'sum:{topk_weights.sum().item():.2g} '
                     f'[white] max:[bold]{topk_weights.max().item():.4g}[/bold] / '
