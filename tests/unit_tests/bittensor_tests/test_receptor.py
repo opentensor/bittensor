@@ -70,7 +70,7 @@ def test_dummy_forward():
     assert ops == [bittensor.proto.ReturnCode.BadEndpoint for _ in synapses]
     assert [list(o.shape) for o in out] == [[2, 4,bittensor.__network_dim__],
                                             [2, 4, bittensor.__vocab_size__],
-                                            [2 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)],
+                                            [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [2, 70]]
 
 
@@ -84,7 +84,7 @@ def test_dummy_backward():
     assert ops == [bittensor.proto.ReturnCode.BadEndpoint for _ in synapses]
     assert [list(o.shape) for o in out] == [[2,4,bittensor.__network_dim__],
                                             [2,4, bittensor.__vocab_size__],
-                                            [2 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)],
+                                            [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [0]]
 
 # -- request serialization --
@@ -112,7 +112,7 @@ def test_receptor_neuron_text():
     assert ops == [bittensor.proto.ReturnCode.Unavailable]*len(synapses)
     assert [list(o.shape) for o in out] == [[2, 4,bittensor.__network_dim__],
                                             [2, 4, bittensor.__vocab_size__],
-                                            [2 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)],
+                                            [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [2, 70]]
 
 def test_receptor_neuron_request_empty():
@@ -124,7 +124,7 @@ def test_receptor_neuron_request_empty():
 def test_receptor_neuron_mock_server():
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -145,17 +145,17 @@ def test_receptor_neuron_mock_server():
 
     x = torch.rand(3, 3)
     out, ops, time  = receptor.forward( synapses, x, timeout=1)
-    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
     print([list(o.shape) for o in out])
+    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
     assert [list(o.shape) for o in out] == [[3, 3, bittensor.__network_dim__],
                                             [3, 3, bittensor.__vocab_size__],
-                                            [3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)],
+                                            [3, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [3, 70]]
 
 def test_receptor_neuron_serve_timeout():
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(3, 70, bittensor.__network_dim__)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -180,7 +180,7 @@ def test_receptor_neuron_serve_timeout():
     assert ops == [bittensor.proto.ReturnCode.Timeout] * len(synapses)
     assert [list(o.shape) for o in out] == [[3, 3, bittensor.__network_dim__],
                                             [3, 3, bittensor.__vocab_size__],
-                                            [3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)],
+                                            [3, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [3, 70]]
 
 def test_receptor_neuron_mock_server_deserialization_error():
@@ -201,7 +201,7 @@ def test_receptor_neuron_mock_server_deserialization_error():
     assert ops == [bittensor.proto.ReturnCode.ResponseDeserializationException] * len(synapses)
     assert [list(o.shape) for o in out] == [[3, 3, bittensor.__network_dim__],
                                             [3, 3, bittensor.__vocab_size__],
-                                            [3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)],
+                                            [3, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [3, 70]]
 
 def test_receptor_neuron_mock_server_shape_error():
@@ -228,7 +228,7 @@ def test_receptor_neuron_mock_server_shape_error():
     assert ops == [bittensor.proto.ReturnCode.ResponseShapeException] * len(synapses)
     assert [list(o.shape) for o in out] == [[3, 3, bittensor.__network_dim__],
                                             [3, 3, bittensor.__vocab_size__],
-                                            [3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)],
+                                            [3, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [3, 70]]
 
 def test_receptor_neuron_server_response_with_nans():
@@ -236,12 +236,12 @@ def test_receptor_neuron_server_response_with_nans():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(3, 70)
     
     y_hidden[0][0][0] = np.nan
     y_causallm[0][0][0] = np.nan
-    y_causallmnext[0] = np.nan
+    y_causallmnext[0] = np.nan  # unravel fails because demarcating probability is replaced by nan, ResponseDeserializationException
     y_seq_2_seq[0][0] = np.nan
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -263,10 +263,10 @@ def test_receptor_neuron_server_response_with_nans():
 
     x = torch.rand(3, 3)
     out, ops, time  = receptor.forward( synapses, x, timeout=1)
-    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
+    assert ops == [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success,
+                   bittensor.proto.ReturnCode.ResponseDeserializationException, bittensor.proto.ReturnCode.Success]
     assert out[0][0][0][0] != np.nan
     assert out[1][0][0][0] != np.nan
-    assert out[2][0] != np.nan
     assert out[3][0][0] != np.nan
 
 # -- backwards testing --
@@ -275,7 +275,7 @@ def test_receptor_neuron_text_backward():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
     causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
     seq_2_seq_grads = torch.tensor([])
     out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
     assert ops == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
@@ -305,7 +305,7 @@ def test_receptor_neuron_mock_server_backward():
     x = torch.rand(3, 3)
     hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
     causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
     seq_2_seq_grads = torch.tensor([])
     out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
     assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
@@ -375,7 +375,7 @@ def test_receptor_backward_stub_exception():
         x = torch.rand(3, 3)
         hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
         causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-        causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+        causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
         seq_2_seq_grads = torch.tensor([])
         out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
         assert ops == [bittensor.proto.ReturnCode.UnknownException] * len(synapses)
@@ -409,7 +409,7 @@ def test_receptor_backward_endpoint_exception():
         x = torch.rand(3, 3)
         hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
         causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-        causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+        causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
         seq_2_seq_grads = torch.tensor([])
         out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
         assert ops == [bittensor.proto.ReturnCode.UnknownException] * len(synapses)
@@ -427,7 +427,7 @@ def test_axon_receptor_connection_forward_works():
         return None, None, torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     def forward_casual_lm_next(input, synapse, model_output=None):
-        return None, None, torch.zeros([3 * (2 * synapse.topk + 1)])
+        return None, None, torch.zeros([3, (synapse.topk + 1), 1 + 1])
 
     axon = bittensor.axon (
         port = 8081,
@@ -473,7 +473,7 @@ def test_axon_receptor_connection_forward_unauthenticated():
         return None, None, torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     def forward_casual_lm_next(input, synapse, model_output=None):
-        return None, None, torch.zeros([3 * (2 * synapse.topk + 1)])
+        return None, None, torch.zeros([3, (synapse.topk + 1), 1 + 1])
 
     axon = bittensor.axon (
         port = 8081,
@@ -519,7 +519,7 @@ def test_axon_receptor_connection_backward_works():
         return torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     def forward_casual_lm_next(input, synapse):
-        return torch.zeros([3 * (2 * synapse.topk + 1)])
+        return torch.zeros([3, (synapse.topk + 1), 1 + 1])
 
     axon = bittensor.axon (
         port = 8082,
@@ -550,7 +550,7 @@ def test_axon_receptor_connection_backward_works():
     x = torch.rand(3, 3)
     hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
     causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
     seq_2_seq_grads = torch.tensor([])
 
     out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
@@ -568,7 +568,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
         return torch.zeros( [3, 3, bittensor.__vocab_size__])
 
     def forward_casual_lm_next(input, synapse):
-        return torch.zeros([3 * (2 * synapse.topk + 1)])
+        return torch.zeros([3, (synapse.topk + 1), 1 + 1])
 
     axon = bittensor.axon (
         port = 8090,
@@ -600,7 +600,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
     x = torch.rand(3, 3)
     hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
     causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
     seq_2_seq_grads = torch.tensor([])
 
     receptor.sign = MagicMock( return_value='mock' )
@@ -739,7 +739,7 @@ def test_axon_receptor_connection_backward_timeout():
     x = torch.rand(3, 3)
     hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
     causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
     seq_2_seq_grads = torch.tensor([])
     out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
 

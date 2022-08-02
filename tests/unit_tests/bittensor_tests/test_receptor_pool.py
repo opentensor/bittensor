@@ -60,7 +60,7 @@ def test_receptor_pool_forward():
     resp1,  _, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
     assert list(resp1[0][0].shape) == [2, 2, bittensor.__network_dim__]
     assert list(resp1[0][1].shape) == [2, 2, bittensor.__vocab_size__]
-    assert list(resp1[0][2].shape) == [2 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)]
+    assert list(resp1[0][2].shape) == [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1]
     assert list(resp1[0][3].shape) == [2, 70]
 
 def test_receptor_pool_backward():
@@ -68,7 +68,7 @@ def test_receptor_pool_backward():
     x = torch.ones( (1,2,2) )
     grads = [[torch.ones(2, 2, bittensor.__network_dim__),
               torch.ones(2, 2, bittensor.__vocab_size__),
-              torch.ones(2 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)),
+              torch.ones(1, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1),
               torch.tensor([])]]
     receptor_pool.backward( endpoints, synapses, x, grads, timeout=1)
 
@@ -90,7 +90,7 @@ def test_receptor_pool_max_workers_forward():
     resp1,  _, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
     assert list(resp1[0][0].shape) == [2, 2, bittensor.__network_dim__]
     assert list(resp1[0][1].shape) == [2, 2, bittensor.__vocab_size__]
-    assert list(resp1[0][2].shape) == [2 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)]
+    assert list(resp1[0][2].shape) == [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1]
     assert list(resp1[0][3].shape) == [2, 70]
 
 def test_receptor_pool_forward_success():
@@ -99,7 +99,7 @@ def test_receptor_pool_forward_success():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -128,7 +128,7 @@ def test_receptor_pool_forward_timeout():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -161,7 +161,7 @@ def test_receptor_pool_forward_num_synapse_mismatch():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -190,7 +190,7 @@ def test_receptor_pool_forward_response_partial_shape_error():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(2, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -219,7 +219,7 @@ def test_receptor_pool_partial_remote_success_return_code():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(2, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -249,7 +249,7 @@ def test_receptor_pool_missing_synapse():
 
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
-    y_causallmnext = torch.rand(3 * (2 * bittensor.synapse.TextCausalLMNext().topk + 1))
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
     y_seq_2_seq = torch.rand(3, 70)
     
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -283,7 +283,7 @@ def test_receptor_pool_backward_hang():
     
     hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
     causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0) * (2 * bittensor.synapse.TextCausalLMNext().topk + 1)))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
     seq_2_seq_grads = torch.tensor([])
 
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)

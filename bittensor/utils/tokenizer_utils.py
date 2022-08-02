@@ -707,49 +707,47 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
     return probs_std  # [batch_size, std_sequence_len, std_vocab_size]
 
 
-def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase, to_tokenizer: PreTrainedTokenizerBase,
-                       topk: int, ignore_index: int = -100) -> Tuple[torch.Tensor,
-                                                                     torch.Tensor,
-                                                                     torch.Tensor,
-                                                                     torch.Tensor]:
+def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
+                       topk: int, ignore_index: int = -100) -> torch.Tensor:
     r"""
-    Select topk tokenizer logits and retokenize with to_tokenizer, then compact new token phrases and probabilities
-    into 1-D tensor [ >= batch_size * (2 * topk + 1)] prob + at least 1 token per phrase + floor_prob.
-    The floor probability is the mean probability of token phrases not captured in topk, required since
-    the tokenizer vocab_size may not be known to the receiver.
+    Select topk tokenizer logits/phrases and include std_token_phrases counterparts (std_tokenization of token text)
+    in topk_tensor output of shape [batch_size, (topk + 1), max_len], where max len of all phrase lists
+    (with prob in front) is max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...])).
+    The output topk_tensor also includes a floor_prob for each batch item. The floor probability is the
+    mean probability of token phrases not captured in topk, required since the tokenizer vocab_size may
+    not be known to the receiver.
+    Requires prep_tokenizer(tokenizer, std_tokenizer) to set_std_token_phrases first, to make
+    std_token_phrases available here.
         Args:
             logits (:obj:`torch.Tensor`, `required`):
                 [batch_size, vocab_size] Input source logits for last token over a source tokenizer vocabulary.
             tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
                 Source tokenizer (usually server tokenizer)
-            to_tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                Target tokenizer (usually standard validator tokenizer)
             topk (:obj:`int`, `required`):
                 Amount of top phrases to expect (to check for mismatch)
             ignore_index (:obj:`int`, `optional`):
                 Padding value to use for unfilled token positions in a shorter token phrase.
 
         Returns:
-            compact_topk (:obj:`torch.Tensor`, `required`):
-                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
-                since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
-                floor probability (rest).
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
                 Content structure:
-                [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
-                 prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
-                 ...]
-            topk_tokens (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
-            topk_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk] Probabilities for each phrase in topk.
-            floor_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size] Floor probabilities as mean probability for non-topk tokens.
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                 [...]]
     """
     # Get shape sizes
     batch_size, vocab_size = logits.shape  # [batch_size, vocab_size] only last token prediction
 
     # Convert logits to probabilities
-    logits = logits.to('cpu').float()  # ensure further computations done in float32 for improved precision
+    logits = logits.float()  # ensure further computations done in float32 for improved precision
     probs = torch.softmax(logits, dim=1)  # [batch_size, vocab_size]
 
     # TopK phrase selection
@@ -760,58 +758,87 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
     remainder_pmass = torch.clamp(1 - topk_pmass, 1e-40, 1)  # [batch_size] remainder probability mass
     floor_probs = remainder_pmass / (vocab_size - topk)  # [batch_size]divide remainder
 
-    # === Tokenizer phrases to memory ===
-    if not hasattr(tokenizer, 'phrases'):
-        set_vocab_len(tokenizer)
-        tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
+    # convert to list for faster iteration in list comprehension
+    topk_probs_list = topk_probs.tolist()
+    topk_indices_list = topk_indices.tolist()
+    floor_probs_list = floor_probs.tolist()
 
-        set_whitespace_preserving(tokenizer)
-        if not tokenizer.whitespace_preserving:
-            tokenizer.phrases = [' ' + phrase for phrase in tokenizer.phrases]
+    # === Construct topk phrases list ===
+    probs = []  # collect probability tensors with gradients attached (to be grafted into topk_tensor)
+    phrases = []  # form topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
 
-    tensors = []
-    tokens_batch = []
-
-    # === Construct topk batch ===
     for b in range(batch_size):
-        # Select topk phrases
-        phrases = [tokenizer.phrases[i] for i in topk_indices[b]]  # str[topk]
+        # collect probability tensors with gradients attached (to be grafted into topk_tensor)
+        probs += [topk_probs[b], floor_probs[b]]  # [tensor(prob_k=0_b, prob_k=1_b, ...), tensor(prob_floor_b)]
 
-        # Retokenize phrases to new tokenizer
-        to_tokens = to_tokenizer(phrases)['input_ids']  # [topk, max_len] convert phrases to tokens sequences
+        # form topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
+        phrases += [[prob] + tokenizer.std_token_phrases[i]
+                    for prob, i in zip(topk_probs_list[b], topk_indices_list[b])]  # [prob_k, tok_0_k, tok_1_k, ...]
 
-        token_phrases = []
-        # === Reassemble topk info ===
-        for i in range(topk):
-            phrase_tensor = torch.tensor(to_tokens[i], requires_grad=True, dtype=torch.float)
-            token_phrases += [phrase_tensor]
-            tensors += [topk_probs[b, i], phrase_tensor + 2]  # increment 2 to reserve [0, 1] for probs
+        # also add prob_floor for batch item
+        phrases += [[floor_probs_list[b]]]  # [prob_floor_b]
 
-        tensors += [floor_probs[b]]
-        tokens_batch += [token_phrases]
+    # determine width of topk_tensor as max len of all phrase lists (with prob in front)
+    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
 
-    compact_topk = torch.hstack(tensors).float()  # [sum_b(sum_k(len(phrase_k) + 1)_b)]
+    # form single 2D tensor with all phrase and probs (typically to send to axon wire encoding)
+    topk_tensor = torch.tensor([p + [ignore_index] * (max_len - len(p))
+                                for p in phrases]).to(logits.device)  # [batch_size * (topk + 1), max_len]
 
-    # === Tensorize topk token selection ===
-    max_len = max([max([len(phrase) for phrase in phrases]) for phrases in tokens_batch])  # max_len
-    topk_tokens = ignore_index * torch.ones((len(tokens_batch), topk, max_len))  # [batch_size, topk, max_len]
+    # grafting probability tensors into first column to attach gradients
+    topk_tensor[:, 0] = torch.hstack(probs)  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
-    for b, phrases in enumerate(tokens_batch):
-        for k, phrase in enumerate(phrases):
-            topk_tokens[b, k, :len(phrase)] = phrase
+    topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
 
-    topk_tokens = topk_tokens.to(int)
-
-    return compact_topk, topk_tokens, topk_probs, floor_probs
+    return topk_tensor  # [batch_size, (topk + 1), max_len] (probability gradients attached in first column)
 
 
-def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_index: int = -100) -> Tuple[torch.Tensor,
-                                                                                                         torch.Tensor,
-                                                                                                         torch.Tensor]:
+def compact_topk_token_phrases(topk_tensor: torch.Tensor):
     r"""
-    Unravel topk token phrases input_tensor from 1-D to [batch_size, topk, max_len].
+    Compact 2D topk_tensor [batch_size, (topk + 1), max_len] by removing ignore_index padding, and also offset
+    tokens by 2 to preserve [0, 1] for probabilities to allow for proper unraveling demarcated by
+    probability boundaries.
         Args:
-            input_tensor (:obj:`torch.Tensor`, `required`):
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+                Content structure:
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                 [...]]
+
+        Returns:
+            compact_topk (:obj:`torch.Tensor`, `required`):
+                [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
+                since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
+                floor probability (rest).
+                Content structure:
+                    [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
+                     prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
+                     ...]
+    """
+    topk_tensor_offset = topk_tensor.clone()  # assume topk_tensor may be reused elsewhere so clone
+    topk_tensor_offset[:, :, 1:] += 2  # add 2 to token ids to preserve [0, 1] for probabilities (in first column)
+
+    flattened = topk_tensor_offset.flatten()  # [batch_size * (topk + 1) * max_len] 1D tensor
+    compact_topk = flattened[flattened > -1]  # remove ignore_index < -1 padding to compact content
+
+    return compact_topk  # [>= batch_size * (2 * topk + 1)]
+
+
+def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_index: int = -100) -> torch.Tensor:
+    r"""
+    Unravel topk token phrases input_tensor from 1-D to [batch_size, (topk + 1), max_len] topk_tensor, which
+    includes topk token probabilities (prob_k) + floor_prob in first column with gradients attached, with
+    std_tokens in remaining columns with ignore_index padding.
+        Args:
+            compact_topk (:obj:`torch.Tensor`, `required`):
                 [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
                 since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
                 floor probability (rest).
@@ -824,70 +851,51 @@ def unravel_topk_token_phrases(input_tensor: torch.Tensor, topk: int, ignore_ind
             ignore_index (:obj:`int`, `optional`):
                 Padding value to use for unfilled token positions in a shorter token phrase.
         Returns:
-            topk_tokens (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
-            topk_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk] Probabilities for each phrase in topk.
-            floor_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size] Floor probabilities as mean probability for non-topk tokens.
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+                Content structure:
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                 [...]]
     """
 
-    # Find probability markers
-    prob_idx = torch.where(input_tensor <= 1)[0]  # 0 <= prob <= 1
+    # Find probability markers (per batch item: topk phrase probabilities + floor_prob)
+    prob_idx = torch.where(compact_topk <= 1.5)[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
 
-    # Decrement token ids
-    input_tensor[input_tensor >= 2] -= 2  # decrement token id to original value
+    batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
+    assert batch_size * (topk + 1) == len(prob_idx), f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
 
-    probs = []
-    phrases = []
-    tokens_batch = []
-    probs_batch = []
-    floor_probs = []
+    # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
+    phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
+    phrases = phrases[1:]  # ignore first (empty) split
 
-    # === Extract phrase info ===
-    prev_idx = prob_idx[0] + 0
-    prob = input_tensor[prev_idx] + 0
-    for idx in prob_idx[1:]:
-        if prev_idx + 1 == idx:  # encounter floor probability, create new batch_item
-            floor_probs += [prob]
-            tokens_batch += [phrases]
-            probs_batch += [torch.stack(probs)]
-            phrases = []
-            probs = []
-        else:
-            probs += [prob]
-            phrases += [input_tensor[prev_idx + 1:idx]]  # torch.tensor([prob, tok0, tok1, ...tokn])
+    # determine width of topk_tensor as max len of all phrase lists (with prob in front)
+    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
 
-        prev_idx = idx + 0
-        prob = input_tensor[prev_idx] + 0
+    ignore_index_2 = ignore_index + 2  # increment with 2, as decrement with 2 follows
 
-    tokens_batch += [phrases]
+    # form single 2D tensor with topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
+    topk_tensor = torch.tensor([p + [ignore_index_2] * (max_len - len(p))
+                                for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
+    topk_tensor -= 2  # remove token offset
 
-    # === Check batch items for same topk ===
-    if 0 < sum([not len(phrases) == topk for phrases in tokens_batch]):
-        raise ValueError('reshape_topk_token_phrases(): topk lengths unmatched.')
+    # grafting probability tensors into first column to attach gradients
+    topk_tensor[:, 0] = compact_topk[prob_idx]  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
-    probs_batch += [torch.stack(probs)]
-    topk_probs = torch.vstack(probs_batch)  # [batch_size, topk] phrase probability
+    topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
 
-    floor_probs += [prob]  # last floor probability
-    floor_probs = torch.stack(floor_probs)  # [batch_size] floor probabilities as mean probability for non-topk tokens
-
-    # === Tensorize topk token selection ===
-    max_len = max([max([len(phrase) for phrase in phrases]) for phrases in tokens_batch])  # max_len
-    topk_tokens = ignore_index * torch.ones((len(tokens_batch), topk, max_len))  # [batch_size, topk, max_len]
-
-    for b, phrases in enumerate(tokens_batch):
-        for k, phrase in enumerate(phrases):
-            topk_tokens[b, k, :len(phrase)] = phrase
-
-    topk_tokens = topk_tokens.to(int)  # [batch_size, topk, max_len]
-
-    return topk_tokens, topk_probs, floor_probs
+    return topk_tensor  # [batch_size, (topk + 1), max_len]
 
 
 def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
-                         topk_tokens: torch.Tensor, topk_probs: torch.Tensor, floor_probs: torch.Tensor,
+                         topk_tensor: torch.Tensor,
                          ignore_index: int = -100, reduce=True, reduction='mean',
                          vocab_size_min: int = 50257) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
@@ -896,12 +904,19 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
         Args:
             target_phrases (:obj:`List[List[int]]`, `required`):
                 [batch_size, *] Target phrases in standard token sequence list.
-            topk_tokens (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk, max_len] Phrase tokens with ignore_index token for padding.
-            topk_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size, topk] Probabilities for each phrase in topk.
-            floor_probs (:obj:`torch.Tensor`, `required`):
-                [batch_size] Floor probabilities as mean probability for non-topk tokens.
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+                Content structure:
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                 [...]]
             ignore_index (:obj:`int`, `optional`):
                 Padding value to use for unfilled token positions in a shorter token phrase.
             reduce (:obj:`bool`, `optional`):
@@ -918,7 +933,12 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                 Phrase cross entropy loss, either scalar if reduce or [batch_size].
     """
 
-    batch_size, topk, max_len = topk_tokens.shape
+    batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
+    topk = topk_p1 - 1
+
+    topk_tokens = topk_tensor[:, :-1, 1:]  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+    topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+    floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
 
     # === Ensure total probability is 1 ===
     total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
@@ -939,9 +959,9 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
             val_probs[b] = n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
 
         # === Integrate sub target matches ===
-        check_len = min(max_len, len(target_phrase))
+        check_len = min(max_len - 1, len(target_phrase))
         for c in range(1, check_len + 1):  # progressively increase sub target length
-            target = ignore_index * torch.ones(check_len, dtype=torch.int32)  # [-100, ..., -100]
+            target = ignore_index * torch.ones(check_len, dtype=torch.int32).to(topk_tensor.device)  # [-100, ..., -100]
             target[:c] = target_phrase[:c]  # [tok0, tok1, ...tokc, -100, ..., -100]
 
             # Find sub target matches
@@ -968,43 +988,6 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
             raise ValueError(f'phase_cross_entropy(): Expected reduction to scalar, obtained {loss.shape} instead.')
 
     return loss_val, loss
-
-
-def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
-    r"""
-    Sets the tokenizer.vocab_len if unset, to store the real vocabulary size according to the vocab or encoder.
-        Args:
-            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                Tokenizer to set vocab_len for.
-        Returns:
-
-    """
-    if not hasattr(tokenizer, 'vocab_len'):
-        if hasattr(tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
-            tokenizer.vocab_len = len(tokenizer.vocab)
-        elif hasattr(tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
-            tokenizer.vocab_len = len(tokenizer.encoder)
-        else:  # revert to vocab_size
-            tokenizer.vocab_len = tokenizer.vocab_size
-
-
-def set_whitespace_preserving(tokenizer: PreTrainedTokenizerBase):
-    r"""
-    Sets the tokenizer.whitespace_preserving if unset, indicates if tokenizer preserves whitespace like GPT-style,
-    or not like BERT-style.
-        Args:
-            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                Tokenizer to set vocab_len for.
-        Returns:
-
-    """
-    if not hasattr(tokenizer, 'whitespace_preserving'):
-        space_token = tokenizer(' ', add_special_tokens=False)['input_ids']
-        space_text = tokenizer.decode(space_token)
-        if space_text == ' ':
-            tokenizer.whitespace_preserving = True
-        else:
-            tokenizer.whitespace_preserving = False
 
 
 def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
@@ -1232,7 +1215,71 @@ def translate_special_token_text(text_batch: List[str], from_tokenizer: PreTrain
     return to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch
 
 
-def prep_tokenizer(tokenizer):
+def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
+    r"""
+    Sets the tokenizer.vocab_len if unset, to store the real vocabulary size according to the vocab or encoder.
+        Args:
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set vocab_len for.
+        Returns:
+
+    """
+    if not hasattr(tokenizer, 'vocab_len'):
+        if hasattr(tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
+            tokenizer.vocab_len = len(tokenizer.vocab)
+        elif hasattr(tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
+            tokenizer.vocab_len = len(tokenizer.encoder)
+        else:  # revert to vocab_size
+            tokenizer.vocab_len = tokenizer.vocab_size
+
+
+def set_whitespace_preserving(tokenizer: PreTrainedTokenizerBase):
+    r"""
+    Sets the tokenizer.whitespace_preserving if unset, indicates if tokenizer preserves whitespace like GPT-style,
+    or not like BERT-style.
+        Args:
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set vocab_len for.
+        Returns:
+
+    """
+    if not hasattr(tokenizer, 'whitespace_preserving'):
+        space_token = tokenizer(' ', add_special_tokens=False)['input_ids']
+        space_text = tokenizer.decode(space_token)
+        if space_text == ' ':
+            tokenizer.whitespace_preserving = True
+        else:
+            tokenizer.whitespace_preserving = False
+
+
+def set_std_token_phrases(tokenizer, std_tokenizer):
+    r"""
+    Sets std_token_phrases which are the tokenizer token strings tokenized with std_tokenizer, so
+    the std_tokenizer equivalent of the tokenizer token strings.
+    Used for converting model predictions/logits into std_tokenizer representations, for example in TextCausalLMNext.
+        Args:
+            tokenizer(:obj:`PreTrainedTokenizerBase`, `required`):
+                Tokenizer to set std_token_phrases for.
+            std_tokenizer(:obj:`PreTrainedTokenizerBase`, `required`):
+                Standard bittensor tokenizer to convert to.
+
+        Returns:
+
+    """
+    # === Tokenizer phrases to memory ===
+    if not hasattr(tokenizer, 'phrases'):
+        if tokenizer.whitespace_preserving:
+            tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
+        else:
+            tokenizer.phrases = [' ' + phrase for phrase in
+                                 tokenizer.batch_decode(range(tokenizer.vocab_len))]  # server tokens to strings
+
+    if not hasattr(tokenizer, 'std_token_phrases'):
+        # Retokenize phrases to new tokenizer
+        tokenizer.std_token_phrases = std_tokenizer(tokenizer.phrases)['input_ids']  # [topk, max_len] convert phrases to tokens sequences
+
+
+def prep_tokenizer(tokenizer, std_tokenizer=None):
     tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
     # tokenizer.add_prefix_space = False
     # tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
@@ -1268,5 +1315,8 @@ def prep_tokenizer(tokenizer):
         tokenizer.pad_token = tokenizer.eos_token
     set_vocab_len(tokenizer)
     set_whitespace_preserving(tokenizer)
+
+    if std_tokenizer is not None:
+        set_std_token_phrases(tokenizer, std_tokenizer)
 
     return tokenizer

@@ -342,13 +342,7 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     # ============================
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
-    tokenizer.padding_side = "left"
-
-    # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
-    # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
-    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
-        tokenizer.pad_token = tokenizer.eos_token
+    prep_tokenizer(tokenizer, std_tokenizer)
 
     # ================================================
     # ==== Server-side: CausalLM task translation ====
@@ -392,15 +386,13 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
 
     last_logits = dec_pre_logits[:, -1, :]  # last token predictions: [batch_size, vocab_size]
 
-    result = topk_token_phrases(last_logits, tokenizer, std_tokenizer, topk=topk)
-    compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
+    _topk_tensor = topk_token_phrases(last_logits, tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
+    compact_topk = compact_topk_token_phrases(_topk_tensor)
     # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
-    topk_tokens, topk_probs, floor_probs = unravel_topk_token_phrases(compact_topk, topk=topk)
+    topk_tensor = unravel_topk_token_phrases(compact_topk, topk=topk)
 
-    assert (_topk_tokens - topk_tokens).abs().sum() < 1e-9
-    assert (_topk_probs - topk_probs).abs().sum() < 1e-9
-    assert (_floor_probs - floor_probs).abs().sum() < 1e-9
+    assert (_topk_tensor - topk_tensor).abs().sum() < 1e-9
 
 
 def test_topk_token_phrases():
@@ -493,13 +485,7 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
     # ============================
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
-    tokenizer.padding_side = "left"
-
-    # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
-    # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
-    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
-        tokenizer.pad_token = tokenizer.eos_token
+    prep_tokenizer(tokenizer, std_tokenizer)
 
     # ================================================
     # ==== Server-side: CausalLM task translation ====
@@ -547,17 +533,15 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
         target_phrases = tokenizer.batch_decode(tokens['input_ids'][:, last_idx+1:])
         target_phrases = std_tokenizer(target_phrases)['input_ids']
 
-        result = topk_token_phrases(last_logits, tokenizer, std_tokenizer, topk=topk)
-        compact_topk, _topk_tokens, _topk_probs, _floor_probs = result
+        _topk_tensor = topk_token_phrases(last_logits, tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
+        compact_topk = compact_topk_token_phrases(_topk_tensor)
         # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
 
-        topk_tokens, topk_probs, floor_probs = unravel_topk_token_phrases(compact_topk, topk=topk)
+        topk_tensor = unravel_topk_token_phrases(compact_topk, topk=topk)
 
-        assert (_topk_tokens - topk_tokens).abs().sum() < 1e-9
-        assert (_topk_probs - topk_probs).abs().sum() < 1e-9
-        assert (_floor_probs - floor_probs).abs().sum() < 1e-9
+        assert (_topk_tensor - topk_tensor).abs().sum() < 1e-9
 
-        loss_val, loss = phrase_cross_entropy(target_phrases, topk_tokens, topk_probs, floor_probs)
+        loss_val, loss = phrase_cross_entropy(target_phrases, topk_tensor)
         recorded_losses += [loss.item()]
 
     return recorded_losses

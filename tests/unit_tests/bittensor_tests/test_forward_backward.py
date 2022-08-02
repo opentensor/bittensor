@@ -77,12 +77,12 @@ def test_dendrite_forward_text_causal_lm():
     assert list(tensors[0][0].shape) == [2, 4, bittensor.__network_dim__]
 
 def test_dendrite_forward_text_causal_lm_next():
-    x = torch.LongTensor([[1, 2, 3, 4], [5, 6, 7, 8]])
+    x = torch.LongTensor([[1, 2, 3, 4], [5, 6, 7, 8]])  # [2, 4]
     synapses = [bittensor.synapse.TextCausalLMNext()]
-    dendrite_mock.receptor_pool.forward = MagicMock(return_value=[[[torch.zeros([2 * (2 * synapses[0].topk + 1)])]], [[1]], [[0]]])
+    dendrite_mock.receptor_pool.forward = MagicMock(return_value=[[[torch.zeros([2, (synapses[0].topk + 1), 1 + 1])]], [[1]], [[0]]])
     tensors, codes, times = dendrite_mock.text(endpoints=[endpoint], inputs=[x], synapses=synapses)
     assert codes[0].item() == bittensor.proto.ReturnCode.Success
-    assert list(tensors[0][0].shape) == [2 * (2 * synapses[0].topk + 1)]
+    assert list(tensors[0][0].shape) == [2, (synapses[0].topk + 1), 1 + 1]  # [batch_size, (topk + 1), max_len]
 
 def test_dendrite_forward_text_last_hidden():
     x = torch.tensor([[1],[8]])
@@ -116,7 +116,7 @@ def test_dendrite_forward_tensor_pass_through_text_causal_lm():
 def test_dendrite_forward_tensor_pass_through_text_causal_lm_next():
     x = torch.ones((3, 3), dtype=torch.int64)
     synapses = [bittensor.synapse.TextCausalLMNext()]
-    y = torch.zeros([3 * (2 * synapses[0].topk + 1)])
+    y = torch.zeros([3, (synapses[0].topk + 1), 1 + 1])
     dendrite_mock.receptor_pool.forward = MagicMock(return_value=[[[y, y, y]], [[1, 1, 1]], [[0, 0, 0]]])
     tensors, codes, times = dendrite_mock.text(endpoints=[endpoint, endpoint, endpoint], inputs=[x, x, x], synapses=synapses)
     assert codes[0][0].item() == bittensor.proto.ReturnCode.Success
