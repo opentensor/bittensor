@@ -755,18 +755,21 @@ class nucleus( torch.nn.Module ):
         return loss, neuron_stats
 
 
-def scaling_law_loss_to_params(loss):
+def scaling_law_loss_to_params(loss, scaling_law_power=0.5):
     r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
     """
-    num_params = torch.exp(torch.log(torch.tensor(8.8e13).to(loss.device)) - torch.log(torch.clamp(loss, 1.69)) / 0.076)
-    pow_num_params = torch.pow(num_params, 0.5)  # powered down number of params, dynamic range 3 → 6 nats
+    num_params = torch.exp(torch.log(torch.tensor(8.8e13).to(loss.device)) -
+                           torch.log(torch.clamp(loss, 1.69)) / 0.076)  # loss lower bound 1.69 is entropy of natural text
+    # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
+    pow_num_params = torch.pow(num_params, scaling_law_power)
     return pow_num_params  # modified scaling law, powered down to improve dynamic range (subject to change)
 
 
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
+                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0,
+                 scaling_law_power: float = 0.5
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLM synapse responses.
@@ -796,6 +799,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 TextCausalLM synapse object.
             index_s (:obj:`int`, `optional`):
                 Index of synapse to extract responses.
+            scaling_law_power (:obj:`float`, `optional`):
+                Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
 
         Returns:
             loss (:obj:`torch.FloatTensor`):
@@ -815,7 +820,9 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             _loss = calc_loss_fct(loss_fct, _stats['logits' + _ext], target)  # CausalLM loss
             if _loss.isnan() or _loss.isinf():
                 _loss = 20  # assign large loss
-            _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
+
+            # estimate the effective number of model parameters, modified with the scaling_law_power
+            _num_params = scaling_law_loss_to_params(_loss, scaling_law_power)
 
             _stats.update({'loss' + _ext: _loss, 'base_params' + _ext: _num_params,
                            'synergy' + _ext: 0, 'synergy_loss_diff' + _ext: 0})
@@ -845,7 +852,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     for s in stats.values():
         for ext in ['', '_val']:
             if 'base_params' + ext in s:
-                s['est_params' + ext] = torch.pow(s['base_params' + ext], 2)  # parameter count estimate
+                s['est_params' + ext] = torch.pow(s['base_params' + ext], 1. / scaling_law_power)  # full parameter count estimate
 
             if 'base_params' + ext in s and 'synergy' + ext in s:
                 s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
@@ -881,7 +888,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
+                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
+                     scaling_law_power: float = 0.5
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -911,6 +919,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 TextCausalLMNext Synapse object.
             index_s (:obj:`int`, `optional`):
                 Index of synapse to extract responses.
+            scaling_law_power (:obj:`float`, `optional`):
+                Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
 
         Returns:
             loss (:obj:`torch.FloatTensor`):
@@ -929,7 +939,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         _loss_val = _losses_val.mean()
         _loss = _losses.mean()
 
-        _num_params = scaling_law_loss_to_params(_loss)  # estimate the effective number of model parameters
+        # estimate the effective number of model parameters, modified with the scaling_law_power
+        _num_params = scaling_law_loss_to_params(_loss, scaling_law_power)
 
         _stats.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss,
                        'base_params_nxt': _num_params, 'synergy_nxt': 0, 'synergy_loss_diff_nxt': 0})
@@ -956,7 +967,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     # Combine base values with synergy approximation to get final Shapley values.
     for s in stats.values():
         if 'base_params_nxt' in s:
-            s['est_params_nxt'] = torch.pow(s['base_params_nxt'], 2)  # parameter count estimate
+            s['est_params_nxt'] = torch.pow(s['base_params_nxt'], 1. / scaling_law_power)  # full parameter count estimate
 
         if 'base_params_nxt' in s and 'synergy_nxt' in s:
             s['shapley_values_nxt'] = s['base_params_nxt'] + s['synergy_nxt']
