@@ -536,15 +536,12 @@ class neuron:
             else:
                 unvalidated += [uid]
 
-        if include_uids is not None:
-            for uid in include_uids:
-                if uid not in _neuron_stats:
-                    _neuron_stats[uid] = {'uid': uid, 'weight': 0.}
-
         if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
             remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
             remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
-            limited_uids = include_uids + remaining_uids[:num_rows - len(include_uids)]
+
+            avail_include_uids = set(_neuron_stats.keys()) & set(include_uids)  # exclude include_uids with no stats
+            limited_uids = avail_include_uids + remaining_uids[:num_rows - len(include_uids)]
             _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
