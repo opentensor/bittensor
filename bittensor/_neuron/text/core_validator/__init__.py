@@ -1151,7 +1151,7 @@ def stats_table(stats, sort_col, console_width, title, caption):
 
     stats_keys = set.union(*stats_keys)
     columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
-    rows = [['' if key not in stat else txt.format(stat[key]) for _, key, txt, _ in columns]
+    rows = [[('', 0) if key not in stat else (txt.format(stat[key]), stat[key]) for _, key, txt, _ in columns]
             for stat in stats.values() if sort_col in stat]  # only keep rows with at least one non-empty cell
 
     if len(columns) == 0 or len(rows) == 0:
@@ -1162,7 +1162,7 @@ def stats_table(stats, sort_col, console_width, title, caption):
     if sort_col in col_keys:
         sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
         columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
-        rows = sorted(rows, reverse=True, key=lambda _row: _row[sort_idx])  # sort according to _sortcol
+        rows = sorted(rows, reverse=True, key=lambda _row: _row[sort_idx][1])  # sort according to sortcol
 
     # === Instantiate stats table ===
     table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
@@ -1172,7 +1172,7 @@ def stats_table(stats, sort_col, console_width, title, caption):
     for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
         table.add_column(col, style=stl, justify='right')
     for row in rows:
-        table.add_row(*row)
+        table.add_row(*[txt for txt, val in row])
 
     # === Print table ===
     print(table)
