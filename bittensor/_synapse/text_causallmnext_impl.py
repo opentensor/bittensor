@@ -18,6 +18,7 @@
 import bittensor
 import torch
 from .synapse_impl import Synapse
+from bittensor.utils.tokenizer_utils import compact_topk_token_phrases, unravel_topk_token_phrases
 
 
 class TextCausalLMNext(Synapse):
@@ -124,14 +125,15 @@ class TextCausalLMNext(Synapse):
 
     def check_backward_request_gradient(self, forward_request_tensor, backward_request_gradient):
         # forward_request_tensor: [batch_size, sequence_len]
-        # backward_request_gradient: [ >= batch_size * (2 * topk + 1)]
+        # backward_request_gradient: [batch_size, (topk + 1), max_len]
         if (
-                len(backward_request_gradient.shape) != 1 or
-                backward_request_gradient.size(0) < forward_request_tensor.shape[0] * (2 * self.topk + 1)
+                len(backward_request_gradient.shape) != 3 or
+                backward_request_gradient.size(0) != forward_request_tensor.shape[0] or
+                backward_request_gradient.size(1) != (self.topk + 1)
         ):
             raise ValueError(f"backward_request_gradient.shape must be in "
-                             f"[>={forward_request_tensor.shape[0]} x (2 x {self.topk} + 1)], "
-                             f"got: {backward_request_gradient.size(0)} for synapse: {self}")
+                             f"[{forward_request_tensor.shape[0]}, ({self.topk} + 1), max_len], "
+                             f"got: {backward_request_gradient.shape} for synapse: {self}")
 
     def encode_forward_request_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
         return forward_request_tensor
@@ -140,10 +142,15 @@ class TextCausalLMNext(Synapse):
         return forward_request_tensor
 
     def encode_forward_response_tensor(self, forward_response_tensor: torch.Tensor) -> torch.Tensor:
-        return forward_response_tensor
+        """ Compact [batch_size, (topk + 1), max_len] topk std_token_phrases to [ >= batch_size * (2 * topk + 1)]. """
+        compact_topk = compact_topk_token_phrases(forward_response_tensor)
+        # compact_topk: [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1)
+        return compact_topk
 
     def decode_forward_response_tensor(self, forward_response_tensor: torch.Tensor) -> torch.Tensor:
-        return forward_response_tensor
+        """ Unravel [ >= batch_size * (2 * topk + 1)] into [batch_size, (topk + 1), max_len] topk std_token_phrases. """
+        topk_tensor = unravel_topk_token_phrases(forward_response_tensor, topk=self.topk)
+        return topk_tensor  # [batch_size, (topk + 1), max_len]
 
     def encode_backward_response_gradient(self, backward_request_gradient: torch.Tensor) -> torch.Tensor:
         return backward_request_gradient
@@ -152,19 +159,36 @@ class TextCausalLMNext(Synapse):
         return backward_request_gradient
 
     def encode_backward_request_gradient(self, backward_response_gradient: torch.Tensor) -> torch.Tensor:
-        return backward_response_gradient
+        """ Compact gradients of [batch_size, (topk + 1), max_len] to [2 + batch_size * (topk + 1)]. """
+        batch_size, topk_p1, max_len = backward_response_gradient.shape
+        dims = torch.tensor([batch_size, max_len]).to(backward_response_gradient.device)
+        prob_grads = backward_response_gradient[:, :, 0]  # [batch_size, topk + 1] first column w/ prob grads
+        encoded_gradient = torch.hstack((dims, prob_grads.flatten()))  # [2 + batch_size * (topk + 1)]
+        return encoded_gradient  # [2 + batch_size * (topk + 1)]
 
     def decode_backward_request_gradient(self, backward_response_gradient: torch.Tensor) -> torch.Tensor:
-        return backward_response_gradient
+        """ Restructure [2 + batch_size * (topk + 1)] prob grads into [batch_size, (topk + 1), max_len]. """
+        batch_size = int(backward_response_gradient[0].item())
+        max_len = int(backward_response_gradient[1].item())
+        decoded_gradient = torch.zeros((batch_size, self.topk + 1, max_len)).to(backward_response_gradient.device)
+        decoded_gradient[:, :, 0] = backward_response_gradient[2:].reshape(batch_size, self.topk + 1)
+        return decoded_gradient  # [batch_size, (topk + 1), max_len]
 
-    def nill_forward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
-        try:
-            return torch.zeros((forward_request_tensor.shape[0] * (2 * self.topk + 1)), dtype=torch.float32)
-        except:
+    def nill_forward_response_tensor(self, forward_request_tensor: torch.Tensor,
+                                     encoded=False, ignore_index=-100) -> torch.Tensor:
+        if forward_request_tensor.dim() == 0 or forward_request_tensor.shape[0] == 0:
             return torch.tensor([])
+
+        forward_response_tensor = torch.zeros(forward_request_tensor.shape[0], (self.topk + 1), 1 + 1)
+        forward_response_tensor[:, :, 1] = 2  # set 2 <= token_ids to preserve 0 <= probs <= 1 in column 0
+        forward_response_tensor[:, self.topk::(self.topk + 1), 1] = ignore_index  # add ignore_index padding after floor_prob
+
+        if encoded:
+            return self.encode_forward_response_tensor(forward_response_tensor)
+
+        return forward_response_tensor
 
     def nill_backward_response_tensor(self, forward_request_tensor: torch.Tensor) -> torch.Tensor:
-        try:
-            return torch.zeros((forward_request_tensor.shape[0] * (2 * self.topk + 1)), dtype=torch.float32)
-        except:
+        if forward_request_tensor.dim() == 0 or forward_request_tensor.shape[0] == 0:
             return torch.tensor([])
+        return torch.zeros((forward_request_tensor.shape[0], (self.topk + 1), 1 + 1), dtype=torch.float32)
