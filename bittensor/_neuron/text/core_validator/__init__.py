@@ -563,7 +563,8 @@ class nucleus( torch.nn.Module ):
         super(nucleus, self).__init__()
         self.config = config
         self.device = device
-        self.max_n = subtensor.max_n 
+        self.max_n = subtensor.max_n
+
         tokenizer = bittensor.tokenizer()
         self.pad_token = tokenizer(tokenizer.pad_token)['input_ids'][0]
 
@@ -604,6 +605,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
         parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
+        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.5)
 
     @classmethod
     def config ( cls ):
@@ -748,7 +750,7 @@ class nucleus( torch.nn.Module ):
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
         validation_params = (random_uids, query_responses, return_ops, times, routing_score,
-                             inputs, val_len, self.loss_fct, console_width,
+                             inputs, val_len, self.loss_fct, self.config.nucleus.scaling_law_power, console_width,
                              self.config.logging.debug or self.config.logging.trace)
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
@@ -777,9 +779,8 @@ def scaling_law_loss_to_params(loss):
 
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
-                 inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0,
-                 scaling_law_power: float = 0.5
+                 inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable, scaling_law_power: float,
+                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLM synapse responses.
@@ -801,6 +802,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 Number of held-out phrase token batch for extended validation, not sent to neurons.
             loss_fct (:obj:`Callable`, `required`):
                 CrossEntropy loss function to use.
+            scaling_law_power (:obj:`float`, `required`):
+                Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -809,8 +812,6 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 TextCausalLM synapse object.
             index_s (:obj:`int`, `optional`):
                 Index of synapse to extract responses.
-            scaling_law_power (:obj:`float`, `optional`):
-                Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
 
         Returns:
             loss (:obj:`torch.FloatTensor`):
@@ -900,9 +901,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
-                     inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
-                     scaling_law_power: float = 0.5
+                     inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable, scaling_law_power: float,
+                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -924,6 +924,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Number of held-out phrase token batch for extended validation, not sent to neurons.
             loss_fct (:obj:`Callable`, `required`):
                 CrossEntropy loss function to use.
+            scaling_law_power (:obj:`float`, `required`):
+                Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -932,8 +934,6 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 TextCausalLMNext Synapse object.
             index_s (:obj:`int`, `optional`):
                 Index of synapse to extract responses.
-            scaling_law_power (:obj:`float`, `optional`):
-                Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
 
         Returns:
             loss (:obj:`torch.FloatTensor`):
