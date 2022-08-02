@@ -79,8 +79,9 @@ neuron_stats_columns = [
     ['sShap', 'shapley_values', '{:.0f}', 'magenta'],  # Shapley value (=Base+Syn) over sequence
     ['vShap', 'shapley_values_val', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for validation
     ['sBase', 'base_params', '{:.0f}', ''],  # parameter count estimate via adjusted scaling law
-    ['vBase', 'base_params_val', '{:.0f}', ''],  # parameter count estimate for validation task
-    ['nBase', 'base_params_nxt', '{:.0f}', ''],  # parameter count estimate for phrase validation task [TextCausalLMNext]
+    ['vBase', 'base_params_val', '{:.0f}', ''],  # square root parameter count estimate for validation task
+    ['nBase', 'base_params_nxt', '{:.0f}', ''],  # square root parameter count estimate for phrase validation task [TextCausalLMNext]
+    ['nParam~', 'est_params_nxt', '{:.2g}', 'magenta'],  # parameter count estimate for phrase validation task [TextCausalLMNext]
     ['sSyn', 'synergy', '{:.0f}', 'white'],  # Shapley pairwise synergy over sequence loss (parameter count estimate)
     ['vSyn', 'synergy_val', '{:.0f}', 'white'],  # Shapley pairwise synergy over validation loss (count estimate)
     ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate) [TextCausalLMNext]
@@ -843,6 +844,9 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     # Combine base values with synergy approximation to get final Shapley values.
     for s in stats.values():
         for ext in ['', '_val']:
+            if 'base_params' + ext in s:
+                s['est_params' + ext] = torch.pow(s['base_params' + ext], 2)  # parameter count estimate
+
             if 'base_params' + ext in s and 'synergy' + ext in s:
                 s['shapley_values' + ext] = (s['base_params' + ext] + s['synergy' + ext])
 
@@ -951,6 +955,9 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     # === Shapley value combination ===
     # Combine base values with synergy approximation to get final Shapley values.
     for s in stats.values():
+        if 'base_params_nxt' in s:
+            s['est_params_nxt'] = torch.pow(s['base_params_nxt'], 2)  # parameter count estimate
+
         if 'base_params_nxt' in s and 'synergy_nxt' in s:
             s['shapley_values_nxt'] = s['base_params_nxt'] + s['synergy_nxt']
 
