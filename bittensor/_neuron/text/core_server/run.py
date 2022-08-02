@@ -160,44 +160,38 @@ def serve(
 
         # Check for stake
         def stake_check() -> bool:
-                
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
                 raise Exception('Stake blacklist')
             return False
 
-        def validator_check():
-
-            uid = metagraph.hotkeys.index(pubkey)
-            if (metagraph.W[uid] >0).sum() >= n_topk_peer_weights:
-                return False
-
-            raise Exception('Validator blacklist')
-
-
         # Check for time
         def time_check():
             current_time = datetime.now()
-            if pubkey in timecheck.keys():
-                prev_time = timecheck[pubkey]
-                if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
-                    timecheck[pubkey] = current_time
-                    return False
+            # Only check if the request are forward requests
+            if request_type == 'FORWARD':
+                if pubkey in timecheck.keys():
+                    prev_time = timecheck[pubkey]
+                    if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
+                        timecheck[pubkey] = current_time
+
+                    else:
+                        timecheck[pubkey] = current_time
+                        raise Exception('blacklist')
                 else:
                     timecheck[pubkey] = current_time
-                    raise Exception('blacklist')
-            else:
-                timecheck[pubkey] = current_time
-                return False
+            
+            return False
+
 
         # Black list or not
         try:
             registration_check()
 
-            #stake_check()
+            time_check()
 
-            #validator_check()
+            #stake_check()
             
             return False
 
@@ -208,16 +202,28 @@ def serve(
         """
         Custom synapse function to blacklist certain synapse functions depending on the stake
         """
-        #TODO turn on synapse checking function
+        incoming_uid = metagraph.hotkeys.index(hotkey)
         if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
-            pass
+            
+            if metagraph.S[incoming_uid] < config.neuron.lasthidden_stake:
+                return False
             
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
-            pass
+
+            if metagraph.S[incoming_uid] < config.neuron.causallm_stake:
+                return False
             
+
+        elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
+
+            if metagraph.S[incoming_uid] < config.neuron.causallmnext_stake:
+                return False
+
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
-            pass
-        
+
+            if (metagraph.S[incoming_uid] < config.neuron.seq2seq_stake) and (metagraph.S[incoming_uid,  uid]):
+                return False     
+
         return True
 
     def backward_callback(inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
@@ -281,6 +287,7 @@ def serve(
         axon = bittensor.axon(
             config = config,
             wallet = wallet,
+            synapse_checks=synapse_check,
             synapse_last_hidden = forward_hidden_state if model.config.neuron.lasthidden else None,
             synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
             synapse_causal_lm_next = forward_casual_lm_next if model.config.neuron.causallmnext else None,
