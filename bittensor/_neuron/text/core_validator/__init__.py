@@ -41,7 +41,7 @@ from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
-from bittensor.utils.tokenizer_utils import unravel_topk_token_phrases, phrase_cross_entropy
+from bittensor.utils.tokenizer_utils import phrase_cross_entropy
 
 import torch.nn as nn
 import random
