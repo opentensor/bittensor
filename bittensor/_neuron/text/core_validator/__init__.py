@@ -520,9 +520,6 @@ class neuron:
     def weights_table(self, topk_uids, topk_weights, include_uids=None, num_rows: int = None):
         r""" Prints weights table given topk_uids and topk_weights.
         """
-
-        assert len(include_uids) <= num_rows, f'{len(include_uids)} > {num_rows}'  # ensure all include_uids fit in num_rows
-
         n_topk_peer_weights = self.subtensor.min_allowed_weights
         max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
@@ -537,12 +534,14 @@ class neuron:
             else:
                 unvalidated += [uid]
 
-        avail_include_uids = list(set(_neuron_stats.keys()) & set(include_uids))  # exclude include_uids with no stats
-        if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
-            remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
-            remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
-            limited_uids = avail_include_uids + remaining_uids[:num_rows - len(include_uids)]
-            _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
+        avail_include_uids = None
+        if include_uids is not None and num_rows is not None:
+            avail_include_uids = list(set(_neuron_stats.keys()) & set(include_uids))  # exclude include_uids with no stats
+            if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
+                remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
+                remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
+                limited_uids = avail_include_uids + remaining_uids[:num_rows - len(include_uids)]
+                _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
         stats_table(_neuron_stats, 'weight', self.config.get('width', None),
