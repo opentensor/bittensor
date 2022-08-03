@@ -372,7 +372,7 @@ class neuron:
                         f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
                         f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
                         f'<dim>(retrieved {current_block - start_block} blocks ago from {self.subtensor.network})</dim>')
-
+            
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
                 # Prints exponential moving average statistics of valid neurons from latest validator forward
@@ -392,12 +392,13 @@ class neuron:
 
             # === Logs ===
             if self.config.using_wandb:
-                wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
-                           'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
-                           'epoch/time': step_time}, step=current_block)
                 for uid, vals in self.neuron_stats.items():
                     for key in vals:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
-                        wandb.log({f'stats/{key}_{uid}': vals[key]}, step=current_block)
+                        wandb.log({f'stats/{key}_{uid}': vals[key]}, step=current_block, commit=False)
+
+                wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
+                           'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
+                           'epoch/time': step_time}, step=current_block, commit=True)
 
             # Do the backward request after the a queue of forward requests got finished.  
             if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
@@ -439,9 +440,10 @@ class neuron:
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
             ], axis = 1); df['uid'] = df.index
             wandb_data_dend = self.dendrite.to_wandb()
+            wandb_weight = {f'stats/weight_{uid}': weight for uid, weight in zip (topk_uids, topk_weights)}
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
-            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
-            wandb.log( { **wandb_data, **wandb_data_dend }, step = current_block )
+            wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block, commit=False)
+            wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
 
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
