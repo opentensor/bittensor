@@ -73,7 +73,7 @@ def serve(
     )
     mutex = Lock()
 
-    timecheck = {}
+    timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
     n_topk_peer_weights = subtensor.min_allowed_weights
 
     def priority(pubkey:str, request_type:bittensor.proto.RequestType, inputs_x) -> float:
@@ -170,17 +170,17 @@ def serve(
         def time_check():
             current_time = datetime.now()
             # Only check if the request are forward requests
-            if request_type == 'FORWARD':
-                if pubkey in timecheck.keys():
-                    prev_time = timecheck[pubkey]
-                    if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
-                        timecheck[pubkey] = current_time
-                    else:
-                        timecheck[pubkey] = current_time
-                        raise Exception('blacklist')
+            timecheck = timecheck_dicts[request_type]
+            if pubkey in timecheck.keys():
+                prev_time = timecheck[pubkey]
+                if current_time - prev_time >= timedelta(seconds=config.neuron.blacklist.time):
+                    timecheck[pubkey] = current_time
                 else:
                     timecheck[pubkey] = current_time
-            
+                    raise Exception('Time blacklist')
+            else:
+                timecheck[pubkey] = current_time
+        
             return False
 
 
