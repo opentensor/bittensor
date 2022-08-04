@@ -376,7 +376,7 @@ class neuron:
                   f'[white not bold]Epoch {self.epoch}[white not bold] | '
                   f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
             
-            if (current_block - start_block) % 25 == 0:
+            if epoch_steps % 25 == 0:
                 # validator update status console message (every 25 validation steps)
                 print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                       f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
