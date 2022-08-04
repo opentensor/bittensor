@@ -382,11 +382,11 @@ class neuron:
                       f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
                       f"UID [cyan]{self.uid}[/cyan] "
                       f"[dim white not bold][{self.dendrite.receptor_pool.external_ip}][/dim white not bold] "
-                      f"[white]cold:[bold]{self.wallet.name}[/bold]:"
+                      f"[white not bold]cold:[bold]{self.wallet.name}[/bold]:"
                       f"[bright_white not bold]{self.wallet.coldkeypub.ss58_address}[/bright_white not bold] "
                       f"[dim white]/[/dim white] "
                       f"hot:[bold]{self.config.wallet.hotkey}[/bold]:"
-                      f"[bright_white not bold]{self.wallet.hotkey.ss58_address}[/bright_white not bold][/white]")
+                      f"[bright_white not bold]{self.wallet.hotkey.ss58_address}[/bright_white not bold][/white not bold]")
 
                 # validator update status console message
                 print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
