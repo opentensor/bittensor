@@ -398,7 +398,7 @@ def millify(n: int):
 
     return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 5_000_000, TPB: int = 512, dev_id: int = 0 ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: int = 0 ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -415,6 +415,9 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     """
     if not torch.cuda.is_available():
         raise Exception("CUDA not available")
+
+    if update_interval is None:
+        update_interval = 50_000
         
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty

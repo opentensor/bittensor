@@ -4,8 +4,7 @@ import math
 from typing import Tuple
 
 import numpy as np
-from cubit import reset_cuda as reset_cuda_c
-from cubit import solve_cuda as solve_cuda_c
+import cubit
 from Crypto.Hash import keccak
 
 
@@ -58,7 +57,7 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     # Call cython function
     # int blockSize, uint64 nonce_start, uint64 update_interval, const unsigned char[:] limit,
     # const unsigned char[:] block_bytes, int dev_id
-    solution = solve_cuda_c(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
+    solution = cubit.solve_cuda(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
         print(f"Checking solution: {solution} for bn: {bn}")
@@ -74,4 +73,4 @@ def reset_cuda():
     """
     Resets the CUDA environment.
     """
-    reset_cuda_c()
+    cubit.reset_cuda()
