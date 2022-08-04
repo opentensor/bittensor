@@ -231,7 +231,7 @@ class CLI:
             wallet = wallet,
             prompt = not self.config.no_prompt,
             TPB = self.config.subtensor.cuda.get('TPB', None),
-            update_interval = self.config.get('update_interval', None),
+            update_interval = self.config.cuda.get('update_interval', None),
             num_processes = self.config.get('num_processes', None),
             cuda = self.config.subtensor.cuda.get('use_cuda', None),
             dev_id = self.config.subtensor.cuda.get('dev_id', None)

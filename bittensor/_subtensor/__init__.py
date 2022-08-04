@@ -200,7 +200,7 @@ class subtensor:
 
         defaults.subtensor.cuda.dev_id = 0
         defaults.subtensor.cuda.use_cuda = False
-        defaults.subtensor.cuda.update_interval = 10_000
+        defaults.subtensor.cuda.update_interval = 50_000
         defaults.subtensor.cuda.TPB = 256
 
     @staticmethod   
