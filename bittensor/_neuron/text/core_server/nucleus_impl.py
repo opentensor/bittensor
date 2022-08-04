@@ -373,11 +373,9 @@ class server(torch.nn.Module):
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
 
-            loss_time = clock.time()
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids'])
             translated_loss = self.get_loss_fct(logits_std, token_batch)
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
-            print('Loss calculation time:', clock.time() - loss_time )
             # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
             return message, _model_output, logits_std
@@ -442,10 +440,8 @@ class server(torch.nn.Module):
             # then compact new token phrases and probabilities into 1-D tensor
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
-            loss_time = clock.time()
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids'])
             message = f'Loss: {original_loss:.2f}'
-            print('Loss calculation time:', clock.time() - loss_time )
 
             return message, _model_output, topk_tensor
 
@@ -548,7 +544,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
         parser.add_argument('--neuron.finetune.layer_name', type=str, help='Specify since which layer to finetune. eg. encoder.layer.11', default=None)
         parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
-        parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
+        parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=True)
 
 
         bittensor.wallet.add_args( parser )
