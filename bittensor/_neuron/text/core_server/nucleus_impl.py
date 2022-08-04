@@ -6,6 +6,7 @@ from torch import nn
 import torch.nn.functional as F
 from types import SimpleNamespace
 from typing import Tuple, Optional
+import time as clock
 
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
@@ -372,9 +373,11 @@ class server(torch.nn.Module):
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
 
+            loss_time = clock.time()
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids'])
             translated_loss = self.get_loss_fct(logits_std, token_batch)
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
+            print('Loss calculation time:', clock.time() - loss_time )
             # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
             return message, _model_output, logits_std
@@ -439,8 +442,10 @@ class server(torch.nn.Module):
             # then compact new token phrases and probabilities into 1-D tensor
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
+            loss_time = clock.time()
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids'])
             message = f'Loss: {original_loss:.2f}'
+            print('Loss calculation time:', clock.time() - loss_time )
 
             return message, _model_output, topk_tensor
 
