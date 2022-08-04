@@ -459,6 +459,18 @@ To run a local node (See: docs/running_a_validator.md) \n
                 or returns false if the extrinsic fails to be finalized within the timeout.
             prompt (bool):
                 If true, the call waits for confirmation from the user before proceeding.
+            max_allowed_attempts (int):
+                Maximum number of attempts to register the wallet.
+            cuda (bool):
+                If true, the wallet should be registered on the cuda device.
+            dev_id (int):
+                The cuda device id.
+            TPB (int):
+                The number of threads per block (cuda).
+            num_processes (int):
+                The number of processes to use to register.
+            update_interval (int):
+                The number of nonces to solve between updates.
         Returns:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block. 
