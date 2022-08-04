@@ -372,7 +372,7 @@ class neuron:
             print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                   f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
                   f'[green not bold]{current_block - start_block}[/green not bold]/'
-                  f'[white not bold]{blocks_per_epoch}[white not bold] (blocks/epoch) | '
+                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim](blocks/epoch)[/dim] | '
                   f'[white not bold]Epoch {self.epoch}[white not bold] | '
                   f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
             
