@@ -359,7 +359,7 @@ class neuron:
 
             # === Stats update ===
             # Updates moving averages and history.
-            self.neuron_stats_update(stats)
+            responsive_uids, queried_uids = self.neuron_stats_update(stats)
 
             # === State update ===
             # Prints step logs to screen.
@@ -392,9 +392,13 @@ class neuron:
             print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                   f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
                   f'[green not bold]{current_block - start_block}[/green not bold]/'
-                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim](blocks/epoch)[/dim] | '
+                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim]blocks/epoch[/dim] | '
                   f'[white not bold]Epoch {self.epoch}[white not bold] | '
-                  f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
+                  f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] | '
+                  f'[bright_green not bold]{len(responsive_uids)}[/bright_green not bold]/'
+                  f'[white]{len(queried_uids)}[/white] '
+                  f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
+                  f'[[yellow]{step_time:.3g}[/yellow]s]')
 
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
@@ -481,6 +485,7 @@ class neuron:
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
         """
+        responsive_uids = []
         for _uid, _stats in neuron_stats.items():
             stats = self.neuron_stats.setdefault(_uid, {})
 
@@ -507,6 +512,7 @@ class neuron:
                     updates = 'updates_' + key
                     if updates in stats:
                         stats[updates] += 1  # increment number of normal EMA updates made
+                        responsive_uids += [_uid]
                     else:
                         stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
@@ -517,6 +523,8 @@ class neuron:
                     stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
                 else:
                     stats.setdefault(key, _stats[key])
+
+        return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
 
     def calculate_weights(self):
         r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
