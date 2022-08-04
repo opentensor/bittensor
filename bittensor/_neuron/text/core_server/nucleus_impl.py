@@ -352,8 +352,9 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-
+        tokentime = clock.time()
         tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
+        print('remap_time', clock.time()-tokentime)
 
         def _forward(_model_output=model_output):
             if _model_output is None:
