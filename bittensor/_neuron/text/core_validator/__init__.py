@@ -376,17 +376,17 @@ class neuron:
                   f'[white not bold]Epoch {self.epoch}[white not bold] | '
                   f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
             
-            if epoch_steps % 25 == 0:
+            if epoch_steps % 25 == 1:
                 # validator identifier status console message (every 25 validation steps)
                 print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                       f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
                       f"UID [cyan]{self.uid}[/cyan] "
-                      f"[dim][[yellow not bold]{self.dendrite.receptor_pool.external_ip}[/yellow not bold]][/dim] "
-                      f"(cold:{self.wallet.name}:"
+                      f"[dim not bold][{self.dendrite.receptor_pool.external_ip}][/dim not bold] "
+                      f"cold:[bold]{self.wallet.name}[/bold]:"
                       f"[bright_white not bold]{self.wallet.coldkeypub.ss58_address}[/bright_white not bold] "
                       f"[dim white]/[/dim white] "
-                      f"hot:{self.config.wallet.hotkey}:"
-                      f"[bright_white not bold]{self.wallet.hotkey.ss58_address}[/bright_white not bold])")
+                      f"hot:[bold]{self.config.wallet.hotkey}[/bold]:"
+                      f"[bright_white not bold]{self.wallet.hotkey.ss58_address}[/bright_white not bold]")
 
                 # validator update status console message
                 print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
