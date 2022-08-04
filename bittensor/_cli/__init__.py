@@ -88,6 +88,27 @@ class cli:
             help='''Set the output width of the overview. Defaults to automatic width from terminal.''',
             default=None,
         )
+        overview_parser.add_argument(
+            '--sort_by', 
+            '--wallet.sort_by',
+            dest='sort_by',
+            required=False,
+            action='store',
+            default="",
+            type=str,
+            help='''Sort the hotkeys by the specified column title (e.g. name, uid, axon).'''
+        )
+        overview_parser.add_argument(
+            '--sort_order',
+            '--wallet.sort_order',
+            dest="sort_order",
+            required=False,
+            action='store',
+            default="ascending",
+            type=str,
+            help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)'''
+        )
+        
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
@@ -692,7 +713,7 @@ class cli:
             if config.wallet.get('all_hotkeys'):
                 hotkeys = "all hotkeys"
             elif config.wallet.get('hotkeys'):
-                hotkeys = str(config.hotkeys).replace('[', '').replace(']', '')
+                hotkeys = str(config.walet.hotkeys).replace('[', '').replace(']', '')
             else:
                 hotkeys = str(config.wallet.hotkey)
             if not Confirm.ask("Unstake all Tao from: [bold]'{}'[/bold]?".format(hotkeys)):

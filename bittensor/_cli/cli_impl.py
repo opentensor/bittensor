@@ -596,24 +596,14 @@ class CLI:
 
         all_hotkeys = []
         total_balance = bittensor.Balance(0)
-
-        # We are printing for every wallet.
+        
+        # We are printing for every coldkey.
         if self.config.all:
             cold_wallets = CLI._get_coldkey_wallets_for_path(self.config.wallet.path)
             for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
                 if cold_wallet.coldkeypub_file.exists_on_device() and not cold_wallet.coldkeypub_file.is_encrypted():
                     total_balance = total_balance + subtensor.get_balance( cold_wallet.coldkeypub.ss58_address )
             all_hotkeys = CLI._get_all_wallets_for_path( self.config.wallet.path )
-
-        # We are printing for a select number of hotkeys.
-        elif self.config.wallet.hotkeys:
-            # Only show hotkeys for wallets in the list
-            all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
-            coldkey_wallet = bittensor.wallet( config = self.config )
-            if coldkey_wallet.coldkeypub_file.exists_on_device() and not coldkey_wallet.coldkeypub_file.is_encrypted():
-                total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
-
-        # We are printing for all keys under the wallet.
         else:
             # We are only printing keys for a single coldkey
             coldkey_wallet = bittensor.wallet( config = self.config )
@@ -623,6 +613,15 @@ class CLI:
                 console.print("[bold red]No wallets found.")
                 return
             all_hotkeys = CLI._get_hotkey_wallets_for_wallet( coldkey_wallet )
+
+        # We are printing for a select number of hotkeys from all_hotkeys.
+        if self.config.wallet.hotkeys:
+            if not self.config.wallet.all_hotkeys:
+                # We are only showing hotkeys that are specified.
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
+            else:
+                # We are excluding the specified hotkeys from all_hotkeys.
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str not in self.config.wallet.hotkeys]
 
         # Check we have keys to display.
         if len(all_hotkeys) == 0:
@@ -732,8 +731,8 @@ class CLI:
 
         console.clear()
 
-        sort_by: str = self.config.wallet.sort_by
-        sort_order: str = self.config.wallet.sort_order
+        sort_by: str = self.config.sort_by
+        sort_order: str = self.config.sort_order
 
         if sort_by != "":
             column_to_sort_by: int = 0
