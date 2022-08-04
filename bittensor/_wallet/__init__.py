@@ -140,7 +140,7 @@ class wallet:
         """
         assert 'wallet' in config
         assert isinstance(config.wallet.get('name', bittensor.defaults.wallet.name), str)
-        assert isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), (str, None))
+        assert isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), str ) or config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) == None
         assert isinstance(config.wallet.path, str)
         assert isinstance(config.wallet.hotkeys, list)
         assert isinstance(config.wallet.sort_by, str)
