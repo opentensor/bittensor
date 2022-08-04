@@ -379,6 +379,12 @@ class neuron:
             if epoch_steps % 25 == 0:
                 # validator update status console message (every 25 validation steps)
                 print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                      f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
+                      f"UID [cyan]{self.uid}[/cyan] [{self.dendrite.receptor_pool.external_ip}] "
+                      f"({self.wallet.name}:[bold]{self.wallet.coldkeypub.ss58_address}[/bold] / "
+                      f"{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address}[/bold])")
+
+                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                       f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
                       f'Updated [yellow]{current_block - self.metagraph.last_update[self.uid]}[/yellow] [dim]blocks ago[/dim] | '
                       f'Dividends [green not bold]{self.metagraph.dividends[self.uid]:.5f}[/green not bold] | '
