@@ -15,7 +15,7 @@ import queue
 import random
 import threading
 import weakref
-
+import time
 from loguru import logger
 
 # Workers are created as daemon threads. This is done to allow the interpreter
@@ -36,16 +36,18 @@ _threads_queues = weakref.WeakKeyDictionary()
 _shutdown = False
 
 class _WorkItem(object):
-    def __init__(self, future, fn, args, kwargs):
+    def __init__(self, future, fn, start_time, args, kwargs):
         self.future = future
         self.fn = fn
+        self.start_time = start_time
         self.args = args
         self.kwargs = kwargs
 
     def run(self):
         """ Run the given work item
         """
-        if not self.future.set_running_or_notify_cancel():
+        if (not self.future.set_running_or_notify_cancel()) or (time.time()-self.start_time > bittensor.__blocktime__):
+            print('timeout')
             return
 
         try:
@@ -161,11 +163,12 @@ class PriorityThreadPoolExecutor(_base.Executor):
             if priority == 0:
                 priority = random.randint(1, 100)
             eplison = random.uniform(0,0.01) * priority
+            start_time = time.time()
             if 'priority' in kwargs:
                 del kwargs['priority']
 
             f = _base.Future()
-            w = _WorkItem(f, fn, args, kwargs)
+            w = _WorkItem(f, fn,start_time, args, kwargs)
 
             self._work_queue.put((-float(priority + eplison), w), block=False)
             self._adjust_thread_count()
