@@ -238,6 +238,7 @@ class cli:
             help='''Register a wallet to a network.'''
         )        
         register_parser.add_argument(
+            '--cuda',
             '--cuda.use_cuda',
             '--subtensor.cuda.use_cuda',
             dest='subtensor.cuda.use_cuda',

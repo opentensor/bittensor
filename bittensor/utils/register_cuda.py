@@ -4,8 +4,8 @@ import math
 from typing import Tuple
 
 import numpy as np
-from bittensor_register_cuda import reset_cuda as reset_cuda_c
-from bittensor_register_cuda import solve_cuda as solve_cuda_c
+from cubit import reset_cuda as reset_cuda_c
+from cubit import solve_cuda as solve_cuda_c
 from Crypto.Hash import keccak
 
 
