@@ -23,6 +23,7 @@ Example:
 """
 import argparse
 import time
+import datetime
 import bittensor
 import torch
 import os
@@ -367,11 +368,21 @@ class neuron:
             current_block = self.subtensor.block
             step_time = time.time() - start_time
 
-            logger.info(f'UID {self.uid}   \t| '
-                        f'Updated {current_block - self.metagraph.last_update[self.uid]} <dim>blocks ago</dim> | '
-                        f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
-                        f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
-                        f'<dim>(retrieved {current_block - start_block} blocks ago from {self.subtensor.network})</dim>')
+            # step update console message (every validation step)
+            print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[white][/white]'))} | "
+                  f'[green]{current_block - start_block}[/green]/[bright_white not bold]{blocks_per_epoch} (blocks/epoch) [bright_white not bold] | '
+                  f'[white not bold]Epoch {self.epoch}[white not bold] | '
+                  f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
+            
+            if (current_block - start_block) % 25:
+                # validator update status console message (every 25 validation steps)
+                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                      f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
+                      f'Updated [yellow]{current_block - self.metagraph.last_update[self.uid]}[/yellow] [dim]blocks ago[/dim] | '
+                      f'Dividends [green not bold]{self.metagraph.dividends[self.uid]:.5f}[/green not bold] | '
+                      f'Stake \u03C4[magenta not bold]{self.metagraph.stake[self.uid]:.5f}[/magenta not bold] '
+                      f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
 
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
