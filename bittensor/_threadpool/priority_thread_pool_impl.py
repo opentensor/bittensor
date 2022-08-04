@@ -60,7 +60,7 @@ class _WorkItem(object):
             self.future.set_result(result)
 
 
-NULL_ENTRY = (sys.maxsize, _WorkItem(None, None, (), {}))
+NULL_ENTRY = (sys.maxsize, _WorkItem(None, None, time.time(), (), {}))
 
 def _worker(executor_reference, work_queue, initializer, initargs):
     if initializer is not None:
@@ -168,7 +168,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
                 del kwargs['priority']
 
             f = _base.Future()
-            w = _WorkItem(f, fn,start_time, args, kwargs)
+            w = _WorkItem(f, fn, start_time, args, kwargs)
 
             self._work_queue.put((-float(priority + eplison), w), block=False)
             self._adjust_thread_count()
