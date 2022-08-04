@@ -8,7 +8,7 @@ __author__ = 'Brian Quinlan (brian@sweetapp.com)'
 
 import os
 import sys
-
+import bittensor
 from concurrent.futures import _base
 import itertools
 import queue
