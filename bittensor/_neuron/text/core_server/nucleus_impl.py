@@ -376,9 +376,9 @@ class server(torch.nn.Module):
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
 
-            original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
-            translated_loss = self.get_loss_fct(logits_std, token_batch).item()
-            message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
+            #original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
+            #translated_loss = self.get_loss_fct(logits_std, token_batch).item()
+            message = 'Success'
             print('causallm loss calculation', clock.time()-_foward_start_time)
             # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
