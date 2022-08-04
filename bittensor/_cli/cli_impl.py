@@ -615,8 +615,9 @@ class CLI:
             all_hotkeys = CLI._get_hotkey_wallets_for_wallet( coldkey_wallet )
 
         # We are printing for a select number of hotkeys from all_hotkeys.
-        if self.config.wallet.hotkeys:
-            if not self.config.wallet.all_hotkeys:
+
+        if self.config.wallet.get('hotkeys', []):
+            if not self.config.get('all_hotkeys', False):
                 # We are only showing hotkeys that are specified.
                 all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
             else:
