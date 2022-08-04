@@ -393,8 +393,8 @@ class neuron:
                   f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
                   f'[green not bold]{current_block - start_block}[/green not bold]/'
                   f'[white not bold]{blocks_per_epoch}[/white not bold] [dim]blocks/epoch[/dim] | '
-                  f'[white not bold]Epoch {self.epoch}[white not bold] | '
-                  f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] | '
+                  f'[white not bold]Step {epoch_steps}[white not bold] '
+                  f'[dim] Epoch {self.epoch}[/dim] | '
                   f'[bright_green not bold]{len(responsive_uids)}[/bright_green not bold]/'
                   f'[white]{len(queried_uids)}[/white] '
                   f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
