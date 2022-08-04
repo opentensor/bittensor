@@ -370,12 +370,13 @@ class neuron:
 
             # step update console message (every validation step)
             print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[white][/white]'))} | "
-                  f'[green]{current_block - start_block}[/green]/[bright_white not bold]{blocks_per_epoch} (blocks/epoch) [bright_white not bold] | '
+                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
+                  f'[green not bold]{current_block - start_block}[/green not bold]/'
+                  f'[white not bold]{blocks_per_epoch}[white not bold] (blocks/epoch) | '
                   f'[white not bold]Epoch {self.epoch}[white not bold] | '
                   f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
             
-            if (current_block - start_block) % 25:
+            if (current_block - start_block) % 25 == 0:
                 # validator update status console message (every 25 validation steps)
                 print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                       f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
