@@ -373,8 +373,8 @@ class server(torch.nn.Module):
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
 
-            original_loss = self.get_loss_fct(pre_logits, tokens['input_ids'])
-            translated_loss = self.get_loss_fct(logits_std, token_batch)
+            original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
+            translated_loss = self.get_loss_fct(logits_std, token_batch).item()
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
             # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
@@ -440,7 +440,7 @@ class server(torch.nn.Module):
             # then compact new token phrases and probabilities into 1-D tensor
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
-            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids'])
+            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
             message = f'Loss: {original_loss:.2f}'
 
             return message, _model_output, topk_tensor
@@ -464,9 +464,9 @@ class server(torch.nn.Module):
                 loss (:obj:`torch.FloatTensor`):
                     scalar
         """
-        shift_logits = logits[..., :-1, :].contiguous().detach()
-        shift_labels = labels[..., 1:].contiguous().detach()
-        loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1)).item()
+        shift_logits = logits[..., :-1, :].contiguous()
+        shift_labels = labels[..., 1:].contiguous()
+        loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
 
         return loss
 
