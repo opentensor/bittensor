@@ -89,6 +89,8 @@ class server(torch.nn.Module):
 
         if self.config.neuron.local_train or self.config.neuron.remote_train:
             self.pre_model.train()
+            self.set_fine_tuning_params()
+            
         else:
             self.pre_model.eval()
 
@@ -121,7 +123,7 @@ class server(torch.nn.Module):
         
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
-        self.set_fine_tuning_params()
+        
 
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
