@@ -357,12 +357,13 @@ class server(torch.nn.Module):
         print('remap_time', clock.time()-tokentime)
 
         def _forward(_model_output=model_output):
+            _foward_start_time = clock.time()
             if _model_output is None:
                 # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                # attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
-
+            print('causallm model output', clock.time()-_foward_start_time)
             pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
 
             probs_std = translate_logits_to_probs_std(pre_logits,
@@ -371,12 +372,14 @@ class server(torch.nn.Module):
                                                       self.split_map_cache,
                                                       self.to_translation_map, self.from_translation_map,
                                                       tokens['input_ids'], token_batch)
+            print('causallm translate output', clock.time()-_foward_start_time)
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
 
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
             translated_loss = self.get_loss_fct(logits_std, token_batch).item()
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
+            print('causallm loss calculation', clock.time()-_foward_start_time)
             # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
             return message, _model_output, logits_std
