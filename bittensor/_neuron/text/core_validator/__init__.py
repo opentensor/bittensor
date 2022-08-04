@@ -367,14 +367,6 @@ class neuron:
             self.global_step += 1
             current_block = self.subtensor.block
             step_time = time.time() - start_time
-
-            # step update console message (every validation step)
-            print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
-                  f'[green not bold]{current_block - start_block}[/green not bold]/'
-                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim](blocks/epoch)[/dim] | '
-                  f'[white not bold]Epoch {self.epoch}[white not bold] | '
-                  f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
             
             if epoch_steps % 25 == 1:
                 # validator identifier status console message (every 25 validation steps)
@@ -395,6 +387,14 @@ class neuron:
                       f'Dividends [green not bold]{self.metagraph.dividends[self.uid]:.5f}[/green not bold] | '
                       f'Stake \u03C4[magenta not bold]{self.metagraph.stake[self.uid]:.5f}[/magenta not bold] '
                       f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
+
+            # step update console message (every validation step)
+            print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
+                  f'[green not bold]{current_block - start_block}[/green not bold]/'
+                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim](blocks/epoch)[/dim] | '
+                  f'[white not bold]Epoch {self.epoch}[white not bold] | '
+                  f'[dim] Step {epoch_steps} ({self.global_step} global)[/dim] [[yellow]{step_time:.3g}[/yellow]s]')
 
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
