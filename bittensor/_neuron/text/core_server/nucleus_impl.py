@@ -6,7 +6,6 @@ from torch import nn
 import torch.nn.functional as F
 from types import SimpleNamespace
 from typing import Tuple, Optional
-import time as clock
 
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
@@ -354,11 +353,9 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-        tokentime = clock.time()
         tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
 
         def _forward(_model_output=model_output):
-            _foward_start_time = clock.time()
             if _model_output is None:
                 # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
