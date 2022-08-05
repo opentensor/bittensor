@@ -17,7 +17,7 @@
 
 import os
 import sys
-from typing import List, Union
+from typing import List, Union, Optional
 
 from cachetools import Cache
 
@@ -732,10 +732,10 @@ class CLI:
 
         console.clear()
 
-        sort_by: str = self.config.sort_by
-        sort_order: str = self.config.sort_order
+        sort_by: Optional[str] = self.config.get('sort_by', None)
+        sort_order: Optional[str] = self.config.get('sort_order', None)
 
-        if sort_by != "":
+        if sort_by is not None and sort_by != "":
             column_to_sort_by: int = 0
             highest_matching_ratio: int = 0
             sort_descending: bool = False # Default sort_order to ascending
