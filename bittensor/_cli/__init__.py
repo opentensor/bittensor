@@ -518,6 +518,28 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        unstake_parser.add_argument(
+            '--hotkeys',
+            '--wallet.hotkeys',
+            '--exclude_hotkeys',
+            '--wallet.exclude_hotkeys',
+            dest='hotkeys',
+            required=False,
+            action='store',
+            default=[],
+            type=str,
+            nargs='*', 
+            help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)'''
+        )
+        unstake_parser.add_argument(
+            '--all_hotkeys',
+            '--wallet.all_hotkeys',
+            dest='all_hotkeys',
+            required=False,
+            action='store_true',
+            default=False,
+            help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
+        )
         bittensor.wallet.add_args( unstake_parser )
         bittensor.subtensor.add_args( unstake_parser )
 
@@ -555,6 +577,28 @@ class cli:
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
+        )
+        stake_parser.add_argument(
+            '--hotkeys',
+            '--wallet.hotkeys',
+            '--exclude_hotkeys',
+            '--wallet.exclude_hotkeys',
+            dest='hotkeys',
+            required=False,
+            action='store',
+            default=[],
+            type=str,
+            nargs='*', 
+            help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)'''
+        )
+        stake_parser.add_argument(
+            '--all_hotkeys',
+            '--wallet.all_hotkeys',
+            dest='all_hotkeys',
+            required=False,
+            action='store_true',
+            default=False,
+            help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
         )
         bittensor.wallet.add_args( stake_parser )
         bittensor.subtensor.add_args( stake_parser )
