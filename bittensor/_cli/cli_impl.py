@@ -331,7 +331,7 @@ class CLI:
             all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
             # Exclude hotkeys that are specified.
             wallets_to_stake_to = [
-                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
+                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys', [])
             ]
 
         elif self.config.wallet.get('hotkeys'):
