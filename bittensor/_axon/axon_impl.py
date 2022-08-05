@@ -301,7 +301,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Catch forward request timeouts ====
         # ========================================
         except concurrent.futures.TimeoutError:
-            future.cancel()
+            if self.priority != None:
+                future.cancel()
             code = bittensor.proto.ReturnCode.Timeout
             call_time = clock.time() - start_time
             message = "Request reached timeout"
