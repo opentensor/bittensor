@@ -238,9 +238,9 @@ class server(torch.nn.Module):
         """
         message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)[1]
         
-        shift_logits = decoded_targets[..., :-1, :].contiguous().detach()
-        shift_labels = inputs[..., 1:].contiguous().detach()
-        loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ).item()
+        shift_logits = decoded_targets[..., :-1, :].contiguous()
+        shift_labels = inputs[..., 1:].contiguous()
+        loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
         return loss, decoded_targets
 
