@@ -545,10 +545,10 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
 
         # Synapse Arguements
-        parser.add_argument('--neuron.lasthidden_off', action='store_false', help='To turn off last hidden synapse', default=True)
-        parser.add_argument('--neuron.causallm_off', action='store_false', help='To turn off causallm synapse', default=True)
-        parser.add_argument('--neuron.causallmnext_off', action='store_false', help='To turn off causallmnext synapse', default=True)
-        parser.add_argument('--neuron.seq2seq_off', action='store_false', help='To turn off seq2seq synapse', default=True)
+        parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
+        parser.add_argument('--neuron.causallm', action='store_false', help='To turn off causallm synapse', default=True)
+        parser.add_argument('--neuron.causallmnext', action='store_false', help='To turn off causallmnext synapse', default=True)
+        parser.add_argument('--neuron.seq2seq', action='store_false', help='To turn off seq2seq synapse', default=True)
         parser.add_argument('--neuron.lasthidden_stake', type = float, help='the amount of stake to run last hidden synapse',default=0)
         parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
         parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
