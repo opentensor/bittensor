@@ -4,7 +4,6 @@ import math
 from typing import Tuple
 
 import numpy as np
-import cubit
 from Crypto.Hash import keccak
 
 
@@ -30,7 +29,14 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
         Tuple[int64, bytes]
             Tuple of the nonce and the seal corresponding to the solution.  
             Returns -1 for nonce if no solution is found.     
-    """  
+    """ 
+
+    try:
+        import cubit
+    except ImportError:
+        raise ImportError("Please install cubit")
+
+
     upper = int(limit // difficulty)
 
     upper_bytes = upper.to_bytes(32, byteorder='little', signed=False)
@@ -73,4 +79,9 @@ def reset_cuda():
     """
     Resets the CUDA environment.
     """
+    try:
+        import cubit
+    except ImportError:
+        raise ImportError("Please install cubit")
+        
     cubit.reset_cuda()

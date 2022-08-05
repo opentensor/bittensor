@@ -69,4 +69,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     python_requires='>=3.7',
+    extras_requires={
+        'cubit': ['cubit>=1.0.5 @ git+https://github.com/opentensor/cubit.git']
+    }
 )
