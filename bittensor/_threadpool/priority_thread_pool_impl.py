@@ -46,8 +46,8 @@ class _WorkItem(object):
     def run(self):
         """ Run the given work item
         """
+        # Checks if future is canceled or if work item is stale
         if (not self.future.set_running_or_notify_cancel()) or (time.time()-self.start_time > bittensor.__blocktime__):
-            print('timeout')
             return
 
         try:

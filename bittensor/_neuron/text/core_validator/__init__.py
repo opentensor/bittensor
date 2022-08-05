@@ -727,7 +727,6 @@ class nucleus( torch.nn.Module ):
         # query_responses.shape = self.config.nucleus.topk * num_synapses * [batch_size, sequence_len, synapse_dim]
         # return_ops: (torch.int64): Return ops.
         # return_ops.shape = self.config.nucleus.topk * [num_synapses]
-        # TODO: WORK IN PROGRESS, prototype
         query_responses, return_ops, times = dendrite.text(
             endpoints=random_endpoints,
             inputs=inputs_seq,
