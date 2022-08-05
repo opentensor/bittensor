@@ -359,7 +359,7 @@ class server(torch.nn.Module):
             if _model_output is None:
                 # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                attention_mask=tokens['attention_mask'],
+                                                #attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
             pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
 
@@ -373,9 +373,10 @@ class server(torch.nn.Module):
             logits_std = torch.log(probs_std + 1e-40)
 
             #removing the loss calculation for stablity testing
-            #original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
-            #translated_loss = self.get_loss_fct(logits_std, token_batch).item()
-            message = 'Success'
+            original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
+            translated_loss = self.get_loss_fct(logits_std, token_batch).item()
+            #message = 'Success'
+            message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
             # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
             return message, _model_output, logits_std
@@ -440,9 +441,9 @@ class server(torch.nn.Module):
             # then compact new token phrases and probabilities into 1-D tensor
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
-            #original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
-            #message = f'Loss: {original_loss:.2f}'
-            message = 'Success'
+            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
+            message = f'Loss: {original_loss:.2f}'
+            #message = 'Success'
 
             return message, _model_output, topk_tensor
 
