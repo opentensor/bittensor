@@ -23,6 +23,7 @@ Example:
 """
 import argparse
 import time
+import datetime
 import bittensor
 import torch
 import os
@@ -358,7 +359,7 @@ class neuron:
 
             # === Stats update ===
             # Updates moving averages and history.
-            self.neuron_stats_update(stats)
+            responsive_uids, queried_uids = self.neuron_stats_update(stats)
 
             # === State update ===
             # Prints step logs to screen.
@@ -366,12 +367,38 @@ class neuron:
             self.global_step += 1
             current_block = self.subtensor.block
             step_time = time.time() - start_time
+            
+            if epoch_steps % 25 == 1:
+                # validator identifier status console message (every 25 validation steps)
+                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                      f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
+                      f"UID [cyan]{self.uid}[/cyan] "
+                      f"[dim white not bold][{self.dendrite.receptor_pool.external_ip}][/dim white not bold] "
+                      f"[white not bold]cold:[bold]{self.wallet.name}[/bold]:"
+                      f"[bright_white not bold]{self.wallet.coldkeypub.ss58_address}[/bright_white not bold] "
+                      f"[dim white]/[/dim white] "
+                      f"hot:[bold]{self.config.wallet.hotkey}[/bold]:"
+                      f"[bright_white not bold]{self.wallet.hotkey.ss58_address}[/bright_white not bold][/white not bold]")
 
-            logger.info(f'UID {self.uid}   \t| '
-                        f'Updated {current_block - self.metagraph.last_update[self.uid]} <dim>blocks ago</dim> | '
-                        f'Dividends {self.metagraph.dividends[self.uid]:.5f} | '
-                        f'Stake \u03C4{self.metagraph.stake[self.uid]:.5f} '
-                        f'<dim>(retrieved {current_block - start_block} blocks ago from {self.subtensor.network})</dim>')
+                # validator update status console message
+                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                      f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
+                      f'Updated [yellow]{current_block - self.metagraph.last_update[self.uid]}[/yellow] [dim]blocks ago[/dim] | '
+                      f'Dividends [green not bold]{self.metagraph.dividends[self.uid]:.5f}[/green not bold] | '
+                      f'Stake \u03C4[magenta not bold]{self.metagraph.stake[self.uid]:.5f}[/magenta not bold] '
+                      f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
+
+            # step update console message (every validation step)
+            print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
+                  f'[green not bold]{current_block - start_block}[/green not bold]/'
+                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim]blocks/epoch[/dim] | '
+                  f'[white not bold]Step {epoch_steps}[white not bold] '
+                  f'[dim] Epoch {self.epoch}[/dim] | '
+                  f'[bright_green not bold]{len(responsive_uids)}[/bright_green not bold]/'
+                  f'[white]{len(queried_uids)}[/white] '
+                  f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
+                  f'[[yellow]{step_time:.3g}[/yellow]s]')
 
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
@@ -458,6 +485,7 @@ class neuron:
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
         """
+        responsive_uids = []
         for _uid, _stats in neuron_stats.items():
             stats = self.neuron_stats.setdefault(_uid, {})
 
@@ -484,6 +512,7 @@ class neuron:
                     updates = 'updates_' + key
                     if updates in stats:
                         stats[updates] += 1  # increment number of normal EMA updates made
+                        responsive_uids += [_uid]
                     else:
                         stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
@@ -494,6 +523,8 @@ class neuron:
                     stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
                 else:
                     stats.setdefault(key, _stats[key])
+
+        return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
 
     def calculate_weights(self):
         r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
@@ -520,9 +551,6 @@ class neuron:
     def weights_table(self, topk_uids, topk_weights, include_uids=None, num_rows: int = None):
         r""" Prints weights table given topk_uids and topk_weights.
         """
-
-        assert len(include_uids) <= num_rows, f'{len(include_uids)} > {num_rows}'  # ensure all include_uids fit in num_rows
-
         n_topk_peer_weights = self.subtensor.min_allowed_weights
         max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
@@ -537,12 +565,14 @@ class neuron:
             else:
                 unvalidated += [uid]
 
-        avail_include_uids = list(set(_neuron_stats.keys()) & set(include_uids))  # exclude include_uids with no stats
-        if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
-            remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
-            remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
-            limited_uids = avail_include_uids + remaining_uids[:num_rows - len(include_uids)]
-            _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
+        avail_include_uids = None
+        if include_uids is not None and num_rows is not None:
+            avail_include_uids = list(set(_neuron_stats.keys()) & set(include_uids))  # exclude include_uids with no stats
+            if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining topk up to num_rows
+                remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find topk remaining, loses topk ordering
+                remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover topk ordering
+                limited_uids = avail_include_uids + remaining_uids[:num_rows - len(include_uids)]
+                _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
         stats_table(_neuron_stats, 'weight', self.config.get('width', None),
@@ -728,7 +758,6 @@ class nucleus( torch.nn.Module ):
         # query_responses.shape = self.config.nucleus.topk * num_synapses * [batch_size, sequence_len, synapse_dim]
         # return_ops: (torch.int64): Return ops.
         # return_ops.shape = self.config.nucleus.topk * [num_synapses]
-        # TODO: WORK IN PROGRESS, prototype
         query_responses, return_ops, times = dendrite.text(
             endpoints=random_endpoints,
             inputs=inputs_seq,
