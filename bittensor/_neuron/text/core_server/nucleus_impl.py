@@ -88,6 +88,8 @@ class server(torch.nn.Module):
 
         if self.config.neuron.local_train or self.config.neuron.remote_train:
             self.pre_model.train()
+            self.set_fine_tuning_params()
+
         else:
             self.pre_model.eval()
 
@@ -120,7 +122,7 @@ class server(torch.nn.Module):
         
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
-        self.set_fine_tuning_params()
+        
 
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
@@ -236,8 +238,8 @@ class server(torch.nn.Module):
         message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)[1]
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
-        shift_labels = inputs[..., 1:].contiguous()     
-        loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) ) 
+        shift_labels = inputs[..., 1:].contiguous()
+        loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
 
         return loss, decoded_targets
 
@@ -351,16 +353,14 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-
         tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
 
         def _forward(_model_output=model_output):
             if _model_output is None:
                 # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                               # attention_mask=tokens['attention_mask'],
+                                                #attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
-
             pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
 
             probs_std = translate_logits_to_probs_std(pre_logits,
@@ -372,8 +372,10 @@ class server(torch.nn.Module):
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
 
-            original_loss = self.get_loss_fct(pre_logits, tokens['input_ids'])
-            translated_loss = self.get_loss_fct(logits_std, token_batch)
+            #removing the loss calculation for stablity testing
+            original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
+            translated_loss = self.get_loss_fct(logits_std, token_batch).item()
+            #message = 'Success'
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
             # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
@@ -439,8 +441,9 @@ class server(torch.nn.Module):
             # then compact new token phrases and probabilities into 1-D tensor
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
-            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids'])
+            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
             message = f'Loss: {original_loss:.2f}'
+            #message = 'Success'
 
             return message, _model_output, topk_tensor
 
@@ -510,6 +513,8 @@ class server(torch.nn.Module):
     def config ():
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
+
+        # ML model arguements
         parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
         parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
@@ -519,18 +524,27 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
         parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
         parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
+        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
+        parser.add_argument('--neuron.local_train', action='store_true', help='''If true, allow local training''', default=False)
+        parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
+        parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
+        parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
+        parser.add_argument('--neuron.finetune.layer_name', type=str, help='Specify since which layer to finetune. eg. encoder.layer.11', default=None)
+        
+        # Miner arguements
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
         parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=10)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
-        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
         parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
-        parser.add_argument('--neuron.local_train', action='store_true', help='''If true, allow local training''', default=False)
-        parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
+        parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
+        parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
+
+        # Synapse Arguements
         parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
         parser.add_argument('--neuron.causallm', action='store_false', help='To turn off causallm synapse', default=True)
         parser.add_argument('--neuron.causallmnext', action='store_false', help='To turn off causallmnext synapse', default=True)
@@ -538,12 +552,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.lasthidden_stake', type = float, help='the amount of stake to run last hidden synapse',default=0)
         parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
         parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
-        parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run  seq2seq synapse',default=0)
-        parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
-        parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
-        parser.add_argument('--neuron.finetune.layer_name', type=str, help='Specify since which layer to finetune. eg. encoder.layer.11', default=None)
-        parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
-        parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
+        parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
 
 
         bittensor.wallet.add_args( parser )
