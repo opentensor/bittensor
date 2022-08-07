@@ -270,7 +270,6 @@ class neuron:
 
             # === Start forward requests ===
             self.metagraph_sync()
-            self.forward_thread_queue.start()
             
             # === Run ===
             # Iterates through epochs.
@@ -427,9 +426,6 @@ class neuron:
                 self.optimizer.zero_grad()
                 logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
                 
-                # === Get another round of forward requests ===
-                self.forward_thread_queue.resume()
-
         # Iterate epochs.
         self.epoch += 1
 
