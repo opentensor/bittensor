@@ -199,9 +199,13 @@ class axon:
         prefix_str = '' if prefix == None else prefix + '.'
         try:
             parser.add_argument('--' + prefix_str + 'axon.port', type=int, 
-                    help='''The port this axon endpoint is served on. i.e. 8091''', default = bittensor.defaults.axon.port)
+                    help='''The local port this axon endpoint is binds. i.e. 8091''', default = bittensor.defaults.axon.port)
             parser.add_argument('--' + prefix_str + 'axon.ip', type=str, 
                 help='''The local ip this axon binds to. ie. [::]''', default = bittensor.defaults.axon.ip)
+            parser.add_argument('--' + prefix_str + 'axon.external_port', type=int, required=False,
+                    help='''The port this axon endpoint is served on. i.e. 8091''', default = bittensor.defaults.axon.external_port)
+            parser.add_argument('--' + prefix_str + 'axon.external_ip', type=str, required=False,
+                help='''The external ip this axon broadcasts to the network to. ie. [::]''', default = bittensor.defaults.axon.external_ip)
             parser.add_argument('--' + prefix_str + 'axon.max_workers', type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)

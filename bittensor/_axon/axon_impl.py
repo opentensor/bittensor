@@ -43,6 +43,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         wallet: 'bittensor.wallet',
         ip: str,
         port: int,
+        external_ip: str,
+        external_port: int,
         server: 'grpc._Server',
         forward: 'Callable',
         backward: 'Callable',
@@ -73,6 +75,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         """
         self.ip = ip
         self.port = port
+        self.external_ip = external_ip
+        self.external_port = external_port
         self.wallet = wallet
         self.server = server
         self.forward_callback = forward if forward != None else self.default_forward_callback
