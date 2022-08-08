@@ -1,8 +1,15 @@
-import bittensor
-import torch 
-import torch.nn as nn
-from torch.nn import TransformerEncoder, TransformerEncoderLayer
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+from more_itertools import side_effect
 
+import pytest
+
+import bittensor
+import torch
+import torch.nn as nn
+from bittensor._subtensor import subtensor
+from bittensor._subtensor.subtensor_mock import mock_subtensor
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 def test_set_fine_tuning_params():
     class Model(nn.Module):
@@ -15,33 +22,33 @@ def test_set_fine_tuning_params():
             self.encoder2 = TransformerEncoder( self.encoder_layers, nlayers_2 )
             self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
           
-    adv_server = bittensor._neuron.text.advanced_server.server()
+    core_server = bittensor._neuron.text.core_server.server()
     # test for the basic default gpt2 case
-    assert adv_server.set_fine_tuning_params() == (True, 'h.11')
+    assert core_server.set_fine_tuning_params() == (True, 'transformer.h.11')
     
     # test for the case when there are 2 modulelists
-    adv_server.pre_model = Model()
-    assert adv_server.set_fine_tuning_params() == (True, 'encoder2.layers.2')
+    core_server.pre_model = Model()
+    assert core_server.set_fine_tuning_params() == (True, 'encoder2.layers.2')
     
     # test for user specification of the number of layers
-    adv_server.config.neuron.finetune.num_layers = 3
-    assert adv_server.set_fine_tuning_params() == (True, 'encoder2.layers.0')
+    core_server.config.neuron.finetune.num_layers = 3
+    assert core_server.set_fine_tuning_params() == (True, 'encoder2.layers.0')
     
     # test for user specification of the number of layers
-    adv_server.config.neuron.finetune.num_layers = 4
-    assert adv_server.set_fine_tuning_params() == (True, 'encoder.layers.0')
+    core_server.config.neuron.finetune.num_layers = 4
+    assert core_server.set_fine_tuning_params() == (True, 'encoder.layers.0')
     
     # test for user specification of the number of layers set too large
-    adv_server.config.neuron.finetune.num_layers = 5
-    assert adv_server.set_fine_tuning_params() == (False, None)
+    core_server.config.neuron.finetune.num_layers = 5
+    assert core_server.set_fine_tuning_params() == (False, None)
     
     # test for user specification of the layer name
-    adv_server.config.neuron.finetune.layer_name = 'encoder2.layers.1'
-    assert adv_server.set_fine_tuning_params() == (True, 'encoder2.layers.1')
+    core_server.config.neuron.finetune.layer_name = 'encoder2.layers.1'
+    assert core_server.set_fine_tuning_params() == (True, 'encoder2.layers.1')
     
     # test for user specification of a non-existing layer name
-    adv_server.config.neuron.finetune.layer_name = 'non_existing_layer'
-    assert adv_server.set_fine_tuning_params() == (False, 'non_existing_layer')
+    core_server.config.neuron.finetune.layer_name = 'non_existing_layer'
+    assert core_server.set_fine_tuning_params() == (False, 'non_existing_layer')
     
 
     class Model(nn.Module):
@@ -51,10 +58,185 @@ def test_set_fine_tuning_params():
             self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
             
     # test for a non-existing modulelist
-    adv_server.pre_model = Model()
-    adv_server.config.neuron.finetune.layer_name = None
-    assert adv_server.set_fine_tuning_params() == (False, None) 
+    core_server.pre_model = Model()
+    core_server.config.neuron.finetune.layer_name = None
+    assert core_server.set_fine_tuning_params() == (False, None) 
+
+def test_coreserver_reregister_flag_false_exit():
+    config = bittensor.Config()
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = False # don't reregister the wallet
+
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        model=MagicMock(),
+        axon=MagicMock(),
+        metagraph=MagicMock(),
+        spec=bittensor.neurons.core_server.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
+    )
+
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should exit without calling register
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            # Should not raise MockException
+            bittensor.neurons.core_server.neuron.run(
+                self=mock_self_neuron
+            )
+
+        # Should not try to register the neuron
+        mock_register.assert_not_called()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 0 # No error
+
+def test_coreserver_reregister_flag_true():
+    config = bittensor.Config()
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = True # try to reregister the wallet
+
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        model=MagicMock(),
+        axon=MagicMock(),
+        metagraph=MagicMock(),
+        spec=bittensor.neurons.core_server.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
+    )
+
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should not exit
+        with pytest.raises(MockException):
+            # Should raise MockException
+            bittensor.neurons.core_server.neuron.run(
+                self=mock_self_neuron
+            )
+
+        # Should try to register the neuron
+        mock_register.assert_called_once()
+
+def test_corevalidator_reregister_flag_false_exit():
+    config = bittensor.Config()
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = False # don't reregister the wallet
+
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        spec=bittensor.neurons.core_validator.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
+    )
+
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should exit without calling register
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            # Should not raise MockException
+            bittensor.neurons.core_validator.neuron.__enter__(
+                self=mock_self_neuron
+            )
+
+        # Should not try to register the neuron
+        mock_register.assert_not_called()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 0 # No error
+
+def test_corevalidator_reregister_flag_true():
+    config = bittensor.Config()
+    config.wallet = bittensor.Config()
+    config.wallet.reregister = True # try to reregister the wallet
+
+    mock_wallet = bittensor.wallet.mock()
+    mock_wallet.config = config
+
+    class MockException(Exception):
+        pass
+
+    def exit_early(*args, **kwargs):
+        raise MockException('exit_early')
+
+    mock_register = MagicMock(side_effect=exit_early)
+
+    mock_self_neuron=MagicMock(
+        wallet=mock_wallet,
+        spec=bittensor.neurons.core_validator.neuron,
+        subtensor=MagicMock(
+            network="mock"
+        ),
+        config=config,
+    )
+
+    with patch.multiple(
+            'bittensor.Wallet',
+            register=mock_register,
+            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+        ):
+        
+        # Should not exit
+        with pytest.raises(MockException):
+            # Should raise MockException
+            bittensor.neurons.core_validator.neuron.__enter__(
+                self=mock_self_neuron
+            )
+
+        # Should try to register the neuron
+        mock_register.assert_called_once()
+
 
 
 if __name__ == '__main__':
-    test_set_fine_tuning_params()
+    pass
