@@ -154,7 +154,6 @@ class neuron:
         )
 
         # === Create thread queue ===
-        self.forward_thread_queue = ThreadQueue(num_jobs = self.config.neuron.forward_num, target = self.forward)
         self.loss = None
         self.loss_agg_mutex = Lock()
 
@@ -236,8 +235,6 @@ class neuron:
         print(exc_type, exc_value, exc_traceback)
         self.dataset.close()
         self.dendrite.__del__()
-        self.forward_thread_queue.stop()
-        self.forward_thread_queue.join()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -264,22 +261,6 @@ class neuron:
                 root_dir = self.config.neuron.full_path
             )
 
-    def forward(self):
-        r""" Run the nucleus forward request
-        This function is supposed to be ran multi-threaded.
-        """
-        loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
-
-        # === Backward ===
-        # Backwards gradients through model to train gating and remote endpoints.
-        if hasattr(loss, 'grad_fn') and loss.grad_fn is not None:
-            logger.info(f'Backward <dim>(loss: {loss:.3f})</dim>')
-            start_time = time.time()
-            (loss / self.config.neuron.forward_num).backward()
-            logger.info(f'Backward <dim>[{time.time() - start_time:.3g}s]</dim>')
-
-        return loss, stats
-
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
         """
@@ -289,7 +270,6 @@ class neuron:
 
             # === Start forward requests ===
             self.metagraph_sync()
-            self.forward_thread_queue.start()
             
             # === Run ===
             # Iterates through epochs.
@@ -355,7 +335,15 @@ class neuron:
             # === Forward ===
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
-            loss, stats = self.forward_thread_queue.get()
+            loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
+
+            # === Backward ===
+            # Backwards gradients through model to train gating and remote endpoints.
+            if hasattr(loss, 'grad_fn') and loss.grad_fn is not None:
+                logger.info(f'Backward <dim>(loss: {loss:.3f})</dim>')
+                start_time = time.time()
+                (loss / self.config.neuron.forward_num).backward()
+                logger.info(f'Backward <dim>[{time.time() - start_time:.3g}s]</dim>')
 
             # === Stats update ===
             # Updates moving averages and history.
@@ -428,7 +416,7 @@ class neuron:
                            'epoch/time': step_time}, step=current_block, commit=True)
 
             # Do the backward request after the a queue of forward requests got finished.  
-            if self.forward_thread_queue.paused() and self.forward_thread_queue.is_empty():
+            if epoch_steps % self.config.neuron.forward_num == 1:
                 start_time = time.time()
                 logger.info('Model update \t| Optimizer step')
 
@@ -439,9 +427,6 @@ class neuron:
                 self.optimizer.zero_grad()
                 logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
                 
-                # === Get another round of forward requests ===
-                self.forward_thread_queue.resume()
-
         # Iterate epochs.
         self.epoch += 1
 
