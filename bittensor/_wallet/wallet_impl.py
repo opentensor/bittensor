@@ -18,15 +18,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import time
-import json
-import requests
+import sys
 from types import SimpleNamespace
+from typing import Optional, Union
 
-from typing import Union, Optional
+import bittensor
+from bittensor.utils import is_valid_bittensor_address_or_public_key
 from substrateinterface import Keypair
 from termcolor import colored
-import bittensor
+
 
 def display_mnemonic_msg( keypair : Keypair, key_type : str ):
     """ Displaying the mnemonic and warning message to keep mnemonic safe
@@ -53,6 +53,7 @@ class Wallet():
         name:str,
         path:str,
         hotkey:str,
+        config: 'bittensor.Config' = None,
     ):
         r""" Init bittensor wallet object containing a hot and coldkey.
             Args:
@@ -62,6 +63,8 @@ class Wallet():
                     The name of hotkey used to running the miner.
                 path (required=True, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
+                config (:obj:`bittensor.Config`, `optional`): 
+                    bittensor.wallet.config()
         """
         self.name = name
         self.path = path
@@ -69,6 +72,7 @@ class Wallet():
         self._hotkey = None
         self._coldkey = None
         self._coldkeypub = None
+        self.config = config
 
     def __str__(self):
         return "Wallet ({}, {}, {})".format(self.name, self.hotkey_str, self.path)
@@ -210,6 +214,38 @@ class Wallet():
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.get_balance(address = self.coldkeypub.ss58_address)
+
+    def reregister(
+        self,
+        subtensor: 'bittensor.Subtensor' = None,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False
+    ) -> Optional['bittensor.Wallet']:
+        """ Re-register this wallet on the chain.
+            Args:
+                subtensor( 'bittensor.Subtensor' ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+                wait_for_inclusion (bool):
+                    if set, waits for the extrinsic to enter a block before returning true, 
+                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                wait_for_finalization (bool):
+                    if set, waits for the extrinsic to be finalized on the chain before returning true,
+                    or returns false if the extrinsic fails to be finalized within the timeout.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
+                
+            Return:
+                wallet (bittensor.Wallet):
+                    This wallet.
+        """
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
+        if not self.is_registered(subtensor=subtensor):
+            # Check if the wallet should reregister
+            if not self.config.wallet.get('reregister'):
+                sys.exit(0)
+        return self.register(subtensor=subtensor, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization, prompt=prompt)
 
     def register ( 
             self, 
@@ -558,6 +594,37 @@ class Wallet():
                     this object with newly created coldkey.
         """
         self.regenerate_coldkey(mnemonic, seed, use_password, overwrite)
+
+    def regenerate_coldkeypub( self, ss58_address: Optional[str] = None, public_key: Optional[Union[str, bytes]] = None, overwrite: bool = False ) -> 'Wallet':
+        """ Regenerates the coldkeypub from passed ss58_address or public_key and saves the file
+               Requires either ss58_address or public_key to be passed.
+            Args:
+                ss58_address: (str, optional):
+                    Address as ss58 string.
+                public_key: (str | bytes, optional):
+                    Public key as hex string or bytes.
+                overwrite (bool, optional) (default: False):
+                    Will this operation overwrite the coldkeypub (if exists) under the same path <wallet path>/<wallet name>/coldkeypub
+            Returns:
+                wallet (bittensor.Wallet):
+                    newly re-generated Wallet with coldkeypub.
+            
+        """
+        if ss58_address is None and public_key is None:
+            raise ValueError("Either ss58_address or public_key must be passed")
+
+        if not is_valid_bittensor_address_or_public_key( ss58_address if ss58_address is not None else public_key ):
+            raise ValueError(f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}") 
+
+        keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=bittensor.__ss58_format__)
+
+        # No need to encrypt the public key
+        self.set_coldkeypub( keypair, overwrite = overwrite)
+
+        return self
+
+    # Short name for regenerate_coldkeypub
+    regen_coldkeypub = regenerate_coldkeypub
 
     def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file

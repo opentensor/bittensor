@@ -114,7 +114,7 @@ class TestCli(unittest.TestCase):
         "set_weights", "inspect"]
         config = self.config
         config.no_prompt = True
-        config.model = "template_miner"
+        config.model = "core_server"
         config.dest = "no_prompt"
         config.amount = 1
         config.mnemonic = "this is a mnemonic"
@@ -1102,7 +1102,7 @@ class TestCli(unittest.TestCase):
         config.stake_all = False
         config.no_password = True
         
-        config.model = "template_miner"
+        config.model = "core_server"
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1116,7 +1116,7 @@ class TestCli(unittest.TestCase):
         config.amount = 1
         config.dest = "no_prompt"
         config.subtensor._mock = True
-        config.model = "template_miner"
+        config.model = "core_server"
         config.n_words = 12
         config.use_password = False
         config.no_prompt = True
@@ -1135,7 +1135,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.dest = "no_prompt"
         config.subtensor._mock = True
-        config.model = "template_miner"
+        config.model = "core_server"
         config.n_words = 12
         config.use_password = False
         config.no_prompt = True
@@ -1152,13 +1152,28 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.dest = "no_prompt"
         config.subtensor._mock = True
-        config.model = "template_miner"
+        config.model = "core_server"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
         config.seed = None
         config.n_words = 12
         config.use_password = False
         config.no_prompt = True
         config.overwrite_coldkey = True
+
+        cli = bittensor.cli(config)
+        cli.run()
+
+    def test_regen_coldkeypub( self ):
+        config = self.config
+        config.wallet.name = "regen_coldkeypub_testwallet"
+        config.command = "regen_coldkeypub"
+        config.subtensor.network = "mock"
+        config.subtensor._mock = True
+        config.ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+        config.public_key = None
+        config.use_password = False
+        config.no_prompt = True
+        config.overwrite_coldkeypub = True
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1170,7 +1185,7 @@ class TestCli(unittest.TestCase):
         config.amount = 1
         config.subtensor.network = "mock"
         config.subtensor._mock = True
-        config.model = "template_miner"
+        config.model = "core_server"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
         config.n_words = 12
         config.use_password = False

@@ -58,8 +58,8 @@ class wallet:
         if config == None: 
             config = wallet.config()
         config = copy.deepcopy( config )
-        config.wallet.name = name if name != None else config.wallet.get('name', bittensor.defaults.wallet.name)
-        config.wallet.hotkey = hotkey if hotkey != None else config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey)
+        config.wallet.name = name if name != None else config.wallet.name
+        config.wallet.hotkey = hotkey if hotkey != None else config.wallet.hotkey
         config.wallet.path = path if path != None else config.wallet.path
         config.wallet._mock = _mock if _mock != None else config.wallet._mock
         wallet.check_config( config )
@@ -73,12 +73,14 @@ class wallet:
                 hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
                 path = config.wallet.path,
                 _mock = True,
+                config = config
             )
 
         return wallet_impl.Wallet(
             name = config.wallet.get('name', bittensor.defaults.wallet.name), 
             hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
             path = config.wallet.path,
+            config = config
         )
 
     @classmethod   
@@ -113,6 +115,7 @@ class wallet:
             parser.add_argument('--' + prefix_str + 'wallet.all_hotkeys', required=False, action='store_true', default=bittensor.defaults.wallet.all_hotkeys, help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.''')
             parser.add_argument('--' + prefix_str + 'wallet.sort_by', required=False, action='store', default=bittensor.defaults.wallet.sort_by, type=str, help='''Sort the hotkeys by the specified column title (e.g. name, uid, axon).''')
             parser.add_argument('--' + prefix_str + 'wallet.sort_order', required=False, action='store', default=bittensor.defaults.wallet.sort_order, type=str, help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)''')
+            parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, action='store', default=bittensor.defaults.wallet.reregister, type=bool, help='''Whether to reregister the wallet if it is not already registered.''')
         except argparse.ArgumentError as e:
             import pdb
             #pdb.set_trace()
@@ -133,6 +136,8 @@ class wallet:
         defaults.wallet.all_hotkeys = False
         defaults.wallet.sort_by = ""
         defaults.wallet.sort_order = "ascending"
+        # Defaults for registration
+        defaults.wallet.reregister = True
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
@@ -145,3 +150,4 @@ class wallet:
         assert isinstance(config.wallet.hotkeys, list)
         assert isinstance(config.wallet.sort_by, str)
         assert isinstance(config.wallet.sort_order, str)
+        assert isinstance(config.wallet.reregister, bool)

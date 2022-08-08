@@ -125,3 +125,16 @@ def code_to_loguru_color( code: 'bittensor.proto.ReturnCode' ) -> str:
         return 'red'
     else:
         return 'red'
+
+def code_to_synapse( code: 'bittensor.proto.Synapse.SynapseType'):
+    """Return Code -> Synapse Type"""
+    if code == 1:
+        return 'text_last_hidden_state'
+    elif code == 2:
+        return 'text_causal_lm'
+    elif code == 3:
+        return 'text_seq_2_seq'
+    elif code == 4:
+        return 'text_causal_lm_next'
+    else:
+        return 'Null'

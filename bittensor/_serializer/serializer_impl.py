@@ -20,6 +20,8 @@
 import torch
 import msgpack
 import msgpack_numpy
+from typing import Tuple, List, Union, Optional
+
 
 import bittensor
 
@@ -28,18 +30,24 @@ class Serializer(object):
     various python tensor equivalents. i.e. torch.Tensor or tensorflow.Tensor
     """
 
-    def serialize (self, tensor_obj: object, modality: bittensor.proto.Modality, from_type: int) -> bittensor.proto.Tensor:
+    @staticmethod
+    def empty():
+        """Returns an empty bittensor.proto.Tensor message with the version"""
+        torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
+        return torch_proto
+
+    def serialize (self, tensor_obj: object, modality: bittensor.proto.Modality= bittensor.proto.Modality.TEXT, from_type: int = bittensor.proto.TensorType.TORCH) -> bittensor.proto.Tensor:
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:
             tensor_obj (:obj:`object`, `required`): 
                 general tensor object i.e. torch.Tensor or tensorflow.Tensor
 
-            from_type (`obj`: bittensor.proto.TensorType, `required`): 
+            from_type (`obj`: bittensor.proto.TensorType, `Optional`): 
                 Serialization from this type. i.e. bittensor.proto.TensorType.TORCH or bittensor.proto.TensorType.TENSORFLOW
 
         Returns:
-            tensor_pb2: (obj: `bittensor.proto.Tensor`, `required`): 
+            tensor_pb2: (obj: `bittensor.proto.Tensor`, `Optional`): 
                 Serialized tensor as bittensor.proto.proto. 
 
         Raises:
@@ -121,6 +129,7 @@ class Serializer(object):
     def deserialize_to_numpy(self, tensor_pb2: bittensor.proto.Tensor) -> object:
         """ bittensor.proto.Tensor -> numpy """
         raise bittensor.serializer.SerializationTypeNotImplementedException
+
 
 class MSGPackSerializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch
@@ -222,3 +231,4 @@ class CMPPackSerializer( Serializer ):
         numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
+

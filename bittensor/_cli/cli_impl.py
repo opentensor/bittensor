@@ -67,6 +67,8 @@ class CLI:
             self.create_new_hotkey()
         elif self.config.command == "regen_coldkey":
             self.regen_coldkey()
+        elif self.config.command == "regen_coldkeypub":
+            self.regen_coldkeypub()
         elif self.config.command == "regen_hotkey":
             self.regen_hotkey()
         elif self.config.command == "metagraph":
@@ -101,6 +103,12 @@ class CLI:
         """
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, seed = self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
+
+    def regen_coldkeypub ( self ):
+        r""" Creates a new coldkeypub under this wallet.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        wallet.regenerate_coldkeypub( ss58_address=self.config.get('ss58_address'), public_key=self.config.get('public_key_hex'), overwrite = self.config.overwrite_coldkeypub )
 
     def regen_hotkey ( self ):
         r""" Creates a new coldkey under this wallet.
@@ -154,8 +162,9 @@ class CLI:
                     registered = '[bold white]Yes[/bold white]'
                     stake = bittensor.Balance.from_tao( neuron.stake )
                     emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
-                    _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
-                    latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
+                    synapses = [bittensor.synapse.TextLastHiddenState()]
+                    _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)
+                    latency = "{}".format((t[0]).tolist()[0]) if (c[0]).tolist()[0] == 1 else 'N/A'
 
                 cold_balance = wallet.get_balance( subtensor = subtensor )
                 bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__(), "latency:".ljust(15), latency ), highlight=True)
@@ -190,14 +199,19 @@ class CLI:
         self.register()
 
         # Run miner.
-        if self.config.model == 'template_miner':
-            bittensor.neurons.template_miner.neuron().run()
-        elif self.config.model == 'template_server':
-            bittensor.neurons.template_server.neuron().run()
+        if self.config.model == 'core_server':
+            
+            if self.config.synapse == 'TextLastHiddenState':
+                bittensor.neurons.core_server.neuron(lasthidden=True, causallm=False, seq2seq = False).run()
+            elif self.config.synapse == 'TextCausalLM':
+                bittensor.neurons.core_server.neuron(lasthidden=False, causallm=True, seq2seq = False).run()
+            elif self.config.synapse == 'TextSeq2Seq':
+                bittensor.neurons.core_server.neuron(lasthidden=False, causallm=False, seq2seq = True).run()
+            else:
+                bittensor.neurons.core_server.neuron().run()
+
         elif self.config.model == 'core_validator':
             bittensor.neurons.core_validator.neuron().run()
-        elif self.config.model == 'advanced_server':
-            bittensor.neurons.advanced_server.neuron().run()
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
 
@@ -207,14 +221,10 @@ class CLI:
         sys.argv = [sys.argv[0], '--help']
 
         # Run miner.
-        if self.config.model == 'template_miner':
-            bittensor.neurons.template_miner.neuron().run()
-        elif self.config.model == 'template_server':
-            bittensor.neurons.template_server.neuron().run()
+        if self.config.model == 'core_server':
+            bittensor.neurons.core_server.neuron().run()
         elif self.config.model == 'core_validator':
             bittensor.neurons.core_validator.neuron().run()
-        elif self.config.model == 'advanced_server':
-            bittensor.neurons.advanced_server.neuron().run()
         elif self.config.model == 'multitron_server':
             bittensor.neurons.multitron_server.neuron().run()
 
