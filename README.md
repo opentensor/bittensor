@@ -9,11 +9,11 @@
 
 ### Internet-scale Neural Networks <!-- omit in toc -->
 
-[Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://app.gitbook.com/@opentensor/s/bittensor/) • [Network](https://www.bittensor.com/metagraph) • [Research](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/5fa940aea6a95b870067cf09_bittensor.pdf) • [Code](https://github.com/opentensor/BitTensor)
+[Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://app.gitbook.com/@opentensor/s/bittensor/) • [Network](https://www.bittensor.com/metagraph) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU) • [Code](https://github.com/opentensor/BitTensor)
 
 </div>
 
-At Bittensor, we are creating an open, decentralized, peer-to-peer network that functions as a market system for the development of artificial intelligence. Our purpose is not only to accelerate the development of AI by creating an environment optimally condusive to its evolution, but to democratize the global production and use of this valuable commodity. Our aim is to disrupt the status quo: a system that is centrally controlled, inefficient and unsustainable. In developing the Bittensor API, we are allowing engineers to monetize their work, gain access to machine intelligence and join our community of creative, forward-thinking individuals. For more info, read our [paper](https://uploads-ssl.webflow.com/5cfe9427d35b15fd0afc4687/6021920718efe27873351f68_bittensor.pdf).
+At Bittensor, we are creating an open, decentralized, peer-to-peer network that functions as a market system for the development of artificial intelligence. Our purpose is not only to accelerate the development of AI by creating an environment optimally condusive to its evolution, but to democratize the global production and use of this valuable commodity. Our aim is to disrupt the status quo: a system that is centrally controlled, inefficient and unsustainable. In developing the Bittensor API, we are allowing engineers to monetize their work, gain access to machine intelligence and join our community of creative, forward-thinking individuals. For more info, read our [paper](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU/view).
 
 - [1. Documentation](#1-documentation)
 - [2. Install](#2-install)
@@ -70,7 +70,7 @@ import bittensor
 import torch
 wallet = bittensor.wallet().create().register()
 graph = bittensor.metagraph().sync()
-representations, _, _ = bittensor.dendrite( wallet = wallet ).forward_text (
+representations, _, _ = bittensor.dendrite( wallet = wallet ).text_last_hidden_state(
     endpoints = graph.endpoints,
     inputs = "The quick brown fox jumped over the lazy dog"
 )
