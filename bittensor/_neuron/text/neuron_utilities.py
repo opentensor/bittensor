@@ -2,6 +2,7 @@ from numpy import zeros_like
 import bittensor
 import threading
 import time
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +10,17 @@ from concurrent.futures import Future
 import queue
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+
+
+def calc_loss_fct(loss_fct, logits, labels):
+    r""" Calculates self.loss_fct with logits and labels that are expected to be aligned already.
+    """
+    _logits = logits.contiguous()
+    _labels = labels.contiguous()
+    loss = loss_fct(_logits.view(-1, _logits.size(-1)), _labels.view(-1))
+    return loss
+
 
 def update_metagraph_peerweight(metagraph, nucleus, device):
     r"""
@@ -95,7 +107,7 @@ def fisher_score_approximation(loss, peer_weights, ):
     validator_scores =  second_order + first_order
     return validator_scores
 
-def joining_context(return_ops, topk_weights, responses):
+def joining_context(return_ops, topk_weights, responses, synapses):
     """
     Joins response embbedings depending on the return codes 
         Args:
@@ -113,14 +125,22 @@ def joining_context(return_ops, topk_weights, responses):
                 The uids used to create output
     
     """
-    joining_uids= torch.where( return_ops == bittensor.proto.ReturnCode.Success )[0]
-    joining_weights = F.softmax( topk_weights[(return_ops == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
-    output = torch.zeros( (responses[0].shape[0], responses[0].shape[1], bittensor.__network_dim__))
-    for index, joining_weight in enumerate( joining_weights ):
-        output += responses[joining_uids[index]]* joining_weight
-    return output, joining_uids
+    # TODO : Test for different modalities (currently works for casuallm)
+    codes = torch.stack(return_ops)
+    outputs = []
+    for index_s, synapse in enumerate(synapses):
+        joining_uids= torch.where( codes[:,index_s] == bittensor.proto.ReturnCode.Success )[0]
+        joining_weights = F.softmax( topk_weights[(codes[:,index_s] == bittensor.proto.ReturnCode.Success)], dim = 0 ) 
+        if len(joining_uids) != 0:
+            output = torch.zeros_like(responses[joining_uids[0]][index_s] )
+            for index, joining_weight in enumerate( joining_weights ):
+                output += responses[joining_uids[index]][index_s]* joining_weight
+            outputs.append(output)
+        else:
+            outputs.append([])
+    return outputs, joining_uids
 
-def partial_contexts(return_ops, topk_uids, topk_weights, responses):
+def partial_contexts(return_ops, topk_uids, topk_weights, responses, synapses):
     """
     Creates the partial contexts which are used to calculate the shapley scores 
 
@@ -139,16 +159,15 @@ def partial_contexts(return_ops, topk_uids, topk_weights, responses):
                 A dict containing all of joinned contexts with a single peer masked out 
     
     """
+    # TODO : Test for different modalities (currently works for casuallm)
     partial_context = {}
     with torch.no_grad():
         for i, uid in enumerate(topk_uids):
-            partial_return_ops = return_ops.clone()
+            partial_return_ops = deepcopy(return_ops)
             # --- Only mask peers that successfully
-            if partial_return_ops[i] != bittensor.proto.ReturnCode.Success:
-                pass
-            else:
-                partial_return_ops[i] = bittensor.proto.ReturnCode.NoReturn
-            partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses)
+            partial_return_ops[i][ partial_return_ops[i] == bittensor.proto.ReturnCode.Success ] = bittensor.proto.ReturnCode.NoReturn
+
+            partial_context[uid.item()], _ = joining_context(partial_return_ops, topk_weights, responses, synapses)
     return partial_context
     
 class ThreadQueue(threading.Thread):
@@ -214,3 +233,38 @@ class ThreadQueue(threading.Thread):
         
     def get(self):
         return self.queue.get()
+
+
+class PositionalEncoding(nn.Module):
+    r""" Positional Encoder which adds information based on the relative position of each token
+
+    """
+
+    def __init__(self, d_model: int, dropout: float, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+
+        # === Create position matrix ===
+        # Creates a positional matrix with alternating frequencies
+        # pe: (torch.FloatTensor) positional encoding matrix
+        # pe.shape: [1, max_len, network_dim]
+        pe = torch.zeros(1, max_len, d_model)
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.tensor) -> torch.tensor:
+        """
+        Args:
+            x: Tensor, shape [batch_size, seq_len, embedding_dim]
+        """
+        # === Positional Encoding ===
+        # Inject some information of the relative position of the token in the sequence.
+        #  Finally, Dropout is applied to tokens
+        # x: (torch.FloatTensor) input sequence tokens with position information injected
+        # x.shape: [batch_size, seq_len, network_dim]
+        x = x + self.pe[0, :x.size(1)]
+        return self.dropout(x)

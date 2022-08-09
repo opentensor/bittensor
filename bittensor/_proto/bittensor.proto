@@ -1,3 +1,5 @@
+// python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=.
+
 syntax = "proto3";
 
 // Service definition for tensor processing servers.
@@ -86,6 +88,154 @@ message TensorMessage {
 
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	bool requires_grad = 8;
+
+	// Synapses hold function information this tells the axon how to use the tensor inputs.
+	// i.e. where to send them
+ 	repeated Synapse synapses = 9;
+}
+
+
+message Synapse {
+	
+	enum SynapseType {
+		NULL_SYNAPSE = 0;
+		TEXT_LAST_HIDDEN_STATE = 1;
+		TEXT_CAUSAL_LM = 2;
+		TEXT_SEQ_2_SEQ = 3;
+		TEXT_CAUSAL_LM_NEXT = 4;
+	}
+
+	// Position of Tensor inputs for corresponding synapse call.
+	repeated int32 tensor_pos = 1;
+
+	// Serialized special argmument data. This is proto data which
+	// is packed according to the SynapseType enum. 
+	bytes synapse_data = 2;
+
+	// Type of Synapse. i.e. LastHidden specifies how to decode args_data 
+	// and route information in the axon to the correct function call.
+	SynapseType synapse_type = 3;
+
+	// Return codes from Backward and Forward call associated 
+	// with this synapse call.
+	ReturnCode return_code = 4;
+
+	// Message associated with the return code.
+	string message = 5;
+
+	// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+	bool requires_grad = 6;
+
+	message TextLastHiddenState { 
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 2;
+		Serializer forward_response_serializer_type = 3;
+		Serializer backward_request_serializer_type = 4;
+		Serializer backward_response_serializer_type = 5;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 6;
+	}
+
+	message TextCausalLM {
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// Specifies the number of Topk logits to return.
+		// Logit values are packed (pos, value) acocording 
+		// to the bittensor tokenizer vocab size.
+		int32 topk = 2;
+
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 3;
+		Serializer forward_response_serializer_type = 4;
+		Serializer backward_request_serializer_type = 5;
+		Serializer backward_response_serializer_type = 6;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 7;
+	}
+
+	message TextSeq2Seq {
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// Specifies the number of Topk logits to return.
+		// Logit values are packed (pos, value) acocording 
+		// to the bittensor tokenizer vocab size.
+		int32 topk = 2;
+
+		// Number of tokens to predict
+		int32 num_to_generate = 3;
+
+
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 4;
+		Serializer forward_response_serializer_type = 5;
+		Serializer backward_request_serializer_type = 6;
+		Serializer backward_response_serializer_type = 7;
+
+		//Generate Arguments
+		// Number of beams
+        int32 num_beams = 8;
+
+		//Number of repeat words
+        int32 no_repeat_ngram_size = 9;
+
+		//Early Stopping
+        bool early_stopping = 10;
+        
+		//Number of return seuqences
+		int32 num_return_sequences = 11;
+
+		//If sampling should be used
+		bool do_sample = 12;
+
+		//The probability cutoff
+		float top_p = 13;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 14;
+
+		//temperature of the softmax function
+		float temperature = 15;
+
+		//penalty for repeated words
+		float repetition_penalty = 16; 
+
+		//penalty for length 
+		float length_penalty = 17;
+
+		//maximum amount of time 
+		float max_time = 18;
+
+		//groups for beam search
+		int32 num_beam_groups = 19;
+	}
+
+	message TextCausalLMNext {
+		// Specifies messaging of topk server token phrases with probabilities.
+		// Server last position token predictions are retokenized to token phrases with the bittensor tokenizer.
+		// Allows for zero translation loss CausalLM next generation between different tokenizers.
+
+		// Might as well have this
+		SynapseType synapse_type = 1;
+
+		// Specifies the number of topk server token phrases to return.
+		int32 topk = 2;
+
+		// Serializer typing.
+		Serializer forward_request_serializer_type = 3;
+		Serializer forward_response_serializer_type = 4;
+		Serializer backward_request_serializer_type = 5;
+		Serializer backward_response_serializer_type = 6;
+
+		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
+		bool requires_grad = 7;
+	}
 }
 
 // Return codes from Backward and Forward call.
@@ -114,6 +264,7 @@ enum ReturnCode {
 	SenderUnknown = 21; // The requester is not known by the reciever. 
 	UnknownException = 22; // Unknown exception.
 	Unauthenticated = 23; // Authentication failed.
+	BadEndpoint = 24; // Dummy endpoint
 }
 
 // A serialized tensor object created using the serializer class.
@@ -158,10 +309,9 @@ message Tensor {
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	// 1 bit.
 	bool requires_grad = 8;
+
 }
 
-// Dtype: [REQUIRED] The tensor serializer type.
-// For use between multiple serialziation deserialziation methods.
 enum Serializer {
 	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
 	MSGPACK = 0; // MSGPACK serializer

@@ -20,6 +20,7 @@
 import torch
 import numpy as np
 import bittensor
+from typing import Tuple, List, Union, Optional
 
 from . import serializer_impl
 
@@ -38,12 +39,12 @@ class serializer:
     class SerializationTypeNotImplementedException (Exception):
         """ Raised if serialization/deserialization is not implemented for the passed object type """
     
-    def __new__(cls, serialzer_type: bittensor.proto.Serializer = bittensor.proto.Serializer.MSGPACK ) -> 'bittensor.Serializer':
+    def __new__(cls, serializer_type: bittensor.proto.Serializer = bittensor.proto.Serializer.MSGPACK ) -> 'bittensor.Serializer':
         r"""Returns the correct serializer object for the passed Serializer enum. 
 
             Args:
-                serialzer_type (:obj:`bittensor.proto.Serializer`, `required`): 
-                    The serialzer_type ENUM from bittensor.proto.
+                serializer_type (:obj:`bittensor.proto.Serializer`, `required`): 
+                    The serializer_type ENUM from bittensor.proto.
 
             Returns:
                 Serializer: (obj: `bittensor.Serializer`, `required`): 
@@ -54,14 +55,14 @@ class serializer:
                     Raised if the passed there is no serialzier for the passed type. 
         """
         # WARNING: the pickle serializer is not safe. Should be removed in future verions.
-        # if serialzer_type == bittensor.proto.Serializer.PICKLE:
+        # if serializer_type == bittensor.proto.Serializer.PICKLE:
         #     return PyTorchPickleSerializer()
-        if serialzer_type == bittensor.proto.Serializer.MSGPACK:
+        if serializer_type == bittensor.proto.Serializer.MSGPACK:
             return serializer_impl.MSGPackSerializer()
-        elif serialzer_type == bittensor.proto.Serializer.CMPPACK:
+        elif serializer_type == bittensor.proto.Serializer.CMPPACK:
             return serializer_impl.CMPPackSerializer()
         else:
-            raise bittensor.serializer.NoSerializerForEnum("No known serialzier for proto type {}".format(serialzer_type))
+            raise bittensor.serializer.NoSerializerForEnum("No known serialzier for proto type {}".format(serializer_type))
 
     @staticmethod
     def torch_dtype_to_bittensor_dtype(tdtype):
@@ -136,3 +137,4 @@ class serializer:
                 'Unknown bittensor.dtype or no equivalent numpy.dtype for bittensor.dtype = {}'
                 .format(bdtype))
         return dtype
+

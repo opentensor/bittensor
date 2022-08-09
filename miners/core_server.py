@@ -15,13 +15,13 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-""" Run the template miner
+""" Run the template server
 
 Example:
-    $ python3 miners/template_miner.py
+    $ python3 miners/core_server.py ... args
 
 """
 
 import bittensor
 if __name__ == "__main__":
-    template = bittensor.neurons.template_miner.neuron().run()
+    template = bittensor.neurons.core_server.neuron().run()

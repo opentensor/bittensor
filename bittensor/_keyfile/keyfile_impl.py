@@ -21,6 +21,8 @@ import json
 import stat
 import getpass
 import bittensor
+from typing import Optional
+from pathlib import Path
 
 from ansible_vault import Vault
 from cryptography.exceptions import InvalidSignature, InvalidKey
@@ -186,7 +188,20 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
         vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
 
-def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
+
+def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
+
+    for env_var in os.environ:
+        if (
+            env_var.upper().startswith("BT_COLD_PW_")
+            and env_var.upper().endswith(coldkey_name.upper())
+        ):
+            return os.getenv(env_var)
+
+    return None
+
+
+def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name: Optional[str] = None) -> bytes:
     """ Decrypts passed keyfile data using ansible vault.
         Args:
             keyfile_data ( bytes, required ):
@@ -200,9 +215,11 @@ def decrypt_keyfile_data( keyfile_data: bytes, password: str = None) -> bytes:
             KeyFileError:
                 Raised if the file is corrupted or if the password is incorrect.
     """
-    password = getpass.getpass("Enter password to unlock key: ") if password == None else password
+    if coldkey_name is not None and password is None:
+        password = get_coldkey_password_from_environment(coldkey_name)
+
     try:
-        password = getpass.getpass("Enter password to unlock key: ") if password == None else password
+        password = getpass.getpass("Enter password to unlock key: ") if password is None else password
         console = bittensor.__console__;             
         with console.status(":key: Decrypting key..."):
             # Ansible decrypt.
@@ -232,6 +249,7 @@ class Keyfile( object ):
     """
     def __init__( self, path: str ):
         self.path = os.path.expanduser(path)
+        self.name = Path(self.path).parent.stem
 
     def __str__(self):
         if not self.exists_on_device():
@@ -320,7 +338,7 @@ class Keyfile( object ):
         """
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
-            keyfile_data = decrypt_keyfile_data( keyfile_data, password)
+            keyfile_data = decrypt_keyfile_data(keyfile_data, password, coldkey_name=self.name)
         return deserialize_keypair_from_keyfile_data( keyfile_data )
 
     def make_dirs( self ):
@@ -418,7 +436,7 @@ class Keyfile( object ):
             raise KeyFileError( "No write access for {}".format( self.path ) ) 
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
-            keyfile_data = decrypt_keyfile_data( keyfile_data, password )
+            keyfile_data = decrypt_keyfile_data(keyfile_data, password, coldkey_name=self.name)
         as_keypair = deserialize_keypair_from_keyfile_data( keyfile_data )
         keyfile_data = serialized_keypair_to_keyfile_data( as_keypair )
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )

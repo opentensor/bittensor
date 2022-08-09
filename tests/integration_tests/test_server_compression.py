@@ -227,7 +227,7 @@ def sign(wallet):
 
 
 inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
 inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
 
 
