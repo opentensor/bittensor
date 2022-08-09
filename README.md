@@ -36,7 +36,7 @@ At Bittensor, we are creating an open, decentralized, peer-to-peer network that 
 
 ## 1. Documentation
 
-https://opentensor.gitbook.io/bittensor/
+https://docs.bittensor.com/
 
 ## 2. Install
 Three ways to install Bittensor
