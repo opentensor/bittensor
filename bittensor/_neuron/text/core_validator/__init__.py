@@ -529,6 +529,7 @@ class neuron:
 
         # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
         non_responsive_uids = queried_uids - responsive_uids
         non_queried_uids = set(range(self.metagraph.n)) - queried_uids
@@ -554,7 +555,9 @@ class neuron:
         sample_uids = preferred_uids[:min_allowed_weights]  # slice to min_allowed_weights
         sample_weights = neuron_weights[:min_allowed_weights]  # slice to min_allowed_weights
 
-        sample_weights /= sample_weights.sum()  # normalize
+        # === Normalize and apply max_allowed_ratio ===
+        sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
+                                                                             multiple=max_allowed_ratio)
 
         return sample_uids, sample_weights
 
