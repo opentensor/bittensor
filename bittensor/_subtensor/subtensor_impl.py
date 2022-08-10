@@ -1210,7 +1210,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             is_registered ( bool):
                 True if the passed hotkey is registered on the chain.
         """
-        uid = self.get_uid_for_hotkey( ss58_hotkey = ss58_hotkey, block = block)
+        uid = -1
         if uid == -1:
             return False
         else:
