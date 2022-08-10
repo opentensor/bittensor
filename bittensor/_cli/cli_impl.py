@@ -251,7 +251,6 @@ class CLI:
     def unstake( self ):
         r""" Unstake token of amount from hotkey(s).
         """        
-        # TODO: Implement this without re-unlocking the coldkey.
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = self.config )
@@ -276,9 +275,7 @@ class CLI:
             subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
             return None
 
-        wallet_0: 'bittensor.wallet' = wallets_to_unstake_from[0]
-        # Decrypt coldkey for all wallet(s) to use
-        wallet_0.coldkey
+        
 
         final_wallets: List['bittensor.wallet'] = [] 
         final_amounts: List[Union[float, Balance]] = []
@@ -287,9 +284,6 @@ class CLI:
             if not wallet.is_registered():
                 # Skip unregistered hotkeys.
                 continue
-            # Assign decrypted coldkey from wallet_0
-            #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0._coldkey
 
             unstake_amount_tao: float = self.config.get('amount')
             if self.config.get('max_stake'):
@@ -307,13 +301,12 @@ class CLI:
         if not self.config.no_prompt:
             if not Confirm.ask("Do you want to unstake from the following keys:\n" + \
                     "".join([
-                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                        f"    [bold white]- {wallet.hotkey_str}: {amount.tao}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
                     ])
                 ):
                 return None
-
-        for wallet, amount in zip(final_wallets, final_amounts):
-            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else amount, wait_for_inclusion = True, prompt = False )
+                
+        subtensor.unstake_multiple( wallets = final_wallets, amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def stake( self ):
