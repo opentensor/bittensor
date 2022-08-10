@@ -213,7 +213,7 @@ class logging:
         """
         extra = record['extra']
         if 'rpc' in extra:
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
+            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} | {extra[synapse]} \n"
             return log_format
         elif 'receptor' in extra:
             log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
@@ -242,7 +242,20 @@ class logging:
 
 
     @classmethod
-    def rpc_log( cls, axon: bool, forward: bool, is_response: bool, code:int, call_time: float, pubkey: str, uid: int = None, inputs:list = None, outputs:list = None, message:str = ''):
+    def rpc_log( 
+                 cls, 
+                 axon: bool,
+                 forward: bool,
+                 is_response: bool,
+                 code:int,
+                 call_time: float, 
+                 pubkey: str, 
+                 uid: int = None, 
+                 inputs:list = None, 
+                 outputs:list = None, 
+                 message:str = '',
+                 synapse:'bittensor.Synapse' = None
+        ):
         """ Debug logging for the communication between endpoints with axon/dendrite 
         """
 
@@ -282,8 +295,24 @@ class logging:
             inputs = str(list(inputs)) if inputs != None else '[x]'
         inputs = inputs.center(15)
 
+        if synapse != None:
+            synapse = codes.code_to_synapse(synapse)
+
         rpc_message = message if message != None else 'None'
-        logger.debug( 'rpc', rpc=True, prefix=prefix, direction=direction, arrow=arrow, call_time = call_time_str, uid_str=uid_str, key_str=key_str, code_str=code_str, inputs = inputs, rpc_message = rpc_message)
+        logger.debug( 
+                    'rpc', 
+                    rpc=True, 
+                    prefix=prefix, 
+                    direction=direction, 
+                    arrow=arrow, 
+                    call_time = call_time_str, 
+                    uid_str=uid_str, 
+                    key_str=key_str, 
+                    code_str=code_str, 
+                    inputs = inputs, 
+                    rpc_message = rpc_message,
+                    synapse = synapse
+        )
 
 
     @classmethod

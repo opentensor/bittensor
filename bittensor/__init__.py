@@ -18,7 +18,7 @@
 from rich.console import Console
 
 # Bittensor code and protocol version.
-__version__ = '2.0.4'
+__version__ = '3.0.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
@@ -34,7 +34,7 @@ def turn_console_off():
 
 # Vocabulary dimension.
 #__vocab_size__ = len( tokenizer ) + len( tokenizer.additional_special_tokens) + 100 # Plus 100 for eventual token size increase.
-__vocab_size__ = 50378
+__vocab_size__ = 50258
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
@@ -48,6 +48,9 @@ __pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
 
 # Substrate ss58_format
 __ss58_format__ = 42
+
+# Wallet ss58 address length
+__ss58_address_length__ = 48
 
 __networks__ = [ 'local', 'nobunaga', 'nakamoto']
 
@@ -102,6 +105,7 @@ from bittensor._metagraph import metagraph as metagraph
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
+from bittensor._synapse import synapse  as synapse 
 from bittensor._dataset import dataset as dataset
 from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
@@ -122,7 +126,12 @@ from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-from bittensor._ipfs.ipfs_impl import Ipfs
+from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
+from bittensor._synapse.synapse_impl import Synapse as Synapse
+from bittensor._synapse.text_causallm_impl import TextCausalLM as TextCausalLM
+from bittensor._synapse.text_causallmnext_impl import TextCausalLMNext as TextCausalLMNext
+from bittensor._synapse.text_lasthiddenstate_impl import TextLastHiddenState as TextLastHiddenState
+from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
 
 # DEFAULTS
 defaults = Config()

@@ -25,7 +25,7 @@ from unittest.mock import MagicMock
 import unittest.mock as mock
 import asyncio
 
-logging = bittensor.logging()
+logging = bittensor.logging(debug = True)
 
 # --- Receptor Pool ---
 wallet = bittensor.wallet.mock()
@@ -47,16 +47,30 @@ neuron_obj = bittensor.endpoint(
 
 receptor_pool = bittensor.receptor_pool(wallet=wallet)
 
+synapses = [
+    bittensor.synapse.TextLastHiddenState(),
+    bittensor.synapse.TextCausalLM(), 
+    bittensor.synapse.TextCausalLMNext(),
+    bittensor.synapse.TextSeq2Seq(num_to_generate=70)
+]
+
 def test_receptor_pool_forward():
     endpoints = [neuron_obj]
-    x = torch.ones( (1,2,2) )
-    resp1,  _, _ = receptor_pool.forward( endpoints, x, bittensor.proto.Modality.TENSOR, timeout=1)
-    assert list(torch.stack(resp1, dim=0).shape) == [1, 2, 2, bittensor.__network_dim__]
+    x = torch.ones( (1, 2 ,2) )
+    resp1,  _, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert list(resp1[0][0].shape) == [2, 2, bittensor.__network_dim__]
+    assert list(resp1[0][1].shape) == [2, 2, bittensor.__vocab_size__]
+    assert list(resp1[0][2].shape) == [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1]
+    assert list(resp1[0][3].shape) == [2, 70]
 
 def test_receptor_pool_backward():
     endpoints = [neuron_obj]
     x = torch.ones( (1,2,2) )
-    receptor_pool.backward( endpoints, x,x, bittensor.proto.Modality.TENSOR, timeout=1)
+    grads = [[torch.ones(2, 2, bittensor.__network_dim__),
+              torch.ones(2, 2, bittensor.__vocab_size__),
+              torch.ones(1, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1),
+              torch.tensor([])]]
+    receptor_pool.backward( endpoints, synapses, x, grads, timeout=1)
 
 
 def test_receptor_pool_max_workers_forward():
@@ -73,28 +87,190 @@ def test_receptor_pool_max_workers_forward():
     receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     endpoints = [neuron_obj,neuron_obj2]
     x = torch.ones( (2,2,2) )
-    resp1,  _, _ = receptor_pool.forward( endpoints, x, bittensor.proto.Modality.TENSOR, timeout=1)
-    assert list(torch.stack(resp1, dim=0).shape) == [2, 2, 2, bittensor.__network_dim__]
+    resp1,  _, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert list(resp1[0][0].shape) == [2, 2, bittensor.__network_dim__]
+    assert list(resp1[0][1].shape) == [2, 2, bittensor.__vocab_size__]
+    assert list(resp1[0][2].shape) == [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1]
+    assert list(resp1[0][3].shape) == [2, 70]
 
-def test_receptor_pool_forward_hang():
+def test_receptor_pool_forward_success():
     endpoints = [neuron_obj,neuron_obj]
-    x = torch.ones( (2,2,2) )    
-    y = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
-    y_serialized = serializer.serialize(y, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+    x = torch.ones( (2, 3, 3) )    
+
+    y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
+    y_seq_2_seq = torch.rand(3, 70)
+    
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    y_hidden_serialized = serializer.serialize(y_hidden, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallm_serialized = serializer.serialize(y_causallm, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallmnext_serialized = serializer.serialize(y_causallmnext, from_type=bittensor.proto.TensorType.TORCH)
+    y_seq_2_seq_serialized = serializer.serialize(y_seq_2_seq, from_type = bittensor.proto.TensorType.TORCH)
             
     mock_return_val = bittensor.proto.TensorMessage(
             version = bittensor.__version_as_int__,
             hotkey = wallet.hotkey.ss58_address,
-            return_code = bittensor.proto.ReturnCode.Timeout,
-            tensors = [])
-    
-    future = asyncio.Future()
-    future.set_result(mock_return_val)
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses],
+            return_code = bittensor.proto.ReturnCode.Success,
+            tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
+        )
+
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
-    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward.future = MagicMock( return_value = future )
-    resp1,  codes, _ = receptor_pool.forward( endpoints, x, bittensor.proto.Modality.TENSOR, timeout=1)
-    assert codes == [bittensor.proto.ReturnCode.Timeout,bittensor.proto.ReturnCode.Timeout]
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
+    resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert codes == [[bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success],
+    [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success]]
+
+def test_receptor_pool_forward_timeout():
+    endpoints = [neuron_obj,neuron_obj]
+    x = torch.ones( (2, 3, 3) )    
+
+    y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
+    y_seq_2_seq = torch.rand(3, 70)
+    
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    y_hidden_serialized = serializer.serialize(y_hidden, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallm_serialized = serializer.serialize(y_causallm, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallmnext_serialized = serializer.serialize(y_causallmnext, from_type=bittensor.proto.TensorType.TORCH)
+    y_seq_2_seq_serialized = serializer.serialize(y_seq_2_seq, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Timeout, message= 'Timeout' ) for synapse in synapses],
+            return_code = bittensor.proto.ReturnCode.Timeout,
+            tensors=[y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
+        )
+
+
+    receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
+    resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert codes == [
+        [bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout,
+         bittensor.proto.ReturnCode.Timeout],
+        [bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout,
+         bittensor.proto.ReturnCode.Timeout]]
+
+def test_receptor_pool_forward_num_synapse_mismatch():
+    endpoints = [neuron_obj,neuron_obj]
+    x = torch.ones( (2, 3, 3) )    
+
+    y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
+    y_seq_2_seq = torch.rand(3, 70)
+    
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    y_hidden_serialized = serializer.serialize(y_hidden, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallm_serialized = serializer.serialize(y_causallm, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallmnext_serialized = serializer.serialize(y_causallmnext, from_type=bittensor.proto.TensorType.TORCH)
+    y_seq_2_seq_serialized = serializer.serialize(y_seq_2_seq, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Timeout' ) for synapse in synapses],
+            return_code = bittensor.proto.ReturnCode.Success,
+            tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized]
+        )
+
+    receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
+    resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert codes == [[bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException],
+    [bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException]]
+
+def test_receptor_pool_forward_response_partial_shape_error():
+    endpoints = [neuron_obj,neuron_obj]
+    x = torch.ones( (2, 3, 3) )    
+
+    y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
+    y_seq_2_seq = torch.rand(2, 70)
+    
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    y_hidden_serialized = serializer.serialize(y_hidden, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallm_serialized = serializer.serialize(y_causallm, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallmnext_serialized = serializer.serialize(y_causallmnext, from_type=bittensor.proto.TensorType.TORCH)
+    y_seq_2_seq_serialized = serializer.serialize(y_seq_2_seq, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses],
+            return_code = bittensor.proto.ReturnCode.Success,
+            tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
+        )
+
+    receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
+    resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert codes == [[bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException],
+    [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.ResponseDeserializationException]]
+
+def test_receptor_pool_partial_remote_success_return_code():
+    endpoints = [neuron_obj,neuron_obj]
+    x = torch.ones( (2, 3, 3) )    
+
+    y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
+    y_seq_2_seq = torch.rand(2, 70)
+    
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    y_hidden_serialized = serializer.serialize(y_hidden, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallm_serialized = serializer.serialize(y_causallm, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallmnext_serialized = serializer.serialize(y_causallmnext, from_type=bittensor.proto.TensorType.TORCH)
+    y_seq_2_seq_serialized = serializer.serialize(y_seq_2_seq, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses[:-1]]
+            + [synapses[-1].serialize_to_wire_proto(code = bittensor.proto.ReturnCode.UnknownException, message= 'UnknownException' )],
+            return_code = bittensor.proto.ReturnCode.Success,
+            tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
+        )
+
+    receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
+    resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert codes == [[bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException],
+    [bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.Success, bittensor.proto.ReturnCode.UnknownException]]
+
+def test_receptor_pool_missing_synapse():
+    endpoints = [neuron_obj,neuron_obj]
+    x = torch.ones( (2, 3, 3) )    
+
+    y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
+    y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
+    y_seq_2_seq = torch.rand(3, 70)
+    
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    y_hidden_serialized = serializer.serialize(y_hidden, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallm_serialized = serializer.serialize(y_causallm, from_type = bittensor.proto.TensorType.TORCH)
+    y_causallmnext_serialized = serializer.serialize(y_causallmnext, from_type=bittensor.proto.TensorType.TORCH)
+    y_seq_2_seq_serialized = serializer.serialize(y_seq_2_seq, from_type = bittensor.proto.TensorType.TORCH)
+            
+    mock_return_val = bittensor.proto.TensorMessage(
+            version = bittensor.__version_as_int__,
+            hotkey = wallet.hotkey.ss58_address,
+            synapses = [synapse.serialize_to_wire_proto(code = bittensor.proto.ReturnCode.Success, message= 'Success' ) for synapse in synapses[:2]],
+            return_code = bittensor.proto.ReturnCode.Success,
+            tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
+        )
+
+    receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
+    resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
+    assert codes == [[bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException],
+    [bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException]]
 
 def test_receptor_pool_backward_hang():
     endpoints = [neuron_obj,neuron_obj]
@@ -105,11 +281,16 @@ def test_receptor_pool_backward_hang():
             return_code = bittensor.proto.ReturnCode.Timeout,
             tensors = [])
     
-    future = asyncio.Future()
-    future.set_result(mock_return_val)
+    hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
+    causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
+    seq_2_seq_grads = torch.tensor([])
+
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
-    receptor_pool.receptors[neuron_obj.hotkey].stub.Backward.future = MagicMock( return_value = future )
-    receptor_pool.backward( endpoints, x,x, bittensor.proto.Modality.TENSOR, timeout=1)
+    receptor_pool.receptors[neuron_obj.hotkey].stub.Backward = MagicMock( return_value = mock_return_val )
+    receptor_pool.backward(endpoints, synapses, x, [[hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads],
+                                                    [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads]], timeout=1)
 
 if __name__ == "__main__":
-    test_receptor_pool_backward_hang()
+    test_receptor_pool_missing_synapse()
+    pass
