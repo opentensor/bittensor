@@ -25,7 +25,7 @@ class TestSerialization(unittest.TestCase):
     def test_serialize(self):
         for _ in range(10):
             tensor_a = torch.rand([12, 23])
-            serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
             content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
             torch.all(torch.eq(tensor_a, tensor_b))
@@ -34,14 +34,14 @@ class TestSerialization(unittest.TestCase):
         # Let's grab a random image, and try and de-serialize it incorrectly.
         image = torch.ones( [1, 28, 28] )
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
             serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = 11)
 
     def test_deserialization_object_type_exception(self):
         data = torch.rand([12, 23])
         
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
 
         with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
@@ -52,7 +52,7 @@ class TestSerialization(unittest.TestCase):
         # Let's grab a random image, and give it a crazy type to break the system
         image = torch.ones( [1, 28, 28] )
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_image_tensor_message = serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
         
         assert image.requires_grad == serialized_image_tensor_message.requires_grad
@@ -81,7 +81,7 @@ class TestSerialization(unittest.TestCase):
         for i, ts in enumerate(ts_list):
             data[i, 0:ts.size()[0]] = ts
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_data_tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
        
         assert data.requires_grad == serialized_data_tensor_message.requires_grad
@@ -100,7 +100,7 @@ class TestSerialization(unittest.TestCase):
     def test_serialize_deserialize_tensor(self):
         data = torch.rand([12, 23])
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.MSGPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
        
         assert data.requires_grad == serialized_tensor_message.requires_grad
@@ -126,7 +126,7 @@ class TestCMPSerialization(unittest.TestCase):
     def test_serialize(self):
         for _ in range(10):
             tensor_a = torch.rand([12, 23])
-            serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
             content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
             tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
             torch.all(torch.eq(tensor_a, tensor_b))
@@ -135,14 +135,14 @@ class TestCMPSerialization(unittest.TestCase):
         # Let's grab a random image, and try and de-serialize it incorrectly.
         image = torch.ones( [1, 28, 28] )
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
             serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = 11)
 
     def test_deserialization_object_type_exception(self):
         data = torch.rand([12, 23])
         
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
 
         with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
@@ -154,7 +154,7 @@ class TestCMPSerialization(unittest.TestCase):
         image = torch.ones( [1, 28, 28] )
         data_size = image.element_size()*image.nelement()
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_image_tensor_message = serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = bittensor.proto.TensorType.TORCH)
         
         assert image.requires_grad == serialized_image_tensor_message.requires_grad
@@ -185,7 +185,7 @@ class TestCMPSerialization(unittest.TestCase):
             data[i, 0:ts.size()[0]] = ts
         data_size = data.element_size()*data.nelement()
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_data_tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
        
         assert data.requires_grad == serialized_data_tensor_message.requires_grad
@@ -206,7 +206,7 @@ class TestCMPSerialization(unittest.TestCase):
         data = torch.rand([12, 23])
         data_size = data.element_size()*data.nelement()
 
-        serializer = bittensor.serializer( serialzer_type = bittensor.proto.Serializer.CMPPACK )
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
        
         assert data.requires_grad == serialized_tensor_message.requires_grad

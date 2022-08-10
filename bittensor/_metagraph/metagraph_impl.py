@@ -90,6 +90,7 @@ class Metagraph( torch.nn.Module ):
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         self._endpoint_objs = None
+        self.neurons = None
         return self
 
     def forward (
@@ -488,7 +489,9 @@ class Metagraph( torch.nn.Module ):
         weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
         bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
         self._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
+        self.neurons = [None for _ in range(n_total)]
         for n in neurons:
+            self.neurons[n.uid] = n
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
             stake[n.uid] = n.stake 
