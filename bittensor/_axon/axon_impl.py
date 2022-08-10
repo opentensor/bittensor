@@ -605,10 +605,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     response_tensors.append(response_tensor.detach().clone().to(device = 'cpu'))
                     response_codes.append(bittensor.proto.ReturnCode.Success)
                     response_messages.append('Success' if message is None else message)
-                    del message
-                    del model_output
-                    del response_tensor
-                    torch.cuda.empty_cache()
                 
                 elif not synapse_check:
                     response_tensors.append(None)
