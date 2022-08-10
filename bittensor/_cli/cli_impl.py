@@ -312,7 +312,6 @@ class CLI:
     def stake( self ):
         r""" Stake token of amount to hotkey(s).
         """
-        # TODO: Implement this without re-unlocking the coldkey.
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = config )
@@ -379,8 +378,7 @@ class CLI:
                 ):
                 return None
 
-        for wallet, amount in zip(final_wallets, final_amounts):
-            subtensor.add_stake( wallet, amount = None if self.config.get('stake_all') else amount, wait_for_inclusion = True, prompt = False )
+        subtensor.add_stake_multiple( wallets = final_wallets, amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def set_weights( self ):
