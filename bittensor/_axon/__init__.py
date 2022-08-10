@@ -160,6 +160,8 @@ class axon:
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
+            external_ip=config.axon.external_ip,
+            external_port=config.axon.external_port,
             forward = forward_text,
             backward = backward_text,
             synapses = synapses,
