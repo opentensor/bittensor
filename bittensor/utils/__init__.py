@@ -260,7 +260,6 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
         # Check if seal meets difficulty
         product = seal_number * difficulty
         if product < limit:
-            print(f"{solver.proc_num} found a solution: {nonce}, {block_number}, {str(block_bytes)}, {str(seal)}, {difficulty}")
             # Found a solution, save it.
             return POWSolution(nonce, block_number, difficulty, seal), time.time() - start
 
