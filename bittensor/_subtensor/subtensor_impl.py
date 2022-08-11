@@ -539,18 +539,19 @@ To run a local node (See: docs/running_a_validator.md) \n
                         # process if registration successful, try again if pow is still valid
                         response.process_events()
                         if not response.is_success:
+                            if 'key is already registered' in response.error_message:
+                                # Error meant that the key is already registered.
+                                bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]")
+                                return True
+
                             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
                             time.sleep(1)
                             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                            if wallet.is_registered( self ):
-                                # already registered
-                                return True
                             continue
                         
                         # Successful registration, final check for neuron and pubkey
                         else:
                             bittensor.__console__.print(":satellite: Checking Balance...")
-                            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
                             if wallet.is_registered( self ):
                                 bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
                                 return True
@@ -562,7 +563,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 attempts += 1
                 if attempts > max_allowed_attempts: 
                     bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                    return False
+                    return False 
                 else:
                     status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
                     continue
