@@ -535,12 +535,11 @@ def create_pow( subtensor, wallet, cuda: bool = False, dev_id: int = 0, tpb: int
     else:
         solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, num_processes=num_processes, update_interval=update_interval )
 
-    nonce, block_number, difficulty, seal = solution.nonce, solution.block_number, solution.difficulty, solution.seal
-    return None if nonce is None else {
-        'nonce': nonce, 
-        'difficulty': difficulty,
-        'block_number': block_number, 
-        'work': binascii.hexlify(seal)
+    return None if solution is None else {
+        'nonce': solution.nonce, 
+        'difficulty': solution.difficulty,
+        'block_number': solution.block_number, 
+        'work': binascii.hexlify(solution.seal)
     }
 
 def version_checking():
