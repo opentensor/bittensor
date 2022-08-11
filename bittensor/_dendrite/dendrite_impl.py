@@ -556,8 +556,8 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
         """
-        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TextLastHiddenState:
-            raise ValueError( "Passed synapse must have type:{} got:{} instead".formate( bittensor.proto.Synapse.SynapseType.TextLastHiddenState, synapses.synapse_type ) )
+        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
+            raise ValueError( "Passed synapse must have type:{} got:{} instead".formate( bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE, synapses.synapse_type ) )
 
         # Format inputs.
         formatted_endpoints, formatted_inputs = self.format_text_inputs ( 
