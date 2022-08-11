@@ -542,7 +542,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
                             time.sleep(1)
                             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                            if not neuron.is_null:
+                            if wallet.is_registered( self ):
                                 # already registered
                                 return True
                             continue
@@ -551,7 +551,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                         else:
                             bittensor.__console__.print(":satellite: Checking Balance...")
                             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                            if not neuron.is_null:
+                            if wallet.is_registered( self ):
                                 bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
                                 return True
                             else:
