@@ -402,7 +402,7 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron.is_null = True
 
         with patch('bittensor.Subtensor.difficulty'):
-            with patch('multiprocessing.Queue.get') as mock_queue_get:
+            with patch('multiprocessing.queues.Queue.get') as mock_queue_get:
                 mock_queue_get.return_value = None
 
                 wallet = bittensor.wallet(_mock=True)
