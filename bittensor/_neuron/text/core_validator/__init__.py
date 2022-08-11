@@ -174,7 +174,7 @@ class neuron:
 
         # load last saved validator values from the file system
         if not config.neuron.restart:
-            self.load(config.neuron.full_path)
+            self.load()
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -269,25 +269,33 @@ class neuron:
                 root_dir = self.config.neuron.full_path
             )
 
-    def save(self, path):
+    def save(self, path=None):
         r""" Save validated hotkeys and neuron_stats to filesystem. """
         try:
+            if path is None:
+                path = self.config.neuron.full_path
+
             state_dict = {
                 'neuron_stats': self.neuron_stats,
                 'neuron_hotkeys': self.neuron_hotkeys
             }
+
             torch.save(state_dict, f'{path}/model.torch')
             bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
 
         except Exception as e:
             logger.warning(f'Failed to save model with error: {e}')
 
-    def load(self, path):
+    def load(self, path=None):
         r""" Load validated hotkeys and neuron_stats from filesystem. """
         try:
+            if path is None:
+                path = self.config.neuron.full_path
             state_dict = torch.load(f'{path}/model.torch')
+
             self.neuron_stats = state_dict['neuron_stats']
             self.neuron_hotkeys = state_dict['neuron_hotkeys']
+
             bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
 
         except Exception as e:
@@ -415,7 +423,7 @@ class neuron:
                       f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
 
                 # save neuron_stats to filesystem
-                self.save(self.config.neuron.full_path)
+                self.save()
 
             # step update console message (every validation step)
             print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
@@ -505,11 +513,18 @@ class neuron:
         self.metagraph.sync()
         self.neuron_hotkeys = self.metagraph.hotkeys
 
+        changed_hotkeys = []
         # === Reset neuron stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.neuron_hotkeys[uid]:
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
+                    changed_hotkeys += [uid]
+
+        if len(changed_hotkeys):
+            logger.info(f"Hotkeys changed \t| {', '.join(changed_hotkeys)}")
+            # save neuron_stats to filesystem
+            self.save()
 
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
