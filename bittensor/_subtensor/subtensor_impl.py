@@ -546,8 +546,6 @@ To run a local node (See: docs/running_a_validator.md) \n
 
                             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
                             time.sleep(1)
-                            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-                            continue
                         
                         # Successful registration, final check for neuron and pubkey
                         else:
@@ -557,6 +555,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                                 return True
                             else:
                                 # neuron not found, try again
+                                bittensor.__console__.print(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
                                 return False
 
                 #Failed registration, retry pow

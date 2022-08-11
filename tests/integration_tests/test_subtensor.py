@@ -440,8 +440,6 @@ class TestSubtensor(unittest.TestCase):
             return submit_extrinsic_mock.call_count < 3
 
         current_block = [i for i in range(0,100)]
-        mock_neuron = MagicMock()           
-        mock_neuron.is_null = True
 
         with patch('bittensor.Subtensor.difficulty'):
             wallet = bittensor.wallet(_mock=True)
@@ -449,7 +447,6 @@ class TestSubtensor(unittest.TestCase):
 
             self.subtensor.difficulty = 1
             self.subtensor.get_current_block = MagicMock(side_effect=current_block)
-            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
             self.subtensor.substrate.submit_extrinsic = submit_extrinsic_mock
 
             # should return True
