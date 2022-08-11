@@ -511,6 +511,10 @@ To run a local node (See: docs/running_a_validator.md) \n
                 # pow successful, proceed to submit pow to chain for registration
                 else:
                     #check if pow result is still valid
+                    if pow_result['block_number'] < self.get_current_block() - 3:
+                        bittensor.__console__.print( "[red]POW is stale.[/red]" )
+                        continue
+                    
                     with self.substrate as substrate:
                         # create extrinsic call
                         call = substrate.compose_call( 
@@ -558,9 +562,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 attempts += 1
                 if attempts > max_allowed_attempts: 
                     bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                    return False
-                elif pow_result['block_number'] < self.get_current_block() - 3:
-                    bittensor.__console__.print( "[red]POW is stale.[/red]" )
                     return False
                 else:
                     status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
