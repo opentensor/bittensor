@@ -522,9 +522,8 @@ class neuron:
                     changed_hotkeys += [uid]
 
         if len(changed_hotkeys):
-            logger.info(f"Hotkeys changed \t| {', '.join([str(uid) for uid in changed_hotkeys])}")
-            # save neuron_stats to filesystem
-            self.save()
+            logger.info(f"Hotkeys changed: {changed_hotkeys}")
+            self.save()  # save neuron_stats and neuron_hotkeys to filesystem
 
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
