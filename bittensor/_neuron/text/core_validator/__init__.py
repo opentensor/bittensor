@@ -533,6 +533,9 @@ class neuron:
 
         non_responsive_uids = queried_uids - responsive_uids
         non_queried_uids = set(range(self.metagraph.n)) - queried_uids
+
+        # random.sample(population, k, *, counts=None): Return a k length list of unique elements chosen from
+        # the population sequence or set. Used for random sampling without replacement (so no uid duplicates expected).
         preferred_uids = (random.sample(list(responsive_uids), len(responsive_uids)) +
                           random.sample(list(non_responsive_uids), len(non_responsive_uids)) +
                           random.sample(list(non_queried_uids), len(non_queried_uids)))  # preferred UID random order
@@ -558,7 +561,6 @@ class neuron:
         # === Normalize and apply max_allowed_ratio ===
         sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
                                                                              multiple=max_allowed_ratio)
-
         return sample_uids, sample_weights
 
     def weights_table(self, sample_uids, sample_weights, include_uids=None, num_rows: int = None):
