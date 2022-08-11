@@ -486,8 +486,8 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
         """
-        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TextCausalLMNext:
-            raise ValueError(f"Passed synapse must have type: {bittensor.proto.Synapse.SynapseType.TextCausalLMNext} "
+        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
+            raise ValueError(f"Passed synapse must have type: {bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT} "
                              f"got {synapse.synapse_type} instead")
 
         # Format inputs.
