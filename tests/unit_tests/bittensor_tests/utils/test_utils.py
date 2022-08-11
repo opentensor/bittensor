@@ -111,7 +111,8 @@ def test_u8_list_to_hex():
 def test_create_seal_hash():
    block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
    nonce = 10
-   assert bittensor.utils.create_seal_hash(block_hash, nonce) == b'\xf5\xad\xd3\xff\x9d\xd0=F\x1c\xe0}\n9Szs[kb\xb7^@\xe94\x99hw\xa7Q\xde\x8d3'
+   seal_hash = bittensor.utils.create_seal_hash(block_hash, nonce)
+   assert seal_hash == b'\xc5\x01B6"\xa8\xa5FDPK\xe49\xad\xdat\xbb:\x87d\x13/\x86\xc6:I8\x9b\x88\xf0\xc20'
 
 def test_seal_meets_difficulty():
     block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
@@ -134,11 +135,11 @@ def test_solve_for_difficulty():
     nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 1)
 
     assert nonce == 0
-    assert seal == b'\xd6mKj\xd0\x00=?2<\xaa\xc6\xcf;\xfc1\xe9\x02\xaa\x8e\xa0Q\x16\x16U]\xfe\xaa\x18jU\xcd'
+    assert seal == b'\xe2d\xbc\x10Tu|\xd0nQ\x1f\x15wTd\xb0\x18\x8f\xc7\xe7:\x12\xc6>\\\xbe\xac\xc5/v\xa7\xce'
 
     nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 10)
     assert nonce == 2
-    assert seal == b'\x8a\xa5\x0fA\xb1\n\xd0\xdea\x7f\x86rWq1\xa5|\x18\xd0\xc7\x81\xf4\x81\x03\xf9P\xc8\x19\xb9\x1f-\xcf'
+    assert seal == b'\x19\xf2H1mB3\xa3y\xda\xe7)\xc7P\x93t\xe5o\xbc$\x14sQ\x10\xc3M\xc6\x90M8vq'
 
 def test_solve_for_difficulty_fast():
     block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
@@ -149,19 +150,22 @@ def test_solve_for_difficulty_fast():
     subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
     wallet = MagicMock()
     wallet.is_registered = MagicMock( return_value=False )
+    num_proc: int = 1
 
-    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )   
+    seal = solution.seal
 
     assert bittensor.utils.seal_meets_difficulty(seal, 1)
     
     subtensor.difficulty = 10
-    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
+    seal = solution.seal
     assert bittensor.utils.seal_meets_difficulty(seal, 10)
     
 def test_solve_for_difficulty_fast_registered_already():
     # tests if the registration stops after the first block of nonces
     for _ in range(10):
-        workblocks_before_is_registered = random.randint(2, 10)
+        workblocks_before_is_registered = random.randint(1, 4)
         # return False each work block but return True after a random number of blocks
         is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [False, False]
 
@@ -175,12 +179,9 @@ def test_solve_for_difficulty_fast_registered_already():
         wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
         # all arugments should return None to indicate an early return
-        a, b, c, d, e = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes = 1, update_interval = 1000)
-        assert a is None
-        assert b is None
-        assert c is None
-        assert d is None
-        assert e is None
+        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes = 1, update_interval = 1000)
+
+        assert solution is None
         # called every time until True
         assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
 
@@ -193,13 +194,15 @@ def test_solve_for_difficulty_fast_missing_hash():
     subtensor.substrate.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
     wallet = MagicMock()
     wallet.is_registered = MagicMock( return_value=False )
+    num_proc: int = 1
 
-    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
-
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
+    seal = solution.seal
     assert bittensor.utils.seal_meets_difficulty(seal, 1)
     
     subtensor.difficulty = 10
-    _, _, _, _, seal = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet )
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
+    seal = solution.seal
     assert bittensor.utils.seal_meets_difficulty(seal, 10)
 
 def test_is_valid_ss58_address():
