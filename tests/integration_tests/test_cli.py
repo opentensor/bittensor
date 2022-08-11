@@ -28,7 +28,7 @@ from bittensor.utils.balance import Balance
 from substrateinterface.base import Keypair
 from substrateinterface.exceptions import SubstrateRequestException
 
-from ..helpers import CLOSE_IN_VALUE
+from tests.helpers import CLOSE_IN_VALUE
 
 
 class TestCli(unittest.TestCase):
@@ -1082,6 +1082,8 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.subtensor._mock = True
         config.command = "register"
+        config.num_processes = 1
+        config.update_interval = 50_000
         config.subtensor.network = "mock"
         config.no_prompt = True
 
