@@ -159,7 +159,8 @@ class neuron:
         self.loss_agg_mutex = Lock()
 
         # === Neuron statistics variables ===
-        self.neuron_stats = {}
+        self.neuron_stats = {}  # neuron statistics dict of dicts: [uid] -> {'stat1': val1, 'stat2': val2, ...}
+        self.neuron_hotkeys = []  # keep neuron hotkeys to compare and check for changes after metagraph.sync()
         self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
 
         if self.config.neuron.validation_synapse == 'TextCausalLMNext':
@@ -170,6 +171,10 @@ class neuron:
             self.weight_key = 'shapley_values_min'  # stat key + ! to calculate neuron weights with
             # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
             self.synapse_keys = ['shapley_values_min']
+
+        # load last saved validator values from the file system
+        if not config.neuron.restart:
+            self.load(config.neuron.full_path)
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -199,6 +204,8 @@ class neuron:
         parser.add_argument('--neuron.validation_len', type=int, help='Number of tokens to holdout for phrase validation beyond sequence context.', default=8)
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
+        parser.add_argument('--neuron.print_neuron_stats', action='store_true', help='If True, print neuron_stats and exit.', default=False)
+        parser.add_argument('--neuron.restart', action='store_true', help='If True, reset neuron_stats and validate anew.', default=False)
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
@@ -261,6 +268,30 @@ class neuron:
                 hot_pubkey = self.wallet.hotkey.ss58_address,
                 root_dir = self.config.neuron.full_path
             )
+
+    def save(self, path):
+        r""" Save validated hotkeys and neuron_stats to filesystem. """
+        try:
+            state_dict = {
+                'neuron_stats': self.neuron_stats,
+                'neuron_hotkeys': self.neuron_hotkeys
+            }
+            torch.save(state_dict, f'{path}/model.torch')
+            bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
+
+        except Exception as e:
+            logger.warning(f'Failed to save model with error: {e}')
+
+    def load(self, path):
+        r""" Load validated hotkeys and neuron_stats from filesystem. """
+        try:
+            state_dict = torch.load(f'{path}/model.torch')
+            self.neuron_stats = state_dict['neuron_stats']
+            self.neuron_hotkeys = state_dict['neuron_hotkeys']
+            bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
+
+        except Exception as e:
+            logger.warning(f'Failed to load model with error: {e}')
 
     def run ( self ):
         r""" Run the validator and terminate on Keyboard interrupt.
@@ -383,6 +414,9 @@ class neuron:
                       f'Stake \u03C4[magenta not bold]{self.metagraph.stake[self.uid]:.5f}[/magenta not bold] '
                       f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
 
+                # save neuron_stats to filesystem
+                self.save(self.config.neuron.full_path)
+
             # step update console message (every validation step)
             print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                   f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
@@ -467,12 +501,13 @@ class neuron:
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
         """
-        old_hotkeys = self.metagraph.hotkeys 
+        old_hotkeys = self.neuron_hotkeys if self.neuron_hotkeys else self.metagraph.hotkeys
         self.metagraph.sync()
+        self.neuron_hotkeys = self.metagraph.hotkeys
 
         # === Reset neuron stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
-            if old_hotkey != self.metagraph.hotkeys[uid]:
+            if old_hotkey != self.neuron_hotkeys[uid]:
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
 
