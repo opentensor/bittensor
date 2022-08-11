@@ -522,7 +522,7 @@ class neuron:
                     changed_hotkeys += [uid]
 
         if len(changed_hotkeys):
-            logger.info(f"Hotkeys changed \t| {', '.join(changed_hotkeys)}")
+            logger.info(f"Hotkeys changed \t| {', '.join([str(uid) for uid in changed_hotkeys])}")
             # save neuron_stats to filesystem
             self.save()
 
