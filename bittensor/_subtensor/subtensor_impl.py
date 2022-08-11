@@ -16,8 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm
-from typing import List, Dict, Union
-from multiprocessing import Process
+from typing import List, Dict, Union, Optional
 
 import bittensor
 from tqdm import tqdm
@@ -440,7 +439,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
-        max_allowed_attempts: int = 3
+        max_allowed_attempts: int = 3,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -474,7 +475,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         attempts = 1
         while True:
             # Solve latest POW.
-            pow_result = bittensor.utils.create_pow( self, wallet )
+            pow_result = bittensor.utils.create_pow( self, wallet, num_processes=num_processes, update_interval=update_interval )
             with bittensor.__console__.status(":satellite: Registering...({}/{})".format(attempts,max_allowed_attempts)) as status:
 
                 # pow failed
