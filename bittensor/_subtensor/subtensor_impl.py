@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm, Prompt
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from multiprocessing import Process
 
 import bittensor
@@ -444,8 +444,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         cuda: bool = False,
         dev_id: int = 0,
         TPB: int = 256,
-        num_processes: int = None,
-        update_interval: int = None,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:

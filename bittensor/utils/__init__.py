@@ -4,6 +4,7 @@ import hashlib
 import math
 import multiprocessing
 import numbers
+import os
 import random
 import time
 from dataclasses import dataclass
@@ -133,6 +134,50 @@ class POWSolution:
     seal: bytes
 
 class Solver(multiprocessing.Process):
+    """
+    A process that solves the registration PoW problem.
+
+    Args:
+        proc_num: int
+            The number of the process being created.
+        num_proc: int
+            The total number of processes running.
+        update_interval: int
+            The number of nonces to try to solve before checking for a new block.
+        best_queue: multiprocessing.Queue
+            The queue to put the best nonce the process has found during the pow solve.
+            New nonces are added each update_interval.
+        time_queue: multiprocessing.Queue
+            The queue to put the time the process took to finish each update_interval.
+            Used for calculating the average time per update_interval across all processes.
+        solution_queue: multiprocessing.Queue
+            The queue to put the solution the process has found during the pow solve.
+        newBlockEvent: multiprocessing.Event
+            The event to set by the main process when a new block is finalized in the network.
+            The solver process will check for the event after each update_interval.
+            The solver process will get the new block hash and difficulty and start solving for a new nonce.
+        stopEvent: multiprocessing.Event
+            The event to set by the main process when all the solver processes should stop.
+            The solver process will check for the event after each update_interval.
+            The solver process will stop when the event is set.
+            Used to stop the solver processes when a solution is found.
+        curr_block: multiprocessing.Array
+            The array containing this process's current block hash.
+            The main process will set the array to the new block hash when a new block is finalized in the network.
+            The solver process will get the new block hash from this array when newBlockEvent is set.
+        curr_block_num: multiprocessing.Value
+            The value containing this process's current block number.
+            The main process will set the value to the new block number when a new block is finalized in the network.
+            The solver process will get the new block number from this value when newBlockEvent is set.
+        curr_diff: multiprocessing.Array
+            The array containing this process's current difficulty.
+            The main process will set the array to the new difficulty when a new block is finalized in the network.
+            The solver process will get the new difficulty from this array when newBlockEvent is set.
+        check_block: multiprocessing.Lock
+            The lock to prevent this process from getting the new block data while the main process is updating the data.
+        limit: int
+            The limit of the pow solve for a valid solution.
+    """
     proc_num: int
     num_proc: int
     update_interval: int
@@ -171,7 +216,7 @@ class Solver(multiprocessing.Process):
         nonce_limit = int(math.pow(2,64)) - 1
 
         # Start at random nonce
-        nonce_start = self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
+        nonce_start = random.randint( 0, nonce_limit )
         nonce_end = nonce_start + self.update_interval
         while not self.stopEvent.is_set():
             if self.newBlockEvent.is_set():
@@ -182,7 +227,9 @@ class Solver(multiprocessing.Process):
 
                 self.newBlockEvent.clear()
                 # reset nonces to start from random point
-                nonce_start = self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
+                # prevents the same nonces (for each block) from being tried by multiple processes
+                # also prevents the same nonces from being tried by multiple peers
+                nonce_start = random.randint( 0, nonce_limit )
                 nonce_end = nonce_start + self.update_interval
                 
             # Do a block of nonces
@@ -226,7 +273,7 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
     return None, time.time() - start
 
 
-def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, update_interval: int = 50_000 ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -244,7 +291,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
         to increase the transparency of the process while still keeping the speed.
     """
     if num_processes == None:
-        num_processes = multiprocessing.cpu_count()
+        # get the number of allowed processes for this process
+        num_processes = len(os.sched_getaffinity(0))
 
     if update_interval is None:
         update_interval = 50_000
@@ -273,6 +321,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
     status.start()
 
     # Establish communication queues
+    ## See the Solver class for more information on the queues.
     stopEvent = multiprocessing.Event()
     stopEvent.clear()
     best_queue = multiprocessing.Queue()
@@ -344,16 +393,12 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
             except Empty:
                 break
         
+        # Calculate average time per solver for the update_interval
         if num_time > 0:
             time_avg = time_total / num_time
             itrs_per_sec = update_interval*num_processes / time_avg
-            
-        #times = [ time_queue.get() for _ in solvers ]
-        #time_avg = average(times)
 
-       
-
-        # get best solution
+        # get best solution from each solver using the best_queue
         while best_queue.qsize() > 0:
             try:
                 num, seal = best_queue.get_nowait()
@@ -363,7 +408,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
 
             except Empty:
                 break
-        
+                
         message = f"""Solving 
             time spent: {time.time() - start_time}
             Difficulty: [bold white]{millify(difficulty)}[/bold white]
@@ -371,17 +416,13 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: int = None, upd
             Block: [bold white]{block_number}[/bold white]
             Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]
             Best: [bold white]{binascii.hexlify(bytes(best_seal) if best_seal else bytes(0))}[/bold white]"""
-        status.update(message.replace(" ", ""))
-    
-    # exited while, found_solution contains the nonce or wallet is registered
-    if solution is not None:
-        stopEvent.set() # stop all other processes
-        status.stop()
+        status.update(message.replace(" ", "")) 
 
-        return solution
-
+    # exited while, solution contains the nonce or wallet is registered
+    stopEvent.set() # stop all other processes
     status.stop()
-    return None
+
+    return solution
     
 def get_human_readable(num, suffix="H"):
     for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
@@ -494,6 +535,7 @@ def create_pow( subtensor, wallet, cuda: bool = False, dev_id: int = 0, tpb: int
         solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, dev_id=dev_id, TPB=tpb, update_interval=update_interval )
     else:
         solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, num_processes=num_processes, update_interval=update_interval )
+
     nonce, block_number, difficulty, seal = solution.nonce, solution.block_number, solution.difficulty, solution.seal
     return None if nonce is None else {
         'nonce': nonce, 
