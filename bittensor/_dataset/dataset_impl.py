@@ -160,7 +160,7 @@ class GenesisTextDataset( Dataset ):
 
         self.build_hash_table()
 
-        os.path.expanduser(data_dir, exists_ok=True)
+        os.makedirs(os.path.expanduser(data_dir), exist_ok=True)
             
         self.data_queue = ThreadQueue(
             producer_target = self.reserve_multiple_data,
