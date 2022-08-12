@@ -239,7 +239,7 @@ class CLI:
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
-        subtensor.register( wallet = wallet, prompt = not self.config.no_prompt, num_processes = self.config.num_processes, update_interval = self.config.update_interval )
+        subtensor.register( wallet = wallet, prompt = not self.config.no_prompt, num_processes = self.config.get('num_processes', None), update_interval = self.config.get('update_interval', None) )
 
     def transfer( self ):
         r""" Transfer token of amount to destination.
