@@ -571,6 +571,24 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        register_parser.add_argument(
+            '--num_processes',
+            '--num',
+            '-n',
+            dest='num_processes',
+            help="Number of processors to use for registration",
+            type=int,
+            default=None,
+        )
+        register_parser.add_argument(
+            '--update_interval',
+            '-u',
+            dest='update_interval',
+            help="The number of nonces to process before checking for next block during registration",
+            type=int,
+            default=None,
+        )
+
         bittensor.wallet.add_args( register_parser )
         bittensor.subtensor.add_args( register_parser )
 
