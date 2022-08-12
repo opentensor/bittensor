@@ -184,8 +184,9 @@ class subtensor:
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
             parser.add_argument('--' + prefix_str + 'subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
-            parser.add_argument('--' + prefix_str + 'num_processes', '--num', '-n', dest='register.num_processes', help="Number of processors to use for registration", type=int, default=None, default=bittensor.defaults.subtensor.register.num_processes)
-            parser.add_argument('--' + prefix_str + 'update_interval', '-u', dest='register.update_interval', help="The number of nonces to process before checking for next block during registration", type=int, default=None, default=bittensor.defaults.subtensor.register.update_interval)
+
+            parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest='subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
+            parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '-u', dest='subtensor.register.update_interval', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
