@@ -442,7 +442,7 @@ class TestSubtensor(unittest.TestCase):
             # should return False
             solver.run()
             mock_solver.assert_called()
-            assert mock_solver.call_args_list[0].args[4] == fake_diff # the 5th argument to the solver should be the fake difficulty
+            assert mock_solver.call_args_list[0][0][4] == fake_diff # the 5th argument to the solver should be the fake difficulty
                 
 
     def test_registration_partly_failed( self ):
