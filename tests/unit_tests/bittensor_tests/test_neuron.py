@@ -98,7 +98,7 @@ def test_coreserver_reregister_flag_false_exit():
 
     with patch.multiple(
             'bittensor.Wallet',
-            register=mock_register,
+            reregister=mock_register,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
@@ -150,7 +150,7 @@ def test_coreserver_reregister_flag_true():
 
     with patch.multiple(
             'bittensor.Wallet',
-            register=mock_register,
+            reregister=mock_register,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
@@ -197,7 +197,7 @@ def test_corevalidator_reregister_flag_false_exit():
 
     with patch.multiple(
             'bittensor.Wallet',
-            register=mock_register,
+            reregister=mock_register,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
@@ -246,7 +246,7 @@ def test_corevalidator_reregister_flag_true():
 
     with patch.multiple(
             'bittensor.Wallet',
-            register=mock_register,
+            reregister=mock_register,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
