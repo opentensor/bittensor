@@ -435,15 +435,13 @@ class TestSubtensor(unittest.TestCase):
         # set newBlock to True so it tries to get the fake_diff
         solver.newBlockEvent.set()
 
-        with patch('bittensor.utils.solve_for_nonce_block') as mock_solver:
-            mock_solver.return_value = None, 0
+        with patch('bittensor.utils.solve_for_nonce_block', MagicMock(
+            return_value=(None, 0)
+        )) as mock_solver:
 
             # should return False
             solver.run()
-
-            call = mock_solver.mock_calls.pop(0) # remove the call to the solver for the first block
-            print(call.args)
-            assert call.args[4] == fake_diff # the 5th argument to the solver should be the fake difficulty
+            assert mock_solver.call_args_list[0].args[4] == fake_diff # the 5th argument to the solver should be the fake difficulty
                 
 
     def test_registration_partly_failed( self ):
