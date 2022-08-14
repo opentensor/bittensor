@@ -220,7 +220,7 @@ class Solver(multiprocessing.Process):
                 with self.check_block:
                     block_number = self.curr_block_num.value
                     block_bytes = bytes(self.curr_block)
-                    block_difficulty = int(self.curr_diff[0] >> 32 | self.curr_diff[1])
+                    block_difficulty = int(self.curr_diff[0] << 32 | self.curr_diff[1])
 
                 self.newBlockEvent.clear()
                 # reset nonces to start from random point
