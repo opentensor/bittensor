@@ -15,17 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from typing import DefaultDict
-from unittest import mock
+
+import multiprocessing
 from unittest.mock import patch
 import bittensor
 import pytest
-import psutil  
 import unittest
 import time
 import random
 from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
+from bittensor.utils import Solver, update_curr_block
 from substrateinterface import Keypair
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 class TestSubtensor(unittest.TestCase):
@@ -411,11 +411,40 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
 
             # should return True
-            assert self.subtensor.register(wallet=wallet,)
+            assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
             # calls until True and once again before exiting subtensor class
             # This assertion is currently broken when difficulty is too low
-            #assert wallet.is_registered.call_count == workblocks_before_is_registered + 2      
+            assert wallet.is_registered.call_count == workblocks_before_is_registered + 2     
+            
+    def test_registration_multiprocessed_large_diff( self ):
+        mock_neuron = MagicMock()           
+        mock_neuron.is_null = True
 
+        fake_diff = pow(2, 32) * pow(2, 4) # this should be too large to register if the bit shift is wrong (32 + 4 bits)
+        mock_stopEvent = MagicMock(
+            is_set=MagicMock(side_effect=[False, True]) # exit after second call to is_set
+        )
+        lock = multiprocessing.Lock()
+
+        mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+        
+        # Set the mock difficulty to the fake difficulty
+        update_curr_block(mock_diff, MagicMock(), MagicMock(), 1, b'0' * 64, fake_diff, lock)
+        # create solver with the mock
+        solver = Solver(1, 1, 1, None, MagicMock(), None, mock_stopEvent, b'', MagicMock(value=1), mock_diff, lock, 1)
+        # set newBlock to True so it tries to get the fake_diff
+        solver.newBlockEvent.set()
+
+        with patch('bittensor.utils.solve_for_nonce_block') as mock_solver:
+            mock_solver.return_value = None, 0
+
+            # should return False
+            solver.run()
+
+            call = mock_solver.mock_calls.pop(0) # remove the call to the solver for the first block
+            print(call.args)
+            assert call.args[4] == fake_diff # the 5th argument to the solver should be the fake difficulty
+                
 
     def test_registration_partly_failed( self ):
         class failed():
@@ -448,7 +477,7 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.substrate.submit_extrinsic = MagicMock(side_effect = submit_extrinsic)
 
             # should return True
-            assert self.subtensor.register(wallet=wallet,) == True
+            assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
 
     def test_registration_failed( self ):
         class failed():

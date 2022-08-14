@@ -269,6 +269,14 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
     solver.best_queue.put((best_local, best_seal_local))
     return None, time.time() - start
 
+def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocessing.Array, curr_block_num: multiprocessing.Value, block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
+    with lock:
+        curr_block_num.value = block_number
+        for i in range(64):
+            curr_block[i] = block_bytes[i]
+        curr_diff[0] = diff >> 32
+        curr_diff[1] = diff & 0xFFFFFFFF # low 32 bits
+
 
 def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
     """
@@ -306,15 +314,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
     curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
     curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
-
-    def update_curr_block(block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
-        with lock:
-            curr_block_num.value = block_number
-            for i in range(64):
-                curr_block[i] = block_bytes[i]
-            curr_diff[0] = diff >> 32
-            curr_diff[1] = diff & 0xFFFFFFFF # low 32 bits
-
+    
     status.start()
 
     # Establish communication queues
@@ -339,7 +339,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     block_bytes = block_hash.encode('utf-8')[2:]
     old_block_number = block_number
     # Set to current block
-    update_curr_block(block_number, block_bytes, difficulty, check_block)
+    update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
 
     # Set new block events for each solver to start
     for w in solvers:
@@ -373,7 +373,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
             block_bytes = block_hash.encode('utf-8')[2:]
             difficulty = subtensor.difficulty
 
-            update_curr_block(block_number, block_bytes, difficulty, check_block)
+            update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
             # Set new block events for each solver
             for w in solvers:
                 w.newBlockEvent.set()
