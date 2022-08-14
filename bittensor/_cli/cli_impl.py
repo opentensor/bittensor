@@ -242,11 +242,11 @@ class CLI:
         subtensor.register(
             wallet = wallet,
             prompt = not self.config.no_prompt,
-            TPB = self.config.subtensor.cuda.get('TPB', None),
+            TPB = self.config.subtensor.register.cuda.get('TPB', None),
             update_interval = self.config.subtensor.register.get('update_interval', None),
             num_processes = self.config.subtensor.register.get('num_processes', None),
-            cuda = self.config.subtensor.cuda.get('use_cuda', None),
-            dev_id = self.config.subtensor.cuda.get('dev_id', None)
+            cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
+            dev_id = self.config.subtensor.register.cuda.get('dev_id', None)
         )
 
     def transfer( self ):

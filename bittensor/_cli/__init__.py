@@ -252,43 +252,6 @@ class cli:
         register_parser = cmd_parsers.add_parser(
             'register', 
             help='''Register a wallet to a network.'''
-        )        
-        register_parser.add_argument(
-            '--cuda',
-            '--cuda.use_cuda',
-            '--subtensor.cuda.use_cuda',
-            dest='subtensor.cuda.use_cuda',
-            default=bittensor.defaults.subtensor.cuda.use_cuda,
-            help='''Set true to use CUDA.''',
-            action='store_true',
-            required=False
-        )
-        register_parser.add_argument(
-            '--cuda.dev_id',
-            '--subtensor.cuda.dev_id',
-            dest='subtensor.cuda.dev_id',
-            type=int,
-            default=bittensor.defaults.subtensor.cuda.dev_id,
-            help='''Set the CUDA device id. Goes by the order of speed. (i.e. 0 is the fastest).''',
-            required=False
-        )
-        register_parser.add_argument(
-            '--cuda.TPB',
-            '--subtensor.cuda.TPB',
-            dest='subtensor.cuda.TPB',
-            type=int,
-            default=bittensor.defaults.subtensor.cuda.TPB,
-            help='''Set the number of Threads Per Block for CUDA.''',
-            required=False
-        )
-        register_parser.add_argument(
-            '--cuda.update_interval',
-            '--subtensor.cuda.update_interval',
-            dest='subtensor.cuda.update_interval',
-            type=int,
-            default=bittensor.defaults.subtensor.cuda.update_interval,
-            help='''Set the number of nonces per network update.''',
-            required=False
         )
 
         unstake_parser = cmd_parsers.add_parser(

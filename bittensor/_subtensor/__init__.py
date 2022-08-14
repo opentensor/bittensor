@@ -186,7 +186,12 @@ class subtensor:
             parser.add_argument('--' + prefix_str + 'subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
 
             parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest='subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
-            parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '-u', dest='subtensor.register.update_interval', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
+            parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '--' + prefix_str + 'subtensor.register.cuda.update_interval', '--' + prefix_str + 'cuda.update_interval', '-u', dest='subtensor.register.update_interval', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
+
+            parser.add_argument( '--' + prefix_str + 'cuda', '--' + prefix_str + 'cuda.use_cuda', '--' + prefix_str + 'subtensor.register.cuda.use_cuda', dest='subtensor.register.cuda.use_cuda', default=bittensor.defaults.subtensor.cuda.use_cuda, help='''Set true to use CUDA.''', action='store_true', required=False )
+            parser.add_argument( '--' + prefix_str + 'cuda.dev_id', '--' + prefix_str + 'subtensor.register.cuda.dev_id', dest='subtensor.register.cuda.dev_id', type=int, default=bittensor.defaults.subtensor.cuda.dev_id, help='''Set the CUDA device id. Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
+            parser.add_argument( '--' + prefix_str + 'cuda.TPB', '--' + prefix_str + 'subtensor.register.cuda.TPB', dest='subtensor.register.cuda.TPB', type=int, default=bittensor.defaults.subtensor.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
