@@ -169,6 +169,12 @@ def test_corevalidator_reregister_flag_false_exit():
     config.wallet = bittensor.Config()
     config.wallet.reregister = False # don't reregister the wallet
 
+    config.subtensor = bittensor.Config()
+    config.subtensor.register = bittensor.Config()
+    config.subtensor.register.cuda = bittensor.Config()
+    config.subtensor.register.cuda.use_cuda = False # don't use cuda on test
+    # No need to specify the other config options as they are default to None
+
     mock_wallet = bittensor.wallet.mock()
     mock_wallet.config = config
 
@@ -211,6 +217,12 @@ def test_corevalidator_reregister_flag_true():
     config = bittensor.Config()
     config.wallet = bittensor.Config()
     config.wallet.reregister = True # try to reregister the wallet
+
+    config.subtensor = bittensor.Config()
+    config.subtensor.register = bittensor.Config()
+    config.subtensor.register.cuda = bittensor.Config()
+    config.subtensor.register.cuda.use_cuda = False # don't use cuda on test
+    # No need to specify the other config options as they are default to None
 
     mock_wallet = bittensor.wallet.mock()
     mock_wallet.config = config
