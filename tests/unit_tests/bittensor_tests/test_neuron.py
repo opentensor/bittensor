@@ -1,3 +1,4 @@
+from atexit import register
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from more_itertools import side_effect
@@ -91,7 +92,8 @@ def test_coreserver_reregister_flag_false_exit():
         metagraph=MagicMock(),
         spec=bittensor.neurons.core_server.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register
         ),
         config=config,
     )
@@ -100,19 +102,18 @@ def test_coreserver_reregister_flag_false_exit():
             'bittensor.Wallet',
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
-        with patch('bittensor.Subtensor', register=mock_register):
         
-            # Should exit without calling register
-            with pytest.raises(SystemExit) as pytest_wrapped_e:
-                # Should not raise MockException
-                bittensor.neurons.core_server.neuron.run(
-                    self=mock_self_neuron
-                )
+        # Should exit without calling register
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            # Should not raise MockException
+            bittensor.neurons.core_server.neuron.run(
+                self=mock_self_neuron
+            )
 
-            # Should not try to register the neuron
-            mock_register.assert_not_called()
-            assert pytest_wrapped_e.type == SystemExit
-            assert pytest_wrapped_e.value.code == 0 # No error
+        # Should not try to register the neuron
+        mock_register.assert_not_called()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 0 # No error
 
 def test_coreserver_reregister_flag_true():
     config = bittensor.Config()
@@ -143,7 +144,8 @@ def test_coreserver_reregister_flag_true():
         metagraph=MagicMock(),
         spec=bittensor.neurons.core_server.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register,
         ),
         config=config,
     )
@@ -152,17 +154,15 @@ def test_coreserver_reregister_flag_true():
             'bittensor.Wallet',
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
-        with patch('bittensor.Subtensor', register=mock_register):
-        
-            # Should not exit
-            with pytest.raises(MockException):
-                # Should raise MockException
-                bittensor.neurons.core_server.neuron.run(
-                    self=mock_self_neuron
-                )
+        # Should not exit
+        with pytest.raises(MockException):
+            # Should raise MockException
+            bittensor.neurons.core_server.neuron.run(
+                self=mock_self_neuron
+            )
 
-            # Should try to register the neuron
-            mock_register.assert_called_once()
+        # Should try to register the neuron
+        mock_register.assert_called_once()
 
 def test_corevalidator_reregister_flag_false_exit():
     config = bittensor.Config()
@@ -190,7 +190,8 @@ def test_corevalidator_reregister_flag_false_exit():
         wallet=mock_wallet,
         spec=bittensor.neurons.core_validator.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register,
         ),
         config=config,
     )
@@ -199,19 +200,18 @@ def test_corevalidator_reregister_flag_false_exit():
             'bittensor.Wallet',
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
-        with patch('bittensor.Subtensor', register=mock_register):
-        
-            # Should exit without calling register
-            with pytest.raises(SystemExit) as pytest_wrapped_e:
-                # Should not raise MockException
-                bittensor.neurons.core_validator.neuron.__enter__(
-                    self=mock_self_neuron
-                )
+    
+        # Should exit without calling register
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            # Should not raise MockException
+            bittensor.neurons.core_validator.neuron.__enter__(
+                self=mock_self_neuron
+            )
 
-            # Should not try to register the neuron
-            mock_register.assert_not_called()
-            assert pytest_wrapped_e.type == SystemExit
-            assert pytest_wrapped_e.value.code == 0 # No error
+        # Should not try to register the neuron
+        mock_register.assert_not_called()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 0 # No error
 
 def test_corevalidator_reregister_flag_true():
     config = bittensor.Config()
@@ -239,7 +239,8 @@ def test_corevalidator_reregister_flag_true():
         wallet=mock_wallet,
         spec=bittensor.neurons.core_validator.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register,
         ),
         config=config,
     )
@@ -248,17 +249,16 @@ def test_corevalidator_reregister_flag_true():
             'bittensor.Wallet',
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
-        with patch('bittensor.Subtensor', register=mock_register):
         
-            # Should not exit
-            with pytest.raises(MockException):
-                # Should raise MockException
-                bittensor.neurons.core_validator.neuron.__enter__(
-                    self=mock_self_neuron
-                )
+        # Should not exit
+        with pytest.raises(MockException):
+            # Should raise MockException
+            bittensor.neurons.core_validator.neuron.__enter__(
+                self=mock_self_neuron
+            )
 
-            # Should try to register the neuron
-            mock_register.assert_called_once()
+        # Should try to register the neuron
+        mock_register.assert_called_once()
 
 
 
