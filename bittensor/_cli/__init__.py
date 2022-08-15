@@ -719,7 +719,7 @@ class cli:
             if config.wallet.get('all_hotkeys'):
                 hotkeys = "all hotkeys"
             elif config.wallet.get('hotkeys'):
-                hotkeys = str(config.walet.hotkeys).replace('[', '').replace(']', '')
+                hotkeys = str(config.wallet.hotkeys).replace('[', '').replace(']', '')
             else:
                 hotkeys = str(config.wallet.hotkey)
             if not Confirm.ask("Unstake all Tao from: [bold]'{}'[/bold]?".format(hotkeys)):
