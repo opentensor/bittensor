@@ -72,7 +72,7 @@ class server(torch.nn.Module):
                 files = os.listdir(weights_path)
                 weights_path = os.path.join(weights_path, 'pytorch_model.bin') if 'pytorch_model.bin' in files else weights_path
                 
-                model_config = AutoConfig.from_pretrained(self.model_name)
+                model_config = AutoConfig.from_pretrained(model_name)
 
                 with init_empty_weights():
                     self.pre_model = AutoModelForCausalLM.from_config(config)
