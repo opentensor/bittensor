@@ -15,17 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from typing import DefaultDict
-from unittest import mock
+
+import multiprocessing
 from unittest.mock import patch
 import bittensor
 import pytest
-import psutil  
 import unittest
 import time
 import random
 from unittest.mock import MagicMock
 from bittensor.utils.balance import Balance
+from bittensor.utils import Solver, update_curr_block
 from substrateinterface import Keypair
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 class TestSubtensor(unittest.TestCase):
@@ -417,7 +417,6 @@ class TestSubtensor(unittest.TestCase):
                 # calls until True and once again before exiting subtensor class
                 # This assertion is currently broken when difficulty is too low
                 assert wallet.is_registered.call_count == workblocks_before_is_registered + 2      
-
 
     def test_registration_partly_failed( self ):
         class failed():
