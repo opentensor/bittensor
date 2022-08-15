@@ -785,7 +785,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         neurons = []
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
-            old_balance = self.get_balance( wallet.coldkey.ss58_address )
+            old_balance = self.get_balance( wallet_0.coldkey.ss58_address )
 
             for wallet in wallets:
                 neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
@@ -1206,7 +1206,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         neurons = []
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
-            old_balance = self.get_balance( wallet.coldkey.ss58_address )
+            old_balance = self.get_balance( wallet_0.coldkey.ss58_address )
 
             for wallet in wallets:
                 neuron = self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
