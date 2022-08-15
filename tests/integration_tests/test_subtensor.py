@@ -414,36 +414,7 @@ class TestSubtensor(unittest.TestCase):
             assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
             # calls until True and once again before exiting subtensor class
             # This assertion is currently broken when difficulty is too low
-            #assert wallet.is_registered.call_count == workblocks_before_is_registered + 2     
-            
-    def test_registration_multiprocessed_large_diff( self ):
-        mock_neuron = MagicMock()           
-        mock_neuron.is_null = True
-
-        fake_diff = pow(2, 32) * pow(2, 4) # this should be too large to register if the bit shift is wrong (32 + 4 bits)
-        mock_stopEvent = MagicMock(
-            is_set=MagicMock(side_effect=[False, True]) # exit after second call to is_set
-        )
-        lock = multiprocessing.Lock()
-
-        mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
-        
-        # Set the mock difficulty to the fake difficulty
-        update_curr_block(mock_diff, MagicMock(), MagicMock(), 1, b'0' * 64, fake_diff, lock)
-        # create solver with the mock
-        solver = Solver(1, 1, 1, None, MagicMock(), None, mock_stopEvent, b'', MagicMock(value=1), mock_diff, lock, 1)
-        # set newBlock to True so it tries to get the fake_diff
-        solver.newBlockEvent.set()
-
-        with patch('bittensor.utils.solve_for_nonce_block', MagicMock(
-            return_value=(None, 0)
-        )) as mock_solver:
-
-            # should return False
-            solver.run()
-            mock_solver.assert_called()
-            assert mock_solver.call_args_list[0][0][4] == fake_diff # the 5th argument to the solver should be the fake difficulty
-                
+            #assert wallet.is_registered.call_count == workblocks_before_is_registered + 2   
 
     def test_registration_partly_failed( self ):
         class failed():

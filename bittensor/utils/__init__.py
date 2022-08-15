@@ -220,7 +220,7 @@ class Solver(multiprocessing.Process):
                 with self.check_block:
                     block_number = self.curr_block_num.value
                     block_bytes = bytes(self.curr_block)
-                    block_difficulty = int(self.curr_diff[0] << 32 | self.curr_diff[1])
+                    block_difficulty = registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
                 # reset nonces to start from random point
@@ -269,13 +269,24 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
     solver.best_queue.put((best_local, best_seal_local))
     return None, time.time() - start
 
+
+def registration_diff_unpack(packed_diff: multiprocessing.Array) -> int:
+    """Unpacks the packed two 32-bit integers into one 64-bit integer. Little endian."""
+    return int(packed_diff[0] << 32 | packed_diff[1])
+
+
+def registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
+    """Packs the difficulty into two 32-bit integers. Little endian."""
+    packed_diff[0] = diff >> 32
+    packed_diff[1] = diff & 0xFFFFFFFF # low 32 bits
+
+
 def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocessing.Array, curr_block_num: multiprocessing.Value, block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
     with lock:
         curr_block_num.value = block_number
         for i in range(64):
             curr_block[i] = block_bytes[i]
-        curr_diff[0] = diff >> 32
-        curr_diff[1] = diff & 0xFFFFFFFF # low 32 bits
+        registration_diff_pack(diff, curr_diff)
 
 
 def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
