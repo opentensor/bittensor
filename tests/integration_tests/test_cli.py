@@ -557,8 +557,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_get_all_wallets.assert_called_once()
                 mock_unstake.assert_has_calls(
-                    [call([mock_wallets[0], mock_wallets[2]], amounts=[5.0, 5.0], wait_for_inclusion=True, prompt=False)
-                    ],
+                    [call(wallets=[mock_wallets[0], mock_wallets[2]], amounts=[5.0, 5.0], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -625,7 +624,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
+        with patch('bittensor.wallet.__new__') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
@@ -703,7 +702,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
+        with patch('bittensor.wallet.__new__') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
@@ -779,7 +778,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
+        with patch('bittensor.wallet.__new__') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
@@ -790,7 +789,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets, amounts=[5.0] * (len(mock_wallets) - 1), wait_for_inclusion=True, prompt=False)],
+                    [call(wallets=mock_wallets, amounts=[5.0] * len(mock_wallets), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -841,7 +840,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_get_all_wallets.assert_called_once()
                 mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets, amounts=[5.0] * len(mock_wallets - 1), wait_for_inclusion=True, prompt=False)],
+                    [call(wallets=mock_wallets, amounts=[5.0] * len(mock_wallets), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -965,7 +964,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
+        with patch('bittensor.wallet.__new__') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
@@ -1048,7 +1047,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
+        with patch('bittensor.wallet.__new__') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
