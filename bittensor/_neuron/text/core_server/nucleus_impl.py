@@ -72,7 +72,7 @@ class server(torch.nn.Module):
                 self.pre_model = AutoModelForCausalLM.from_pretrained(
                     self.model_name,   
                     device_map="auto",  
-                    offload_folder=config.offload_path,
+                    offload_folder='~/.bittensor/offload', # TODO: make this configurable
                     # torch_dtype=torch.float16,
                     # offload_state_dict=True
                 )
