@@ -88,7 +88,7 @@ class server(torch.nn.Module):
                 # set up device map for the model
                 # TODO: change no_split_module_classes to a configurable parameter, not just OPT
                 device_map = infer_auto_device_map(
-                    model.model, 
+                    self.pre_model.model, 
                     max_memory={0: max_mem, 1: max_mem},
                     no_split_module_classes=["OPTDecoderLayer"], 
                     dtype='float16'
