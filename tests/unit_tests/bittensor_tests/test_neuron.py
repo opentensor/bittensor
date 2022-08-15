@@ -98,8 +98,8 @@ def test_coreserver_reregister_flag_false_exit():
         config=config,
     )
 
-    with patch(
-            'bittensor.Wallet',
+    with patch.object(
+            mock_wallet,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
@@ -150,8 +150,8 @@ def test_coreserver_reregister_flag_true():
         config=config,
     )
 
-    with patch(
-            'bittensor.Wallet',
+    with patch.object(
+            mock_wallet,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
         # Should not exit
@@ -196,8 +196,8 @@ def test_corevalidator_reregister_flag_false_exit():
         config=config,
     )
 
-    with patch(
-            'bittensor.Wallet',
+    with patch.object(
+            mock_wallet,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
     
@@ -245,8 +245,8 @@ def test_corevalidator_reregister_flag_true():
         config=config,
     )
 
-    with patch(
-            'bittensor.Wallet',
+    with patch.object(
+            mock_wallet,
             is_registered=MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
