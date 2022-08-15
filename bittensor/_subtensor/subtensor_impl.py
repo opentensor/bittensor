@@ -846,7 +846,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             percent_reduction = 1 - (1000 / total_staking_rao)
             amounts = [amount * percent_reduction for amount in amounts]
         
-        successfull_stakes = 0
+        successful_stakes = 0
         for wallet, amount, neuron in zip(wallets, amounts, neurons):
             if neuron is None:
                 bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered. Skipping ...[/red]".format( wallet.hotkey_str ))
@@ -921,7 +921,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                     if not wait_for_finalization and not wait_for_inclusion:
                         bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                         old_balance -= staking_balance + stake_fee
-                        successfull_stakes += 1
+                        successful_stakes += 1
                         if staking_all:
                             # If staked all, no need to continue
                             break
@@ -940,12 +940,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
                 bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( neuron.uid, neuron.stake, new_stake ))
                 old_balance = new_balance
-                successfull_stakes += 1
+                successful_stakes += 1
                 if staking_all:
                     # If staked all, no need to continue
                     break
         
-        if successfull_stakes != 0:
+        if successful_stakes != 0:
             with bittensor.__console__.status(":satellite: Checking Balance on: ([white]{}[/white] ...".format(self.network)):
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
             bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
@@ -1250,7 +1250,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
                 neurons.append( neuron )
 
-        successfull_unstakes = 0
+        successful_unstakes = 0
         for wallet, amount, neuron in zip(wallets, amounts, neurons):
             if neuron is None:
                 bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered. Skipping ...[/red]".format( wallet.hotkey_str ))
@@ -1319,7 +1319,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                     # We only wait here if we expect finalization.
                     if not wait_for_finalization and not wait_for_inclusion:
                         bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                        successfull_unstakes += 1
+                        successful_unstakes += 1
                         continue
 
                     response.process_events()
@@ -1332,9 +1332,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                 block = self.get_current_block()
                 new_stake = bittensor.Balance.from_tao( self.neuron_for_uid( uid = neuron.uid, block = block ).stake)
                 bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( neuron.uid, stake_on_uid, new_stake ))
-                successfull_unstakes += 1
+                successful_unstakes += 1
         
-        if successfull_unstakes != 0:
+        if successful_unstakes != 0:
             with bittensor.__console__.status(":satellite: Checking Balance on: ([white]{}[/white] ...".format(self.network)):
                 new_balance = self.get_balance( wallet.coldkey.ss58_address )
             bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
