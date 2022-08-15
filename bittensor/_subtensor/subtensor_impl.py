@@ -510,12 +510,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                     
                 # pow successful, proceed to submit pow to chain for registration
                 else:
-                    while attempts <= max_allowed_attempts:
-                        #check if pow result is still valid
-                        if pow_result['block_number'] < self.get_current_block() - 3:
-                            bittensor.__console__.print( "[red]POW is stale.[/red]" )
-                            return False
-                        
+                    # check if pow result is still valid
+                    while pow_result['block_number'] >= self.get_current_block() - 3:
                         with self.substrate as substrate:
                             # create extrinsic call
                             call = substrate.compose_call( 
@@ -558,14 +554,18 @@ To run a local node (See: docs/running_a_validator.md) \n
                                     # neuron not found, try again
                                     bittensor.__console__.print(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
                                     continue
-
-                        #Failed registration, retry pow
-                        attempts += 1
-                        status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
                     else:
-                        # Failed to register after max attempts.
-                        bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                        return False 
+                        # Exited loop because pow is no longer valid.
+                        bittensor.__console__.print( "[red]POW is stale.[/red]" )
+                        return False
+                if attempts <= max_allowed_attempts:
+                    #Failed registration, retry pow
+                    attempts += 1
+                    status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
+                else:
+                    # Failed to register after max attempts.
+                    bittensor.__console__.print( "[red]No more attempts.[/red]" )
+                    return False 
 
     def serve (
             self, 
