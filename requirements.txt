@@ -32,7 +32,7 @@ pytest-rerunfailures
 coveralls
 pytest-cov
 pyyaml
-rich
+rich>=12.5.1
 retry
 requests>=2.25.0
 scalecodec>=1.0.35
