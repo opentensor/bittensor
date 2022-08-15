@@ -426,7 +426,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys[1:]
+            ) for hk in config.wallet.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -451,7 +451,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_unstake.assert_has_calls(
-                    [call(wallets=mock_wallets, amounts=[5.0]*len(mock_wallets), wait_for_inclusion=True, prompt=False)],
+                    [call(wallets=mock_wallets[1:], amounts=[5.0]*len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -613,7 +613,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys[1:]
+            ) for hk in config.wallet.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -635,7 +635,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_unstake.assert_has_calls(
-                    [call(wallets=mock_wallets, amounts=[CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str] - config.max_stake).tao, 0.001) for mock_wallet in mock_wallets], wait_for_inclusion=True, prompt=False)],
+                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str] - config.max_stake).tao, 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -691,7 +691,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys[1:]
+            ) for hk in config.wallet.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -713,15 +713,16 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_unstake.assert_called()
-                for mock_call in mock_unstake.mock_calls:
-                    # Python 3.7 
-                    ## https://docs.python.org/3.7/library/unittest.mock.html#call
-                    ## Uses the 1st index as args list
-                    ## call.args only works in Python 3.8+
-                    mock_wallets = mock_call[0][0]
 
-                    # We shouldn't unstake from hk1 as it has less than max_stake staked
-                    assert all(mock_wallet.hotkey_str != 'hk1' for mock_wallet in mock_wallets)
+                # Python 3.7 
+                ## https://docs.python.org/3.7/library/unittest.mock.html#call
+                ## Uses the 1st index as args list
+                ## call.args only works in Python 3.8+
+                mock_wallets_ = mock_unstake.mock_calls[0][0][0]
+                
+
+                # We shouldn't unstake from hk1 as it has less than max_stake staked
+                assert all(mock_wallet.hotkey_str != 'hk1' for mock_wallet in mock_wallets_)
 
     def test_stake_with_specific_hotkeys( self ):
         bittensor.subtensor.register = MagicMock(return_value = True)
@@ -764,7 +765,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys[1:]
+            ) for hk in config.wallet.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -789,7 +790,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets, amounts=[5.0] * len(mock_wallets), wait_for_inclusion=True, prompt=False)],
+                    [call(wallets=mock_wallets[1:], amounts=[5.0] * len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -950,7 +951,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys[1:]
+            ) for hk in config.wallet.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -975,7 +976,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets, amounts=[CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001) for mock_wallet in mock_wallets], wait_for_inclusion=True, prompt=False)],
+                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -1033,7 +1034,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys[1:]
+            ) for hk in config.wallet.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
