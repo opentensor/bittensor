@@ -239,11 +239,13 @@ def test_registration_diff_pack_unpack():
         
         mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
         
-        assert bittensor.utils.registration_diff_unpack(bittensor.utils.registration_diff_pack(fake_diff, mock_diff)) == fake_diff
+        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
         fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
         
-        assert bittensor.utils.registration_diff_unpack(bittensor.utils.registration_diff_pack(fake_diff, mock_diff)) == fake_diff
+        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()
