@@ -543,6 +543,7 @@ class neuron:
                 zkey = key + '!'  # zeroing key
                 stats.setdefault(zkey, 0.)  # initialize zkey val to zero to gradually increase with observations
                 if key in _stats and not math.isnan(_stats[key]):
+                    responsive_uids += [_uid]
                     stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
                 else:
                     stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
@@ -555,7 +556,6 @@ class neuron:
                     updates = 'updates_' + key
                     if updates in stats:
                         stats[updates] += 1  # increment number of normal EMA updates made
-                        responsive_uids += [_uid]
                     else:
                         stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
