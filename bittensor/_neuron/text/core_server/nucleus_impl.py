@@ -75,7 +75,7 @@ class server(torch.nn.Module):
                 model_config = AutoConfig.from_pretrained(self.model_name)
 
                 with init_empty_weights():
-                    self.pre_model = AutoModelForCausalLM.from_config(config)
+                    self.pre_model = AutoModelForCausalLM.from_config(model_config)
                 
                 self.pre_model.tie_weights()
 
