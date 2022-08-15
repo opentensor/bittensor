@@ -89,9 +89,9 @@ class server(torch.nn.Module):
                 # TODO: change no_split_module_classes to a configurable parameter, not just OPT
                 device_map = infer_auto_device_map(
                     self.pre_model.model, 
-                    max_memory={0: max_mem, 1: max_mem},
+                    # max_memory={0: max_mem, 1: max_mem},
                     no_split_module_classes=["OPTDecoderLayer"], 
-                    dtype='float16'
+                    dtype='float16' if config.neuron.autocast else 'float32',
                 )
 
                 logger.info(device_map)
