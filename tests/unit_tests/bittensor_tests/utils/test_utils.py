@@ -8,6 +8,7 @@ import pytest
 import os 
 import random
 import torch
+import multiprocessing
 
 from sys import platform   
 from substrateinterface.base import Keypair
@@ -232,6 +233,19 @@ def test_is_valid_ed25519_pubkey():
     bad_pubkey = good_pubkey[:-1] # needs to be 32 bytes
     assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
     assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+
+def test_registration_diff_pack_unpack():
+        fake_diff = pow(2, 31)# this is under 32 bits
+        
+        mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+        
+        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+
+        fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
+        
+        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()
