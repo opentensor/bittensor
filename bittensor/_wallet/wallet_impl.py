@@ -246,17 +246,17 @@ class Wallet():
             if not self.config.wallet.get('reregister'):
                 sys.exit(0)
 
-        subtensor.register(
-            wallet = self,
-            prompt = prompt,
-            TPB = self.config.subtensor.register.cuda.get('TPB', None),
-            update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
-            num_processes = self.config.subtensor.register.get('num_processes', None),
-            cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
-            dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
-            wait_for_inclusion = wait_for_inclusion,
-            wait_for_finalization = wait_for_finalization,
-        )
+            subtensor.register(
+                wallet = self,
+                prompt = prompt,
+                TPB = self.config.subtensor.register.cuda.get('TPB', None),
+                update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
+                num_processes = self.config.subtensor.register.get('num_processes', None),
+                cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
+                dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
+                wait_for_inclusion = wait_for_inclusion,
+                wait_for_finalization = wait_for_finalization,
+            )
 
         return self
 
