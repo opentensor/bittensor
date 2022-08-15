@@ -769,19 +769,19 @@ To run a local node (See: docs/running_a_validator.md) \n
         if amounts is not None and not all(isinstance(amount, (Balance, float)) for amount in amounts):
             raise TypeError("amounts must be a [list of bittensor.Balance or float] or None")
 
-        if amounts is not None and sum(amount.tao for amount in amounts) == 0:
-            # Staking 0 tao
-            return True
-
-        wallet_0: 'bittensor.wallet' = wallets[0]
-        # Decrypt coldkey for all wallet(s) to use
-        wallet_0.coldkey
-
         if amounts is None:
             amounts = [None] * len(wallets)
         else:
             # Convert to Balance
             amounts = [bittensor.Balance.from_tao(amount) if isinstance(amount, float) else amount for amount in amounts ]
+
+            if sum(amount.tao for amount in amounts) == 0:
+                # Staking 0 tao
+                return True
+
+        wallet_0: 'bittensor.wallet' = wallets[0]
+        # Decrypt coldkey for all wallet(s) to use
+        wallet_0.coldkey
 
         neurons = []
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
@@ -919,7 +919,6 @@ To run a local node (See: docs/running_a_validator.md) \n
             return True
 
         return False
-
 
     def transfer(
             self, 
@@ -1187,13 +1186,23 @@ To run a local node (See: docs/running_a_validator.md) \n
         if amounts is not None and len(amounts) != len(wallets):
             raise ValueError("amounts must be a list of the same length as wallets")
 
+        if amounts is not None and not all(isinstance(amount, (Balance, float)) for amount in amounts):
+            raise TypeError("amounts must be a [list of bittensor.Balance or float] or None")
+
+        if amounts is None:
+            amounts = [None] * len(wallets)
+        else:
+            # Convert to Balance
+            amounts = [bittensor.Balance.from_tao(amount) if isinstance(amount, float) else amount for amount in amounts ]
+
+            if sum(amount.tao for amount in amounts) == 0:
+                # Staking 0 tao
+                return True
+
 
         wallet_0: 'bittensor.wallet' = wallets[0]
         # Decrypt coldkey for all wallet(s) to use
         wallet_0.coldkey
-
-        if amounts is None:
-            amounts = [None] * len(wallets)
 
         neurons = []
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
