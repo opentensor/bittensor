@@ -718,7 +718,7 @@ class TestCli(unittest.TestCase):
                 ## https://docs.python.org/3.7/library/unittest.mock.html#call
                 ## Uses the 1st index as args list
                 ## call.args only works in Python 3.8+
-                mock_wallets_ = mock_unstake.mock_calls[0][0][0]
+                mock_wallets_ = mock_unstake.mock_calls[0][2]['wallets']
                 
 
                 # We shouldn't unstake from hk1 as it has less than max_stake staked
