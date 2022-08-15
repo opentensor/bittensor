@@ -186,7 +186,12 @@ class subtensor:
             parser.add_argument('--' + prefix_str + 'subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
 
             parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest='subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
-            parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '-u', dest='subtensor.register.update_interval', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
+            parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '--' + prefix_str + 'subtensor.register.cuda.update_interval', '--' + prefix_str + 'cuda.update_interval', '-u', dest='subtensor.register.update_interval', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
+             # registration args. Used for register and re-register and anything that calls register.
+            parser.add_argument( '--' + prefix_str + 'cuda', '--' + prefix_str + 'cuda.use_cuda', '--' + prefix_str + 'subtensor.register.cuda.use_cuda', dest=f'{prefix_str}subtensor.register.cuda.use_cuda', default=bittensor.defaults.subtensor.register.cuda.use_cuda, help='''Set true to use CUDA.''', action='store_true', required=False )
+            parser.add_argument( '--' + prefix_str + 'cuda.dev_id', '--' + prefix_str + 'subtensor.register.cuda.dev_id', dest=f'{prefix_str}subtensor.register.cuda.dev_id', type=int, default=bittensor.defaults.subtensor.register.cuda.dev_id, help='''Set the CUDA device id. Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
+            parser.add_argument( '--' + prefix_str + 'cuda.TPB', '--' + prefix_str + 'subtensor.register.cuda.TPB', dest=f'{prefix_str}subtensor.register.cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -203,6 +208,11 @@ class subtensor:
         defaults.subtensor.register = bittensor.Config()
         defaults.subtensor.register.num_processes = os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') if os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') != None else None # uses processor count by default within the function
         defaults.subtensor.register.update_interval = os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') if os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') != None else 50_000
+
+        defaults.subtensor.register.cuda = bittensor.Config()
+        defaults.subtensor.register.cuda.dev_id = 0
+        defaults.subtensor.register.cuda.use_cuda = False
+        defaults.subtensor.register.cuda.TPB = 256
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):

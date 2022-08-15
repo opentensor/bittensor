@@ -1,4 +1,5 @@
 import binascii
+import datetime
 import hashlib
 import math
 import multiprocessing
@@ -15,8 +16,10 @@ import pandas
 import requests
 import torch
 from Crypto.Hash import keccak
-from substrateinterface import Keypair
+from substrateinterface import Keypair, KeypairType
 from substrateinterface.utils import ss58
+
+from .register_cuda import reset_cuda, solve_cuda
 
 
 def indexed_values_to_dataframe ( 
@@ -257,7 +260,6 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
         # Check if seal meets difficulty
         product = seal_number * difficulty
         if product < limit:
-            print(f"{solver.proc_num} found a solution: {nonce}, {block_number}, {str(block_bytes)}, {str(seal)}, {difficulty}")
             # Found a solution, save it.
             return POWSolution(nonce, block_number, difficulty, seal), time.time() - start
 
@@ -416,7 +418,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
 
             except Empty:
                 break
-        
+                
         message = f"""Solving 
             time spent: {time.time() - start_time}
             Difficulty: [bold white]{millify(difficulty)}[/bold white]
@@ -424,23 +426,131 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
             Block: [bold white]{block_number}[/bold white]
             Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]
             Best: [bold white]{binascii.hexlify(bytes(best_seal) if best_seal else bytes(0))}[/bold white]"""
-        status.update(message.replace(" ", ""))
-    
+        status.update(message.replace(" ", "")) 
+
     # exited while, solution contains the nonce or wallet is registered
     stopEvent.set() # stop all other processes
     status.stop()
 
     return solution
+    
+def get_human_readable(num, suffix="H"):
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1000.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1000.0
+    return f"{num:.1f}Y{suffix}"
 
+def millify(n: int):
+    millnames = ['',' K',' M',' B',' T']
+    n = float(n)
+    millidx = max(0,min(len(millnames)-1,
+                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
 
-def create_pow( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[Dict[str, Any]]:
-    solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, num_processes=num_processes, update_interval=update_interval )
-    nonce, block_number, difficulty, seal = solution.nonce, solution.block_number, solution.difficulty, solution.seal
-    return None if nonce is None else {
-        'nonce': nonce, 
-        'difficulty': difficulty,
-        'block_number': block_number, 
-        'work': binascii.hexlify(seal)
+    return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: int = 0 ) -> Optional[POWSolution]:
+    """
+    Solves the registration fast using CUDA
+    Args:
+        subtensor: bittensor.Subtensor
+            The subtensor node to grab blocks
+        wallet: bittensor.Wallet
+            The wallet to register
+        update_interval: int
+            The number of nonces to try before checking for more blocks
+        TPB: int
+            The number of threads per block. CUDA param that should match the GPU capability
+        dev_id: int
+            The CUDA device ID to execute the registration on
+    """
+    if not torch.cuda.is_available():
+        raise Exception("CUDA not available")
+
+    if update_interval is None:
+        update_interval = 50_000
+        
+    block_number = subtensor.get_current_block()
+    difficulty = subtensor.difficulty
+    block_hash = subtensor.substrate.get_block_hash( block_number )
+    while block_hash == None:
+        block_hash = subtensor.substrate.get_block_hash( block_number )
+    block_bytes = block_hash.encode('utf-8')[2:]
+    
+    nonce = 0
+    limit = int(math.pow(2,256)) - 1
+    start_time = time.time()
+
+    console = bittensor.__console__
+    status = console.status("Solving")
+    
+    solution = -1
+    start_time = time.time()
+    interval_time = start_time
+
+    status.start()
+    while solution == -1 and not wallet.is_registered(subtensor):
+        solution, seal = solve_cuda(nonce,
+                        update_interval,
+                        TPB,
+                        block_bytes, 
+                        block_number,
+                        difficulty, 
+                        limit,
+                        dev_id)
+
+        if (solution != -1):
+            # Attempt to reset CUDA device
+            reset_cuda()
+            status.stop()
+            new_bn = subtensor.get_current_block()
+            print(f"Found solution for bn: {block_number}; Newest: {new_bn}")            
+            return POWSolution(solution, block_number, difficulty, seal)
+
+        nonce += (TPB * update_interval)
+        if (nonce >= int(math.pow(2,63))):
+            nonce = 0
+        itrs_per_sec = (TPB * update_interval) / (time.time() - interval_time)
+        interval_time = time.time()
+        difficulty = subtensor.difficulty
+        block_number = subtensor.get_current_block()
+        block_hash = subtensor.substrate.get_block_hash( block_number)
+        while block_hash == None:
+            block_hash = subtensor.substrate.get_block_hash( block_number)
+        block_bytes = block_hash.encode('utf-8')[2:]
+
+        message = f"""Solving 
+            time spent: {datetime.timedelta(seconds=time.time() - start_time)}
+            Nonce: [bold white]{nonce}[/bold white]
+            Difficulty: [bold white]{millify(difficulty)}[/bold white]
+            Iters: [bold white]{get_human_readable(int(itrs_per_sec), "H")}/s[/bold white]
+            Block: [bold white]{block_number}[/bold white]
+            Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]"""
+        status.update(message.replace(" ", ""))
+        
+    # exited while, found_solution contains the nonce or wallet is registered
+    if solution == -1: # didn't find solution
+        reset_cuda()
+        status.stop()
+        return None
+    
+    else:
+        reset_cuda()
+        # Shouldn't get here
+        status.stop()
+        return None
+
+def create_pow( subtensor, wallet, cuda: bool = False, dev_id: int = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None ) -> Optional[Dict[str, Any]]:
+    if cuda:
+        solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, dev_id=dev_id, TPB=tpb, update_interval=update_interval )
+    else:
+        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, num_processes=num_processes, update_interval=update_interval )
+
+    return None if solution is None else {
+        'nonce': solution.nonce, 
+        'difficulty': solution.difficulty,
+        'block_number': solution.block_number, 
+        'work': binascii.hexlify(solution.seal)
     }
 
 def version_checking():
