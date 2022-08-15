@@ -865,10 +865,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                 # Stake it all.
                 staking_balance = bittensor.Balance.from_tao( old_balance.tao )
                 staking_all = True
-
-            elif not isinstance(amount, bittensor.Balance ):
-                staking_balance = bittensor.Balance.from_tao( amount )
             else:
+                # Amounts are cast to balance earlier in the function
+                assert isinstance(amount, bittensor.Balance)
                 staking_balance = amount
 
             # Estimate staking fee.
