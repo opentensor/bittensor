@@ -500,7 +500,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                     pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval )
                 else:
                     pow_result = bittensor.utils.create_pow( self, wallet, num_processes=num_processes, update_interval=update_interval)
-                    
+
                     # pow failed
                     if not pow_result:
                         # might be registered already
@@ -558,7 +558,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                             # Exited loop because pow is no longer valid.
                             bittensor.__console__.print( "[red]POW is stale.[/red]" )
                             return False
-                    if attempts <= max_allowed_attempts:
+                    if attempts < max_allowed_attempts:
                         #Failed registration, retry pow
                         attempts += 1
                         status.update( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
