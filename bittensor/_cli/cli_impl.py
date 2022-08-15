@@ -17,7 +17,7 @@
 
 import os
 import sys
-from typing import List, Union
+from typing import List, Union, Optional
 
 from cachetools import Cache
 
@@ -259,7 +259,6 @@ class CLI:
     def unstake( self ):
         r""" Unstake token of amount from hotkey(s).
         """        
-        # TODO: Implement this without re-unlocking the coldkey.
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = self.config )
@@ -271,7 +270,7 @@ class CLI:
             all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
             # Exclude hotkeys that are specified.
             wallets_to_unstake_from = [
-                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
+                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys', [])
             ]
 
         elif self.config.wallet.get('hotkeys'):
@@ -284,9 +283,7 @@ class CLI:
             subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
             return None
 
-        wallet_0: 'bittensor.wallet' = wallets_to_unstake_from[0]
-        # Decrypt coldkey for all wallet(s) to use
-        wallet_0.coldkey
+        
 
         final_wallets: List['bittensor.wallet'] = [] 
         final_amounts: List[Union[float, Balance]] = []
@@ -295,9 +292,6 @@ class CLI:
             if not wallet.is_registered():
                 # Skip unregistered hotkeys.
                 continue
-            # Assign decrypted coldkey from wallet_0
-            #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0._coldkey
 
             unstake_amount_tao: float = self.config.get('amount')
             if self.config.get('max_stake'):
@@ -315,19 +309,17 @@ class CLI:
         if not self.config.no_prompt:
             if not Confirm.ask("Do you want to unstake from the following keys:\n" + \
                     "".join([
-                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                        f"    [bold white]- {wallet.hotkey_str}: {amount.tao}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
                     ])
                 ):
                 return None
-
-        for wallet, amount in zip(final_wallets, final_amounts):
-            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else amount, wait_for_inclusion = True, prompt = False )
+                
+        subtensor.unstake_multiple( wallets = final_wallets, amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def stake( self ):
         r""" Stake token of amount to hotkey(s).
         """
-        # TODO: Implement this without re-unlocking the coldkey.
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = config )
@@ -339,7 +331,7 @@ class CLI:
             all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
             # Exclude hotkeys that are specified.
             wallets_to_stake_to = [
-                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys')
+                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys', [])
             ]
 
         elif self.config.wallet.get('hotkeys'):
@@ -394,8 +386,7 @@ class CLI:
                 ):
                 return None
 
-        for wallet, amount in zip(final_wallets, final_amounts):
-            subtensor.add_stake( wallet, amount = None if self.config.get('stake_all') else amount, wait_for_inclusion = True, prompt = False )
+        subtensor.add_stake_multiple( wallets = final_wallets, amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def set_weights( self ):
@@ -604,24 +595,14 @@ class CLI:
 
         all_hotkeys = []
         total_balance = bittensor.Balance(0)
-
-        # We are printing for every wallet.
+        
+        # We are printing for every coldkey.
         if self.config.all:
             cold_wallets = CLI._get_coldkey_wallets_for_path(self.config.wallet.path)
             for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
                 if cold_wallet.coldkeypub_file.exists_on_device() and not cold_wallet.coldkeypub_file.is_encrypted():
                     total_balance = total_balance + subtensor.get_balance( cold_wallet.coldkeypub.ss58_address )
             all_hotkeys = CLI._get_all_wallets_for_path( self.config.wallet.path )
-
-        # We are printing for a select number of hotkeys.
-        elif self.config.wallet.hotkeys:
-            # Only show hotkeys for wallets in the list
-            all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
-            coldkey_wallet = bittensor.wallet( config = self.config )
-            if coldkey_wallet.coldkeypub_file.exists_on_device() and not coldkey_wallet.coldkeypub_file.is_encrypted():
-                total_balance = subtensor.get_balance( coldkey_wallet.coldkeypub.ss58_address )
-
-        # We are printing for all keys under the wallet.
         else:
             # We are only printing keys for a single coldkey
             coldkey_wallet = bittensor.wallet( config = self.config )
@@ -631,6 +612,16 @@ class CLI:
                 console.print("[bold red]No wallets found.")
                 return
             all_hotkeys = CLI._get_hotkey_wallets_for_wallet( coldkey_wallet )
+
+        # We are printing for a select number of hotkeys from all_hotkeys.
+
+        if self.config.wallet.get('hotkeys', []):
+            if not self.config.get('all_hotkeys', False):
+                # We are only showing hotkeys that are specified.
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in self.config.wallet.hotkeys]
+            else:
+                # We are excluding the specified hotkeys from all_hotkeys.
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str not in self.config.wallet.hotkeys]
 
         # Check we have keys to display.
         if len(all_hotkeys) == 0:
@@ -740,10 +731,10 @@ class CLI:
 
         console.clear()
 
-        sort_by: str = self.config.wallet.sort_by
-        sort_order: str = self.config.wallet.sort_order
+        sort_by: Optional[str] = self.config.get('sort_by', None)
+        sort_order: Optional[str] = self.config.get('sort_order', None)
 
-        if sort_by != "":
+        if sort_by is not None and sort_by != "":
             column_to_sort_by: int = 0
             highest_matching_ratio: int = 0
             sort_descending: bool = False # Default sort_order to ascending
