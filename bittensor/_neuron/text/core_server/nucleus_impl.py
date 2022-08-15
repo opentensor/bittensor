@@ -553,6 +553,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
         parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
+        parser.add_argument('--neuron.accelerate', action='store_true', help='To turn on model parallelism, requires multiple nvidia gpus', default=False)
 
 
         bittensor.wallet.add_args( parser )
