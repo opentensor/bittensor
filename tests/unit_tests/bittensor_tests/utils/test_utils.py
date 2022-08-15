@@ -15,7 +15,7 @@ from substrateinterface.base import Keypair
 from _pytest.fixtures import fixture
 from loguru import logger
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 
@@ -235,17 +235,29 @@ def test_is_valid_ed25519_pubkey():
     assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
 
 def test_registration_diff_pack_unpack():
-        fake_diff = pow(2, 31)# this is under 32 bits
-        
-        mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
-        
-        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
-        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+    fake_diff = pow(2, 31)# this is under 32 bits
+    
+    mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+    
+    bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+    assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
-        fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
-        
-        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
-        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+    fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
+    
+    bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+    assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+
+def test_get_block_with_retry_network_error_exit():
+    mock_subtensor = MagicMock(
+        get_current_block=MagicMock(return_value=1),
+        difficulty=1,
+        substrate=MagicMock(
+            get_block_hash=MagicMock(side_effect=Exception('network error'))
+        )
+    )
+    with pytest.raises(Exception):
+        # this should raise an exception because the network error is retried only 3 times
+        bittensor.utils.get_block_with_retry(mock_subtensor)
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()
