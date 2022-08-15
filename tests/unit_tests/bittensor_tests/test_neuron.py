@@ -100,7 +100,7 @@ def test_coreserver_reregister_flag_false_exit():
 
     with patch.object(
             mock_wallet,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
         # Should exit without calling register
@@ -152,7 +152,7 @@ def test_coreserver_reregister_flag_true():
 
     with patch.object(
             mock_wallet,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
         # Should not exit
         with pytest.raises(MockException):
@@ -198,7 +198,7 @@ def test_corevalidator_reregister_flag_false_exit():
 
     with patch.object(
             mock_wallet,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
     
         # Should exit without calling register
@@ -247,7 +247,7 @@ def test_corevalidator_reregister_flag_true():
 
     with patch.object(
             mock_wallet,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
         # Should not exit
