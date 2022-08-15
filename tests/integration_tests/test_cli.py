@@ -624,7 +624,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet.__new__') as mock_create_wallet:
+        with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
@@ -702,7 +702,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet.__new__') as mock_create_wallet:
+        with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
@@ -779,7 +779,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet.__new__') as mock_create_wallet:
+        with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
@@ -965,7 +965,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet.__new__') as mock_create_wallet:
+        with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
@@ -1048,7 +1048,7 @@ class TestCli(unittest.TestCase):
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet.__new__') as mock_create_wallet:
+        with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
@@ -1262,7 +1262,7 @@ class TestCli(unittest.TestCase):
 
     def test_list( self ):
         # Mock IO for wallet
-        with patch('bittensor.wallet.__new__', side_effect=[MagicMock(
+        with patch('bittensor.wallet', side_effect=[MagicMock(
             coldkeypub_file=MagicMock(
                 exists_on_device=MagicMock(
                     return_value=True # Wallet exists
