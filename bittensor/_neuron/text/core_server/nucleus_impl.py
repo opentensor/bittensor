@@ -9,7 +9,8 @@ from types import SimpleNamespace
 from typing import Tuple, Optional
 
 from huggingface_hub import snapshot_download
-from accelerate import init_empty_weights, dispatch_model, infer_auto_device_map, load_checkpoint_and_dispatch, load_checkpoint_in_model, dispatch_model
+# from accelerate import init_empty_weights, dispatch_model, infer_auto_device_map, load_checkpoint_and_dispatch, load_checkpoint_in_model, dispatch_model
+from accelerate import Accelerator
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map, translate_logits_to_probs_std, \
@@ -66,52 +67,69 @@ class server(torch.nn.Module):
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
             if config.neuron.accelerate:
+                self.accelerator = Accelerator()
 
-                weights_path = snapshot_download(self.model_name)
-                
-                files = os.listdir(weights_path)
-                weights_path = os.path.join(weights_path, 'pytorch_model.bin') if 'pytorch_model.bin' in files else weights_path
-                
-                model_config = AutoConfig.from_pretrained(self.model_name)
-
-                with init_empty_weights():
-                    self.pre_model = AutoModelForCausalLM.from_config(model_config)
-                
-                self.pre_model.tie_weights()
-
-
-                # define the max memory usage for the model per gpu, and remove 10% of the memory for safety
-                # TODO: make the 10% a configurable parameter, or turn off completely
-                max_mem = (torch.cuda.get_device_properties(0).total_memory*(1-0.1))
-
-
-                # set up device map for the model
-                # TODO: change no_split_module_classes to a configurable parameter, not just OPT
-                device_map = infer_auto_device_map(
-                    self.pre_model.model, 
-                    # max_memory={0: max_mem, 1: max_mem},
-                    no_split_module_classes=["OPTDecoderLayer"], 
-                    dtype='float16' if config.neuron.autocast else 'float32',
+                self.pre_model = AutoModelForCausalLM.from_pretrained(
+                    self.model_name,   
+                    device_map="auto",  
+                    offload_folder=config.offload_path,
+                    # torch_dtype=torch.float16,
+                    # offload_state_dict=True
                 )
 
-                logger.info(device_map)
+                optimizer = None
+                data = None
+
+                self.pre_model, _, _ = self.accelerator.prepare(self.pre_model, optimizer, data)
+
+                # weights_path = snapshot_download(self.model_name)
+                
+                # files = os.listdir(weights_path)
+                # weights_path = os.path.join(weights_path, 'pytorch_model.bin') if 'pytorch_model.bin' in files else weights_path
+                
+                # model_config = AutoConfig.from_pretrained(self.model_name)
+
+                # with init_empty_weights():
+                #     self.pre_model = AutoModelForCausalLM.from_config(model_config)
+                
+                # self.pre_model.tie_weights()
 
 
-                load_checkpoint_and_dispatch(
-                    self.pre_model.model, 
-                    weights_path, 
-                    device_map=device_map, 
-                    offload_folder=None, 
-                    dtype='float16' if config.neuron.autocast else 'float32',
-                    offload_state_dict=True
-                )
+                # # define the max memory usage for the model per gpu, and remove 10% of the memory for safety
+                # # TODO: make the 10% a configurable parameter, or turn off completely
+                # max_mem = (torch.cuda.get_device_properties(0).total_memory*(1-0.1))
+
+
+                # # set up device map for the model
+                # # TODO: change no_split_module_classes to a configurable parameter, not just OPT
+                # device_map = infer_auto_device_map(
+                #     self.pre_model.model, 
+                #     # max_memory={0: max_mem, 1: max_mem},
+                #     no_split_module_classes=["OPTDecoderLayer"], 
+                #     dtype='float16' if config.neuron.autocast else 'float32',
+                # )
+
+                # logger.info(device_map)
+
+
+                # load_checkpoint_and_dispatch(
+                #     self.pre_model.model, 
+                #     weights_path, 
+                #     device_map=device_map, 
+                #     offload_folder=None, 
+                #     dtype='float16' if config.neuron.autocast else 'float32',
+                #     offload_state_dict=True
+                # )
                 
                 
-                self.pre_model.tie_weights()
+                # self.pre_model.tie_weights()
 
-                full_model_device_map = {f"model.{k}": v for k, v in device_map.items()}
-                full_model_device_map["lm_head"] = 0
-                dispatch_model(self.pre_model, device_map=full_model_device_map)
+                # full_model_device_map = {f"model.{k}": v for k, v in device_map.items()}
+                # full_model_device_map["lm_head"] = 0
+                # dispatch_model(self.pre_model, device_map=full_model_device_map)
+
+
+                
 
 
             else:
