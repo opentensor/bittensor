@@ -402,19 +402,21 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron.is_null = True
 
         with patch('bittensor.Subtensor.difficulty'):
+            with patch('multiprocessing.queues.Queue.get') as mock_queue_get:
+                mock_queue_get.return_value = None
 
-            wallet = bittensor.wallet(_mock=True)
-            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+                wallet = bittensor.wallet(_mock=True)
+                wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
-            self.subtensor.difficulty= 1
-            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
-            self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
+                self.subtensor.difficulty= 1
+                self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
+                self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
 
-            # should return True
-            assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
-            # calls until True and once again before exiting subtensor class
-            # This assertion is currently broken when difficulty is too low
-            #assert wallet.is_registered.call_count == workblocks_before_is_registered + 2   
+                # should return True
+                assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5 ) == True
+                # calls until True and once again before exiting subtensor class
+                # This assertion is currently broken when difficulty is too low
+                assert wallet.is_registered.call_count == workblocks_before_is_registered + 2      
 
     def test_registration_partly_failed( self ):
         class failed():
@@ -430,21 +432,21 @@ class TestSubtensor(unittest.TestCase):
             def process_events(self):
                 return True
 
-        is_registered_return_values = [False for _ in range(100)]
-        submit_extrinsic = [failed(), failed(), success()]
+        submit_extrinsic_mock = MagicMock( side_effect = [failed(), failed(), success()])
+
+        def is_registered_side_effect(*args, **kwargs):
+            nonlocal submit_extrinsic_mock 
+            return submit_extrinsic_mock.call_count < 3
+
         current_block = [i for i in range(0,100)]
-        mock_neuron = MagicMock()           
-        mock_neuron.is_null = True
 
         with patch('bittensor.Subtensor.difficulty'):
             wallet = bittensor.wallet(_mock=True)
-            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+            wallet.is_registered = MagicMock( side_effect=is_registered_side_effect )
 
-
-            self.subtensor.difficulty= 1
+            self.subtensor.difficulty = 1
             self.subtensor.get_current_block = MagicMock(side_effect=current_block)
-            self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
-            self.subtensor.substrate.submit_extrinsic = MagicMock(side_effect = submit_extrinsic)
+            self.subtensor.substrate.submit_extrinsic = submit_extrinsic_mock
 
             # should return True
             assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
