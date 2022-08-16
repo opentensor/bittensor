@@ -245,33 +245,76 @@ class Wallet():
             # Check if the wallet should reregister
             if not self.config.wallet.get('reregister'):
                 sys.exit(0)
-        return self.register(subtensor=subtensor, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization, prompt=prompt)
+
+            subtensor.register(
+                wallet = self,
+                prompt = prompt,
+                TPB = self.config.subtensor.register.cuda.get('TPB', None),
+                update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
+                num_processes = self.config.subtensor.register.get('num_processes', None),
+                cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
+                dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
+                wait_for_inclusion = wait_for_inclusion,
+                wait_for_finalization = wait_for_finalization,
+            )
+
+        return self
 
     def register ( 
             self, 
             subtensor: 'bittensor.Subtensor' = None, 
             wait_for_inclusion: bool = False,
             wait_for_finalization: bool = True,
-            prompt: bool = False
+            prompt: bool = False,
+            max_allowed_attempts: int = 3,
+            cuda: bool = False,
+            dev_id: int = 0,
+            TPB: int = 256,
+            num_processes: Optional[int] = None,
+            update_interval: Optional[int] = None,
         ) -> 'bittensor.Wallet':
-        """ Registers this wallet on the chain.
-            Args:
-                wait_for_inclusion (bool):
-                    if set, waits for the extrinsic to enter a block before returning true, 
-                    or returns false if the extrinsic fails to enter the block within the timeout.   
-                wait_for_finalization (bool):
-                    if set, waits for the extrinsic to be finalized on the chain before returning true,
-                    or returns false if the extrinsic fails to be finalized within the timeout.
-                subtensor( 'bittensor.Subtensor' ):
-                    Bittensor subtensor connection. Overrides with defaults if None.
-                prompt (bool):
-                    If true, the call waits for confirmation from the user before proceeding.
-            Return:
-                This wallet.
+        """ Registers the wallet to chain.
+        Args:
+            subtensor( 'bittensor.Subtensor' ):
+                Bittensor subtensor connection. Overrides with defaults if None.
+            wait_for_inclusion (bool):
+                If set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                If set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            prompt (bool):
+                If true, the call waits for confirmation from the user before proceeding.
+            max_allowed_attempts (int):
+                Maximum number of attempts to register the wallet.
+            cuda (bool):
+                If true, the wallet should be registered on the cuda device.
+            dev_id (int):
+                The cuda device id.
+            TPB (int):
+                The number of threads per block (cuda).
+            num_processes (int):
+                The number of processes to use to register.
+            update_interval (int):
+                The number of nonces to solve between updates.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
         """
         # Get chain connection.
         if subtensor == None: subtensor = bittensor.subtensor()
-        subtensor.register( wallet = self, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
+        subtensor.register(
+            wallet = self,
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization,
+            prompt=prompt, max_allowed_attempts=max_allowed_attempts,
+            cuda=cuda,
+            dev_id=dev_id,
+            TPB=TPB,
+            num_processes=num_processes,
+            update_interval=update_interval
+        )
         
         return self
 
