@@ -325,7 +325,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
             self.message = str(e)
             return self._deny
 
-
     def vertification(self,meta):
         r"""vertification of signature in metadata. Uses the pubkey and nounce
         """

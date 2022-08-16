@@ -280,7 +280,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     inputs_x = deserialized_forward_tensors, 
                     synapses = synapses,
                     priority = priority,
-                    hotkey= request.hotkey
+                    hotkey = request.hotkey,
+                    timeout = bittensor.__blocktime__ - (clock.time() - start_time)
                 )
                 forward_response_tensors, forward_codes, forward_messages = future.result( timeout= self.forward_timeout )
             else:

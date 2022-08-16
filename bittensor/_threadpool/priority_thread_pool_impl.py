@@ -170,7 +170,8 @@ class PriorityThreadPoolExecutor(_base.Executor):
             f = _base.Future()
             w = _WorkItem(f, fn, start_time, args, kwargs)
 
-            self._work_queue.put((-float(priority + eplison), w), block=False)
+            timeout = kwargs.get('timeout', bittensor.__blocktime__)
+            self._work_queue.put((-float(priority + eplison), w), block=False, timeout = timeout)
             self._adjust_thread_count()
             return f
     submit.__doc__ = _base.Executor.submit.__doc__

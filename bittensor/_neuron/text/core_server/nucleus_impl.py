@@ -123,7 +123,6 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
         
-
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
             Returns: 
@@ -564,4 +563,3 @@ class server(torch.nn.Module):
         bittensor.dataset.add_args( parser )
         bittensor.metagraph.add_args( parser )
         return bittensor.config( parser )
-    
