@@ -412,8 +412,14 @@ class TestSubtensor(unittest.TestCase):
                 self.subtensor.neuron_for_pubkey = MagicMock( return_value=mock_neuron )
                 self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
 
-                # should return True
-                assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5 ) == True
+                with patch('bittensor.__console__.status') as mock_set_status:
+                    # Need to patch the console status to avoid opening a parallel live display
+                    mock_set_status.__enter__ = MagicMock(return_value=True)
+                    mock_set_status.__exit__ = MagicMock(return_value=True)
+
+                    # should return True
+                    assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5 ) == True
+
                 # calls until True and once again before exiting subtensor class
                 # This assertion is currently broken when difficulty is too low
                 assert wallet.is_registered.call_count == workblocks_before_is_registered  
@@ -448,8 +454,13 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.get_current_block = MagicMock(side_effect=current_block)
             self.subtensor.substrate.submit_extrinsic = submit_extrinsic_mock
 
-            # should return True
-            assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
+            with patch('bittensor.__console__.status') as mock_set_status:
+                # Need to patch the console status to avoid opening a parallel live display
+                mock_set_status.__enter__ = MagicMock(return_value=True)
+                mock_set_status.__exit__ = MagicMock(return_value=True)
+
+                # should return True
+                assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
 
     def test_registration_failed( self ):
         class failed():
