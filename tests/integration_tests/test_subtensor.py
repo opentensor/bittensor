@@ -406,7 +406,7 @@ class TestSubtensor(unittest.TestCase):
             with patch('multiprocessing.queues.Queue.get', return_value=None) as mock_queue_get:
                 # patch time queue size check
                 with patch('multiprocessing.queues.Queue.qsize', return_value=0):
-                    
+
                     wallet = bittensor.wallet(_mock=True)
                     wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
@@ -424,7 +424,7 @@ class TestSubtensor(unittest.TestCase):
 
                     # calls until True and once again before exiting subtensor class
                     # This assertion is currently broken when difficulty is too low
-                    assert wallet.is_registered.call_count == workblocks_before_is_registered  
+                    assert wallet.is_registered.call_count == workblocks_before_is_registered + 2 
 
     def test_registration_partly_failed( self ):
         class failed():
