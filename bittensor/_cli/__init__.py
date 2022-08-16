@@ -832,10 +832,10 @@ class cli:
         if not config.no_prompt and config.subtensor.register.cuda.use_cuda == bittensor.defaults.subtensor.register.cuda.use_cuda:
             # Ask about cuda registration only if a CUDA device is available.
             if torch.cuda.is_available():
-                cuda = Confirm.ask("Would you like to try CUDA registration?\n")
+                cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
                 config.subtensor.register.cuda.use_cuda = cuda
                 # Only ask about which CUDA device if the user has more than one CUDA device.
-                if cuda and config.subtensor.register.cuda.dev_id == bittensor.defaults.subtensor.register.cuda.dev_id and torch.cuda.device_count() > 0:
+                if cuda and config.subtensor.register.cuda.get('dev_id') is None and torch.cuda.device_count() > 0:
                     devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
                     device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
                     console.print("Available CUDA devices:")

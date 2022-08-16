@@ -11,12 +11,13 @@ from dataclasses import dataclass
 from queue import Empty
 from typing import Any, Dict, Optional, Tuple, Union
 
+import backoff
 import bittensor
 import pandas
 import requests
 import torch
 from Crypto.Hash import keccak
-from substrateinterface import Keypair, KeypairType
+from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 
 from .register_cuda import reset_cuda, solve_cuda
@@ -124,6 +125,12 @@ def millify(n: int):
                         int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
 
     return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+
+def POWNotStale(subtensor: 'bittensor.Subtensor', pow_result: Dict) -> bool:
+    """Returns True if the POW is not stale.
+    This means the block the POW is solved for is within 3 blocks of the current block.
+    """
+    return pow_result['block_number'] >= subtensor.get_current_block() - 3
 
 @dataclass
 class POWSolution:
@@ -449,6 +456,18 @@ def millify(n: int):
 
     return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
+@backoff.on_exception(backoff.constant,
+                            Exception,
+                            interval=1,
+                            max_tries=3)
+def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, bytes]:
+    block_number = subtensor.get_current_block()
+    difficulty = subtensor.difficulty
+    block_hash = subtensor.substrate.get_block_hash( block_number )
+    if block_hash is None:
+        raise Exception("Network error. Could not connect to substrate to get block hash")
+    return block_number, difficulty, block_hash
+
 def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: int = 0 ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
@@ -469,12 +488,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
     if update_interval is None:
         update_interval = 50_000
-        
-    block_number = subtensor.get_current_block()
-    difficulty = subtensor.difficulty
-    block_hash = subtensor.substrate.get_block_hash( block_number )
-    while block_hash == None:
-        block_hash = subtensor.substrate.get_block_hash( block_number )
+    
+    block_number, difficulty, block_hash = get_block_with_retry(subtensor)
     block_bytes = block_hash.encode('utf-8')[2:]
     
     nonce = 0
@@ -512,11 +527,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             nonce = 0
         itrs_per_sec = (TPB * update_interval) / (time.time() - interval_time)
         interval_time = time.time()
-        difficulty = subtensor.difficulty
-        block_number = subtensor.get_current_block()
-        block_hash = subtensor.substrate.get_block_hash( block_number)
-        while block_hash == None:
-            block_hash = subtensor.substrate.get_block_hash( block_number)
+
+        block_number, difficulty, block_hash = get_block_with_retry(subtensor)
         block_bytes = block_hash.encode('utf-8')[2:]
 
         message = f"""Solving 
