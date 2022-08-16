@@ -250,18 +250,53 @@ def test_registration_diff_pack_unpack_over_32_bits():
     bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
     assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
-def test_get_block_with_retry_network_error_exit():
-    mock_subtensor = MagicMock(
-        get_current_block=MagicMock(return_value=1),
-        difficulty=1,
-        substrate=MagicMock(
-            get_block_hash=MagicMock(side_effect=Exception('network error'))
+class TestGetBlockWithRetry(unittest.TestCase):
+    def test_get_block_with_retry_network_error_exit(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+            difficulty=1,
+            substrate=MagicMock(
+                get_block_hash=MagicMock(side_effect=Exception('network error'))
+            )
         )
-    )
-    with pytest.raises(Exception):
-        # this should raise an exception because the network error is retried only 3 times
+        with pytest.raises(Exception):
+            # this should raise an exception because the network error is retried only 3 times
+            bittensor.utils.get_block_with_retry(mock_subtensor)
+
+    def test_get_block_with_retry_network_error_no_error(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+            difficulty=1,
+            substrate=MagicMock(
+                get_block_hash=MagicMock(return_value=b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279')
+            )
+        )
+
+        # this should not raise an exception because there is no error
         bittensor.utils.get_block_with_retry(mock_subtensor)
 
+    def test_get_block_with_retry_network_error_error_twice(self):
+        # Should retry twice then succeed on the third try
+        tries = 0
+        def throw_error_twice(block_hash: bytes):
+            nonlocal tries
+            if tries == 1:
+                return block_hash
+            else:
+                tries += 1
+                raise Exception('network error')
+
+        
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+            difficulty=1,
+            substrate=MagicMock(
+                get_block_hash=MagicMock(side_effect=throw_error_twice(b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'))
+            )
+        )
+        
+        # this should not raise an exception because there is no error on the third try
+        bittensor.utils.get_block_with_retry(mock_subtensor)
 class TestPOWNotStale(unittest.TestCase):
     def test_pow_not_stale_same_block_number(self):
         mock_subtensor = MagicMock(
