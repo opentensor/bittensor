@@ -275,23 +275,23 @@ class TestGetBlockWithRetry(unittest.TestCase):
         # this should not raise an exception because there is no error
         bittensor.utils.get_block_with_retry(mock_subtensor)
 
-    def test_get_block_with_retry_network_error_error_twice(self):
+    def test_get_block_with_retry_network_error_none_twice(self):
         # Should retry twice then succeed on the third try
         tries = 0
-        def throw_error_twice(block_hash: bytes):
+        def block_none_twice(block_hash: bytes):
             nonlocal tries
             if tries == 1:
                 return block_hash
             else:
                 tries += 1
-                raise Exception('network error')
+                return None
 
         
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=1),
             difficulty=1,
             substrate=MagicMock(
-                get_block_hash=MagicMock(side_effect=throw_error_twice(b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'))
+                get_block_hash=MagicMock(side_effect=block_none_twice(b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'))
             )
         )
         
