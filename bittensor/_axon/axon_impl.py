@@ -32,6 +32,7 @@ import concurrent
 
 import bittensor
 import bittensor.utils.stats as stat_utils
+from datetime import datetime
 
 logger = logger.opt(colors=True)
 
@@ -165,6 +166,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapses (:obj:`List[ 'bittensor.proto.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
                     Synapse wire protos with return codes from forward request.
         """
+        print('in _forward', datetime.now())
         # ===================================================================
         # ==== First deserialize synapse wire protos to instance objects ====        
         # ===================================================================
@@ -281,7 +283,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapses = synapses,
                     priority = priority,
                     hotkey = request.hotkey,
-                    timeout = bittensor.__blocktime__ - (clock.time() - start_time)
+                    timeout = self.forward_timeout - (clock.time() - start_time)
                 )
                 forward_response_tensors, forward_codes, forward_messages = future.result( timeout= self.forward_timeout )
             else:

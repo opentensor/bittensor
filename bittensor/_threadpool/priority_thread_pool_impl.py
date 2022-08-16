@@ -166,12 +166,14 @@ class PriorityThreadPoolExecutor(_base.Executor):
             start_time = time.time()
             if 'priority' in kwargs:
                 del kwargs['priority']
+            
+            timeout = kwargs.get('timeout', None)
+            if 'timeout' in kwargs:
+                del kwargs['timeout']
 
             f = _base.Future()
             w = _WorkItem(f, fn, start_time, args, kwargs)
-
-            timeout = kwargs.get('timeout', bittensor.__blocktime__)
-            self._work_queue.put((-float(priority + eplison), w), block=False, timeout = timeout)
+            self._work_queue.put((-float(priority + eplison), w), block=False, timeout=timeout)
             self._adjust_thread_count()
             return f
     submit.__doc__ = _base.Executor.submit.__doc__
@@ -191,6 +193,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
         if num_threads < self._max_workers:
             thread_name = '%s_%d' % (self._thread_name_prefix or self,
                                      num_threads)
+            print('thread_name', self._max_workers, thread_name)
             t = threading.Thread(name=thread_name, target=_worker,
                                  args=(weakref.ref(self, weakref_cb),
                                        self._work_queue,

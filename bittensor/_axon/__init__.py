@@ -57,6 +57,7 @@ class axon:
             synapse_seq_2_seq: 'Callable' = None,
             synapse_checks: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
+            priority_threadpool: 'bittensor.prioritythreadpool' = None,
             server: 'grpc._Server' = None,
             port: int = None,
             ip: str = None,
@@ -150,10 +151,8 @@ class axon:
         
         synapse_check_function = synapse_checks if synapse_checks != None else axon.default_synapse_check
 
-        if priority != None:
+        if priority != None and priority_threadpool == None:
             priority_threadpool = bittensor.prioritythreadpool(config=config)
-        else: 
-            priority_threadpool = None
 
         axon_instance = axon_impl.Axon( 
             wallet = wallet, 
