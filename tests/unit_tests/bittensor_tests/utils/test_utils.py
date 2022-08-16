@@ -234,7 +234,7 @@ def test_is_valid_ed25519_pubkey():
     assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
     assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
 
-def test_registration_diff_pack_unpack():
+def test_registration_diff_pack_unpack_under_32_bits():
     fake_diff = pow(2, 31)# this is under 32 bits
     
     mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
@@ -242,6 +242,8 @@ def test_registration_diff_pack_unpack():
     bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
     assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
+def test_registration_diff_pack_unpack_over_32_bits():
+    mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
     fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
     
     bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
