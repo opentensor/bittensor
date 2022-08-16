@@ -184,7 +184,7 @@ def test_solve_for_difficulty_fast_registered_already():
 
         assert solution is None
         # called every time until True
-        assert wallet.is_registered.call_count == workblocks_before_is_registered
+        assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
 
 def test_solve_for_difficulty_fast_missing_hash():
     block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
