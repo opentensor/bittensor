@@ -512,7 +512,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 else:
                     with bittensor.__console__.status(":satellite: Submitting POW..."):
                         # check if pow result is still valid
-                        while pow_result['block_number'] >= self.get_current_block() - 3:
+                        while bittensor.utils.POWNotStale(pow_result, self):
                             with self.substrate as substrate:
                                 # create extrinsic call
                                 call = substrate.compose_call( 

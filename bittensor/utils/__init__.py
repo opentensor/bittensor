@@ -126,6 +126,12 @@ def millify(n: int):
 
     return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
+def POWNotStale(pow_result: Dict, subtensor: 'bittensor.Subtensor') -> bool:
+    """Returns True if the POW is not stale.
+    This means the block the POW is solved for is within 3 blocks of the current block.
+    """
+    return pow_result['block_number'] >= subtensor.get_current_block() - 3
+
 @dataclass
 class POWSolution:
     """A solution to the registration PoW problem."""

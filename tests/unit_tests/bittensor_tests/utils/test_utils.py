@@ -1,5 +1,6 @@
 import binascii
 import hashlib
+import unittest
 import bittensor
 import sys
 import subprocess
@@ -260,6 +261,56 @@ def test_get_block_with_retry_network_error_exit():
     with pytest.raises(Exception):
         # this should raise an exception because the network error is retried only 3 times
         bittensor.utils.get_block_with_retry(mock_subtensor)
+
+class TestPOWNotStale(unittest.TestCase):
+    def test_pow_not_stale_same_block_number(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+        )
+        mock_solution = {
+            "block_number": 1,
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+    def test_pow_not_stale_diff_block_number(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=2),
+        )
+        mock_solution = {
+            "block_number": 1, # 1 less than current block number
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=3),
+        )
+        mock_solution = {
+            "block_number": 1, # 2 less than current block number
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=4),
+        )
+        mock_solution = {
+            "block_number": 1, # 3 less than current block number
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+    def test_pow_not_stale_diff_block_number_too_old(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=5),
+        )
+        mock_solution = {
+            "block_number": 1, # 4 less than current block number, stale
+        }
+
+        assert not bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+    
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()
