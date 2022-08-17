@@ -560,14 +560,15 @@ To run a local node (See: docs/running_a_validator.md) \n
                         # Exited loop because pow is no longer valid.
                         bittensor.__console__.print( "[red]POW is stale.[/red]" )
                         return False
-                if attempts < max_allowed_attempts:
-                    #Failed registration, retry pow
-                    attempts += 1
-                    bittensor.__console__.print( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
-                else:
-                    # Failed to register after max attempts.
-                    bittensor.__console__.print( "[red]No more attempts.[/red]" )
-                    return False 
+                        
+            if attempts < max_allowed_attempts:
+                #Failed registration, retry pow
+                attempts += 1
+                bittensor.__console__.print( ":satellite: Failed registration, retrying pow ...({}/{})".format(attempts, max_allowed_attempts))
+            else:
+                # Failed to register after max attempts.
+                bittensor.__console__.print( "[red]No more attempts.[/red]" )
+                return False 
 
     def serve (
             self, 
