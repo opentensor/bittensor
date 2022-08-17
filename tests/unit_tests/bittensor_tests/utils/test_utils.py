@@ -365,7 +365,7 @@ def test_pow_called_for_cuda():
         hotkey=SimpleNamespace(
             ss58_address=''
         ),
-        colkeypub=SimpleNamespace(
+        coldkeypub=SimpleNamespace(
             ss58_address=''
         )
     )
