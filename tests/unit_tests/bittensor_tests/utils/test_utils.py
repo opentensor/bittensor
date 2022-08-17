@@ -373,30 +373,31 @@ def test_pow_called_for_cuda():
     mock_result = {
         "block_number": 1,
         'nonce': random.randint(0, pow(2, 32)),
-        'work': b'\x00' * 32,
+        'work': b'\x00' * 64,
     }
     
     with patch('bittensor.utils.POWNotStale', return_value=True) as mock_pow_not_stale:
         with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
             with patch('bittensor.utils.create_pow', return_value=mock_result) as mock_create_pow:
+                with patch('bittensor.utils.hex_bytes_to_u8_list', return_value=b''):
                 
-                # Should exit early
-                with pytest.raises(MockException):
-                    mock_subtensor.register(mock_wallet, cuda=True, prompt=False)
+                    # Should exit early
+                    with pytest.raises(MockException):
+                        mock_subtensor.register(mock_wallet, cuda=True, prompt=False)
 
-                mock_pow_not_stale.assert_called_once()
-                mock_create_pow.assert_called_once()
-                mock_cuda_available.assert_called_once()
+                    mock_pow_not_stale.assert_called_once()
+                    mock_create_pow.assert_called_once()
+                    mock_cuda_available.assert_called_once()
 
-                call0 = mock_pow_not_stale.call_args
-                assert call0[0][0] == mock_subtensor
-                assert call0[0][1] == mock_result
+                    call0 = mock_pow_not_stale.call_args
+                    assert call0[0][0] == mock_subtensor
+                    assert call0[0][1] == mock_result
 
-                mock_compose_call.assert_called_once()
-                call1 = mock_compose_call.call_args
-                assert call1[0][2]['call_function'] == 'register'
-                call_params = call1[0][2]['call_params']
-                assert call_params['nonce'] == mock_result.nonce
+                    mock_compose_call.assert_called_once()
+                    call1 = mock_compose_call.call_args
+                    assert call1[0][2]['call_function'] == 'register'
+                    call_params = call1[0][2]['call_params']
+                    assert call_params['nonce'] == mock_result.nonce
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()
