@@ -382,7 +382,7 @@ def test_pow_called_for_cuda():
                 
                 # Should exit early
                 with pytest.raises(MockException):
-                    mock_subtensor.register(mock_subtensor, mock_wallet, cuda=True, prompt=False)
+                    mock_subtensor.register(mock_wallet, cuda=True, prompt=False)
 
                 mock_pow_not_stale.assert_called_once()
                 mock_create_pow.assert_called_once()
