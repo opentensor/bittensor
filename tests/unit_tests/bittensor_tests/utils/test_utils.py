@@ -395,8 +395,8 @@ def test_pow_called_for_cuda():
 
                     mock_compose_call.assert_called_once()
                     call1 = mock_compose_call.call_args
-                    assert call1[2]['call_function'] == 'register'
-                    call_params = call1[2]['call_params']
+                    assert call1[1]['call_function'] == 'register'
+                    call_params = call1[1]['call_params']
                     assert call_params['nonce'] == mock_result.nonce
 
 if __name__ == "__main__":
