@@ -531,6 +531,7 @@ class neuron:
         responsive_uids = []
         for _uid, _stats in neuron_stats.items():
             stats = self.neuron_stats.setdefault(_uid, {})
+            responsive_uids += [_uid]
 
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
@@ -555,7 +556,6 @@ class neuron:
                     updates = 'updates_' + key
                     if updates in stats:
                         stats[updates] += 1  # increment number of normal EMA updates made
-                        responsive_uids += [_uid]
                     else:
                         stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
