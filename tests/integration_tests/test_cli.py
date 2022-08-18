@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2022 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -16,7 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import sys
 import unittest
 from types import SimpleNamespace
 from typing import Dict
@@ -26,8 +26,6 @@ import bittensor
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface.base import Keypair
-from substrateinterface.exceptions import SubstrateRequestException
-
 from tests.helpers import CLOSE_IN_VALUE
 
 
@@ -1326,6 +1324,31 @@ class TestCli(unittest.TestCase):
             cli = bittensor.cli(config)
             # This shouldn't raise an error anymore
             cli.run()
+
+def test_btcli_help():
+    """
+    Verify the correct help text is output when the --help flag is passed
+    """
+    with patch('argparse.ArgumentParser._print_message', return_value=None) as mock_print_message:
+        args = [
+            '--help'
+        ]
+        bittensor.cli(args).run()
+
+    # Should try to print help
+    mock_print_message.assert_called_once()
+
+    call_args = mock_print_message.call_args
+    args, _ = call_args
+    help_out = args[0]
+
+    # Expected help output even if parser isn't working well
+    assert 'optional arguments' in help_out
+    # Expected help output if all commands are listed
+    assert 'positional arguments' in help_out
+    # Verify that cli is printing the help message for 
+    assert 'overview' in help_out
+    assert 'run' in help_out
 
 
 if __name__ == "__main__":
