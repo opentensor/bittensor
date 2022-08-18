@@ -95,8 +95,7 @@ class config:
                 print('Error in loading: {} using default parser settings'.format(e))
 
         # 2. Continue with loading in params.
-        if strict:
-            params = cls.__parse_args__(args=args, parser=parser, strict=True)
+        params = cls.__parse_args__(args=args, parser=parser, strict=strict)
 
         _config = config_impl.Config()
 
