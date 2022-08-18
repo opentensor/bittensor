@@ -38,15 +38,15 @@ class cli:
     """
     def __new__(
             cls,
-            args: Optional[List[str]] = None, 
             config: Optional['bittensor.Config'] = None,
+            args: Optional[List[str]] = None, 
         ) -> 'bittensor.CLI':
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
-                args (`List[str]`, `optional`): 
-                    The arguments to parse from the command line.
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.cli.config()
+                args (`List[str]`, `optional`): 
+                    The arguments to parse from the command line.
         """
         if config == None: 
             config = cli.config(args)

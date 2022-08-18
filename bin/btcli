@@ -6,7 +6,7 @@ import bittensor
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    bittensor.cli(args).run()
+    bittensor.cli(args=args).run()
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
