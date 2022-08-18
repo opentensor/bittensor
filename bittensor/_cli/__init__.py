@@ -58,7 +58,10 @@ class cli:
         """ From the argument parser, add config to bittensor.executor and local config 
             Return: bittensor.config object
         """
-        parser = argparse.ArgumentParser(description="Bittensor cli", usage="btcli <command> <command args>", add_help=True)
+        parser = argparse.ArgumentParser(
+            description=f"bittensor cli v{bittensor.__version__}",
+            usage="btcli <command> <command args>",
+            add_help=True)
 
         cmd_parsers = parser.add_subparsers(dest='command')
         overview_parser = cmd_parsers.add_parser(
