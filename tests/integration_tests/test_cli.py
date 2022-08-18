@@ -21,6 +21,7 @@ import unittest
 from types import SimpleNamespace
 from typing import Dict
 from unittest.mock import ANY, MagicMock, call, patch
+import pytest
 
 import bittensor
 from bittensor._subtensor.subtensor_mock import mock_subtensor
@@ -1329,11 +1330,12 @@ def test_btcli_help():
     """
     Verify the correct help text is output when the --help flag is passed
     """
-    with patch('argparse.ArgumentParser._print_message', return_value=None) as mock_print_message:
-        args = [
-            '--help'
-        ]
-        bittensor.cli(args=args).run()
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        with patch('argparse.ArgumentParser._print_message', return_value=None) as mock_print_message:
+            args = [
+                '--help'
+            ]
+            bittensor.cli(args=args).run()
 
     # Should try to print help
     mock_print_message.assert_called_once()
