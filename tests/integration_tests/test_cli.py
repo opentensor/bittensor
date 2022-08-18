@@ -1345,7 +1345,8 @@ def test_btcli_help():
     help_out = args[0]
 
     # Expected help output even if parser isn't working well
-    assert 'optional arguments' in help_out
+    ## py3.6-3.9 or py3.10+
+    assert 'optional arguments' in help_out or 'options' in help_out
     # Expected help output if all commands are listed
     assert 'positional arguments' in help_out
     # Verify that cli is printing the help message for 
