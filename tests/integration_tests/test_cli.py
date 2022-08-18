@@ -1333,7 +1333,7 @@ def test_btcli_help():
         args = [
             '--help'
         ]
-        bittensor.cli(args).run()
+        bittensor.cli(args=args).run()
 
     # Should try to print help
     mock_print_message.assert_called_once()
