@@ -45,10 +45,13 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
             add_insecure_port=mock_add_insecure_port
         )
 
+        mock_config = bittensor.axon.config()
+
         mock_axon_with_external_ip_set = bittensor.axon(
             ip=internal_ip,
             external_ip=external_ip,
-            server=mock_grpc_server
+            server=mock_grpc_server,
+            config=mock_config
         )
 
         bittensor.Subtensor.serve_axon(
@@ -81,10 +84,13 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
             add_insecure_port=mock_add_insecure_port
         )
 
+        mock_config = bittensor.axon.config()
+
         mock_axon_with_external_port_set = bittensor.axon(
             port=internal_port,
             external_port=external_port,
-            server=mock_grpc_server
+            server=mock_grpc_server,
+            config=mock_config
         )
 
         with mock.patch('bittensor.utils.networking.get_external_ip', return_value=external_ip):
