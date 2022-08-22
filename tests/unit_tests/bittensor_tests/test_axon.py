@@ -1091,7 +1091,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_add_insecure_port.reset_mock()
 
         # Test using config
-        mock_config = bittensor.Config()
+        mock_config = bittensor.config()
         mock_config.axon = bittensor.Config()
 
         mock_config.axon.port = internal_port
@@ -1125,7 +1125,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_add_insecure_port.reset_mock()
 
         # Test using config
-        mock_config = bittensor.Config()
+        mock_config = bittensor.config()
         mock_config.axon = bittensor.Config()
 
         mock_config.axon.ip = internal_ip
@@ -1161,7 +1161,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_add_insecure_port.reset_mock()
 
         # Test using config
-        mock_config = bittensor.Config()
+        mock_config = bittensor.config()
         mock_config.axon = bittensor.Config()
 
         mock_config.axon.ip = internal_ip

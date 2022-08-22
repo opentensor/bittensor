@@ -37,7 +37,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
 
         mock_subtensor = MagicMock(
             spec=bittensor.Subtensor,
-            server=mock_serve
+            serve=mock_serve
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
@@ -73,7 +73,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
 
         mock_subtensor = MagicMock(
             spec=bittensor.Subtensor,
-            server=mock_serve
+            serve=mock_serve
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
