@@ -1108,7 +1108,8 @@ class TestExternalAxon(unittest.TestCase):
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
 
-        assert f'{internal_port}' in full_address0 and f':{external_port}' not in full_address0
+        assert f'{internal_port}' in full_address0, f'{internal_port} was not found in {full_address0}'
+        assert f':{external_port}' not in full_address0, f':{external_port} was found in {full_address0}'
 
     def test_external_ip_set_full_address_internal(self):
         internal_ip = 'fake_ip_internal'
@@ -1140,7 +1141,8 @@ class TestExternalAxon(unittest.TestCase):
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
 
-        assert f'{internal_ip}' in full_address0 and f'{external_ip}' not in full_address0
+        assert f'{internal_ip}' in full_address0, f'{internal_ip} was not found in {full_address0}'
+        assert f'{external_ip}' not in full_address0, f'{external_ip} was found in {full_address0}'
 
     def test_external_ip_port_set_full_address_internal(self):
         internal_ip = 'fake_ip_internal'
@@ -1179,7 +1181,8 @@ class TestExternalAxon(unittest.TestCase):
         args, _ = mock_add_insecure_port.call_args
         full_address1 = args[0]
 
-        assert f'{internal_ip}:{internal_port}' == full_address1 and f'{external_ip}:{external_port}' != full_address1
+        assert f'{internal_ip}:{internal_port}' == full_address1, f'{internal_ip}:{internal_port} is not eq to {full_address1}'
+        assert f'{external_ip}:{external_port}' != full_address1, f'{external_ip}:{external_port} is eq to {full_address1}'
 
 
 if __name__ == "__main__":
