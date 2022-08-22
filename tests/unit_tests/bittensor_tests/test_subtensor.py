@@ -62,7 +62,8 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
 
         mock_serve.assert_called_once()
         # verify that the axon is served to the network with the external ip
-        mock_serve.assert_called_with(ip=external_ip)
+        _, kwargs = mock_serve.call_args
+        self.assertEqual(kwargs['ip'], external_ip)
 
     def test_serve_axon_with_external_port_set(self):
         external_ip: str = 'this is an external ip'
@@ -109,4 +110,5 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
 
         mock_serve.assert_called_once()
         # verify that the axon is served to the network with the external port
-        mock_serve.assert_called_with(port=external_port)
+        _, kwargs = mock_serve.call_args
+        self.assertEqual(kwargs['port'], external_port)
