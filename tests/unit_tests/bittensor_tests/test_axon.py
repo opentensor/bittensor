@@ -1044,6 +1044,15 @@ def test_axon_is_destroyed():
 
 # test external axon args
 class TestExternalAxon(unittest.TestCase):
+    """
+    Tests the external axon config flags 
+    `--axon.external_port` and `--axon.external_ip`
+    Need to verify the external config is used when broadcasting to the network
+    and the internal config is used when creating the grpc server
+
+    Also test the default behaviour when no external axon config is provided
+    (should use the internal axon config, like usual)
+    """
 
     def test_external_ip_not_set_use_internal_ip(self):
         # Verify that not setting the external ip arg will default to the internal axon ip
@@ -1054,6 +1063,8 @@ class TestExternalAxon(unittest.TestCase):
         # Verify that not setting the external port arg will default to the internal axon port
         axon = bittensor.axon ( port = 1234 )
         assert axon.external_port == axon.port
+
+    
 
 
 if __name__ == "__main__":
