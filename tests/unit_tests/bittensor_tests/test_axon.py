@@ -1070,14 +1070,20 @@ class TestExternalAxon(unittest.TestCase):
         internal_port = 1234
         external_port = 5678
 
-        with mock.patch('grpc._Server.add_insecure_port', return_value=None) as mock_add_insecure_port:
-            _ = bittensor.axon( port=internal_port, external_port=external_port )
-            
-            mock_add_insecure_port.assert_called_once()
-            args, _ = mock_add_insecure_port.call_args
-            full_address0 = args[0]
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        _ = bittensor.axon( port=internal_port, external_port=external_port, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
 
         assert f'{internal_port}' in full_address0 and f':{external_port}' not in full_address0
+
+        mock_add_insecure_port.reset_mock()
 
         # Test using config
         mock_config = bittensor.config()
@@ -1085,12 +1091,11 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        with mock.patch('grpc._Server.add_insecure_port', return_value=None) as mock_add_insecure_port:
-            _ = bittensor.axon( config=mock_config )
-            
-            mock_add_insecure_port.assert_called_once()
-            args, _ = mock_add_insecure_port.call_args
-            full_address0 = args[0]
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
 
         assert f'{internal_port}' in full_address0 and f':{external_port}' not in full_address0
 
@@ -1098,14 +1103,20 @@ class TestExternalAxon(unittest.TestCase):
         internal_ip = 'fake_ip_internal'
         external_ip = 'fake_ip_external'
 
-        with mock.patch('grpc._Server.add_insecure_port', return_value=None) as mock_add_insecure_port:
-            _ = bittensor.axon( ip=internal_ip, external_ip=external_ip )
-            
-            mock_add_insecure_port.assert_called_once()
-            args, _ = mock_add_insecure_port.call_args
-            full_address0 = args[0]
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+    
+        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
 
         assert f'{internal_ip}' in full_address0 and f'{external_ip}' not in full_address0
+
+        mock_add_insecure_port.reset_mock()
 
         # Test using config
         mock_config = bittensor.config()
@@ -1113,12 +1124,11 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.ip = internal_ip
         mock_config.axon.external_ip = external_ip
 
-        with mock.patch('grpc._Server.add_insecure_port', return_value=None) as mock_add_insecure_port:
-            _ = bittensor.axon( config=mock_config )
-            
-            mock_add_insecure_port.assert_called_once()
-            args, _ = mock_add_insecure_port.call_args
-            full_address0 = args[0]
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
 
         assert f'{internal_ip}' in full_address0 and f'{external_ip}' not in full_address0
 
@@ -1128,14 +1138,20 @@ class TestExternalAxon(unittest.TestCase):
         internal_port = 1234
         external_port = 5678
 
-        with mock.patch('grpc._Server.add_insecure_port', return_value=None) as mock_add_insecure_port:
-            _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port )
-            
-            mock_add_insecure_port.assert_called_once()
-            args, _ = mock_add_insecure_port.call_args
-            full_address0 = args[0]
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+    
+        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
 
         assert f'{internal_ip}:{internal_port}' == full_address0 and f'{external_ip}:{external_port}' != full_address0
+
+        mock_add_insecure_port.reset_mock()
 
         # Test using config
         mock_config = bittensor.config()
@@ -1145,14 +1161,12 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        with mock.patch('grpc._Server.add_insecure_port', return_value=None) as mock_add_insecure_port:
-            _ = bittensor.axon( config=mock_config )
-            
-            mock_add_insecure_port.assert_called_once()
-            args, _ = mock_add_insecure_port.call_args
-            full_address1 = args[0]
-
+        _ = bittensor.axon( config=mock_config, server=mock_server )
         
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address1 = args[0]
+
         assert f'{internal_ip}:{internal_port}' == full_address1 and f'{external_ip}:{external_port}' != full_address1
 
 
