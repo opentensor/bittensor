@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import unittest
 import unittest.mock as mock
 import uuid
 
@@ -1040,6 +1041,19 @@ def test_axon_is_destroyed():
     assert is_port_in_use( port ) == False
     axonB.__del__()
     assert is_port_in_use( port ) == False
+
+# test external axon args
+class TestExternalAxon(unittest.TestCase):
+
+    def test_external_ip_not_set_use_internal_ip(self):
+        # Verify that not setting the external ip arg will default to the internal axon ip
+        axon = bittensor.axon ( ip = 'fake_ip' )
+        assert axon.external_ip == axon.ip
+
+    def test_external_port_not_set_use_internal_port(self):
+        # Verify that not setting the external port arg will default to the internal axon port
+        axon = bittensor.axon ( port = 1234 )
+        assert axon.external_port == axon.port
 
 
 if __name__ == "__main__":
