@@ -201,7 +201,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==============================================================
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
-        def finalize_codes_stats_and_logs():
+        def finalize_codes_stats_and_logs( message = None):
             for index, synapse in enumerate( synapses ):
                 request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
                 request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
@@ -214,7 +214,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     pubkey = request.hotkey, 
                     inputs = synapse_inputs [index] , 
                     outputs = None if synapse_responses[index] == None else list( synapse_responses[index].shape ), 
-                    message = synapse_messages[ index ],
+                    message = synapse_messages[ index ] if message == None else message,
                     synapse = synapse.synapse_type
                 )
 
@@ -321,11 +321,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
         except Exception as e:
             code = bittensor.proto.ReturnCode.UnknownException
             call_time = clock.time() - start_time
-            message = str ( e )
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
-            synapse_messages = [ message for _ in synapses ]
-            finalize_codes_stats_and_logs()
+            synapse_messages = [ 'Exception on Server' for _ in synapses ]
+            finalize_codes_stats_and_logs(message = str(e))
             return [], bittensor.proto.ReturnCode.UnknownException, request.synapses
 
         # =================================================
