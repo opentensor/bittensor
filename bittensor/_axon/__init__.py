@@ -261,7 +261,7 @@ class axon:
         """ Check config for axon port and wallet
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
-        assert config.axon.external_port > 1024 and config.axon.external_port < 65535, 'external port must be in range [1024, 65535]'
+        assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
         bittensor.wallet.check_config( config )
 
     @classmethod   
