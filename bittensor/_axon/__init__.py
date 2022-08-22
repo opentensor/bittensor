@@ -60,6 +60,8 @@ class axon:
             server: 'grpc._Server' = None,
             port: int = None,
             ip: str = None,
+            external_ip: str = None,
+            external_port: int = None,
             max_workers: int = None, 
             maximum_concurrent_rpcs: int = None,
             blacklist: 'Callable' = None,
@@ -96,6 +98,10 @@ class axon:
                     Binding port.
                 ip (:type:`str`, `optional`):
                     Binding ip.
+                external_ip (:type:`str`, `optional`):
+                    The external ip of the server to broadcast to the network.
+                external_port (:type:`int`, `optional`):
+                    The external port of the server to broadcast to the network.
                 max_workers (:type:`int`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
@@ -115,6 +121,8 @@ class axon:
         config = copy.deepcopy(config)
         config.axon.port = port if port != None else config.axon.port
         config.axon.ip = ip if ip != None else config.axon.ip
+        config.axon.external_ip = external_ip if external_ip != None else config.axon.external_ip
+        config.axon.external_port = external_port if external_port != None else config.axon.external_port
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
@@ -160,8 +168,8 @@ class axon:
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
-            external_ip=config.axon.external_ip or config.axon.ip,
-            external_port=config.axon.external_port or config.axon.port,
+            external_ip=config.axon.external_ip or config.axon.ip, # default to internal ip if external ip is not set
+            external_port=config.axon.external_port or config.axon.port, # default to internal port if external port is not set
             forward = forward_text,
             backward = backward_text,
             synapses = synapses,
@@ -252,6 +260,7 @@ class axon:
         """ Check config for axon port and wallet
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
+        assert config.axon.external_port > 1024 and config.axon.external_port < 65535, 'external port must be in range [1024, 65535]'
         bittensor.wallet.check_config( config )
 
     @classmethod   

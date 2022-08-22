@@ -53,6 +53,8 @@ class Config ( Munch ):
             if 'axon' in self.keys():
                 bittensor.defaults.axon.port = self.axon.port
                 bittensor.defaults.axon.ip = self.axon.ip
+                bittensor.defaults.axon.external_port = self.axon.external_port
+                bittensor.defaults.axon.external_ip = self.axon.external_ip
                 bittensor.defaults.axon.max_workers = self.axon.max_workers
                 bittensor.defaults.axon.maximum_concurrent_rpcs = self.axon.maximum_concurrent_rpcs
             
