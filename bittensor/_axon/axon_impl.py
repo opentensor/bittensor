@@ -166,7 +166,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 synapses (:obj:`List[ 'bittensor.proto.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
                     Synapse wire protos with return codes from forward request.
         """
-        print('in _forward', datetime.now())
         # ===================================================================
         # ==== First deserialize synapse wire protos to instance objects ====        
         # ===================================================================
