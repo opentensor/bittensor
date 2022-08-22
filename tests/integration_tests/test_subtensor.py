@@ -491,6 +491,19 @@ class TestSubtensor(unittest.TestCase):
             assert self.subtensor.register(wallet=wallet,) == False
             assert bittensor.utils.create_pow.call_count == 3 
 
+class TestExternalAxonConfig(unittest.TestCase):
+    """
+    Tests the external axon config flags 
+    `--axon.external_port` and `--axon.external_ip`
+    Need to verify the external config is used when broadcasting to the network
+    and the internal config is used when creating the grpc server
+
+    Also test the default behaviour when no external axon config is provided
+    (should use the internal axon config, like usual)
+    """
+    pass
+
+
 def test_subtensor_mock():
     mock_subtensor.kill_global_mock_process()
     sub = bittensor.subtensor(_mock=True)
