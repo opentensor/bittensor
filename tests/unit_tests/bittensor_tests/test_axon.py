@@ -1055,10 +1055,11 @@ class TestExternalAxon(unittest.TestCase):
     (should use the internal axon config, like usual)
     """
 
-    def test_external_ip_not_set_use_internal_ip(self):
-        # Verify that not setting the external ip arg will default to the internal axon ip
+    def test_external_ip_not_set_dont_use_internal_ip(self):
+        # Verify that not setting the external ip arg will NOT default to the internal axon ip
         axon = bittensor.axon ( ip = 'fake_ip' )
-        assert axon.external_ip == axon.ip
+        assert axon.external_ip != axon.ip # should be different
+        assert axon.external_ip is None # should be None
 
     def test_external_port_not_set_use_internal_port(self):
         # Verify that not setting the external port arg will default to the internal axon port

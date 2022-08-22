@@ -169,7 +169,7 @@ class axon:
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
-            external_ip=config.axon.external_ip or config.axon.ip, # default to internal ip if external ip is not set
+            external_ip=config.axon.external_ip, # don't use internal ip if it is None, we will try to find it later
             external_port=config.axon.external_port or config.axon.port, # default to internal port if external port is not set
             forward = forward_text,
             backward = backward_text,
