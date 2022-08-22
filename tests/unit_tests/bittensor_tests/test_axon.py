@@ -1134,6 +1134,8 @@ class TestExternalAxon(unittest.TestCase):
 
         # Test using config
         mock_config = bittensor.axon.config()
+        mock_config.axon.external_ip = external_ip
+        mock_config.axon.ip = internal_ip
 
         _ = bittensor.axon( config=mock_config, server=mock_server )
         
