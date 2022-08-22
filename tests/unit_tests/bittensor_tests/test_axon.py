@@ -1057,7 +1057,12 @@ class TestExternalAxon(unittest.TestCase):
 
     def test_external_ip_not_set_dont_use_internal_ip(self):
         # Verify that not setting the external ip arg will NOT default to the internal axon ip
-        axon = bittensor.axon ( ip = 'fake_ip' )
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        axon = bittensor.axon ( ip = 'fake_ip', server=mock_server )
         assert axon.external_ip != axon.ip # should be different
         assert axon.external_ip is None # should be None
 
@@ -1086,7 +1091,8 @@ class TestExternalAxon(unittest.TestCase):
         mock_add_insecure_port.reset_mock()
 
         # Test using config
-        mock_config = bittensor.config()
+        mock_config = bittensor.Config()
+        mock_config.axon = bittensor.Config()
 
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
@@ -1119,7 +1125,8 @@ class TestExternalAxon(unittest.TestCase):
         mock_add_insecure_port.reset_mock()
 
         # Test using config
-        mock_config = bittensor.config()
+        mock_config = bittensor.Config()
+        mock_config.axon = bittensor.Config()
 
         mock_config.axon.ip = internal_ip
         mock_config.axon.external_ip = external_ip
@@ -1154,7 +1161,8 @@ class TestExternalAxon(unittest.TestCase):
         mock_add_insecure_port.reset_mock()
 
         # Test using config
-        mock_config = bittensor.config()
+        mock_config = bittensor.Config()
+        mock_config.axon = bittensor.Config()
 
         mock_config.axon.ip = internal_ip
         mock_config.axon.external_ip = external_ip

@@ -40,9 +40,15 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
             server=mock_serve
         )
 
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_grpc_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
         mock_axon_with_external_ip_set = bittensor.axon(
             ip=internal_ip,
             external_ip=external_ip,
+            server=mock_grpc_server
         )
 
         bittensor.Subtensor.serve_axon(
@@ -70,9 +76,15 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
             server=mock_serve
         )
 
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_grpc_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
         mock_axon_with_external_port_set = bittensor.axon(
             port=internal_port,
             external_port=external_port,
+            server=mock_grpc_server
         )
 
         with mock.patch('bittensor.utils.networking.get_external_ip', return_value=external_ip):
@@ -82,6 +94,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
                 axon=mock_axon_with_external_port_set,
                 use_upnpc=False,
             )
+
         bittensor.Subtensor.serve_axon(
             mock_subtensor,
             axon=mock_axon_with_external_port_set,
