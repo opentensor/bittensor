@@ -18,15 +18,18 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
 import os
 import sys
-import argparse
+from typing import List
 
 import bittensor
-from rich.prompt import Prompt
-from rich.prompt import Confirm
+import torch
+from rich.prompt import Confirm, Prompt
 from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
+
 from . import cli_impl
+
 console = bittensor.__console__
 
 class cli:
@@ -88,6 +91,27 @@ class cli:
             help='''Set the output width of the overview. Defaults to automatic width from terminal.''',
             default=None,
         )
+        overview_parser.add_argument(
+            '--sort_by', 
+            '--wallet.sort_by',
+            dest='sort_by',
+            required=False,
+            action='store',
+            default="",
+            type=str,
+            help='''Sort the hotkeys by the specified column title (e.g. name, uid, axon).'''
+        )
+        overview_parser.add_argument(
+            '--sort_order',
+            '--wallet.sort_order',
+            dest="sort_order",
+            required=False,
+            action='store',
+            default="ascending",
+            type=str,
+            help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)'''
+        )
+        
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
@@ -250,6 +274,7 @@ class cli:
             'register', 
             help='''Register a wallet to a network.'''
         )
+
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
@@ -497,6 +522,7 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+
         bittensor.wallet.add_args( unstake_parser )
         bittensor.subtensor.add_args( unstake_parser )
 
@@ -535,6 +561,7 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        
         bittensor.wallet.add_args( stake_parser )
         bittensor.subtensor.add_args( stake_parser )
 
@@ -570,23 +597,6 @@ class cli:
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
-        )
-        register_parser.add_argument(
-            '--num_processes',
-            '--num',
-            '-n',
-            dest='num_processes',
-            help="Number of processors to use for registration",
-            type=int,
-            default=None,
-        )
-        register_parser.add_argument(
-            '--update_interval',
-            '-u',
-            dest='update_interval',
-            help="The number of nonces to process before checking for next block during registration",
-            type=int,
-            default=None,
         )
 
         bittensor.wallet.add_args( register_parser )
@@ -709,7 +719,7 @@ class cli:
             if config.wallet.get('all_hotkeys'):
                 hotkeys = "all hotkeys"
             elif config.wallet.get('hotkeys'):
-                hotkeys = str(config.hotkeys).replace('[', '').replace(']', '')
+                hotkeys = str(config.wallet.hotkeys).replace('[', '').replace(']', '')
             else:
                 hotkeys = str(config.wallet.hotkey)
             if not Confirm.ask("Unstake all Tao from: [bold]'{}'[/bold]?".format(hotkeys)):
@@ -818,6 +828,28 @@ class cli:
         if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
+        if not config.no_prompt and config.subtensor.register.cuda.use_cuda == bittensor.defaults.subtensor.register.cuda.use_cuda:
+            # Ask about cuda registration only if a CUDA device is available.
+            if torch.cuda.is_available():
+                cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
+                config.subtensor.register.cuda.use_cuda = cuda
+                # Only ask about which CUDA device if the user has more than one CUDA device.
+                if cuda and config.subtensor.register.cuda.get('dev_id') is None and torch.cuda.device_count() > 0:
+                    devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
+                    device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
+                    console.print("Available CUDA devices:")
+                    choices_str: str = ""
+                    for i, device in enumerate(devices):
+                        choices_str += ("  {}: {}\n".format(device, device_names[i]))
+                    console.print(choices_str)
+                    dev_id = Prompt.ask("Which GPU would you like to use?", choices=devices, default=str(bittensor.defaults.subtensor.register.cuda.dev_id))
+                    try:
+                        dev_id = int(dev_id)
+                    except ValueError:
+                        console.error(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
+                        sys.exit(1)
+                    config.subtensor.register.cuda.dev_id = dev_id
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:

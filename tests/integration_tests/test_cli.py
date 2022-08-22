@@ -442,7 +442,7 @@ class TestCli(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.unstake', return_value=True) as mock_unstake:
+            with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -451,7 +451,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_unstake.assert_has_calls(
-                    [call(mock_wallets[i+1], amount=5.0, wait_for_inclusion=True, prompt=False) for i in range(len(mock_wallets[1:]))],
+                    [call(wallets=mock_wallets[1:], amounts=[5.0]*len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -500,11 +500,11 @@ class TestCli(unittest.TestCase):
     
         with patch.object(cli, '_get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch('bittensor.Subtensor.unstake', return_value=True) as mock_unstake:
+            with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
                 mock_get_all_wallets.assert_called_once()
                 mock_unstake.assert_has_calls(
-                    [call(mock_wallets[i+1], amount=5.0, wait_for_inclusion=True, prompt=False) for i in range(len(mock_wallets[1:]))],
+                    [call(wallets=mock_wallets, amounts=[5.0]*len(mock_wallets), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -553,13 +553,11 @@ class TestCli(unittest.TestCase):
     
         with patch.object(cli, '_get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch('bittensor.Subtensor.unstake', return_value=True) as mock_unstake:
+            with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
                 mock_get_all_wallets.assert_called_once()
                 mock_unstake.assert_has_calls(
-                    [call(mock_wallets[i], amount=5.0, wait_for_inclusion=True, prompt=False) 
-                        for i in (0, 2) # Don't call for hk1
-                    ],
+                    [call(wallets=[mock_wallets[0], mock_wallets[2]], amounts=[5.0, 5.0], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -628,7 +626,7 @@ class TestCli(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.unstake', return_value=True) as mock_unstake:
+            with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -637,7 +635,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_unstake.assert_has_calls(
-                    [call(mock_wallet, amount=CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str] - config.max_stake).tao, 0.001), wait_for_inclusion=True, prompt=False) for mock_wallet in mock_wallets[1:]],
+                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str] - config.max_stake).tao, 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -706,7 +704,7 @@ class TestCli(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.unstake', return_value=True) as mock_unstake:
+            with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -715,15 +713,16 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_unstake.assert_called()
-                for mock_call in mock_unstake.mock_calls:
-                    # Python 3.7 
-                    ## https://docs.python.org/3.7/library/unittest.mock.html#call
-                    ## Uses the 1st index as args list
-                    ## call.args only works in Python 3.8+
-                    mock_wallet = mock_call[1][0]
 
-                    # We shouldn't unstake from hk1 as it has less than max_stake staked
-                    assert mock_wallet.hotkey_str != 'hk1'
+                # Python 3.7 
+                ## https://docs.python.org/3.7/library/unittest.mock.html#call
+                ## Uses the 1st index as args list
+                ## call.args only works in Python 3.8+
+                mock_wallets_ = mock_unstake.mock_calls[0][2]['wallets']
+                
+
+                # We shouldn't unstake from hk1 as it has less than max_stake staked
+                assert all(mock_wallet.hotkey_str != 'hk1' for mock_wallet in mock_wallets_)
 
     def test_stake_with_specific_hotkeys( self ):
         bittensor.subtensor.register = MagicMock(return_value = True)
@@ -782,7 +781,7 @@ class TestCli(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -791,7 +790,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_add_stake.assert_has_calls(
-                    [call(mock_wallets[i+1], amount=5.0, wait_for_inclusion=True, prompt=False) for i in range(len(mock_wallets[1:]))],
+                    [call(wallets=mock_wallets[1:], amounts=[5.0] * len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -826,7 +825,6 @@ class TestCli(unittest.TestCase):
             ) for hk in mock_hotkeys
         ]
 
-        # The 0th wallet is created twice during unstake
         mock_wallets[0]._coldkey = mock_coldkey
         mock_wallets[0].coldkey = MagicMock(
                                     return_value=mock_coldkey
@@ -839,11 +837,11 @@ class TestCli(unittest.TestCase):
 
         with patch.object(cli, '_get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
                 mock_get_all_wallets.assert_called_once()
                 mock_add_stake.assert_has_calls(
-                    [call(mock_wallets[i+1], amount=5.0, wait_for_inclusion=True, prompt=False) for i in range(len(mock_wallets[1:]))],
+                    [call(wallets=mock_wallets, amounts=[5.0] * len(mock_wallets), wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -891,13 +889,11 @@ class TestCli(unittest.TestCase):
 
         with patch.object(cli, '_get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
                 mock_get_all_wallets.assert_called_once()
                 mock_add_stake.assert_has_calls(
-                    [call(mock_wallets[i], amount=5.0, wait_for_inclusion=True, prompt=False)
-                        for i in (0, 2) # Don't call stake for hk1
-                    ],
+                    [call(wallets=[mock_wallets[0], mock_wallets[2]], amounts=[5.0, 5.0], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -971,7 +967,7 @@ class TestCli(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -980,7 +976,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_add_stake.assert_has_calls(
-                    [call(mock_wallet, amount=CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001), wait_for_inclusion=True, prompt=False) for mock_wallet in mock_wallets[1:]],
+                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -1054,7 +1050,7 @@ class TestCli(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -1066,14 +1062,15 @@ class TestCli(unittest.TestCase):
                 mock_add_stake.assert_called_once()
                 
                 total_staked = 0.0
-                for mock_call in mock_add_stake.mock_calls:
-                    # Python 3.7 
-                    ## https://docs.python.org/3.7/library/unittest.mock.html#call
-                    ## Uses the 2nd index as kwargs dict
-                    ## call.kwargs only works in Python 3.8+
-                    staked_this_call = mock_call[2]['amount']
-                    
-                    total_staked += staked_this_call
+
+                # Python 3.7 
+                ## https://docs.python.org/3.7/library/unittest.mock.html#call
+                ## Uses the 2nd index as kwargs dict
+                ## call.kwargs only works in Python 3.8+
+                amounts_passed = mock_add_stake.mock_calls[0][2]['amounts']
+
+                total_staked = sum(amounts_passed)
+                
                 # We should not try to stake more than the mock_balance
                 assert CLOSE_IN_VALUE(total_staked, 0.001) == mock_balance.tao
 
@@ -1082,8 +1079,8 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.subtensor._mock = True
         config.command = "register"
-        config.num_processes = 1
-        config.update_interval = 50_000
+        config.subtensor.register.num_processes = 1
+        config.subtensor.register.update_interval = 50_000
         config.subtensor.network = "mock"
         config.no_prompt = True
 
@@ -1265,7 +1262,7 @@ class TestCli(unittest.TestCase):
 
     def test_list( self ):
         # Mock IO for wallet
-        with patch('bittensor.wallet.__new__', side_effect=[MagicMock(
+        with patch('bittensor.wallet', side_effect=[MagicMock(
             coldkeypub_file=MagicMock(
                 exists_on_device=MagicMock(
                     return_value=True # Wallet exists

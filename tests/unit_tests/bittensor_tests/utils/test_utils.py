@@ -1,5 +1,6 @@
 import binascii
 import hashlib
+import unittest
 import bittensor
 import sys
 import subprocess
@@ -8,13 +9,15 @@ import pytest
 import os 
 import random
 import torch
+import multiprocessing
+from types import SimpleNamespace
 
 from sys import platform   
 from substrateinterface.base import Keypair
 from _pytest.fixtures import fixture
 from loguru import logger
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 
@@ -232,6 +235,169 @@ def test_is_valid_ed25519_pubkey():
     bad_pubkey = good_pubkey[:-1] # needs to be 32 bytes
     assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
     assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+
+def test_registration_diff_pack_unpack_under_32_bits():
+    fake_diff = pow(2, 31)# this is under 32 bits
+    
+    mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+    
+    bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+    assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+
+def test_registration_diff_pack_unpack_over_32_bits():
+    mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+    fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
+    
+    bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+    assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+
+class TestGetBlockWithRetry(unittest.TestCase):
+    def test_get_block_with_retry_network_error_exit(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+            difficulty=1,
+            substrate=MagicMock(
+                get_block_hash=MagicMock(side_effect=Exception('network error'))
+            )
+        )
+        with pytest.raises(Exception):
+            # this should raise an exception because the network error is retried only 3 times
+            bittensor.utils.get_block_with_retry(mock_subtensor)
+
+    def test_get_block_with_retry_network_error_no_error(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+            difficulty=1,
+            substrate=MagicMock(
+                get_block_hash=MagicMock(return_value=b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279')
+            )
+        )
+
+        # this should not raise an exception because there is no error
+        bittensor.utils.get_block_with_retry(mock_subtensor)
+
+    def test_get_block_with_retry_network_error_none_twice(self):
+        # Should retry twice then succeed on the third try
+        tries = 0
+        def block_none_twice(block_hash: bytes):
+            nonlocal tries
+            if tries == 1:
+                return block_hash
+            else:
+                tries += 1
+                return None
+
+        
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+            difficulty=1,
+            substrate=MagicMock(
+                get_block_hash=MagicMock(side_effect=block_none_twice(b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'))
+            )
+        )
+        
+        # this should not raise an exception because there is no error on the third try
+        bittensor.utils.get_block_with_retry(mock_subtensor)
+class TestPOWNotStale(unittest.TestCase):
+    def test_pow_not_stale_same_block_number(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+        )
+        mock_solution = {
+            "block_number": 1,
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+    def test_pow_not_stale_diff_block_number(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=2),
+        )
+        mock_solution = {
+            "block_number": 1, # 1 less than current block number
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=3),
+        )
+        mock_solution = {
+            "block_number": 1, # 2 less than current block number
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=4),
+        )
+        mock_solution = {
+            "block_number": 1, # 3 less than current block number
+        }
+
+        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+
+    def test_pow_not_stale_diff_block_number_too_old(self):
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=5),
+        )
+        mock_solution = {
+            "block_number": 1, # 4 less than current block number, stale
+        }
+
+        assert not bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+    
+def test_pow_called_for_cuda():
+    class MockException(Exception):
+        pass
+    mock_compose_call = MagicMock(side_effect=MockException)
+
+    mock_subtensor = bittensor.subtensor(_mock=True)
+    mock_subtensor.neuron_for_pubkey=MagicMock(is_null=True)
+    mock_subtensor.substrate = MagicMock(
+        __enter__= MagicMock(return_value=MagicMock(
+            compose_call=mock_compose_call
+        )),
+        __exit__ = MagicMock(return_value=None),
+    )
+
+    mock_wallet = SimpleNamespace(
+        hotkey=SimpleNamespace(
+            ss58_address=''
+        ),
+        coldkeypub=SimpleNamespace(
+            ss58_address=''
+        )
+    )
+
+    mock_result = {
+        "block_number": 1,
+        'nonce': random.randint(0, pow(2, 32)),
+        'work': b'\x00' * 64,
+    }
+    
+    with patch('bittensor.utils.POWNotStale', return_value=True) as mock_pow_not_stale:
+        with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
+            with patch('bittensor.utils.create_pow', return_value=mock_result) as mock_create_pow:
+                with patch('bittensor.utils.hex_bytes_to_u8_list', return_value=b''):
+                
+                    # Should exit early
+                    with pytest.raises(MockException):
+                        mock_subtensor.register(mock_wallet, cuda=True, prompt=False)
+
+                    mock_pow_not_stale.assert_called_once()
+                    mock_create_pow.assert_called_once()
+                    mock_cuda_available.assert_called_once()
+
+                    call0 = mock_pow_not_stale.call_args
+                    assert call0[0][0] == mock_subtensor
+                    assert call0[0][1] == mock_result
+
+                    mock_compose_call.assert_called_once()
+                    call1 = mock_compose_call.call_args
+                    assert call1[1]['call_function'] == 'register'
+                    call_params = call1[1]['call_params']
+                    assert call_params['nonce'] == mock_result['nonce']
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()
