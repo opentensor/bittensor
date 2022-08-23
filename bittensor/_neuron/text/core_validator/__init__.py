@@ -603,9 +603,10 @@ class neuron:
         preferred_uids = preferred_uids[neuron_weights > 0]  # filter to non-zero weights
         neuron_weights = neuron_weights[neuron_weights > 0]  # filter to non-zero weights
 
-        # === Slice min_allowed_weights UIDs ===
-        sample_uids = preferred_uids[:min_allowed_weights]  # slice to min_allowed_weights
-        sample_weights = neuron_weights[:min_allowed_weights]  # slice to min_allowed_weights
+        # === Slice weights_to_set UIDs ===
+        weights_to_set = max([min_allowed_weights, len(responsive_uids)])
+        sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
+        sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
 
         # === Normalize and apply max_allowed_ratio ===
         sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
