@@ -102,12 +102,6 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
                 use_upnpc=False,
             )
 
-        bittensor.Subtensor.serve_axon(
-            mock_subtensor,
-            axon=mock_axon_with_external_port_set,
-            use_upnpc=False,
-        )
-
         mock_serve.assert_called_once()
         # verify that the axon is served to the network with the external port
         _, kwargs = mock_serve.call_args
