@@ -559,9 +559,10 @@ class server(torch.nn.Module):
         bittensor.axon.add_args( parser )
         bittensor.subtensor.add_args( parser )
         bittensor.logging.add_args( parser )
-        bittensor.wandb.add_args(parser)
+        bittensor.wandb.add_args( parser )
         bittensor.prioritythreadpool.add_args( parser )
         bittensor.dataset.add_args( parser )
         bittensor.metagraph.add_args( parser )
+        bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
     

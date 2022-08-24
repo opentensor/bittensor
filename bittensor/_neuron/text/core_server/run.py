@@ -30,6 +30,9 @@ from datetime import datetime,timedelta
 from loguru import logger; logger = logger.opt(colors=True)
 from torch.nn.utils.rnn import pad_sequence
 
+# Prometheus
+from prometheus_client import Counter, Gauge, Histogram, Summary, Info
+
 import wandb
 import pandas
 import torch
@@ -56,13 +59,11 @@ def serve(
     else:
         wallet.reregister(subtensor=subtensor)
 
-
     # Load/Sync/Save our metagraph.
     if metagraph == None:
         metagraph = bittensor.metagraph ( 
             subtensor = subtensor
         )
-    
     metagraph.load().sync().save()
 
     # Create our optimizer.
@@ -72,6 +73,25 @@ def serve(
         momentum = config.neuron.momentum,
     )
     mutex = Lock()
+
+    # --- Setup prometheus summaries.
+    # These will not be posted if the user passes the --prometheus.off
+    prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['counter_name'])
+    prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['guage_name'])
+    prometheus_info = Info( "neuron_info", "Info sumamries for the running server-miner." )
+    prometheus_guages.labels( "model_size_params" ).set( sum(p.numel() for p in model.parameters()) )
+    prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
+    prometheus_info.info ( 
+        {
+            'type': "server",
+            'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
+            'network': config.subtensor.network,
+            'coldkey': str(wallet.coldkeypub.ss58_address),
+            'hotkey': str(wallet.hotkey.ss58_address),
+        } 
+    )
+
+
 
     timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
     n_topk_peer_weights = subtensor.min_allowed_weights
@@ -88,13 +108,9 @@ def serve(
         """
         try:        
             uid = metagraph.hotkeys.index(pubkey)
-            priority = metagraph.S[uid].item()
-        
+            return metagraph.S[uid].item() # Basic stake based priority.
         except:
-            # zero priority for those who are not registered.
-            priority =  0
-
-        return priority
+            return 0 # zero priority for those who are not registered.
 
     def forward_generate( inputs_x:torch.FloatTensor, synapse, model_output = None):
         tokens = model.token_remap(inputs_x.to(model.device))
@@ -157,8 +173,8 @@ def serve(
             is_registered = pubkey in metagraph.hotkeys
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
-                    
                     return False
+                prometheus_counters.label("blacklisted.registration").inc()
                 raise Exception('Registration blacklist')
 
         # Check for stake
@@ -166,6 +182,7 @@ def serve(
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
+                prometheus_counters.label("blacklisted.stake").inc()
                 raise Exception('Stake blacklist')
             return False
 
@@ -180,24 +197,20 @@ def serve(
                     timecheck[pubkey] = current_time
                 else:
                     timecheck[pubkey] = current_time
+                    prometheus_counters.label("blacklisted.time").inc()
                     raise Exception('Time blacklist')
             else:
                 timecheck[pubkey] = current_time
-        
             return False
-
 
         # Black list or not
         try:
             registration_check()
-
             time_check()
-
             #stake_check()
-            
             return False
-
         except Exception as e:
+            prometheus_counters.label("blacklisted").inc()
             return True
     
     def synapse_check(synapse, hotkey):
@@ -384,6 +397,16 @@ def serve(
                 model.best_loss = local_data['local/loss']
                 model.save(config.neuron.full_path)
 
+
+        # === Prometheus logging.
+        prometheus_guages.labels("stake").set( nn.stake )
+        prometheus_guages.labels("rank").set( nn.rank )
+        prometheus_guages.labels("trust").set( nn.trust )
+        prometheus_guages.labels("consensus").set( nn.consensus )
+        prometheus_guages.labels("incentive").set( nn.incentive )
+        prometheus_guages.labels("emission").set( nn.emission )
+
+        # === Wandb.
         wandb_data = {            
             'stake': nn.stake,
             'rank': nn.rank,

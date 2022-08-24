@@ -137,6 +137,10 @@ def test_to_defaults():
     config = construct_config()
     config.to_defaults()
 
+def test_to_prometheus():
+    config = construct_config()
+    config.to_prometheus()
+
 if __name__  == "__main__":
     test_loaded_config()
     test_strict()

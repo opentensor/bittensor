@@ -37,7 +37,7 @@ except Exception:
     pass
 
 class logging:
-    """ Standardize logging for bittensor
+    """ Standardized logging for bittensor
     """
     __has_been_inited__:bool = False
     __debug_on__:bool = False
