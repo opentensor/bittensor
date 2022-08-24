@@ -51,15 +51,6 @@ class Dendrite(torch.autograd.Function):
     results or zeros. The operation is fully differentiable with a torch computation graph such that calls to loss.backward() produce Backward calls on
     the passed endpoints.
 
-    Args:
-        config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.dendrite.config()):
-            config namespace object created by calling bittensor.dendrite.config()
-        wallet (:obj:`bittensor.Wallet`, `optional`, defaults to bittensor.wallet( name = 'default', hotkey = 'default')):
-            A bittensor wallet object containing a pair of cryptographic keys, the hot and coldkey, used for signing messages
-            on the wire.
-        receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`, defaults to bittensor.receptor_pool()):
-            A bittensor receptor pool object which maintains a set of connections to other peers in the network and operates as
-            a normal torch.nn.Module. By default this object is created with the dendrite config.
     """
 
     def __init__(
@@ -70,9 +61,15 @@ class Dendrite(torch.autograd.Function):
             manager: 'BaseManager' = None,
     ):
         r""" Initializes a new Dendrite entry point.
-            Args:
-                receptor_pool (:obj:`bittensor.ReceptorPool`, `required`):
-                    bittensor receptor pool
+              Args:
+                config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.dendrite.config()):
+                    config namespace object created by calling bittensor.dendrite.config()
+                wallet (:obj:`bittensor.Wallet`, `optional`, defaults to bittensor.wallet( name = 'default', hotkey = 'default')):
+                    A bittensor wallet object containing a pair of cryptographic keys, the hot and coldkey, used for signing messages
+                    on the wire.
+                receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`, defaults to bittensor.receptor_pool()):
+                    A bittensor receptor pool object which maintains a set of connections to other peers in the network and operates as
+                    a normal torch.nn.Module. By default this object is created with the dendrite config.
         """
         self.config = config
         self.wallet = wallet

@@ -102,6 +102,7 @@ from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
 from bittensor._metagraph import metagraph as metagraph
+from bittensor._prometheus import prometheus as prometheus
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
@@ -138,6 +139,7 @@ defaults = Config()
 subtensor.add_defaults( defaults )
 dendrite.add_defaults( defaults )
 axon.add_defaults( defaults )
+prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
