@@ -20,9 +20,9 @@ Implementation of the config class, which manages the config of different bitten
 
 import yaml
 import json
-import pandas
 from munch import Munch
 from prometheus_client import Info
+from pandas.io.json import json_normalize
 import bittensor
 
 class Config ( Munch ):
@@ -57,7 +57,7 @@ class Config ( Munch ):
         """
         try:
             prometheus_info = Info('config', 'Config Values')
-            config_info = pandas.json_normalize(json.loads(json.dumps(self)), sep='.').to_dict(orient='records')[0]
+            config_info = json_normalize(json.loads(json.dumps(self)), sep='.').to_dict(orient='records')[0]
             formatted_info = {}
             for key in config_info:
                 config_info[key] = str(config_info[key])
