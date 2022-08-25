@@ -1,3 +1,4 @@
+from atexit import register
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from more_itertools import side_effect
@@ -67,6 +68,12 @@ def test_coreserver_reregister_flag_false_exit():
     config.wallet = bittensor.Config()
     config.wallet.reregister = False # don't reregister the wallet
 
+    config.subtensor = bittensor.Config()
+    config.subtensor.register = bittensor.Config()
+    config.subtensor.register.cuda = bittensor.Config()
+    config.subtensor.register.cuda.use_cuda = False # don't use cuda on test
+    # No need to specify the other config options as they are default to None
+
     mock_wallet = bittensor.wallet.mock()
     mock_wallet.config = config
 
@@ -85,15 +92,15 @@ def test_coreserver_reregister_flag_false_exit():
         metagraph=MagicMock(),
         spec=bittensor.neurons.core_server.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register
         ),
         config=config,
     )
 
-    with patch.multiple(
-            'bittensor.Wallet',
-            register=mock_register,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+    with patch.object(
+            mock_wallet,
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
         # Should exit without calling register
@@ -113,6 +120,12 @@ def test_coreserver_reregister_flag_true():
     config.wallet = bittensor.Config()
     config.wallet.reregister = True # try to reregister the wallet
 
+    config.subtensor = bittensor.Config()
+    config.subtensor.register = bittensor.Config()
+    config.subtensor.register.cuda = bittensor.Config()
+    config.subtensor.register.cuda.use_cuda = False # don't use cuda on test
+    # No need to specify the other config options as they are default to None
+
     mock_wallet = bittensor.wallet.mock()
     mock_wallet.config = config
 
@@ -131,17 +144,16 @@ def test_coreserver_reregister_flag_true():
         metagraph=MagicMock(),
         spec=bittensor.neurons.core_server.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register,
         ),
         config=config,
     )
 
-    with patch.multiple(
-            'bittensor.Wallet',
-            register=mock_register,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+    with patch.object(
+            mock_wallet,
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
-        
         # Should not exit
         with pytest.raises(MockException):
             # Should raise MockException
@@ -156,6 +168,12 @@ def test_corevalidator_reregister_flag_false_exit():
     config = bittensor.Config()
     config.wallet = bittensor.Config()
     config.wallet.reregister = False # don't reregister the wallet
+
+    config.subtensor = bittensor.Config()
+    config.subtensor.register = bittensor.Config()
+    config.subtensor.register.cuda = bittensor.Config()
+    config.subtensor.register.cuda.use_cuda = False # don't use cuda on test
+    # No need to specify the other config options as they are default to None
 
     mock_wallet = bittensor.wallet.mock()
     mock_wallet.config = config
@@ -172,17 +190,17 @@ def test_corevalidator_reregister_flag_false_exit():
         wallet=mock_wallet,
         spec=bittensor.neurons.core_validator.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register,
         ),
         config=config,
     )
 
-    with patch.multiple(
-            'bittensor.Wallet',
-            register=mock_register,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+    with patch.object(
+            mock_wallet,
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
-        
+    
         # Should exit without calling register
         with pytest.raises(SystemExit) as pytest_wrapped_e:
             # Should not raise MockException
@@ -200,6 +218,12 @@ def test_corevalidator_reregister_flag_true():
     config.wallet = bittensor.Config()
     config.wallet.reregister = True # try to reregister the wallet
 
+    config.subtensor = bittensor.Config()
+    config.subtensor.register = bittensor.Config()
+    config.subtensor.register.cuda = bittensor.Config()
+    config.subtensor.register.cuda.use_cuda = False # don't use cuda on test
+    # No need to specify the other config options as they are default to None
+
     mock_wallet = bittensor.wallet.mock()
     mock_wallet.config = config
 
@@ -215,15 +239,15 @@ def test_corevalidator_reregister_flag_true():
         wallet=mock_wallet,
         spec=bittensor.neurons.core_validator.neuron,
         subtensor=MagicMock(
-            network="mock"
+            network="mock",
+            register=mock_register,
         ),
         config=config,
     )
 
-    with patch.multiple(
-            'bittensor.Wallet',
-            register=mock_register,
-            is_registered=MagicMock(return_value=False), # mock the wallet as not registered
+    with patch.object(
+            mock_wallet,
+            'is_registered', MagicMock(return_value=False), # mock the wallet as not registered
         ):
         
         # Should not exit
