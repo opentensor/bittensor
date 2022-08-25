@@ -49,6 +49,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         backward: 'Callable',
         synapses: dict,
         synapse_checks: 'Callable',
+        synapse_timeouts: dict,
         priority:  'Callable' = None,
         priority_threadpool: 'bittensor.prioritythreadpool' = None,
         forward_timeout: int = None,
@@ -82,6 +83,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.backward_timeout = backward_timeout
         self.synapse_callbacks = synapses
         self.synapse_checks = synapse_checks
+        self.synapse_timeouts = synapse_timeouts
         self.stats = self._init_stats()
         self.started = None
         self.optimizer_step = None
@@ -185,6 +187,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         synapse_responses = [ synapse.empty() for synapse in synapses ] # We fill nones for non success.
         synapse_is_response = [ False for _ in synapses ]
         synapse_call_times = [ 0 for _ in synapses ]
+        synapse_timeout = min( [self.synapse_timeouts[s.synapse_type] for s in synapses] )
         start_time = clock.time()
 
         # ==================================================================
@@ -282,9 +285,9 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     synapses = synapses,
                     priority = priority,
                     hotkey = request.hotkey,
-                    timeout = self.forward_timeout - (clock.time() - start_time)
+                    timeout = synapse_timeout - (clock.time() - start_time)
                 )
-                forward_response_tensors, forward_codes, forward_messages = future.result( timeout= self.forward_timeout )
+                forward_response_tensors, forward_codes, forward_messages = future.result( timeout= synapse_timeout )
             else:
                 
                 forward_response_tensors, forward_codes, forward_messages = self.forward_callback(

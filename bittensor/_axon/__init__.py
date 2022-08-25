@@ -55,6 +55,10 @@ class axon:
             synapse_causal_lm: 'Callable' = None,
             synapse_causal_lm_next: 'Callable' = None,
             synapse_seq_2_seq: 'Callable' = None,
+            synapse_lasthidden_timeout: int = None,
+            synapse_causallm_timeout: int = None,
+            synapse_causallmnext_timeout: int = None,
+            synapse_seq2seq_timeout: int = None,
             synapse_checks: 'Callable' = None,
             thread_pool: 'futures.ThreadPoolExecutor' = None,
             priority_threadpool: 'bittensor.prioritythreadpool' = None,
@@ -121,6 +125,10 @@ class axon:
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
         config.axon.backward_timeout = backward_timeout if backward_timeout != None else config.axon.backward_timeout
         config.axon.compression = compression if compression != None else config.axon.compression
+        config.neuron.lasthidden.timeout = synapse_lasthidden_timeout if synapse_lasthidden_timeout != None else config.neuron.lasthidden.timeout
+        config.neuron.causallm.timeout = synapse_causallm_timeout if synapse_causallm_timeout != None else config.neuron.causallm.timeout
+        config.neuron.causallmnext.timeout = synapse_causallmnext_timeout if synapse_causallmnext_timeout is not None else config.neuron.causallmnext.timeout
+        config.neuron.seq2seq.timeout = synapse_seq2seq_timeout if synapse_seq2seq_timeout != None else config.neuron.seq2seq.timeout
         axon.check_config( config )
 
         # Determine the grpc compression algorithm
@@ -148,13 +156,20 @@ class axon:
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM] = synapse_causal_lm
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT] = synapse_causal_lm_next
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ] = synapse_seq_2_seq
+
+        synapse_timeouts = {
+            bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE: config.axon.lasthidden.timeout,
+            bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM: config.axon.causallm.timeout,
+            bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT: config.axon.causallmnext.timeout,
+            bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ: config.axon.seq2seq.timeout
+        }
         
         synapse_check_function = synapse_checks if synapse_checks != None else axon.default_synapse_check
 
         if priority != None and priority_threadpool == None:
             priority_threadpool = bittensor.prioritythreadpool(config=config)
 
-        axon_instance = axon_impl.Axon( 
+        axon_instance = axon_impl.Axon(
             wallet = wallet, 
             server = server,
             ip = config.axon.ip,
@@ -163,6 +178,7 @@ class axon:
             backward = backward_text,
             synapses = synapses,
             synapse_checks = synapse_check_function,
+            synapse_timeouts = synapse_timeouts,
             priority = priority,
             priority_threadpool = priority_threadpool,
             forward_timeout = config.axon.forward_timeout,
@@ -216,6 +232,14 @@ class axon:
                 help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
             parser.add_argument('--' + prefix_str + 'axon.compression', type=str, 
                 help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.axon.compression)
+            parser.add_argument('--' +  prefix_str + 'axon.lasthidden.timeout', type = int, 
+            help='Timeout for last hidden synapse', default= bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.causallm.timeout', type = int, 
+            help='Timeout for causallm synapse', default= bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.causallmnext.timeout', type = int, 
+            help='Timeout for causallmnext synapse', default= bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.seq2seq.timeout', type = int, 
+            help='Timeout for seq2seq synapse', default= 3*bittensor.__blocktime__)
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass

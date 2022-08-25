@@ -193,7 +193,6 @@ class PriorityThreadPoolExecutor(_base.Executor):
         if num_threads < self._max_workers:
             thread_name = '%s_%d' % (self._thread_name_prefix or self,
                                      num_threads)
-            print('thread_name', self._max_workers, thread_name)
             t = threading.Thread(name=thread_name, target=_worker,
                                  args=(weakref.ref(self, weakref_cb),
                                        self._work_queue,
