@@ -125,10 +125,10 @@ class axon:
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
         config.axon.backward_timeout = backward_timeout if backward_timeout != None else config.axon.backward_timeout
         config.axon.compression = compression if compression != None else config.axon.compression
-        config.neuron.lasthidden_timeout = synapse_lasthidden_timeout if synapse_lasthidden_timeout != None else config.neuron.lasthidden_timeout
-        config.neuron.causallm_timeout = synapse_causallm_timeout if synapse_causallm_timeout != None else config.neuron.causallm_timeout
-        config.neuron.causallmnext_timeout = synapse_causallmnext_timeout if synapse_causallmnext_timeout is not None else config.neuron.causallmnext_timeout
-        config.neuron.seq2seq_timeout = synapse_seq2seq_timeout if synapse_seq2seq_timeout != None else config.neuron.seq2seq_timeout
+        config.axon.lasthidden_timeout = synapse_lasthidden_timeout if synapse_lasthidden_timeout != None else config.axon.lasthidden_timeout
+        config.axon.causallm_timeout = synapse_causallm_timeout if synapse_causallm_timeout != None else config.axon.causallm_timeout
+        config.axon.causallmnext_timeout = synapse_causallmnext_timeout if synapse_causallmnext_timeout is not None else config.axon.causallmnext_timeout
+        config.axon.seq2seq_timeout = synapse_seq2seq_timeout if synapse_seq2seq_timeout != None else config.axon.seq2seq_timeout
         axon.check_config( config )
 
         # Determine the grpc compression algorithm
