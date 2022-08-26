@@ -22,26 +22,31 @@ import torch
 
 U32_MAX = 4294967295
 
-def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ) -> 'torch.FloatTensor':
+def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3, quantile:float = 0.8) -> 'torch.FloatTensor':
     r""" Normalizes the tensor x so that sum(x) = 1 and the max value is at most multiple times larger than the min value.
         Args:
             x (:obj:`torch.FloatTensor`):
                 Tensor to be max_value normalized.
-            multiple: float:
-                Max value is multiple times larger than the min after normalization.     
+            multiple: int:
+                Max value is multiple times larger than the min after normalization. 
+            quantile:float:
+                The tanh shift determined by the quantile of the normalized input data    
         Returns:
             x (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
     x = x 
-    shift = 1 / ( multiple - 1 )
     x = x - x.min()
 
     if x.sum() == 0:
         return torch.ones_like(x)/x.size(0)
     else:
         x = x / x.sum()
-        y = (torch.tanh(x * len(x)) + shift)/(torch.tanh( x * len(x) ) + shift).sum()
+        x = x*len(x) 
+        x = x-x.quantile(quantile)
+        x = torch.tanh(x)
+        shift = (x.max()-x.min()) / ( multiple - 1 )
+        y = (x - x.min() + shift)/(x - x.min() + shift).sum()
         return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':
