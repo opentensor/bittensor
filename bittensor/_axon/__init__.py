@@ -217,6 +217,13 @@ class axon:
                 help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
             parser.add_argument('--' + prefix_str + 'axon.compression', type=str, 
                 help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.axon.compression)
+            parser.add_argument('--' + prefix_str + 'axon.prometheus.level', 
+                required = False, 
+                type = str, 
+                choices = [l.name for l in list(bittensor.prometheus.level)], 
+                default = bittensor.defaults.axon.prometheus.level, 
+                help = '''Prometheus logging level. <OFF | INFO | DEBUG>''')
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -236,14 +243,18 @@ class axon:
         defaults.axon.priority = bittensor.config()
         defaults.axon.priority.max_workers = os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') if os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') != None else 10
         defaults.axon.priority.maxsize = os.getenv('BT_AXON_PRIORITY_MAXSIZE') if os.getenv('BT_AXON_PRIORITY_MAXSIZE') != None else -1
-
         defaults.axon.compression = 'NoCompression'
+
+        # Prometheus
+        defaults.axon.prometheus = bittensor.config()
+        defaults.axon.prometheus.level = os.getenv('BT_AXON_PROMETHEUS_LEVEL') if os.getenv('BT_AXON_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.name
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for axon port and wallet
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
+        assert config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "config.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
         bittensor.wallet.check_config( config )
 
     @classmethod   

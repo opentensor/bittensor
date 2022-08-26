@@ -21,14 +21,25 @@ Create and init the config class, which manages the config of different bittenso
 import os
 import argparse
 import bittensor
+from typing import List, Callable, Union
 from prometheus_client import start_http_server
+from enum import Enum
 
 from loguru import logger
 logger = logger.opt(colors=True)
 
+
 class prometheus:
     """ Namespace for prometheus tooling.
     """
+
+    # Prometheus global logging levels.
+    class level ( Enum ):
+        OFF = "OFF"
+        INFO = "INFO"
+        DEBUG = "DEBUG"
+        def __str__(self):
+            return self.value
 
     # Prometheus Global state.
     port: int = None
@@ -38,7 +49,7 @@ class prometheus:
         cls,
         config: 'bittensor.config' = None,
         port: int = None,
-        off: bool = None
+        level: Union[str, "prometheus.level"] = None
     ):
         """ Intantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
@@ -47,14 +58,16 @@ class prometheus:
                     A config namespace object created by calling bittensor.prometheus.config()
                 port (:obj:`int`, `optional`, defaults to bittensor.defaults.prometheus.port ):
                     The port to run the prometheus DB on, this uniquely identifies the prometheus DB.
-                off (:obj:`bool`, `optional`, defaults to bittensor.defaults.prometheus.off ):
-                    If true, turns of global prometheus logging.
+                level (:obj:`prometheus.level`, `optional`, defaults to bittensor.defaults.prometheus.level ):
+                    Prometheus logging level. If OFF, the prometheus DB is not initialized.
         """
         if config == None:
             config = prometheus.config()
+        if isinstance(level, prometheus.level): level = level.name # Convert ENUM to str.
         config.prometheus.port = port if port != None else config.prometheus.port
-        config.prometheus.off = off if off != None else config.prometheus.off
-        if not config.prometheus.off:
+        config.prometheus.level = level if level != None else config.prometheus.level
+        cls.check_config( config )
+        if config.prometheus.level != prometheus.level.OFF.name:
             try:
                 start_http_server( config.prometheus.port )
             except OSError:
@@ -92,8 +105,15 @@ class prometheus:
         """
         prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--' + prefix_str + 'prometheus.port', required=False, default=bittensor.defaults.prometheus.port, help='''Prometheus serving port.''')
-            parser.add_argument('--' + prefix_str + 'prometheus.off', action='store_true', required=False, default=bittensor.defaults.prometheus.off, help='''If true, the prometheus server will not start''')
+            parser.add_argument('--' + prefix_str + 'prometheus.port',  type=int, required=False, default = bittensor.defaults.prometheus.port, 
+                help='''Prometheus serving port.''')
+            parser.add_argument(
+                '--' + prefix_str + 'prometheus.level', 
+                required = False,
+                type = str, 
+                choices = [l.name for l in list(prometheus.level)],
+                default = bittensor.defaults.prometheus.level, 
+                help = '''Prometheus logging level. <OFF | INFO | DEBUG>''')
         except argparse.ArgumentError as e:
             pass
 
@@ -104,15 +124,14 @@ class prometheus:
         defaults.prometheus = bittensor.Config()
         # Default the prometheus port to axon.port - 1000
         defaults.prometheus.port = os.getenv('BT_PROMETHEUS_PORT') if os.getenv('BT_PROMETHEUS_PORT') != None else 7091
-        defaults.prometheus.off = os.getenv('BT_PROMETHEUS_OFF') if os.getenv('BT_PROMETHEUS_OFF') != None else False
+        defaults.prometheus.level = os.getenv('BT_PROMETHEUS_LEVEL') if os.getenv('BT_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.value
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """
         assert 'prometheus' in config
-        assert isinstance(config.prometheus.port, int), 'config.prometheus.port must be an integer'
-        assert isinstance(config.prometheus.off, bool), 'config.prometheus.off must be an boolean'
+        assert config.prometheus.level in [l.name for l in list(prometheus.level)], "config.prometheus.level must be in: {}".format([l.name for l in list(prometheus.level)])
         assert config.prometheus.port > 1024 and config.prometheus.port < 65535, 'config.prometheus.port must be in range [1024, 65535]'
         if "axon" in config and "port" in config.axon:
             assert config.prometheus.port != config.axon.port, 'config.prometheus.port != config.axon.port'
