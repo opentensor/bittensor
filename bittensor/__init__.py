@@ -80,18 +80,23 @@ __mock_entrypoints__ = [
 __prometheus_version__ = "0.0.0"
 prometheus_version__split = __prometheus_version__.split(".")
 __prometheus_version__as_int__ = (100 * int(prometheus_version__split[0])) + (10 * int(prometheus_version__split[1])) + (1 * int(prometheus_version__split[2]))
-bt_promo_info = Info("bittensor_info", "Information about the installed bittensor package.")
-bt_promo_info.info ( 
-    {
-        '__version__': str(__version__),
-        '__version_as_int__': str(__version_as_int__),
-        '__vocab_size__': str(__vocab_size__),
-        '__network_dim__': str(__network_dim__),
-        '__blocktime__': str(__blocktime__),
-        '__prometheus_version__': str(__prometheus_version__),
-        '__prometheus_version__as_int__': str(__prometheus_version__as_int__),
-    } 
-)
+try:
+    bt_promo_info = Info("bittensor_info", "Information about the installed bittensor package.")
+    bt_promo_info.info ( 
+        {
+            '__version__': str(__version__),
+            '__version_as_int__': str(__version_as_int__),
+            '__vocab_size__': str(__vocab_size__),
+            '__network_dim__': str(__network_dim__),
+            '__blocktime__': str(__blocktime__),
+            '__prometheus_version__': str(__prometheus_version__),
+            '__prometheus_version__as_int__': str(__prometheus_version__as_int__),
+        } 
+    )
+except ValueError: 
+    # This can silently fail if we import bittensor twice in the same process.
+    # We simply pass over this error. 
+    pass
 
 
 # ---- Config ----
