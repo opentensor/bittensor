@@ -17,21 +17,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import time as clock
-from types import SimpleNamespace
 from typing import List, Tuple, Callable
 
 import torch
 import grpc
-import wandb
-import pandas
+import sys
 from loguru import logger
-import torch.nn.functional as F
 import concurrent
 
 import bittensor
-import bittensor.utils.stats as stat_utils
+
+# Prometheus
+from prometheus_client import Counter
+from prometheus_client import Histogram
+from prometheus_client import Enum
 
 logger = logger.opt(colors=True)
 
@@ -52,6 +52,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         priority_threadpool: 'bittensor.prioritythreadpool' = None,
         forward_timeout: int = None,
         backward_timeout: int = None,
+        prometheus_level: str,
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -69,8 +70,11 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 priority (:obj:`callable`, `optional`):
                     function to assign priority on requests.
                 priority_threadpool (:obj:`bittensor.prioritythreadpool`, `optional`):
-                    bittensor priority_threadpool.                
+                    bittensor priority_threadpool.     
+                prometheus_level (:obj:`str`, `required`):
+                    Prometheus logging level.             
         """
+        # -- Object vars.
         self.ip = ip
         self.port = port
         self.wallet = wallet
@@ -81,13 +85,40 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.backward_timeout = backward_timeout
         self.synapse_callbacks = synapses
         self.synapse_checks = synapse_checks
-        self.stats = self._init_stats()
-        self.started = None
+        self.prometheus_level = prometheus_level
+
         self.optimizer_step = None
-        
+        self.started = None
+
         # -- Priority 
         self.priority = priority 
         self.priority_threadpool= priority_threadpool
+
+        # -- Prometheus
+        # We are running over various suffix values in event that there are multiple axons in the same process.
+        # The first axon is created with a null suffix. Values are ordered like so: axon_is_started, axon_is_started_1, axon_is_started_2 etc...
+        if self.prometheus_level != bittensor.prometheus.level.OFF.name:
+            suffix = ""; idx = 1
+            while True:
+                try:
+                    self.is_started = Enum('axon_is_started{}'.format(suffix), 'is_started', states=['stopped', 'started'])
+                    self.total_forward = Counter('axon_total_forward{}'.format(suffix), 'total_forward')
+                    self.total_backward = Counter('axon_total_backward{}'.format(suffix), 'total_backward')
+                    self.forward_latency = Histogram('axon_forward_latency{}'.format(suffix), 'forward_latency', buckets=list(range(0,2*bittensor.__blocktime__,1)))
+                    self.backward_latency = Histogram('axon_backward_latency{}'.format(suffix), 'backward_latency', buckets=list(range(0,2*bittensor.__blocktime__,1))) 
+                    self.forward_synapses = Counter('axon_forward_synapses{}'.format(suffix), 'forward_synapses', ["synapse"])
+                    self.backward_synapses = Counter('axon_backward_synapses{}'.format(suffix), 'backward_synapses', ["synapse"])
+                    self.forward_codes = Counter('axon_forward_codes{}'.format(suffix), 'forward_codes', ["code"])
+                    self.backward_codes = Counter('axon_backward_codes{}'.format(suffix), 'backward_codes', ["code"])
+                    self.forward_hotkeys = Counter('axon_forward_hotkeys{}'.format(suffix), 'forward_hotkeys', ["hotkey"])
+                    self.backward_hotkeys = Counter('axon_backward_hotkeys{}'.format(suffix), 'backward_hotkeys', ["hotkey"])
+                    self.forward_bytes = Counter('axon_forward_bytes{}'.format(suffix), 'forward_bytes', ["hotkey"])
+                    self.backward_bytes = Counter('axon_backward_bytes{}'.format(suffix), 'backward_bytes', ["hotkey"])
+                except ValueError: 
+                    suffix = "_{}".format(str(idx)); idx+=1
+                    bittensor.__console__.print('Sending next axon prometheus args to suffix: {}'.format(suffix))
+                    continue
+                break
 
     def __str__(self) -> str:
         return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
@@ -200,7 +231,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
         def finalize_codes_stats_and_logs():
+            if self.prometheus:
+                self.total_forward.inc()
+                self.forward_latency.observe( clock.time() - start_time )
+                self.forward_hotkeys.labels( request.hotkey ).inc()
+                self.forward_bytes.labels( request.hotkey ).inc( sys.getsizeof( request.hotkey) )
             for index, synapse in enumerate( synapses ):
+                if self.prometheus:
+                    self.forward_synapses.labels( str(synapse) ).inc()
+                    self.forward_codes.labels( str(synapse_codes[ index ]) ).inc()
                 request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
                 request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
@@ -419,7 +458,15 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # ==== Function which prints all log statements per synapse ====
         # ==============================================================
         def finalize_codes_stats_and_logs():
+            if self.prometheus:
+                self.total_backward.inc()
+                self.backward_latency.observe( clock.time() - start_time )
+                self.backward_hotkeys.labels( request.hotkey ).inc()
+                self.backward_bytes.labels( request.hotkey ).inc( sys.getsizeof( request.hotkey) )
             for index, synapse in enumerate( synapses ):
+                if self.prometheus:
+                    self.backward_synapses.labels( str(synapse) ).inc()
+                    self.backward_codes.labels( str(synapse_codes[ index ]) ).inc()
                 request.synapses [ index ].return_code = synapse_codes[ index ] # Set synapse wire proto codes.
                 request.synapses [ index ].message = synapse_messages[ index ] # Set synapse wire proto message
                 bittensor.logging.rpc_log ( 
@@ -751,6 +798,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.server.start()
         logger.success("Axon Started:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
         self.started = True
+        if self.prometheus:
+            self.is_started.state('started')
         return self
 
     def stop(self) -> 'Axon':
@@ -760,145 +809,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
             self.server.stop( grace = 1 )
             logger.success("Axon Stopped:".ljust(20) + "<blue>{}</blue>", self.ip + ':' + str(self.port))
         self.started = False
+        if self.prometheus:
+            self.is_started.state('stopped')
         return self
-    
-    def check(self):
-        r""" Checks axon's forward and backward callbacks 
-        """
-        pubkey = self.wallet.hotkey.ss58_address
-        if self.forward_callback != None:
-            bittensor.axon.check_forward_callback(self.forward_callback,index,pubkey)
-
-        if self.backward_callback != None:
-            bittensor.axon.check_backward_callback(backward,index,pubkey)
-        return self
-
-    def _init_stats(self):
-        return SimpleNamespace(
-            # Queries per second.
-            qps = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 ),
-            # Total requests.
-            total_requests = 0,
-            # Total bytes recieved per second.
-            total_in_bytes = 0,
-            # Total bytes responded per second.
-            total_out_bytes = 0,
-            # Bytes recieved per second.
-            avg_in_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
-            # Bytes responded per second.
-            avg_out_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
-            # Requests per pubkey.
-            requests_per_pubkey = {},
-            # Success per pubkey.
-            successes_per_pubkey = {},
-            # Query time per pubkey.
-            query_times_per_pubkey = {},
-            # Queries per second per pubkey.
-            qps_per_pubkey = {},
-            # Codes recieved per pubkey.
-            codes_per_pubkey = {},
-            # Bytes recieved per pubkey.
-            avg_in_bytes_per_pubkey = {},
-            # Bytes sent per pubkey.
-            avg_out_bytes_per_pubkey = {}
-        )
-
-    #TODO: Replace/update axon and dendrite stats 
-    def update_stats_for_request(self, request, response, time, code):
-        r""" Updates statistics for this request and response.
-            Args:
-                requests ( bittensor.proto.TensorMessage, `required`):
-                    The request.
-                response ( bittensor.proto.TensorMessage, `required`):
-                    The response.
-                time (:type:`float`, `required`):
-                    Length of call in seconds.
-                code (:obj:`bittensor.proto.ReturnCode, `required`)
-                    Return code associated with the call i.e. Success of Timeout.
-        """
-        self.stats.qps.event()
-        self.stats.total_requests += 1
-        self.stats.total_in_bytes += sys.getsizeof(request) 
-        self.stats.total_out_bytes += sys.getsizeof(response) 
-        self.stats.avg_in_bytes_per_second.event( float(sys.getsizeof(request)) )
-        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(response)) )
-        pubkey = request.hotkey
-        if pubkey not in self.stats.requests_per_pubkey:
-            self.stats.requests_per_pubkey[ pubkey ] = 0
-            self.stats.successes_per_pubkey[ pubkey ] = 0
-            self.stats.query_times_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.05)
-            self.stats.qps_per_pubkey[ pubkey ] = stat_utils.EventsPerSecondRollingAverage(0, 0.05)
-            self.stats.codes_per_pubkey[ pubkey ] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
-            self.stats.avg_in_bytes_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.01)
-            self.stats.avg_out_bytes_per_pubkey[ pubkey ] = stat_utils.AmountPerSecondRollingAverage(0, 0.01)
-
-        # Add values.
-        self.stats.requests_per_pubkey[ pubkey ] += 1
-        self.stats.successes_per_pubkey[ pubkey ] += 1 if code == 1 else 0
-        self.stats.query_times_per_pubkey[ pubkey ].event( float(time) )
-        self.stats.avg_in_bytes_per_pubkey[ pubkey ].event( float(sys.getsizeof(request)) )
-        self.stats.avg_out_bytes_per_pubkey[ pubkey ].event( float(sys.getsizeof(response)) )
-        self.stats.qps_per_pubkey[ pubkey ].event()    
-        try:
-            if bittensor.proto.ReturnCode.Name( code ) in self.stats.codes_per_pubkey[ pubkey ].keys():
-                self.stats.codes_per_pubkey[ pubkey ][bittensor.proto.ReturnCode.Name( code )] += 1
-        except:
-            pass  
-
-    def to_dataframe ( self, metagraph ):
-        r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
-            Args:
-                metagraph: (bittensor.Metagraph):
-                    Indexes the stats data using uids.
-            Return:
-                dataframe (:obj:`pandas.Dataframe`)
-        """
-        # Reindex the pubkey to uid if metagraph is present.
-        try:
-            index = [ metagraph.hotkeys.index(pubkey) for pubkey in self.stats.requests_per_pubkey.keys() if pubkey in metagraph.hotkeys ]
-            columns = [ 'axon_n_requested', 'axon_n_success', 'axon_query_time','axon_avg_inbytes','axon_avg_outbytes', 'axon_qps' ]
-            dataframe = pandas.DataFrame(columns = columns, index = index)
-            for pubkey in self.stats.requests_per_pubkey.keys():
-                if pubkey in metagraph.hotkeys:
-                    uid = metagraph.hotkeys.index(pubkey)
-                    dataframe.loc[ uid ] = pandas.Series( {
-                        'axon_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
-                        'axon_n_success': int(self.stats.requests_per_pubkey[pubkey]),
-                        'axon_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),             
-                        'axon_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                        'axon_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                        'axon_qps': float(self.stats.qps_per_pubkey[pubkey].get())
-                    } )
-            dataframe['uid'] = dataframe.index
-            return dataframe
-
-        except Exception as e:
-            bittensor.logging.error(prefix='failed axon.to_dataframe()', sufix=str(e))
-            return pandas.DataFrame()
-
-    def to_wandb( self ):
-        r""" Return a dictionary of axon stat info for wandb logging
-            Args:
-                metagraph: (bittensor.Metagraph):
-                    If not None, indexes the wandb data using int uids rather than string pubkeys.
-            Return:
-                wandb_info (:obj:`Dict`)
-        """
-        try:
-            avg_query_time = 0.0
-            for pubkey in self.stats.query_times_per_pubkey:
-                avg_query_time += self.stats.query_times_per_pubkey[pubkey].get() / len( self.stats.query_times_per_pubkey )
-            # ---- Axon summary for wandb
-            wandb_data = {
-                'axon/qps': self.stats.qps.get(),
-                'axon/avg_query_time': avg_query_time,
-                'axon/total_requests': self.stats.total_requests,
-                'axon/total_in_bytes' : self.stats.total_in_bytes,
-                'axon/total_out_bytes' : self.stats.total_out_bytes,
-                'axon/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-                'axon/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
-            }
-            return wandb_data
-        except Exception as e:
-            bittensor.logging.error(prefix='failed during axon.to_wandb()', sufix=str(e))
-            return {} 

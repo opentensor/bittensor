@@ -168,6 +168,7 @@ class axon:
             priority_threadpool = priority_threadpool,
             forward_timeout = config.axon.forward_timeout,
             backward_timeout = config.axon.backward_timeout,
+            prometheus_level = config.axon.prometheus.level
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
