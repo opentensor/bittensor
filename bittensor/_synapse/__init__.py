@@ -33,13 +33,12 @@ from .text_seq2seq_impl import TextSeq2Seq
 
 class synapse:
     """
-    Factory class for the synapse objects. The synapses are designed to work the bittensor protocol and is 
-    reponsible for the serialization and deserialization of their contents. They are expected to be included by
-    the forwarding neuron when making a call through the bittensor api.
+    Factory class for the synapse objects. The synapses are reponsible for the serialization and deserialization of  bittensor reques/responses and their contents. 
+    They are expected to be included by the forwarding neuron when making a call through the bittensor api.
 
     Examples:
         >>> causallm_synapse = bittensor.synapse.TextCausalLM()
-        >>> dendrite.text(endpoints = [..], inputs = [..], synapses= [causallm_synapse] )
+        >>> dendrite.text(endpoints = [..], inputs = [..], synapses = [causallm_synapse] )
     
     """
     __synapses_types__ = ['TextLastHiddenState', 'TextCausalLM', 'TextSeq2Seq']
