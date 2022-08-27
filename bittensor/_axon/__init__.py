@@ -223,7 +223,7 @@ class axon:
                 type = str, 
                 choices = [l.name for l in list(bittensor.prometheus.level)], 
                 default = bittensor.defaults.axon.prometheus.level, 
-                help = '''Prometheus logging level. <OFF | INFO | DEBUG>''')
+                help = '''Prometheus logging level axon. <OFF | INFO | DEBUG>''')
 
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -255,7 +255,7 @@ class axon:
         """ Check config for axon port and wallet
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
-        assert config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "config.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
+        assert config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
         bittensor.wallet.check_config( config )
 
     @classmethod   
