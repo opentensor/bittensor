@@ -145,8 +145,17 @@ class neuron:
             self.config.axon._mock = True
         print ( self.config )
 
+        # ===  Logging + prometheus ===
+        bittensor.logging( 
+            config = self.config, 
+            logging_dir = self.config.neuron.full_path 
+        )
+        bittensor.prometheus ( 
+            config = self.config, 
+            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
+        )
+
         # === Create Bittensor objects ===
-        bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
         self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor ) if metagraph == None else metagraph
