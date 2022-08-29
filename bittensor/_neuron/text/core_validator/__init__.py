@@ -365,7 +365,8 @@ class neuron:
         # Each block length lasts blocks_per_epoch blocks.
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
-        self.metagraph_sync() # Reset metagraph.
+        if self.epoch > 0:  # skip first epoch: already synced at start of run
+            self.metagraph_sync()  # Reset metagraph.
 
         epoch_steps = 0
         epoch_responsive_uids = set()
