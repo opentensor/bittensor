@@ -280,8 +280,8 @@ class neuron:
         # === Set prometheus run info ===
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
         self.axon.serve( subtensor = self.subtensor )
-        self.prometheus_guages.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
-        self.prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
+        self.prometheus_gauges.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
+        self.prometheus_gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
         self.prometheus_info.info ( 
             {
                 'type': "core_validator",
@@ -407,7 +407,7 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
-            self.prometheus_guages.labels("loss").observe( loss.item() )
+            self.prometheus_gauges.labels("loss").observe( loss.item() )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
