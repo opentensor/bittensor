@@ -368,11 +368,13 @@ class neuron:
         if self.epoch > 0:  # skip first epoch: already synced at start of run
             self.metagraph_sync()  # Reset metagraph.
 
+        self.nucleus.permute_uids = []  # clear nucleus permutation before epoch
+
         epoch_steps = 0
         epoch_responsive_uids = set()
         epoch_queried_uids = set()
-
         epoch_start_time = time.time()
+
         start_block = self.subtensor.block
         while (self.subtensor.block < start_block + blocks_per_epoch or
                len(epoch_queried_uids) < self.metagraph.n):  # ensure each UID is queried at least once - assumes nucleus samples without replacement
