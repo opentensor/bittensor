@@ -372,6 +372,7 @@ class neuron:
         epoch_responsive_uids = set()
         epoch_queried_uids = set()
 
+        epoch_start_time = time.time()
         start_block = self.subtensor.block
         while (self.subtensor.block < start_block + blocks_per_epoch or
                len(epoch_queried_uids) < self.metagraph.n):  # ensure each UID is queried at least once - assumes nucleus samples without replacement
@@ -436,8 +437,9 @@ class neuron:
                   f'[dim] Epoch {self.epoch}[/dim] | '
                   f'[bright_green not bold]{len(responsive_uids)}[/bright_green not bold]/'
                   f'[white]{len(queried_uids)}[/white] '
-                  f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
-                  f'[[yellow]{step_time:.3g}[/yellow]s]')
+                  f'[[yellow]{step_time:.3g}[/yellow]s] '
+                  f'[dim white not bold][green]{len(epoch_responsive_uids)}[/green]/'
+                  f'{len(epoch_queried_uids)}[/dim white not bold]')
 
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
@@ -486,6 +488,15 @@ class neuron:
 
         if self.config.logging.debug or self.config.logging.trace:
             self.weights_table(sample_uids, sample_weights)  # print weights table
+
+        # set weights console message (every epoch)
+        print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+              f"{f'[bright_white]Set weights[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
+              f'[bright_green not bold]{len(sample_weights)}[/bright_green not bold] weights | '
+              f'[bright_green not bold]{len(epoch_responsive_uids)}[/bright_green not bold]/'
+              f'[white]{len(epoch_queried_uids)}[/white] '
+              f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
+              f'[[yellow]{epoch_start_time - time.time():.3g}[/yellow]s]')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
