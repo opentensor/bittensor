@@ -372,7 +372,8 @@ class neuron:
         epoch_queried_uids = set()
 
         start_block = self.subtensor.block
-        while self.subtensor.block < start_block + blocks_per_epoch:
+        while (self.subtensor.block < start_block + blocks_per_epoch or
+               len(epoch_queried_uids) < self.metagraph.n):  # ensure each UID is queried at least once - assumes nucleus samples without replacement
             start_time = time.time()
 
             # === Forward ===
