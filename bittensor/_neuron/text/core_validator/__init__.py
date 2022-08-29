@@ -204,6 +204,7 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.dendrite.check_config( config )
         bittensor.axon.check_config( config )
+        bittensor.prometheus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.neuron.full_path):
@@ -239,6 +240,7 @@ class neuron:
         bittensor.logging.add_args( parser )
         bittensor.dataset.add_args( parser )
         bittensor.axon.add_args( parser )
+        bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
 
     def __repr__(self) -> str:
