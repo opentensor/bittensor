@@ -313,15 +313,28 @@ class Dendrite(torch.autograd.Function):
         # === Prometheus counters.
         if self.config.dendrite.prometheus.level != bittensor.prometheus.level.OFF.name:
             self.prometheus_counters.labels( 'total_requests' ).inc()
-            self.prometheus_latency.observe( time.time() - start_time )
+            self.prometheus_counters.labels( 'total_endpoint_requests' ).inc( len(endpoints) )
+            self.prometheus_counters.labels( 'total_request_bytes' ).inc( sum(p.element_size() * p.nelement() for p in inputs) )
+            self.prometheus_counters.labels( 'total_request_params' ).inc( sum(p.numel() for p in inputs) )
+
             for synapse in enumerate( synapses ):
                 self.prometheus_counters.labels( str(synapse) ).inc()
 
-            # === Prometheus DEBUG.
-            if self.config.dendrite.prometheus.level == bittensor.prometheus.level.DEBUG.name:
-                for i in range(len(endpoints)):
-                    n_success = (codes[i] == 1).sum().item()
-                    is_success = (n_success > 0) # One is a success.
+            for i in range(len(endpoints)):
+                n_success = (codes[i] == 1).sum().item()
+                is_success = (n_success > 0) # One is a success.
+                self.prometheus_latency.observe(  times[i].mean().item() )
+
+                # Capture outputs.
+                self.prometheus_counters.labels( 'total_response_bytes' ).inc( sum(p.element_size() * p.nelement() for p in outputs[i]) )
+                self.prometheus_counters.labels( 'total_response_params' ).inc( sum(p.numel() for p in outputs[i]) )
+
+                # Capture success rates.
+                if is_success: self.prometheus_counters.labels( 'total_success' ).inc()
+                else: self.prometheus_counters.labels( 'total_failure' ).inc()
+
+                # === Prometheus DEBUG (per uid info.)
+                if self.config.dendrite.prometheus.level == bittensor.prometheus.level.DEBUG.name:
                     if is_success:
                         self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( times[i].mean().item() )
                         self.prometheus_success_rate_per_uid.labels(str(endpoints[i].uid)).observe( 1 ) # Should act like a moving average.
