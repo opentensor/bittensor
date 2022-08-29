@@ -146,6 +146,7 @@ class neuron:
         print ( self.config )
 
         # ===  Logging + prometheus ===
+        self.config.to_prometheus()
         bittensor.logging( 
             config = self.config, 
             logging_dir = self.config.neuron.full_path 
