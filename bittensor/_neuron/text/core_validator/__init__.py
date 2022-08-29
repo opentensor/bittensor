@@ -660,6 +660,7 @@ class nucleus( torch.nn.Module ):
         self.config = config
         self.device = device
         self.max_n = subtensor.max_n
+        self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
 
         tokenizer = bittensor.tokenizer()
         self.pad_token = tokenizer(tokenizer.pad_token)['input_ids'][0]
@@ -794,18 +795,26 @@ class nucleus( torch.nn.Module ):
         # Ensure number of queried neurons does not exceed metagraph.n
         num_endpoints = min([self.config.nucleus.topk, metagraph.n])
 
-        logger.info(f'Forward \t| Routing forward <dim>[{time.time() - start_time:.3g}s]</dim>')
-        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}')
-        request_start_time = time.time()
+        # === Ensure each UID is queried once ===
+        # Persist object variable self.permute_uids across forward calls.
+        # Reset to new permutation of all UIDs once empty.
+        if len(self.permute_uids) == 0:  # no more UIDs to query
+            self.permute_uids = torch.randperm(metagraph.n)  # reset to new permutation of all UIDs
 
         # === Randomly select num_endpoints UIDs ===
-        random_uids = torch.randperm(metagraph.n)[:num_endpoints]
+        random_uids = self.permute_uids[:num_endpoints]  # newest selection of UIDs to query
+        self.permute_uids = self.permute_uids[num_endpoints:]  # slice out remaining selection
 
         # === Get endpoint information for the selected UIDs ===
         # We index into the metagraph's endpoints and return a list of the filtered set of endpoints we wish to query.
         # random_endpoints: List[bittensor.endpoints]: endpoint information for filtered uids.
         # len(neurons) == self.config.nucleus.topk
         random_endpoints = [metagraph.endpoints[uid] for uid in random_uids]
+        num_endpoints = len(random_endpoints)  # in case len(self.permute_uids) < num_endpoints during random_uids select
+
+        logger.info(f'Forward \t| Routing forward <dim>[{time.time() - start_time:.3g}s]</dim>')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}')
+        request_start_time = time.time()
 
         # === Define which synapse we want to use ===
         # The synapse defines the task we are sending to the neurons
