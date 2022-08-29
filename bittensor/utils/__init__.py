@@ -20,7 +20,12 @@ from Crypto.Hash import keccak
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 
-from .register_cuda import reset_cuda, solve_cuda
+from .register_cuda import reset_cuda, solve_cuda, log_cuda_errors
+
+
+class CUDAException(Exception):
+    """An exception raised when an error occurs in the CUDA environment."""
+    pass
 
 
 def indexed_values_to_dataframe ( 
@@ -516,6 +521,9 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
         if (solution != -1):
             # Attempt to reset CUDA device
+            # Check for any errors
+            err = log_cuda_errors()
+            if err: print(err)
             reset_cuda()
             status.stop()
             new_bn = subtensor.get_current_block()
@@ -542,11 +550,21 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         
     # exited while, found_solution contains the nonce or wallet is registered
     if solution == -1: # didn't find solution
+        # Check for any errors
+        err = log_cuda_errors()
+        if err:
+            raise CUDAException(err)
+        
         reset_cuda()
         status.stop()
         return None
     
     else:
+        # Check for any errors
+        err = log_cuda_errors()
+        if err:
+            raise CUDAException(err)
+
         reset_cuda()
         # Shouldn't get here
         status.stop()

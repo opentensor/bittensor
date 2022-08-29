@@ -6,6 +6,9 @@ from typing import Tuple
 import numpy as np
 from Crypto.Hash import keccak
 
+from contextlib import redirect_stdout
+import io
+
 
 def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, bn: int, difficulty: int, limit: int, dev_id: int = 0) -> Tuple[np.int64, bytes]:
     """
@@ -85,3 +88,24 @@ def reset_cuda():
         raise ImportError("Please install cubit")
         
     cubit.reset_cuda()
+
+def log_cuda_errors() -> str:
+    """
+    Logs any CUDA errors.
+    """
+    try:
+        import cubit
+    except ImportError:
+        raise ImportError("Please install cubit")
+
+    f = io.StringIO()
+    with redirect_stdout(f):
+        cubit.log_cuda_errors()
+
+    s = f.getvalue()
+    
+    return s
+        
+    
+
+
