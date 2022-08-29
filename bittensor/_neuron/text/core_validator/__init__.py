@@ -1234,6 +1234,7 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
     # Synergy = measured performance above expected performance
     # Measured in effective number of model parameters, just like base Shapley values.
     syn_loss_diff = {}  # expected_loss - measured_loss (where > 0)
+    responsives = [uid for uid, stat in stats.items() if 'loss' + ext in stat]
     for _first, first in stats.items():
         if 'loss' + ext not in first:
             continue
@@ -1251,6 +1252,7 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
                 measured_loss = synergy(first, second, target, ext)
 
                 loss_diff_share = torch.clamp(expected_loss - measured_loss, 0) / 2  # record direct loss diff
+                loss_diff_share /= len(responsives)  # average over responsives
                 first['synergy_loss_diff' + ext] += loss_diff_share
                 second['synergy_loss_diff' + ext] += loss_diff_share
 
@@ -1266,6 +1268,7 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
                 pow_expected_params = torch.pow(expected_params, scaling_law_power)
 
                 synergy_share = torch.clamp(pow_measured_params - pow_expected_params, 0) / 2
+                synergy_share /= len(responsives)  # average over responsives
                 first['synergy' + ext] += synergy_share  # share synergy amongst coalition members
                 second['synergy' + ext] += synergy_share
 
