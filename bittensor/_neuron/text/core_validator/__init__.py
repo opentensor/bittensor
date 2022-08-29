@@ -407,7 +407,7 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
-            self.prometheus_gauges.labels("loss").observe( loss.item() )
+            self.prometheus_gauges.labels("loss").set( loss.item() )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
