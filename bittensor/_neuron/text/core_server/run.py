@@ -82,7 +82,7 @@ def serve(
     prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
     prometheus_info.info ( 
         {
-            'type': "server",
+            'type': "core_server",
             'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
             'network': config.subtensor.network,
             'coldkey': str(wallet.coldkeypub.ss58_address),

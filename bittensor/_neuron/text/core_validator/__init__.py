@@ -46,6 +46,9 @@ from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 from threading import Lock
 
+# === Prometheus
+from prometheus_client import Counter, Gauge, Histogram, Summary, Info
+
 logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
@@ -171,6 +174,15 @@ class neuron:
             # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
             self.synapse_keys = ['shapley_values_min']
 
+
+        # === Prometheus stats ===
+        # Turn this off by passing the --prometheus.off flag
+        self.prometheus_info = Info("neuron_info", "Info sumamries for the running server-miner.")
+        self.prometheus_gauges = Gauge('validator_gauges', 'Guages for the running validator.', ['guage_name'])
+        self.prometheus_counters = Counter('validator_counters', 'Counters for the running validator.', ['counter_name'])
+        self.prometheus_summaries = Summary('validator_summary', 'Summaries for the running validator.', ["summary_name"])
+        self.prometheus_step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0,2*bittensor.__blocktime__,1)))
+
         # load last saved validator values from the file system
         if not config.neuron.restart:
             self.load()
@@ -256,6 +268,20 @@ class neuron:
         self.uid = self.wallet.get_uid( subtensor = self.subtensor )    
 
 
+        # === Set prometheus run info ===
+        self.prometheus_guages.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
+        self.prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
+        self.prometheus_info.info ( 
+            {
+                'type': "core_validator",
+                'uid': str(self.uid),
+                'network': self.config.subtensor.network,
+                'coldkey': str(self.wallet.coldkeypub.ss58_address),
+                'hotkey': str(self.wallet.hotkey.ss58_address),
+            } 
+        )
+
+
     def save(self, path=None):
         r""" Save validated hotkeys and neuron_stats to filesystem. """
         try:
@@ -314,6 +340,7 @@ class neuron:
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
+                    self.prometheus_counters.labels('failures').inc()
                     console.print_exception(show_locals=False)
                     print( traceback.format_exc() )
                     print( 'Unknown exception: {}', e )
@@ -336,11 +363,19 @@ class neuron:
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
 
+        # === Logs Prometheus ===
+        self.prometheus_gauges.labels("current_block").set( current_block )
+        self.prometheus_gauges.labels("batch_size").set( batch_size )
+        self.prometheus_gauges.labels("sequence_length").set( sequence_length )
+        self.prometheus_gauges.labels("validation_len").set( validation_len )
+        self.prometheus_gauges.labels("min_allowed_weights").set( min_allowed_weights )
+        self.prometheus_gauges.labels("max_allowed_ratio").set( max_allowed_ratio )
+        self.prometheus_gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
+        self.prometheus_gauges.labels("epochs_until_reset").set( epochs_until_reset )
+
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len != self.dataset.block_size):
             self.dataset.set_data_size(batch_size, sequence_length + validation_len)
-
-        # === Prometheus ===
 
         # === Run Epoch ===
         # Each block length lasts blocks_per_epoch blocks.
@@ -351,6 +386,7 @@ class neuron:
         epoch_steps = 0
         epoch_responsive_uids = set()
         epoch_queried_uids = set()
+        self.prometheus_gauges.labels("epoch_steps").set(0)
 
         start_block = self.subtensor.block
         while self.subtensor.block < start_block + blocks_per_epoch:
@@ -360,6 +396,7 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
+            self.prometheus_guages.labels("loss").observe( loss.item() )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
@@ -380,9 +417,18 @@ class neuron:
             # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
+            self.prometheus_gauges.labels("global_step").inc()
+            self.prometheus_gauges.labels("epoch_steps").inc()
+
+            # === Block state ===
             current_block = self.subtensor.block
+            self.prometheus_gauges.labels("current_block").set(current_block)
+            self.prometheus_gauges.labels("last_updated").set( current_block - self.metagraph.last_update[self.uid] )
+
+            # === Step time ===
             step_time = time.time() - start_time
-            
+            self.prometheus_step_time.observe( step_time )
+
             if epoch_steps % 25 == 1:
                 # validator identifier status console message (every 25 validation steps)
                 print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
@@ -435,15 +481,6 @@ class neuron:
                 self.weights_table(sample_uids, sample_weights,
                                    include_uids=list(stats.keys()), num_rows=2 * len(stats))  # print weights table
 
-            # === Prometheus ===
-            # if self.config.using_wandb:
-            #     for uid, vals in self.neuron_stats.items():
-            #         for key in vals:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
-            #             wandb.log({f'stats/{key}_{uid}': vals[key]}, step=current_block, commit=False)
-
-            #     wandb.log({'epoch/epoch': self.epoch, 'epoch/epoch_steps': epoch_steps,
-            #                'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
-            #                'epoch/time': step_time}, step=current_block, commit=True)
 
             # Do the backward request after the a queue of forward requests got finished.  
             if epoch_steps % self.config.neuron.forward_num == 1:
@@ -457,7 +494,7 @@ class neuron:
                 self.optimizer.zero_grad()
                 logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
                 
-        # Iterate epochs.
+        # === Iterate epochs ===
         self.epoch += 1
 
         # === Calculate neuron weights ===
@@ -473,19 +510,15 @@ class neuron:
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
-        # === Prometheus ===
-        # Optionally send validator logs to wandb.
-        # if self.config.using_wandb:
-        #     # Logging history to wandb.
-        #     df = pandas.concat( [
-        #         bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = sample_uids, values = torch.zeros( self.metagraph.n ).scatter( dim = 0, src = sample_weights, index = sample_uids ) ),
-        #         self.dendrite.to_dataframe( metagraph = self.metagraph )
-        #     ], axis = 1); df['uid'] = df.index
-        #     wandb_data_dend = self.dendrite.to_wandb()
-        #     wandb_weight = {f'stats/weight_{uid}': weight for uid, weight in zip (sample_uids, sample_weights)}
-        #     wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
-        #     wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block, commit=False)
-        #     wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
+        # === Epoch Prometheus ===
+        self.prometheus_gauges.labels("epoch").inc()
+        self.prometheus_gauges.labels("set_weights").inc()
+        self.prometheus_gauges.labels("stake").set( self.metagraph.stake[self.uid] )
+        self.prometheus_gauges.labels("rank").set( self.metagraph.ranks[self.uid] )
+        self.prometheus_gauges.labels("trust").set( self.metagraph.trust[self.uid] )
+        self.prometheus_gauges.labels("incentive").set( self.metagraph.incentive[self.uid] )
+        self.prometheus_gauges.labels("dividends").set( self.metagraph.dividends[self.uid] )
+        self.prometheus_gauges.labels("emission").set( self.metagraph.emission[self.uid] )
 
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
