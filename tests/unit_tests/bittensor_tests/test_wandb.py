@@ -19,11 +19,11 @@ import bittensor
 
 def test_axon():
     axon = bittensor.axon()
-    axon.to_wandb()
+    # axon.to_wandb() deprecated
 
 def test_dendrite():
     dendrite = bittensor.dendrite()
-    dendrite.to_wandb()
+    # dendrite.to_wandb() deprecated
     del dendrite
 
 def test_metagraph():

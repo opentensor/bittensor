@@ -32,7 +32,6 @@ from transformers.utils.logging import enable_explicit_format
 
 import bittensor
 from bittensor._endpoint.endpoint_impl import Endpoint
-import bittensor.utils.stats as stat_utils
 
 # dummy tensor that triggers autograd 
 DUMMY = torch.empty(0, requires_grad=True)
@@ -52,7 +51,6 @@ class DendriteMock(torch.autograd.Function):
         """
         self.config = config
         self.wallet = wallet
-        self.stats = self._init_stats()
 
     def __str__(self):
         return "MockDendrite({})".format(self.wallet.hotkey.ss58_address)
@@ -323,7 +321,6 @@ class DendriteMock(torch.autograd.Function):
             responses = responses[0]
 
         # Return.
-        self.update_stats( endpoints, inputs, responses, codes, times )
         return responses, codes, times
 
     def forward_tensor(
@@ -422,7 +419,6 @@ class DendriteMock(torch.autograd.Function):
             responses = responses[0]
 
         # Return.
-        self.update_stats( endpoints, inputs, responses, codes, times )
         return responses, codes, times
 
     def forward_text(
@@ -593,131 +589,5 @@ class DendriteMock(torch.autograd.Function):
         )
 
         # Return.
-        self.update_stats( formatted_endpoints, formatted_inputs, responses, codes, times )
         return responses, codes, times
 
-    def _init_stats(self):
-        return SimpleNamespace(
-            total_requests = 0,
-            # queries on dendrite per second.
-            qps = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 ),
-            # total bytes recieved by this dendrite per second.
-            avg_in_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
-            # total sent by this dendrite per second.
-            avg_out_bytes_per_second = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 ),
-            # Codes recieved per pubkey.
-            codes_per_pubkey = {},
-            # Number of requests per pubkey.
-            requests_per_pubkey = {},
-            # Success rate per pubkey.
-            successes_per_pubkey = {},
-            # Query time per pubkey.
-            query_times_per_pubkey = {},
-            # Bytes recieved per pubkey.
-            avg_in_bytes_per_pubkey = {},
-            # Bytes sent per pubkey.
-            avg_out_bytes_per_pubkey = {},
-            # QPS per pubkey.
-            qps_per_pubkey = {},
-        )
-
-    def update_stats(self, endpoints, requests, responses, return_ops, query_times):
-        r""" Update dendrite stat according to the response we get from peers. Updates were saved to self.stats.
-            Args:
-                endpoints (:obj:`List[bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
-                    The set of endpoints that dendrite sent request to.
-
-                requests (List[torch.Tensor] of shape :obj:`[ num_endpoints ]`, `required`):
-                    Requests from the call.
-
-                responses (List[torch.FloatTensor] of shape :obj:`[ num_endpoints ]`, `required`):
-                    Responses from the call.
-
-                return_ops (:obj:`torch.LongTensor` of shape :obj:`[ num_endpoints ]`, `required`):
-                    Dendrite call return ops.
-
-                query_times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
-                    Times per call.
-        """
-        self.stats.qps.event()
-        self.stats.total_requests += 1
-        total_in_bytes_per_second = 0
-        self.stats.avg_out_bytes_per_second.event( float(sys.getsizeof(requests)) )
-        for (e_i, req_i, resp_i, code_i, time_i) in list(zip(endpoints, requests, responses, return_ops.tolist(), query_times.tolist())):
-            pubkey = e_i.hotkey
-
-            # First time for this pubkey we create a new entry.
-            if pubkey not in self.stats.requests_per_pubkey:
-                self.stats.requests_per_pubkey[pubkey] = 0
-                self.stats.successes_per_pubkey[pubkey] = 0
-                self.stats.codes_per_pubkey[pubkey] = dict([(k,0) for k in bittensor.proto.ReturnCode.keys()])
-                self.stats.query_times_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
-                self.stats.avg_in_bytes_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
-                self.stats.avg_out_bytes_per_pubkey[pubkey] = stat_utils.AmountPerSecondRollingAverage( 0, 0.01 )
-                self.stats.qps_per_pubkey[pubkey] = stat_utils.EventsPerSecondRollingAverage( 0, 0.01 )
-
-            self.stats.requests_per_pubkey[pubkey] += 1
-            self.stats.successes_per_pubkey[pubkey] += 1 if code_i == 1 else 0
-            self.stats.query_times_per_pubkey[pubkey].event( float(time_i) )
-            self.stats.avg_in_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(resp_i)) )
-            self.stats.avg_out_bytes_per_pubkey[pubkey].event( float(sys.getsizeof(req_i)) )
-            self.stats.qps_per_pubkey[pubkey].event()
-            total_in_bytes_per_second += sys.getsizeof(resp_i) if code_i == 1 else 0 
-            try:
-                if bittensor.proto.ReturnCode.Name(code_i) in self.stats.codes_per_pubkey[pubkey].keys():
-                    self.stats.codes_per_pubkey[pubkey][bittensor.proto.ReturnCode.Name(code_i)] += 1
-            except:
-                # Code may be faulty.
-                pass
-
-        self.stats.avg_in_bytes_per_second.event( float( total_in_bytes_per_second ) )
-
-    def to_dataframe ( self, metagraph ):
-        r""" Return a stats info as a pandas dataframe indexed by the metagraph or pubkey if not existend.
-            Args:
-                metagraph: (bittensor.Metagraph):
-                    Indexes the stats data using metagraph hotkeys.
-            Return:
-                dataframe (:obj:`pandas.Dataframe`)
-        """
-        try:
-            index = [ metagraph.hotkeys.index(pubkey) for pubkey in self.stats.requests_per_pubkey.keys() if pubkey in metagraph.hotkeys]
-            columns = [ 'dendrite_n_requested', 'dendrite_n_success', 'dendrite_query_time', 'dendrite_avg_inbytes', 'dendrite_avg_outbytes', 'dendrite_qps' ]
-            dataframe = pandas.DataFrame(columns = columns, index = index)
-            for pubkey in self.stats.requests_per_pubkey.keys():
-                if pubkey in metagraph.hotkeys:
-                    uid = metagraph.hotkeys.index(pubkey)
-                    dataframe.loc[ uid ] = pandas.Series( {
-                        'dendrite_n_requested': int(self.stats.requests_per_pubkey[pubkey]),
-                        'dendrite_n_success': int(self.stats.successes_per_pubkey[pubkey]),
-                        'dendrite_query_time': float(self.stats.query_times_per_pubkey[pubkey].get()),               
-                        'dendrite_avg_inbytes': float(self.stats.avg_in_bytes_per_pubkey[pubkey].get()),
-                        'dendrite_avg_outbytes': float(self.stats.avg_out_bytes_per_pubkey[pubkey].get()),
-                        'dendrite_qps': float(self.stats.qps_per_pubkey[pubkey].get())
-                    } )
-            return dataframe
-
-        except Exception as e:
-            bittensor.logging.error( prefix='failed dendrite.to_dataframe()', sufix=str(e) )
-            return pandas.DataFrame()
-
-    def to_wandb( self ):
-        r""" Return a dictionary of dendrite stats as wandb logging info.
-            Args:
-                metagraph: (bittensor.Metagraph):
-                    If not None, indexes the wandb data using int uids rather than string pubkeys.
-            Return:
-                wandb_info (:obj:`Dict`)
-        """
-        try:
-            wandb_info = {
-                'dendrite/qps': self.stats.qps.get(),
-                'dendrite/total_requests' : self.stats.total_requests,
-                'dendrite/avg_in_bytes_per_second' : self.stats.avg_in_bytes_per_second.get(),
-                'dendrite/avg_out_bytes_per_second' : self.stats.avg_out_bytes_per_second.get(),
-                'dendrite/Total unique queries': len(self.stats.requests_per_pubkey.keys()),
-            }
-            return wandb_info
-        except Exception as e:
-            bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
-            return {}
