@@ -492,11 +492,16 @@ class neuron:
         # set weights console message (every epoch)
         print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
               f"{f'[bright_white]Set weights[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
-              f'[bright_green not bold]{len(sample_weights)}[/bright_green not bold] weights | '
+              f'[bright_green not bold]{len(sample_weights)}[/bright_green not bold] [dim]weights set[/dim] | '
               f'[bright_green not bold]{len(epoch_responsive_uids)}[/bright_green not bold]/'
               f'[white]{len(epoch_queried_uids)}[/white] '
               f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
-              f'[[yellow]{epoch_start_time - time.time():.3g}[/yellow]s]')
+              f'[[yellow]{epoch_start_time - time.time():.0f}[/yellow]s] | '
+              f'weights sum:{sample_weights.sum().item():.2g} '
+              f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
+              f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
+              f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
+              f'({max_allowed_ratio} allowed)')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
