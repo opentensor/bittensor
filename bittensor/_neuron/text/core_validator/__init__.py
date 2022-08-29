@@ -716,6 +716,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
         parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
         parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.5)
+        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.5)
 
     @classmethod
     def config ( cls ):
@@ -869,8 +870,9 @@ class nucleus( torch.nn.Module ):
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
         validation_params = (random_uids, query_responses, return_ops, times, routing_score,
-                             inputs, val_len, self.loss_fct, self.config.nucleus.scaling_law_power, console_width,
-                             self.config.logging.debug or self.config.logging.trace)
+                             inputs, val_len, self.loss_fct,
+                             self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
+                             console_width, self.config.logging.debug or self.config.logging.trace)
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -898,7 +900,8 @@ def scaling_law_loss_to_params(loss):
 
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
-                 inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable, scaling_law_power: float,
+                 inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
+                 scaling_law_power: float, synergy_scaling_law_power: float,
                  console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
@@ -923,6 +926,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 CrossEntropy loss function to use.
             scaling_law_power (:obj:`float`, `required`):
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            synergy_scaling_law_power (:obj:`float`, `required`):
+                Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -979,9 +984,9 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     synergy_start_time = time.time()
 
     syn_loss_diff = shapley_synergy(stats, _synergy, ext='', target=inputs_seq[:, 1:],
-                                    scaling_law_power=scaling_law_power)
+                                    scaling_law_power=synergy_scaling_law_power)
     syn_loss_diff_val = shapley_synergy(stats, _synergy, ext='_val', target=inputs_val,
-                                        scaling_law_power=scaling_law_power)
+                                        scaling_law_power=synergy_scaling_law_power)
 
     # === Shapley value combination ===
     # Combine base values with synergy approximation to get final Shapley values.
@@ -1020,7 +1025,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
-                     inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable, scaling_law_power: float,
+                     inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
+                     scaling_law_power: float, synergy_scaling_law_power: float,
                      console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
@@ -1045,6 +1051,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 CrossEntropy loss function to use.
             scaling_law_power (:obj:`float`, `required`):
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            synergy_scaling_law_power (:obj:`float`, `required`):
+                Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -1097,7 +1105,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
     synergy_start_time = time.time()
 
-    syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt', scaling_law_power=scaling_law_power)
+    syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt', scaling_law_power=synergy_scaling_law_power)
 
     # === Shapley value combination ===
     # Combine base values with synergy approximation to get final Shapley values.
