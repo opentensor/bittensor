@@ -212,16 +212,17 @@ class subtensor:
     def check_config( config: 'bittensor.Config' ):
         assert config.subtensor
         #assert config.subtensor.network != None
-        assert all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', []))
+        if config.subtensor.get('register') and config.subtensor.register.get('cuda'):
+            assert all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', []))
 
-        if config.subtensor.register.cuda.get('use_cuda', False):
-            try:
-                import cubit
-            except ImportError:
-                raise ImportError('CUDA registration is enabled but cubit is not installed. Please install cubit.')
+            if config.subtensor.register.cuda.get('use_cuda', False):
+                try:
+                    import cubit
+                except ImportError:
+                    raise ImportError('CUDA registration is enabled but cubit is not installed. Please install cubit.')
 
-            if not is_cuda_available():
-                raise RuntimeError('CUDA registration is enabled but no CUDA devices are detected.')
+                if not is_cuda_available():
+                    raise RuntimeError('CUDA registration is enabled but no CUDA devices are detected.')
 
 
     @staticmethod
