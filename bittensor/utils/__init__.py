@@ -145,7 +145,7 @@ class POWSolution:
     difficulty: int
     seal: bytes
 
-class Solver(multiprocessing.Process):
+class SolverBase(multiprocessing.Process):
     """
     A process that solves the registration PoW problem.
 
@@ -193,7 +193,7 @@ class Solver(multiprocessing.Process):
     proc_num: int
     num_proc: int
     update_interval: int
-    best_queue: multiprocessing.Queue
+    best_queue: Optional[multiprocessing.Queue]
     time_queue: multiprocessing.Queue
     solution_queue: multiprocessing.Queue
     newBlockEvent: multiprocessing.Event
@@ -221,6 +221,10 @@ class Solver(multiprocessing.Process):
         self.stopEvent = stopEvent
         self.limit = limit
 
+    def run(self):
+        raise NotImplementedError("SolverBase is an abstract class")
+
+class Solver(SolverBase):
     def run(self):
         block_number: int
         block_bytes: bytes
