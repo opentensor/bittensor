@@ -9,7 +9,7 @@ import random
 import time
 from dataclasses import dataclass
 from queue import Empty
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, List
 
 import backoff
 import bittensor
@@ -473,7 +473,7 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, by
         raise Exception("Network error. Could not connect to substrate to get block hash")
     return block_number, difficulty, block_hash
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: int = 0 ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: List[int] = [0] ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -493,6 +493,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
     if update_interval is None:
         update_interval = 50_000
+
+    dev_id = dev_id[0]
     
     block_number, difficulty, block_hash = get_block_with_retry(subtensor)
     block_bytes = block_hash.encode('utf-8')[2:]
@@ -570,7 +572,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         status.stop()
         return None
 
-def create_pow( subtensor, wallet, cuda: bool = False, dev_id: int = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None ) -> Optional[Dict[str, Any]]:
+def create_pow( subtensor, wallet, cuda: bool = False, dev_id: Union[List[int], int] = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None) -> Optional[Dict[str, Any]]:
     if cuda:
         solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, dev_id=dev_id, TPB=tpb, update_interval=update_interval )
     else:
