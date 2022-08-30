@@ -846,11 +846,7 @@ def test_forward_priority_2nd_request_timeout():
     axon = bittensor.axon(wallet = wallet, priority= priority, priority_threadpool = bittensor.prioritythreadpool(max_workers = 1),forward_timeout = 5)
 
     def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
-        start_time = time.time()
-        n = 0
-        while time.time() - start_time < 3:
-            n+=1
-            pass
+        time.sleep(1)
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
@@ -868,11 +864,15 @@ def test_forward_priority_2nd_request_timeout():
     executor = ThreadPoolExecutor(2)
     future = executor.submit(axon._forward, (request))
     future2 = executor.submit(axon._forward, (request))
-    response, code, synapses = future.result()
-    response2, code2, synapses2 = future2.result()
-
+    response, code, synapses = future.result(timeout = 1.5)
     assert code == bittensor.proto.ReturnCode.Success
-    assert code2 == bittensor.proto.ReturnCode.Timeout
+    
+    try: 
+        response2, code2, synapses2 = future2.result(timeout = 1.5 - (time.time() - start_time))
+    except concurrent.futures.TimeoutError:
+        pass
+    else:
+        raise AssertionError('Expected to Timeout')
 
 def test_backward_response_success_text_priority():
         

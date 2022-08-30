@@ -187,7 +187,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         synapse_responses = [ synapse.empty() for synapse in synapses ] # We fill nones for non success.
         synapse_is_response = [ False for _ in synapses ]
         synapse_call_times = [ 0 for _ in synapses ]
-        synapse_timeout = min( [self.synapse_timeouts[s.synapse_type] for s in synapses] )
+        synapse_timeout = min( [self.synapse_timeouts[s.synapse_type] for s in synapses] + [bittensor.__blocktime__] )
         start_time = clock.time()
 
         # ==================================================================
