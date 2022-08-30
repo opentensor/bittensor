@@ -167,13 +167,10 @@ class PriorityThreadPoolExecutor(_base.Executor):
             if 'priority' in kwargs:
                 del kwargs['priority']
             
-            timeout = kwargs.get('timeout', None)
-            if 'timeout' in kwargs:
-                del kwargs['timeout']
 
             f = _base.Future()
             w = _WorkItem(f, fn, start_time, args, kwargs)
-            self._work_queue.put((-float(priority + eplison), w), block=False, timeout=timeout)
+            self._work_queue.put((-float(priority + eplison), w), block=False)
             self._adjust_thread_count()
             return f
     submit.__doc__ = _base.Executor.submit.__doc__
