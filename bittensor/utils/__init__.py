@@ -545,7 +545,7 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, by
         raise Exception("Network error. Could not connect to substrate to get block hash")
     return block_number, difficulty, block_hash
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: List[int] = [0] ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, use_kernel_launch_optimization: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -557,92 +557,139 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             The number of nonces to try before checking for more blocks
         TPB: int
             The number of threads per block. CUDA param that should match the GPU capability
-        dev_id: int
-            The CUDA device ID to execute the registration on
+        dev_id: Union[List[int], int]
+            The CUDA device IDs to execute the registration on, either a single device or a list of devices
     """
-    if not torch.cuda.is_available():
-        raise Exception("CUDA not available")
+    if isinstance(dev_id, int):
+        dev_id = [dev_id]
+    elif dev_id is None:
+        dev_id = [0]
 
     if update_interval is None:
         update_interval = 50_000
 
-    dev_id = dev_id[0]
-    
-    block_number, difficulty, block_hash = get_block_with_retry(subtensor)
-    block_bytes = block_hash.encode('utf-8')[2:]
-    
-    nonce = 0
+    if not torch.cuda.is_available():
+        raise Exception("CUDA not available")
+        
     limit = int(math.pow(2,256)) - 1
-    start_time = time.time()
 
     console = bittensor.__console__
     status = console.status("Solving")
-    
-    solution = -1
-    start_time = time.time()
-    interval_time = start_time
+
+    # Set mp start to use spawn so CUDA doesn't complain
+    multiprocessing.set_start_method('spawn')
+
+    curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
+    curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
+    curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+
+    def update_curr_block(block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
+        with lock:
+            curr_block_num.value = block_number
+            for i in range(64):
+                curr_block[i] = block_bytes[i]
+            registration_diff_pack(diff, curr_diff)
 
     status.start()
-    while solution == -1 and not wallet.is_registered(subtensor):
-        solution, seal = solve_cuda(nonce,
-                        update_interval,
-                        TPB,
-                        block_bytes, 
-                        block_number,
-                        difficulty, 
-                        limit,
-                        dev_id)
 
-        if (solution != -1):
-            # Attempt to reset CUDA device
-            # Check for any errors
-            err = log_cuda_errors()
-            if err: print(err)
-            reset_cuda()
-            status.stop()
-            new_bn = subtensor.get_current_block()
-            print(f"Found solution for bn: {block_number}; Newest: {new_bn}")            
-            return POWSolution(solution, block_number, difficulty, seal)
+    # Establish communication queues
+    stopEvent = multiprocessing.Event()
+    stopEvent.clear()
+    solution_queue = multiprocessing.Queue()
+    time_queue = multiprocessing.Queue()
+    check_block = multiprocessing.Lock()
+    
+    # Start consumers
+    num_processes = len(dev_id)
+    ## Create one consumer per GPU
+    solvers = [ CUDASolver(i, num_processes, update_interval, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
+                for i in range(num_processes) ]
 
-        nonce += (TPB * update_interval)
-        if (nonce >= int(math.pow(2,63))):
-            nonce = 0
-        itrs_per_sec = (TPB * update_interval) / (time.time() - interval_time)
-        interval_time = time.time()
+    # Get first block
+    block_number = subtensor.get_current_block()
+    difficulty = subtensor.difficulty
+    block_hash = subtensor.substrate.get_block_hash( block_number )
+    while block_hash == None:
+        block_hash = subtensor.substrate.get_block_hash( block_number )
+    block_bytes = block_hash.encode('utf-8')[2:]
+    old_block_number = block_number
+    # Set to current block
+    update_curr_block(block_number, block_bytes, difficulty, check_block)
 
-        block_number, difficulty, block_hash = get_block_with_retry(subtensor)
-        block_bytes = block_hash.encode('utf-8')[2:]
+    # Set new block events for each solver to start
+    for w in solvers:
+        w.newBlockEvent.set()
+    
+    for w in solvers:
+        w.start() # start the solver processes
+    
+    start_time = time.time()
+    time_since = 0.0
+    solution = None
+    itrs_per_sec = 0
+    while not wallet.is_registered(subtensor):
+        # Wait until a solver finds a solution
+        try:
+            solution = solution_queue.get(block=True, timeout=0.15)
+            if solution is not None:
+                break
+        except Empty:
+            # No solution found, try again
+            pass
 
+        # check for new block
+        block_number = subtensor.get_current_block()
+        if block_number != old_block_number:
+            old_block_number = block_number
+            # update block information
+            block_hash = subtensor.substrate.get_block_hash( block_number)
+            while block_hash == None:
+                block_hash = subtensor.substrate.get_block_hash( block_number)
+            block_bytes = block_hash.encode('utf-8')[2:]
+            difficulty = subtensor.difficulty
+
+            update_curr_block(block_number, block_bytes, difficulty, check_block)
+            # Set new block events for each solver
+            for w in solvers:
+                w.newBlockEvent.set()
+                
+        # Get times for each solver
+        time_total = 0
+        num_time = 0
+        for _ in range(time_queue.qsize()):
+            try:
+                time_ = time_queue.get_nowait()
+                time_total += time_
+                num_time += 1
+
+            except Empty:
+                break
+        
+        if num_time > 0:
+            time_avg = time_total / num_time
+            itrs_per_sec = TPB*update_interval*num_processes / time_avg
+            time_since = time.time() - start_time
+            
+        #times = [ time_queue.get() for _ in solvers ]
+        #time_avg = average(times)
+        
         message = f"""Solving 
-            time spent: {datetime.timedelta(seconds=time.time() - start_time)}
-            Nonce: [bold white]{nonce}[/bold white]
+            time spent: {time_since}
             Difficulty: [bold white]{millify(difficulty)}[/bold white]
-            Iters: [bold white]{get_human_readable(int(itrs_per_sec), "H")}/s[/bold white]
+            Iters: [bold white]{get_human_readable(int(itrs_per_sec), 'H')}/s[/bold white]
             Block: [bold white]{block_number}[/bold white]
             Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]"""
         status.update(message.replace(" ", ""))
-        
-    # exited while, found_solution contains the nonce or wallet is registered
-    if solution == -1: # didn't find solution
-        # Check for any errors
-        err = log_cuda_errors()
-        if err:
-            raise CUDAException(err)
-        
-        reset_cuda()
-        status.stop()
-        return None
     
-    else:
-        # Check for any errors
-        err = log_cuda_errors()
-        if err:
-            raise CUDAException(err)
-
-        reset_cuda()
-        # Shouldn't get here
+    # exited while, found_solution contains the nonce or wallet is registered
+    if solution is not None:
+        stopEvent.set() # stop all other processes
         status.stop()
-        return None
+
+        return solution
+
+    status.stop()
+    return None
 
 def create_pow( subtensor, wallet, cuda: bool = False, dev_id: Union[List[int], int] = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None) -> Optional[Dict[str, Any]]:
     if cuda:
