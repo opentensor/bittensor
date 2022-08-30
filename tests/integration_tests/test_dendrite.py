@@ -261,9 +261,6 @@ def test_dendrite_multiple():
 def test_dendrite_to_df():
     dendrite.to_dataframe(bittensor.metagraph(_mock=True).sync())
 
-def test_dend_del():
-    dendrite.__del__()
-
 def test_successful_synapse():
     wallet = bittensor.wallet()
     def forward_generate( inputs_x, synapse, model_output = None):
@@ -475,6 +472,10 @@ def test_dendrite_timeout():
     assert list(codes[0]) == [bittensor.proto.ReturnCode.Timeout, bittensor.proto.ReturnCode.Timeout,
                               bittensor.proto.ReturnCode.Timeout]
 
+    axon.stop()
+
+def test_dend_del():
+    dendrite.__del__()
 
 def test_clear():
     dataset.close()
