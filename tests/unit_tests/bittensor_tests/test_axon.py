@@ -839,6 +839,8 @@ def test_forward_priority_timeout():
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Timeout
 
+    axon.stop()
+
 def test_forward_priority_2nd_request_timeout():
     def priority(pubkey:str, request_type:str, inputs_x):
         return 100
@@ -873,6 +875,8 @@ def test_forward_priority_2nd_request_timeout():
         pass
     else:
         raise AssertionError('Expected to Timeout')
+
+    axon.stop()
 
 def test_backward_response_success_text_priority():
         
