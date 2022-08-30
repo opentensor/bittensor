@@ -15,22 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import argparse
+import copy
 import os
 
-import random
-import time
-import psutil
-import subprocess
-from sys import platform   
-
 import bittensor
-import copy
-from substrateinterface import SubstrateInterface
-
-from . import subtensor_impl
-from . import subtensor_mock
-
 from loguru import logger
+from substrateinterface import SubstrateInterface
+from torch.cuda import is_available as is_cuda_available
+
+from . import subtensor_impl, subtensor_mock
+
 logger = logger.opt(colors=True)
 
 __type_registery__ = {
@@ -218,6 +212,17 @@ class subtensor:
     def check_config( config: 'bittensor.Config' ):
         assert config.subtensor
         #assert config.subtensor.network != None
+        assert all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', []))
+
+        if config.subtensor.register.cuda.get('use_cuda', False):
+            try:
+                import cubit
+            except ImportError:
+                raise ImportError('CUDA registration is enabled but cubit is not installed. Please install cubit.')
+
+            if not is_cuda_available():
+                raise RuntimeError('CUDA registration is enabled but no CUDA devices are detected.')
+
 
     @staticmethod
     def determine_chain_endpoint(network: str):
