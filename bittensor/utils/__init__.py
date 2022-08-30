@@ -454,12 +454,12 @@ def get_human_readable(num, suffix="H"):
     return f"{num:.1f}Y{suffix}"
 
 def millify(n: int):
-    millnames = ['',' K',' M',' B',' T']
+    millnames = ['',' K',' M',' B',' T', 'q', 'Q']
     n = float(n)
     millidx = max(0,min(len(millnames)-1,
                         int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
 
-    return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+    return '{:.4f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
 @backoff.on_exception(backoff.constant,
                             Exception,
