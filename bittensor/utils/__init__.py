@@ -302,6 +302,8 @@ def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocess
             curr_block[i] = block_bytes[i]
         registration_diff_pack(diff, curr_diff)
 
+def get_cpu_count():
+    return len(os.sched_getaffinity(0))
 
 def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
     """
@@ -322,7 +324,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     """
     if num_processes == None:
         # get the number of allowed processes for this process
-        num_processes = len(os.sched_getaffinity(0))
+        num_processes = min(1, get_cpu_count())
 
     if update_interval is None:
         update_interval = 50_000
