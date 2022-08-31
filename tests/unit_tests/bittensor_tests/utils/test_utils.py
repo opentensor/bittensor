@@ -398,6 +398,7 @@ def test_pow_called_for_cuda():
                     assert call1[1]['call_function'] == 'register'
                     call_params = call1[1]['call_params']
                     assert call_params['nonce'] == mock_result['nonce']
+                    
 
 if __name__ == "__main__":
     test_solve_for_difficulty_fast_registered_already()

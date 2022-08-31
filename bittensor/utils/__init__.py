@@ -545,6 +545,7 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, by
         raise Exception("Network error. Could not connect to substrate to get block hash")
     return block_number, difficulty, block_hash
 
+
 def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, use_kernel_launch_optimization: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
