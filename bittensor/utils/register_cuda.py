@@ -69,7 +69,6 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     solution = cubit.solve_cuda(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
-        print(f"Checking solution: {solution} for bn: {bn}")
         seal = create_seal_hash(block_bytes, solution)
         if seal_meets_difficulty(seal, difficulty):
             return solution, seal

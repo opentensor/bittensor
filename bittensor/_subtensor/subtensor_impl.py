@@ -442,7 +442,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         prompt: bool = False,
         max_allowed_attempts: int = 3,
         cuda: bool = False,
-        dev_id: int = 0,
+        dev_id: Union[List[int], int] = 0,
         TPB: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
@@ -462,11 +462,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             max_allowed_attempts (int):
                 Maximum number of attempts to register the wallet.
             cuda (bool):
-                If true, the wallet should be registered on the cuda device.
-            dev_id (int):
-                The cuda device id.
+                If true, the wallet should be registered using CUDA device(s).
+            dev_id (Union[List[int], int]):
+                The CUDA device id to use, or a list of device ids.
             TPB (int):
-                The number of threads per block (cuda).
+                The number of threads per block (CUDA).
             num_processes (int):
                 The number of processes to use to register.
             update_interval (int):
