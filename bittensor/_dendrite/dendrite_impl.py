@@ -85,7 +85,7 @@ class Dendrite(torch.autograd.Function):
                     self.prometheus_counters = Counter('dendrite_counters{}'.format(suffix), 'dendrite_counters', ['name'])
                     self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,2*bittensor.__blocktime__,1))) 
                     self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid{}'.format(suffix), 'dendrite_latency_per_uid', ['uid'])
-                    self.prometheus_success_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'])
+                    self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'])
                     self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid{}'.format(suffix), 'dendrite_failures_per_uid', ['uid'])
 
                 except ValueError: 
@@ -341,7 +341,7 @@ class Dendrite(torch.autograd.Function):
                 if self.config.dendrite.prometheus.level == bittensor.prometheus.level.DEBUG.name:
                     if is_success:
                         self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( response_time )
-                        self.prometheus_success_per_uid.labels(str(endpoints[i].uid)).inc()
+                        self.prometheus_successes_per_uid.labels(str(endpoints[i].uid)).inc()
                     else:
                         self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( timeout )
                         self.prometheus_failures_per_uid.labels(str(endpoints[i].uid)).inc()
