@@ -19,7 +19,7 @@ from loguru import logger
 
 from unittest.mock import MagicMock, patch
 
-
+bittensor.turn_console_off()
 
 @fixture(scope="function")
 def setup_chain():

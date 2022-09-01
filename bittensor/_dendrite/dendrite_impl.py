@@ -317,6 +317,7 @@ class Dendrite(torch.autograd.Function):
             self.prometheus_counters.labels( 'total_request_bytes' ).inc( sum(p.element_size() * p.nelement() for p in inputs) )
             self.prometheus_counters.labels( 'total_request_params' ).inc( sum(p.numel() for p in inputs) )
 
+            # Capture synapses.
             for synapse in enumerate( synapses ):
                 self.prometheus_counters.labels( str(synapse) ).inc()
 
