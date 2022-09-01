@@ -85,7 +85,9 @@ class Dendrite(torch.autograd.Function):
                     self.prometheus_counters = Counter('dendrite_counters{}'.format(suffix), 'dendrite_counters', ['name'])
                     self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,2*bittensor.__blocktime__,1))) 
                     self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid{}'.format(suffix), 'dendrite_latency_per_uid', ['uid'])
-                    self.prometheus_success_rate_per_uid = Summary('dendrite_success_rate_per_uid{}'.format(suffix), 'dendrite_success_rate_per_uid', ['uid'])
+                    self.prometheus_success_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'])
+                    self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid{}'.format(suffix), 'dendrite_failures_per_uid', ['uid'])
+
                 except ValueError: 
                     suffix = "_{}".format(str(idx)); idx+=1
                     continue
@@ -324,7 +326,8 @@ class Dendrite(torch.autograd.Function):
             for i in range(len(endpoints)):
                 n_success = (codes[i] == 1).sum().item()
                 is_success = (n_success > 0) # One is a success.
-                self.prometheus_latency.observe(  times[i].mean().item() )
+                response_time = times[i].mean().item()
+                self.prometheus_latency.observe( response_time )
 
                 # Capture outputs.
                 self.prometheus_counters.labels( 'total_response_bytes' ).inc( sum(p.element_size() * p.nelement() for p in outputs[i]) )
@@ -337,11 +340,11 @@ class Dendrite(torch.autograd.Function):
                 # === Prometheus DEBUG (per uid info.)
                 if self.config.dendrite.prometheus.level == bittensor.prometheus.level.DEBUG.name:
                     if is_success:
-                        self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( times[i].mean().item() )
-                        self.prometheus_success_rate_per_uid.labels(str(endpoints[i].uid)).observe( 1 ) # Should act like a moving average.
+                        self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( response_time )
+                        self.prometheus_success_per_uid.labels(str(endpoints[i].uid)).inc()
                     else:
                         self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( timeout )
-                        self.prometheus_success_rate_per_uid.labels(str(endpoints[i].uid)).observe( 0 )
+                        self.prometheus_failures_per_uid.labels(str(endpoints[i].uid)).inc()
 
 
         return packed_outputs, packed_codes, packed_times
