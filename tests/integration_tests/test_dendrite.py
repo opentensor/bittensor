@@ -482,5 +482,4 @@ def test_clear():
     
 if __name__ == "__main__":
     bittensor.logging(debug = True)
-    # test_dendrite_forward_tensor()
     test_dendrite_timeout()
