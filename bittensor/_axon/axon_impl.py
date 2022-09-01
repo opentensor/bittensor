@@ -95,8 +95,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.priority_threadpool= priority_threadpool
 
         # == Prometheus
-        # We are running over various suffix values in event that there are multiple axons in the same process.
-        # The first axon is created with a null suffix. Values are ordered like so: axon_is_started, axon_is_started_1, axon_is_started_2 etc...
+        # We are running over various suffix values in the event that there are multiple axons in the same process.
+        # The first axon is created with a null suffix and subsequent values are ordered like so: axon_is_started, axon_is_started_1, axon_is_started_2 etc...
         if self.prometheus_level != bittensor.prometheus.level.OFF.name:
             suffix = ""; idx = 1
             while True:
