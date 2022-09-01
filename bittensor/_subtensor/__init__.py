@@ -137,11 +137,16 @@ class subtensor:
             config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( bittensor.defaults.subtensor.network )
             config.subtensor.network = bittensor.defaults.subtensor.network
            
+        # make sure it's wss:// or ws://
+        endpoint_url: str = config.subtensor.chain_endpoint
+        if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
+            endpoint_url = "ws://{}".format(endpoint_url)
+
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
-            url = "ws://{}".format(config.subtensor.chain_endpoint),
+            url = endpoint_url,
             use_remote_preset=True
         )
 
