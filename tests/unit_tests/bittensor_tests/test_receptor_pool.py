@@ -78,7 +78,7 @@ def test_receptor_pool_max_workers_forward():
         uid = 0,
         ip = '0.0.0.1',
         ip_type = 4,
-        port = 12345,
+        port = 12346,
         hotkey = wallet2.hotkey.ss58_address,
         coldkey = wallet2.coldkey.ss58_address,
         modality = 0
