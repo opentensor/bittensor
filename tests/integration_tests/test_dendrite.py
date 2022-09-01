@@ -52,8 +52,7 @@ def test_dendrite_forward_text_endpoints_tensor():
     x = torch.tensor( [[ 1,2,3 ], [ 1,2,3 ]] )
     resp,  _, _ = dendrite.text( endpoints = endpoints, inputs = x, synapses = synapses )
     check_resp_shape(resp,  num_resp = 1, block_size = 2, seq_len = 3 )
-    assert dendrite.stats.total_requests == 1
-    dendrite.to_wandb()
+    # dendrite.to_wandb() DEPRECATED
 
 def test_dendrite_forward_text_multiple_endpoints_tensor():
     endpoints_1 = neuron_obj.to_tensor()
@@ -257,8 +256,9 @@ def test_dendrite_multiple():
     dend1.__del__()
 
 
-def test_dendrite_to_df():
-    dendrite.to_dataframe(bittensor.metagraph(_mock=True).sync())
+# Deprecated
+# def test_dendrite_to_df():
+#   dendrite.to_dataframe(bittensor.metagraph(_mock=True).sync())
 
 def test_dend_del():
     dendrite.__del__()
