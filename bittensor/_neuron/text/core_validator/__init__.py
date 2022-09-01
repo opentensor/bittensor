@@ -630,11 +630,12 @@ class neuron:
         sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
 
         # === Exclude lowest quantile from weight setting ===
-        max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weights
-        exclude_quantile = min([self.config.neuron.exclude_quantile, max_exclude])  # reduce quantile to meet min_allowed_weights
-        lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
-        sample_uids = sample_uids[lowest_quantile <= sample_weights]  # exclude uids with weights below quantile
-        sample_weights = sample_weights[lowest_quantile <= sample_weights]  # exclude weights below quantile
+        if min_allowed_weights <= len(sample_weights):
+            max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weights
+            exclude_quantile = min([self.config.neuron.exclude_quantile, max_exclude])  # reduce quantile to meet min_allowed_weights
+            lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
+            sample_uids = sample_uids[lowest_quantile <= sample_weights]  # exclude uids with weights below quantile
+            sample_weights = sample_weights[lowest_quantile <= sample_weights]  # exclude weights below quantile
 
         # === Normalize and apply max_allowed_ratio ===
         sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
