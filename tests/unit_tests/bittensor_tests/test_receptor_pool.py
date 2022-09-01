@@ -72,7 +72,6 @@ def test_receptor_pool_backward():
               torch.tensor([])]]
     receptor_pool.backward( endpoints, synapses, x, grads, timeout=1)
 
-
 def test_receptor_pool_max_workers_forward():
     neuron_obj2 = bittensor.endpoint(
         version = bittensor.__version_as_int__,
