@@ -292,5 +292,5 @@ def test_dendrite_del():
     del dendrite_mock
 
 if __name__  == "__main__":
-    test_dendrite_backward_multiple()
+    pass
 
