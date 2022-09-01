@@ -23,7 +23,7 @@ import copy
 import inspect
 import time
 from concurrent import futures
-from typing import List, Callable
+from typing import List, Callable, Optional
 from bittensor._threadpool import prioritythreadpool
 
 import torch
@@ -34,80 +34,100 @@ import bittensor
 from . import axon_impl
 
 class axon:
-    """ The factor class for bittensor.Axon object
-    The Axon acts a grpc server for the bittensor network and allows for communication between neurons.
-    By default, the grpc server follows the bittensor protocol and transports forward and backwards requests
-    between validators and servers. 
+    """ The factory class for bittensor.Axon object
+
+    The Axon is a grpc server for the bittensor network which opens up communication between it and other neurons.
+    The server protocol is defined int bittensor.proto and describes the manner in which forward and backwards requests
+    are transported / encoded between validators and servers. 
     
     Examples:: 
-            >>> axon = bittensor.axon(config=config)
-            >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> axon.serve(subtensor=subtensor)
+            >>> config = bittensor.axon.config()
+            >>> axon = bittensor.axon( config = config )
+            >>> subtensor = bittensor.subtensor( network = 'nakamoto' )
+            >>> axon.serve( subtensor = subtensor )
     """
 
     def __new__(
             cls, 
-            config: 'bittensor.config' = None,
-            wallet: 'bittensor.Wallet' = None,
-            forward_text: 'Callable' = None,
-            backward_text: 'Callable' = None,
-            synapse_last_hidden: 'Callable' = None,
-            synapse_causal_lm: 'Callable' = None,
-            synapse_causal_lm_next: 'Callable' = None,
-            synapse_seq_2_seq: 'Callable' = None,
-            synapse_checks: 'Callable' = None,
-            thread_pool: 'futures.ThreadPoolExecutor' = None,
-            server: 'grpc._Server' = None,
-            port: int = None,
-            ip: str = None,
-            max_workers: int = None, 
-            maximum_concurrent_rpcs: int = None,
-            blacklist: 'Callable' = None,
-            priority: 'Callable' = None,
-            forward_timeout: int = None,
-            backward_timeout: int = None,
-            compression: str = None,
+            config: Optional['bittensor.config'] = None,
+            wallet: Optional['bittensor.Wallet'] = None,
+            forward_text: Optional['Callable'] = None,
+            backward_text:Optional['Callable'] = None,
+            synapse_last_hidden: Optional['Callable'] = None,
+            synapse_causal_lm: Optional['Callable'] = None,
+            synapse_causal_lm_next: Optional['Callable'] = None,
+            synapse_seq_2_seq: Optional['Callable'] = None,
+            synapse_checks: Optional['Callable'] = None,
+            thread_pool: Optional['futures.ThreadPoolExecutor'] = None,
+            server: Optional['grpc._Server'] = None,
+            port: Optional[int] = None,
+            ip: Optional[str] = None,
+            max_workers: Optional[int] = None, 
+            maximum_concurrent_rpcs: Optional[int] = None,
+            blacklist: Optional['Callable'] = None,
+            priority: Optional['Callable'] = None,
+            forward_timeout: Optional[int] = None,
+            backward_timeout: Optional[int] = None,
+            compression:Optional[str] = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.axon.config()
-                wallet (:obj:`bittensor.Wallet`, `optional`):
-                    bittensor wallet with hotkey and coldkeypub.
-                forward_text (:obj:`callable`, `optional`):
-                    function which is called on forward text requests.
-                backward_text (:obj:`callable`, `optional`):
-                    function which is called on backward text requests.
-                synapse_last_hidden (:obj:`callable`, `optional`):
-                    function which is called by the last hidden synapse
-                synapse_causal_lm (:obj:`callable`, `optional`):
-                    function which is called by the causal lm synapse
-                synapse_causal_lm_next (:obj:`callable`, `optional`):
-                    function which is called by the TextCausalLMNext synapse
-                synapse_seq_2_seq (:obj:`callable`, `optional`):
-                    function which is called by the seq2seq synapse   
-                synapse_checks (:obj:`callable`, 'optional'):
-                    function which is called before each synapse to check for stake        
-                thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
+                config (:type:`Optional[bittensor.Config]`, `optional`): 
+                    Config generated via bittensor.axon.config().
+                    
+                wallet (:type:`Optional[bittensor.Wallet]`, `optional`):
+                    A Bittensor wallet with hotkey and coldkeypub.
+
+                forward_text (:type:`Optional[callable]`, `optional`):
+                    Function which is called on forward text requests.
+
+                backward_text (:type:`Optional[callable]`, `optional`):
+                    Function which is called on backward text requests.
+
+                synapse_last_hidden (:type:`Optional[callable]`, `optional`):
+                    Function which is called by the last hidden synapse
+
+                synapse_causal_lm (:type:`Optional[callable]`, `optional`):
+                    Function which is called by the causal lm synapse
+
+                synapse_causal_lm_next (:type:`Optional[callable]`, `optional`):
+                    Function which is called by the TextCausalLMNext synapse
+
+                synapse_seq_2_seq (:type:`Optional[callable]`, `optional`):
+                    Function which is called by the seq2seq synapse   
+
+                synapse_checks (:type:`Optional[callable]`, 'optional'):
+                    Function which is called before each synapse to check for stake   
+
+                thread_pool (:type:`Optional[ThreadPoolExecutor]`, `optional`):
                     Threadpool used for processing server queries.
-                server (:obj:`grpc._Server`, `required`):
+
+                server (:type:`Optional[grpc._Server]`, `required`):
                     Grpc server endpoint, overrides passed threadpool.
-                port (:type:`int`, `optional`):
+
+                port (:type:`Optional[int]`, `optional`):
                     Binding port.
-                ip (:type:`str`, `optional`):
+
+                ip (:type:`Optional[str]`, `optional`):
                     Binding ip.
-                max_workers (:type:`int`, `optional`):
+
+                max_workers (:type:`Optional[int]`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
-                maximum_concurrent_rpcs (:type:`int`, `optional`):
+
+                maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
                     Maximum allowed concurrently processed RPCs.
-                blacklist (:obj:`callable`, `optional`):
-                    function to blacklist requests.
-                priority (:obj:`callable`, `optional`):
-                    function to assign priority on requests.
-                forward_timeout (:type:`int`, `optional`):
-                    timeout on the forward requests. 
-                backward_timeout (:type:`int`, `optional`):
-                    timeout on the backward requests.              
+
+                blacklist (:obj:`Optional[callable]`, `optional`):
+                    Function to blacklist requests.
+
+                priority (:obj:`Optional[callable]`, `optional`):
+                    Function to assign priority on requests.
+
+                forward_timeout (:type:`Optional[int]`, `optional`):
+                    Timeout on the forward requests. 
+
+                backward_timeout (:type:`Optional[int]`, `optional`):
+                    Timeout on the backward requests.              
         """   
 
         if config == None: 
