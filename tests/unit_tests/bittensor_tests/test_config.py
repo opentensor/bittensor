@@ -21,6 +21,8 @@ import bittensor
 import argparse
 import pytest
 
+bittensor.logging(debug = True)
+
 def test_loaded_config():
     with pytest.raises(NotImplementedError):
         bittensor.Config(loaded_config=True)
@@ -77,31 +79,21 @@ def test_prefix():
     config_non_strict = bittensor.config( parser, strict=False)
     config_strict = bittensor.config( parser, strict=True)
 
-    bittensor.dendrite( config_strict )
-    bittensor.dendrite( config_non_strict )
-    bittensor.dendrite( config_strict.second )
-    bittensor.dendrite( config_non_strict.second )
+    bittensor.dendrite( config_strict ).__del__()
+    bittensor.dendrite( config_non_strict ).__del__()
+    bittensor.dendrite( config_strict.second ).__del__()
+    bittensor.dendrite( config_non_strict.second ).__del__()
 
-    bittensor.axon( config_strict )
-    bittensor.axon( config_non_strict )
-    bittensor.axon( config_strict.second )
-    bittensor.axon( config_non_strict.second )
-
-    bittensor.dataset( config_strict )
-    bittensor.dataset( config_non_strict )
-    bittensor.dataset( config_strict.second )
-    bittensor.dataset( config_non_strict.second )
-
-    bittensor.axon( config_strict )
-    bittensor.axon( config_non_strict )
-    bittensor.axon( config_strict.second )
-    bittensor.axon( config_non_strict.second )
+    bittensor.axon( config_strict ).stop()
+    bittensor.axon( config_non_strict ).stop()
+    bittensor.axon( config_strict.second ).stop()
+    bittensor.axon( config_non_strict.second ).stop()
 
     bittensor.metagraph( config_strict )
     bittensor.metagraph( config_non_strict )
     bittensor.metagraph( config_strict.second )
     bittensor.metagraph( config_non_strict.second )
-
+    
     bittensor.wallet( config_strict )
     bittensor.wallet( config_non_strict )
     bittensor.wallet( config_strict.second )
@@ -138,6 +130,7 @@ def test_to_defaults():
     config.to_defaults()
 
 if __name__  == "__main__":
-    test_loaded_config()
-    test_strict()
-    test_to_defaults()
+    # test_loaded_config()
+    # test_strict()
+    # test_to_defaults()
+    test_prefix()

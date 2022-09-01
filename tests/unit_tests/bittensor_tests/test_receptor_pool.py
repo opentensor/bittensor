@@ -72,14 +72,13 @@ def test_receptor_pool_backward():
               torch.tensor([])]]
     receptor_pool.backward( endpoints, synapses, x, grads, timeout=1)
 
-
 def test_receptor_pool_max_workers_forward():
     neuron_obj2 = bittensor.endpoint(
         version = bittensor.__version_as_int__,
         uid = 0,
         ip = '0.0.0.1',
         ip_type = 4,
-        port = 12345,
+        port = 12346,
         hotkey = wallet2.hotkey.ss58_address,
         coldkey = wallet2.coldkey.ss58_address,
         modality = 0
@@ -116,6 +115,7 @@ def test_receptor_pool_forward_success():
             tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
         )
 
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
