@@ -193,9 +193,8 @@ class neuron:
         # === Prometheus stats ===
         # Turn this off by passing the --prometheus.off flag
         self.prometheus_info = Info("neuron_info", "Info sumamries for the running server-miner.")
-        self.prometheus_gauges = Gauge('validator_gauges', 'Guages for the running validator.', ['guage_name'])
+        self.prometheus_gauges = Gauge('validator_gauges', 'Gauges for the running validator.', ['guage_name'])
         self.prometheus_counters = Counter('validator_counters', 'Counters for the running validator.', ['counter_name'])
-        self.prometheus_summaries = Summary('validator_summary', 'Summaries for the running validator.', ["summary_name"])
         self.prometheus_step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0,2*bittensor.__blocktime__,1)))
 
         # load last saved validator values from the file system
@@ -449,6 +448,7 @@ class neuron:
             # === Step time ===
             step_time = time.time() - start_time
             self.prometheus_step_time.observe( step_time )
+            self.prometheus_gauges.labels('step_time').set( step_time )
 
             if epoch_steps % 25 == 1:
                 # validator identifier status console message (every 25 validation steps)

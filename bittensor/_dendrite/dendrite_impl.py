@@ -327,15 +327,17 @@ class Dendrite(torch.autograd.Function):
                 n_success = (codes[i] == 1).sum().item()
                 is_success = (n_success > 0) # One is a success.
                 response_time = times[i].mean().item()
-                self.prometheus_latency.observe( response_time )
 
                 # Capture outputs.
                 self.prometheus_counters.labels( 'total_response_bytes' ).inc( sum(p.element_size() * p.nelement() for p in outputs[i]) )
                 self.prometheus_counters.labels( 'total_response_params' ).inc( sum(p.numel() for p in outputs[i]) )
 
-                # Capture success rates.
-                if is_success: self.prometheus_counters.labels( 'total_success' ).inc()
-                else: self.prometheus_counters.labels( 'total_failure' ).inc()
+                # Capture global success rates.
+                if is_success: 
+                    self.prometheus_counters.labels( 'total_success' ).inc()
+                    self.prometheus_latency.observe( response_time )
+                else: 
+                    self.prometheus_counters.labels( 'total_failure' ).inc()
 
                 # === Prometheus DEBUG (per uid info.)
                 if self.config.dendrite.prometheus.level == bittensor.prometheus.level.DEBUG.name:
@@ -343,7 +345,6 @@ class Dendrite(torch.autograd.Function):
                         self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( response_time )
                         self.prometheus_successes_per_uid.labels(str(endpoints[i].uid)).inc()
                     else:
-                        self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( timeout )
                         self.prometheus_failures_per_uid.labels(str(endpoints[i].uid)).inc()
 
 
