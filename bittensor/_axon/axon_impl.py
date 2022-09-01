@@ -237,7 +237,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 self.forward_latency.observe( clock.time() - start_time )
                 if self.prometheus_level == bittensor.prometheus.level.DEBUG.name:
                     self.forward_hotkeys.labels( request.hotkey ).inc()
-                    self.forward_bytes.labels( request.hotkey ).inc( sys.getsizeof( request.hotkey) )
+                    self.forward_bytes.labels( request.hotkey ).inc( sys.getsizeof( request ) )
 
             for index, synapse in enumerate( synapses ):
                 # === Prometheus
@@ -471,7 +471,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                 self.backward_latency.observe( clock.time() - start_time )
                 if self.prometheus_level == bittensor.prometheus.level.DEBUG.name:
                     self.backward_hotkeys.labels( request.hotkey ).inc()
-                    self.backward_bytes.labels( request.hotkey ).inc( sys.getsizeof( request.hotkey) )
+                    self.backward_bytes.labels( request.hotkey ).inc( sys.getsizeof( request ) )
 
             for index, synapse in enumerate( synapses ):
                 # Prometheus logging.
