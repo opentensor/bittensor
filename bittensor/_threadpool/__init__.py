@@ -48,7 +48,6 @@ class prioritythreadpool:
         config.axon.priority.maxsize = maxsize if maxsize != None else config.axon.priority.maxsize
 
         prioritythreadpool.check_config( config )
-
         return priority_thread_pool_impl.PriorityThreadPoolExecutor(maxsize = config.axon.priority.maxsize, max_workers = config.axon.priority.max_workers)
 
     @classmethod

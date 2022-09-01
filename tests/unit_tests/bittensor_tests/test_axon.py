@@ -27,6 +27,8 @@ import bittensor
 from bittensor.utils.test_utils import get_random_unused_port
 import concurrent
 
+from concurrent.futures import ThreadPoolExecutor
+
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon(wallet = wallet)
 bittensor.logging(debug = True)
@@ -812,6 +814,70 @@ def test_forward_tensor_success_priority():
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
 
+
+def test_forward_priority_timeout():
+    def priority(pubkey:str, request_type:str, inputs_x):
+        return 100
+
+    def forward( inputs_x: torch.FloatTensor, synapses, hotkey):
+        time.sleep(15)
+
+    axon = bittensor.axon(wallet = wallet, priority= priority, forward_timeout = 5)
+    axon.attach_forward_callback(forward)
+
+    inputs_raw = torch.rand(1,1)
+    synapses = [bittensor.synapse.TextLastHiddenState()]
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        hotkey = axon.wallet.hotkey.ss58_address,
+        synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
+    )
+
+    response, code, synapses = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.Timeout
+
+    axon.stop()
+
+def test_forward_priority_2nd_request_timeout():
+    def priority(pubkey:str, request_type:str, inputs_x):
+        return 100
+
+    axon = bittensor.axon(wallet = wallet, priority= priority, priority_threadpool = bittensor.prioritythreadpool(max_workers = 1))
+
+    def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
+        time.sleep(1)
+        return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    
+    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    inputs_raw = torch.rand(3, 3)
+    synapses = [bittensor.synapse.TextLastHiddenState()]
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized =  synapses[0].serialize_forward_request_tensor(inputs_raw)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        synapses= [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address,
+    )
+    start_time = time.time()
+    executor = ThreadPoolExecutor(2)
+    future = executor.submit(axon._forward, (request))
+    future2 = executor.submit(axon._forward, (request))
+    response, code, synapses = future.result()
+    assert code == bittensor.proto.ReturnCode.Success
+    
+    try: 
+        response2, code2, synapses2 = future2.result(timeout = 1 - (time.time() - start_time))
+    except concurrent.futures.TimeoutError:
+        pass
+    else:
+        raise AssertionError('Expected to Timeout')
+
+    axon.stop()
+
 def test_backward_response_success_text_priority():
         
     def priority(pubkey:str, request_type:str, inputs_x):
@@ -1044,5 +1110,7 @@ def test_axon_is_destroyed():
 
 if __name__ == "__main__":
     # test_forward_joint_success()
-    test_forward_joint_missing_synapse()
+    # test_forward_joint_missing_synapse()
+    # test_forward_priority_timeout()
+    test_forward_priority_2nd_request_timeout()
     # test_forward_joint_faulty_synapse()

@@ -331,7 +331,8 @@ def serve(
         )
 
     last_set_block = subtensor.get_current_block()
-
+    blocks_per_epoch = subtensor.blocks_per_epoch if config.neuron.blocks_per_epoch == -1 else config.neuron.blocks_per_epoch
+    blocks_per_set_weights = subtensor.blocks_per_epoch if config.neuron.blocks_per_set_weights == -1 else config.neuron.blocks_per_set_weights
 
     # --- Run Forever.
     while True:
@@ -404,7 +405,7 @@ def serve(
             wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-        if current_block - last_set_block > config.neuron.blocks_per_set_weights:
+        if current_block - last_set_block > blocks_per_set_weights:
             try: 
                 bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
 
