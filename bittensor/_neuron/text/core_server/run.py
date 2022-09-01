@@ -74,7 +74,7 @@ def serve(
     mutex = Lock()
 
     # --- Setup prometheus summaries.
-    # These will not be posted if the user passes the --prometheus.off
+    # These will not be posted if the user passes the --prometheus.level OFF
     prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['counter_name'])
     prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['guage_name'])
     prometheus_info = Info( "neuron_info", "Info sumamries for the running server-miner." )
