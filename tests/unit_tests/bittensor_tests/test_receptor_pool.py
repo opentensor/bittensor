@@ -115,6 +115,7 @@ def test_receptor_pool_forward_success():
             tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
         )
 
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
