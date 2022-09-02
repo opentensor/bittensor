@@ -83,7 +83,7 @@ class Dendrite(torch.autograd.Function):
             while True:
                 try:
                     self.prometheus_counters = Counter('dendrite_counters{}'.format(suffix), 'dendrite_counters', ['name'])
-                    self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,0.5))) 
+                    self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,1))) 
                     self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid{}'.format(suffix), 'dendrite_latency_per_uid', ['uid'])
                     self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'])
                     self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid{}'.format(suffix), 'dendrite_failures_per_uid', ['uid'])
