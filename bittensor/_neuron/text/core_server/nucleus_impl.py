@@ -123,7 +123,6 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
         
-
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
             Returns: 
@@ -538,7 +537,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=10)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
-        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=100)
+        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=-1)
         parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
         parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
@@ -564,4 +563,3 @@ class server(torch.nn.Module):
         bittensor.dataset.add_args( parser )
         bittensor.metagraph.add_args( parser )
         return bittensor.config( parser )
-    
