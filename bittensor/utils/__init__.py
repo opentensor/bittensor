@@ -373,7 +373,11 @@ def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocess
         registration_diff_pack(diff, curr_diff)
 
 def get_cpu_count():
-    return len(os.sched_getaffinity(0))
+    try:
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
+        # OSX does not have sched_getaffinity
+        return os.cpu_count()
 
 def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
     """
