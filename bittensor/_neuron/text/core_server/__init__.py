@@ -73,7 +73,6 @@ class neuron:
         causallmnext = None,
         seq2seq = None,
         synapse_list = None,
-
     ):
         if config == None: config = server.config()
         config = config; 
