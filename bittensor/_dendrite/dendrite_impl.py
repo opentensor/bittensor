@@ -860,4 +860,3 @@ class Dendrite(torch.autograd.Function):
         except Exception as e:
             bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
             return {}
-
