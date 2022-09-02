@@ -211,6 +211,7 @@ class neuron:
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
         parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
+        parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting.', default=0.1)
 
     @classmethod
     def config ( cls ):
@@ -629,9 +630,25 @@ class neuron:
         sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
         sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
 
+        logger.info(f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
+
+        # === Exclude lowest quantile from weight setting ===
+        max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
+        if 0 < max_exclude:
+            exclude_quantile = min([self.config.neuron.exclude_quantile, max_exclude])  # reduce quantile to meet min_allowed_weights
+            lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
+            sample_uids = sample_uids[lowest_quantile <= sample_weights]  # exclude uids with weights below quantile
+            sample_weights = sample_weights[lowest_quantile <= sample_weights]  # exclude weights below quantile
+
+            logger.info(f'Exclude {exclude_quantile} quantile ({lowest_quantile}) | '
+                        f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
+
         # === Normalize and apply max_allowed_ratio ===
         sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
                                                                              multiple=max_allowed_ratio)
+        logger.info(f'{len(sample_weights)} normalize_max_multiple | '
+                    f'min:{sample_weights.min()} max:{sample_weights.max()}')
+
         return sample_uids, sample_weights
 
     def weights_table(self, sample_uids, sample_weights, include_uids=None, num_rows: int = None):
