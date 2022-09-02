@@ -1,6 +1,7 @@
 import binascii
 import datetime
 import hashlib
+from inspect import Attribute
 import math
 import multiprocessing
 import numbers
@@ -316,8 +317,13 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
         to increase the transparency of the process while still keeping the speed.
     """
     if num_processes == None:
-        # get the number of allowed processes for this process
-        num_processes = len(os.sched_getaffinity(0))
+        try:
+            # get the number of allowed processes for this process
+            num_processes = len(os.sched_getaffinity(0))
+        except AttributeError:
+            # This system doesn't support os.sched_getaffinity, so let's just get the number of virtual cores instead.
+            num_processes = multiprocessing.cpu_count()
+
 
     if update_interval is None:
         update_interval = 50_000
