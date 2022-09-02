@@ -64,6 +64,10 @@ __nobunaga_entrypoints__ = [
     'staging.nobunaga.opentensor.ai:9944'
 ]
 
+__bellagene_entrypoints__ = [
+    'parachain.opentensor.ai:443'
+]
+
 __local_entrypoints__ = [
     '127.0.0.1:9944'
 ]

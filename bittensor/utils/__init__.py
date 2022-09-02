@@ -407,7 +407,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
         # Get times for each solver
         time_total = 0
         num_time = 0
-        while time_queue.qsize() > 0:
+        while not time_queue.empty():
             try:
                 time_ = time_queue.get_nowait()
                 time_total += time_
@@ -422,7 +422,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
             itrs_per_sec = update_interval*num_processes / time_avg
 
         # get best solution from each solver using the best_queue
-        while best_queue.qsize() > 0:
+        while not best_queue.empty():
             try:
                 num, seal = best_queue.get_nowait()
                 if num < best_number:

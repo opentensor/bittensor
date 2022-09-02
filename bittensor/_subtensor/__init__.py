@@ -227,6 +227,9 @@ class subtensor:
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoints__[0]
+        elif network == "bellagene":
+            # Parachain test net
+            return bittensor.__bellagene_entrypoints__[0]
         elif network == "local":
             # Local chain.
             return bittensor.__local_entrypoints__[0]
