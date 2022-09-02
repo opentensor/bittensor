@@ -44,8 +44,13 @@ def test_strict():
     bittensor.dataset.add_args( parser )
     bittensor.axon.add_args( parser )
     bittensor.wandb.add_args( parser )
-    bittensor.config( parser, strict=False)
-    bittensor.config( parser, strict=True)
+    bittensor.config( parser, strict=False )
+    try:
+        bittensor.config( parser, strict=True )
+        assert False, "This should raise an error because pytest will add its specific arguments which we do not recognize."
+    except:
+        assert True
+
 
 def test_prefix():
     # Test the use of prefixes to instantiate all of the bittensor objects.
@@ -74,53 +79,29 @@ def test_prefix():
     bittensor.wandb.add_args( parser )
     bittensor.wandb.add_args( parser, prefix = 'second' )
 
-    config_non_strict = bittensor.config( parser, strict=False)
-    config_strict = bittensor.config( parser, strict=True)
+    config = bittensor.config( parser, strict=False)
 
-    bittensor.dendrite( config_strict )
-    bittensor.dendrite( config_non_strict )
-    bittensor.dendrite( config_strict.second )
-    bittensor.dendrite( config_non_strict.second )
+    bittensor.dendrite( config )
+    bittensor.dendrite( config.second )
 
-    bittensor.axon( config_strict )
-    bittensor.axon( config_non_strict )
-    bittensor.axon( config_strict.second )
-    bittensor.axon( config_non_strict.second )
+    bittensor.axon( config )
+    bittensor.axon( config.second )
 
-    bittensor.dataset( config_strict )
-    bittensor.dataset( config_non_strict )
-    bittensor.dataset( config_strict.second )
-    bittensor.dataset( config_non_strict.second )
+    bittensor.dataset( config )
+    bittensor.dataset( config.second )
 
-    bittensor.axon( config_strict )
-    bittensor.axon( config_non_strict )
-    bittensor.axon( config_strict.second )
-    bittensor.axon( config_non_strict.second )
+    bittensor.axon( config )
+    bittensor.axon( config.second )
 
-    bittensor.metagraph( config_strict )
-    bittensor.metagraph( config_non_strict )
-    bittensor.metagraph( config_strict.second )
-    bittensor.metagraph( config_non_strict.second )
-
-    bittensor.wallet( config_strict )
-    bittensor.wallet( config_non_strict )
-    bittensor.wallet( config_strict.second )
-    bittensor.wallet( config_non_strict.second )
-
-    bittensor.logging( config_strict )
-    bittensor.logging( config_non_strict )
-    bittensor.logging( config_strict.second )
-    bittensor.logging( config_non_strict.second )
-
-    # This is the only place we call bittensor.wandb() outside of neuron code.
-    # It fails because we don't have a key set up for this.
-    # TODO: Actually test bittensor.wandb
-    #bittensor.wandb( config_strict )
-    #bittensor.wandb( config_non_strict )
-    #bittensor.wandb( config_strict.second )
-    #bittensor.wandb( config_non_strict.second )
-
-
+    bittensor.metagraph( config )
+    bittensor.metagraph( config.second )
+  
+    bittensor.wallet( config )
+    bittensor.wallet( config.second )
+  
+    bittensor.logging( config )
+    bittensor.logging( config.second )
+  
 def construct_config():
     defaults = bittensor.Config()
     bittensor.subtensor.add_defaults( defaults )
@@ -130,7 +111,7 @@ def construct_config():
     bittensor.dataset.add_defaults( defaults )
     bittensor.logging.add_defaults( defaults )
     bittensor.wandb.add_defaults( defaults )
-    
+    bittensor.config.add_defaults( defaults )
     return defaults
 
 def test_to_defaults():

@@ -142,5 +142,5 @@ wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
-
+config.add_defaults( defaults )
 from substrateinterface import Keypair as Keypair

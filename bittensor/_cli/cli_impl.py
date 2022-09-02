@@ -126,7 +126,7 @@ class CLI:
         for uid in self.config.uids:
             neuron = subtensor.neuron_for_uid( uid )
             endpoint = bittensor.endpoint.from_neuron( neuron )
-            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
+            _, c, t = dendrite.format_text_inputs( endpoints = endpoint, inputs = 'hello world')
             latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
             bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
             stats[uid] = latency

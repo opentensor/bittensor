@@ -19,6 +19,7 @@ Create and init the config class, which manages the config of different bittenso
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import argparse
 from argparse import ArgumentParser
 
 import yaml
@@ -37,6 +38,58 @@ class config:
         """ In place of YAMLError
         """
 
+    @classmethod   
+    def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser
+        Return: bittensor.config object
+        """
+        parser = argparse.ArgumentParser()
+        config.add_args( parser )
+        return bittensor.config( parser )
+
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None  ):
+        """ Accept specific arguments from parser
+        """
+        prefix_str = '' if prefix == None else prefix + '.'
+        try:
+            parser.add_argument(
+                '--' + prefix_str + 'config.file', 
+                type=str, 
+                help='If set, defaults are overridden by passed file.'
+            )
+            parser.add_argument(
+                '--' + prefix_str + 'config.strict',  
+                action = 'store_true', 
+                default = bittensor.defaults.config.strict,
+                help = '''If flagged, config will check that only exact arguemnts have been set.'''
+            )
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
+
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.config = bittensor.config()
+        defaults.config.strict = False
+
+    @classmethod   
+    def check_config(cls, config: 'bittensor.Config' ):
+        """ Check config.
+        """
+        pass
+
     def __new__( cls, parser: ArgumentParser = None, strict: bool = False ):
         r""" Translates the passed parser into a nested Bittensor config.
         Args:
@@ -49,39 +102,35 @@ class config:
                 Nested config object created from parser arguments.
         """
         if parser == None:
-            parser = ArgumentParser()
+            return config_impl.Config()
 
-        # Optionally add config specific arguments
+        # 1.1 Check if --config.file has been set.
+        # If the config file is set, we will load defaults from here.
         try:
-            parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-        except:
-            # this can fail if the --config has already been added.
-            pass
-        try:
-            parser.add_argument('--strict',  action='store_true', help='''If flagged, config will check that only exact arguemnts have been set.''', default=False )
-        except:
-            # this can fail if the --config has already been added.
-            pass
-
-        # 1.1 Optionally load defaults if the --config is set.
-        try:
-            config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
-        except Exception as e:
-            config_file_path = None
-
-        # 2. Optionally check for --strict, if stict we will parse the args strictly.
-        strict = parser.parse_known_args()[0].strict
-                        
-        if config_file_path != None:
-            config_file_path = os.path.expanduser(config_file_path)
+            # Get config file path from current working directory.
+            config_file_path = os.path.expanduser( str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config.file'] )
             try:
                 with open(config_file_path) as f:
                     params_config = yaml.safe_load(f)
                     print('Loading config defaults from: {}'.format(config_file_path))
+
+                    # Set config items as defaults.
                     parser.set_defaults(**params_config)
             except Exception as e:
                 print('Error in loading: {} using default parser settings'.format(e))
+        except Exception as e:
+            # Config file not set.
+            config_file_path = None
 
+        # 2. Check for --config.strict.
+        # Stict parsing means we throw and error if there are command line arguments
+        # which the parser does not expect.
+        try:
+            strict = vars(parser.parse_known_args()[0])['config.strict'] or strict
+        except:
+            # Strict not set.
+            pass
+                        
         # 2. Continue with loading in params.
         if not strict:
             params = parser.parse_known_args()[0]
@@ -118,5 +167,6 @@ class config:
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
         bittensor.dataset.add_args( parser )
+        bittensor.config.add_args( parser )
         return bittensor.config( parser )
 

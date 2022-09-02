@@ -188,6 +188,7 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.dendrite.check_config( config )
         bittensor.wandb.check_config( config )
+        bittensor.config.check_config( config )        
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
         config.using_wandb = config.wandb.api_key != 'default'
@@ -223,7 +224,8 @@ class neuron:
         bittensor.metagraph.add_args( parser )
         bittensor.logging.add_args( parser )
         bittensor.dataset.add_args( parser )
-        bittensor.wandb.add_args(parser)
+        bittensor.wandb.add_args( parser )
+        bittensor.config.add_args( parser )        
         return bittensor.config( parser )
 
     def __repr__(self) -> str:
@@ -235,14 +237,15 @@ class neuron:
                 f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])')
 
     def __del__(self):
-        self.__exit__()
+        try:
+            self.dataset.close()
+            self.dendrite.__del__()
+        except: pass
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
         """
         print(exc_type, exc_value, exc_traceback)
-        self.dataset.close()
-        self.dendrite.__del__()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.

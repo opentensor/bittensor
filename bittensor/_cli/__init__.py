@@ -111,7 +111,7 @@ class cli:
             type=str,
             help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)'''
         )
-        
+        bittensor.config.add_args( overview_parser )        
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
@@ -142,7 +142,7 @@ class cli:
             default='None', 
             help='''Synapses available through bittensor.synapse'''
         )
-        
+        bittensor.config.add_args( run_parser )        
         bittensor.subtensor.add_args( run_parser )
         bittensor.wallet.add_args( run_parser )
 
@@ -158,6 +158,7 @@ class cli:
             default=False,
         )
         bittensor.subtensor.add_args( metagraph_parser )
+        bittensor.config.add_args( metagraph_parser )        
 
 
         help_parser = cmd_parsers.add_parser(
@@ -184,6 +185,8 @@ class cli:
             help='''Set true to skip prompt from update.''',
             default=False,
         )
+        bittensor.config.add_args( update_parser )        
+
 
         inspect_parser = cmd_parsers.add_parser(
             'inspect', 
@@ -198,6 +201,7 @@ class cli:
         )
         bittensor.wallet.add_args( inspect_parser )
         bittensor.subtensor.add_args( inspect_parser )
+        bittensor.config.add_args( inspect_parser )        
 
         query_parser = cmd_parsers.add_parser(
             'query', 
@@ -222,6 +226,7 @@ class cli:
         bittensor.subtensor.add_args( query_parser )
         bittensor.dendrite.add_args( query_parser )
         bittensor.logging.add_args( query_parser )
+        bittensor.config.add_args( query_parser )        
 
         weights_parser = cmd_parsers.add_parser(
             'weights', 
@@ -236,6 +241,7 @@ class cli:
         )
         bittensor.wallet.add_args( weights_parser )
         bittensor.subtensor.add_args( weights_parser )
+        bittensor.config.add_args( weights_parser )        
 
         set_weights_parser = cmd_parsers.add_parser(
             'set_weights', 
@@ -252,6 +258,7 @@ class cli:
         set_weights_parser.add_argument ("--weights", type=float, required=False, nargs='*', action='store', help="Weights to set.")
         bittensor.wallet.add_args( set_weights_parser )
         bittensor.subtensor.add_args( set_weights_parser )
+        bittensor.config.add_args( set_weights_parser )        
 
         list_parser = cmd_parsers.add_parser(
             'list', 
@@ -265,6 +272,7 @@ class cli:
             default=False,
         )
         bittensor.wallet.add_args( list_parser )
+        bittensor.config.add_args( list_parser )        
 
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
@@ -344,6 +352,7 @@ class cli:
             help='''Overwrite the old coldkey with the newly generated coldkey'''
         )
         bittensor.wallet.add_args( regen_coldkey_parser )
+        bittensor.config.add_args( regen_coldkey_parser )        
 
 
         regen_coldkeypub_parser.add_argument(
@@ -379,6 +388,7 @@ class cli:
             help='''Overwrite the old coldkeypub file with the newly generated coldkeypub'''
         )
         bittensor.wallet.add_args( regen_coldkeypub_parser )
+        bittensor.config.add_args( regen_coldkeypub_parser )        
 
 
         # Fill arguments for the regen hotkey command.
@@ -416,6 +426,7 @@ class cli:
             help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( regen_hotkey_parser )
+        bittensor.config.add_args( regen_hotkey_parser )        
 
 
         # Fill arguments for the new coldkey command.
@@ -452,8 +463,8 @@ class cli:
             default=False,
             help='''Overwrite the old coldkey with the newly generated coldkey'''
         )
-        
         bittensor.wallet.add_args( new_coldkey_parser )
+        bittensor.config.add_args( new_coldkey_parser )        
 
 
         # Fill arguments for the new hotkey command.
@@ -491,6 +502,7 @@ class cli:
             help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( new_hotkey_parser )
+        bittensor.config.add_args( new_hotkey_parser )        
 
 
         # Fill arguments for unstake command. 
@@ -525,6 +537,7 @@ class cli:
 
         bittensor.wallet.add_args( unstake_parser )
         bittensor.subtensor.add_args( unstake_parser )
+        bittensor.config.add_args( unstake_parser )        
 
 
         # Fill arguments for stake command.
@@ -564,6 +577,7 @@ class cli:
         
         bittensor.wallet.add_args( stake_parser )
         bittensor.subtensor.add_args( stake_parser )
+        bittensor.config.add_args( stake_parser )        
 
 
         # Fill arguments for transfer
@@ -588,6 +602,7 @@ class cli:
         )
         bittensor.wallet.add_args( transfer_parser )
         bittensor.subtensor.add_args( transfer_parser )
+        bittensor.config.add_args( transfer_parser )        
 
 
         # Fill arguments for transfer
@@ -601,6 +616,7 @@ class cli:
 
         bittensor.wallet.add_args( register_parser )
         bittensor.subtensor.add_args( register_parser )
+        bittensor.config.add_args( register_parser )        
 
         # Fill run parser.
         run_parser.add_argument(
