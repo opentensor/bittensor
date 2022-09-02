@@ -613,7 +613,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
 
 def test_axon_receptor_connection_forward_unimplemented():
     axon = bittensor.axon (
-        port = 8081,
+        port = 8091,
         ip = '127.0.0.1',
         wallet = wallet,
     )
@@ -624,7 +624,7 @@ def test_axon_receptor_connection_forward_unimplemented():
         uid = 0,
         ip = '127.0.0.1',
         ip_type = 4,
-        port = 8081,
+        port = 8091,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
         modality = 2
