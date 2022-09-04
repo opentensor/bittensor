@@ -377,8 +377,12 @@ class neuron:
         epoch_start_time = time.time()
 
         start_block = self.subtensor.block
+        # normal epoch duration is blocks_per_epoch if all UIDs have been queried
+        # try to query each UID at least once - assumes nucleus samples without replacement
+        # but keep maximum epoch duration at 2 * blocks_per_epoch
         while (self.subtensor.block < start_block + blocks_per_epoch or
-               len(epoch_queried_uids) < self.metagraph.n):  # ensure each UID is queried at least once - assumes nucleus samples without replacement
+               (self.subtensor.block < start_block + 2 * blocks_per_epoch and
+                len(epoch_queried_uids) < self.metagraph.n)):
             start_time = time.time()
 
             # === Forward ===
