@@ -310,7 +310,7 @@ class cli:
             help='''Creates a new hotkey (for running a miner) under the specified path.'''
         )
          
-        # Fill arguments for the regen coldkey command.
+        # Fill arguments for the regen coldkey new-.
         regen_coldkey_parser.add_argument(
             "--mnemonic", 
             required=False, 
@@ -463,6 +463,13 @@ class cli:
 
 
         # Fill arguments for the new hotkey command.
+        new_hotkey_parser.add_argument(
+            '--n_keys', 
+            type=int, 
+            choices=list(range(1, 25)),
+            default=1, 
+            help='''The number of hotkeys to create under this coldkey. Names are suffixed like so: wallet.hotkey0, wallet.hotkey1, ..., wallet.hotkey(n_keys-1)'''
+        )
         new_hotkey_parser.add_argument(
             '--n_words', 
             type=int, 
@@ -870,6 +877,11 @@ class cli:
         if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
+        if config.n_keys != 1 and not config.no_prompt:
+            keynames = [ config.wallet.get('hotkey')+str(i) for i in range(config.n_keys) ]
+            if not Confirm.ask("Create hotkeys: [blue]'{}'[/blue]?".format(keynames)):
+                sys.exit()
 
     def check_regen_hotkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:

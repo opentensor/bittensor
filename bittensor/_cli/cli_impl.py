@@ -90,13 +90,22 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
+        bittensor.__console__.print("\n[bold white]Creating coldkey[/bold white]: {}".format(wallet))
         wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey)   
 
     def create_new_hotkey ( self ):
         r""" Creates a new hotke under this wallet.
         """
-        wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)   
+        if self.config.n_keys == 1:
+            wallet = bittensor.wallet(config = self.config)
+            bittensor.__console__.print("\n[bold white]Creating hotkey[/bold white]: {}".format(wallet))
+            wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)   
+        else:
+            keynames = [ self.config.wallet.get('hotkey')+str(i) for i in range(self.config.n_keys) ]
+            for kname in keynames:
+                wallet = bittensor.wallet(config = self.config, hotkey= kname )
+                bittensor.__console__.print("\n[bold white]Creating hotkey[/bold white]: {}".format(wallet))
+                wallet.create_new_hotkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)   
 
     def regen_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
