@@ -37,8 +37,10 @@ def init_wallet():
     return the_wallet
 
 def check_keys_exists(the_wallet = None, coldkey_exists = True, hotkey_exists = True, coldkeypub_exists = True):
+
     if coldkey_exists:
         # --- test file and key exists
+        assert the_wallet.has_coldkey
         assert os.path.isfile(the_wallet.coldkey_file.path)
         assert the_wallet._coldkey != None
         # --- test _load_key()
@@ -48,6 +50,7 @@ def check_keys_exists(the_wallet = None, coldkey_exists = True, hotkey_exists = 
 
     if hotkey_exists:
         # --- test file and key exists
+        assert the_wallet.has_hotkey
         assert os.path.isfile(the_wallet.hotkey_file.path)
         assert the_wallet._hotkey != None
         # --- test _load_key()
@@ -57,6 +60,7 @@ def check_keys_exists(the_wallet = None, coldkey_exists = True, hotkey_exists = 
 
     if coldkeypub_exists:
         # --- test file and key exists
+        assert the_wallet.has_coldkeypub
         assert os.path.isfile(the_wallet.coldkeypub_file.path)
         # --- test _load_key()
         the_wallet._coldkeypub = None
@@ -77,6 +81,20 @@ def test_create_keys():
     the_wallet.new_coldkey( use_password=False, overwrite = True )
     the_wallet.new_hotkey( use_password=False, overwrite = True )
     check_keys_exists(the_wallet)
+
+def test_create_coldkeys_no_private():
+    the_wallet = init_wallet()
+    the_wallet.create_new_coldkey( use_password=False, overwrite = True, no_private=True )
+    assert not the_wallet.has_hotkey
+    assert not the_wallet.has_coldkey
+    assert the_wallet.has_coldkeypub
+
+def test_regenerate_coldkeys_no_private():
+    the_wallet = init_wallet()
+    the_wallet.regenerate_coldkey( mnemonic = "solve arrive guilt syrup dust sea used phone flock vital narrow endorse".split(),  use_password=False, overwrite = True, no_private=True )
+    assert not the_wallet.has_hotkey
+    assert not the_wallet.has_coldkey
+    assert the_wallet.has_coldkeypub
     
 def test_wallet_uri():
     the_wallet = init_wallet()
@@ -197,6 +215,9 @@ def test_wallet_mock_from_name():
 
 def test_wallet_mock_from_func():
     wallet = bittensor.wallet.mock()
+    assert wallet.has_coldkey
+    assert wallet.has_coldkeypub
+    assert wallet.has_hotkey
     assert wallet.hotkey_file.exists_on_device()
     assert wallet.coldkey_file.exists_on_device()
     assert wallet.coldkeypub_file.exists_on_device()

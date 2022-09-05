@@ -90,7 +90,7 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey)   
+        wallet.create_new_coldkey( n_words = self.config.n_words, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey, no_private = self.config.no_private)   
 
     def create_new_hotkey ( self ):
         r""" Creates a new hotke under this wallet.
@@ -102,7 +102,7 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, seed = self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey )
+        wallet.regenerate_coldkey( mnemonic = self.config.mnemonic, seed = self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_coldkey, no_private = self.config.no_private)
 
     def regen_coldkeypub ( self ):
         r""" Creates a new coldkeypub under this wallet.

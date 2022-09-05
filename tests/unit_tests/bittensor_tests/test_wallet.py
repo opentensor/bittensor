@@ -64,3 +64,4 @@ class TestWallet(unittest.TestCase):
         with pytest.raises(ValueError):
             # Must provide either public_key or ss58_address
             self.mock_wallet.regenerate_coldkeypub(ss58_address=None, public_key=None)
+

@@ -434,8 +434,22 @@ class Wallet():
         return self
 
     @property
-    def hotkey_file(self) -> 'bittensor.Keyfile':
+    def has_coldkeypub(self) -> bool:
+        """ Returns true is the coldkeypub file exists"""
+        return self.coldkeypub_file.exists_on_device()
 
+    @property
+    def has_coldkey(self) -> bool:
+        """ Returns true is the coldkey file exists"""
+        return self.coldkey_file.exists_on_device()
+
+    @property
+    def has_hotkey(self) -> bool:
+        """ Returns true is the hotkey file exists"""
+        return self.hotkey_file.exists_on_device()
+
+    @property
+    def hotkey_file(self) -> 'bittensor.Keyfile':
         wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
         return bittensor.keyfile( path = hotkey_path )
@@ -567,7 +581,7 @@ class Wallet():
         """
         self.create_new_coldkey( n_words, use_password, overwrite )
 
-    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False, no_private: bool = False ) -> 'Wallet':  
         """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -576,6 +590,8 @@ class Wallet():
                     Is the created key password protected.
                 overwrite (bool, optional): 
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+                no_private (bool, optional): 
+                    If set, the command only creates the coldkeypub.txt keyfile and not the encrypted coldkey (useful for running on insecure servers).
             Returns:
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
@@ -583,7 +599,9 @@ class Wallet():
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
         display_mnemonic_msg( keypair, "coldkey" )
-        self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
+        # Turn off creating coldkey private file.
+        if not no_private:
+            self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
@@ -621,7 +639,7 @@ class Wallet():
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
-    def regen_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regen_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False, no_private: bool = False ) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -632,11 +650,14 @@ class Wallet():
                     Is the created key password protected.
                 overwrite (bool, optional): 
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+                no_private (bool, optional): 
+                    If set, the command only creates the coldkeypub.txt keyfile and not the encrypted coldkey (useful for running on insecure servers).
             Returns:
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
         """
-        self.regenerate_coldkey(mnemonic, seed, use_password, overwrite)
+        self.regenerate_coldkey(mnemonic, seed, use_password, overwrite, no_private)
+        return self
 
     def regenerate_coldkeypub( self, ss58_address: Optional[str] = None, public_key: Optional[Union[str, bytes]] = None, overwrite: bool = False ) -> 'Wallet':
         """ Regenerates the coldkeypub from passed ss58_address or public_key and saves the file
@@ -669,7 +690,7 @@ class Wallet():
     # Short name for regenerate_coldkeypub
     regen_coldkeypub = regenerate_coldkeypub
 
-    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False, no_private: bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -680,6 +701,8 @@ class Wallet():
                     Is the created key password protected.
                 overwrite (bool, optional): 
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+                no_private (bool, optional): 
+                    If set, the command only creates the coldkeypub.txt keyfile and NOT the encrypted coldkey (useful for running on insecure servers).
             Returns:
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
@@ -695,8 +718,8 @@ class Wallet():
         else:
             # seed is not None
             keypair = Keypair.create_from_seed(seed)
-            
-        self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
+        if not no_private:
+            self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
 
@@ -714,6 +737,7 @@ class Wallet():
                     this object with newly created hotkey.
         """
         self.regenerate_hotkey(mnemonic, use_password, overwrite)
+        return self
 
     def regenerate_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file

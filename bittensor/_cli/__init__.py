@@ -324,6 +324,13 @@ class cli:
             help='Seed hex string used to regen your key i.e. 0x1234...'
         )
         regen_coldkey_parser.add_argument(
+            '--no_private', 
+            dest='no_private', 
+            action='store_true', 
+            help='''If set, the command only creates the coldkeypub.txt keyfile and not the encrypted coldkey (useful for running on insecure servers)''',
+            default=False,
+        )
+        regen_coldkey_parser.add_argument(
             '--use_password', 
             dest='use_password', 
             action='store_true', 
@@ -438,6 +445,13 @@ class cli:
             action='store_true', 
             help='''Set true to protect the generated bittensor key with a password.''',
             default=True,
+        )
+        new_coldkey_parser.add_argument(
+            '--no_private', 
+            dest='no_private', 
+            action='store_true', 
+            help='''If set, the command only creates the coldkeypub.txt keyfile and not the encrypted coldkey (useful for running on insecure servers)''',
+            default=False,
         )
         new_coldkey_parser.add_argument(
             '--no_password', 
@@ -861,6 +875,9 @@ class cli:
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+        if config.no_private and not config.no_prompt:
+            if not Confirm.ask("Only generate the public key (coldkeypub.txt)?"):
+                sys.exit()
 
     def check_new_hotkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
@@ -887,6 +904,9 @@ class cli:
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+        if config.no_private and not config.no_prompt:
+            if not Confirm.ask("Only generate public key (coldkeypub.txt)?"):
+                sys.exit()
         if config.mnemonic == None and config.seed == None:
             prompt_answer = Prompt.ask("Enter mnemonic or seed")
             print(prompt_answer)
