@@ -123,7 +123,7 @@ class cli:
         
         run_parser = cmd_parsers.add_parser(
             'run', 
-            add_help=False,
+            add_help=True,
             help='''Run the miner.'''
         )
         run_parser.add_argument(

@@ -412,15 +412,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             except net.UPNPCException as upnpc_exception:
                 raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
         else:
-            external_port = axon.port
+            external_port = axon.external_port
 
         # ---- Get external ip ----
-        try:
-            external_ip = net.get_external_ip()
-            bittensor.__console__.print(":white_heavy_check_mark: [green]Found external ip: {}[/green]".format( external_ip ))
-            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format( external_ip ))
-        except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
+        if axon.external_ip == None:
+            try:
+                external_ip = net.get_external_ip()
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Found external ip: {}[/green]".format( external_ip ))
+                bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format( external_ip ))
+            except Exception as E:
+                raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
+        else:
+            external_ip = axon.external_ip
             
         # ---- Subscribe to chain ----
         serve_success = self.serve(
