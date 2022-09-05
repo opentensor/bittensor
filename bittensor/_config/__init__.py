@@ -3,6 +3,7 @@ Create and init the config class, which manages the config of different bittenso
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -19,12 +20,14 @@ Create and init the config class, which manages the config of different bittenso
 # DEALINGS IN THE SOFTWARE.
 
 import os
-from argparse import ArgumentParser
+import sys
+from argparse import ArgumentParser, Namespace
+from typing import List, Optional
 
+import bittensor
 import yaml
 from loguru import logger
 
-import bittensor
 from . import config_impl
 
 logger = logger.opt(colors=True)
@@ -37,13 +40,15 @@ class config:
         """ In place of YAMLError
         """
 
-    def __new__( cls, parser: ArgumentParser = None, strict: bool = False ):
+    def __new__( cls, parser: ArgumentParser = None, strict: bool = False, args: Optional[List[str]] = None ):
         r""" Translates the passed parser into a nested Bittensor config.
         Args:
             parser (argparse.Parser):
                 Command line parser object.
             strict (bool):
                 If true, the command line arguments are strictly parsed.
+            args (list of str):
+                Command line arguments.
         Returns:
             config (bittensor.Config):
                 Nested config object created from parser arguments.
@@ -69,8 +74,15 @@ class config:
         except Exception as e:
             config_file_path = None
 
+        # Get args from argv if not passed in.
+        if args == None:
+            args = sys.argv[1:]
+
+        # Parse args not strict
+        params = cls.__parse_args__(args=args, parser=parser, strict=False)
+
         # 2. Optionally check for --strict, if stict we will parse the args strictly.
-        strict = parser.parse_known_args()[0].strict
+        strict = params.strict
                         
         if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
@@ -83,10 +95,8 @@ class config:
                 print('Error in loading: {} using default parser settings'.format(e))
 
         # 2. Continue with loading in params.
-        if not strict:
-            params = parser.parse_known_args()[0]
-        else:
-            params = parser.parse_args()
+        params = cls.__parse_args__(args=args, parser=parser, strict=strict)
+
         _config = config_impl.Config()
 
         # Splits params on dot syntax i.e neuron.axon_port            
@@ -106,6 +116,27 @@ class config:
                 head[keys[0]] = arg_val
 
         return _config
+
+    @staticmethod
+    def __parse_args__( args: List[str], parser: ArgumentParser = None, strict: bool = False) -> Namespace:
+        """Parses the passed args use the passed parser.
+        Args:
+            args (List[str]):
+                List of arguments to parse.
+            parser (argparse.ArgumentParser):
+                Command line parser object.
+            strict (bool):
+                If true, the command line arguments are strictly parsed.
+        Returns:
+            Namespace:
+                Namespace object created from parser arguments.
+        """
+        if not strict:
+            params = parser.parse_known_args(args=args)[0]
+        else:
+            params = parser.parse_args(args=args)
+
+        return params
 
     @staticmethod
     def full():
