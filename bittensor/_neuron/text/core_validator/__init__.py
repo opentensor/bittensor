@@ -377,8 +377,12 @@ class neuron:
         epoch_start_time = time.time()
 
         start_block = self.subtensor.block
+        # normal epoch duration is blocks_per_epoch if all UIDs have been queried
+        # try to query each UID at least once - assumes nucleus samples without replacement
+        # but keep maximum epoch duration at 2 * blocks_per_epoch
         while (self.subtensor.block < start_block + blocks_per_epoch or
-               len(epoch_queried_uids) < self.metagraph.n):  # ensure each UID is queried at least once - assumes nucleus samples without replacement
+               (self.subtensor.block < start_block + 2 * blocks_per_epoch and
+                len(epoch_queried_uids) < self.metagraph.n)):
             start_time = time.time()
 
             # === Forward ===
@@ -552,7 +556,6 @@ class neuron:
         responsive_uids = []
         for _uid, _stats in neuron_stats.items():
             stats = self.neuron_stats.setdefault(_uid, {})
-            responsive_uids += [_uid]
 
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
