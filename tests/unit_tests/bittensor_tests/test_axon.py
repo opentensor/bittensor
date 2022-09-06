@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -16,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import unittest
 import unittest.mock as mock
 import uuid
 
@@ -1106,6 +1108,149 @@ def test_axon_is_destroyed():
     assert is_port_in_use( port ) == False
     axonB.__del__()
     assert is_port_in_use( port ) == False
+
+# test external axon args
+class TestExternalAxon(unittest.TestCase):
+    """
+    Tests the external axon config flags 
+    `--axon.external_port` and `--axon.external_ip`
+    Need to verify the external config is used when broadcasting to the network
+    and the internal config is used when creating the grpc server
+
+    Also test the default behaviour when no external axon config is provided
+    (should use the internal axon config, like usual)
+    """
+
+    def test_external_ip_not_set_dont_use_internal_ip(self):
+        # Verify that not setting the external ip arg will NOT default to the internal axon ip
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        mock_config = bittensor.axon.config()
+
+        axon = bittensor.axon ( ip = 'fake_ip', server=mock_server, config=mock_config )
+        assert axon.external_ip != axon.ip # should be different
+        assert axon.external_ip is None # should be None
+
+    def test_external_port_not_set_use_internal_port(self):
+        # Verify that not setting the external port arg will default to the internal axon port
+        mock_config = bittensor.axon.config()
+
+        axon = bittensor.axon ( port = 1234, config=mock_config )
+        assert axon.external_port == axon.port
+
+    def test_external_port_set_full_address_internal(self):
+        internal_port = 1234
+        external_port = 5678
+
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+        
+        mock_config = bittensor.axon.config()
+
+        _ = bittensor.axon( port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_port}' in full_address0 and f':{external_port}' not in full_address0
+
+        mock_add_insecure_port.reset_mock()
+
+        # Test using config
+        mock_config = bittensor.axon.config()
+
+        mock_config.axon.port = internal_port
+        mock_config.axon.external_port = external_port
+
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_port}' in full_address0, f'{internal_port} was not found in {full_address0}'
+        assert f':{external_port}' not in full_address0, f':{external_port} was found in {full_address0}'
+
+    def test_external_ip_set_full_address_internal(self):
+        internal_ip = 'fake_ip_internal'
+        external_ip = 'fake_ip_external'
+
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        mock_config = bittensor.axon.config()
+
+        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_ip}' in full_address0 and f'{external_ip}' not in full_address0
+
+        mock_add_insecure_port.reset_mock()
+
+        # Test using config
+        mock_config = bittensor.axon.config()
+        mock_config.axon.external_ip = external_ip
+        mock_config.axon.ip = internal_ip
+
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_ip}' in full_address0, f'{internal_ip} was not found in {full_address0}'
+        assert f'{external_ip}' not in full_address0, f'{external_ip} was found in {full_address0}'
+
+    def test_external_ip_port_set_full_address_internal(self):
+        internal_ip = 'fake_ip_internal'
+        external_ip = 'fake_ip_external'
+        internal_port = 1234
+        external_port = 5678
+
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        mock_config = bittensor.axon.config()
+
+        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_ip}:{internal_port}' == full_address0 and f'{external_ip}:{external_port}' != full_address0
+
+        mock_add_insecure_port.reset_mock()
+
+        # Test using config
+        mock_config = bittensor.axon.config()
+
+        mock_config.axon.ip = internal_ip
+        mock_config.axon.external_ip = external_ip
+        mock_config.axon.port = internal_port
+        mock_config.axon.external_port = external_port
+
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address1 = args[0]
+
+        assert f'{internal_ip}:{internal_port}' == full_address1, f'{internal_ip}:{internal_port} is not eq to {full_address1}'
+        assert f'{external_ip}:{external_port}' != full_address1, f'{external_ip}:{external_port} is eq to {full_address1}'
 
 
 if __name__ == "__main__":
