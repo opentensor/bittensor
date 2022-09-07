@@ -22,26 +22,38 @@ import torch
 
 U32_MAX = 4294967295
 
-def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ) -> 'torch.FloatTensor':
-    r""" Normalizes the tensor x so that sum(x) = 1 and the max value is at most multiple times larger than the min value.
+def normalize_max_multiple(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.FloatTensor':
+    r""" Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
         Args:
             x (:obj:`torch.FloatTensor`):
                 Tensor to be max_value normalized.
-            multiple: float:
-                Max value is multiple times larger than the min after normalization.     
+            limit: float:
+                Max value after normalization.     
         Returns:
-            x (:obj:`torch.FloatTensor`):
+            y (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
-    x = x 
-    shift = 1 / ( multiple - 1 )
-    x = x - x.min()
+    value = x.clone()
 
     if x.sum() == 0:
         return torch.ones_like(x)/x.size(0)
     else:
-        x = x / x.sum()
-        y = (torch.tanh(x * len(x)) + shift)/(torch.tanh( x * len(x) ) + shift).sum()
+        estimation = value/value.sum()
+
+        # Finding the change in the total caused by the limit
+        residue = torch.relu((estimation)-limit)
+
+        #Apply power scaling for large differences
+        power =min([max(estimation)/limit,10])
+        test_total_resid= (1-residue.sum())**(power)
+
+        # Finding the cutoff
+        cutoff=value.sum()*test_total_resid*limit
+
+        # Applying the cutoff
+        value[value > cutoff] = cutoff
+
+        y = value/value.sum()
         return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':
