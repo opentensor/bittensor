@@ -1,5 +1,4 @@
 import binascii
-import datetime
 import hashlib
 import math
 import multiprocessing
@@ -9,7 +8,7 @@ import random
 import time
 from dataclasses import dataclass
 from queue import Empty
-from typing import Any, Dict, Optional, Tuple, Union, List
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import backoff
 import bittensor
@@ -20,7 +19,7 @@ from Crypto.Hash import keccak
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 
-from .register_cuda import reset_cuda, solve_cuda, log_cuda_errors
+from .register_cuda import solve_cuda
 
 
 class CUDAException(Exception):
@@ -660,7 +659,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         # Get times for each solver
         time_total = 0
         num_time = 0
-        for _ in range(time_queue.qsize()):
+        for _ in solvers:
             try:
                 time_ = time_queue.get_nowait()
                 time_total += time_
@@ -674,9 +673,6 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             itrs_per_sec = TPB*update_interval*num_processes / time_avg
             time_since = time.time() - start_time
             
-        #times = [ time_queue.get() for _ in solvers ]
-        #time_avg = average(times)
-        
         message = f"""Solving 
             time spent: {time_since}
             Difficulty: [bold white]{millify(difficulty)}[/bold white]
