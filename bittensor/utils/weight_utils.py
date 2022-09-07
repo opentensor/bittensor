@@ -45,10 +45,10 @@ def normalize_max_multiple(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch
 
         #Apply power scaling for large differences
         power =min([max(estimation)/limit,10])
-        test_total_resid= (1-residue.sum())**(power)
+        total_resid= (1-residue.sum())**(power)
 
         # Finding the cutoff
-        cutoff=value.sum()*test_total_resid*limit
+        cutoff=value.sum()*total_resid*limit
 
         # Applying the cutoff
         value[value > cutoff] = cutoff
