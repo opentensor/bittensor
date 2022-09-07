@@ -872,18 +872,10 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
     assert batch_size * (topk + 1) == len(prob_idx), f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
 
-    # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-    phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
-    phrases = phrases[1:]  # ignore first (empty) split
-
-    # determine width of topk_tensor as max len of all phrase lists (with prob in front)
-    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
-
     ignore_index_2 = ignore_index + 2  # increment with 2, as decrement with 2 follows
+    
+    topk_tensor = get_topk_tensor(compact_topk, prob_idx, ignore_index)
 
-    # form single 2D tensor with topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-    topk_tensor = torch.tensor([p + [ignore_index_2] * (max_len - len(p))
-                                for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
     topk_tensor -= 2  # remove token offset
 
     # grafting probability tensors into first column to attach gradients
@@ -892,6 +884,62 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
 
     return topk_tensor  # [batch_size, (topk + 1), max_len]
+
+def get_topk_tensor_legacy(compact_topk, prob_idx, ignore_index):
+    # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
+    phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
+    phrases = phrases[1:]  # ignore first (empty) split
+
+    # determine width of topk_tensor as max len of all phrase lists (with prob in front)
+    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
+
+
+    # form single 2D tensor with topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
+    topk_tensor = torch.tensor([p + [ignore_index_2] * (max_len - len(p))
+                                for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
+    
+
+def get_topk_tensor(compact_topk, prob_idx, ignore_index):
+    
+    # get the size of the phrases
+    phrase_size = prob_idx[1:] - prob_idx[:-1]
+    max_len = max(phrase_size)
+    
+    # preminaryly split the compact_topk, to group consecutive phrases of size 2 into a single section of split_topk 
+    split_idx = []
+    split_idx_partial = prob_idx[1:][phrase_size!= 2]
+    split_size = phrase_size[phrase_size != 2]
+    
+    # the index to split 
+    for idx, size in zip(split_idx_partial, split_size):
+        split_idx += [idx-size, idx]
+
+    # make sure the last of split_idx == prob_idx, so that we dont miss out the last section cut
+    if split_idx[-1] != prob_idx[-1]:
+        split_idx += [prob_idx[-1]]
+
+    split_topk = torch.tensor_split(compact_topk, split_idx)
+
+    # For each sectio of split_topk, if the length of the section is modular 2, then reshape it
+    # Append ignore_index to make sure each phrase has the same length (max_len) 
+    phrases_list = []
+    for s in split_topk:
+        if len(s) % 2 == 0 and len(s) > 0:
+            s_reshape = torch.reshape(s, (-1,2))
+            ignore = torch.ones((s_reshape.shape[0], max_len-2))
+            ignore *= ignore_index
+            s_reshape = torch.cat((s_reshape, ignore), dim = 1) 
+        else:
+            assert len(s) <= max_len
+            ignore = torch.ones(max_len - len(s))
+            ignore *= ignore_index
+            s_reshape = torch.cat((s, ignore)) 
+            s_reshape = torch.unsqueeze(s_reshape, 0)
+        phrases_list.append(s_reshape)
+
+    return torch.cat(phrases_list).to(compact_topk.device)
+
+
 
 
 def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
