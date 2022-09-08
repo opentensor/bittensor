@@ -874,7 +874,7 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
 
     ignore_index_2 = ignore_index + 2  # increment with 2, as decrement with 2 follows
     
-    topk_tensor = get_topk_tensor(compact_topk, prob_idx, ignore_index)
+    max_len, topk_tensor = prepend_tensor(compact_topk, prob_idx, ignore_index_2)
 
     topk_tensor -= 2  # remove token offset
 
@@ -885,7 +885,7 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
 
     return topk_tensor  # [batch_size, (topk + 1), max_len]
 
-def get_topk_tensor_legacy(compact_topk, prob_idx, ignore_index):
+def prepend_tensor_legacy(compact_topk, prob_idx, ignore_index):
     # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
     phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
     phrases = phrases[1:]  # ignore first (empty) split
@@ -895,20 +895,20 @@ def get_topk_tensor_legacy(compact_topk, prob_idx, ignore_index):
 
 
     # form single 2D tensor with topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-    topk_tensor = torch.tensor([p + [ignore_index_2] * (max_len - len(p))
+    topk_tensor = torch.tensor([p + [ignore_index] * (max_len - len(p))
                                 for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
     
+    return max_len, topk_tensor
 
-def get_topk_tensor(compact_topk, prob_idx, ignore_index):
-    
+def prepend_tensor(compact_topk, prob_idx, ignore_index):
     # get the size of the phrases
     phrase_size = prob_idx[1:] - prob_idx[:-1]
-    max_len = max(phrase_size)
     
     # preminaryly split the compact_topk, to group consecutive phrases of size 2 into a single section of split_topk 
     split_idx = []
     split_idx_partial = prob_idx[1:][phrase_size!= 2]
     split_size = phrase_size[phrase_size != 2]
+    max_len = max(2, max(split_size))
     
     # the index to split 
     for idx, size in zip(split_idx_partial, split_size):
@@ -937,9 +937,7 @@ def get_topk_tensor(compact_topk, prob_idx, ignore_index):
             s_reshape = torch.unsqueeze(s_reshape, 0)
         phrases_list.append(s_reshape)
 
-    return torch.cat(phrases_list).to(compact_topk.device)
-
-
+    return max_len, torch.cat(phrases_list).to(compact_topk.device)
 
 
 def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
