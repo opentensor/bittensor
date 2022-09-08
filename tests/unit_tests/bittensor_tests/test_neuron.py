@@ -1,67 +1,67 @@
-from atexit import register
-from types import SimpleNamespace
+import unittest
 from unittest.mock import MagicMock, patch
-from more_itertools import side_effect
-
-import pytest
 
 import bittensor
+import pytest
 import torch
 import torch.nn as nn
-from bittensor._subtensor import subtensor
-from bittensor._subtensor.subtensor_mock import mock_subtensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
-def test_set_fine_tuning_params():
-    class Model(nn.Module):
-        def __init__(self):
-            super().__init__()
-            vocab_size = 50; network_dim = 10; nlayers_1 = 4; nlayers_2 = 3; max_n = 5; nhead = 2
-            self.embedding = torch.nn.Embedding( vocab_size,  network_dim )
-            self.encoder_layers = TransformerEncoderLayer( network_dim, nhead )
-            self.encoder = TransformerEncoder( self.encoder_layers, nlayers_1 )
-            self.encoder2 = TransformerEncoder( self.encoder_layers, nlayers_2 )
-            self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
-          
-    core_server = bittensor._neuron.text.core_server.server()
-    # test for the basic default gpt2 case
-    assert core_server.set_fine_tuning_params() == (True, 'transformer.h.11')
-    
-    # test for the case when there are 2 modulelists
-    core_server.pre_model = Model()
-    assert core_server.set_fine_tuning_params() == (True, 'encoder2.layers.2')
-    
-    # test for user specification of the number of layers
-    core_server.config.neuron.finetune.num_layers = 3
-    assert core_server.set_fine_tuning_params() == (True, 'encoder2.layers.0')
-    
-    # test for user specification of the number of layers
-    core_server.config.neuron.finetune.num_layers = 4
-    assert core_server.set_fine_tuning_params() == (True, 'encoder.layers.0')
-    
-    # test for user specification of the number of layers set too large
-    core_server.config.neuron.finetune.num_layers = 5
-    assert core_server.set_fine_tuning_params() == (False, None)
-    
-    # test for user specification of the layer name
-    core_server.config.neuron.finetune.layer_name = 'encoder2.layers.1'
-    assert core_server.set_fine_tuning_params() == (True, 'encoder2.layers.1')
-    
-    # test for user specification of a non-existing layer name
-    core_server.config.neuron.finetune.layer_name = 'non_existing_layer'
-    assert core_server.set_fine_tuning_params() == (False, 'non_existing_layer')
-    
 
-    class Model(nn.Module):
-        def __init__(self):
-            super().__init__()
-            vocab_size = 50; network_dim = 10; nlayers = 2; max_n = 5; nhead = 2
-            self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
-            
-    # test for a non-existing modulelist
-    core_server.pre_model = Model()
-    core_server.config.neuron.finetune.layer_name = None
-    assert core_server.set_fine_tuning_params() == (False, None) 
+class TestSetFineTuniningParams(unittest.TestCase):
+    def setUp(self) -> None:
+        self.core_server = bittensor._neuron.text.core_server.server()
+
+    def test_default_gpt2(self):
+        # test for the basic default gpt2 case
+        assert self.core_server.set_fine_tuning_params() == (True, 'transformer.h.11')
+
+    def test_2_module_lists(self):
+        class Model(nn.Module):
+            def __init__(self):
+                super().__init__()
+                vocab_size = 50; network_dim = 10; nlayers_1 = 4; nlayers_2 = 3; max_n = 5; nhead = 2
+                self.embedding = torch.nn.Embedding( vocab_size,  network_dim )
+                self.encoder_layers = TransformerEncoderLayer( network_dim, nhead )
+                self.encoder = TransformerEncoder( self.encoder_layers, nlayers_1 )
+                self.encoder2 = TransformerEncoder( self.encoder_layers, nlayers_2 )
+                self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
+
+        # test for the case when there are 2 modulelists
+        self.core_server.pre_model = Model()
+        assert self.core_server.set_fine_tuning_params() == (True, 'encoder2.layers.2')
+        
+        # test for user specification of the number of layers
+        self.core_server.config.neuron.finetune.num_layers = 3
+        assert self.core_server.set_fine_tuning_params() == (True, 'encoder2.layers.0')
+        
+        # test for user specification of the number of layers
+        self.core_server.config.neuron.finetune.num_layers = 4
+        assert self.core_server.set_fine_tuning_params() == (True, 'encoder.layers.0')
+        
+        # test for user specification of the number of layers set too large
+        self.core_server.config.neuron.finetune.num_layers = 5
+        assert self.core_server.set_fine_tuning_params() == (False, None)
+        
+        # test for user specification of the layer name
+        self.core_server.config.neuron.finetune.layer_name = 'encoder2.layers.1'
+        assert self.core_server.set_fine_tuning_params() == (True, 'encoder2.layers.1')
+        
+        # test for user specification of a non-existing layer name
+        self.core_server.config.neuron.finetune.layer_name = 'non_existing_layer'
+        assert self.core_server.set_fine_tuning_params() == (False, 'non_existing_layer')
+        
+    def test_non_existing_modulelist(self):
+        class Model(nn.Module):
+            def __init__(self):
+                super().__init__()
+                vocab_size = 50; network_dim = 10; nlayers = 2; max_n = 5; nhead = 2
+                self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
+                
+        # test for a non-existing modulelist
+        self.core_server.pre_model = Model()
+        self.core_server.config.neuron.finetune.layer_name = None
+        assert self.core_server.set_fine_tuning_params() == (False, None) 
 
 def test_coreserver_reregister_flag_false_exit():
     config = bittensor.Config()
