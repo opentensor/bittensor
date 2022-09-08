@@ -554,7 +554,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                         # Exited loop because pow is no longer valid.
                         bittensor.__console__.print( "[red]POW is stale.[/red]" )
                         return False
-                        
             if attempts < max_allowed_attempts:
                 #Failed registration, retry pow
                 attempts += 1

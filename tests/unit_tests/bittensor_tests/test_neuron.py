@@ -260,7 +260,5 @@ def test_corevalidator_reregister_flag_true():
         # Should try to register the neuron
         mock_register.assert_called_once()
 
-
-
 if __name__ == '__main__':
     pass

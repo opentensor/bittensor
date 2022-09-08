@@ -3,6 +3,7 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -21,12 +22,11 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 import argparse
 import os
 import sys
-from typing import List
+from typing import List, Optional
 
 import bittensor
 import torch
 from rich.prompt import Confirm, Prompt
-from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
 
 from . import cli_impl
 
@@ -34,28 +34,34 @@ console = bittensor.__console__
 
 class cli:
     """
-    Create and init the CLI class, which handles the coldkey, hotkey and tau transfer 
+    Create and init the CLI class, which handles the coldkey, hotkey and tao transfer 
     """
     def __new__(
-            cls, 
-            config: 'bittensor.Config' = None,
+            cls,
+            config: Optional['bittensor.Config'] = None,
+            args: Optional[List[str]] = None, 
         ) -> 'bittensor.CLI':
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.cli.config()
+                args (`List[str]`, `optional`): 
+                    The arguments to parse from the command line.
         """
         if config == None: 
-            config = cli.config()
+            config = cli.config(args)
         cli.check_config( config )
         return cli_impl.CLI( config = config)
 
     @staticmethod   
-    def config() -> 'bittensor.config':
+    def config(args: List[str]) -> 'bittensor.config':
         """ From the argument parser, add config to bittensor.executor and local config 
             Return: bittensor.config object
         """
-        parser = argparse.ArgumentParser(description="Bittensor cli", usage="btcli <command> <command args>", add_help=True)
+        parser = argparse.ArgumentParser(
+            description=f"bittensor cli v{bittensor.__version__}",
+            usage="btcli <command> <command args>",
+            add_help=True)
 
         cmd_parsers = parser.add_subparsers(dest='command')
         overview_parser = cmd_parsers.add_parser(
@@ -611,7 +617,7 @@ class cli:
             required=False
         )
 
-        return bittensor.config( parser )
+        return bittensor.config( parser, args=args )
 
     @staticmethod   
     def check_config (config: 'bittensor.Config'):
