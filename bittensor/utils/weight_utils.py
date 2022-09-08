@@ -33,27 +33,32 @@ def normalize_max_multiple(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch
             y (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
-    value = x.clone()
+    values, _ = torch.sort(x.clone())
 
-    if x.sum() == 0:
+    if x.sum() == 0 or len(x)*limit <= 1:
         return torch.ones_like(x)/x.size(0)
     else:
-        estimation = value/value.sum()
+        estimation = values/values.sum()
 
-        # Finding the change in the total caused by the limit
-        residue = torch.relu((estimation)-limit)
+        if estimation.max() <= limit:
+            return estimation
 
-        #Apply power scaling for large differences
-        power =min([max(estimation)/limit,10])
-        total_resid= (1-residue.sum())**(power)
+        # Find the cumlative sum and sorted tensor
+        cumsum = torch.cumsum(estimation,0)
+        sort_values, ind = torch.sort(values)
 
-        # Finding the cutoff
-        cutoff=value.sum()*total_resid*limit
+        # Determine the index of cutoff
+        estimation_sum = torch.tensor([(len(values)-i-1)*estimation[i] for i in range(len(values))])
+        n_values = (estimation/(estimation_sum+cumsum)<limit).sum()
+
+        # Determine the cutoff based on the index
+        cutoff_scale = (limit*cumsum[n_values-1])/(1-(limit*(len(estimation)-n_values)))
+        cutoff= cutoff_scale*values.sum()
 
         # Applying the cutoff
-        value[value > cutoff] = cutoff
+        values[values > cutoff] = cutoff
 
-        y = value/value.sum()
+        y = values/values.sum()
         return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':
