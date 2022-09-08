@@ -9,7 +9,7 @@
 
 ### Internet-scale Neural Networks <!-- omit in toc -->
 
-[Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://app.gitbook.com/@opentensor/s/bittensor/) • [Network](https://www.bittensor.com/metagraph) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU) • [Code](https://github.com/opentensor/BitTensor)
+[Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://docs.bittensor.com/) • [Network](https://www.bittensor.com/metagraph) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU) • [Code](https://github.com/opentensor/BitTensor)
 
 </div>
 
