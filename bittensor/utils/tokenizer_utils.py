@@ -877,6 +877,7 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     topk_tensor_legacy = prepend_tensor_legacy(compact_topk, prob_idx, ignore_index_2)
     topk_tensor = prepend_tensor(compact_topk, prob_idx, ignore_index_2)
 
+    print('legacy shape', topk_tensor_legacy.shape)
     assert torch.all(torch.eq(topk_tensor_legacy, topk_tensor))
 
     max_len = topk_tensor.shape[1]
@@ -900,7 +901,6 @@ def prepend_tensor_legacy(compact_topk, prob_idx, ignore_index):
     # form single 2D tensor with topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
     topk_tensor = torch.tensor([p + [ignore_index] * (max_len - len(p))
                                 for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
-    
     return topk_tensor
 
 def prepend_tensor(compact_topk, prob_idx, ignore_index):
@@ -920,6 +920,7 @@ def prepend_tensor(compact_topk, prob_idx, ignore_index):
     # make sure the last of split_idx == prob_idx, so that we dont miss out the last section cut
     if split_idx[-1] != prob_idx[-1]:
         split_idx += [prob_idx[-1]]
+        split_size = torch.cat((split_size, torch.tensor([len(compact_topk) - prob_idx[-1]])))
 
     split_topk = torch.tensor_split(compact_topk, split_idx)
 
@@ -928,12 +929,12 @@ def prepend_tensor(compact_topk, prob_idx, ignore_index):
     phrases_list = []
     i = 0
     for s in split_topk:
-        if len(s) != split_size[i] :
+        if i != -1 and len(s) != split_size[i]:
             s_reshape = torch.reshape(s, (-1,2))
             ignore = torch.ones((s_reshape.shape[0], max_len-2)) * ignore_index
             s_reshape = torch.cat((s_reshape, ignore), dim = 1) 
-        else:
-            i = min(i+1, len(split_size)-1)
+        else: 
+            i = i + 1 if (i+1 < len(split_size)) else -1
             ignore = torch.ones(max_len - len(s)) * ignore_index
             s_reshape = torch.cat((s, ignore)) 
             s_reshape = torch.unsqueeze(s_reshape, 0)
