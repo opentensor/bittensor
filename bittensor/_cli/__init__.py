@@ -26,7 +26,7 @@ from typing import List, Optional
 
 import bittensor
 import torch
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm, Prompt, PromptBase
 
 from . import cli_impl
 
@@ -823,6 +823,36 @@ class cli:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
+    def _check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
+        """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
+        if torch.cuda.is_available():
+            if config.subtensor.register.cuda.get('use_cuda') is None:
+                # Ask about cuda registration only if a CUDA device is available.
+                cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
+                config.subtensor.register.cuda.use_cuda = cuda
+
+            # Only ask about which CUDA device if the user has more than one CUDA device.
+            if config.subtensor.register.cuda.use_cuda and config.subtensor.register.cuda.get('dev_id') is None and torch.cuda.device_count() > 0:
+                devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
+                device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
+                console.print("Available CUDA devices:")
+                choices_str: str = ""
+                for i, device in enumerate(devices):
+                    choices_str += ("  {}: {}\n".format(device, device_names[i]))
+                console.print(choices_str)
+                dev_id = IntListPrompt.ask("Which GPU(s) would you like to use? Please list one, or comma-separated", choices=devices, default='All')
+                if dev_id == 'All':
+                    dev_id = list(range(torch.cuda.device_count()))
+                else:
+                    try:
+                        # replace the commas with spaces then split over whitespace.,
+                        # then strip the whitespace and convert to ints.
+                        dev_id = [int(dev_id.strip()) for dev_id in dev_id.replace(',', ' ').split()]
+                    except ValueError:
+                        console.error(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
+                        sys.exit(1)
+                config.subtensor.register.cuda.dev_id = dev_id
+
     def check_register_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
@@ -835,27 +865,8 @@ class cli:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
-        if not config.no_prompt and config.subtensor.register.cuda.use_cuda == bittensor.defaults.subtensor.register.cuda.use_cuda:
-            # Ask about cuda registration only if a CUDA device is available.
-            if torch.cuda.is_available():
-                cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
-                config.subtensor.register.cuda.use_cuda = cuda
-                # Only ask about which CUDA device if the user has more than one CUDA device.
-                if cuda and config.subtensor.register.cuda.get('dev_id') is None and torch.cuda.device_count() > 0:
-                    devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
-                    device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
-                    console.print("Available CUDA devices:")
-                    choices_str: str = ""
-                    for i, device in enumerate(devices):
-                        choices_str += ("  {}: {}\n".format(device, device_names[i]))
-                    console.print(choices_str)
-                    dev_id = Prompt.ask("Which GPU would you like to use?", choices=devices, default=str(bittensor.defaults.subtensor.register.cuda.dev_id))
-                    try:
-                        dev_id = int(dev_id)
-                    except ValueError:
-                        console.error(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
-                        sys.exit(1)
-                    config.subtensor.register.cuda.dev_id = dev_id
+        if not config.no_prompt:
+            cli._check_for_cuda_reg_config(config)
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
@@ -931,6 +942,10 @@ class cli:
         if 'server' in config.model and not config.no_prompt:
             synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__), default = 'All')
             config.synapse = synapse
+
+        # Don't need to ask about registration if they don't want to reregister the wallet.
+        if config.wallet.get('reregister', bittensor.defaults.wallet.reregister) and not config.no_prompt:
+            cli._check_for_cuda_reg_config(config)
                 
     def check_help_config( config: 'bittensor.Config'):
         if config.model == 'None':
@@ -941,3 +956,13 @@ class cli:
         if not config.no_prompt:
             answer = Prompt.ask('This will update the local bittensor package', choices = ['Y','N'], default = 'Y')
             config.answer = answer
+
+class IntListPrompt(PromptBase):
+    """ Prompt for a list of integers. """
+    
+    def check_choice( self, value: str ) -> bool:
+        assert self.choices is not None
+        # check if value is a valid choice or all the values in a list of ints are valid choices
+        return value == "All" or \
+            value in self.choices or \
+            all( val.strip() in self.choices for val in value.replace(',', ' ').split( ))
