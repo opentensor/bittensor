@@ -4,6 +4,8 @@ import cProfile, pstats, io
 from pstats import SortKey
 import concurrent
 import copy
+from bittensor.utils.tokenizer_utils import compact_topk_token_phrases, unravel_topk_token_phrases, prepend_tensor_legacy, prepend_tensor
+
 
 task = torch.load('tensor_split_stable.pt')
 compact_topk = task['compact_topk']
@@ -21,7 +23,7 @@ def old_split(arg):
 
 def split(arg):
     start_time = time.time()
-    th, compact_topk, prob_idx = arg
+    compact_topk, prob_idx, ignore_index = arg
     ignore_index = -100
     ignore_index += 2
 
@@ -65,7 +67,7 @@ def split(arg):
     topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
 
 
-    if th % 100 == 0:
+    if False and th % 100 == 0:
         # for i, (p, s) in enumerate(zip(phrases.tolist(), org_ss[1:])):
             # if p[0] != s.tolist()[0] or i % 20000 == 0:
                 # print(i, p, s)
@@ -85,12 +87,12 @@ def split(arg):
         task = torch.load('tensor_split_stable.pt')
         true_topk_tensor = task['topk_tensor']
         print('\n\ntopk_tensor', topk_tensor == true_topk_tensor )
-        
-n = 100
+
+n = 10
 
 args = []
 for i in range(n):
-    args.append((i, copy.deepcopy(compact_topk), copy.deepcopy(prob_idx)))
+    args.append((copy.deepcopy(compact_topk), copy.deepcopy(prob_idx), -102))
 
 # =====================================================================
 # start_time = time.time()
@@ -107,6 +109,7 @@ for i in range(n):
 # ps.print_stats(20)
 # print(s.getvalue())
 
+split(args[0])
 # ==============================================================
 start_time = time.time()
 pr = cProfile.Profile()
@@ -122,14 +125,13 @@ ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 ps.print_stats(20)
 print(s.getvalue())
 
-# # ===========================================================
-
+# ==============================================================
 start_time = time.time()
 pr = cProfile.Profile()
 pr.enable()
 
-for i in args:
-    split(i)
+with concurrent.futures.ThreadPoolExecutor( max_workers = min(7, n)) as executor:
+    executor.map( prepend_tensor, args )
 
 pr.disable()
 s = io.StringIO()
@@ -137,3 +139,21 @@ sortby = SortKey.CUMULATIVE
 ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 ps.print_stats(20)
 print(s.getvalue())
+
+# # ===========================================================
+
+start_time = time.time()
+pr = cProfile.Profile()
+pr.enable()
+
+with concurrent.futures.ThreadPoolExecutor( max_workers = min(7, n)) as executor:
+    executor.map( prepend_tensor_legacy, args )
+
+pr.disable()
+s = io.StringIO()
+sortby = SortKey.CUMULATIVE
+ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+ps.print_stats(20)
+print(s.getvalue())
+
+print(torch.all(torch.eq(prepend_tensor(*args[0])[1], prepend_tensor_legacy(*args[0])[1])))
