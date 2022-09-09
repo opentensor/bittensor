@@ -16,18 +16,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import multiprocessing
-from unittest.mock import patch
+import random
+import time
+import unittest
+from queue import Empty as QueueEmpty
+from unittest.mock import MagicMock, patch
+
 import bittensor
 import pytest
-import unittest
-import time
-import random
-from unittest.mock import MagicMock
-from bittensor.utils.balance import Balance
-from bittensor.utils import Solver, update_curr_block
-from substrateinterface import Keypair
 from bittensor._subtensor.subtensor_mock import mock_subtensor
+from bittensor.utils.balance import Balance
+from substrateinterface import Keypair
+
+
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
         self.subtensor = bittensor.subtensor( network = 'nobunaga' )
@@ -404,8 +405,8 @@ class TestSubtensor(unittest.TestCase):
         with patch('bittensor.Subtensor.difficulty'):
             # patch solution queue to return None
             with patch('multiprocessing.queues.Queue.get', return_value=None) as mock_queue_get:
-                # patch time queue size check
-                with patch('multiprocessing.queues.Queue.qsize', return_value=0):
+                # patch time queue get to raise Empty exception
+                with patch('multiprocessing.queues.Queue.get_nowait', side_effect=QueueEmpty) as mock_queue_get_nowait:
 
                     wallet = bittensor.wallet(_mock=True)
                     wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
@@ -490,6 +491,46 @@ class TestSubtensor(unittest.TestCase):
             # should return True
             assert self.subtensor.register(wallet=wallet,) == False
             assert bittensor.utils.create_pow.call_count == 3 
+
+    def test_registration_stale_then_continue( self ):
+        # verifty that after a stale solution, the solve will continue without exiting
+
+        class ExitEarly(Exception):
+            pass
+
+        mock_not_stale = MagicMock(
+            side_effect = [False, True]
+        )
+
+        mock_substrate_enter = MagicMock(
+                    side_effect=ExitEarly()
+        )
+
+        mock_subtensor_self = MagicMock(
+            neuron_for_pubkey = MagicMock( return_value = MagicMock(is_null = True) ), # not registered
+            substrate=MagicMock(
+                __enter__ = mock_substrate_enter
+            )
+        )
+
+        mock_wallet = MagicMock()
+
+        mock_create_pow = MagicMock(
+            return_value = MagicMock()
+        )
+
+
+        with patch('bittensor.utils.create_pow', mock_create_pow):
+            with patch('bittensor.utils.POWNotStale', mock_not_stale):
+                # should create a pow and check if it is stale
+                # then should create a new pow and check if it is stale
+                # then should enter substrate and exit early because of test
+                with pytest.raises(ExitEarly):
+                    bittensor.Subtensor.register(mock_subtensor_self, mock_wallet)
+                assert mock_create_pow.call_count == 2 # must try another pow after stale
+                assert mock_not_stale.call_count == 2
+                assert mock_substrate_enter.call_count == 1 # only tries to submit once, then exits
+
 
 def test_subtensor_mock():
     mock_subtensor.kill_global_mock_process()
