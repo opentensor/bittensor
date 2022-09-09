@@ -912,16 +912,16 @@ def prepend_tensor(compact_topk, prob_idx, ignore_index):
     split_idx_partial = prob_idx[1:][phrase_size!= 2]
     split_size = phrase_size[phrase_size != 2]
     split_size = torch.cat((split_size, torch.tensor([len(compact_topk) - prob_idx[-1]]))) # make sure the sizes include the last chunk
+    phrase_size = torch.cat((phrase_size, torch.tensor([len(compact_topk) - prob_idx[-1]]))) # make sure the sizes include the last chunk
     # all the indexs to split 
     for idx, size in zip(split_idx_partial, split_size):
         if len(split_idx) > 0 and idx-size == split_idx[-1]:
             split_idx += [idx]
-            print(idx, split_idx)
+            # print(idx, split_idx)
         else:
             split_idx += [idx-size, idx]
-            print((idx - size, idx), split_idx)
+            # print((idx - size, idx), split_idx)
 
-        
 
     # make sure the last of split_idx == prob_idx, so that we dont miss out the last section cut
     if split_idx[-1] != prob_idx[-1]:
@@ -929,9 +929,9 @@ def prepend_tensor(compact_topk, prob_idx, ignore_index):
 
     max_len = max(2, max(split_size).item(), (len(compact_topk) - prob_idx[-1]))
     split_topk = torch.tensor_split(compact_topk, split_idx)
-    print('prob_idx', [s.item() for s in prob_idx]) 
+    print('prob_idx', [s.item() for s in prob_idx])
+    print('phrase_size', phrase_size) 
     print('split_idx', [s.item() for s in split_idx]) 
-
     print('split_topk', [len(s) for s in split_topk]) 
 
     # For each sectio of split_topk, if the length of the section is modular 2, then reshape it
@@ -939,17 +939,20 @@ def prepend_tensor(compact_topk, prob_idx, ignore_index):
     phrases_list = []
     i = 0
     for s in split_topk:
-        if (i != -1 and len(s) != split_size[i]) or (i == -1):
+        if (i != -1 and phrase_size[i] == 2) or (i == -1):
+            print('high', i, len(s), phrase_size[i])
             s_reshape = torch.reshape(s, (-1,2))
-            print(len(s), s_reshape.shape)
             ignore = torch.ones((s_reshape.shape[0], max_len-2)) * ignore_index
             s_reshape = torch.cat((s_reshape, ignore), dim = 1) 
-        else:
-            print(len(s))
-            i = i + 1 if (i+1 < len(split_size)) else -1
+            i += s_reshape.shape[0]
+        elif phrase_size[i] == len(s):
             ignore = torch.ones(max_len - len(s)) * ignore_index
             s_reshape = torch.cat((s, ignore)) 
             s_reshape = torch.unsqueeze(s_reshape, 0)
+            print('low', i, len(s), phrase_size[i], len(phrase_size))
+            i = i + 1 if (i < len(phrase_size)) else -1
+        else:
+            continue
         phrases_list.append(s_reshape)
 
     phrases = torch.cat(phrases_list).to(compact_topk.device)
