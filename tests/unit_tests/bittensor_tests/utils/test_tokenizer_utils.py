@@ -592,7 +592,6 @@ def prepend_tensor_legacy(compact_topk, prob_idx, ignore_index):
     # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
     phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
     phrases = phrases[1:]  # ignore first (empty) split
-    print('legacy len', [len(p) for p in phrases])
     # determine width of topk_tensor as max len of all phrase lists (with prob in front)
     max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
 
@@ -602,30 +601,31 @@ def prepend_tensor_legacy(compact_topk, prob_idx, ignore_index):
     return topk_tensor
 
 def test_prepend_tensor():
-    compact_topk_len = 100
-    num_cut = 50
-    compact_topk = torch.rand(compact_topk_len)
-    prob_idx = torch.cat((torch.tensor([0]), torch.randperm(compact_topk_len)[: num_cut].sort()[0]))
-    # prob_idx = torch.tensor([ 0, 19, 21, 22, 22, 24, 24, 27, 36, 46, 49])
-    # prob_idx = torch.tensor([ 0,  2, 11, 15, 17, 19, 23, 31, 36, 41, 42])
-    # prob_idx = torch.tensor([ 0,  1,  4,  5,  7, 12, 16, 28, 37, 43, 48])
-    ignore_index = -1
-    # print(prob_idx)
+    compact_topk_len = 1000
+    num_cut = 500
     succ = 0
-    try:
+    ignore_index = -1
+
+    for i in range(100):
+        compact_topk = torch.rand(compact_topk_len)
+        prob_idx = torch.cat((torch.tensor([0]), torch.randperm(compact_topk_len)[: num_cut].sort()[0]))
         topk_tensor_legacy = prepend_tensor_legacy(compact_topk, prob_idx, ignore_index)
         topk_tensor = prepend_tensor(compact_topk, prob_idx, ignore_index)
-        assert torch.all(torch.eq(topk_tensor_legacy, topk_tensor)), 'not eq to legacy'
-        print('success')
-        succ += 1
-    except Exception as E :
-        print(E)
-        print(prob_idx)
-        print(topk_tensor_legacy == topk_tensor)
-        pass
-    return succ
-if __name__ == '__main__':
-    succ = 0
+        assert torch.all(torch.eq(topk_tensor_legacy, topk_tensor)), 'not eq to legacy' + str(prob_idx)
+
     for i in range(100):
-        succ += test_prepend_tensor()
-    print(succ)
+        compact_topk = torch.rand(compact_topk_len)
+        diff = torch.tensor([2]*50 + [1,3,4,5,6,7,8]*2)
+        diff = diff[torch.randperm(len(diff))]
+        cummulate = 0
+        prob_idx = []
+        for i, d in enumerate(diff.tolist()):
+            prob_idx.append(cummulate)
+            cummulate += d
+        prob_idx = torch.tensor(prob_idx)
+        topk_tensor_legacy = prepend_tensor_legacy(compact_topk, prob_idx, ignore_index)
+        topk_tensor = prepend_tensor(compact_topk, prob_idx, ignore_index)
+        assert torch.all(torch.eq(topk_tensor_legacy, topk_tensor)), 'not eq to legacy' + str(prob_idx)
+
+if __name__ == '__main__':
+    test_prepend_tensor()
