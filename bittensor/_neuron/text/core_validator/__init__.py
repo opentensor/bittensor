@@ -603,7 +603,7 @@ class neuron:
 
         # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_clip = self.subtensor.max_clip
 
         non_responsive_uids = queried_uids - responsive_uids
         non_queried_uids = set(range(self.metagraph.n)) - queried_uids
@@ -648,7 +648,7 @@ class neuron:
 
         # === Normalize and apply max_allowed_ratio ===
         sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
-                                                                             multiple=max_allowed_ratio)
+                                                                             limit=max_clip)
         logger.info(f'{len(sample_weights)} normalize_max_multiple | '
                     f'min:{sample_weights.min()} max:{sample_weights.max()}')
 
@@ -658,7 +658,7 @@ class neuron:
         r""" Prints weights table given sample_uids and sample_weights.
         """
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_clip = self.subtensor.max_clip
 
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights

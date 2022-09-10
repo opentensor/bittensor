@@ -279,6 +279,19 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
+    def max_clip (self) -> int:
+        r""" Returns MaxClipValue
+        Returns:
+            max_clip (int):
+                the max value for weights after normalizaiton
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(  module='SubtensorModule', storage_function = 'MaxClipValue').value
+        return make_substrate_call_with_retry()
+
+    @property
     def max_allowed_min_max_ratio(self) -> int:
         r""" Returns the chains max_allowed_min_max_ratio
         Returns:
