@@ -22,7 +22,7 @@ import torch
 
 U32_MAX = 4294967295
 
-def normalize_max_multiple(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.FloatTensor':
+def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.FloatTensor':
     r""" Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
         Args:
             x (:obj:`torch.FloatTensor`):
@@ -45,7 +45,6 @@ def normalize_max_multiple(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch
 
         # Find the cumlative sum and sorted tensor
         cumsum = torch.cumsum(estimation,0)
-        sort_values, ind = torch.sort(values)
 
         # Determine the index of cutoff
         estimation_sum = torch.tensor([(len(values)-i-1)*estimation[i] for i in range(len(values))])

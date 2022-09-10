@@ -603,7 +603,7 @@ class neuron:
 
         # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_clip = self.subtensor.max_clip
+        max_weight_limit = self.subtensor.max_weight_limit
 
         non_responsive_uids = queried_uids - responsive_uids
         non_queried_uids = set(range(self.metagraph.n)) - queried_uids
@@ -633,7 +633,9 @@ class neuron:
         sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
         sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
 
-        logger.info(f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
+        # === If no uids responds, return ===
+        if len(sample_uids) == 0:
+            return sample_uids, sample_weights
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
@@ -647,10 +649,10 @@ class neuron:
                         f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
 
         # === Normalize and apply max_allowed_ratio ===
-        sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
+        sample_weights = bittensor.utils.weight_utils.normalize_max_weight(x=sample_weights,
                                                                              limit=max_clip)
-        logger.info(f'{len(sample_weights)} normalize_max_multiple | '
-                    f'min:{sample_weights.min()} max:{sample_weights.max()}')
+        logger.info(f'{len(sample_weights)} normalize_max_weight | '
+                    f'max:{sample_weights.max()}')
 
         return sample_uids, sample_weights
 
@@ -658,7 +660,7 @@ class neuron:
         r""" Prints weights table given sample_uids and sample_weights.
         """
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_clip = self.subtensor.max_clip
+        max_weight_limit = self.subtensor.max_weight_limit
 
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights

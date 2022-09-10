@@ -35,33 +35,33 @@ def test_convert_weight_and_uids():
 
 def test_normalize_with_min_max():
     weights = torch.rand(1000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.01 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.01 )
     assert wn.max() <= 0.01
 
     weights = torch.zeros(1000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.01 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.01 )
     assert wn.max() <= 0.01
 
     weights = torch.rand(1000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.02 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.02 )
     assert wn.max() <= 0.02
 
     weights = torch.zeros(1000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.02 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.02 )
     assert wn.max() <= 0.02
 
     weights = torch.rand(1000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.03 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.03 )
     assert wn.max() <= 0.03
 
     weights = torch.zeros(1000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.03 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.03 )
     assert wn.max() <= 0.03
 
     weights = torch.rand(2000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.01 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.01 )
     assert wn.max() <= 0.01
 
     weights = torch.zeros(2000)
-    wn = weight_utils.normalize_max_multiple( weights, limit = 0.01 )
+    wn = weight_utils.normalize_max_weight( weights, limit = 0.01 )
     assert wn.max() <= 0.01
