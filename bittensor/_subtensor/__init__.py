@@ -232,17 +232,17 @@ class subtensor:
     def determine_chain_endpoint(network: str):
         if network == "nakamoto":
             # Main network.
-            return bittensor.__nakamoto_entrypoints__[0]
+            return bittensor.__nakamoto_entrypoint__
         elif network == "nobunaga": 
             # Staging network.
-            return bittensor.__nobunaga_entrypoints__[0]
+            return bittensor.__nobunaga_entrypoint__
         elif network == "bellagene":
             # Parachain test net
-            return bittensor.__bellagene_entrypoints__[0]
+            return bittensor.__bellagene_entrypoint__
         elif network == "local":
             # Local chain.
-            return bittensor.__local_entrypoints__[0]
+            return bittensor.__local_entrypoint__
         elif network == 'mock':
-            return bittensor.__mock_entrypoints__[0]
+            return bittensor.__mock_entrypoint__
         else:
-            return bittensor.__local_entrypoints__[0]
+            return bittensor.__local_entrypoint__
