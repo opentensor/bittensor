@@ -309,7 +309,7 @@ class CLI:
         if not self.config.no_prompt:
             if not Confirm.ask("Do you want to unstake from the following keys:\n" + \
                     "".join([
-                        f"    [bold white]- {wallet.hotkey_str}: {amount.tao}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
                     ])
                 ):
                 return None
