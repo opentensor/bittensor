@@ -234,7 +234,7 @@ class server(torch.nn.Module):
                     Decoded predictions of the next token in the sentence.
 
         """
-        message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)[1]
+        message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)
         
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()
