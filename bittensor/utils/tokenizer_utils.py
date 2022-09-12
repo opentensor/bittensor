@@ -887,6 +887,39 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     return topk_tensor  # [batch_size, (topk + 1), max_len]
 
 def prepend_tensor(compact_topk, prob_idx, ignore_index):
+    """
+    Split compact_topk according to index from prob_idx into phrases. With max_length as the maximum lenght of the phrases,
+    append ignore_index to fill the phrases into the same lenght to result in tensor with size (, max_length).
+
+    Args:
+        compact_topk (:obj:`torch.Tensor`, `required`):
+            [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
+            since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
+            floor probability (rest).
+            Content structure:
+                [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
+                    prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
+                    ...]
+        prob_idx (:obj:`torch.Tensor`, `required`):
+            compact_topk is split along each of the indices in this tensor.
+        ignore_index (:obj:`int`, `optional`):
+            Padding value to use for unfilled token positions in a shorter token phrase.
+        
+    Returns:
+        phrases ((:obj:`torch.Tensor`):
+            [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+            in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+            Content structure:
+            [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                [...],
+                [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                [...],
+                [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                [...]]
+    """
     # get the size of the phrases
     phrase_size = prob_idx[1:] - prob_idx[:-1]
     
