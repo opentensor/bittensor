@@ -140,18 +140,22 @@ class TestSubtensor(unittest.TestCase):
         class success():
             def __init__(self):
                 self.is_success = True
+
             def process_events(self):
                 return True
 
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success()) 
         self.subtensor.register = MagicMock(return_value = True) 
         self.subtensor.neuron_for_pubkey = MagicMock(return_value = self.mock_neuron) 
+        self.subtensor.get_balance = MagicMock(return_value = bittensor.Balance(0.0))
+        self.subtensor.get_current_block = MagicMock(return_value = 0)
+        self.subtensor.neuron_for_uid = MagicMock(return_value = self.mock_neuron)
 
-        success= self.subtensor.unstake(self.wallet,
-                            amount = 200,
-                            wait_for_inclusion = True
-                            )
-        assert success == True
+        assert self.subtensor.unstake(
+            self.wallet,
+            amount = 200,
+            wait_for_inclusion = True
+        )
 
     def test_unstake_failed( self ):
         class failed():
@@ -163,11 +167,11 @@ class TestSubtensor(unittest.TestCase):
 
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed()) 
 
-        fail= self.subtensor.unstake(self.wallet,
-                            amount = 200,
-                            wait_for_inclusion = True
-                            )
-        assert fail == False
+        assert not self.subtensor.unstake(
+            self.wallet,
+            amount = 200,
+            wait_for_inclusion = True
+        )
 
     def test_stake(self):
         class success():
