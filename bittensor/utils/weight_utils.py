@@ -33,7 +33,8 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
             y (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
-    values, _ = torch.sort(x.clone())
+    weights =  x.clone()
+    values, _ = torch.sort(weights)
 
     if x.sum() == 0 or len(x)*limit <= 1:
         return torch.ones_like(x)/x.size(0)
@@ -41,7 +42,7 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
         estimation = values/values.sum()
 
         if estimation.max() <= limit:
-            return estimation
+            return weights/weights.sum()
 
         # Find the cumlative sum and sorted tensor
         cumsum = torch.cumsum(estimation,0)
@@ -55,9 +56,9 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
         cutoff= cutoff_scale*values.sum()
 
         # Applying the cutoff
-        x[x > cutoff] = cutoff
+        weights[weights > cutoff] = cutoff
 
-        y = x/x.sum()
+        y = weights/weights.sum()
         return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':

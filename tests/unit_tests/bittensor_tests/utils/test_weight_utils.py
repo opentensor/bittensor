@@ -65,3 +65,7 @@ def test_normalize_with_min_max():
     weights = torch.zeros(2000)
     wn = weight_utils.normalize_max_weight( weights, limit = 0.01 )
     assert wn.max() <= 0.01
+
+    weights = torch.rand(100)
+    wn = weight_utils.normalize_max_weight( weights, limit = 1 )
+    assert torch.equal(wn,weights/weights.sum())

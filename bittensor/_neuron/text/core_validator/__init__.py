@@ -346,7 +346,7 @@ class neuron:
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
 
@@ -358,7 +358,7 @@ class neuron:
         if self.config.using_wandb:
             wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
                        'era/validation_len': validation_len,
-                       'era/min_allowed_weights': min_allowed_weights, 'era/max_allowed_ratio': max_allowed_ratio,
+                       'era/min_allowed_weights': min_allowed_weights, 'era/max_weight_limit': max_weight_limit,
                        'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
                       step=current_block)
 
@@ -507,8 +507,8 @@ class neuron:
               f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
               f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
               f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-              f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
-              f'({max_allowed_ratio} allowed)')
+              f'\[{sample_weights.max().item()}:1] '
+              f'({max_weight_limit} allowed)')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
@@ -648,7 +648,7 @@ class neuron:
             logger.info(f'Exclude {exclude_quantile} quantile ({lowest_quantile}) | '
                         f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
 
-        # === Normalize and apply max_allowed_ratio ===
+        # === Normalize and apply max_weight_limit ===
         sample_weights = bittensor.utils.weight_utils.normalize_max_weight(x=sample_weights,
                                                                              limit=max_weight_limit)
         logger.info(f'{len(sample_weights)} normalize_max_weight | '
@@ -690,8 +690,8 @@ class neuron:
                     f'sum:{sample_weights.sum().item():.2g} '
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                    f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
-                    f'({max_allowed_ratio} allowed)',  # caption
+                    f'\[{sample_weights.max().item()}:1] '
+                    f'({max_weight_limit} allowed)',  # caption
                     mark_uids=avail_include_uids)
 
 
