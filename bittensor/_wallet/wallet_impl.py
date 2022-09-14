@@ -700,7 +700,7 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
 
-    def regen_hotkey( self, mnemonic: Optional[Union[list, str]], seed: Optional[str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regen_hotkey( self, mnemonic: Optional[Union[list, str]], seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
