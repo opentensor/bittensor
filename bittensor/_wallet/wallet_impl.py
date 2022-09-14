@@ -700,7 +700,7 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
 
-    def regen_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regen_hotkey( self, mnemonic: Union[list, str], seed: str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -713,9 +713,9 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created hotkey.
         """
-        self.regenerate_hotkey(mnemonic, use_password, overwrite)
+        self.regenerate_hotkey(mnemonic, seed, use_password, overwrite)
 
-    def regenerate_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regenerate_hotkey( self, mnemonic: Union[list, str], seed: str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -728,10 +728,17 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created hotkey.
         """
-        if isinstance( mnemonic, str): mnemonic = mnemonic.split()
-        if len(mnemonic) not in [12,15,18,21,24]:
-            raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
-        keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-        display_mnemonic_msg( keypair, "hotkey" )
+        if mnemonic is None and seed is None:
+            raise ValueError("Must pass either mnemonic or seed")
+        if mnemonic is not None:
+            if isinstance( mnemonic, str): mnemonic = mnemonic.split()
+            if len(mnemonic) not in [12,15,18,21,24]:
+                raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
+            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
+            display_mnemonic_msg( keypair, "hotkey" )
+        else:
+            # seed is not None
+            keypair = Keypair.create_from_seed(seed)
+        
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self 
