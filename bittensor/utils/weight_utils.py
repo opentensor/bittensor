@@ -55,9 +55,9 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
         cutoff= cutoff_scale*values.sum()
 
         # Applying the cutoff
-        values[values > cutoff] = cutoff
+        x[x > cutoff] = cutoff
 
-        y = values/values.sum()
+        y = x/x.sum()
         return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':

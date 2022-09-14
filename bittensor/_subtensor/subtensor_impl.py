@@ -282,7 +282,7 @@ To run a local node (See: docs/running_a_validator.md) \n
     def max_weight_limit (self) -> int:
         r""" Returns MaxClipValue
         Returns:
-            max_clip (int):
+            max_weight (int):
                 the max value for weights after normalizaiton
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)

@@ -650,7 +650,7 @@ class neuron:
 
         # === Normalize and apply max_allowed_ratio ===
         sample_weights = bittensor.utils.weight_utils.normalize_max_weight(x=sample_weights,
-                                                                             limit=max_clip)
+                                                                             limit=max_weight_limit)
         logger.info(f'{len(sample_weights)} normalize_max_weight | '
                     f'max:{sample_weights.max()}')
 
