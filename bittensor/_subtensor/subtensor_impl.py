@@ -288,7 +288,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'MaxWeightLimit').value
+                return substrate.query( module='SubtensorModule', storage_function = 'MaxWeightLimit').value/1000000
         return make_substrate_call_with_retry()
 
     @property
