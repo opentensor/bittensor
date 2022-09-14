@@ -669,7 +669,7 @@ class Wallet():
     # Short name for regenerate_coldkeypub
     regen_coldkeypub = regenerate_coldkeypub
 
-    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -700,11 +700,13 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
 
-    def regen_hotkey( self, mnemonic: Union[list, str], seed: str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regen_hotkey( self, mnemonic: Optional[Union[list, str]], seed: Optional[str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -715,11 +717,13 @@ class Wallet():
         """
         self.regenerate_hotkey(mnemonic, seed, use_password, overwrite)
 
-    def regenerate_hotkey( self, mnemonic: Union[list, str], seed: str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regenerate_hotkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
