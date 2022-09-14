@@ -23,9 +23,9 @@ def test_set_fine_tuning_params():
             self.encoder2 = TransformerEncoder( self.encoder_layers, nlayers_2 )
             self.decoder = torch.nn.Linear( network_dim, vocab_size , bias=False)
           
-    core_server = bittensor._neuron.text.core_server.server()
+    core_server = bittensor._neuron.text.core_server.server(pretrained=False)
     # test for the basic default gpt2 case
-    assert core_server.set_fine_tuning_params() == (True, 'transformer.h.11')
+    assert core_server.set_fine_tuning_params() == (True, 'h.11')
     
     # test for the case when there are 2 modulelists
     core_server.pre_model = Model()
