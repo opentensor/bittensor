@@ -933,9 +933,8 @@ def prepend_tensor(compact_topk, prob_idx, ignore_index):
     for idx, size in zip(split_idx_partial, split_size):
         split_idx += [idx] if (len(split_idx) > 0) and (idx-size == split_idx[-1]) else [idx-size, idx]
          
-
     # make sure the last of split_idx == prob_idx, so that we dont miss out the last section cut
-    if split_idx[-1] != prob_idx[-1]:
+    if len(split_idx) > 0 and split_idx[-1] != prob_idx[-1]:
         split_idx += [prob_idx[-1]]
 
     max_len = max(2, max(split_size).item(), (len(compact_topk) - prob_idx[-1]))
