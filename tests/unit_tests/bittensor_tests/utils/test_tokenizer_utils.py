@@ -588,7 +588,7 @@ def test_topk_phrases_crossentropy():
         # print(', '.join([f'{loss:.2f}' for loss in recorded_losses]))
         assert _recorded_losses == recorded_losses
 
-def phrases_split_pack_legacy(compact_topk, prob_idx, ignore_index):
+def phrases_split_legacy(compact_topk, prob_idx, ignore_index):
     # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
     phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
     phrases = phrases[1:]  # ignore first (empty) split
@@ -600,7 +600,7 @@ def phrases_split_pack_legacy(compact_topk, prob_idx, ignore_index):
                                 for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
     return topk_tensor
 
-def test_prepend_tensor():
+def test_phrases_split_tensor():
     compact_topk_len = 1000
     num_cut = 500
     succ = 0
@@ -609,8 +609,8 @@ def test_prepend_tensor():
     for i in range(100):
         compact_topk = torch.rand(compact_topk_len)
         prob_idx = torch.cat((torch.tensor([0]), torch.randperm(compact_topk_len)[: num_cut].sort()[0]))
-        topk_tensor_legacy = phrases_split_pack_legacy(compact_topk, prob_idx, ignore_index)
-        topk_tensor = phrases_split_pack(compact_topk, prob_idx, ignore_index)
+        topk_tensor_legacy = phrases_split_legacy(compact_topk, prob_idx, ignore_index)
+        topk_tensor = phrases_split(compact_topk, prob_idx, ignore_index)
         assert torch.all(torch.eq(topk_tensor_legacy, topk_tensor)), 'not eq to legacy' + str(prob_idx)
 
     for i in range(100):
@@ -623,9 +623,10 @@ def test_prepend_tensor():
             prob_idx.append(cummulate)
             cummulate += d
         prob_idx = torch.tensor(prob_idx)
-        topk_tensor_legacy = prepend_tensor_legacy(compact_topk, prob_idx, ignore_index)
-        topk_tensor = prepend_tensor(compact_topk, prob_idx, ignore_index)
+        topk_tensor_legacy = phrases_split_legacy(compact_topk, prob_idx, ignore_index)
+        topk_tensor = phrases_split(compact_topk, prob_idx, ignore_index)
         assert torch.all(torch.eq(topk_tensor_legacy, topk_tensor)), 'not eq to legacy' + str(prob_idx)
 
 if __name__ == '__main__':
-    test_prepend_tensor()
+    test_phrases_split_tensor()
+    

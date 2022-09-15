@@ -271,14 +271,14 @@ def get_tokenizer_depth_split_map(tokenizer: PreTrainedTokenizerBase,
     phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # list of variable len strings (one per token)
 
     # first part of the phrase up to distance characters
-    split_phrases = [[phrase[:depths[0]] for phrase in phrases]]
+    phrases_split = [[phrase[:depths[0]] for phrase in phrases]]
     for i in range(len(depths)-1):
         # middle parts of the phrase from distance characters to end
-        split_phrases += [[phrase[depths[i]:depths[i+1]] for phrase in phrases]]
+        phrases_split += [[phrase[depths[i]:depths[i+1]] for phrase in phrases]]
     # right part of the phrase from distance characters to end
-    split_phrases += [[phrase[depths[-1]:] for phrase in phrases]]
+    phrases_split += [[phrase[depths[-1]:] for phrase in phrases]]
 
-    for i, phrases in enumerate(split_phrases):  # loop through left, middle, right phrase collections
+    for i, phrases in enumerate(phrases_split):  # loop through left, middle, right phrase collections
         side_tokens = tokenizer(phrases)['input_ids']  # tokenize phrase collection
         tokens_lens = [len(p) for p in side_tokens]  # get token lengths of each phrase
         from_idx = [i for i, l in enumerate(tokens_lens) if l > 0]  # only non-zero len tokens list
@@ -874,7 +874,7 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
 
     ignore_index_2 = ignore_index + 2  # increment with 2, as decrement with 2 follows
     
-    topk_tensor = phrases_split_pack(compact_topk, prob_idx, ignore_index_2)
+    topk_tensor = phrases_split(compact_topk, prob_idx, ignore_index_2)
 
     max_len = topk_tensor.shape[1]
     topk_tensor -= 2  # remove token offset
@@ -886,7 +886,7 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
 
     return topk_tensor  # [batch_size, (topk + 1), max_len]
 
-def phrases_split_pack(compact_topk, prob_idx, ignore_index):
+def phrases_split(compact_topk, prob_idx, ignore_index):
     """
     Split compact_topk according to index from prob_idx into phrases. With max_length as the maximum length of the phrases,
     append ignore_index to fill the phrases into the same length to result in tensor with size (, max_length).
@@ -922,7 +922,6 @@ def phrases_split_pack(compact_topk, prob_idx, ignore_index):
     """
     # Get the size of the phrases.
     phrase_size = prob_idx[1:] - prob_idx[:-1]
-    phrase_size = torch.cat((phrase_size, torch.tensor([len(compact_topk) - prob_idx[-1]]))) # Make sure the sizes include the last chunk.
     
     # Preliminary split the compact_topk, to group consecutive phrases of size 2 into a single section of split_topk.
     # eg. if we have diff like [3,2,2,2,3], then split_topk would be a list of compact_topk[0:3], compact_topk[3:9], compact_topk[9:12]
@@ -930,6 +929,7 @@ def phrases_split_pack(compact_topk, prob_idx, ignore_index):
     split_idx_partial = prob_idx[1:][phrase_size!= 2]
     split_size = phrase_size[phrase_size != 2]
     split_size = torch.cat((split_size, torch.tensor([len(compact_topk) - prob_idx[-1]]))) # Make sure the sizes include the last chunk.
+    phrase_size = torch.cat((phrase_size, torch.tensor([len(compact_topk) - prob_idx[-1]]))) # Make sure the sizes include the last chunk.
     # All the indexes to split. 
     for idx, size in zip(split_idx_partial, split_size):
         split_idx += [idx] if (len(split_idx) > 0) and (idx-size == split_idx[-1]) else [idx-size, idx]
