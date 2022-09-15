@@ -1185,6 +1185,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.model = "core_server"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
+        config.seed = None
         config.n_words = 12
         config.use_password = False
         config.no_prompt = True
