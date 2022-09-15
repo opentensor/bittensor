@@ -68,6 +68,9 @@ class Balance:
         return self.__str__()
 
     def __eq__(self, other: Union[int, float, "Balance"]):
+        if other is None:
+            return False
+            
         if hasattr(other, "rao"):
             return self.rao == other.rao
         else:
