@@ -395,6 +395,12 @@ class cli:
             help='Mnemonic used to regen your key i.e. horse cart dog ...'
         )
         regen_hotkey_parser.add_argument(
+            "--seed", 
+            required=False,  
+            default=None,
+            help='Seed hex string used to regen your key i.e. 0x1234...'
+        )
+        regen_hotkey_parser.add_argument(
             '--use_password', 
             dest='use_password', 
             action='store_true', 
@@ -891,8 +897,12 @@ class cli:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         
-        if config.mnemonic == None:
-            config.mnemonic = Prompt.ask("Enter mnemonic")
+        if config.mnemonic == None and config.seed == None:
+            prompt_answer = Prompt.ask("Enter mnemonic or seed")
+            if prompt_answer.startswith("0x"):
+                config.seed = prompt_answer
+            else:
+                config.mnemonic = prompt_answer
 
     def check_regen_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
@@ -900,7 +910,6 @@ class cli:
             config.wallet.name = str(wallet_name)
         if config.mnemonic == None and config.seed == None:
             prompt_answer = Prompt.ask("Enter mnemonic or seed")
-            print(prompt_answer)
             if prompt_answer.startswith("0x"):
                 config.seed = prompt_answer
             else:
