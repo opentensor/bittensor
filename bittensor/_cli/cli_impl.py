@@ -114,7 +114,7 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
+        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, seed=self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
 
     def query ( self ):
         r""" Query an endpoint and get query time.
