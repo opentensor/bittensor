@@ -33,7 +33,7 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
             y (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
-    eplison = 1e-9 #For numerical stability after normalization
+    epsilon = 1e-9 #For numerical stability after normalization
     
     weights =  x.clone()
     values, _ = torch.sort(weights)
@@ -51,10 +51,10 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
 
         # Determine the index of cutoff
         estimation_sum = torch.tensor([(len(values)-i-1)*estimation[i] for i in range(len(values))])
-        n_values = (estimation/(estimation_sum+cumsum+eplison)<limit).sum()
+        n_values = (estimation/(estimation_sum+cumsum+epsilon)<limit).sum()
 
         # Determine the cutoff based on the index        
-        cutoff_scale = (limit*cumsum[n_values-1]-eplison)/(1-(limit*(len(estimation)-n_values)))
+        cutoff_scale = (limit*cumsum[n_values-1]-epsilon)/(1-(limit*(len(estimation)-n_values)))
         cutoff= cutoff_scale*values.sum()
 
         # Applying the cutoff
