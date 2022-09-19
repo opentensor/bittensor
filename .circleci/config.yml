@@ -30,12 +30,6 @@ jobs:
             . env/bin/activate
             pip install -r requirements.txt
 
-      - save_cache:
-          name: Save cached venv
-          paths:
-            - "env/"
-          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements.txt" }}
-
       - run:
           name: Install Bittensor
           command: |
@@ -116,7 +110,7 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.7", "3.8", "3.9", "3.10.5"]
+              python-version: ["3.7.14", "3.8.14", "3.9.13", "3.10.6"]
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
