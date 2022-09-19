@@ -33,7 +33,7 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
             y (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
-    epsilon = 1e-9 #For numerical stability after normalization
+    epsilon = 1e-7 #For numerical stability after normalization
     
     weights =  x.clone()
     values, _ = torch.sort(weights)
@@ -61,6 +61,7 @@ def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.F
         weights[weights > cutoff] = cutoff
 
         y = weights/weights.sum()
+
         return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':
