@@ -25,8 +25,6 @@ from unittest.mock import MagicMock
 import unittest.mock as mock
 import asyncio
 
-logging = bittensor.logging(debug = True)
-
 # --- Receptor Pool ---
 wallet = bittensor.wallet.mock()
 wallet2 = bittensor.wallet.mock()
@@ -292,5 +290,6 @@ def test_receptor_pool_backward_hang():
                                                     [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads]], timeout=1)
 
 if __name__ == "__main__":
-    test_receptor_pool_missing_synapse()
+    test_receptor_pool_forward_success()
+    test_receptor_pool_forward_timeout()
     pass
