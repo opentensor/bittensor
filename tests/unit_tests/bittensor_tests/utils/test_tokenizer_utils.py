@@ -44,7 +44,7 @@ Drittes Gesetz: Ein roboter muss seine eigene existenz schützen, solange dieser
                             ]}
 
 
-def test_tokenizer_equivalence():
+def _test_tokenizer_equivalence():
     r"""
     Checks if two tokenizers are equivalent w.r.t. their vocabularies.
     Equivalent tokenizers should always produce the same tokenization for the same text.
