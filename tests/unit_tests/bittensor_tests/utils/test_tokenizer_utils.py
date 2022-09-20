@@ -44,27 +44,27 @@ Drittes Gesetz: Ein roboter muss seine eigene existenz schützen, solange dieser
                             ]}
 
 
-# def test_tokenizer_equivalence():
-#     r"""
-#     Checks if two tokenizers are equivalent w.r.t. their vocabularies.
-#     Equivalent tokenizers should always produce the same tokenization for the same text.
-#         Returns:
-#             Asserts expected result for list of tokenizer pairs.
-#     """
-#     test_pairs = [('gpt2', 'gpt2', True),
-#                   ('gpt2', 'EleutherAI/gpt-neo-125M', True),
-#                   ('gpt2', 'EleutherAI/gpt-neo-2.7B', True),
-#                   ('gpt2', 'EleutherAI/gpt-j-6B', False),
-#                   ('gpt2', 'KoboldAI/fairseq-dense-2.7B', False),
-#                   ('gpt2', 'bert-base-uncased', False),
-#                   ('gpt2', 'xlnet-base-cased', False),
-#                   ('gpt2', 'facebook/xglm-564M', False),
-#                   ('gpt2', 'benjamin/gerpt2-large', False)]
+def test_tokenizer_equivalence():
+    r"""
+    Checks if two tokenizers are equivalent w.r.t. their vocabularies.
+    Equivalent tokenizers should always produce the same tokenization for the same text.
+        Returns:
+            Asserts expected result for list of tokenizer pairs.
+    """
+    test_pairs = [('gpt2', 'gpt2', True),
+                  ('gpt2', 'EleutherAI/gpt-neo-125M', True),
+                  ('gpt2', 'EleutherAI/gpt-neo-2.7B', True),
+                  ('gpt2', 'EleutherAI/gpt-j-6B', False),
+                  ('gpt2', 'KoboldAI/fairseq-dense-2.7B', False),
+                  ('gpt2', 'bert-base-uncased', False),
+                  ('gpt2', 'xlnet-base-cased', False),
+                  ('gpt2', 'facebook/xglm-564M', False),
+                  ('gpt2', 'benjamin/gerpt2-large', False)]
 
-#     for target, to_check, expected_result in test_pairs:
-#         tokenizer_to_check = AutoTokenizer.from_pretrained(to_check)
-#         target_tokenizer = AutoTokenizer.from_pretrained(target)
-#         assert check_tokenizer_equivalence(tokenizer_to_check, target_tokenizer) == expected_result
+    for target, to_check, expected_result in test_pairs:
+        tokenizer_to_check = AutoTokenizer.from_pretrained(to_check)
+        target_tokenizer = AutoTokenizer.from_pretrained(target)
+        assert check_tokenizer_equivalence(tokenizer_to_check, target_tokenizer) == expected_result
 
 
 def get_loss_fct(logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
@@ -249,23 +249,23 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
     return original_loss, encoded_loss, translated_loss, enc_pre_logits
 
 
-# def test_tokenizer_translation():
-#     r"""
-#     Unit test for tokenizer translation.
+def _test_tokenizer_translation():
+    r"""
+    Unit test for tokenizer translation.
 
-#         Returns:
-#             Asserts that tokenizer translation produces previous encoded and translated losses.
-#     """
-#     test_pairs = [('English-1', 'EleutherAI/gpt-j-6B', 95),
-#                   ('English-1', 'benjamin/gerpt2-large', 95),
-#                   ('German-1', 'benjamin/gerpt2-large', 172)]
+        Returns:
+            Asserts that tokenizer translation produces previous encoded and translated losses.
+    """
+    test_pairs = [('English-1', 'EleutherAI/gpt-j-6B', 95),
+                  ('English-1', 'benjamin/gerpt2-large', 95),
+                  ('German-1', 'benjamin/gerpt2-large', 172)]
 
-#     try:
-#         encodings = torch.load(encodings_cache_file)
+    try:
+        encodings = torch.load(encodings_cache_file)
 
-#     except FileNotFoundError as e:
-#         print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
-#         raise
+    except FileNotFoundError as e:
+        print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
+        raise
 
         # # === Run server models to obtain encoded logits ===
         # print('Will first run server models (requires CUDA)...')
@@ -285,14 +285,14 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
         # torch.save(encodings, encodings_cache_file)
         # encodings = torch.load(encodings_cache_file)
 
-    # # === Run token translations on saved encoded logits ===
-    # for text_name, model_name, max_length in test_pairs:
-    #     _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
-    #     result = tokenizer_translation(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
-    #     original_loss, encoded_loss, translated_loss, enc_pre_logits = result
+    # === Run token translations on saved encoded logits ===
+    for text_name, model_name, max_length in test_pairs:
+        _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
+        result = tokenizer_translation(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
+        original_loss, encoded_loss, translated_loss, enc_pre_logits = result
 
-    #     assert torch.isclose(encoded_loss, _encoded_loss, rtol=1e-2)
-    #     assert torch.isclose(translated_loss, _translated_loss, rtol=1e-2)
+        assert torch.isclose(encoded_loss, _encoded_loss, rtol=1e-2)
+        assert torch.isclose(translated_loss, _translated_loss, rtol=1e-2)
 
 
 def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: int,
@@ -395,23 +395,23 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     assert (_topk_tensor - topk_tensor).abs().sum() < 1e-9
 
 
-# def test_topk_token_phrases():
-#     r"""
-#     Unit test for topk token phrases raveling and unraveling.
+def test_topk_token_phrases():
+    r"""
+    Unit test for topk token phrases raveling and unraveling.
 
-#         Returns:
-#             Asserts that compact tensor of topk token phrases can be unraveled to recover original topk tensors.
-#     """
-#     test_pairs = [('English-1', 'EleutherAI/gpt-j-6B', 95),
-#                   ('English-1', 'benjamin/gerpt2-large', 95),
-#                   ('German-1', 'benjamin/gerpt2-large', 172)]
+        Returns:
+            Asserts that compact tensor of topk token phrases can be unraveled to recover original topk tensors.
+    """
+    test_pairs = [('English-1', 'EleutherAI/gpt-j-6B', 95),
+                  ('English-1', 'benjamin/gerpt2-large', 95),
+                  ('German-1', 'benjamin/gerpt2-large', 172)]
 
-#     try:
-#         encodings = torch.load(encodings_cache_file)
+    try:
+        encodings = torch.load(encodings_cache_file)
 
-#     except FileNotFoundError as e:
-#         print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
-#         raise
+    except FileNotFoundError as e:
+        print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
+        raise
 
         # # === Run server models to obtain encoded logits ===
         # print('Will first run server models (requires CUDA)...')
@@ -427,10 +427,10 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
         # torch.save(encodings, encodings_cache_file)
         # encodings = torch.load(encodings_cache_file)
 
-    # # === Run test on saved encoded logits ===
-    # for text_name, model_name, max_length in test_pairs:
-    #     _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
-    #     tokenizer_topk_phrases(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
+    # === Run test on saved encoded logits ===
+    for text_name, model_name, max_length in test_pairs:
+        _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
+        tokenizer_topk_phrases(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
 
 
 def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length: int,
@@ -547,22 +547,22 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
     return recorded_losses
 
 
-# def test_topk_phrases_crossentropy():
-#     r"""
-#     Unit test for calculating topk token phrases cross entropy with target phrases.
+def test_topk_phrases_crossentropy():
+    r"""
+    Unit test for calculating topk token phrases cross entropy with target phrases.
 
-#         Returns:
-#             Asserts that phrase cross entropy calculation yields previously observed value.
-#     """
-#     test_pairs = [('German-1', 'benjamin/gerpt2-large', 172, list(range(50, 110, 5)),
-#                    [1.33, 4.07, 6.99, 5.11, 5.60, 2.30, 1.50, 1.51, 4.67, 9.75, 4.83, 3.28])]
+        Returns:
+            Asserts that phrase cross entropy calculation yields previously observed value.
+    """
+    test_pairs = [('German-1', 'benjamin/gerpt2-large', 172, list(range(50, 110, 5)),
+                   [1.33, 4.07, 6.99, 5.11, 5.60, 2.30, 1.50, 1.51, 4.67, 9.75, 4.83, 3.28])]
 
-#     try:
-#         encodings = torch.load(encodings_cache_file)
+    try:
+        encodings = torch.load(encodings_cache_file)
 
-#     except FileNotFoundError as e:
-#         print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
-#         raise
+    except FileNotFoundError as e:
+        print('FileNotFoundError: Server model results not yet saved to', encodings_cache_file)
+        raise
 
         # # === Run server models to obtain encoded logits ===
         # print('Will first run server models (requires CUDA)...')
@@ -579,14 +579,14 @@ def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length
         # encodings = torch.load(encodings_cache_file)
 
     # === Run test on saved encoded logits ===
-    # for text_name, model_name, max_length, last_indices, _recorded_losses in test_pairs:
-    #     _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
-    #     recorded_losses = topk_phrases_crossentropy(sample_text[text_name], model_name, max_length,
-    #                                                 last_indices, _enc_pre_logits, topk=128)
+    for text_name, model_name, max_length, last_indices, _recorded_losses in test_pairs:
+        _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
+        recorded_losses = topk_phrases_crossentropy(sample_text[text_name], model_name, max_length,
+                                                    last_indices, _enc_pre_logits, topk=128)
 
-    #     recorded_losses = [round(r, 2) for r in recorded_losses]
-    #     # print(', '.join([f'{loss:.2f}' for loss in recorded_losses]))
-    #     assert _recorded_losses == recorded_losses
+        recorded_losses = [round(r, 2) for r in recorded_losses]
+        # print(', '.join([f'{loss:.2f}' for loss in recorded_losses]))
+        assert _recorded_losses == recorded_losses
 
 
 if __name__ == '__main__':
