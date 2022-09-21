@@ -33,13 +33,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon(wallet = wallet)
-bittensor.logging(debug = True)
-"""
-TODO: Tests that need to be added
- - Different synapses in combination
- - Different errors for different synapses
- - Correct Messages when only a single synapse fails
-"""
+
 
 
 def sign(wallet):

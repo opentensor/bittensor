@@ -44,7 +44,7 @@ Drittes Gesetz: Ein roboter muss seine eigene existenz schützen, solange dieser
                             ]}
 
 
-def test_tokenizer_equivalence():
+def _test_tokenizer_equivalence():
     r"""
     Checks if two tokenizers are equivalent w.r.t. their vocabularies.
     Equivalent tokenizers should always produce the same tokenization for the same text.
@@ -249,7 +249,7 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
     return original_loss, encoded_loss, translated_loss, enc_pre_logits
 
 
-def test_tokenizer_translation():
+def _test_tokenizer_translation():
     r"""
     Unit test for tokenizer translation.
 
@@ -590,7 +590,4 @@ def test_topk_phrases_crossentropy():
 
 
 if __name__ == '__main__':
-    test_tokenizer_equivalence()
-    test_tokenizer_translation()
-    test_topk_token_phrases()
-    test_topk_phrases_crossentropy()
+    pass
