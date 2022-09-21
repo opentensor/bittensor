@@ -388,8 +388,10 @@ class RegistrationStatisticsLogger:
     status: Optional[rich_status.Status] 
 
     def __init__( self, console: rich_console.Console, output_in_place: bool = True) -> None:
+        self.console = console
+        
         if output_in_place:
-            self.status = console.status("Solving")
+            self.status = self.console.status("Solving")
         else:
             self.status = None
         
