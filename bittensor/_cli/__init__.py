@@ -858,7 +858,7 @@ class cli:
                         # then strip the whitespace and convert to ints.
                         dev_id = [int(dev_id.strip()) for dev_id in dev_id.replace(',', ' ').split()]
                     except ValueError:
-                        console.error(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
+                        console.log(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
                         sys.exit(1)
                 config.subtensor.register.cuda.dev_id = dev_id
 
