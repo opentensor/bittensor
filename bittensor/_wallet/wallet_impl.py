@@ -246,13 +246,12 @@ class Wallet():
             if not self.config.wallet.get('reregister'):
                 sys.exit(0)
 
-            subtensor.register(
-                wallet = self,
+            self.register(
+                subtensor = subtensor,
                 prompt = prompt,
                 TPB = self.config.subtensor.register.cuda.get('TPB', None),
                 update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
                 num_processes = self.config.subtensor.register.get('num_processes', None),
-                output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
                 cuda = self.config.subtensor.register.cuda.get('use_cuda', 'NA')
                 if self.config.subtensor.register.cuda.get('use_cuda', 'NA') != 'NA'
                 else bittensor.defaults.subtensor.register.cuda.use_cuda
