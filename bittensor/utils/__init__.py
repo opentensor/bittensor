@@ -421,7 +421,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats) )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -742,11 +742,11 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     status.stop()
     return None
 
-def create_pow( subtensor, wallet, cuda: bool = False, dev_id: Union[List[int], int] = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None) -> Optional[Dict[str, Any]]:
+def create_pow( subtensor, wallet, output_in_place: bool = True, cuda: bool = False, dev_id: Union[List[int], int] = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None) -> Optional[Dict[str, Any]]:
     if cuda:
         solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, dev_id=dev_id, TPB=tpb, update_interval=update_interval )
     else:
-        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, num_processes=num_processes, update_interval=update_interval )
+        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, output_in_place=output_in_place, num_processes=num_processes, update_interval=update_interval )
 
     return None if solution is None else {
         'nonce': solution.nonce, 

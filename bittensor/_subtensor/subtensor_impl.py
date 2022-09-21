@@ -444,6 +444,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_finalization: bool = True,
         prompt: bool = False,
         max_allowed_attempts: int = 3,
+        output_in_place: bool = True,
         cuda: bool = False,
         dev_id: Union[List[int], int] = 0,
         TPB: int = 256,
@@ -500,9 +501,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                     if prompt:
                         bittensor.__console__.error('CUDA is not available.')
                     return False
-                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval )
+                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval )
             else:
-                pow_result = bittensor.utils.create_pow( self, wallet, num_processes=num_processes, update_interval=update_interval)
+                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, num_processes=num_processes, update_interval=update_interval)
 
             # pow failed
             if not pow_result:
