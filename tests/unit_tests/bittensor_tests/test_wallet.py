@@ -221,4 +221,4 @@ class TestWalletReregister(unittest.TestCase):
             _, kwargs = call_args
 
             mock_register.assert_called_once()
-            self.assertEqual(kwargs['cuda'], None) # should be False when no flag was set
+            self.assertEqual(kwargs['cuda'], False) # should be False when no flag was set
