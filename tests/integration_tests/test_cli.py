@@ -1381,7 +1381,7 @@ def test_register_cuda_use_cuda_flag():
                     cli = bittensor.cli(args=args)
                     cli.run()
 
-                assert cli.config.subtensor.register.cuda.use_cuda == bittensor.default.subtensor.register.cuda.use_cuda
+                assert cli.config.subtensor.register.cuda.use_cuda == bittensor.defaults.subtensor.register.cuda.use_cuda
 
                 # Should be able to set with true
                 args = base_args + [
