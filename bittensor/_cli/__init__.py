@@ -850,7 +850,7 @@ class cli:
                     choices_str += ("  {}: {}\n".format(device, device_names[i]))
                 console.print(choices_str)
                 dev_id = IntListPrompt.ask("Which GPU(s) would you like to use? Please list one, or comma-separated", choices=devices, default='All')
-                if dev_id == 'All':
+                if dev_id.lower() == 'all':
                     dev_id = list(range(torch.cuda.device_count()))
                 else:
                     try:
