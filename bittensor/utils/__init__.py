@@ -155,9 +155,6 @@ class SolverBase(multiprocessing.Process):
             The total number of processes running.
         update_interval: int
             The number of nonces to try to solve before checking for a new block.
-        best_queue: multiprocessing.Queue
-            The queue to put the best nonce the process has found during the pow solve.
-            New nonces are added each update_interval.
         time_queue: multiprocessing.Queue
             The queue to put the time the process took to finish each update_interval.
             Used for calculating the average time per update_interval across all processes.
@@ -192,7 +189,6 @@ class SolverBase(multiprocessing.Process):
     proc_num: int
     num_proc: int
     update_interval: int
-    best_queue: Optional[multiprocessing.Queue]
     time_queue: multiprocessing.Queue
     solution_queue: multiprocessing.Queue
     newBlockEvent: multiprocessing.Event
@@ -203,12 +199,11 @@ class SolverBase(multiprocessing.Process):
     check_block: multiprocessing.Lock
     limit: int
 
-    def __init__(self, proc_num, num_proc, update_interval, best_queue, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit):
+    def __init__(self, proc_num, num_proc, update_interval, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit):
         multiprocessing.Process.__init__(self)
         self.proc_num = proc_num
         self.num_proc = num_proc
         self.update_interval = update_interval
-        self.best_queue = best_queue
         self.time_queue = time_queue
         self.solution_queue = solution_queue
         self.newBlockEvent = multiprocessing.Event()
@@ -263,7 +258,7 @@ class CUDASolver(SolverBase):
     TPB: int
 
     def __init__(self, proc_num, num_proc, update_interval, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id: int, TPB: int):
-        super().__init__(proc_num, num_proc, update_interval, None, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
+        super().__init__(proc_num, num_proc, update_interval, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
         self.dev_id = dev_id
         self.TPB = TPB
 
@@ -326,8 +321,6 @@ def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_inte
 
 
 def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int) -> Tuple[Optional[POWSolution], int]:
-    best_local = float('inf')
-    best_seal_local = [0]*32
     start = time.time()
     for nonce in range(nonce_start, nonce_end):
         # Create seal.
@@ -344,12 +337,6 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
             # Found a solution, save it.
             return POWSolution(nonce, block_number, difficulty, seal), time.time() - start
 
-        if (product - limit) < best_local: 
-            best_local = product - limit
-            best_seal_local = seal
-
-    # Send best solution to best queue.
-    solver.best_queue.put((best_local, best_seal_local))
     return None, time.time() - start
 
 
@@ -370,6 +357,7 @@ def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocess
         for i in range(64):
             curr_block[i] = block_bytes[i]
         registration_diff_pack(diff, curr_diff)
+
 
 def get_cpu_count():
     try:
@@ -407,10 +395,6 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     console = bittensor.__console__
     status = console.status("Solving")
 
-    best_seal: bytes
-    best_number: int
-    best_number = float('inf')
-
     curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
     curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
     curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
@@ -421,13 +405,13 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     ## See the Solver class for more information on the queues.
     stopEvent = multiprocessing.Event()
     stopEvent.clear()
-    best_queue = multiprocessing.Queue()
+
     solution_queue = multiprocessing.Queue()
     time_queue = multiprocessing.Queue()
     check_block = multiprocessing.Lock()
     
     # Start consumers
-    solvers = [ Solver(i, num_processes, update_interval, best_queue, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
+    solvers = [ Solver(i, num_processes, update_interval, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
                 for i in range(num_processes) ]
 
     # Get first block
@@ -450,8 +434,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     
     start_time = time.time()
     solution = None
-    best_seal = None
-    itrs_per_sec = 0
+
     while not wallet.is_registered(subtensor):
         # Wait until a solver finds a solution
         try:
@@ -493,15 +476,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
         if num_time > 0:
             time_avg = time_total / num_time
             itrs_per_sec = update_interval*num_processes / time_avg
-
-        # get best solution from each solver using the best_queue
-        for _ in solvers:
-            try:
-                num, seal = best_queue.get_nowait()
-                if num < best_number:
-                    best_number = num
-                    best_seal = seal
-
+        
+                
             except Empty:
                 break
                 
