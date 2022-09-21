@@ -246,7 +246,8 @@ class CLI:
             update_interval = self.config.subtensor.register.get('update_interval', None),
             num_processes = self.config.subtensor.register.get('num_processes', None),
             cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
-            dev_id = self.config.subtensor.register.cuda.get('dev_id', None)
+            dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
+            output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
         )
 
     def transfer( self ):
