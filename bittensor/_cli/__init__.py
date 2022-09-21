@@ -832,10 +832,13 @@ class cli:
     def _check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
         """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
         if torch.cuda.is_available():
-            if config.subtensor.register.cuda.get('use_cuda') is None:
+            if config.subtensor.register.cuda.get('use_cuda', 'NA') == 'NA': # flag not set
                 # Ask about cuda registration only if a CUDA device is available.
                 cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
                 config.subtensor.register.cuda.use_cuda = cuda
+
+            if config.subtensor.register.cuda.get('use_cuda') is None: # flag was set, with no value, use default
+                config.subtensor.register.cuda.use_cuda = bittensor.defaults.subtensor.register.cuda.use_cuda
 
             # Only ask about which CUDA device if the user has more than one CUDA device.
             if config.subtensor.register.cuda.use_cuda and config.subtensor.register.cuda.get('dev_id') is None and torch.cuda.device_count() > 0:

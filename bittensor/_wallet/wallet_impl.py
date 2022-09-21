@@ -253,7 +253,10 @@ class Wallet():
                 update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
                 num_processes = self.config.subtensor.register.get('num_processes', None),
                 output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
-                cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
+                cuda = self.config.subtensor.register.cuda.get('use_cuda', 'NA')
+                if self.config.subtensor.register.cuda.get('use_cuda', 'NA') != 'NA'
+                else bittensor.defaults.subtensor.register.cuda.use_cuda
+                ,
                 dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,

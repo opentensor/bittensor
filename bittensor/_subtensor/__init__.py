@@ -228,7 +228,7 @@ class subtensor:
         if config.subtensor.get('register') and config.subtensor.register.get('cuda'):
             assert all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', []))
 
-            if config.subtensor.register.cuda.get('use_cuda', False):
+            if config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda):
                 try:
                     import cubit
                 except ImportError:
