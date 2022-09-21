@@ -27,7 +27,6 @@ from bittensor._endpoint import endpoint
 from bittensor.utils.test_utils import get_random_unused_port
 
 wallet = bittensor.wallet.mock()
-bittensor.logging(debug = True)
 dendrite = bittensor.dendrite(requires_grad=True)
 dendrite_no_grad = bittensor.dendrite(requires_grad=False)
 dendrite_mock = bittensor.dendrite(requires_grad=True)
