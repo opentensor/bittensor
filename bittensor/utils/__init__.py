@@ -507,6 +507,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
 
     while not wallet.is_registered(subtensor):
         start_time = time.time()
+        time_avg: Optional[float] = None
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -552,11 +553,10 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
         if num_time > 0:
             time_avg = time_total / num_time
             curr_stats.hash_rate = update_interval*num_processes / time_avg
-        
                 
         curr_stats.time_spent = time.time() - start_time
         new_time_spent_total = time.time() - start_time_perpetual
-        curr_stats.time_average = time_avg
+        curr_stats.time_average = time_avg if not None else curr_stats.time_average
         curr_stats.time_average_perpetual = (curr_stats.time_average_perpetual*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+1)
         curr_stats.rounds_total += 1
         curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + curr_stats.hash_rate)/ new_time_spent_total
