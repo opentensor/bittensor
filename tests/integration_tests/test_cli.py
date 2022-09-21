@@ -1367,7 +1367,7 @@ def test_register_cuda_use_cuda_flag( self ):
             "--no_prompt",
         ]
 
-        with patch('bittensor.utils.solve_for_difficulty_fast_cuda', side_effect=ExitEarlyException):
+        with patch('bittensor.utils.create_pow', side_effect=ExitEarlyException):
             # Should be able to set without argument
             args = base_args + [
                 "--subtensor.register.cuda.use_cuda", # should be default without any arugment
@@ -1398,7 +1398,6 @@ def test_register_cuda_use_cuda_flag( self ):
                 cli.run()
 
             assert cli.config.subtensor.register.cuda.use_cuda == False
-        
 
 if __name__ == "__main__":
     cli = TestCli()
