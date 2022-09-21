@@ -1375,13 +1375,13 @@ def test_register_cuda_use_cuda_flag():
             with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
                 # Should be able to set without argument
                 args = base_args + [
-                    "--subtensor.register.cuda.use_cuda", # should be default without any arugment
+                    "--subtensor.register.cuda.use_cuda", # should be None without any arugment
                 ]
                 with pytest.raises(ExitEarlyException):
                     cli = bittensor.cli(args=args)
                     cli.run()
 
-                assert cli.config.subtensor.register.cuda.use_cuda == bittensor.defaults.subtensor.register.cuda.use_cuda
+                assert cli.config.subtensor.register.cuda.use_cuda == None # should be None
 
                 # Should be able to set with true
                 args = base_args + [
