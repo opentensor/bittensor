@@ -1355,7 +1355,7 @@ def test_btcli_help():
     assert 'run' in help_out
 
 
-def test_register_cuda_use_cuda_flag( self ):
+def test_register_cuda_use_cuda_flag( ):
         class ExitEarlyException(Exception):
             """Raised by mocked function to exit early"""
             pass
