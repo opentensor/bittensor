@@ -95,10 +95,11 @@ class TestWallet(unittest.TestCase):
         with pytest.raises(ValueError):
             self.mock_wallet.regenerate_hotkey(seed=seed_str_bad)
 
-class TestWalletRegister(unittest.TestCase):
-    def test_wallet_register_use_cuda_flag_none(self):
+class TestWalletReregister(unittest.TestCase):
+    def test_wallet_reregister_use_cuda_flag_none(self):
         config = bittensor.Config()
         config.wallet = bittensor.Config()
+        config.wallet.reregister = True
 
         config.subtensor = bittensor.Config()
         config.subtensor.register = bittensor.Config()
@@ -126,9 +127,10 @@ class TestWalletRegister(unittest.TestCase):
             mock_create_pow.assert_called_once()
             self.assertEqual(kwargs['bool'], bittensor.defaults.subtensor.register.cuda.use_cuda) # should be default when no argument
 
-    def test_wallet_register_use_cuda_flag_true(self):
+    def test_wallet_reregister_use_cuda_flag_true(self):
         config = bittensor.Config()
         config.wallet = bittensor.Config()
+        config.wallet.reregister = True
 
         config.subtensor = bittensor.Config()
         config.subtensor.register = bittensor.Config()
@@ -156,9 +158,10 @@ class TestWalletRegister(unittest.TestCase):
             mock_create_pow.assert_called_once()
             self.assertEqual(kwargs['bool'], True) # should be default when no argument
 
-    def test_wallet_register_use_cuda_flag_false(self):
+    def test_wallet_reregister_use_cuda_flag_false(self):
         config = bittensor.Config()
         config.wallet = bittensor.Config()
+        config.wallet.reregister = True
 
         config.subtensor = bittensor.Config()
         config.subtensor.register = bittensor.Config()
@@ -186,9 +189,10 @@ class TestWalletRegister(unittest.TestCase):
             mock_create_pow.assert_called_once()
             self.assertEqual(kwargs['bool'], False) # should be default when no argument
 
-    def test_wallet_register_use_cuda_flag_not_specified_false(self):
+    def test_wallet_reregister_use_cuda_flag_not_specified_false(self):
         config = bittensor.Config()
         config.wallet = bittensor.Config()
+        config.wallet.reregister = True
 
         config.subtensor = bittensor.Config()
         config.subtensor.register = bittensor.Config()
