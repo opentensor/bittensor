@@ -119,7 +119,7 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.register()
+                mock_wallet.reregister()
 
             call_args = mock_register.call_args
             _, kwargs = call_args
@@ -135,7 +135,8 @@ class TestWalletReregister(unittest.TestCase):
         config.subtensor = bittensor.Config()
         config.subtensor.register = bittensor.Config()
         config.subtensor.register.cuda = bittensor.Config()
-        config.subtensor.register.cuda.use_cuda = True # don't set the argument, but do specify the flag
+        config.subtensor.register.cuda.use_cuda = True
+        config.subtensor.register.cuda.dev_id = 0
         # No need to specify the other config options as they are default to None
 
         mock_wallet = bittensor.wallet.mock()
@@ -150,7 +151,7 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.register()
+                mock_wallet.reregister()
 
             call_args = mock_register.call_args
             _, kwargs = call_args
@@ -166,7 +167,8 @@ class TestWalletReregister(unittest.TestCase):
         config.subtensor = bittensor.Config()
         config.subtensor.register = bittensor.Config()
         config.subtensor.register.cuda = bittensor.Config()
-        config.subtensor.register.cuda.use_cuda = False # don't set the argument, but do specify the flag
+        config.subtensor.register.cuda.use_cuda = False
+        config.subtensor.register.cuda.dev_id = 0
         # No need to specify the other config options as they are default to None
 
         mock_wallet = bittensor.wallet.mock()
@@ -181,7 +183,7 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.register()
+                mock_wallet.reregister()
 
             call_args = mock_register.call_args
             _, kwargs = call_args
@@ -198,6 +200,7 @@ class TestWalletReregister(unittest.TestCase):
         config.subtensor.register = bittensor.Config()
         config.subtensor.register.cuda = bittensor.Config()
         #config.subtensor.register.cuda.use_cuda # don't specify the flag
+        config.subtensor.register.cuda.dev_id = 0
         # No need to specify the other config options as they are default to None
 
         mock_wallet = bittensor.wallet.mock()
@@ -212,7 +215,7 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.register()
+                mock_wallet.reregister()
 
             call_args = mock_register.call_args
             _, kwargs = call_args
