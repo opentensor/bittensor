@@ -125,7 +125,7 @@ class TestWalletReregister(unittest.TestCase):
             _, kwargs = call_args
 
             mock_register.assert_called_once()
-            self.assertEqual(kwargs['cuda'], bittensor.defaults.subtensor.register.cuda.use_cuda) # should be default when no argument
+            self.assertEqual(kwargs['cuda'], None) # should be None when no argument, but flag set
 
     def test_wallet_reregister_use_cuda_flag_true(self):
         config = bittensor.Config()
@@ -221,4 +221,4 @@ class TestWalletReregister(unittest.TestCase):
             _, kwargs = call_args
 
             mock_register.assert_called_once()
-            self.assertEqual(kwargs['cuda'], False) # should be False when no flag was set
+            self.assertEqual(kwargs['cuda'], None) # should be False when no flag was set
