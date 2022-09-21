@@ -116,15 +116,15 @@ class TestWalletReregister(unittest.TestCase):
         def exit_early(*args, **kwargs):
             raise MockException('exit_early')
 
-        with patch('bittensor.utils.create_pow', side_effect=exit_early) as mock_create_pow:
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 mock_wallet.register()
 
-            call_args = mock_create_pow.call_args
+            call_args = mock_register.call_args
             _, kwargs = call_args
 
-            mock_create_pow.assert_called_once()
+            mock_register.assert_called_once()
             self.assertEqual(kwargs['cuda'], bittensor.defaults.subtensor.register.cuda.use_cuda) # should be default when no argument
 
     def test_wallet_reregister_use_cuda_flag_true(self):
@@ -147,15 +147,15 @@ class TestWalletReregister(unittest.TestCase):
         def exit_early(*args, **kwargs):
             raise MockException('exit_early')
 
-        with patch('bittensor.utils.create_pow', side_effect=exit_early) as mock_create_pow:
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 mock_wallet.register()
 
-            call_args = mock_create_pow.call_args
+            call_args = mock_register.call_args
             _, kwargs = call_args
 
-            mock_create_pow.assert_called_once()
+            mock_register.assert_called_once()
             self.assertEqual(kwargs['cuda'], True) # should be default when no argument
 
     def test_wallet_reregister_use_cuda_flag_false(self):
@@ -178,15 +178,15 @@ class TestWalletReregister(unittest.TestCase):
         def exit_early(*args, **kwargs):
             raise MockException('exit_early')
 
-        with patch('bittensor.utils.create_pow', side_effect=exit_early) as mock_create_pow:
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 mock_wallet.register()
 
-            call_args = mock_create_pow.call_args
+            call_args = mock_register.call_args
             _, kwargs = call_args
 
-            mock_create_pow.assert_called_once()
+            mock_register.assert_called_once()
             self.assertEqual(kwargs['cuda'], False) # should be default when no argument
 
     def test_wallet_reregister_use_cuda_flag_not_specified_false(self):
@@ -209,13 +209,13 @@ class TestWalletReregister(unittest.TestCase):
         def exit_early(*args, **kwargs):
             raise MockException('exit_early')
 
-        with patch('bittensor.utils.create_pow', side_effect=exit_early) as mock_create_pow:
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 mock_wallet.register()
 
-            call_args = mock_create_pow.call_args
+            call_args = mock_register.call_args
             _, kwargs = call_args
 
-            mock_create_pow.assert_called_once()
+            mock_register.assert_called_once()
             self.assertEqual(kwargs['cuda'], False) # should be False when no flag was set
