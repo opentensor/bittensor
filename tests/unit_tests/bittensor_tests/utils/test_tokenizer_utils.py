@@ -433,6 +433,77 @@ def test_topk_token_phrases():
         tokenizer_topk_phrases(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
 
 
+def test_random_topk_token_phrases(single_token_ratios: Tuple = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
+                                   max_len_final: int = 10, batch_size: int = 32, topk: int = 4096,
+                                   ignore_index: int = -100, vocab_len: int = 50256):
+    r"""
+    Asserts that randomly instantiated compact_topk encodings can be correctly decoded
+    to recover the original topk_tensor, where:
+        topk_tensor:
+            [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+            in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+            Content structure:
+            [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+              [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+              [...],
+              [prob_floor_b=0, ignore_index, ..., ignore_index]],
+             [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+              [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+              [...],
+              [prob_floor_b=1, ignore_index, ..., ignore_index]],
+             [...]]
+        compact_topk:
+            [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
+            since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
+            floor probability (rest).
+            Content structure:
+                [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
+                 prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
+                 ...]
+
+        Args:
+            single_token_ratios (:obj:`Tuple`, `optional`):
+                Series of ratios of single-token phrases to total phrases, to test individually.
+            max_len_final (:obj:`int`, `optional`):
+                The maximum phrase length to test.
+            batch_size (:obj:`int`, `optional`):
+                The batch_size of the test input.
+            topk (:obj:`int`, `optional`):
+                The topk of the test input, the amount of logits retained.
+            ignore_index (:obj:`int`, `optional`):
+                The padding value after the end of each phrase.
+            vocab_len (:obj:`int`, `optional`):
+                The tokenizer vocabulary length.
+
+        Returns:
+    """
+    for single_token_ratio in single_token_ratios:  # for each single token occurrence ratio
+        for _max_len in torch.arange(3, max_len_final):  # for each max_len in range 3 to max_len_final
+            longer_phrases = int(topk * (1 - single_token_ratio) / (_max_len - 2))  # number of multi-token phrases per length
+            max_len = _max_len if longer_phrases > 0 else 2  # change max_len if only single_phrases
+            single_phrases = topk - (max_len - 2) * longer_phrases  # number of [prob, token, ignore_index, ...] phrases
+
+            topk_tensor = ignore_index * torch.ones((batch_size, topk + 1, max_len))  # [batch_size, (topk + 1), max_len]
+
+            for batch in range(batch_size):  # construct each batch separately
+                permuted = torch.randperm(topk)
+
+                # add single token phrases: [prob, token, ignore_index, ..., ignore_index]
+                topk_tensor[batch, permuted[:single_phrases], 1:2] = 1. * torch.randint(vocab_len, (single_phrases, 1))
+
+                # add longer token phrases: [prob, token, token, ..., ignore_index?, ..., ignore_index]
+                for length in range(2, max_len):
+                    start = single_phrases + (length - 2) * longer_phrases
+                    phrase_idx = permuted[start:start + longer_phrases]
+                    topk_tensor[batch, phrase_idx, 1:length+1] = 1. * torch.randint(vocab_len, (longer_phrases, length))
+
+            topk_tensor[:, :, 0] = torch.rand((batch_size, topk + 1))  # assign random probabilities to first column
+
+            compact_topk = compact_topk_token_phrases(topk_tensor)  # [>= batch_size * (2 * topk + 1)]
+            _topk_tensor = unravel_topk_token_phrases(compact_topk, topk=topk)  # [batch_size, (topk + 1), max_len]
+            assert torch.all(torch.eq(_topk_tensor, topk_tensor))
+
+
 def topk_phrases_crossentropy(text_batch: List[str], model_name: str, max_length: int,
                               last_indices: List[int],
                               enc_pre_logits: torch.FloatTensor = None,
@@ -589,80 +660,9 @@ def test_topk_phrases_crossentropy():
         assert _recorded_losses == recorded_losses
 
 
-def test_phrases_split(single_token_ratios: Tuple = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
-                       max_len_final: int = 10, batch_size: int = 32, topk: int = 4096,
-                       ignore_index: int = -100, vocab_len: int = 50256):
-    r"""
-    Asserts that randomly instantiated compact_topk encodings can be correctly decoded
-    to recover the original topk_tensor, where:
-        topk_tensor:
-            [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
-            in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
-            Content structure:
-            [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
-              [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
-              [...],
-              [prob_floor_b=0, ignore_index, ..., ignore_index]],
-             [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
-              [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
-              [...],
-              [prob_floor_b=1, ignore_index, ..., ignore_index]],
-             [...]]
-        compact_topk:
-            [sum_b(sum_k(len(phrase_k) + 1)_b)] Compacted 1-D tensor >= batch_size * (2 * topk + 1),
-            since 2 * topk + 1: topk x [probability, token sequence (at least one token)] +
-            floor probability (rest).
-            Content structure:
-                [prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., prob_k=1_b=0, tok_0_k=1_b=0, ..., prob_floor_b=0,
-                 prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
-                 ...]
-
-        Args:
-            single_token_ratios (:obj:`Tuple`, `optional`):
-                Series of ratios of single-token phrases to total phrases, to test individually.
-            max_len_final (:obj:`int`, `optional`):
-                The maximum phrase length to test.
-            batch_size (:obj:`int`, `optional`):
-                The batch_size of the test input.
-            topk (:obj:`int`, `optional`):
-                The topk of the test input, the amount of logits retained.
-            ignore_index (:obj:`int`, `optional`):
-                The padding value after the end of each phrase.
-            vocab_len (:obj:`int`, `optional`):
-                The tokenizer vocabulary length.
-
-        Returns:
-    """
-    for single_token_ratio in single_token_ratios:  # for each single token occurrence ratio
-        for _max_len in torch.arange(3, max_len_final):  # for each max_len in range 3 to max_len_final
-            longer_phrases = int(topk * (1 - single_token_ratio) / (_max_len - 2))  # number of multi-token phrases per length
-            max_len = _max_len if longer_phrases > 0 else 2  # change max_len if only single_phrases
-            single_phrases = topk - (max_len - 2) * longer_phrases  # number of [prob, token, ignore_index, ...] phrases
-
-            topk_tensor = ignore_index * torch.ones((batch_size, topk + 1, max_len))  # [batch_size, (topk + 1), max_len]
-
-            for batch in range(batch_size):  # construct each batch separately
-                permuted = torch.randperm(topk)
-
-                # add single token phrases: [prob, token, ignore_index, ..., ignore_index]
-                topk_tensor[batch, permuted[:single_phrases], 1:2] = 1. * torch.randint(vocab_len, (single_phrases, 1))
-
-                # add longer token phrases: [prob, token, token, ..., ignore_index?, ..., ignore_index]
-                for length in range(2, max_len):
-                    start = single_phrases + (length - 2) * longer_phrases
-                    phrase_idx = permuted[start:start + longer_phrases]
-                    topk_tensor[batch, phrase_idx, 1:length+1] = 1. * torch.randint(vocab_len, (longer_phrases, length))
-
-            topk_tensor[:, :, 0] = torch.rand((batch_size, topk + 1))  # assign random probabilities to first column
-
-            compact_topk = compact_topk_token_phrases(topk_tensor)  # [>= batch_size * (2 * topk + 1)]
-            _topk_tensor = unravel_topk_token_phrases(compact_topk, topk=topk)  # [batch_size, (topk + 1), max_len]
-            assert torch.all(torch.eq(_topk_tensor, topk_tensor))
-
-
 if __name__ == '__main__':
     test_tokenizer_equivalence()
     test_tokenizer_translation()
     test_topk_token_phrases()
+    test_random_topk_token_phrases()
     test_topk_phrases_crossentropy()
-    test_phrases_split()
