@@ -22,7 +22,7 @@ import copy
 import os
 
 import bittensor
-from distutils.util import strtobool
+from bittensor.utils import strtobool
 
 from . import wallet_impl, wallet_mock
 

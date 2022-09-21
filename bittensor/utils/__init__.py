@@ -859,3 +859,21 @@ def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bo
     else:
         # Invalid address type
         return False
+
+def strtobool(val: str) -> bool:
+    """
+    Converts a string to a boolean value.
+
+    truth-y values are 'y', 'yes', 't', 'true', 'on', and '1';
+    false-y values are 'n', 'no', 'f', 'false', 'off', and '0'.
+
+    Raises ValueError if 'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return True
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return False
+    else:
+        raise ValueError("invalid truth value %r" % (val,))
+
