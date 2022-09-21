@@ -18,6 +18,7 @@ import torch
 from Crypto.Hash import keccak
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
+from rich import console as rich_console, status as rich_status
 
 from .register_cuda import solve_cuda
 
@@ -366,7 +367,61 @@ def get_cpu_count():
         # OSX does not have sched_getaffinity
         return os.cpu_count()
 
-def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
+@dataclass
+class RegistrationStatistics:
+    """Statistics for a registration."""
+    time_spent_total: float
+    time_average_perpetual: float 
+    rounds_total: int
+    time_average: float
+    time_spent: float
+    hash_rate_perpetual: float
+    hash_rate: float
+    difficulty: int
+    block_number: int
+    block_hash: bytes
+    
+
+class RegistrationStatisticsLogger:
+    """Logs statistics for a registration."""
+    console: rich_console.Console
+    status: Optional[rich_status.Status] 
+
+    def __init__( self, console: rich_console.Console, output_in_place: bool = True) -> None:
+        if output_in_place:
+            self.status = console.status("Solving")
+        else:
+            self.status = None
+        
+    def start( self ) -> None:
+        if self.status is not None:
+            self.status.start()
+
+    def stop( self ) -> None:
+        if self.status is not None:
+            self.status.stop()
+
+
+    def get_status_message(cls, stats: RegistrationStatistics) -> str:
+        message = f"""Solving 
+            time spent: {stats.time_spent:.2f} s
+            time spent total: {stats.time_spent_total:.2f} s 
+            time average perpetual: {stats.time_average_perpetual:.2f} s
+            Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]
+            Iters: [bold white]{get_human_readable(int(stats.hash_rate), 'H')}/s[/bold white]
+            Block: [bold white]{stats.block_number}[/bold white]
+            Block_hash: [bold white]{stats.block_hash.encode('utf-8')}[/bold white]"""
+        return message.replace(" ", "")
+
+
+    def update( self, stats: RegistrationStatistics ) -> None:
+        if self.status is not None:
+            self.status.update( self.get_status_message(stats) )
+        else:
+            self.console.log( self.get_status_message(stats) )
+
+
+def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -374,6 +429,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
             Subtensor to connect to for block information and to submit.
         wallet:
             Wallet to use for registration.
+        output_in_place: bool
+            If true, prints the status in place. Otherwise, prints the status on a new line.
         num_processes: int
             Number of processes to use.
         update_interval: int
@@ -393,13 +450,11 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     limit = int(math.pow(2,256)) - 1
 
     console = bittensor.__console__
-    status = console.status("Solving")
+    logger = RegistrationStatisticsLogger(console, output_in_place)
 
     curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
     curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
     curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
-    
-    status.start()
 
     # Establish communication queues
     ## See the Solver class for more information on the queues.
@@ -432,10 +487,26 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     for w in solvers:
         w.start() # start the solver processes
     
-    start_time = time.time()
+    curr_stats = RegistrationStatistics(
+        time_spent_total = 0.0,
+        time_average_perpetual = 0.0,
+        time_average = 0.0,
+        rounds_total = 0,
+        time_spent = 0.0,
+        hash_rate_perpetual = 0.0,
+        hash_rate = 0.0,
+        difficulty = difficulty,
+        block_number = block_number,
+        block_hash = block_hash
+    )
+
+    start_time_perpetual = time.time()
     solution = None
 
+    logger.start()
+
     while not wallet.is_registered(subtensor):
+        start_time = time.time()
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -460,6 +531,11 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
             # Set new block events for each solver
             for w in solvers:
                 w.newBlockEvent.set()
+            
+            # update stats
+            curr_stats.block_number = block_number
+            curr_stats.block_hash = block_hash
+            curr_stats.difficulty = difficulty
                 
         # Get times for each solver
         time_total = 0
@@ -475,24 +551,23 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
         # Calculate average time per solver for the update_interval
         if num_time > 0:
             time_avg = time_total / num_time
-            itrs_per_sec = update_interval*num_processes / time_avg
+            curr_stats.hash_rate = update_interval*num_processes / time_avg
         
                 
-            except Empty:
-                break
-                
-        message = f"""Solving 
-            time spent: {time.time() - start_time}
-            Difficulty: [bold white]{millify(difficulty)}[/bold white]
-            Iters: [bold white]{get_human_readable(int(itrs_per_sec), 'H')}/s[/bold white]
-            Block: [bold white]{block_number}[/bold white]
-            Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]
-            Best: [bold white]{binascii.hexlify(bytes(best_seal) if best_seal else bytes(0))}[/bold white]"""
-        status.update(message.replace(" ", "")) 
+        curr_stats.time_spent = time.time() - start_time
+        new_time_spent_total = time.time() - start_time_perpetual
+        curr_stats.time_average = time_avg
+        curr_stats.time_average_perpetual = (curr_stats.time_average_perpetual*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+1)
+        curr_stats.rounds_total += 1
+        curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + curr_stats.hash_rate)/ new_time_spent_total
+        curr_stats.time_spent_total = new_time_spent_total
+
+        # Update the logger
+        logger.update(curr_stats)
 
     # exited while, solution contains the nonce or wallet is registered
     stopEvent.set() # stop all other processes
-    status.stop()
+    logger.stop()
 
     return solution
     
