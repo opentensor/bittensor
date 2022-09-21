@@ -695,11 +695,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     logger = RegistrationStatisticsLogger(console, output_in_place)
     logger.start()
 
-    time_since = 0.0
     solution = None
-    itrs_per_sec = 0
 
-    
     while not wallet.is_registered(subtensor):
         start_time = time.time()
         time_avg: Optional[float] = None
@@ -738,7 +735,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         num_time = 0
         for _ in solvers:
             try:
-                time_ = time_queue.get_nowait()
+                time_ = time_queue.get(timeout=0.01)
                 time_total += time_
                 num_time += 1
 
