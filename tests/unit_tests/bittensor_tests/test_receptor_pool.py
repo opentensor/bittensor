@@ -25,8 +25,6 @@ from unittest.mock import MagicMock
 import unittest.mock as mock
 import asyncio
 
-logging = bittensor.logging(debug = True)
-
 # --- Receptor Pool ---
 wallet = bittensor.wallet.mock()
 wallet2 = bittensor.wallet.mock()
@@ -145,7 +143,7 @@ def test_receptor_pool_forward_timeout():
             tensors=[y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
         )
 
-
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
@@ -178,6 +176,7 @@ def test_receptor_pool_forward_num_synapse_mismatch():
             tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized]
         )
 
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
@@ -207,6 +206,7 @@ def test_receptor_pool_forward_response_partial_shape_error():
             tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
         )
 
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
@@ -237,6 +237,7 @@ def test_receptor_pool_partial_remote_success_return_code():
             tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
         )
 
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
@@ -266,6 +267,7 @@ def test_receptor_pool_missing_synapse():
             tensors = [y_hidden_serialized, y_causallm_serialized, y_causallmnext_serialized, y_seq_2_seq_serialized]
         )
 
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Forward = MagicMock( return_value = mock_return_val )
     resp1,  codes, _ = receptor_pool.forward( endpoints, synapses, x, timeout=1)
@@ -286,11 +288,13 @@ def test_receptor_pool_backward_hang():
     causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
     seq_2_seq_grads = torch.tensor([])
 
+    receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     receptor_pool._get_or_create_receptor_for_endpoint(neuron_obj)
     receptor_pool.receptors[neuron_obj.hotkey].stub.Backward = MagicMock( return_value = mock_return_val )
     receptor_pool.backward(endpoints, synapses, x, [[hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads],
                                                     [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads]], timeout=1)
 
 if __name__ == "__main__":
-    test_receptor_pool_missing_synapse()
+    test_receptor_pool_forward_success()
+    test_receptor_pool_forward_timeout()
     pass
