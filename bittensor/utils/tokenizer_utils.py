@@ -872,19 +872,31 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
     assert batch_size * (topk + 1) == len(prob_idx), f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
 
-    # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-    phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
-    phrases = phrases[1:]  # ignore first (empty) split
+    # Obtain phrase lengths and maximum phrase length
+    phrase_len = prob_idx[1:] - prob_idx[:-1]  # [batch_size * (topk + 1) - 1] length of each phrase
+    phrase_len = torch.cat((phrase_len, torch.tensor([1])))  # [batch_size * (topk + 1)] prob_floor is always len=1
+    max_len = phrase_len.max()  # determine width of topk_tensor as max len of all phrase lists (with prob in front)
 
-    # determine width of topk_tensor as max len of all phrase lists (with prob in front)
-    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
+    # Initialize topk_tensor with ignore_index + 2, since decrement with 2 follows to remove token offset later
+    topk_tensor = (ignore_index + 2) * torch.ones((batch_size * (topk + 1), max_len))  # [batch_size * (topk + 1), max_len]
 
-    ignore_index_2 = ignore_index + 2  # increment with 2, as decrement with 2 follows
+    # Insert phrases of each unique length as block into topk_tensor
+    for unique_len in phrase_len.unique():
+        if unique_len <= 1:
+            continue  # skip probability column, will be added afterward
 
-    # form single 2D tensor with topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-    topk_tensor = torch.tensor([p + [ignore_index_2] * (max_len - len(p))
-                                for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
-    topk_tensor -= 2  # remove token offset
+        phrase_idx = torch.where(phrase_len == unique_len)[0]  # phrase indices where phrase_len is unique_len
+        compact_idx = prob_idx[phrase_idx]  # indices in compact_topk
+
+        # Create indexing block, add index for each phrase position, skip first (prob) position
+        block_idx = [compact_idx + position for position in range(1, unique_len)]  # incrementally add each position of phrase
+        # transpose .t() ensures correct interleaving of consecutive positions:
+        # [[phrase_a_1, phrase_a_2, ..., phrase_a_n], [phrase_b_1, phrase_b_2, ..., phrase_b_n], ...]
+        block_idx = torch.vstack(block_idx).t().reshape(-1, unique_len - 1)  # [-1, unique_len - 1] for all phrases with unique_len
+
+        topk_tensor[phrase_idx, 1:unique_len] = compact_topk[block_idx]  # slice selected phrases and copy into topk_tensor
+
+    topk_tensor -= 2  # remove token offset, overwrites probability column, replace probabilities below
 
     # grafting probability tensors into first column to attach gradients
     topk_tensor[:, 0] = compact_topk[prob_idx]  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
