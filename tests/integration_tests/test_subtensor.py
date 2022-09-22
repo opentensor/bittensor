@@ -59,7 +59,7 @@ class TestSubtensor(unittest.TestCase):
                 "is_null":False
             })
         )
-        self.neurons = self.subtensor.neurons()
+        self.neurons = [self.subtensor.neuron_for_uid(0), self.subtensor.neuron_for_uid(1) ]
         self.balance = Balance.from_tao(1000)
         assert True
 
