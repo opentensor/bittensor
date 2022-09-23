@@ -433,9 +433,9 @@ def test_topk_token_phrases():
         tokenizer_topk_phrases(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
 
 
-def test_random_topk_token_phrases(single_token_ratios: Tuple = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
-                                   max_len_final: int = 10, batch_size: int = 32, topk: int = 4096,
-                                   ignore_index: int = -100, vocab_len: int = 50256):
+def _test_random_topk_token_phrases(single_token_ratios: Tuple = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
+                                    max_len_final: int = 10, batch_size: int = 32, topk: int = 4096,
+                                    ignore_index: int = -100, vocab_len: int = 50256):
     r"""
     Asserts that randomly instantiated compact_topk encodings can be correctly decoded
     to recover the original topk_tensor, where:
