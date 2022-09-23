@@ -64,7 +64,7 @@ def test_normalize_with_max_weight():
     weights = torch.rand(2000)
     w = weights / weights.sum()
     wn = weight_utils.normalize_max_weight( weights, limit = limit )
-    assert (w.max() >= limit and (limit - wn.max()).abs() < 1e-8) or (w.max() < limit and wn.max() < limit)
+    assert (w.max() >= limit and (limit - wn.max()).abs() < 0.001) or (w.max() < limit and wn.max() < limit)
 
     # Check for Zeros 
     limit = 0.01
