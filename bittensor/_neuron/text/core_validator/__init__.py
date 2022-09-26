@@ -346,7 +346,7 @@ class neuron:
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
 
@@ -358,7 +358,7 @@ class neuron:
         if self.config.using_wandb:
             wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
                        'era/validation_len': validation_len,
-                       'era/min_allowed_weights': min_allowed_weights, 'era/max_weight_limit': max_weight_limit,
+                       'era/min_allowed_weights': min_allowed_weights, 'era/max_allowed_ratio': max_allowed_ratio,
                        'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
                       step=current_block)
 
@@ -507,8 +507,8 @@ class neuron:
               f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
               f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
               f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-              f'\[{sample_weights.max().item()}:1] '
-              f'({max_weight_limit} allowed)')
+              f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
+              f'({max_allowed_ratio} allowed)')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
@@ -603,7 +603,7 @@ class neuron:
 
         # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
         non_responsive_uids = queried_uids - responsive_uids
         non_queried_uids = set(range(self.metagraph.n)) - queried_uids
@@ -633,9 +633,7 @@ class neuron:
         sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
         sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
 
-        # === If no uids responds, return ===
-        if len(sample_uids) == 0:
-            return sample_uids, sample_weights
+        logger.info(f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
@@ -648,11 +646,11 @@ class neuron:
             logger.info(f'Exclude {exclude_quantile} quantile ({lowest_quantile}) | '
                         f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
 
-        # === Normalize and apply max_weight_limit ===
-        sample_weights = bittensor.utils.weight_utils.normalize_max_weight(x=sample_weights,
-                                                                             limit=max_weight_limit)
-        logger.info(f'{len(sample_weights)} normalize_max_weight | '
-                    f'max:{sample_weights.max()}')
+        # === Normalize and apply max_allowed_ratio ===
+        sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
+                                                                             multiple=max_allowed_ratio)
+        logger.info(f'{len(sample_weights)} normalize_max_multiple | '
+                    f'min:{sample_weights.min()} max:{sample_weights.max()}')
 
         return sample_uids, sample_weights
 
@@ -660,7 +658,7 @@ class neuron:
         r""" Prints weights table given sample_uids and sample_weights.
         """
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
+        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
 
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights
@@ -690,8 +688,8 @@ class neuron:
                     f'sum:{sample_weights.sum().item():.2g} '
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                    f'\[{sample_weights.max().item()}:1] '
-                    f'({max_weight_limit} allowed)',  # caption
+                    f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
+                    f'({max_allowed_ratio} allowed)',  # caption
                     mark_uids=avail_include_uids)
 
 
