@@ -397,13 +397,6 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
         to increase the transparency of the process while still keeping the speed.
     """
     if num_processes == None:
-        try:
-            # get the number of allowed processes for this process
-            num_processes = len(os.sched_getaffinity(0))
-        except AttributeError:
-            # This system doesn't support os.sched_getaffinity, so let's just get the number of virtual cores instead.
-            num_processes = multiprocessing.cpu_count()
-
         # get the number of allowed processes for this process
         num_processes = min(1, get_cpu_count())
 
@@ -489,13 +482,6 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
         # Get times for each solver
         time_total = 0
         num_time = 0
-        while not time_queue.empty():
-            try:
-                time_ = time_queue.get_nowait()
-                time_total += time_
-                num_time += 1
-            except Empty:
-                break
 
         for _ in solvers:
             try:
@@ -510,7 +496,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
             itrs_per_sec = update_interval*num_processes / time_avg
 
         # get best solution from each solver using the best_queue
-        while not best_queue.empty():
+        for _ in solvers:
             try:
                 num, seal = best_queue.get_nowait()
                 if num < best_number:
