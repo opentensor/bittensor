@@ -290,7 +290,7 @@ class axon:
 
         # Prometheus
         defaults.axon.prometheus = bittensor.config()
-        defaults.axon.prometheus.level = os.getenv('BT_AXON_PROMETHEUS_LEVEL') if os.getenv('BT_AXON_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.
+        defaults.axon.prometheus.level = os.getenv('BT_AXON_PROMETHEUS_LEVEL') if os.getenv('BT_AXON_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.name
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
