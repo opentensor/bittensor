@@ -293,6 +293,48 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
+    def scaling_law_power (self) -> int:
+        r""" Returns ScalingLawPower
+        Returns:
+            ScalingLawPower (float):
+                the power term attached to scaling law
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                MAX = 100
+                return substrate.query( module='SubtensorModule', storage_function = 'ScalingLawPower' ).value/MAX
+        return make_substrate_call_with_retry()
+
+    @property
+    def synergy_scaling_law_power (self) -> int:
+        r""" Returns SynergyScalingLawPower
+        Returns:
+            SynergyScalingLawPower (float):
+                the term attached to synergy calculation during shapley scores
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                MAX = 100
+                return substrate.query( module='SubtensorModule', storage_function = 'SynergyScalingLawPower' ).value/MAX
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_exclude_quantile (self) -> int:
+        r""" Returns ValidatorExcludeQuantile
+        Returns:
+            ValidatorExcludeQuantile (float):
+                the quantile that validators should exclude when setting their weights
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                MAX = 100
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorExcludeQuantile' ).value/MAX
+        return make_substrate_call_with_retry()
+
+    @property
     def max_allowed_min_max_ratio(self) -> int:
         r""" Returns the chains max_allowed_min_max_ratio
         Returns:

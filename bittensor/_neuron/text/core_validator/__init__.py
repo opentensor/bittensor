@@ -211,7 +211,7 @@ class neuron:
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
         parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
-        parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting.', default=0.1)
+        parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting.', default=-1)
 
     @classmethod
     def config ( cls ):
@@ -639,8 +639,9 @@ class neuron:
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
+        quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
         if 0 < max_exclude:
-            exclude_quantile = min([self.config.neuron.exclude_quantile, max_exclude])  # reduce quantile to meet min_allowed_weights
+            exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
             lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
             sample_uids = sample_uids[lowest_quantile <= sample_weights]  # exclude uids with weights below quantile
             sample_weights = sample_weights[lowest_quantile <= sample_weights]  # exclude weights below quantile
@@ -701,6 +702,12 @@ class nucleus( torch.nn.Module ):
     def __init__( self, config, device, subtensor ):
         super(nucleus, self).__init__()
         self.config = config
+
+        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+
+        print(config)
+
         self.device = device
         self.max_n = subtensor.max_n
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
@@ -745,8 +752,8 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
         parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
-        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.5)
-        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.6)
+        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=-1)
+        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=-1)
 
     @classmethod
     def config ( cls ):
