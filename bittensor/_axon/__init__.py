@@ -37,7 +37,7 @@ from . import axon_impl
 class axon:
     """ The factory class for bittensor.Axon object
     The Axon is a grpc server for the bittensor network which opens up communication between it and other neurons.
-    The server protocol is defined int bittensor.proto and describes the manner in which forward and backwards requests
+    The server protocol is defined in bittensor.proto and describes the manner in which forward and backwards requests
     are transported / encoded between validators and servers
     
     Examples:: 
