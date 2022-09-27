@@ -52,28 +52,27 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = [ 'local', 'nobunaga', 'nakamoto']
+__networks__ = [ 'local', 'bellagene', 'nobunaga', 'nakamoto']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
-__nakamoto_entrypoints__ = [
-    "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
-]
+__nakamoto_entrypoint__ = "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 
-__nobunaga_entrypoints__ = [
-    'staging.nobunaga.opentensor.ai:9944'
-]
 
-__local_entrypoints__ = [
-    '127.0.0.1:9944'
-]
+__nobunaga_entrypoint__ = "staging.nobunaga.opentensor.ai:9944"
+
+
+__bellagene_entrypoint__ = "parachain.opentensor.ai:443"
+
+
+__local_entrypoint__ = "127.0.0.1:9944"
+
 
 # Avoid collisions with other processes
 from .utils.test_utils import get_random_unused_port
 mock_subtensor_port = get_random_unused_port()
-__mock_entrypoints__ = [
-    f"localhost:{mock_subtensor_port}"
-]
+__mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
+
 
 
 # ---- Config ----

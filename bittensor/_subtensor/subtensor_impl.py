@@ -481,10 +481,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
 
         with bittensor.__console__.status(":satellite: Checking Account..."):
-            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-            if not neuron.is_null:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
-                return True
+             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+             if not neuron.is_null:
+                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
+                 return True
 
         if prompt:
             if not Confirm.ask("Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]".format( wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, self.network ) ):
@@ -562,9 +562,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                     else:
                         # Exited loop because pow is no longer valid.
                         bittensor.__console__.print( "[red]POW is stale.[/red]" )
-                        # Try again.
+                        # Try again
                         continue
-                        
             if attempts < max_allowed_attempts:
                 #Failed registration, retry pow
                 attempts += 1
