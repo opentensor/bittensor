@@ -1,5 +1,6 @@
 import binascii
 import hashlib
+from inspect import Attribute
 import math
 import multiprocessing
 import numbers

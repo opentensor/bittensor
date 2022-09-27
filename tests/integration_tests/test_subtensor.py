@@ -64,15 +64,15 @@ class TestSubtensor(unittest.TestCase):
         assert True
 
     def test_defaults_to_nobunaga( self ):
-        assert self.subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
+        assert self.subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
 
     def test_networks( self ):
-        assert self.subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
+        assert self.subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
 
     def test_network_overrides( self ):
         config = bittensor.subtensor.config()
         subtensor = bittensor.subtensor(network='nobunaga', config=config, )
-        assert subtensor.endpoint_for_network() in bittensor.__nobunaga_entrypoints__
+        assert subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
 
     def test_connect_no_failure( self ):
         self.subtensor.connect(timeout = 1, failure=False)
