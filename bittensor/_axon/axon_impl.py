@@ -111,29 +111,27 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # We are running over various suffix values in the event that there are multiple axons in the same process.
         # The first axon is created with a null suffix and subsequent values are ordered like so: axon_is_started, axon_is_started_1, axon_is_started_2 etc...
 
-        if self.prometheus_level == bittensor.prometheus.level.OFF.name:
-            return
-
-        suffix = ""; idx = 1
-        while True:
-            try:
-                self.is_started = Enum('axon_is_started{}'.format(suffix), 'is_started', states=['stopped', 'started'])
-                self.total_forward = Counter('axon_total_forward{}'.format(suffix), 'total_forward')
-                self.total_backward = Counter('axon_total_backward{}'.format(suffix), 'total_backward')
-                self.forward_latency = Histogram('axon_forward_latency{}'.format(suffix), 'forward_latency', buckets=list(range(0,bittensor.__blocktime__,1)))
-                self.backward_latency = Histogram('axon_backward_latency{}'.format(suffix), 'backward_latency', buckets=list(range(0,bittensor.__blocktime__,1))) 
-                self.forward_synapses = Counter('axon_forward_synapses{}'.format(suffix), 'forward_synapses', ["synapse"])
-                self.backward_synapses = Counter('axon_backward_synapses{}'.format(suffix), 'backward_synapses', ["synapse"])
-                self.forward_codes = Counter('axon_forward_codes{}'.format(suffix), 'forward_codes', ["code"])
-                self.backward_codes = Counter('axon_backward_codes{}'.format(suffix), 'backward_codes', ["code"])
-                self.forward_hotkeys = Counter('axon_forward_hotkeys{}'.format(suffix), 'forward_hotkeys', ["hotkey"])
-                self.backward_hotkeys = Counter('axon_backward_hotkeys{}'.format(suffix), 'backward_hotkeys', ["hotkey"])
-                self.forward_bytes = Counter('axon_forward_bytes{}'.format(suffix), 'forward_bytes', ["hotkey"])
-                self.backward_bytes = Counter('axon_backward_bytes{}'.format(suffix), 'backward_bytes', ["hotkey"])
-            except ValueError: 
-                suffix = "_{}".format(str(idx)); idx+=1
-                continue
-            break
+        if self.prometheus_level != bittensor.prometheus.level.OFF.name:
+            suffix = ""; idx = 1
+            while True:
+                try:
+                    self.is_started = Enum('axon_is_started{}'.format(suffix), 'is_started', states=['stopped', 'started'])
+                    self.total_forward = Counter('axon_total_forward{}'.format(suffix), 'total_forward')
+                    self.total_backward = Counter('axon_total_backward{}'.format(suffix), 'total_backward')
+                    self.forward_latency = Histogram('axon_forward_latency{}'.format(suffix), 'forward_latency', buckets=list(range(0,bittensor.__blocktime__,1)))
+                    self.backward_latency = Histogram('axon_backward_latency{}'.format(suffix), 'backward_latency', buckets=list(range(0,bittensor.__blocktime__,1))) 
+                    self.forward_synapses = Counter('axon_forward_synapses{}'.format(suffix), 'forward_synapses', ["synapse"])
+                    self.backward_synapses = Counter('axon_backward_synapses{}'.format(suffix), 'backward_synapses', ["synapse"])
+                    self.forward_codes = Counter('axon_forward_codes{}'.format(suffix), 'forward_codes', ["code"])
+                    self.backward_codes = Counter('axon_backward_codes{}'.format(suffix), 'backward_codes', ["code"])
+                    self.forward_hotkeys = Counter('axon_forward_hotkeys{}'.format(suffix), 'forward_hotkeys', ["hotkey"])
+                    self.backward_hotkeys = Counter('axon_backward_hotkeys{}'.format(suffix), 'backward_hotkeys', ["hotkey"])
+                    self.forward_bytes = Counter('axon_forward_bytes{}'.format(suffix), 'forward_bytes', ["hotkey"])
+                    self.backward_bytes = Counter('axon_backward_bytes{}'.format(suffix), 'backward_bytes', ["hotkey"])
+                except ValueError: 
+                    suffix = "_{}".format(str(idx)); idx+=1
+                    continue
+                break
 
     def __str__(self) -> str:
         return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")

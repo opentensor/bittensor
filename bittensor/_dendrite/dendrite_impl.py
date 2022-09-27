@@ -39,6 +39,8 @@ import bittensor.utils.codes as codes
 
 import wandb
 
+from prometheus_client import Summary, Counter, Histogram
+
 logger = logger.opt(colors=True)
 
 # dummy tensor that triggers autograd 
@@ -81,6 +83,24 @@ class Dendrite(torch.autograd.Function):
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
         self.stats = self._init_stats()
+
+        # == Prometheus
+        # We are running over various suffix values in the event that there are multiple dendrites in the same process.
+        # The first dendrite is created with a null suffix. Values are ordered like so: dendrite_counters, dendrite_counters_1, dendrite_counters_2 etc...
+        if self.config.dendrite.prometheus.level != bittensor.prometheus.level.OFF.name:
+            suffix = ""; idx = 1
+            while True:
+                try:
+                    self.prometheus_counters = Counter('dendrite_counters{}'.format(suffix), 'dendrite_counters', ['name'])
+                    self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,1))) 
+                    self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid{}'.format(suffix), 'dendrite_latency_per_uid', ['uid'])
+                    self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'])
+                    self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid{}'.format(suffix), 'dendrite_failures_per_uid', ['uid'])
+
+                except ValueError: 
+                    suffix = "_{}".format(str(idx)); idx+=1
+                    continue
+                break
 
     def __str__(self):
         return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
@@ -267,6 +287,7 @@ class Dendrite(torch.autograd.Function):
                     Call times per endpoint per synapse.
 
         """
+        start_time = time.time()
         timeout:int = timeout if timeout is not None else self.config.dendrite.timeout
         requires_grad:bool = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
 
@@ -298,6 +319,41 @@ class Dendrite(torch.autograd.Function):
         # each endpoint.
         outputs: List[torch.Tensor] = forward_response[2:]
         packed_outputs: List[ List[torch.Tensor] ] = [  outputs[ s : s + len(synapses) ] for s in range (0, len(outputs), len( synapses )) ]
+
+         # === Prometheus counters.
+        if self.config.dendrite.prometheus.level != bittensor.prometheus.level.OFF.name:
+            self.prometheus_counters.labels( 'total_requests' ).inc()
+            self.prometheus_counters.labels( 'total_endpoint_requests' ).inc( len(endpoints) )
+            self.prometheus_counters.labels( 'total_request_bytes' ).inc( sum(p.element_size() * p.nelement() for p in inputs) )
+            self.prometheus_counters.labels( 'total_request_params' ).inc( sum(p.numel() for p in inputs) )
+
+            # Capture synapses.
+            for synapse in enumerate( synapses ):
+                self.prometheus_counters.labels( str(synapse) ).inc()
+
+            for i in range(len(endpoints)):
+                n_success = (codes[i] == 1).sum().item()
+                is_success = (n_success > 0) # One is a success.
+                response_time = times[i].mean().item()
+
+                # Capture outputs.
+                self.prometheus_counters.labels( 'total_response_bytes' ).inc( sum(p.element_size() * p.nelement() for p in outputs[i]) )
+                self.prometheus_counters.labels( 'total_response_params' ).inc( sum(p.numel() for p in outputs[i]) )
+
+                # Capture global success rates.
+                if is_success: 
+                    self.prometheus_counters.labels( 'total_success' ).inc()
+                    self.prometheus_latency.observe( response_time )
+                else: 
+                    self.prometheus_counters.labels( 'total_failure' ).inc()
+
+                # === Prometheus DEBUG (per uid info.)
+                if self.config.dendrite.prometheus.level == bittensor.prometheus.level.DEBUG.name:
+                    if is_success:
+                        self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( response_time )
+                        self.prometheus_successes_per_uid.labels(str(endpoints[i].uid)).inc()
+                    else:
+                        self.prometheus_failures_per_uid.labels(str(endpoints[i].uid)).inc()
 
         return packed_outputs, packed_codes, packed_times
 
