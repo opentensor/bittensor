@@ -1541,6 +1541,29 @@ To run a local node (See: docs/running_a_validator.md) \n
             # all the large ints are strings
             RAOPERTAO = 1000000000
             U64MAX = 18446744073709551615
+            """
+            We expect an array of:
+            {
+                "uid": int,
+                "ip": str,
+                "ip_type": int,
+                "port": int,
+                "stake": str(int),
+                "rank": str(int),
+                "emission": str(int),
+                "incentive": str(int),
+                "consensus": str(int),
+                "trust": str(int),
+                "dividends": str(int),
+                "modality": int,
+                "last_update": int,
+                "version": int,
+                "priority": int,
+                "last_update": int,
+                "weights": [],
+                "bonds": []
+            }
+            """
             for neuron_data in data:
                 neuron = SimpleNamespace( **neuron_data )
                 neuron.stake = int(neuron.stake) / RAOPERTAO
