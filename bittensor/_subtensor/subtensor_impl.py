@@ -32,6 +32,7 @@ from types import SimpleNamespace
 # Mocking imports
 import os
 import random
+import json
 import scalecodec
 import time
 import subprocess
@@ -49,6 +50,7 @@ class Subtensor:
         substrate: 'SubstrateInterface',
         network: str,
         chain_endpoint: str,
+        fast_neurons: bool = False,
     ):
         r""" Initializes a subtensor chain interface.
             Args:
@@ -63,10 +65,13 @@ class Subtensor:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                fast_neurons (default=False, type=bool)
+                    If true, uses the fast neuron implementation.
         """
         self.network = network
         self.chain_endpoint = chain_endpoint
         self.substrate = substrate
+        self.fast_neurons = fast_neurons
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -1489,6 +1494,9 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
+        if self.fast_neurons:
+            return self.neurons_fast(block)
+        
         neurons = []
         for id in tqdm(range(self.get_n( block ))): 
             try:
@@ -1498,6 +1506,57 @@ To run a local node (See: docs/running_a_validator.md) \n
                 logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
                 break
         return neurons
+
+    def neurons_fast(self, block: int = None ) -> List[SimpleNamespace]: 
+        r""" Returns a list of neuron from the chain, using the bundled subtensor-node-api
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[SimpleNamespace]):
+                List of neuron objects.
+        """
+        neurons = []
+        if block is None:
+            block: int = self.get_current_block()
+
+        block_hash: str = self.substrate.get_block_hash( block )
+        endpoint_url: str = self.chain_endpoint
+        try:
+            if platform == "linux" or platform == "linux2":
+                # linux
+                os_name = "linux"
+            elif platform == "darwin":
+                # OS X
+                os_name = 'macos'
+            else:
+                raise Exception('Unsupported platform for subtensor-node-api')
+
+            path_to_bin = os.path.join(os.path.dirname(__file__), f"../../bin/subtensor-node-api-{os_name}")
+            # will write to ~/.bittensor/metagraph.json by default
+            subprocess.run([path_to_bin, "sync_and_save", "-u", endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
+            with open(os.path.join(os.path.expanduser('~'), '.bittensor/metagraph.json')) as f:
+                data = json.load(f)
+
+            # all the large ints are strings
+            RAOPERTAO = 1000000000
+            U64MAX = 18446744073709551615
+            for neuron_data in data:
+                neuron = SimpleNamespace( **neuron_data )
+                neuron.stake = int(neuron.stake) / RAOPERTAO
+                neuron.rank = int(neuron.rank) / U64MAX
+                neuron.trust = int(neuron.trust) / U64MAX
+                neuron.consensus = int(neuron.consensus) / U64MAX
+                neuron.incentive = int(neuron.incentive) / U64MAX
+                neuron.dividends = int(neuron.dividends) / U64MAX
+                neuron.emission = int(neuron.emission) / RAOPERTAO
+                neuron.is_null = False
+                neurons.append( neuron )
+        except Exception as e:
+            logger.error('Exception encountered when pulling neurons: {}'.format(e))
+        
+        return neurons
+
 
     @staticmethod
     def _null_neuron() -> SimpleNamespace:

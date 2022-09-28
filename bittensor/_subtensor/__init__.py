@@ -17,6 +17,7 @@
 import argparse
 import copy
 import os
+from typing import Optional
 
 import bittensor
 from loguru import logger
@@ -75,6 +76,7 @@ class subtensor:
             network: str = None,
             chain_endpoint: str = None,
             _mock: bool = None,
+            fast_neurons: Optional[bool] = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
@@ -92,6 +94,8 @@ class subtensor:
                     The subtensor endpoint flag. If set, overrides the network argument.
                 _mock (bool, `optional`):
                     Returned object is mocks the underlying chain connection.
+                fast_neurons (bool, `optional`):
+                    Returned object uses the fast neuron implementation.
         """
         if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
@@ -153,6 +157,7 @@ class subtensor:
             substrate = substrate,
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
             chain_endpoint = config.subtensor.chain_endpoint,
+            fast_neurons=fast_neurons if fast_neurons is not None else config.subtensor.get('fast_neurons', bittensor.defaults.subtensor.fast_neurons),
         )
 
     @staticmethod   
@@ -196,6 +201,13 @@ class subtensor:
 
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
+            parser.add_argument(
+                '--' + prefix_str + 'fast_neurons',
+                action='store_true', 
+                help='''Set true to use fast neurons feature.''',
+                default=False
+            )
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -217,6 +229,8 @@ class subtensor:
         defaults.subtensor.register.cuda.dev_id = [0]
         defaults.subtensor.register.cuda.use_cuda = False
         defaults.subtensor.register.cuda.TPB = 256
+
+        defaults.subtensor.fast_neurons = os.getenv('BT_SUBTENSOR_FAST_NEURONS') if os.getenv('BT_SUBTENSOR_FAST_NEURONS') != None else False
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
