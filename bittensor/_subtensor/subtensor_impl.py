@@ -1531,7 +1531,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 os_name = 'macos'
             else:
                 raise Exception('Unsupported platform for subtensor-node-api')
-
+            bittensor.__console__.print("Using subtensor-node-api for neuron retrieval...")
             path_to_bin = os.path.join(os.path.dirname(__file__), f"../../bin/subtensor-node-api-{os_name}")
             # will write to ~/.bittensor/metagraph.json by default
             subprocess.run([path_to_bin, "sync_and_save", "-u", endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
