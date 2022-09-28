@@ -76,7 +76,7 @@ class subtensor:
             network: str = None,
             chain_endpoint: str = None,
             _mock: bool = None,
-            fast_neurons: Optional[bool] = None,
+            neurons_fast: Optional[bool] = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
@@ -94,7 +94,7 @@ class subtensor:
                     The subtensor endpoint flag. If set, overrides the network argument.
                 _mock (bool, `optional`):
                     Returned object is mocks the underlying chain connection.
-                fast_neurons (bool, `optional`):
+                neurons_fast (bool, `optional`):
                     Returned object uses the fast neuron implementation.
         """
         if config == None: config = subtensor.config()
@@ -157,7 +157,7 @@ class subtensor:
             substrate = substrate,
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
             chain_endpoint = config.subtensor.chain_endpoint,
-            fast_neurons=fast_neurons if fast_neurons is not None else config.subtensor.get('fast_neurons', bittensor.defaults.subtensor.fast_neurons),
+            neurons_fast=neurons_fast if neurons_fast is not None else config.subtensor.get('neurons_fast', bittensor.defaults.subtensor.neurons_fast),
         )
 
     @staticmethod   
@@ -202,7 +202,8 @@ class subtensor:
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
             parser.add_argument(
-                '--' + prefix_str + 'fast_neurons',
+                '--' + prefix_str + 'subtensor.neurons_fast',
+                '--' + prefix_str + 'neurons_fast',
                 action='store_true', 
                 help='''Set true to use fast neurons feature.''',
                 default=False
@@ -230,7 +231,7 @@ class subtensor:
         defaults.subtensor.register.cuda.use_cuda = False
         defaults.subtensor.register.cuda.TPB = 256
 
-        defaults.subtensor.fast_neurons = os.getenv('BT_SUBTENSOR_FAST_NEURONS') if os.getenv('BT_SUBTENSOR_FAST_NEURONS') != None else False
+        defaults.subtensor.neurons_fast = os.getenv('BT_SUBTENSOR_NEURONS_FAST') if os.getenv('BT_SUBTENSOR_NEURONS_FAST') != None else False
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):

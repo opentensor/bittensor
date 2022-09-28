@@ -50,7 +50,7 @@ class Subtensor:
         substrate: 'SubstrateInterface',
         network: str,
         chain_endpoint: str,
-        fast_neurons: bool = False,
+        neurons_fast: bool = False,
     ):
         r""" Initializes a subtensor chain interface.
             Args:
@@ -65,13 +65,13 @@ class Subtensor:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
-                fast_neurons (default=False, type=bool)
+                neurons_fast (default=False, type=bool)
                     If true, uses the fast neuron implementation.
         """
         self.network = network
         self.chain_endpoint = chain_endpoint
         self.substrate = substrate
-        self.fast_neurons = fast_neurons
+        self.neurons_fast = neurons_fast
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -1494,7 +1494,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
-        if self.fast_neurons:
+        if self.neurons_fast:
             return self.neurons_fast(block)
         
         neurons = []
