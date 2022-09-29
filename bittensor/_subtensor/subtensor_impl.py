@@ -1556,9 +1556,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                 "trust": str(int),
                 "dividends": str(int),
                 "modality": int,
-                "last_update": int,
+                "last_update": str(int),
                 "version": int,
-                "priority": int,
+                "priority": str(int),
                 "last_update": int,
                 "weights": [
                     [int, int],
@@ -1577,6 +1577,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron.incentive = int(neuron.incentive) / U64MAX
                 neuron.dividends = int(neuron.dividends) / U64MAX
                 neuron.emission = int(neuron.emission) / RAOPERTAO
+                neuron.last_update = int(neuron.last_update)
+                neuron.priority = int(neuron.priority)
                 neuron.bonds = [ [bond[0], int(bond[1])] for bond in neuron.bonds ]
                 neuron.is_null = False
                 neurons.append( neuron )
