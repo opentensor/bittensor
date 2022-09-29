@@ -1560,8 +1560,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 "version": int,
                 "priority": int,
                 "last_update": int,
-                "weights": [],
-                "bonds": []
+                "weights": [
+                    [int, int],
+                ],
+                "bonds": [
+                    [int, str(int)],
+                ],
             }
             """
             for neuron_data in data:
@@ -1573,6 +1577,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron.incentive = int(neuron.incentive) / U64MAX
                 neuron.dividends = int(neuron.dividends) / U64MAX
                 neuron.emission = int(neuron.emission) / RAOPERTAO
+                neuron.bonds = [ [bond[0], int(bond[1])] for bond in neuron.bonds ]
                 neuron.is_null = False
                 neurons.append( neuron )
         except Exception as e:
