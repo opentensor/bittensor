@@ -1495,6 +1495,12 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of neuron objects.
         """
         if self.use_neurons_fast:
+            try:
+                return self.neurons_fast(block)
+            except Exception as e:
+                logger.warning("Failed to get neurons fast, falling back to manual sync.")
+                self.use_neurons_fast = False
+                return self.neurons(block)
         
         neurons = []
         for id in tqdm(range(self.get_n( block ))): 
