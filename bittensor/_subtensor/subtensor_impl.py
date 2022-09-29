@@ -1521,6 +1521,10 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         block_hash: str = self.substrate.get_block_hash( block )
         endpoint_url: str = self.chain_endpoint
+        # format endpoint with ws://
+        if "ws://" not in endpoint_url and "wss://" not in endpoint_url:
+            endpoint_url = "ws://" + endpoint_url
+        
         try:
             if platform == "linux" or platform == "linux2":
                 # linux
