@@ -181,7 +181,7 @@ class dendrite:
         assert 'timeout' in config.dendrite
         assert 'requires_grad' in config.dendrite
         assert config.dendrite.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
-        assert config.dendrite.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
+        assert config.dendrite.max_active_receptors >= 0, 'max_active_receptors must be larger or eq to 0'
         bittensor.wallet.check_config( config )
 
     @classmethod
