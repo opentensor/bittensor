@@ -690,8 +690,6 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                 time_since = time.time() - start_time
                 
             message = f"""Solving 
-        message = f"""Solving 
-            message = f"""Solving 
                 time spent: {time_since}
                 Difficulty: [bold white]{millify(difficulty)}[/bold white]
                 Iters: [bold white]{get_human_readable(int(itrs_per_sec), 'H')}/s[/bold white]
