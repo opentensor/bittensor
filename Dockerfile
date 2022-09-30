@@ -23,14 +23,6 @@ RUN apt install -y curl sudo nano git htop netcat wget unzip python3-dev python3
 ## Upgrade pip
 RUN pip3 install --upgrade pip
 
-RUN mkdir -p /root/.bittensor/bittensor
-RUN cd ~/.bittensor/bittensor && \
-    git clone --branch master https://github.com/opentensor/bittensor.git . && \
-    python3 -m pip install -e .
-
-# Increase ulimit to 1,000,000
-RUN prlimit --pid=$PPID --nofile=1000000
-
 # Install nvm and pm2
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 RUN bash -c "source $HOME/.nvm/nvm.sh && \
@@ -38,5 +30,13 @@ RUN bash -c "source $HOME/.nvm/nvm.sh && \
     nvm install 16 && \
     # install pm2
     npm install --location=global pm2"
+
+RUN mkdir -p /root/.bittensor/bittensor
+RUN cd ~/.bittensor/bittensor && \
+    git clone --branch master https://github.com/opentensor/bittensor.git . && \
+    python3 -m pip install -e .
+
+# Increase ulimit to 1,000,000
+RUN prlimit --pid=$PPID --nofile=1000000
 
 EXPOSE 8091
