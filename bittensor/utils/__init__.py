@@ -580,7 +580,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     status = console.status("Solving")
 
     # Set mp start to use spawn so CUDA doesn't complain
-    multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method('spawn', force=True)
 
     curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
     curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
