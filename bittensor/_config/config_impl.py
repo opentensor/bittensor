@@ -3,6 +3,7 @@ Implementation of the config class, which manages the config of different bitten
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -53,6 +54,8 @@ class Config ( Munch ):
             if 'axon' in self.keys():
                 bittensor.defaults.axon.port = self.axon.port
                 bittensor.defaults.axon.ip = self.axon.ip
+                bittensor.defaults.axon.external_port = self.axon.external_port
+                bittensor.defaults.axon.external_ip = self.axon.external_ip
                 bittensor.defaults.axon.max_workers = self.axon.max_workers
                 bittensor.defaults.axon.maximum_concurrent_rpcs = self.axon.maximum_concurrent_rpcs
             

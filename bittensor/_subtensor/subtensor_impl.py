@@ -412,15 +412,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             except net.UPNPCException as upnpc_exception:
                 raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
         else:
-            external_port = axon.port
+            external_port = axon.external_port
 
         # ---- Get external ip ----
-        try:
-            external_ip = net.get_external_ip()
-            bittensor.__console__.print(":white_heavy_check_mark: [green]Found external ip: {}[/green]".format( external_ip ))
-            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format( external_ip ))
-        except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
+        if axon.external_ip == None:
+            try:
+                external_ip = net.get_external_ip()
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Found external ip: {}[/green]".format( external_ip ))
+                bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format( external_ip ))
+            except Exception as E:
+                raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
+        else:
+            external_ip = axon.external_ip
             
         # ---- Subscribe to chain ----
         serve_success = self.serve(
@@ -442,7 +445,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         prompt: bool = False,
         max_allowed_attempts: int = 3,
         cuda: bool = False,
-        dev_id: int = 0,
+        dev_id: Union[List[int], int] = 0,
         TPB: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
@@ -462,11 +465,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             max_allowed_attempts (int):
                 Maximum number of attempts to register the wallet.
             cuda (bool):
-                If true, the wallet should be registered on the cuda device.
-            dev_id (int):
-                The cuda device id.
+                If true, the wallet should be registered using CUDA device(s).
+            dev_id (Union[List[int], int]):
+                The CUDA device id to use, or a list of device ids.
             TPB (int):
-                The number of threads per block (cuda).
+                The number of threads per block (CUDA).
             num_processes (int):
                 The number of processes to use to register.
             update_interval (int):
@@ -559,7 +562,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                     else:
                         # Exited loop because pow is no longer valid.
                         bittensor.__console__.print( "[red]POW is stale.[/red]" )
-                        return False
+                        # Try again.
+                        continue
+                        
             if attempts < max_allowed_attempts:
                 #Failed registration, retry pow
                 attempts += 1
