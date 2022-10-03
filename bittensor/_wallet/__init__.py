@@ -118,9 +118,6 @@ class wallet:
             parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, action='store', default=bittensor.defaults.wallet.reregister, type=strtobool, help='''Whether to reregister the wallet if it is not already registered.''')
 
         except argparse.ArgumentError as e:
-            import pdb
-            #pdb.set_trace()
-            # re-parsing arguments.
             pass
 
     @classmethod   
