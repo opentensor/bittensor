@@ -193,7 +193,7 @@ def serve(
 
             time_check()
 
-            #stake_check()
+            stake_check()
             
             return False
 
