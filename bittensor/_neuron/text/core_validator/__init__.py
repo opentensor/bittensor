@@ -706,8 +706,6 @@ class nucleus( torch.nn.Module ):
         self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
 
-        print(config)
-
         self.device = device
         self.max_n = subtensor.max_n
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
