@@ -20,6 +20,7 @@ from Crypto.Hash import keccak
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 from rich import console as rich_console, status as rich_status
+from datetime import timedelta
 
 from .register_cuda import solve_cuda
 
@@ -407,9 +408,9 @@ class RegistrationStatisticsLogger:
 
     def get_status_message(cls, stats: RegistrationStatistics) -> str:
         message = f"""Solving 
-            time spent: {stats.time_spent:.2f} s
+            time spent: {timedelta(seconds=stats.time_spent)}
             time spent total: {stats.time_spent_total:.2f} s 
-            time average perpetual: {stats.time_average_perpetual:.2f} s
+            time average perpetual: {timedelta(seconds=stats.time_average_perpetual)}
             Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]
             Iters: [bold white]{get_human_readable(int(stats.hash_rate), 'H')}/s[/bold white]
             Block: [bold white]{stats.block_number}[/bold white]
