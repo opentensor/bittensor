@@ -201,13 +201,7 @@ class subtensor:
 
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
-            parser.add_argument(
-                '--' + prefix_str + 'subtensor.use_neurons_fast',
-                '--' + prefix_str + 'use_neurons_fast',
-                action='store_true', 
-                help='''Set true to use fast neurons feature.''',
-                default=False
-            )
+            parser.add_argument('--' + prefix_str + 'subtensor.no_neurons_fast', '--' + prefix_str + 'no_neurons_fast', action='store_false', dest='subtensor.use_neurons_fast', help='''Set flag to disable fast neurons feature.''', default=True)
 
         except argparse.ArgumentError:
             # re-parsing arguments.
