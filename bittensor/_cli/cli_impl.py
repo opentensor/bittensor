@@ -114,7 +114,7 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
+        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, seed=self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
 
     def query ( self ):
         r""" Query an endpoint and get query time.
@@ -309,7 +309,7 @@ class CLI:
         if not self.config.no_prompt:
             if not Confirm.ask("Do you want to unstake from the following keys:\n" + \
                     "".join([
-                        f"    [bold white]- {wallet.hotkey_str}: {amount.tao}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
                     ])
                 ):
                 return None
