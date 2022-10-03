@@ -1551,7 +1551,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             RAOPERTAO = 1000000000
             U64MAX = 18446744073709551615
             """
-            We expect an array of:
+            We expect a JSON array of:
             {
                 "uid": int,
                 "ip": str,
