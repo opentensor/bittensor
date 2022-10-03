@@ -76,7 +76,7 @@ class subtensor:
             network: str = None,
             chain_endpoint: str = None,
             _mock: bool = None,
-            use_neurons_fast: Optional[bool] = None,
+            use_fast_sync: Optional[bool] = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
@@ -94,7 +94,7 @@ class subtensor:
                     The subtensor endpoint flag. If set, overrides the network argument.
                 _mock (bool, `optional`):
                     Returned object is mocks the underlying chain connection.
-                use_neurons_fast (bool, `optional`):
+                use_fast_sync (bool, `optional`):
                     Returned object uses the fast neuron implementation.
         """
         if config == None: config = subtensor.config()
@@ -157,7 +157,7 @@ class subtensor:
             substrate = substrate,
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
             chain_endpoint = config.subtensor.chain_endpoint,
-            use_neurons_fast=use_neurons_fast if use_neurons_fast is not None else config.subtensor.get('use_neurons_fast', bittensor.defaults.subtensor.use_neurons_fast),
+            use_fast_sync=use_fast_sync if use_fast_sync is not None else config.subtensor.get('use_fast_sync', bittensor.defaults.subtensor.use_fast_sync),
         )
 
     @staticmethod   
@@ -201,7 +201,7 @@ class subtensor:
 
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
-            parser.add_argument('--' + prefix_str + 'subtensor.no_neurons_fast', '--' + prefix_str + 'no_neurons_fast', action='store_false', dest='subtensor.use_neurons_fast', help='''Set flag to disable fast neurons feature.''', default=True)
+            parser.add_argument('--' + prefix_str + 'subtensor.no_fast_sync', '--' + prefix_str + 'no_fast_sync', action='store_false', dest='subtensor.use_fast_sync', help='''Set flag to disable fast sync feature.''', default=True)
 
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -225,7 +225,7 @@ class subtensor:
         defaults.subtensor.register.cuda.use_cuda = False
         defaults.subtensor.register.cuda.TPB = 256
 
-        defaults.subtensor.use_neurons_fast = os.getenv('BT_SUBTENSOR_NEURONS_FAST') if os.getenv('BT_SUBTENSOR_NEURONS_FAST') != None else False
+        defaults.subtensor.use_fast_sync = os.getenv('BT_SUBTENSOR_NEURONS_FAST') if os.getenv('BT_SUBTENSOR_NEURONS_FAST') != None else False
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
