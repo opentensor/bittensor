@@ -406,11 +406,13 @@ class RegistrationStatisticsLogger:
             self.status.stop()
 
 
-    def get_status_message(cls, stats: RegistrationStatistics) -> str:
+    def get_status_message(cls, stats: RegistrationStatistics, verbose: bool = False) -> str:
         message = f"""Solving 
             time spent: {timedelta(seconds=stats.time_spent)}
+        """ + (f"""
             time spent total: {stats.time_spent_total:.2f} s 
             time average perpetual: {timedelta(seconds=stats.time_average_perpetual)}
+        """ if verbose else "") + f"""
             Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]
             Iters: [bold white]{get_human_readable(int(stats.hash_rate), 'H')}/s[/bold white]
             Block: [bold white]{stats.block_number}[/bold white]
@@ -418,14 +420,14 @@ class RegistrationStatisticsLogger:
         return message.replace(" ", "")
 
 
-    def update( self, stats: RegistrationStatistics ) -> None:
+    def update( self, stats: RegistrationStatistics, verbose: bool = False ) -> None:
         if self.status is not None:
-            self.status.update( self.get_status_message(stats) )
+            self.status.update( self.get_status_message(stats, verbose=verbose) )
         else:
-            self.console.log( self.get_status_message(stats) )
+            self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -439,6 +441,8 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
             Number of processes to use.
         update_interval: int
             Number of nonces to solve before updating block information.
+        log_verbose: bool
+            If true, prints more verbose logging of the registration metrics.
     Note: 
     - We can also modify the update interval to do smaller blocks of work,
         while still updating the block information after a different number of nonces,
@@ -567,7 +571,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
         curr_stats.time_spent_total = new_time_spent_total
 
         # Update the logger
-        logger.update(curr_stats)
+        logger.update(curr_stats, verbose=log_verbose)
 
     # exited while, solution contains the nonce or wallet is registered
     stopEvent.set() # stop all other processes
@@ -603,7 +607,7 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, by
     return block_number, difficulty, block_hash
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, use_kernel_launch_optimization: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -619,6 +623,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             The number of threads per block. CUDA param that should match the GPU capability
         dev_id: Union[List[int], int]
             The CUDA device IDs to execute the registration on, either a single device or a list of devices
+        log_verbose: bool
+            If true, prints more verbose logging of the registration metrics.
     """
     if isinstance(dev_id, int):
         dev_id = [dev_id]
@@ -757,7 +763,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         curr_stats.time_spent_total = new_time_spent_total
 
         # Update the logger
-        logger.update(curr_stats)
+        logger.update(curr_stats, verbose=log_verbose)
     
     # exited while, found_solution contains the nonce or wallet is registered
     if solution is not None:
@@ -769,11 +775,25 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     logger.stop()
     return None
 
-def create_pow( subtensor, wallet, output_in_place: bool = True, cuda: bool = False, dev_id: Union[List[int], int] = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None) -> Optional[Dict[str, Any]]:
+def create_pow(
+    subtensor,
+    wallet,
+    output_in_place: bool = True,
+    cuda: bool = False,
+    dev_id: Union[List[int], int] = 0,
+    tpb: int = 256,
+    num_processes: int = None,
+    update_interval: int = None,
+    log_verbose: bool = False
+    ) -> Optional[Dict[str, Any]]:
     if cuda:
-        solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, output_in_place=output_in_place, dev_id=dev_id, TPB=tpb, update_interval=update_interval )
+        solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, output_in_place=output_in_place, \
+            dev_id=dev_id, TPB=tpb, update_interval=update_interval, log_verbose=log_verbose
+        )
     else:
-        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, output_in_place=output_in_place, num_processes=num_processes, update_interval=update_interval )
+        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, output_in_place=output_in_place, \
+            num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose
+        )
 
     return None if solution is None else {
         'nonce': solution.nonce, 

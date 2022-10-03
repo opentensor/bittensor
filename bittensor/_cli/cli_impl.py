@@ -251,6 +251,7 @@ class CLI:
             ,
             dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
             output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
+            log_verbose = self.config.subtensor.register.get('verbose', bittensor.default.subtensor.register.verbose),
         )
 
     def transfer( self ):

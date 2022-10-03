@@ -192,7 +192,8 @@ class subtensor:
             # registration args. Used for register and re-register and anything that calls register.
             parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest='subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
             parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '--' + prefix_str + 'subtensor.register.cuda.update_interval', '--' + prefix_str + 'cuda.update_interval', '-u', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
-            parser.add_argument('--' + prefix_str + 'subtensor.register.output_in_place', '--' + prefix_str + 'in_place', help="Whether to ouput the registration statistics in-place, overwriting the old statistics, or to output as new lines.", type=strtobool, required=False, default=bittensor.defaults.subtensor.register.output_in_place)
+            parser.add_argument('--' + prefix_str + 'subtensor.register.output_in_place', help="Whether to ouput the registration statistics in-place, overwriting the old statistics, or to output as new lines.", type=strtobool, required=False, default=bittensor.defaults.subtensor.register.output_in_place)
+            parser.add_argument('--' + prefix_str + 'subtensor.register.verbose', help="Whether to ouput the registration statistics verbosely.", type='store_true', required=False, default=bittensor.defaults.subtensor.register.verbose)
             
             ## Registration args for CUDA registration.
 
@@ -217,6 +218,7 @@ class subtensor:
         defaults.subtensor.register.num_processes = os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') if os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') != None else None # uses processor count by default within the function
         defaults.subtensor.register.update_interval = os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') if os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') != None else 50_000
         defaults.subtensor.register.output_in_place = True
+        defaults.subtensor.register.verbose = False
 
         defaults.subtensor.register.cuda = bittensor.Config()
         defaults.subtensor.register.cuda.dev_id = [0]
