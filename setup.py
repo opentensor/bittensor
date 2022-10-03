@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from tkinter import E
 from setuptools import setup, find_packages
 from pkg_resources import parse_requirements
 from os import path
@@ -22,6 +23,7 @@ from io import open
 import codecs
 import re
 import os
+from sys import platform
 
 here = path.abspath(path.dirname(__file__))
 
@@ -35,6 +37,25 @@ with open('requirements.txt') as requirements_file:
 with codecs.open(os.path.join(here, 'bittensor/__init__.py'), encoding='utf-8') as init_file:
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M)
     version_string = version_match.group(1)
+
+try:
+    # Check platform and remove unsupported subtensor node api binaries.
+    if platform == "linux" or platform == "linux2":
+        # linux
+        # remove macos binaries
+        os.remove('bin/subtensor-node-api-macos')
+    elif platform == "darwin":
+        # OS X
+        # remove linux binaries
+        os.remove('bin/subtensor-node-api-linux')
+    else:
+        # neither linux or macos
+        # remove both binaries
+        os.remove('bin/subtensor-node-api-linux')
+        os.remove('bin/subtensor-node-api-macos')
+except Exception as e:
+    print('Failed to remove unsupported subtensor node api binaries. Error: {}'.format(e))
+    pass
 
 setup(
     name='bittensor',
