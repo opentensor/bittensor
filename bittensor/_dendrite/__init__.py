@@ -190,8 +190,8 @@ class dendrite:
         assert 'timeout' in config.dendrite
         assert 'requires_grad' in config.dendrite
         assert config.dendrite.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
-        assert config.dendrite.max_active_receptors > 0, 'max_active_receptors must be larger than 0'
-        assert config.dendrite.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "dendrite.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
+        assert config.dendrite.max_active_receptors >= 0, 'max_active_receptors must be larger or eq to 0'
+        assert config.dendrite.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "dendrite.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])        
         bittensor.wallet.check_config( config )
 
     @classmethod

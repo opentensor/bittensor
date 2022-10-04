@@ -210,7 +210,7 @@ def serve(
         try:
             registration_check()
             time_check()
-            #stake_check()
+            stake_check()            
             return False
         except Exception as e:
             prometheus_counters.label("blacklisted").inc()
