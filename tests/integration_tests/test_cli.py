@@ -1327,25 +1327,6 @@ class TestCli(unittest.TestCase):
             # This shouldn't raise an error anymore
             cli.run()
 
-    def test_run_reregister_false(self):
-        """
-        Verify that the btcli run command does not reregister a not registered wallet
-            if --wallet.reregister is False
-        """
-        with patch('bittensor.Wallet.is_registered', MagicMock(return_value=False)): # Wallet is not registered
-            with pytest.raises(SystemExit):
-                config = self.config
-                config.wallet.name = "run_testwallet"
-                config.wallet._mock = True
-                config.subtensor.network = "mock"
-                config.subtensor._mock = True
-                config.command = "run"
-                config.wallet.reregister = False # Don't reregister
-                config.no_prompt = True
-
-                cli = bittensor.cli(config)
-                cli.run()
-
 def test_btcli_help():
     """
     Verify the correct help text is output when the --help flag is passed
@@ -1373,6 +1354,28 @@ def test_btcli_help():
     assert 'overview' in help_out
     assert 'run' in help_out
 
+class TestCLIUsingArgs(unittest.TestCase):
+    """
+    Test the CLI by passing args directly to the bittensor.cli factory
+    """
+    def test_run_reregister_false(self):
+        """
+        Verify that the btcli run command does not reregister a not registered wallet
+            if --wallet.reregister is False
+        """
+        with patch('bittensor.Wallet.is_registered', MagicMock(return_value=False)): # Wallet is not registered
+            with pytest.raises(SystemExit):
+                cli = bittensor.cli(args=[
+                    'run',
+                    '--wallet.name', 'mock_wallet',
+                    '--wallet.hotkey', 'mock_hotkey',
+                    '--wallet._mock', 'True',
+                    '--subtensor.network', 'mock',
+                    '--subtensor._mock', 'True',
+                    '--no_prompt',
+                    '--wallet.reregister', 'False' # Don't reregister
+                ])
+                cli.run()
 
 
 if __name__ == "__main__":
