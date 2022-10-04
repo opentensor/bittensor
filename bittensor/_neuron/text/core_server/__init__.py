@@ -128,7 +128,7 @@ class neuron:
             subtensor = self.subtensor,
             wallet = self.wallet,
             axon = self.axon,
-            metagraph= self.metagraph,
+            metagraph = self.metagraph,
         )
 
 

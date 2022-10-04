@@ -51,7 +51,7 @@ class prometheus:
         port: int = None,
         level: Union[str, "prometheus.level"] = None
     ):
-        """ Intantiates a global prometheus DB which can be accessed by other processes.
+        """ Instantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
             Args:
                 config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.prometheus.config()):
@@ -63,7 +63,10 @@ class prometheus:
         """
         if config == None:
             config = prometheus.config()
-        if isinstance(level, prometheus.level): level = level.name # Convert ENUM to str.
+
+        if isinstance(level, prometheus.level):
+            level = level.name # Convert ENUM to str.
+
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
         cls.check_config( config )
@@ -80,7 +83,7 @@ class prometheus:
         else:
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
 
-    @classmethod   
+    @classmethod
     def config(cls) -> 'bittensor.Config':
         """ Get config from the argument parser
         Return: bittensor.config object
@@ -89,7 +92,7 @@ class prometheus:
         cls.add_args(parser=parser)
         return bittensor.config( parser )
 
-    @classmethod   
+    @classmethod
     def help(cls):
         """ Print help to stdout
         """
@@ -116,7 +119,7 @@ class prometheus:
         except argparse.ArgumentError as e:
             pass
 
-    @classmethod   
+    @classmethod
     def add_defaults(cls, defaults):
         """ Adds parser defaults to object from enviroment variables.
         """
@@ -125,7 +128,7 @@ class prometheus:
         defaults.prometheus.port = os.getenv('BT_PROMETHEUS_PORT') if os.getenv('BT_PROMETHEUS_PORT') != None else 7091
         defaults.prometheus.level = os.getenv('BT_PROMETHEUS_LEVEL') if os.getenv('BT_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.OFF.value
 
-    @classmethod   
+    @classmethod
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """
