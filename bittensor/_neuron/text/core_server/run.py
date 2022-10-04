@@ -175,9 +175,11 @@ def serve(
             is_registered = pubkey in metagraph.hotkeys
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
-                    
                     return False
-                prometheus_counters.label("blacklisted.registration").inc()
+
+                if config.prometheus.level != bittensor.prometheus.level.OFF.value:
+                    prometheus_counters.label("blacklisted.registration").inc()
+
                 raise Exception('Registration blacklist')
 
         # Check for stake
@@ -185,7 +187,9 @@ def serve(
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
-                prometheus_counters.label("blacklisted.stake").inc()
+                if config.prometheus.level != bittensor.prometheus.level.OFF.value:
+                    prometheus_counters.label("blacklisted.stake").inc()
+
                 raise Exception('Stake blacklist')
             return False
 
@@ -200,7 +204,9 @@ def serve(
                     timecheck[pubkey] = current_time
                 else:
                     timecheck[pubkey] = current_time
-                    prometheus_counters.label("blacklisted.time").inc()
+                    if config.prometheus.level != bittensor.prometheus.level.OFF.value:
+                        prometheus_counters.label("blacklisted.time").inc()
+
                     raise Exception('Time blacklist')
             else:
                 timecheck[pubkey] = current_time
@@ -214,7 +220,8 @@ def serve(
             stake_check()            
             return False
         except Exception as e:
-            prometheus_counters.label("blacklisted").inc()
+            if config.prometheus.level != bittensor.prometheus.level.OFF.value:
+                prometheus_counters.label("blacklisted").inc()
             return True
     
     def synapse_check(synapse, hotkey):
