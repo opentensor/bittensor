@@ -260,7 +260,7 @@ class Wallet():
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
                 output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
-                log_verbose = self.config.subtensor.register.get('verbose', bittensor.default.subtensor.register.verbose),
+                log_verbose = self.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
             )
 
         return self
