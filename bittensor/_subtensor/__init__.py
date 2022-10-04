@@ -193,7 +193,7 @@ class subtensor:
             parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest='subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
             parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '--' + prefix_str + 'subtensor.register.cuda.update_interval', '--' + prefix_str + 'cuda.update_interval', '-u', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
             parser.add_argument('--' + prefix_str + 'subtensor.register.output_in_place', help="Whether to ouput the registration statistics in-place, overwriting the old statistics, or to output as new lines.", type=strtobool, required=False, default=bittensor.defaults.subtensor.register.output_in_place)
-            parser.add_argument('--' + prefix_str + 'subtensor.register.verbose', help="Whether to ouput the registration statistics verbosely.", type='store_true', required=False, default=bittensor.defaults.subtensor.register.verbose)
+            parser.add_argument('--' + prefix_str + 'subtensor.register.verbose', help="Whether to ouput the registration statistics verbosely.", action='store_true', required=False, default=bittensor.defaults.subtensor.register.verbose)
             
             ## Registration args for CUDA registration.
 
