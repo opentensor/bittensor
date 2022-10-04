@@ -130,12 +130,16 @@ class subtensor:
         else:
             config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( bittensor.defaults.subtensor.network )
             config.subtensor.network = bittensor.defaults.subtensor.network
-           
+        
         # make sure it's wss:// or ws://
+        # If it's bellagene (parachain testnet) then it has to be wss
         endpoint_url: str = config.subtensor.chain_endpoint
         if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
-            endpoint_url = "ws://{}".format(endpoint_url)
-
+            if config.subtensor.network == "bellagene":
+                endpoint_url = "wss://{}".format(endpoint_url)
+            else:
+                endpoint_url = "ws://{}".format(endpoint_url)
+        
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
             type_registry_preset='substrate-node-template',
@@ -235,14 +239,17 @@ class subtensor:
     def determine_chain_endpoint(network: str):
         if network == "nakamoto":
             # Main network.
-            return bittensor.__nakamoto_entrypoints__[0]
+            return bittensor.__nakamoto_entrypoint__
         elif network == "nobunaga": 
             # Staging network.
-            return bittensor.__nobunaga_entrypoints__[0]
+            return bittensor.__nobunaga_entrypoint__
+        elif network == "bellagene":
+            # Parachain test net
+            return bittensor.__bellagene_entrypoint__
         elif network == "local":
             # Local chain.
-            return bittensor.__local_entrypoints__[0]
+            return bittensor.__local_entrypoint__
         elif network == 'mock':
-            return bittensor.__mock_entrypoints__[0]
+            return bittensor.__mock_entrypoint__
         else:
-            return bittensor.__local_entrypoints__[0]
+            return bittensor.__local_entrypoint__
