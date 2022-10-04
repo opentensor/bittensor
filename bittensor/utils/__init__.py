@@ -9,7 +9,7 @@ import random
 import time
 from dataclasses import dataclass
 from queue import Empty
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Callable
 
 import backoff
 import bittensor
@@ -895,6 +895,19 @@ def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bo
     else:
         # Invalid address type
         return False
+
+def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
+    """
+    Creates a strtobool function with a default value.
+
+    Args:
+        default(bool): The default value to return if the string is empty.
+
+    Returns:
+        The strtobool function with the default value.
+    """
+    return lambda x: strtobool(x) if x != "" else default
+
 
 def strtobool(val: str) -> bool:
     """
