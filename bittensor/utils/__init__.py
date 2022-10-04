@@ -408,8 +408,8 @@ class RegistrationStatisticsLogger:
 
     def get_status_message(cls, stats: RegistrationStatistics, verbose: bool = False) -> str:
         message = f"""Solving 
-            time spent: {timedelta(seconds=stats.time_spent)}
-        """ + (f"""
+            time spent: {timedelta(seconds=stats.time_spent)}""" + \
+        (f"""
             time spent total: {stats.time_spent_total:.2f} s 
             time average perpetual: {timedelta(seconds=stats.time_average_perpetual)}
         """ if verbose else "") + f"""
