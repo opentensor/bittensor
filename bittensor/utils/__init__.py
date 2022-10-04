@@ -606,6 +606,22 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, by
         raise Exception("Network error. Could not connect to substrate to get block hash")
     return block_number, difficulty, block_hash
 
+class UsingSpawnStartMethod():
+    def __init__(self, force: bool = False):
+        self._old_start_method = None
+        self._force = force
+
+    def __enter__(self):
+        self._old_start_method = multiprocessing.get_start_method(allow_none=True)
+        if self._old_start_method == None:
+            self._old_start_method = 'spawn' # default to spawn
+
+        multiprocessing.set_start_method('spawn', force=self._force)
+
+    def __exit__(self, *args):
+        # restore the old start method
+        multiprocessing.set_start_method(self._old_start_method, force=True)
+
 
 def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
@@ -640,140 +656,138 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     limit = int(math.pow(2,256)) - 1
 
     # Set mp start to use spawn so CUDA doesn't complain
-    multiprocessing.set_start_method('spawn')
+    with UsingSpawnStartMethod(force=True):
+        curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
+        curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
+        curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
 
-    curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
-    curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
-    curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+        def update_curr_block(block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
+            with lock:
+                curr_block_num.value = block_number
+                for i in range(64):
+                    curr_block[i] = block_bytes[i]
+                registration_diff_pack(diff, curr_diff)
 
-    def update_curr_block(block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
-        with lock:
-            curr_block_num.value = block_number
-            for i in range(64):
-                curr_block[i] = block_bytes[i]
-            registration_diff_pack(diff, curr_diff)
-
-    # Establish communication queues
-    stopEvent = multiprocessing.Event()
-    stopEvent.clear()
-    solution_queue = multiprocessing.Queue()
-    time_queue = multiprocessing.Queue()
-    check_block = multiprocessing.Lock()
-    
-    # Start consumers
-    num_processes = len(dev_id)
-    ## Create one consumer per GPU
-    solvers = [ CUDASolver(i, num_processes, update_interval, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
-                for i in range(num_processes) ]
-
-    # Get first block
-    block_number = subtensor.get_current_block()
-    difficulty = subtensor.difficulty
-    block_hash = subtensor.substrate.get_block_hash( block_number )
-    while block_hash == None:
-        block_hash = subtensor.substrate.get_block_hash( block_number )
-    block_bytes = block_hash.encode('utf-8')[2:]
-    old_block_number = block_number
-    # Set to current block
-    update_curr_block(block_number, block_bytes, difficulty, check_block)
-
-    # Set new block events for each solver to start
-    for w in solvers:
-        w.newBlockEvent.set()
-    
-    for w in solvers:
-        w.start() # start the solver processes
-    
-    curr_stats = RegistrationStatistics(
-        time_spent_total = 0.0,
-        time_average_perpetual = 0.0,
-        time_average = 0.0,
-        rounds_total = 0,
-        time_spent = 0.0,
-        hash_rate_perpetual = 0.0,
-        hash_rate = 0.0,
-        difficulty = difficulty,
-        block_number = block_number,
-        block_hash = block_hash
-    )
-
-    start_time_perpetual = time.time()
-
-    console = bittensor.__console__
-    logger = RegistrationStatisticsLogger(console, output_in_place)
-    logger.start()
-
-    solution = None
-
-    while not wallet.is_registered(subtensor):
-        start_time = time.time()
-        time_avg: Optional[float] = None
-        # Wait until a solver finds a solution
-        try:
-            solution = solution_queue.get(block=True, timeout=0.15)
-            if solution is not None:
-                break
-        except Empty:
-            # No solution found, try again
-            pass
-
-        # check for new block
-        block_number = subtensor.get_current_block()
-        if block_number != old_block_number:
-            old_block_number = block_number
-            # update block information
-            block_hash = subtensor.substrate.get_block_hash( block_number)
-            while block_hash == None:
-                block_hash = subtensor.substrate.get_block_hash( block_number)
-            block_bytes = block_hash.encode('utf-8')[2:]
-            difficulty = subtensor.difficulty
-
-            update_curr_block(block_number, block_bytes, difficulty, check_block)
-            # Set new block events for each solver
-            for w in solvers:
-                w.newBlockEvent.set()
-
-            # update stats
-            curr_stats.block_number = block_number
-            curr_stats.block_hash = block_hash
-            curr_stats.difficulty = difficulty
-                
-        # Get times for each solver
-        time_total = 0
-        num_time = 0
-        for _ in solvers:
-            try:
-                time_ = time_queue.get(timeout=0.01)
-                time_total += time_
-                num_time += 1
-
-            except Empty:
-                break
+        # Establish communication queues
+        stopEvent = multiprocessing.Event()
+        stopEvent.clear()
+        solution_queue = multiprocessing.Queue()
+        time_queue = multiprocessing.Queue()
+        check_block = multiprocessing.Lock()
         
-        if num_time > 0:
-            time_avg = time_total / num_time
-            curr_stats.hash_rate = TPB*update_interval*num_processes / time_avg
+        # Start consumers
+        num_processes = len(dev_id)
+        ## Create one consumer per GPU
+        solvers = [ CUDASolver(i, num_processes, update_interval, time_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
+                    for i in range(num_processes) ]
+
+        # Get first block
+        block_number = subtensor.get_current_block()
+        difficulty = subtensor.difficulty
+        block_hash = subtensor.substrate.get_block_hash( block_number )
+        while block_hash == None:
+            block_hash = subtensor.substrate.get_block_hash( block_number )
+        block_bytes = block_hash.encode('utf-8')[2:]
+        old_block_number = block_number
+        
+        # Set to current block
+        update_curr_block(block_number, block_bytes, difficulty, check_block)
+
+        # Set new block events for each solver to start
+        for w in solvers:
+            w.newBlockEvent.set()
+        
+        for w in solvers:
+            w.start() # start the solver processes
+        
+        curr_stats = RegistrationStatistics(
+            time_spent_total = 0.0,
+            time_average_perpetual = 0.0,
+            time_average = 0.0,
+            rounds_total = 0,
+            time_spent = 0.0,
+            hash_rate_perpetual = 0.0,
+            hash_rate = 0.0,
+            difficulty = difficulty,
+            block_number = block_number,
+            block_hash = block_hash
+        )
+
+        start_time_perpetual = time.time()
+
+        console = bittensor.__console__
+        logger = RegistrationStatisticsLogger(console, output_in_place)
+        logger.start()
+
+        solution = None
+
+        while not wallet.is_registered(subtensor):
+            start_time = time.time()
+            time_avg: Optional[float] = None
+            # Wait until a solver finds a solution
+            try:
+                solution = solution_queue.get(block=True, timeout=0.15)
+                if solution is not None:
+                    break
+            except Empty:
+                # No solution found, try again
+                pass
+
+            if block_number != old_block_number:
+                old_block_number = block_number
+                # update block information
+                block_hash = subtensor.substrate.get_block_hash( block_number)
+                while block_hash == None:
+                    block_hash = subtensor.substrate.get_block_hash( block_number)
+                block_bytes = block_hash.encode('utf-8')[2:]
+                difficulty = subtensor.difficulty
+
+                update_curr_block(block_number, block_bytes, difficulty, check_block)
+                # Set new block events for each solver
+                for w in solvers:
+                    w.newBlockEvent.set()
+
+                # update stats
+                curr_stats.block_number = block_number
+                curr_stats.block_hash = block_hash
+                curr_stats.difficulty = difficulty
+                    
+            # Get times for each solver
+            time_total = 0
+            num_time = 0
+            for _ in solvers:
+                try:
+                    time_ = time_queue.get(timeout=0.01)
+                    time_total += time_
+                    num_time += 1
+
+                except Empty:
+                    break
             
-        curr_stats.time_spent = time.time() - start_time
-        new_time_spent_total = time.time() - start_time_perpetual
-        curr_stats.time_average = time_avg if not None else curr_stats.time_average
-        curr_stats.time_average_perpetual = (curr_stats.time_average_perpetual*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+1)
-        curr_stats.rounds_total += 1
-        curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + curr_stats.hash_rate)/ new_time_spent_total
-        curr_stats.time_spent_total = new_time_spent_total
+            if num_time > 0:
+                time_avg = time_total / num_time
+                curr_stats.hash_rate = TPB*update_interval*num_processes / time_avg
+                
+            curr_stats.time_spent = time.time() - start_time
+            new_time_spent_total = time.time() - start_time_perpetual
+            curr_stats.time_average = time_avg if not None else curr_stats.time_average
+            curr_stats.time_average_perpetual = (curr_stats.time_average_perpetual*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+1)
+            curr_stats.rounds_total += 1
+            curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + curr_stats.hash_rate)/ new_time_spent_total
+            curr_stats.time_spent_total = new_time_spent_total
 
-        # Update the logger
-        logger.update(curr_stats, verbose=log_verbose)
-    
-    # exited while, found_solution contains the nonce or wallet is registered
-    if solution is not None:
-        stopEvent.set() # stop all other processes
+            # Update the logger
+            logger.update(curr_stats, verbose=log_verbose)
+        
+        # exited while, found_solution contains the nonce or wallet is registered
+        if solution is not None:
+            stopEvent.set() # stop all other processes
+            logger.stop()
+
+            return solution
+
         logger.stop()
-
-        return solution
-
-    logger.stop()
-    return None
+        return None
 
 def create_pow(
     subtensor,
