@@ -487,7 +487,7 @@ class CLI:
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network))
-        metagraph.sync( cached=not self.config.get('subtensor.use_fast_sync', bittensor.defaults.subtensor.use_fast_sync) )
+        metagraph.sync( cached=not self.config.subtensor.get('use_fast_sync', bittensor.defaults.subtensor.use_fast_sync) )
         metagraph.save()
         issuance = subtensor.total_issuance
         difficulty = subtensor.difficulty
