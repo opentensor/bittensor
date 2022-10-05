@@ -518,6 +518,10 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     stopEvent.set() # stop all other processes
     status.stop()
 
+    # wait for rest to exit
+    for w in solvers:
+        w.join()
+
     return solution
     
 def get_human_readable(num, suffix="H"):
