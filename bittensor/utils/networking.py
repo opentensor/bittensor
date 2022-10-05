@@ -211,9 +211,7 @@ def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:
         formatted_endpoint_url (str, `required`):
             The formatted endpoint url. In the form of ws://<endpoint_url> or wss://<endpoint_url>
     """
-
-    # format endpoint with ws://
-    if "ws://" not in endpoint_url and "wss://" not in endpoint_url:
-        endpoint_url = "ws://" + endpoint_url
+    if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
+        endpoint_url = "ws://{}".format(endpoint_url)
 
     return endpoint_url

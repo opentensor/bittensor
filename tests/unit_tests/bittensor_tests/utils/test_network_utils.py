@@ -136,6 +136,14 @@ class TestGetFormattedWSEndpointURL(unittest.TestCase):
         # should not add port if not specified
         url = "exampleendpoint"
         self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpoint")
+
+    def test_url_containing_ws(self):
+        # should add ws to front
+        url = "exampleendpointwithws://:9944"
+        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpointwithws://:9944")
+
+        url = "exampleendpointwithwss://:9944"
+        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpointwithwss://:9944")
     
 
 
