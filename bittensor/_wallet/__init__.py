@@ -19,6 +19,7 @@
 
 import argparse
 import copy
+from distutils.util import strtobool
 import os
 
 import bittensor
@@ -114,7 +115,7 @@ class wallet:
             
             parser.add_argument('--' + prefix_str + 'wallet.hotkeys', '--' + prefix_str + 'wallet.exclude_hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)''')
             parser.add_argument('--' + prefix_str + 'wallet.all_hotkeys', required=False, action='store_true', default=bittensor.defaults.wallet.all_hotkeys, help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.''')
-            parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, action='store', default=bittensor.defaults.wallet.reregister, type=bool, help='''Whether to reregister the wallet if it is not already registered.''')
+            parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, default=bittensor.defaults.wallet.reregister, type=lambda x: bool(strtobool(x)), help='''Whether to reregister the wallet if it is not already registered.''')
 
         except argparse.ArgumentError as e:
             pass
