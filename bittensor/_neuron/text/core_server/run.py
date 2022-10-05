@@ -75,21 +75,20 @@ def serve(
     )
     mutex = Lock()
 
-    if config.prometheus.level != bittensor.prometheus.level.OFF.value:
-        # --- Setup prometheus summaries.
-        # These will not be posted if the user passes --prometheus.level OFF
-        prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['counter_name'])
-        prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['guage_name'])
-        prometheus_info = Info( "neuron_info", "Info sumamries for the running server-miner." )
-        prometheus_guages.labels( "model_size_params" ).set( sum(p.numel() for p in model.parameters()) )
-        prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
-        prometheus_info.info ({
-            'type': "core_server",
-            'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
-            'network': config.subtensor.network,
-            'coldkey': str(wallet.coldkeypub.ss58_address),
-            'hotkey': str(wallet.hotkey.ss58_address),
-        })
+    # --- Setup prometheus summaries.
+    # These will not be posted if the user passes --prometheus.level OFF
+    prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['counter_name'])
+    prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['guage_name'])
+    prometheus_info = Info( "neuron_info", "Info sumamries for the running server-miner." )
+    prometheus_guages.labels( "model_size_params" ).set( sum(p.numel() for p in model.parameters()) )
+    prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
+    prometheus_info.info ({
+        'type': "core_server",
+        'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
+        'network': config.subtensor.network,
+        'coldkey': str(wallet.coldkeypub.ss58_address),
+        'hotkey': str(wallet.hotkey.ss58_address),
+    })
 
     timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
     n_topk_peer_weights = subtensor.min_allowed_weights
@@ -177,8 +176,7 @@ def serve(
                 if config.neuron.blacklist_allow_non_registered:
                     return False
 
-                if config.prometheus.level != bittensor.prometheus.level.OFF.value:
-                    prometheus_counters.label("blacklisted.registration").inc()
+                prometheus_counters.label("blacklisted.registration").inc()
 
                 raise Exception('Registration blacklist')
 
@@ -187,8 +185,7 @@ def serve(
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
-                if config.prometheus.level != bittensor.prometheus.level.OFF.value:
-                    prometheus_counters.label("blacklisted.stake").inc()
+                prometheus_counters.label("blacklisted.stake").inc()
 
                 raise Exception('Stake blacklist')
             return False
@@ -204,8 +201,7 @@ def serve(
                     timecheck[pubkey] = current_time
                 else:
                     timecheck[pubkey] = current_time
-                    if config.prometheus.level != bittensor.prometheus.level.OFF.value:
-                        prometheus_counters.label("blacklisted.time").inc()
+                    prometheus_counters.label("blacklisted.time").inc()
 
                     raise Exception('Time blacklist')
             else:
@@ -220,8 +216,7 @@ def serve(
             stake_check()            
             return False
         except Exception as e:
-            if config.prometheus.level != bittensor.prometheus.level.OFF.value:
-                prometheus_counters.label("blacklisted").inc()
+            prometheus_counters.label("blacklisted").inc()
             return True
     
     def synapse_check(synapse, hotkey):
