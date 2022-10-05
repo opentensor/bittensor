@@ -199,3 +199,21 @@ def upnpc_create_port_map(port: int):
 
     except Exception as e:
         raise UPNPCException(e) from e
+
+def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:
+    """
+    Returns a formatted websocket endpoint url.
+    Note: The port (or lack thereof) is left unchanged
+    Args:
+        endpoint_url (str, `required`):
+            The endpoint url to format.
+    Returns:
+        formatted_endpoint_url (str, `required`):
+            The formatted endpoint url. In the form of ws://<endpoint_url> or wss://<endpoint_url>
+    """
+
+    # format endpoint with ws://
+    if "ws://" not in endpoint_url and "wss://" not in endpoint_url:
+        endpoint_url = "ws://" + endpoint_url
+
+    return endpoint_url

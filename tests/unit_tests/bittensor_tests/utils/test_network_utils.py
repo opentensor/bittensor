@@ -1,6 +1,7 @@
 from bittensor import utils
 import unittest.mock as mock
 from unittest.mock import MagicMock, PropertyMock
+import unittest
 import os 
 import requests
 import urllib
@@ -109,6 +110,32 @@ def test_upnpc_create_port_map(mocked_upnp):
     
     with pytest.raises(UPNPCException):
         upnpc_create_port_map(port=port)
+    
+class TestGetFormattedWSEndpointURL(unittest.TestCase):
+    def test_wss_in_front(self):
+        # should return the same string
+        url = "wss://exampleendpoint:9944"
+        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), url)
+
+    def test_ws_in_front(self):
+        # should return the same string
+        url = "ws://exampleendpoint:9944"
+        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), url)
+
+    def test_no_protocol(self):
+        # should return with ws:// by default
+        url = "exampleendpoint:9944"
+        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpoint:9944")
+
+    def test_no_port(self):
+        # should not add port if not specified
+        url = "ws://exampleendpoint"
+        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), url)
+
+    def test_no_port_no_protocol(self):
+        # should not add port if not specified
+        url = "exampleendpoint"
+        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpoint")
     
 
 
