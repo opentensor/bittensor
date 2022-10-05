@@ -518,8 +518,9 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     stopEvent.set() # stop all other processes
     status.stop()
 
-    # wait for rest to exit
+    # terminate and wait for sovlers to exit
     for w in solvers:
+        w.terminate()
         w.join()
 
     return solution
@@ -701,15 +702,15 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                 Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]"""
             status.update(message.replace(" ", ""))
         
-        # exited while, found_solution contains the nonce or wallet is registered
-        if solution is not None:
-            stopEvent.set() # stop all other processes
-            status.stop()
-
-            return solution
-
+        # exited while, solution contains the nonce or wallet is registered
+        stopEvent.set() # stop all other processes
         status.stop()
-        return None
+
+        for w in solvers: # terminate and wait for all solvers
+            w.terminate()
+            w.join()
+
+        return solution
 
 def create_pow( subtensor, wallet, cuda: bool = False, dev_id: Union[List[int], int] = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None) -> Optional[Dict[str, Any]]:
     if cuda:
