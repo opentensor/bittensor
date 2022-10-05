@@ -33,7 +33,7 @@ import bittensor
 import bittensor.utils.networking as net
 import bittensor.utils.weight_utils as weight_utils
 
-RAOPERTAO = 1000000000
+RAOPERTAO = bittensor.__rao_per_tao__
 U64MAX = 18446744073709551615
 
 class Metagraph( torch.nn.Module ):

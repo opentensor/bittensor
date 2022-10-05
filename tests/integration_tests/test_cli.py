@@ -78,7 +78,7 @@ class TestCli(unittest.TestCase):
             if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
                 return bittensor.subtensor._null_neuron()
             else:
-                RAOPERTAO = 1000000000
+                RAOPERTAO = bittensor.__rao_per_tao__
                 U64MAX = 18446744073709551615
                 neuron = SimpleNamespace( **neuron_dict )
                 neuron.stake = neuron.stake / RAOPERTAO
