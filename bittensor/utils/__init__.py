@@ -285,8 +285,8 @@ class CUDASolver(SolverBase):
 
                 self.newBlockEvent.clear()
                 # reset nonces to start from random point
-                nonce_start = self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
-                nonce_end = nonce_start + self.update_interval
+                nonce_start = self.TPB * self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
+                nonce_end = nonce_start + self.update_interval * self.TPB
                 
             # Do a block of nonces
             solution, time = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
