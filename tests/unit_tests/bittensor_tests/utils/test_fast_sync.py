@@ -50,8 +50,8 @@ class TestLoadNeurons(unittest.TestCase):
 
         fake_neurons: List[SimpleNamespace] = [
             SimpleNamespace(
-                hotkey="",
-                coldkey="",
+                hotkey="5FTWCbNmsywinyF38vFRDJRKHono5ssbtzEq8naPbSPpkpnd"
+                coldkey="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm",
                 uid=0,
                 active=0,
                 ip="",
@@ -88,8 +88,8 @@ class TestLoadNeurons(unittest.TestCase):
     def test_load_neurons_from_metagraph_file_bad_data_missing_fields(self):
         fake_neurons: List[SimpleNamespace] = [
             SimpleNamespace(
-                #hotkey="",
-                #coldkey="", # Missing hotkey and coldkey
+                #hotkey="5FTWCbNmsywinyF38vFRDJRKHono5ssbtzEq8naPbSPpkpnd",
+                #coldkey="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm", # Missing hotkey and coldkey
                 uid=0,
                 active=0,
                 ip="",
@@ -122,8 +122,8 @@ class TestLoadNeurons(unittest.TestCase):
     def test_load_neurons_from_metagraph_file_bad_data_bad_numbers(self):
         fake_neurons: List[SimpleNamespace] = [
             SimpleNamespace(
-                hotkey="",
-                coldkey="", 
+                hotkey="5FTWCbNmsywinyF38vFRDJRKHono5ssbtzEq8naPbSPpkpnd",
+                coldkey="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm", 
                 uid=0,
                 active=0,
                 ip="",
@@ -219,7 +219,7 @@ class TestFailureAndFallback(unittest.TestCase):
             pass
         
         
-        with patch('bittensor.subtensor.Subtensor.neuron_for_uid', side_effect=ExitEarly): # raise an ExitEarly exception when neuron_for_uid is called
+        with patch('bittensor.Subtensor.neuron_for_uid', side_effect=ExitEarly): # raise an ExitEarly exception when neuron_for_uid is called
             with patch("FastSync.verify_fast_sync_support", side_effect=FastSyncOSNotSupportedException): # mock OS not supported
                 with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to OS not being supported
                     bittensor.Subtensor.neurons(mock_self_subtensor)
