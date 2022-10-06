@@ -6,6 +6,7 @@ from typing import List
 from unittest.mock import MagicMock
 
 import bittensor
+from bittensor.utils.fast_sync import FastSync
 
 U64MAX = 18446744073709551615
 U32MAX = 4294967295
@@ -69,14 +70,8 @@ class TestFastSync(unittest.TestCase):
             )
         ]
 
-        
-        mock_file_obj = MagicMock(
-            read=MagicMock(
-                return_value=json.dumps(fake_neurons)
-            )
-        )
-
-        neurons_loaded = bittensor.utils.fast_sync.FastSync()._load_neurons_from_metragraph_file(mock_file_obj)
+        fake_neuron_json_data = json.dumps(fake_neurons)
+        neurons_loaded = FastSync._load_neurons_from_metragraph_file_data(fake_neuron_json_data)
 
         # Check that the loaded neurons are the same as the fake neurons
         loaded_neuron = neurons_loaded[0].__dict__
@@ -84,4 +79,5 @@ class TestFastSync(unittest.TestCase):
             assert loaded_neuron[key] == fake_neurons[0].__dict__[key]
 
 
-        
+    def test_verify_metagraph_data(self):
+        pass
