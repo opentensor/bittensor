@@ -33,7 +33,7 @@ from torch.nn.utils.rnn import pad_sequence
 import wandb
 import pandas
 # Prometheus
-from prometheus_client import Counter, Gauge, Histogram, Summary, Info, CollectorRegistry
+from prometheus_client import Counter, Gauge, Histogram, Summary, Info
 # Torch
 import torch
 import torch.nn.functional as F
@@ -77,9 +77,8 @@ def serve(
 
     # --- Setup prometheus summaries.
     # These will not be posted if the user passes --prometheus.level OFF
-    registry = CollectorRegistry()
-    prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['counter_name'], registry=registry)
-    prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['guage_name'])
+    prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['neuron_counters_name'])
+    prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['neuron_guages_name'])
     prometheus_info = Info( "neuron_info", "Info sumamries for the running server-miner." )
     prometheus_guages.labels( "model_size_params" ).set( sum(p.numel() for p in model.parameters()) )
     prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
