@@ -22,6 +22,10 @@ class FastSyncNotFoundException(FastSyncException):
     """"Exception raised when the fast sync binary is not found"""
     pass
 
+class FastSyncFormatException(FastSyncException):
+    """"Exception raised when the downloaded metagraph file is not formatted correctly"""
+    pass
+
 class OS_NAME(enum.Enum):
     """Enum for OS_NAME"""
     LINUX = "linux"
@@ -67,25 +71,14 @@ class FastSync():
         path_to_bin = os.path.join(os.path.dirname(__file__), f"../../bin/subtensor-node-api-{os_name.value}")
         return path_to_bin
 
-    def fast_sync_neurons(self, block_hash: str) -> None:
-        """Runs the fast sync binary to sync all neurons at a given block hash"""
-        FastSync.verify_fast_sync_support()
-        path_to_bin = FastSync.get_path_to_fast_sync()
-        bittensor.__console__.print("Using subtensor-node-api for neuron retrieval...")
-        # will write to ~/.bittensor/metagraph.json by default
-        subprocess.run([path_to_bin, "sync_and_save", "-u", self.endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
-    
     @staticmethod
-    def _load_neurons_from_metragraph_file(file: TextIOWrapper) -> List[SimpleNamespace]:
-        """Loads neurons from a metagraph file"""
-        data = json.load(file)
-
-        # all the large ints are strings
-        RAOPERTAO = bittensor.__rao_per_tao__
-        U64MAX = 18446744073709551615
+    def verify_neurons(neurons: List[SimpleNamespace]) -> bool:
+        """Verifies that the neurons are valid"""
         """
-        We expect a JSON array of:
-        {
+        We expect a an array of:
+        SimpleNamespace(
+            "hotkey": str,
+            "coldkey": str,
             "uid": int,
             "ip": str,
             "ip_type": int,
@@ -101,7 +94,79 @@ class FastSync():
             "last_update": str(int),
             "version": int,
             "priority": str(int),
-            "last_update": int,
+            "weights": [
+                [int, int],
+            ],
+            "bonds": [
+                [int, str(int)],
+            ],
+        )
+        """
+        for neuron in neurons:
+            if not hasattr(neuron, 'uid'):
+                return False
+            if not hasattr(neuron, 'ip'):
+                return False
+            if not hasattr(neuron, 'port'):
+                return False
+            if not hasattr(neuron, 'modality'):
+                return False
+            if not hasattr(neuron, 'stake'):
+                return False
+            if not hasattr(neuron, 'hotkey'):
+                return False
+            if not hasattr(neuron, 'coldkey'):
+                return False
+            if not hasattr(neuron, 'ip'):
+                return False
+        return True
+
+    def sync_neurons(self, block_hash: str) -> None:
+        """Runs the fast sync binary to sync all neurons at a given block hash"""
+        FastSync.verify_fast_sync_support()
+        path_to_bin = FastSync.get_path_to_fast_sync()
+        bittensor.__console__.print("Using subtensor-node-api for neuron retrieval...")
+        # will write to ~/.bittensor/metagraph.json by default
+        subprocess.run([path_to_bin, "sync_and_save", "-u", self.endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
+    
+    @staticmethod
+    def _load_neurons_from_metragraph_file_data(file_data: str) -> List[SimpleNamespace]:
+        """
+        Loads neurons from the metagraph file data
+        
+        Raises: FastSyncFormatException if the file is not in the correct format
+
+        Returns: List[SimpleNamespace]
+            a list of the Neurons
+        """
+        try:
+            data = json.loads(file_data)
+        except json.JSONDecodeError:
+            raise FastSyncFormatException('Could not parse metagraph file data as json')
+
+        # all the large ints are strings
+        RAOPERTAO = bittensor.__rao_per_tao__
+        U64MAX = 18446744073709551615
+        """
+        We expect a JSON array of:
+        {
+            "hotkey": str,
+            "coldkey": str,
+            "uid": int,
+            "ip": str,
+            "ip_type": int,
+            "port": int,
+            "stake": str(int),
+            "rank": str(int),
+            "emission": str(int),
+            "incentive": str(int),
+            "consensus": str(int),
+            "trust": str(int),
+            "dividends": str(int),
+            "modality": int,
+            "last_update": str(int),
+            "version": int,
+            "priority": str(int),
             "weights": [
                 [int, int],
             ],
@@ -111,30 +176,56 @@ class FastSync():
         }
         """
         neurons: SimpleNamespace = []
-        for neuron_data in data:
-            neuron = SimpleNamespace( **neuron_data )
-            neuron.stake = int(neuron.stake) / RAOPERTAO
-            neuron.rank = int(neuron.rank) / U64MAX
-            neuron.trust = int(neuron.trust) / U64MAX
-            neuron.consensus = int(neuron.consensus) / U64MAX
-            neuron.incentive = int(neuron.incentive) / U64MAX
-            neuron.dividends = int(neuron.dividends) / U64MAX
-            neuron.emission = int(neuron.emission) / RAOPERTAO
-            neuron.last_update = int(neuron.last_update)
-            neuron.priority = int(neuron.priority)
-            neuron.bonds = [ [bond[0], int(bond[1])] for bond in neuron.bonds ]
-            # weights are already ints
-            neuron.is_null = False
-            neurons.append( neuron )
+        try:
+            for neuron_data in data:
+                neuron = SimpleNamespace( **neuron_data )
+                # hotkey and coldkey are strings
+                # uid is an int
+                # ip is a string
+                # ip_type is an int
+                # port is an int
+                neuron.stake = int(neuron.stake) / RAOPERTAO
+                neuron.rank = int(neuron.rank) / U64MAX
+                neuron.emission = int(neuron.emission) / RAOPERTAO
+                neuron.incentive = int(neuron.incentive) / U64MAX
+                neuron.consensus = int(neuron.consensus) / U64MAX
+                neuron.trust = int(neuron.trust) / U64MAX
+                neuron.dividends = int(neuron.dividends) / U64MAX
+                # modality is an int
+                neuron.last_update = int(neuron.last_update)
+                # version is an int
+                neuron.priority = int(neuron.priority)
+                # weights are already ints
+                neuron.bonds = [ [bond[0], int(bond[1])] for bond in neuron.bonds ]
 
+                neuron.is_null = False
+                neurons.append( neuron )
+
+        except Exception as e:
+            raise FastSyncFormatException('Could not parse metagraph file data as json: {}'.format(e))
+            
         return neurons
 
     def load_neurons(self, metagraph_location: str = '~/.bittensor/metagraph.json') -> List[SimpleNamespace]:
+        """
+        Loads neurons from the metagraph file
+
+        Args:
+            metagraph_location (str, optional): The location of the metagraph file. Defaults to '~/.bittensor/metagraph.json'.
+        
+        Raises:
+            FastSyncNotFoundException: If the metagraph file could not be read
+            FastSyncFormatException: If the metagraph file is not in the correct format
+        
+        Returns:
+            List[SimpleNamespace]
+                a list of the Neurons
+        """
         try:
             with open(os.path.join(os.path.expanduser(metagraph_location))) as f:
-                return self._load_neurons_from_metragraph_file(f)
+                file_data = f.read()
+            return self._load_neurons_from_metragraph_file_data(file_data)
         except FileNotFoundError:
-            raise FastSyncException('{} not found. Try calling fast_sync_neurons() first.', metagraph_location)
-    
-        
-    
+            raise FastSyncFormatException('{} not found. Try calling fast_sync_neurons() first.', metagraph_location)
+        except OSError:
+            raise FastSyncFormatException('Could not read {}', metagraph_location)

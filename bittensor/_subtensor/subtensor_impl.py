@@ -27,7 +27,7 @@ from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
-from bittensor.utils.fast_sync import FastSyncException
+from bittensor.utils.fast_sync import FastSyncException, FastSync
 from types import SimpleNamespace
 
 # Mocking imports
@@ -1530,12 +1530,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
     
         # check if fast sync is available
-        bittensor.utils.fast_sync.verify_fast_sync_support()
+        FastSync.verify_fast_sync_support()
         # try to fast sync
-        fast_sync = bittensor.utils.fast_sync.FastSync(endpoint_url)
-        fast_sync.sync(block_hash)
+        fast_sync: FastSync = FastSync(endpoint_url)
         # get neurons
-        neurons = fast_sync.get_neurons()
+        fast_sync.sync_neurons(block_hash)
+        # load neurons
+        neurons = fast_sync.load_neurons()
         # verify neurons 
         fast_sync.verify_neurons(neurons)
         
