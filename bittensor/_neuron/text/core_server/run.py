@@ -77,11 +77,11 @@ def serve(
 
     # --- Setup prometheus summaries.
     # These will not be posted if the user passes --prometheus.level OFF
-    prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['neuron_counters_name'])
-    prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['neuron_guages_name'])
-    prometheus_info = Info( "neuron_info", "Info sumamries for the running server-miner." )
-    prometheus_guages.labels( "model_size_params" ).set( sum(p.numel() for p in model.parameters()) )
-    prometheus_guages.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
+    prometheus_counters = Counter('neuron_counters_test', 'Counter sumamries for the running server-miner.', ['neuron_counters_name'])
+    prometheus_guages = Gauge('neuron_guages_test', 'Guage sumamries for the running server-miner.', ['neuron_guages_name'])
+    prometheus_info = Info( 'neuron_info_test', "Info sumamries for the running server-miner." )
+    prometheus_guages.labels( 'model_size_params_test' ).set( sum(p.numel() for p in model.parameters()) )
+    prometheus_guages.labels( 'model_size_bytes_test' ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
     prometheus_info.info ({
         'type': "core_server",
         'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
