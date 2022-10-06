@@ -164,7 +164,7 @@ class FastSync:
     def get_path_to_fast_sync(cls) -> str:
         """Returns the path to the fast sync binary"""
         os_name: OS_NAME = cls.get_os()
-        path_to_bin = os.path.join(os.path.dirname(__file__), f"../../bin/subtensor-node-api-{os_name.value}")
+        path_to_bin = os.path.join(os.path.dirname(__file__), f"../../../bin/subtensor-node-api-{os_name.value}")
         return path_to_bin
 
     def sync_neurons(self, block_hash: str) -> None:
