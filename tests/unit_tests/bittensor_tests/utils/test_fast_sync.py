@@ -210,10 +210,8 @@ class TestSupportCheck(unittest.TestCase):
 
 class TestFailureAndFallback(unittest.TestCase):
     def test_fast_sync_fails_fallback_to_regular_sync(self):
-        mock_self_subtensor = MagicMock(
-            spec=bittensor.subtensor,
-            use_fast_sync = True,
-        )
+        mock_self_subtensor = bittensor.subtensor(_mock=True)
+        mock_self_subtensor.use_fast_sync = True
 
         class ExitEarly(Exception):
             pass
@@ -222,22 +220,22 @@ class TestFailureAndFallback(unittest.TestCase):
         with patch('bittensor.Subtensor.neuron_for_uid', side_effect=ExitEarly): # raise an ExitEarly exception when neuron_for_uid is called
             with patch("bittensor.utils.fast_sync.FastSync.verify_fast_sync_support", side_effect=FastSyncOSNotSupportedException): # mock OS not supported
                 with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to OS not being supported
-                    bittensor.Subtensor.neurons(mock_self_subtensor)
-            mock_self_subtensor.reset_mock()
+                    mock_self_subtensor.neurons(mock_self_subtensor)
+            mock_self_subtensor.use_fast_sync = True
             
             with patch("bittensor.utils.fast_sync.FastSync.verify_fast_sync_support", side_effect=FastSyncNotFoundException): # mock binary not found
                 with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to binary not being found
-                    bittensor.Subtensor.neurons(mock_self_subtensor)
-            mock_self_subtensor.reset_mock()
+                    mock_self_subtensor.neurons(mock_self_subtensor)
+            mock_self_subtensor.use_fast_sync = True
 
             with patch("bittensor.utils.fast_sync.FastSync.verify_fast_sync_support", return_value=None): # mock support check passes
 
                 with patch("bittensor.utils.fast_sync.FastSync.sync_neurons", side_effect=FastSyncRuntimeException): # mock fast sync runtime error
                     with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to runtime error
-                        bittensor.Subtensor.neurons(mock_self_subtensor)
-                mock_self_subtensor.reset_mock()
+                        mock_self_subtensor.neurons(mock_self_subtensor)
+                mock_self_subtensor.use_fast_sync = True
 
                 with patch("bittensor.utils.fast_sync.FastSync.sync_neurons", return_value=None): # mock sync succeeds
                     with patch("bittensor.utils.fast_sync.FastSync.load_neurons", side_effect=FastSyncFormatException): # mock fast sync format error
                         with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to format error
-                            bittensor.Subtensor.neurons(mock_self_subtensor)
+                            mock_self_subtensor.neurons(mock_self_subtensor)
