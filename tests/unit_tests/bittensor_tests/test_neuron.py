@@ -291,6 +291,9 @@ class TestBlacklist(unittest.TestCase):
         mock_wallet = MagicMock(
             reregister=MagicMock(),
             is_registered=MagicMock(return_value=True),
+            hotkey=MagicMock(
+                ss58_address="ss58_mock_address"
+            )
         )
 
         mock_metagraph = MagicMock(
