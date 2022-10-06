@@ -171,26 +171,26 @@ class TestLoadNeurons(unittest.TestCase):
        
 class TestSupportCheck(unittest.TestCase):
     def test_os_not_supported_windows(self):
-        with patch("FastSync.get_platform", return_value="win32"): # Windows is not supported
+        with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="win32"): # Windows is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
                 _ = FastSync.verify_os_support()
 
     def test_os_not_supported_other(self):
-        with patch("FastSync.get_platform", return_value="someotheros"): # Some other os that is not supported
+        with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="someotheros"): # Some other os that is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
                 _ = FastSync.verify_os_support()
 
     def test_os_not_supported_freebsd(self):
-        with patch("FastSync.get_platform", return_value="freebsd"): # freebsd is not supported
+        with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="freebsd"): # freebsd is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
                 _ = FastSync.verify_os_support()
     
     def test_os_supported_linux(self):
-        with patch("FastSync.get_platform", return_value="linux"): # linux is supported
+        with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="linux"): # linux is supported
             _ = FastSync.verify_os_support()
 
     def test_os_supported_macos(self):
-        with patch("FastSync.get_platform", return_value="darwin"): # darwin is macos and is supported
+        with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="darwin"): # darwin is macos and is supported
             _ = FastSync.verify_os_support()
     
     def test_binary_not_found(self):
@@ -220,24 +220,24 @@ class TestFailureAndFallback(unittest.TestCase):
         
         
         with patch('bittensor.Subtensor.neuron_for_uid', side_effect=ExitEarly): # raise an ExitEarly exception when neuron_for_uid is called
-            with patch("FastSync.verify_fast_sync_support", side_effect=FastSyncOSNotSupportedException): # mock OS not supported
+            with patch("bittensor.utils.fast_sync.FastSync.verify_fast_sync_support", side_effect=FastSyncOSNotSupportedException): # mock OS not supported
                 with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to OS not being supported
                     bittensor.Subtensor.neurons(mock_self_subtensor)
             mock_self_subtensor.reset_mock()
             
-            with patch("FastSync.verify_fast_sync_support", side_effect=FastSyncNotFoundException): # mock binary not found
+            with patch("bittensor.utils.fast_sync.FastSync.verify_fast_sync_support", side_effect=FastSyncNotFoundException): # mock binary not found
                 with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to binary not being found
                     bittensor.Subtensor.neurons(mock_self_subtensor)
             mock_self_subtensor.reset_mock()
 
-            with patch("FastSync.verify_fast_sync_support", return_value=None): # mock support check passes
+            with patch("bittensor.utils.fast_sync.FastSync.verify_fast_sync_support", return_value=None): # mock support check passes
 
-                with patch("FastSync.sync_neurons", side_effect=FastSyncRuntimeException): # mock fast sync runtime error
+                with patch("bittensor.utils.fast_sync.FastSync.sync_neurons", side_effect=FastSyncRuntimeException): # mock fast sync runtime error
                     with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to runtime error
                         bittensor.Subtensor.neurons(mock_self_subtensor)
                 mock_self_subtensor.reset_mock()
 
-                with patch("FastSync.sync_neurons", return_value=None): # mock sync succeeds
-                    with patch("FastSync.load_neurons", side_effect=FastSyncFormatException): # mock fast sync format error
+                with patch("bittensor.utils.fast_sync.FastSync.sync_neurons", return_value=None): # mock sync succeeds
+                    with patch("bittensor.utils.fast_sync.FastSync.load_neurons", side_effect=FastSyncFormatException): # mock fast sync format error
                         with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to format error
                             bittensor.Subtensor.neurons(mock_self_subtensor)
