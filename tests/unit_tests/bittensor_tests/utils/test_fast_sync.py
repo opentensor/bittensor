@@ -50,7 +50,7 @@ class TestLoadNeurons(unittest.TestCase):
 
         fake_neurons: List[SimpleNamespace] = [
             SimpleNamespace(
-                hotkey="5FTWCbNmsywinyF38vFRDJRKHono5ssbtzEq8naPbSPpkpnd"
+                hotkey="5FTWCbNmsywinyF38vFRDJRKHono5ssbtzEq8naPbSPpkpnd",
                 coldkey="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm",
                 uid=0,
                 active=0,
