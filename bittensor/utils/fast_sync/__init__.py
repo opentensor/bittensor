@@ -1,9 +1,9 @@
 import enum
-from io import TextIOWrapper
 import json
 import os
+from platform import platform
 import subprocess
-from sys import platform
+import sys
 from types import SimpleNamespace
 from typing import List
 
@@ -36,22 +36,28 @@ class OS_NAME(enum.Enum):
     MAC = "macos"
     WINDOWS = "windows"
 
-def get_os() -> OS_NAME:
-    """Returns the OS enum for the current OS"""
-    if platform == "linux" or platform == "linux2":
-        return OS_NAME.LINUX
-    elif platform == "darwin":
-        return OS_NAME.MAC
-    elif platform == "win32":
-        return OS_NAME.WINDOWS
-    else:
-        raise Exception("Not sure what OS this is")
-
 class FastSync():
     endpoint_url: str
 
     def __init__(self, endpoint_url: str) -> None:
         self.endpoint_url = endpoint_url
+
+    @property
+    def platform(self) -> str:
+        return sys.platform
+
+    @classmethod
+    def get_os(cls) -> OS_NAME:
+        """Returns the OS enum for the current OS"""
+        platform = cls.platform
+        if platform == "linux" or platform == "linux2":
+            return OS_NAME.LINUX
+        elif platform == "darwin":
+            return OS_NAME.MAC
+        elif platform == "win32":
+            return OS_NAME.WINDOWS
+        else:
+            raise Exception("Not sure what OS this is")
 
     @classmethod
     def verify_fast_sync_support(cls) -> None:
@@ -65,8 +71,8 @@ class FastSync():
         cls.verify_os_support()
         cls.verify_binary_exists()
 
-    @staticmethod
-    def verify_os_support() -> None:
+    @classmethod
+    def verify_os_support(cls) -> None:
         """
         Verifies that the current OS is supported by fast sync
 
@@ -75,7 +81,7 @@ class FastSync():
         """
 
         try:
-            OS = get_os()
+            OS = cls.get_os()
         except Exception:
             raise FastSyncOSNotSupportedException("OS not supported for fast sync")
         
@@ -94,10 +100,10 @@ class FastSync():
         if not os.path.exists(path_to_bin) or not os.path.isfile(path_to_bin):
             raise FastSyncNotFoundException("Could not find fast sync binary at {}.".format(path_to_bin))
 
-    @staticmethod
-    def get_path_to_fast_sync() -> str:
+    @classmethod
+    def get_path_to_fast_sync(cls) -> str:
         """Returns the path to the fast sync binary"""
-        os_name: OS_NAME = get_os()
+        os_name: OS_NAME = cls.get_os()
         path_to_bin = os.path.join(os.path.dirname(__file__), f"../../bin/subtensor-node-api-{os_name.value}")
         return path_to_bin
 

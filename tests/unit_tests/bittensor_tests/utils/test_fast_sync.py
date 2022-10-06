@@ -163,26 +163,26 @@ class TestLoadNeurons(unittest.TestCase):
        
 class TestSupportCheck(unittest.TestCase):
     def test_os_not_supported_windows(self):
-        with patch("platform.system", return_value="win32"): # Windows is not supported
+        with patch("FastSync.platform", return_value="win32"): # Windows is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
                 _ = FastSync.verify_os_support()
 
     def test_os_not_supported_other(self):
-        with patch("platform.system", return_value="someotheros"): # Some other os that is not supported
+        with patch("FastSync.platform", return_value="someotheros"): # Some other os that is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
                 _ = FastSync.verify_os_support()
 
     def test_os_not_supported_freebsd(self):
-        with patch("platform.system", return_value="freebsd"): # freebsd is not supported
+        with patch("FastSync.platform", return_value="freebsd"): # freebsd is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
                 _ = FastSync.verify_os_support()
     
     def test_os_supported_linux(self):
-        with patch("platform.system", return_value="linux"): # linux is supported
+        with patch("FastSync.platform", return_value="linux"): # linux is supported
             _ = FastSync.verify_os_support()
 
     def test_os_supported_macos(self):
-        with patch("platform.system", return_value="darwin"): # darwin is macos and is supported
+        with patch("FastSync.platform", return_value="darwin"): # darwin is macos and is supported
             _ = FastSync.verify_os_support()
     
     def test_binary_not_found(self):
