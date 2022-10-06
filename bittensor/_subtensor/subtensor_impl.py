@@ -27,7 +27,7 @@ from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
-from bittensor.utils.fast_sync import FastSyncException, fast_sync_neurons
+from bittensor.utils.fast_sync import FastSyncException
 from types import SimpleNamespace
 
 # Mocking imports
@@ -1519,7 +1519,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 List of neuron objects.
 
         Raises:
-            FastSyncException: If there is an issue calling fast sync
+            FastSyncException: If there is an issue during fast sync
         """
         neurons = []
         if block is None:
@@ -1528,17 +1528,16 @@ To run a local node (See: docs/running_a_validator.md) \n
         block_hash: str = self.substrate.get_block_hash( block )
         endpoint_url: str = self.chain_endpoint
         endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
-        
-        try:
-            # check if fast sync is available
-            bittensor.utils.fast_sync.verify_fast_sync_support()
-            # try to fast sync
-            fast_sync = bittensor.utils.fast_sync.FastSync(endpoint_url)
-            fast_sync.sync(block_hash)
-            
-            
-        except Exception as e:
-            raise FastSyncException("subtensor-node-api fast sync had an issue: {}".format(e))
+    
+        # check if fast sync is available
+        bittensor.utils.fast_sync.verify_fast_sync_support()
+        # try to fast sync
+        fast_sync = bittensor.utils.fast_sync.FastSync(endpoint_url)
+        fast_sync.sync(block_hash)
+        # get neurons
+        neurons = fast_sync.get_neurons()
+        # verify neurons 
+        fast_sync.verify_neurons(neurons)
         
         return neurons
 
