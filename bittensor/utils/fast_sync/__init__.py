@@ -26,6 +26,10 @@ class FastSyncFormatException(FastSyncException):
     """"Exception raised when the downloaded metagraph file is not formatted correctly"""
     pass
 
+class FastSyncFileException(FastSyncException):
+    """"Exception raised when the metagraph file cannot be read"""
+    pass
+
 class OS_NAME(enum.Enum):
     """Enum for OS_NAME"""
     LINUX = "linux"
@@ -152,11 +156,12 @@ class FastSync():
                 neurons.append( neuron )
 
         except Exception as e:
-            raise FastSyncFormatException('Could not parse metagraph file data as json: {}'.format(e))
+            raise FastSyncFormatException('Could not parse metagraph file data: {}'.format(e))
             
         return neurons
 
-    def load_neurons(self, metagraph_location: str = '~/.bittensor/metagraph.json') -> List[SimpleNamespace]:
+    @classmethod
+    def load_neurons(cls, metagraph_location: str = '~/.bittensor/metagraph.json') -> List[SimpleNamespace]:
         """
         Loads neurons from the metagraph file
 
@@ -164,7 +169,7 @@ class FastSync():
             metagraph_location (str, optional): The location of the metagraph file. Defaults to '~/.bittensor/metagraph.json'.
         
         Raises:
-            FastSyncNotFoundException: If the metagraph file could not be read
+            FastSyncFileException: If the metagraph file could not be read
             FastSyncFormatException: If the metagraph file is not in the correct format
         
         Returns:
@@ -174,8 +179,8 @@ class FastSync():
         try:
             with open(os.path.join(os.path.expanduser(metagraph_location))) as f:
                 file_data = f.read()
-            return self._load_neurons_from_metragraph_file_data(file_data)
+            return cls._load_neurons_from_metragraph_file_data(file_data)
         except FileNotFoundError:
-            raise FastSyncFormatException('{} not found. Try calling fast_sync_neurons() first.', metagraph_location)
+            raise FastSyncFileException('{} not found. Try calling fast_sync_neurons() first.', metagraph_location)
         except OSError:
-            raise FastSyncFormatException('Could not read {}', metagraph_location)
+            raise FastSyncFileException('Could not read {}', metagraph_location)

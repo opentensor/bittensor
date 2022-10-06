@@ -3,15 +3,16 @@ import random
 import unittest
 from types import SimpleNamespace
 from typing import List
-from unittest.mock import MagicMock
+from unittest.mock import patch
+import pytest
 
 import bittensor
-from bittensor.utils.fast_sync import FastSync
+from bittensor.utils.fast_sync import FastSync, FastSyncFormatException, FastSyncFileException
 
 U64MAX = 18446744073709551615
 U32MAX = 4294967295
 
-class TestFastSync(unittest.TestCase):
+class TestLoadNeurons(unittest.TestCase):
     def test_load_neurons_from_metagraph_file(self):
         """
         We expect a JSON array of:
@@ -78,6 +79,85 @@ class TestFastSync(unittest.TestCase):
         for key, _ in loaded_neuron:
             assert loaded_neuron[key] == fake_neurons[0].__dict__[key]
 
+    def test_load_neurons_from_metagraph_file_bad_data_missing_fields(self):
+        fake_neurons: List[SimpleNamespace] = [
+            SimpleNamespace(
+                #hotkey="",
+                #coldkey="", # Missing hotkey and coldkey
+                uid=0,
+                ip="",
+                ip_type=0,
+                port=0,
+                stake=0,
+                rank=0,
+                emission=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
+                incentive=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
+                consensus=str(random.randint(0, U64MAX)),
+                trust=str(random.randint(0, U64MAX)),
+                dividends=str(random.randint(0, U64MAX)),
+                modality=0,
+                last_update=str(random.randint(0, 10000)),
+                version=0,
+                priority=str(random.randint(0, U64MAX)),
+                weights=[
+                    [0, random.randint(0, U32MAX)],
+                ],
+                bonds=[
+                    [0, str(random.randint(0, 100) * bittensor.__rao_per_tao__)],
+                ],
+            )
+        ]
 
-    def test_verify_metagraph_data(self):
-        pass
+        fake_neuron_json_data = json.dumps(fake_neurons)
+        with pytest.raises(FastSyncFormatException):
+            _ = FastSync._load_neurons_from_metragraph_file_data(fake_neuron_json_data)
+
+    def test_load_neurons_from_metagraph_file_bad_data_bad_numbers(self):
+        fake_neurons: List[SimpleNamespace] = [
+            SimpleNamespace(
+                hotkey="",
+                coldkey="", 
+                uid=0,
+                ip="",
+                ip_type=0,
+                port=0,
+                stake=0,
+                rank=0,
+                emission=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
+                incentive=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
+                consensus=123, # should be str
+                trust=str(random.randint(0, U64MAX)),
+                dividends=str(random.randint(0, U64MAX)),
+                modality=0,
+                last_update=str(random.randint(0, 10000)),
+                version=0,
+                priority=str(random.randint(0, U64MAX)),
+                weights=[
+                    [0, random.randint(0, U32MAX)],
+                ],
+                bonds=[
+                    [0, str(random.randint(0, 100) * bittensor.__rao_per_tao__)],
+                ],
+            )
+        ]
+
+        fake_neuron_json_data = json.dumps(fake_neurons)
+        with pytest.raises(FastSyncFormatException):
+            _ = FastSync._load_neurons_from_metragraph_file_data(fake_neuron_json_data)
+    
+    def test_load_neurons_from_metagraph_file_json_error(self):
+        bad_json_string = "bad json string"
+        with pytest.raises(FastSyncFormatException):
+            _ = FastSync._load_neurons_from_metragraph_file_data(bad_json_string)
+
+    def test_load_neurons_file_os_error(self):
+        with patch("builtins.open", side_effect=OSError):
+            with pytest.raises(FastSyncFileException):
+                _ = FastSync.load_neurons("") # Should raise an OSError
+
+
+    def test_load_neurons_from_metagraph_file_no_file(self):
+        with patch("builtins.open", side_effect=FileNotFoundError):
+            with pytest.raises(FastSyncFileException):
+                _ = FastSync.load_neurons("") # Should raise a FileNotFoundError
+       
