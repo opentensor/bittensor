@@ -14,8 +14,8 @@ class FastSyncException(Exception):
     """"Exception raised during fast sync of neurons"""
     pass
 
-class OSNotSupported(FastSyncException):
-    """"Exception raised when the OS is not supported"""
+class FastSyncOSNotSupportedException(FastSyncException):
+    """"Exception raised when the OS is not supported by fast sync"""
     pass
 
 class FastSyncNotFoundException(FastSyncException):
@@ -58,10 +58,10 @@ class FastSync():
         try:
             OS = get_os()
         except Exception:
-            raise OSNotSupported("OS not supported for fast sync")
+            raise FastSyncOSNotSupportedException("OS not supported for fast sync")
         
         if OS != OS.LINUX and OS != OS.MAC:
-            raise OSNotSupported("OS not supported for fast sync")
+            raise FastSyncOSNotSupportedException("OS not supported for fast sync")
 
         # verify that the binary exists
         path_to_bin = FastSync.get_path_to_fast_sync()
