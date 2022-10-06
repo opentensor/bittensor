@@ -204,10 +204,7 @@ class TestSupportCheck(unittest.TestCase):
             with patch("os.path.isfile", return_value=True):
                 _ = FastSync.verify_binary_exists() # no exception should be raised
 
-
 class TestFailureAndFallback(unittest.TestCase):
-    
-
     def test_fast_sync_fails_fallback_to_regular_sync(self):
         mock_self_subtensor = MagicMock(
             spec=bittensor.subtensor,
