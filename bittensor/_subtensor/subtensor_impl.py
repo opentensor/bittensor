@@ -27,16 +27,12 @@ from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
+from bittensor.utils.fast_sync import FastSyncException, fast_sync_neurons
 from types import SimpleNamespace
 
 # Mocking imports
-import os
-import random
-import json
 import scalecodec
 import time
-import subprocess
-from sys import platform   
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -1498,8 +1494,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         if self.use_fast_sync:
             try:
                 return self.neurons_fast(block)
-            except Exception as e:
-                logger.warning("Failed to get neurons fast, falling back to manual sync.")
+            except FastSyncException as e:
+                logger.warning("Failed to get neurons fast, falling back to manual sync.: {}".format(e))
                 self.use_fast_sync = False
                 return self.neurons(block)
         
@@ -1521,6 +1517,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         Returns:
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
+
+        Raises:
+            FastSyncException: If there is an issue calling fast sync
         """
         neurons = []
         if block is None:
@@ -1531,67 +1530,15 @@ To run a local node (See: docs/running_a_validator.md) \n
         endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
         
         try:
-            if platform == "linux" or platform == "linux2":
-                # linux
-                os_name = "linux"
-            elif platform == "darwin":
-                # OS X
-                os_name = 'macos'
-            else:
-                raise Exception('Unsupported platform for subtensor-node-api')
-            bittensor.__console__.print("Using subtensor-node-api for neuron retrieval...")
-            path_to_bin = os.path.join(os.path.dirname(__file__), f"../../bin/subtensor-node-api-{os_name}")
-            # will write to ~/.bittensor/metagraph.json by default
-            subprocess.run([path_to_bin, "sync_and_save", "-u", endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
-            with open(os.path.join(os.path.expanduser('~'), '.bittensor/metagraph.json')) as f:
-                data = json.load(f)
-
-            # all the large ints are strings
-            RAOPERTAO = 1000000000
-            U64MAX = 18446744073709551615
-            """
-            We expect a JSON array of:
-            {
-                "uid": int,
-                "ip": str,
-                "ip_type": int,
-                "port": int,
-                "stake": str(int),
-                "rank": str(int),
-                "emission": str(int),
-                "incentive": str(int),
-                "consensus": str(int),
-                "trust": str(int),
-                "dividends": str(int),
-                "modality": int,
-                "last_update": str(int),
-                "version": int,
-                "priority": str(int),
-                "last_update": int,
-                "weights": [
-                    [int, int],
-                ],
-                "bonds": [
-                    [int, str(int)],
-                ],
-            }
-            """
-            for neuron_data in data:
-                neuron = SimpleNamespace( **neuron_data )
-                neuron.stake = int(neuron.stake) / RAOPERTAO
-                neuron.rank = int(neuron.rank) / U64MAX
-                neuron.trust = int(neuron.trust) / U64MAX
-                neuron.consensus = int(neuron.consensus) / U64MAX
-                neuron.incentive = int(neuron.incentive) / U64MAX
-                neuron.dividends = int(neuron.dividends) / U64MAX
-                neuron.emission = int(neuron.emission) / RAOPERTAO
-                neuron.last_update = int(neuron.last_update)
-                neuron.priority = int(neuron.priority)
-                neuron.bonds = [ [bond[0], int(bond[1])] for bond in neuron.bonds ]
-                neuron.is_null = False
-                neurons.append( neuron )
+            # check if fast sync is available
+            bittensor.utils.fast_sync.verify_fast_sync_support()
+            # try to fast sync
+            fast_sync = bittensor.utils.fast_sync.FastSync(endpoint_url)
+            fast_sync.sync(block_hash)
+            
+            
         except Exception as e:
-            logger.error('Exception encountered when pulling neurons: {}'.format(e))
+            raise FastSyncException("subtensor-node-api fast sync had an issue: {}".format(e))
         
         return neurons
 
@@ -1627,7 +1574,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return Subtensor._null_neuron()
         else:
-            RAOPERTAO = 1000000000
+            RAOPERTAO = bittensor.__rao_per_tao__
             U64MAX = 18446744073709551615
             neuron = SimpleNamespace( **neuron_dict )
             neuron.stake = neuron.stake / RAOPERTAO
