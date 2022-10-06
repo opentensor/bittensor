@@ -35,6 +35,10 @@ class FastSyncFileException(FastSyncException):
     """"Exception raised when the metagraph file cannot be read"""
     pass
 
+class FastSyncRuntimeException(FastSyncException):
+    """"Exception raised when the fast sync binary fails to run"""
+    pass
+
 class OS_NAME(enum.Enum):
     """Enum for OS_NAME"""
     LINUX = "linux"
@@ -169,7 +173,10 @@ class FastSync():
         path_to_bin = FastSync.get_path_to_fast_sync()
         bittensor.__console__.print("Using subtensor-node-api for neuron retrieval...")
         # will write to ~/.bittensor/metagraph.json by default
-        subprocess.run([path_to_bin, "sync_and_save", "-u", self.endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
+        try:
+            subprocess.run([path_to_bin, "sync_and_save", "-u", self.endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
+        except subprocess.SubprocessError as e:
+            raise FastSyncRuntimeException("Error running fast sync binary: {}".format(e))
     
     @staticmethod
     def validate_neuron_data_and_return(neuron_data: object) -> NeuronData:
