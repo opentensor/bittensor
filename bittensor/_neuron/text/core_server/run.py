@@ -177,7 +177,7 @@ def serve(
                 if config.neuron.blacklist_allow_non_registered:
                     return False
 
-                prometheus_counters.label("blacklisted.registration").inc()
+                prometheus_counters.labels("blacklisted.registration").inc()
 
                 raise Exception('Registration blacklist')
 
@@ -186,7 +186,7 @@ def serve(
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
-                prometheus_counters.label("blacklisted.stake").inc()
+                prometheus_counters.labels("blacklisted.stake").inc()
 
                 raise Exception('Stake blacklist')
             return False
@@ -202,7 +202,7 @@ def serve(
                     timecheck[pubkey] = current_time
                 else:
                     timecheck[pubkey] = current_time
-                    prometheus_counters.label("blacklisted.time").inc()
+                    prometheus_counters.labels("blacklisted.time").inc()
 
                     raise Exception('Time blacklist')
             else:
@@ -217,7 +217,7 @@ def serve(
             stake_check()            
             return False
         except Exception as e:
-            prometheus_counters.label("blacklisted").inc()
+            prometheus_counters.labels("blacklisted").inc()
             return True
     
     def synapse_check(synapse, hotkey):
