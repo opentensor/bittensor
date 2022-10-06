@@ -32,6 +32,9 @@ from torch.nn.utils.rnn import pad_sequence
 
 import wandb
 import pandas
+# Prometheus
+from prometheus_client import Counter, Gauge, Histogram, Summary, Info, CollectorRegistry
+# Torch
 import torch
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
@@ -56,7 +59,6 @@ def serve(
     else:
         wallet.reregister(subtensor=subtensor)
 
-
     # Load/Sync/Save our metagraph.
     if metagraph == None:
         metagraph = bittensor.metagraph ( 
@@ -72,6 +74,22 @@ def serve(
         momentum = config.neuron.momentum,
     )
     mutex = Lock()
+
+    # --- Setup prometheus summaries.
+    # These will not be posted if the user passes --prometheus.level OFF
+    registry = CollectorRegistry()
+    prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['neuron_counters_name'], registry=registry)
+    prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['neuron_guages_name'], registry=registry)
+    prometheus_info = Info('neuron_info', "Info sumamries for the running server-miner.", registry=registry)
+    prometheus_guages.labels( 'model_size_params' ).set( sum(p.numel() for p in model.parameters()) )
+    prometheus_guages.labels( 'model_size_bytes' ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
+    prometheus_info.info ({
+        'type': "core_server",
+        'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
+        'network': config.subtensor.network,
+        'coldkey': str(wallet.coldkeypub.ss58_address),
+        'hotkey': str(wallet.hotkey.ss58_address),
+    })
 
     timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
     n_topk_peer_weights = subtensor.min_allowed_weights
@@ -157,8 +175,10 @@ def serve(
             is_registered = pubkey in metagraph.hotkeys
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
-                    
                     return False
+
+                prometheus_counters.labels("blacklisted.registration").inc()
+
                 raise Exception('Registration blacklist')
 
         # Check for stake
@@ -166,6 +186,8 @@ def serve(
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
+                prometheus_counters.labels("blacklisted.stake").inc()
+
                 raise Exception('Stake blacklist')
             return False
 
@@ -180,24 +202,22 @@ def serve(
                     timecheck[pubkey] = current_time
                 else:
                     timecheck[pubkey] = current_time
+                    prometheus_counters.labels("blacklisted.time").inc()
+
                     raise Exception('Time blacklist')
             else:
                 timecheck[pubkey] = current_time
         
             return False
 
-
         # Black list or not
         try:
             registration_check()
-
             time_check()
-
-            stake_check()
-            
+            stake_check()            
             return False
-
         except Exception as e:
+            prometheus_counters.labels("blacklisted").inc()
             return True
     
     def synapse_check(synapse, hotkey):
@@ -404,6 +424,14 @@ def serve(
             wandb_info_axon = axon.to_wandb()                
             wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
+
+        # === Prometheus logging.
+        prometheus_guages.labels("stake").set( nn.stake )
+        prometheus_guages.labels("rank").set( nn.rank )
+        prometheus_guages.labels("trust").set( nn.trust )
+        prometheus_guages.labels("consensus").set( nn.consensus )
+        prometheus_guages.labels("incentive").set( nn.incentive )
+        prometheus_guages.labels("emission").set( nn.emission )
 
         if current_block - last_set_block > blocks_per_set_weights:
             try: 
