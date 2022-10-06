@@ -40,7 +40,7 @@ import bittensor.utils.codes as codes
 
 import wandb
 
-from prometheus_client import Summary, Counter, Histogram
+from prometheus_client import Summary, Counter, Histogram, CollectorRegistry
 
 logger = logger.opt(colors=True)
 
@@ -90,13 +90,14 @@ class Dendrite(torch.autograd.Function):
         # The first dendrite is created with a null suffix. Values are ordered like so: dendrite_counters, dendrite_counters_1, dendrite_counters_2 etc...
         if self.config.dendrite.prometheus.level != bittensor.prometheus.level.OFF.name:
             suffix = ""; idx = 1
+            registry = CollectorRegistry()
             while True:
                 try:
-                    self.prometheus_counters = Counter('dendrite_counters{}'.format(suffix), 'dendrite_counters', ['name'])
-                    self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,1))) 
-                    self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid{}'.format(suffix), 'dendrite_latency_per_uid', ['uid'])
-                    self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'])
-                    self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid{}'.format(suffix), 'dendrite_failures_per_uid', ['uid'])
+                    self.prometheus_counters = Counter('dendrite_counters{}'.format(suffix), 'dendrite_counters', ['name'], registry=registry)
+                    self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,1)), registry=registry) 
+                    self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid{}'.format(suffix), 'dendrite_latency_per_uid', ['uid'], registry=registry)
+                    self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'], registry=registry)
+                    self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid{}'.format(suffix), 'dendrite_failures_per_uid', ['uid'], registry=registry)
 
                 except ValueError: 
                     suffix = "_{}".format(str(idx)); idx+=1
