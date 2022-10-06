@@ -15,6 +15,8 @@ class TestFastSync(unittest.TestCase):
         """
         We expect a JSON array of:
         {
+            "hotkey": str,
+            "coldkey": str,
             "uid": int,
             "ip": str,
             "ip_type": int,
@@ -30,7 +32,6 @@ class TestFastSync(unittest.TestCase):
             "last_update": str(int),
             "version": int,
             "priority": str(int),
-            "last_update": int,
             "weights": [
                 [int, int],
             ],
@@ -42,6 +43,8 @@ class TestFastSync(unittest.TestCase):
 
         fake_neurons: List[SimpleNamespace] = [
             SimpleNamespace(
+                hotkey="",
+                coldkey="",
                 uid=0,
                 ip="",
                 ip_type=0,
@@ -74,6 +77,11 @@ class TestFastSync(unittest.TestCase):
         )
 
         neurons_loaded = bittensor.utils.fast_sync.FastSync()._load_neurons_from_metragraph_file(mock_file_obj)
+
+        # Check that the loaded neurons are the same as the fake neurons
+        loaded_neuron = neurons_loaded[0].__dict__
+        for key, _ in loaded_neuron:
+            assert loaded_neuron[key] == fake_neurons[0].__dict__[key]
 
 
         
