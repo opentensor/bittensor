@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from rich.console import Console
+from prometheus_client import Info
 
 # Bittensor code and protocol version.
 __version__ = '3.3.4'
@@ -74,6 +75,27 @@ mock_subtensor_port = get_random_unused_port()
 __mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
 
 
+# --- Prometheus ---
+__prometheus_version__ = "0.1.0"
+prometheus_version__split = __prometheus_version__.split(".")
+__prometheus_version__as_int__ = (100 * int(prometheus_version__split[0])) + (10 * int(prometheus_version__split[1])) + (1 * int(prometheus_version__split[2]))
+try:
+    bt_promo_info = Info("bittensor_info", "Information about the installed bittensor package.")
+    bt_promo_info.info ( 
+        {
+            '__version__': str(__version__),
+            '__version_as_int__': str(__version_as_int__),
+            '__vocab_size__': str(__vocab_size__),
+            '__network_dim__': str(__network_dim__),
+            '__blocktime__': str(__blocktime__),
+            '__prometheus_version__': str(__prometheus_version__),
+            '__prometheus_version__as_int__': str(__prometheus_version__as_int__),
+        } 
+    )
+except ValueError: 
+    # This can silently fail if we import bittensor twice in the same process.
+    # We simply pass over this error. 
+    pass
 
 # ---- Config ----
 from bittensor._config import config as config
@@ -101,6 +123,7 @@ from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._dendrite import dendrite as dendrite
 from bittensor._metagraph import metagraph as metagraph
+from bittensor._prometheus import prometheus as prometheus
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
@@ -137,6 +160,7 @@ defaults = Config()
 subtensor.add_defaults( defaults )
 dendrite.add_defaults( defaults )
 axon.add_defaults( defaults )
+prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
 wandb.add_defaults( defaults )
