@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 import bittensor
-from bittensor.utils.fast_sync import FastSync, FastSyncFormatException, FastSyncFileException
+from bittensor.utils.fast_sync import FastSync, FastSyncFormatException, FastSyncFileException, FastSyncOSNotSupportedException, FastSyncNotFoundException
 
 U64MAX = 18446744073709551615
 U32MAX = 4294967295
@@ -161,3 +161,41 @@ class TestLoadNeurons(unittest.TestCase):
             with pytest.raises(FastSyncFileException):
                 _ = FastSync.load_neurons("") # Should raise a FileNotFoundError
        
+class TestSupportCheck(unittest.TestCase):
+    def test_os_not_supported_windows(self):
+        with patch("platform.system", return_value="win32"): # Windows is not supported
+            with pytest.raises(FastSyncOSNotSupportedException):
+                _ = FastSync.verify_os_support()
+
+    def test_os_not_supported_other(self):
+        with patch("platform.system", return_value="someotheros"): # Some other os that is not supported
+            with pytest.raises(FastSyncOSNotSupportedException):
+                _ = FastSync.verify_os_support()
+
+    def test_os_not_supported_freebsd(self):
+        with patch("platform.system", return_value="freebsd"): # freebsd is not supported
+            with pytest.raises(FastSyncOSNotSupportedException):
+                _ = FastSync.verify_os_support()
+    
+    def test_os_supported_linux(self):
+        with patch("platform.system", return_value="linux"): # linux is supported
+            _ = FastSync.verify_os_support()
+
+    def test_os_supported_macos(self):
+        with patch("platform.system", return_value="darwin"): # darwin is macos and is supported
+            _ = FastSync.verify_os_support()
+    
+    def test_binary_not_found(self):
+        with patch("os.path.exists", return_value=False): # Binary does not exist
+            with pytest.raises(FastSyncNotFoundException):
+                _ = FastSync.verify_binary_exists()
+
+        with patch("os.path.exists", return_value=True):
+            with patch("os.path.isfile", return_value=False): # Binary exists but is not a file
+                with pytest.raises(FastSyncNotFoundException):
+                    _ = FastSync.verify_binary_exists()
+        
+    def test_binary_found(self):
+        with patch("os.path.exists", return_value=True):
+            with patch("os.path.isfile", return_value=True):
+                _ = FastSync.verify_binary_exists() # no exception should be raised

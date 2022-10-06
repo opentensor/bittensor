@@ -53,8 +53,27 @@ class FastSync():
     def __init__(self, endpoint_url: str) -> None:
         self.endpoint_url = endpoint_url
 
+    @classmethod
+    def verify_fast_sync_support(cls) -> None:
+        """
+        Verifies that the current system is supported by fast sync
+
+        Raises:
+            FastSyncOSNotSupportedException: If the current OS is not supported
+            FastSyncNotFoundException: If the fast sync binary is not found
+        """
+        cls.verify_os_support()
+        cls.verify_binary_exists()
+
     @staticmethod
-    def verify_fast_sync_support() -> None:
+    def verify_os_support() -> None:
+        """
+        Verifies that the current OS is supported by fast sync
+
+        Raises:
+            FastSyncOSNotSupportedException: If the current OS is not supported
+        """
+
         try:
             OS = get_os()
         except Exception:
@@ -62,9 +81,16 @@ class FastSync():
         
         if OS != OS.LINUX and OS != OS.MAC:
             raise FastSyncOSNotSupportedException("OS not supported for fast sync")
+    
+    @classmethod
+    def verify_binary_exists(cls) -> None:
+        """
+        Verifies that the fast sync binary exists
 
-        # verify that the binary exists
-        path_to_bin = FastSync.get_path_to_fast_sync()
+        Raises:
+            FastSyncNotFoundException: If the fast sync binary is not found
+        """
+        path_to_bin = cls.get_path_to_fast_sync()
         if not os.path.exists(path_to_bin) or not os.path.isfile(path_to_bin):
             raise FastSyncNotFoundException("Could not find fast sync binary at {}.".format(path_to_bin))
 
