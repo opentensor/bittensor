@@ -21,6 +21,7 @@ pandas
 psutil
 password_strength==0.0.3.post2
 protobuf==3.15.0
+prometheus_client==0.14.1
 pycryptodome==3.11.0
 py-sr25519-bindings>=0.1.4,<1
 py-ed25519-bindings>=1.0,<2
