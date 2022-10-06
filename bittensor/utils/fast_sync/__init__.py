@@ -54,6 +54,7 @@ class NeuronData:
         "hotkey": str,
         "coldkey": str,
         "uid": int,
+        "active": int,
         "ip": str,
         "ip_type": int,
         "port": int,
@@ -79,6 +80,7 @@ class NeuronData:
     hotkey: str
     coldkey: str
     uid: int
+    active: int
     ip: str
     ip_type: int
     port: int
@@ -213,6 +215,12 @@ class FastSync:
         uid = neuron_data.get("uid")
         if not isinstance(uid, int):
             raise FastSyncFormatException("Neuron data must have a uid field of type int")
+
+        active = neuron_data.get("active")
+        if not isinstance(active, int):
+            raise FastSyncFormatException("Neuron data must have an active field of type int")
+        if active != 0 and active != 1:
+            raise FastSyncFormatException("Neuron data must have an active field of value 0 or 1")
 
         ip = neuron_data.get("ip")
         if not isinstance(ip, str):
@@ -391,9 +399,10 @@ class FastSync:
             for neuron_data, i in zip(data, range(len(data))):
                 # validate the neuron data
                 neuron_data_validated: NeuronData = cls.validate_neuron_data_and_return(neuron_data)
-                neuron = SimpleNamespace( **neuron_data_validated )
+                neuron = SimpleNamespace( **neuron_data_validated.__dict__ )
                 # hotkey and coldkey are strings
                 # uid is an int
+                # active is an int
                 # ip is a string
                 # ip_type is an int
                 # port is an int
