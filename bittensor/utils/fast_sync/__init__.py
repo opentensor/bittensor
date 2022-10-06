@@ -96,20 +96,20 @@ class NeuronData:
     weights: List[List[int]]
     bonds: List[List[int]]
 
-class FastSync():
+class FastSync:
     endpoint_url: str
 
     def __init__(self, endpoint_url: str) -> None:
         self.endpoint_url = endpoint_url
 
-    @property
-    def platform(self) -> str:
+    @classmethod
+    def get_platform(cls) -> str:
         return sys.platform
 
     @classmethod
     def get_os(cls) -> OS_NAME:
         """Returns the OS enum for the current OS"""
-        platform = cls.platform
+        platform = cls.get_platform()
         if platform == "linux" or platform == "linux2":
             return OS_NAME.LINUX
         elif platform == "darwin":
@@ -142,8 +142,8 @@ class FastSync():
 
         try:
             OS = cls.get_os()
-        except Exception:
-            raise FastSyncOSNotSupportedException("OS not supported for fast sync")
+        except Exception as e:
+            raise FastSyncOSNotSupportedException("OS not supported by fast sync: {}".format(e))
         
         if OS != OS.LINUX and OS != OS.MAC:
             raise FastSyncOSNotSupportedException("OS not supported for fast sync")
