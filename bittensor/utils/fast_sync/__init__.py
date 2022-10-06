@@ -71,56 +71,6 @@ class FastSync():
         path_to_bin = os.path.join(os.path.dirname(__file__), f"../../bin/subtensor-node-api-{os_name.value}")
         return path_to_bin
 
-    @staticmethod
-    def verify_neurons(neurons: List[SimpleNamespace]) -> bool:
-        """Verifies that the neurons are valid"""
-        """
-        We expect a an array of:
-        SimpleNamespace(
-            "hotkey": str,
-            "coldkey": str,
-            "uid": int,
-            "ip": str,
-            "ip_type": int,
-            "port": int,
-            "stake": str(int),
-            "rank": str(int),
-            "emission": str(int),
-            "incentive": str(int),
-            "consensus": str(int),
-            "trust": str(int),
-            "dividends": str(int),
-            "modality": int,
-            "last_update": str(int),
-            "version": int,
-            "priority": str(int),
-            "weights": [
-                [int, int],
-            ],
-            "bonds": [
-                [int, str(int)],
-            ],
-        )
-        """
-        for neuron in neurons:
-            if not hasattr(neuron, 'uid'):
-                return False
-            if not hasattr(neuron, 'ip'):
-                return False
-            if not hasattr(neuron, 'port'):
-                return False
-            if not hasattr(neuron, 'modality'):
-                return False
-            if not hasattr(neuron, 'stake'):
-                return False
-            if not hasattr(neuron, 'hotkey'):
-                return False
-            if not hasattr(neuron, 'coldkey'):
-                return False
-            if not hasattr(neuron, 'ip'):
-                return False
-        return True
-
     def sync_neurons(self, block_hash: str) -> None:
         """Runs the fast sync binary to sync all neurons at a given block hash"""
         FastSync.verify_fast_sync_support()

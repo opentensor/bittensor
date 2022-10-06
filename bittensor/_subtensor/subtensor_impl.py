@@ -1537,8 +1537,6 @@ To run a local node (See: docs/running_a_validator.md) \n
         fast_sync.sync_neurons(block_hash)
         # load neurons
         neurons = fast_sync.load_neurons()
-        # verify neurons 
-        fast_sync.verify_neurons(neurons)
         
         return neurons
 
