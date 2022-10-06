@@ -68,7 +68,7 @@ class TestLoadNeurons(unittest.TestCase):
                 bonds=[
                     [0, str(random.randint(0, 100) * bittensor.__rao_per_tao__)],
                 ],
-            )
+            ).__dict__
         ]
 
         fake_neuron_json_data = json.dumps(fake_neurons)
@@ -105,7 +105,7 @@ class TestLoadNeurons(unittest.TestCase):
                 bonds=[
                     [0, str(random.randint(0, 100) * bittensor.__rao_per_tao__)],
                 ],
-            )
+            ).__dict__
         ]
 
         fake_neuron_json_data = json.dumps(fake_neurons)
@@ -138,7 +138,7 @@ class TestLoadNeurons(unittest.TestCase):
                 bonds=[
                     [0, str(random.randint(0, 100) * bittensor.__rao_per_tao__)],
                 ],
-            )
+            ).__dict__
         ]
 
         fake_neuron_json_data = json.dumps(fake_neurons)
