@@ -19,6 +19,8 @@ RAOPERTAO = bittensor.__rao_per_tao__
 
 class TestLoadNeurons(unittest.TestCase):
     def test_load_neurons_from_metagraph_file(self):
+        # tests that the function can load a valid metagraph JSON string
+
         """
         We expect a JSON array of:
         {
@@ -100,7 +102,10 @@ class TestLoadNeurons(unittest.TestCase):
         # Check that the loaded neurons are the same as the fake neurons
         loaded_neuron = neurons_loaded[0].__dict__
         for key in loaded_neuron:
-            assert loaded_neuron[key] == fake_neuron[key]
+            if isinstance(loaded_neuron[key], list):
+                self.assertListEqual(loaded_neuron[key], fake_neuron[key], f"Loaded neuron {key} is not the same as the fake neuron {key}: {loaded_neuron[key]} != {fake_neuron[key]}")
+            else:
+                self.assertEqual(loaded_neuron[key], fake_neuron[key], f"Loaded neuron {key} is not the same as the fake neuron {key}: {loaded_neuron[key]} != {fake_neuron[key]}")
 
     def test_load_neurons_from_metagraph_file_bad_data_missing_fields(self):
         fake_neurons: List[SimpleNamespace] = [
