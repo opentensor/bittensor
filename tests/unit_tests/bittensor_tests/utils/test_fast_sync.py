@@ -98,6 +98,7 @@ class TestLoadNeurons(unittest.TestCase):
         fake_neuron['last_update'] = int(fake_neuron['last_update'])
         fake_neuron['priority'] = int(fake_neuron['priority'])
         fake_neuron['bonds'] = [ [bond[0], int(bond[1])] for bond in fake_neuron['bonds'] ]
+        fake_neuron['is_null'] = False # this is not in the JSON string but added after loading
 
         # Check that the loaded neurons are the same as the fake neurons
         loaded_neuron = neurons_loaded[0].__dict__
