@@ -251,8 +251,8 @@ class Solver(SolverBase):
             self.time_queue.put_nowait(time)
                 
             nonce_start = random.randint( 0, nonce_limit )
-            nonce_end += self.update_interval
             nonce_start = nonce_start % nonce_limit
+            nonce_end = nonce_start + self.update_interval
 
 class CUDASolver(SolverBase):
     dev_id: int
