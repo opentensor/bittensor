@@ -264,10 +264,10 @@ class CUDASolver(SolverBase):
         self.TPB = TPB
 
     def run(self):
-        block_number: int
-        block_bytes: bytes
-        block_difficulty: int
-        nonce_limit = int(math.pow(2,64)) - 1
+        block_number: int = 0 # dummy value
+        block_bytes: bytes = b'0' * 32 # dummy value
+        block_difficulty: int = int(math.pow(2,64)) - 1 # dummy value
+        nonce_limit = int(math.pow(2,64)) - 1 # U64MAX
 
         # Start at random nonce
         nonce_start = random.randint( 0, nonce_limit )
