@@ -15,6 +15,7 @@ from bittensor.utils.fast_sync import (FastSync, FastSyncFileException,
 
 U64MAX = 18446744073709551615
 U32MAX = 4294967295
+RAOPERTAO = bittensor.__rao_per_tao__
 
 class TestLoadNeurons(unittest.TestCase):
     def test_load_neurons_from_metagraph_file(self):
@@ -77,13 +78,29 @@ class TestLoadNeurons(unittest.TestCase):
             ).__dict__
         ]
 
+        # create a JSON string of the list
         fake_neuron_json_data = json.dumps(fake_neurons)
+        # load the neurons from the JSON string
         neurons_loaded = FastSync._load_neurons_from_metragraph_file_data(fake_neuron_json_data)
+
+        # get the fake_neuron and adjust the values as needed
+        fake_neuron = fake_neurons[0]
+        fake_neuron['stake'] = int(fake_neuron['stake']) / RAOPERTAO
+        fake_neuron['rank'] = int(fake_neuron['rank']) / U64MAX
+        fake_neuron['emission'] = int(fake_neuron['emission']) / RAOPERTAO
+        fake_neuron['incentive'] = int(fake_neuron['incentive']) / U64MAX
+        fake_neuron['consensus'] = int(fake_neuron['consensus']) / U64MAX
+        fake_neuron['trust'] = int(fake_neuron['trust']) / U64MAX
+        fake_neuron['dividends'] = int(fake_neuron['dividends']) / U64MAX
+
+        fake_neuron['last_update'] = int(fake_neuron['last_update'])
+        fake_neuron['priority'] = int(fake_neuron['priority'])
+        fake_neuron['bonds'] = [ [bond[0], int(bond[1])] for bond in fake_neuron['bonds'] ]
 
         # Check that the loaded neurons are the same as the fake neurons
         loaded_neuron = neurons_loaded[0].__dict__
         for key in loaded_neuron:
-            assert loaded_neuron[key] == fake_neurons[0][key]
+            assert loaded_neuron[key] == fake_neuron[key]
 
     def test_load_neurons_from_metagraph_file_bad_data_missing_fields(self):
         fake_neurons: List[SimpleNamespace] = [

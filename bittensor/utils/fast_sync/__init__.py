@@ -396,7 +396,7 @@ class FastSync:
         
         neurons: SimpleNamespace = []
         try:
-            for neuron_data, i in zip(data, range(len(data))):
+            for neuron_data in data:
                 # validate the neuron data
                 neuron_data_validated: NeuronData = cls.validate_neuron_data_and_return(neuron_data)
                 neuron = SimpleNamespace( **neuron_data_validated.__dict__ )
