@@ -360,7 +360,7 @@ class FastSync:
             raise FastSyncFormatException("Neuron data bonds field must be a list of int, str(int) pairs")
         try:
             for bond, i in zip(bonds, range(len(bonds))):
-                bonds[i] = (bond[0], int(bond[1]))
+                bonds[i] = [bond[0], int(bond[1])]
 
                 if bonds[i][0] < 0:
                     raise FastSyncFormatException("Neuron data bonds field must have all uids >= 0")
