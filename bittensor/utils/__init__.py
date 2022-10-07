@@ -275,7 +275,6 @@ class CUDASolver(SolverBase):
 
         # Start at random nonce
         nonce_start = self.TPB * self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
-        nonce_end = nonce_start + self.update_interval * self.TPB
         while not self.stopEvent.is_set():
             if self.newBlockEvent.is_set():
                 with self.check_block:
@@ -286,7 +285,6 @@ class CUDASolver(SolverBase):
                 self.newBlockEvent.clear()
                 # reset nonces to start from random point
                 nonce_start = self.TPB * self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
-                nonce_end = nonce_start + self.update_interval * self.TPB
                 
             # Do a block of nonces
             solution, time = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
@@ -296,9 +294,8 @@ class CUDASolver(SolverBase):
             # Send time
             self.time_queue.put_nowait(time)
                 
-            nonce_start += self.update_interval * self.num_proc
+            nonce_start += self.update_interval * self.num_proc * self.TPB
             nonce_start = nonce_start % nonce_limit
-            nonce_end += self.update_interval * self.num_proc
 
 
 def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_interval: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int, dev_id: int, TPB: int) -> Tuple[Optional[POWSolution], int]:
