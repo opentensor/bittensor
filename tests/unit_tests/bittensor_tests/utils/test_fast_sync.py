@@ -82,8 +82,8 @@ class TestLoadNeurons(unittest.TestCase):
 
         # Check that the loaded neurons are the same as the fake neurons
         loaded_neuron = neurons_loaded[0].__dict__
-        for key, _ in loaded_neuron:
-            assert loaded_neuron[key] == fake_neurons[0].__dict__[key]
+        for key in loaded_neuron:
+            assert loaded_neuron[key] == fake_neurons[0][key]
 
     def test_load_neurons_from_metagraph_file_bad_data_missing_fields(self):
         fake_neurons: List[SimpleNamespace] = [
