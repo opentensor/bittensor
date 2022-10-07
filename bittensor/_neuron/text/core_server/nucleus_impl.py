@@ -7,12 +7,14 @@ import torch.nn.functional as F
 from types import SimpleNamespace
 from typing import Tuple, Optional
 
+import transformers
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map, translate_logits_to_probs_std, \
     translate_special_token_text, pad_offsets, topk_token_phrases, compact_topk_token_phrases
 
 from loguru import logger; logger = logger.opt(colors=True)
+
 
 class server(torch.nn.Module):
     def __init__(self, 
@@ -122,6 +124,7 @@ class server(torch.nn.Module):
         
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
+
         
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
@@ -421,11 +424,18 @@ class server(torch.nn.Module):
                       [prob_floor_b=1, ignore_index, ..., ignore_index]],
                      [...]]
         """
+        transformers.set_seed(0)
+        transformers.enable_full_determinism(0)
+        
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer
 
+        # print('nucleus encode_forward_causallmnext token_batch', torch.sum(token_batch), token_batch.shape)
         # remap to server tokenizer, expect right-aligned sequences so that last position keeps continuation prediction
         tokens = self.token_remap(token_batch, std_tokenizer)
+        
+        # print('nucleus encode_forward_causallmnext tokens input_ids', torch.sum(tokens['input_ids']), tokens['input_ids'].shape)
+        # print('nucleus encode_forward_causallmnext tokens attention_mask', torch.sum(tokens['attention_mask']), tokens['attention_mask'].shape)
 
         def _forward(_model_output=model_output):
             if _model_output is None:
@@ -433,17 +443,20 @@ class server(torch.nn.Module):
                                                attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
 
+            # print('nucleus encode_forward_causallmnext _model_output.logits', torch.sum(_model_output.logits), _model_output.logits.shape)
             # model_output.logits: [batch_size, sequence_len, server_vocab_size]
             last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
 
             # Select topk tokenizer logits and retokenize with std_tokenizer,
             # then compact new token phrases and probabilities into 1-D tensor
+            # print('nucleus encode_forward_causallmnext last_logits', torch.sum(last_logits), last_logits.shape)
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
             message = f'Loss: {original_loss:.2f}'
             #message = 'Success'
 
+            # print('nucleus encode_forward_causallmnext topk_tensor', torch.sum(topk_tensor), topk_tensor.shape)
             return message, _model_output, topk_tensor
 
         if self.config.neuron.remote_train:
