@@ -241,11 +241,6 @@ class Solver(SolverBase):
                     block_difficulty = registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
-                # reset nonces to start from random point
-                # prevents the same nonces (for each block) from being tried by multiple processes
-                # also prevents the same nonces from being tried by multiple peers
-                nonce_start = random.randint( 0, nonce_limit )
-                nonce_end = nonce_start + self.update_interval
                 
             # Do a block of nonces
             solution, time = solve_for_nonce_block(self, nonce_start, nonce_end, block_bytes, block_difficulty, self.limit, block_number)
@@ -255,8 +250,9 @@ class Solver(SolverBase):
             # Send time
             self.time_queue.put_nowait(time)
                 
-            nonce_start += self.update_interval * self.num_proc
-            nonce_end += self.update_interval * self.num_proc
+            nonce_start = random.randint( 0, nonce_limit )
+            nonce_end += self.update_interval
+            nonce_start = nonce_start % nonce_limit
 
 class CUDASolver(SolverBase):
     dev_id: int
@@ -274,7 +270,7 @@ class CUDASolver(SolverBase):
         nonce_limit = int(math.pow(2,64)) - 1
 
         # Start at random nonce
-        nonce_start = self.TPB * self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
+        nonce_start = random.randint( 0, nonce_limit )
         while not self.stopEvent.is_set():
             if self.newBlockEvent.is_set():
                 with self.check_block:
@@ -283,8 +279,6 @@ class CUDASolver(SolverBase):
                     block_difficulty = registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
-                # reset nonces to start from random point
-                nonce_start = self.TPB * self.update_interval * self.proc_num + random.randint( 0, nonce_limit )
                 
             # Do a block of nonces
             solution, time = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
@@ -293,8 +287,9 @@ class CUDASolver(SolverBase):
 
             # Send time
             self.time_queue.put_nowait(time)
-                
-            nonce_start += self.update_interval * self.num_proc * self.TPB
+            
+            # increase nonce by number of nonces processed
+            nonce_start += self.update_interval * self.TPB 
             nonce_start = nonce_start % nonce_limit
 
 
