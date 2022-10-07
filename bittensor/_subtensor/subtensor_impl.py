@@ -1504,7 +1504,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             try:
                 neuron = self.neuron_for_uid(id, block)
                 neurons.append( neuron )
-            except Exception as e:
+            except NeuronPullException as e:
                 logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
                 break
         return neurons
@@ -1606,8 +1606,11 @@ To run a local node (See: docs/running_a_validator.md) \n
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 ).value )
             return result
-        result = make_substrate_call_with_retry()
-        neuron = Subtensor._neuron_dict_to_namespace( result )
+        try:
+            result = make_substrate_call_with_retry()
+            neuron = Subtensor._neuron_dict_to_namespace( result )
+        except Exception as e:
+            raise NeuronPullException("Failed to pull neuron for uid: {} at block: {} with error: {}".format(uid, block, e))
         return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
@@ -1708,3 +1711,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron object associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, block = block )
+
+class NeuronPullException(Exception):
+    """Raised when pullin a Neuron from the chain fails."""
+    pass
