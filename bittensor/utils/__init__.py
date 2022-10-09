@@ -683,7 +683,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             
             if num_time > 0:
                 time_avg = time_total / num_time
-                itrs_per_sec = TPB*update_interval*num_processes / time_avg
+                itrs_per_sec = TPB*update_interval / time_avg
                 time_since = time.time() - start_time
                 
             message = f"""Solving 
