@@ -370,8 +370,10 @@ class Dendrite(torch.autograd.Function):
         length_penalty: float = 1.0,
         max_time: float = 150,
         num_beam_groups: int = 1,
-    ) -> str:
+    ) -> Tuple[ List[str], List[float], List[str] ]:
         """
+        Returns a tuple containing the prompt generations produced by endpoints with corresponding parsed codes and query times.
+
         Args:
             endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
                         Endpoints to send inputs to. Endpoint can be one of the following types:
@@ -415,19 +417,17 @@ class Dendrite(torch.autograd.Function):
                 The parameter for repetition penalty. 1.0 means no penalty.
             length_penalty (:obj: float, :default: 1.0): 
                 The parameter for length penalty. 0.0 means no penalty, <0 to encourage longer sequences.
-            num_beam_groups (:obj: int, :default: 1):
-                Number of groups to divide num_beams into in order to ensure diversity among different groups of beams. 
             max_time (:obj: float, :default: 150): 
                 The maximum time that a server can use to generate
-            forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                Serializer used to pack torch tensors on forward request.
-            forward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                Serializer used to pack torch tensors on forward response.
-            backward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                Serializer used to pack torch tensors on forward request.
-            backward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
-                Serialzer used to pack torch tensors on backward response.
+            num_beam_groups (:obj: int, :default: 1):
+                Number of groups to divide num_beams into in order to ensure diversity among different groups of beams. 
         Returns:
+            codes (:obj:`List[str]`, `required`):
+                Parsed codes from each endpoint from query.
+
+            times (:obj:`List[float]`, `required`):
+                Query times for each call from each endpoint.
+
             generations (:obj:`List[str]`, `required`):
                 Generations from each endpoint.
         """
@@ -454,10 +454,17 @@ class Dendrite(torch.autograd.Function):
             ],
             timeout = timeout
         )
+        # Parse responses to natural language.
         generations = []
-        for x in response[0]:
-            generations.append( tokenizer.decode( x[0][0].long() ) )
-        return generations
+        for text_tensor in response[0]:
+            generations.append( tokenizer.decode( text_tensor[0][0].long() ) )
+        codes = []
+        for code_tensor in response[1]:
+            codes.append( bittensor.utils.codes.code_to_string( code_tensor ) )
+        times = []
+        for time_tensor in response[2]:
+            times.append( time_tensor.item() )
+        return codes, times, generations
 
     def text (
         self,
