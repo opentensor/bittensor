@@ -433,7 +433,7 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     # Set to current block
     update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
 
-    # Set new block events for each solver to start
+    # Set new block events for each solver to start at the initial block
     for worker in solvers:
         worker.newBlockEvent.set()
     
@@ -510,10 +510,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     stopEvent.set() # stop all other processes
     status.stop()
 
-    # terminate and wait for solvers/workers to exit
-    for worker in solvers:
-        worker.terminate()
-        worker.join()
+    # terminate and wait for all solvers to exit
+    terminate_workers_and_wait_for_exit(solvers)
 
     return solution
     
@@ -632,7 +630,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         # Set to current block
         update_curr_block(block_number, block_bytes, difficulty, check_block)
 
-        # Set new block events for each solver to start
+        # Set new block events for each solver to start at the initial block
         for worker in solvers:
             worker.newBlockEvent.set()
         
@@ -713,11 +711,16 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         stopEvent.set() # stop all other processes
         status.stop()
 
-        for worker in solvers: # terminate and wait for all solvers
-            worker.terminate()
-            worker.join()
+        # terminate and wait for all solvers to exit
+        terminate_workers_and_wait_for_exit(solvers)
 
         return solution
+
+def terminate_workers_and_wait_for_exit(workers: List[multiprocessing.Process]) -> None:
+    for worker in workers:
+        worker.terminate()
+        worker.join()
+
 
 def create_pow( subtensor, wallet, cuda: bool = False, dev_id: Union[List[int], int] = 0, tpb: int = 256, num_processes: int = None, update_interval: int = None) -> Optional[Dict[str, Any]]:
     if cuda:
