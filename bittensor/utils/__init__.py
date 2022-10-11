@@ -8,6 +8,7 @@ import random
 import time
 from dataclasses import dataclass
 from queue import Empty
+from tracemalloc import start
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import backoff
@@ -639,10 +640,18 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         for w in solvers:
             w.start() # start the solver processes
         
-        start_time = time.time()
-        time_since = 0.0
+        start_time = time.time() # time that the registration started
+        time_last = start_time # time that the last work blocks completed
+        
         solution = None
-        itrs_per_sec = 0
+        hash_rate = 0 # EWMA hash_rate (H/s)
+
+        n = 5 # number of samples to keep
+        alpha_ = 0.70 # EWMA alpha for hash_rate
+
+        hash_rates = [0] * n # The last n true hash_rates
+        weights = [alpha_ ** i for i in range(n)] # weights decay by alpha
+
         while not wallet.is_registered(subtensor):
             # Wait until a solver finds a solution
             try:
@@ -668,28 +677,34 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                 # Set new block events for each solver
                 for w in solvers:
                     w.newBlockEvent.set()
-                    
-            # Get times for each solver
-            time_total = 0
+            
             num_time = 0
+            # Get times for each solver
             for _ in solvers:
                 try:
-                    time_ = time_queue.get_nowait()
-                    time_total += time_
+                    _ = time_queue.get_nowait()
                     num_time += 1
 
                 except Empty:
                     break
             
+            time_since = time.time() - start_time
             if num_time > 0:
-                time_avg = time_total / num_time
-                itrs_per_sec = TPB*update_interval / time_avg
-                time_since = time.time() - start_time
+                time_since_last = time.time() - time_last
+                # create EWMA of the hash_rate to make measure more robust
+                hash_rate_ = ((num_time * TPB * update_interval) / time_since_last)
+                hash_rates.append(hash_rate_)
+                hash_rates.pop(0) # remove the 0th data point
+                hash_rate = sum([hash_rates[i]*weights[i] for i in range(n)])/(sum(weights))
+
+                # update time last to now
+                time_last = time.time()
+                
                 
             message = f"""Solving 
                 time spent: {time_since}
                 Difficulty: [bold white]{millify(difficulty)}[/bold white]
-                Iters: [bold white]{get_human_readable(int(itrs_per_sec), 'H')}/s[/bold white]
+                Iters: [bold white]{get_human_readable(int(hash_rate), 'H')}/s[/bold white]
                 Block: [bold white]{block_number}[/bold white]
                 Block_hash: [bold white]{block_hash.encode('utf-8')}[/bold white]"""
             status.update(message.replace(" ", ""))
