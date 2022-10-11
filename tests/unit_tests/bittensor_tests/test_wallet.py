@@ -64,3 +64,33 @@ class TestWallet(unittest.TestCase):
         with pytest.raises(ValueError):
             # Must provide either public_key or ss58_address
             self.mock_wallet.regenerate_coldkeypub(ss58_address=None, public_key=None)
+
+    def test_regen_coldkey_from_hex_seed_str(self):
+        ss58_addr = "5D5cwd8DX6ij7nouVcoxDuWtJfiR1BnzCkiBVTt7DU8ft5Ta"
+        seed_str = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f7636"
+        with patch.object(self.mock_wallet, 'set_coldkey') as mock_set_coldkey:
+            self.mock_wallet.regenerate_coldkey(seed=seed_str)
+
+            mock_set_coldkey.assert_called_once()
+            keypair: bittensor.Keypair = mock_set_coldkey.call_args_list[0][0][0]
+            self.assertEqual(keypair.seed_hex, seed_str)
+            self.assertEqual(keypair.ss58_address, ss58_addr) # Check that the ss58 address is correct
+
+        seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
+        with pytest.raises(ValueError):
+            self.mock_wallet.regenerate_coldkey(seed=seed_str_bad)
+
+    def test_regen_hotkey_from_hex_seed_str(self):
+        ss58_addr = "5D5cwd8DX6ij7nouVcoxDuWtJfiR1BnzCkiBVTt7DU8ft5Ta"
+        seed_str = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f7636"
+        with patch.object(self.mock_wallet, 'set_hotkey') as mock_set_hotkey:
+            self.mock_wallet.regenerate_hotkey(seed=seed_str)
+
+            mock_set_hotkey.assert_called_once()
+            keypair: bittensor.Keypair = mock_set_hotkey.call_args_list[0][0][0]
+            self.assertEqual(keypair.seed_hex, seed_str)
+            self.assertEqual(keypair.ss58_address, ss58_addr) # Check that the ss58 address is correct
+
+        seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
+        with pytest.raises(ValueError):
+            self.mock_wallet.regenerate_hotkey(seed=seed_str_bad)

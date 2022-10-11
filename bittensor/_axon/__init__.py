@@ -2,6 +2,7 @@
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -65,6 +66,8 @@ class axon:
             server: 'grpc._Server' = None,
             port: int = None,
             ip: str = None,
+            external_ip: str = None,
+            external_port: int = None,
             max_workers: int = None, 
             maximum_concurrent_rpcs: int = None,
             blacklist: 'Callable' = None,
@@ -101,6 +104,10 @@ class axon:
                     Binding port.
                 ip (:type:`str`, `optional`):
                     Binding ip.
+                external_ip (:type:`str`, `optional`):
+                    The external ip of the server to broadcast to the network.
+                external_port (:type:`int`, `optional`):
+                    The external port of the server to broadcast to the network.
                 max_workers (:type:`int`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`int`, `optional`):
@@ -120,6 +127,8 @@ class axon:
         config = copy.deepcopy(config)
         config.axon.port = port if port != None else config.axon.port
         config.axon.ip = ip if ip != None else config.axon.ip
+        config.axon.external_ip = external_ip if external_ip != None else config.axon.external_ip
+        config.axon.external_port = external_port if external_port != None else config.axon.external_port
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
@@ -174,6 +183,8 @@ class axon:
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
+            external_ip=config.axon.external_ip, # don't use internal ip if it is None, we will try to find it later
+            external_port=config.axon.external_port or config.axon.port, # default to internal port if external port is not set
             forward = forward_text,
             backward = backward_text,
             synapses = synapses,
@@ -214,9 +225,13 @@ class axon:
         prefix_str = '' if prefix == None else prefix + '.'
         try:
             parser.add_argument('--' + prefix_str + 'axon.port', type=int, 
-                    help='''The port this axon endpoint is served on. i.e. 8091''', default = bittensor.defaults.axon.port)
+                    help='''The local port this axon endpoint is bound to. i.e. 8091''', default = bittensor.defaults.axon.port)
             parser.add_argument('--' + prefix_str + 'axon.ip', type=str, 
                 help='''The local ip this axon binds to. ie. [::]''', default = bittensor.defaults.axon.ip)
+            parser.add_argument('--' + prefix_str + 'axon.external_port', type=int, required=False,
+                    help='''The public port this axon broadcasts to the network. i.e. 8091''', default = bittensor.defaults.axon.external_port)
+            parser.add_argument('--' + prefix_str + 'axon.external_ip', type=str, required=False,
+                help='''The external ip this axon broadcasts to the network to. ie. [::]''', default = bittensor.defaults.axon.external_ip)
             parser.add_argument('--' + prefix_str + 'axon.max_workers', type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
@@ -253,6 +268,8 @@ class axon:
         defaults.axon = bittensor.Config()
         defaults.axon.port = os.getenv('BT_AXON_PORT') if os.getenv('BT_AXON_PORT') != None else 8091
         defaults.axon.ip = os.getenv('BT_AXON_IP') if os.getenv('BT_AXON_IP') != None else '[::]'
+        defaults.axon.external_port = os.getenv('BT_AXON_EXTERNAL_PORT') if os.getenv('BT_AXON_EXTERNAL_PORT') != None else None
+        defaults.axon.external_ip = os.getenv('BT_AXON_EXTERNAL_IP') if os.getenv('BT_AXON_EXTERNAL_IP') != None else None
         defaults.axon.max_workers = os.getenv('BT_AXON_MAX_WORERS') if os.getenv('BT_AXON_MAX_WORERS') != None else 10
         defaults.axon.maximum_concurrent_rpcs = os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') if os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') != None else 400
         
@@ -267,6 +284,7 @@ class axon:
         """ Check config for axon port and wallet
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
+        assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
         bittensor.wallet.check_config( config )
 
     @classmethod   

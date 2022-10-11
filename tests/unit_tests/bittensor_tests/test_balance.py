@@ -327,3 +327,12 @@ class TestBalance(unittest.TestCase):
         assert isinstance(quot_, Balance)
         assert CLOSE_IN_VALUE(quot_.rao, 5) == rao2_ // rao_   
 
+    @given(balance=valid_tao_numbers_strategy)
+    def test_balance_not_eq_none(self, balance: Union[int, float]):
+        balance_ = Balance(balance)
+        assert not balance_ == None
+
+    @given(balance=valid_tao_numbers_strategy)
+    def test_balance_neq_none(self, balance: Union[int, float]):
+        balance_ = Balance(balance)
+        assert balance_ != None

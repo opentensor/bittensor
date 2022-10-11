@@ -6,6 +6,9 @@ from typing import Tuple
 import numpy as np
 from Crypto.Hash import keccak
 
+from contextlib import redirect_stdout
+import io
+
 
 def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, bn: int, difficulty: int, limit: int, dev_id: int = 0) -> Tuple[np.int64, bytes]:
     """
@@ -66,7 +69,6 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     solution = cubit.solve_cuda(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
-        print(f"Checking solution: {solution} for bn: {bn}")
         seal = create_seal_hash(block_bytes, solution)
         if seal_meets_difficulty(seal, difficulty):
             return solution, seal
@@ -85,3 +87,24 @@ def reset_cuda():
         raise ImportError("Please install cubit")
         
     cubit.reset_cuda()
+
+def log_cuda_errors() -> str:
+    """
+    Logs any CUDA errors.
+    """
+    try:
+        import cubit
+    except ImportError:
+        raise ImportError("Please install cubit")
+
+    f = io.StringIO()
+    with redirect_stdout(f):
+        cubit.log_cuda_errors()
+
+    s = f.getvalue()
+    
+    return s
+        
+    
+
+
