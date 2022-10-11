@@ -374,7 +374,7 @@ def get_cpu_count():
         # OSX does not have sched_getaffinity
         return os.cpu_count()
 
-def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] = None, update_interval: Optional[int] = None, n_samples: int = 5, alpha_: float = 0.70 ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -386,6 +386,12 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
             Number of processes to use.
         update_interval: int
             Number of nonces to solve before updating block information.
+        n_samples: int
+            The number of samples of the hash_rate to keep for the EWMA
+        alpha_: float
+            The alpha for the EWMA for the hash_rate calculation
+    
+    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
     Note: 
     - We can also modify the update interval to do smaller blocks of work,
         while still updating the block information after a different number of nonces,
@@ -449,9 +455,6 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     best_seal = None
 
     hash_rate = 0 # EWMA hash_rate (H/s)
-
-    n = 5 # number of samples to keep
-    alpha_ = 0.70 # EWMA alpha for hash_rate
 
     hash_rates = [0] * n # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n)] # weights decay by alpha
@@ -581,7 +584,7 @@ class UsingSpawnStartMethod():
         multiprocessing.set_start_method(self._old_start_method, force=True)
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0 ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n: int = 5, alpha_: float = 0.70 ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -595,6 +598,12 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             The number of threads per block. CUDA param that should match the GPU capability
         dev_id: Union[List[int], int]
             The CUDA device IDs to execute the registration on, either a single device or a list of devices
+        n_samples: int
+            The number of samples of the hash_rate to keep for the EWMA
+        alpha_: float
+            The alpha for the EWMA for the hash_rate calculation
+    
+    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
     """
     if isinstance(dev_id, int):
         dev_id = [dev_id]
@@ -666,9 +675,6 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         
         solution = None
         hash_rate = 0 # EWMA hash_rate (H/s)
-
-        n = 5 # number of samples to keep
-        alpha_ = 0.70 # EWMA alpha for hash_rate
 
         hash_rates = [0] * n # The last n true hash_rates
         weights = [alpha_ ** i for i in range(n)] # weights decay by alpha
