@@ -7,7 +7,7 @@ import os
 import random
 import time
 from dataclasses import dataclass
-from queue import Empty
+from queue import Empty, Full
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import backoff
@@ -247,8 +247,11 @@ class Solver(SolverBase):
             if solution is not None:
                 self.solution_queue.put(solution)
 
-            # Send time
-            self.time_queue.put_nowait(time)
+            try:
+                # Send time
+                self.time_queue.put_nowait(time)
+            except Full:
+                pass
                 
             nonce_start = random.randint( 0, nonce_limit )
             nonce_start = nonce_start % nonce_limit
@@ -284,9 +287,12 @@ class CUDASolver(SolverBase):
             solution, time = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
             if solution is not None:
                 self.solution_queue.put(solution)
-
-            # Send time
-            self.time_queue.put_nowait(time)
+        
+            try:
+                # Send time
+                self.time_queue.put_nowait(time)
+            except Full:
+                pass
             
             # increase nonce by number of nonces processed
             nonce_start += self.update_interval * self.TPB 
