@@ -8,7 +8,6 @@ import random
 import time
 from dataclasses import dataclass
 from queue import Empty
-from tracemalloc import start
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import backoff
