@@ -22,26 +22,46 @@ import torch
 
 U32_MAX = 4294967295
 
-def normalize_max_multiple(  x: torch.FloatTensor, multiple:int = 3 ) -> 'torch.FloatTensor':
-    r""" Normalizes the tensor x so that sum(x) = 1 and the max value is at most multiple times larger than the min value.
+def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.FloatTensor':
+    r""" Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
         Args:
             x (:obj:`torch.FloatTensor`):
                 Tensor to be max_value normalized.
-            multiple: float:
-                Max value is multiple times larger than the min after normalization.     
+            limit: float:
+                Max value after normalization.     
         Returns:
-            x (:obj:`torch.FloatTensor`):
+            y (:obj:`torch.FloatTensor`):
                 Normalized x tensor.
     """
-    x = x 
-    shift = 1 / ( multiple - 1 )
-    x = x - x.min()
+    epsilon = 1e-7 #For numerical stability after normalization
+    
+    weights =  x.clone()
+    values, _ = torch.sort(weights)
 
-    if x.sum() == 0:
+    if x.sum() == 0 or len(x)*limit <= 1:
         return torch.ones_like(x)/x.size(0)
     else:
-        x = x / x.sum()
-        y = (torch.tanh(x * len(x)) + shift)/(torch.tanh( x * len(x) ) + shift).sum()
+        estimation = values/values.sum()
+        
+        if estimation.max() <= limit:
+            return weights/weights.sum()
+
+        # Find the cumlative sum and sorted tensor
+        cumsum = torch.cumsum(estimation,0)
+
+        # Determine the index of cutoff
+        estimation_sum = torch.tensor([(len(values)-i-1)*estimation[i] for i in range(len(values))])
+        n_values = (estimation/(estimation_sum+cumsum+epsilon)<limit).sum()
+
+        # Determine the cutoff based on the index        
+        cutoff_scale = (limit*cumsum[n_values-1]-epsilon)/(1-(limit*(len(estimation)-n_values)))
+        cutoff= cutoff_scale*values.sum()
+
+        # Applying the cutoff
+        weights[weights > cutoff] = cutoff
+
+        y = weights/weights.sum()
+
         return y
 
 def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: List[int] ) -> 'torch.FloatTensor':
