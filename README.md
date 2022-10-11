@@ -63,20 +63,35 @@ The following examples showcase how to use the Bittensor API for 3 separate purp
 
 ### 3.1. Client 
 
+Querying the network for generations.
+
+```python
+import bittensor
+wallet = bittensor.wallet().create_if_non_existent()
+graph = bittensor.metagraph().sync()
+print ( bittensor.dendrite( wallet = wallet ).generate
+        ( 
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            prompt = "The quick brown fox jumped over the lazy dog", 
+            num_to_generate = 20
+        )
+)
+```
+
 Querying the network for representations.
 
 ```python
 import bittensor
-import torch
-wallet = bittensor.wallet().create().register()
+wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
-representations, _, _ = bittensor.dendrite( wallet = wallet ).text_last_hidden_state(
-    endpoints = graph.endpoints,
-    inputs = "The quick brown fox jumped over the lazy dog"
+print ( bittensor.dendrite( wallet = wallet ).text_last_hidden_state
+        (
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            inputs = "The quick brown fox jumped over the lazy dog"
+        )
 )
-representations = // N tensors with shape (1, 9, 1024)
 ...
-// Distill model. 
+// Apply model. 
 ...
 loss.backward() // Accumulate gradients on endpoints.
 ```
