@@ -351,6 +351,121 @@ class Dendrite(torch.autograd.Function):
 
         return packed_outputs, packed_codes, packed_times
 
+
+    def generate(
+        self,
+        endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
+        prompt: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+        timeout: int = None,
+        topk:int = 50, 
+        num_to_generate: int = 256,
+        num_beams: int = 5,
+        no_repeat_ngram_size: int = 2,
+        early_stopping: bool = False,
+        num_return_sequences: int = 1,
+        do_sample: bool = False,
+        top_p: float = 0.95, 
+        temperature: float = 1.0,
+        repetition_penalty: float = 1.0,
+        length_penalty: float = 1.0,
+        max_time: float = 150,
+        num_beam_groups: int = 1,
+    ) -> Tuple[ List[str], List[float], List[str] ]:
+        """
+        Returns a tuple containing the prompt generations produced by endpoints with corresponding parsed codes and query times.
+
+        Args:
+            endpoints (:obj:`Union[torch.LongTensor, List[torch.LongTensor], List[bittensor.Endpoint], bittensor.Endpoint]` of shape :obj:`(num_endpoints)`, `required`):
+                        Endpoints to send inputs to. Endpoint can be one of the following types:
+                            - a single endpoint tensor shape [250]
+                            - a set of endpoint tensors shape [n, 250]
+                            - a list of endpoints tensors each of shape [250]
+                            - a single endpoint object. Inputs will be sent to this endpoint alone.
+                            - a list of endpoint objects. All inputs will be sent to these endpoints.
+
+            prompts (:obj:`Union[str,  List[str], List[torch.LongTensor], torch.LongTensor]` of shape :obj:`(num_endpoints * [batch_size, sequence_len])`, `required`):
+                        Tokenized sentences to send on the wire. Inputs can be one of the following types:
+                            - a single string: the string will be tokenized using the bittensor tokenizer.
+                            - a list of strings: the strings will be tokenized using the bittensor tokenizer.
+                            - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
+                            - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
+                            - a list of tensors of type long each representing a tokenized sentence to be sent to each endpoint.
+                        If inputs are tensors they will be cast to int64 format before sending on the wire.
+
+            timeout (:type:`int`, default = dendrite.timeout `optional`):
+                Request timeout. Queries that do not respond will be replaced by zeros.
+
+            Topk (:obj:int, :default: 50):
+                The number of highest probability vocabulary tokens to keep for top-k-filtering. 
+            num_to_generate (:obj: int, :default: 256):
+                The number of tokens to generate using the language model
+            num_beams (:obj: int, :default: 5):
+                The number of beams to keep during beam search
+            no_repeat_ngram_size (:obj: int, :default: 2):
+                The number of repeat n gram allowed
+            early_stopping: (:obj: bool, :default: True):
+                If the model should early stop if the probabilty drops a certain threshold
+            num_return_sequences: (:obj: int, :default: 1):
+                How many sequences should the model return
+            do_sample (:obj: bool, :default: False):
+                If the model should do sample its probablity during generation
+            top_p (:obj: float, :default: 0.95): 
+                probability cutoff for top p sampling
+            temperature: (:obj: float, :default: 1.0):
+                The value used to module the next token probabilities for the softmax calculation
+            repetition_penalty (:obj: float, :default: 1.0):
+                The parameter for repetition penalty. 1.0 means no penalty.
+            length_penalty (:obj: float, :default: 1.0): 
+                The parameter for length penalty. 0.0 means no penalty, <0 to encourage longer sequences.
+            max_time (:obj: float, :default: 150): 
+                The maximum time that a server can use to generate
+            num_beam_groups (:obj: int, :default: 1):
+                Number of groups to divide num_beams into in order to ensure diversity among different groups of beams. 
+        Returns:
+            codes (:obj:`List[str]`, `required`):
+                Parsed codes from each endpoint from query.
+
+            times (:obj:`List[float]`, `required`):
+                Query times for each call from each endpoint.
+
+            generations (:obj:`List[str]`, `required`):
+                Generations from each endpoint.
+        """
+        tokenizer = bittensor.tokenizer()
+        response = self.text ( 
+            endpoints=endpoints, 
+            inputs = prompt,
+            synapses = [
+                synapse.TextSeq2Seq(
+                    topk = topk,
+                    num_to_generate = num_to_generate,
+                    num_beams = num_beams,
+                    no_repeat_ngram_size = no_repeat_ngram_size,
+                    early_stopping = early_stopping,
+                    num_return_sequences = num_return_sequences,
+                    do_sample = do_sample,
+                    top_p = top_p,
+                    temperature = temperature,
+                    repetition_penalty = repetition_penalty,
+                    length_penalty = length_penalty,
+                    max_time = max_time,
+                    num_beam_groups = num_beam_groups,
+                )
+            ],
+            timeout = timeout
+        )
+        # Parse responses to natural language.
+        generations = []
+        for text_tensor in response[0]:
+            generations.append( tokenizer.decode( text_tensor[0][0].long() ) )
+        codes = []
+        for code_tensor in response[1]:
+            codes.append( bittensor.utils.codes.code_to_string( code_tensor ) )
+        times = []
+        for time_tensor in response[2]:
+            times.append( time_tensor.item() )
+        return codes, times, generations
+
     def text (
         self,
         endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
