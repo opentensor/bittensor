@@ -149,5 +149,6 @@ class config:
         bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
         bittensor.dataset.add_args( parser )
+        bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
 
