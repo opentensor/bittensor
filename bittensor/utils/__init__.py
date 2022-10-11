@@ -434,11 +434,11 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
 
     # Set new block events for each solver to start
-    for w in solvers:
-        w.newBlockEvent.set()
+    for worker in solvers:
+        worker.newBlockEvent.set()
     
-    for w in solvers:
-        w.start() # start the solver processes
+    for worker in solvers:
+        worker.start() # start the solver processes
     
     start_time = time.time()
     solution = None
@@ -467,8 +467,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
 
             update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
             # Set new block events for each solver
-            for w in solvers:
-                w.newBlockEvent.set()
+            for worker in solvers:
+                worker.newBlockEvent.set()
                 
         # Get times for each solver
         time_total = 0
@@ -510,10 +510,10 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
     stopEvent.set() # stop all other processes
     status.stop()
 
-    # terminate and wait for sovlers to exit
-    for w in solvers:
-        w.terminate()
-        w.join()
+    # terminate and wait for solvers/workers to exit
+    for worker in solvers:
+        worker.terminate()
+        worker.join()
 
     return solution
     
@@ -633,11 +633,11 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         update_curr_block(block_number, block_bytes, difficulty, check_block)
 
         # Set new block events for each solver to start
-        for w in solvers:
-            w.newBlockEvent.set()
+        for worker in solvers:
+            worker.newBlockEvent.set()
         
-        for w in solvers:
-            w.start() # start the solver processes
+        for worker in solvers:
+            worker.start() # start the solver processes
         
         start_time = time.time() # time that the registration started
         time_last = start_time # time that the last work blocks completed
@@ -674,9 +674,10 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
                 update_curr_block(block_number, block_bytes, difficulty, check_block)
                 # Set new block events for each solver
-                for w in solvers:
-                    w.newBlockEvent.set()
-            
+
+                for worker in solvers:
+                    worker.newBlockEvent.set()
+
             num_time = 0
             # Get times for each solver
             for _ in solvers:
@@ -712,9 +713,9 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         stopEvent.set() # stop all other processes
         status.stop()
 
-        for w in solvers: # terminate and wait for all solvers
-            w.terminate()
-            w.join()
+        for worker in solvers: # terminate and wait for all solvers
+            worker.terminate()
+            worker.join()
 
         return solution
 
