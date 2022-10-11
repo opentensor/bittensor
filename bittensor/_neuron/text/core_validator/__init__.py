@@ -237,7 +237,7 @@ class neuron:
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
         parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
-        parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting.', default=0.1)
+        parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting. (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
     def config ( cls ):
@@ -388,7 +388,7 @@ class neuron:
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
 
@@ -410,7 +410,7 @@ class neuron:
         if self.config.using_wandb:
             wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
                        'era/validation_len': validation_len,
-                       'era/min_allowed_weights': min_allowed_weights, 'era/max_allowed_ratio': max_allowed_ratio,
+                       'era/min_allowed_weights': min_allowed_weights, 'era/max_weight_limit': max_weight_limit,
                        'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
                       step=current_block)
 
@@ -572,8 +572,8 @@ class neuron:
               f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
               f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
               f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-              f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
-              f'({max_allowed_ratio} allowed)')
+              f'\[{sample_weights.max().item()}:1] '
+              f'({max_weight_limit} allowed)')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
@@ -678,7 +678,7 @@ class neuron:
 
         # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_weight_limit = self.subtensor.max_weight_limit
 
         non_responsive_uids = queried_uids - responsive_uids
         non_queried_uids = set(range(self.metagraph.n)) - queried_uids
@@ -708,12 +708,15 @@ class neuron:
         sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
         sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
 
-        logger.info(f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
+        # === If no uids responds, return ===
+        if len(sample_uids) == 0:
+            return sample_uids, sample_weights
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
+        quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
         if 0 < max_exclude:
-            exclude_quantile = min([self.config.neuron.exclude_quantile, max_exclude])  # reduce quantile to meet min_allowed_weights
+            exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
             lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
             sample_uids = sample_uids[lowest_quantile <= sample_weights]  # exclude uids with weights below quantile
             sample_weights = sample_weights[lowest_quantile <= sample_weights]  # exclude weights below quantile
@@ -721,11 +724,11 @@ class neuron:
             logger.info(f'Exclude {exclude_quantile} quantile ({lowest_quantile}) | '
                         f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
 
-        # === Normalize and apply max_allowed_ratio ===
-        sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
-                                                                             multiple=max_allowed_ratio)
-        logger.info(f'{len(sample_weights)} normalize_max_multiple | '
-                    f'min:{sample_weights.min()} max:{sample_weights.max()}')
+        # === Normalize and apply max_weight_limit ===
+        sample_weights = bittensor.utils.weight_utils.normalize_max_weight(x=sample_weights,
+                                                                             limit=max_weight_limit)
+        logger.info(f'{len(sample_weights)} normalize_max_weight | '
+                    f'max:{sample_weights.max()}')
 
         return sample_uids, sample_weights
 
@@ -733,7 +736,7 @@ class neuron:
         r""" Prints weights table given sample_uids and sample_weights.
         """
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_weight_limit = self.subtensor.max_weight_limit
 
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights
@@ -763,8 +766,8 @@ class neuron:
                     f'sum:{sample_weights.sum().item():.2g} '
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                    f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
-                    f'({max_allowed_ratio} allowed)',  # caption
+                    f'\[{sample_weights.max().item()}:1] '
+                    f'({max_weight_limit} allowed)',  # caption
                     mark_uids=avail_include_uids)
 
 
@@ -774,6 +777,10 @@ class nucleus( torch.nn.Module ):
     def __init__( self, config, device, subtensor ):
         super(nucleus, self).__init__()
         self.config = config
+
+        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+
         self.device = device
         self.max_n = subtensor.max_n
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
@@ -818,8 +825,8 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
         parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
-        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.5)
-        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.6)
+        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
+        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
     def config ( cls ):
