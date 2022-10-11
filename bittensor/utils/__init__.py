@@ -686,17 +686,20 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                 except Empty:
                     break
             
-            time_since = time.time() - start_time
-            if num_time > 0:
-                time_since_last = time.time() - time_last
+            time_now = time.time() # get current time
+            time_since_last = time_now - time_last # get time since last work block(s)
+            if num_time > 0 and time_since_last > 0.0:
                 # create EWMA of the hash_rate to make measure more robust
-                hash_rate_ = ((num_time * TPB * update_interval) / time_since_last)
+            
+                hash_rate_ = (num_time * TPB * update_interval) / time_since_last
                 hash_rates.append(hash_rate_)
                 hash_rates.pop(0) # remove the 0th data point
                 hash_rate = sum([hash_rates[i]*weights[i] for i in range(n)])/(sum(weights))
 
                 # update time last to now
-                time_last = time.time()
+                time_last = time_now
+            
+            time_since = time_now - start_time
                 
                 
             message = f"""Solving 
