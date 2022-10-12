@@ -260,9 +260,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         deserialized_forward_tensors = [ None for _ in synapses]
         for index, synapse in enumerate( synapses ):
             try:
-                # print('axon forward request.tensors[index]', request.tensors[index].shape)
                 deserialized_forward_tensors [index] = synapse.deserialize_forward_request_tensor ( request.tensors [index] )
-                # print('axon forward deserialized_forward_tensors[index]', deserialized_forward_tensors[index].shape)
 
             except ValueError as e:
                 synapse_codes [index] = bittensor.proto.ReturnCode.RequestShapeException
@@ -285,7 +283,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         try:
             finalize_codes_stats_and_logs()
             if self.priority != None:
-                # print('axon forward deserialized_forward_tensors', torch.sum(deserialized_forward_tensors[0]), deserialized_forward_tensors[0].shape)
                 priority = self.priority( request.hotkey, inputs_x = deserialized_forward_tensors, request_type = bittensor.proto.RequestType.FORWARD )
                 future = self.priority_threadpool.submit (
                     self.forward_callback,
@@ -295,7 +292,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     hotkey = request.hotkey
                 )
                 forward_response_tensors, forward_codes, forward_messages = future.result( timeout = synapse_timeout - (clock.time() - start_time) )
-                # print('axon forward forward_response_tensors', torch.sum(forward_response_tensors[0]), forward_response_tensors[0].shape)
             else:
                 
                 forward_response_tensors, forward_codes, forward_messages = self.forward_callback(

@@ -130,14 +130,12 @@ def serve(
         return message, model_output, logits
 
     def forward_casual_lm_next(inputs_x: torch.FloatTensor, synapse, model_output=None):
-        # print('server forward inputs_x 1', torch.sum(inputs_x), inputs_x.shape)
         with mutex:
             message, model_output, topk_token_phrases = model.encode_forward_causallmnext(inputs_x.to(model.device),
                                                                                         topk=synapse.topk,
                                                                                         model_output=model_output)
         # topk_token_phrases: [sum_b(sum_k(len(phrase_k) + 1)_b)] contains topk token phrases and probabilities
         #   Compacted 1-D tensor >= batch_size * (2 * topk + 1)
-        # print('server forward topk_token_phrases 2', torch.sum(topk_token_phrases), topk_token_phrases.shape)
         return message, model_output, topk_token_phrases
 
     def optimizer_step():
@@ -291,7 +289,6 @@ def serve(
                         response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
                         response_messages.append('Not Implemented')
                 except Exception as e:
-                    print(e)
                     # --- Exception Hit in Synapse ---
                     response_tensors.append(None)
                     response_codes.append(bittensor.proto.ReturnCode.UnknownException)
@@ -340,7 +337,6 @@ def serve(
 
     # --- Run Forever.
     while True:
-        print('hey yo') 
         iteration = 0
         local_data = {}
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
@@ -367,11 +363,9 @@ def serve(
         
         else:
             while end_block >= current_block:
-                print('sleeping...')
                 time.sleep(12)
                 current_block = subtensor.get_current_block()
 
-        print('backward_gradients_count', model.backward_gradients_count)
         # --- Update parameters
         if (config.neuron.local_train and iteration > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
             # Custom learning rate
@@ -388,7 +382,6 @@ def serve(
                 optimizer.zero_grad()
             model.backward_gradients_count = 0
             logger.info('Optimization Successful: Model updated')
-            print('Optimization Successful: Model updated')
 
             if (config.neuron.local_train and iteration > 0):
                 local_data = {'local/loss': losses.detach().item() / iteration}
