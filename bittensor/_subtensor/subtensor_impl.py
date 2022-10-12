@@ -500,11 +500,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_finalization: bool = True,
         prompt: bool = False,
         max_allowed_attempts: int = 3,
+        output_in_place: bool = True,
         cuda: bool = False,
         dev_id: Union[List[int], int] = 0,
         TPB: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
+        log_verbose: bool = False,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -530,6 +532,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 The number of processes to use to register.
             update_interval (int):
                 The number of nonces to solve between updates.
+            log_verbose (bool):
+                If true, the registration process will log more information.
         Returns:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block. 
@@ -556,9 +560,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                     if prompt:
                         bittensor.__console__.error('CUDA is not available.')
                     return False
-                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval )
+                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
             else:
-                pow_result = bittensor.utils.create_pow( self, wallet, num_processes=num_processes, update_interval=update_interval)
+                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
 
             # pow failed
             if not pow_result:
