@@ -1,3 +1,2 @@
 include requirements.txt
-recursive-include bin
 recursive-exclude tests benchmarks
