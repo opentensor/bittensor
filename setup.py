@@ -15,14 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from setuptools import setup, find_packages
-from pkg_resources import parse_requirements
-from os import path
-from io import open
 import codecs
-import re
 import os
-from sys import platform
+import re
+import sys
+from io import open
+from os import path
+from typing import Optional
+
+from pkg_resources import parse_requirements
+from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
 
@@ -37,23 +39,22 @@ with codecs.open(os.path.join(here, 'bittensor/__init__.py'), encoding='utf-8') 
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M)
     version_string = version_match.group(1)
 
-try:
-    # Check platform and remove unsupported subtensor node api binaries.
-    if platform == "linux" or platform == "linux2":
-        # linux
-        # remove macos binaries
-        os.remove('bin/subtensor-node-api-macos')
-    elif platform == "darwin":
-        # OS X
-        # remove linux binaries
-        os.remove('bin/subtensor-node-api-linux')
-    else:
-        # neither linux or macos
-        # remove both binaries
-        os.remove('bin/subtensor-node-api-linux')
-        os.remove('bin/subtensor-node-api-macos')
-except Exception as e:
-    print('Failed to remove unsupported subtensor node api binaries. Error: {}'.format(e))
+package_data = {
+    'bittensor': []
+}
+
+platform: Optional[str] = os.environ.get('BT_BUILD_TARGET') or sys.platform
+
+# Check platform and remove unsupported subtensor node api binaries.
+if platform == "linux" or platform == "linux2":
+    # linux
+    package_data['bittensor'].append('../bin/subtensor-node-api-linux')
+elif platform == "darwin":
+    # OS X
+    package_data['bittensor'].append('../bin/subtensor-node-api-macos')
+else: # e.g. platform == None
+    # neither linux or macos
+    # include neither binaries
     pass
 
 setup(
@@ -70,6 +71,7 @@ setup(
     license='MIT',
     install_requires=install_requires,
     scripts=['bin/btcli'],
+    package_data=package_data,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
