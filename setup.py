@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from tkinter import E
 from setuptools import setup, find_packages
 from pkg_resources import parse_requirements
 from os import path
