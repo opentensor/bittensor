@@ -261,7 +261,6 @@ def serve(
                 response_messages: (:obj: list of strings, `required`)
                     return message associated with synapse call
         """
-        print('backward call back')
         # --- initialize response variables --- 
         response_tensors = []
         response_codes = []
@@ -275,26 +274,18 @@ def serve(
             for index, synapse in enumerate(synapses):
                 try:
                     if synapse.synapse_type in axon.synapse_callbacks and axon.synapse_callbacks[synapse.synapse_type] != None:
-                        print('backward start')
                         message, model_output, response_tensor = axon.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
-                        print('backward start 1')
                         grads_dy_norm = grads_dy[index]/(grads_dy[index].sum() + 0.00001)
-                        print('backward start')
                         torch.autograd.backward (
                             tensors = [ response_tensor ],
                             grad_tensors = [ grads_dy_norm ],
                             retain_graph=True
                         )                        
-                        print('backward start 2')
                         model.backward_gradients_count += inputs_x[index].size(0)
-                        print('backward start 3')
                         response_tensors.append(None)
-                        print('backward start 4')
                         response_codes.append(bittensor.proto.ReturnCode.Success)
-                        print('backward start 5')
                         response_messages.append('Success')
 
-                        print('backward ')
                     else:
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
@@ -359,15 +350,17 @@ def serve(
         if config.neuron.local_train:
             # --- Training step.
             while end_block >= current_block:
-                if current_block != subtensor.get_current_block():
-                    loss, _ = model( next( dataset ).to(model.device) )
-                    if iteration > 0 : 
-                        losses += loss
-                    else:
-                        losses = loss
-                    iteration += 1
-                    current_block = subtensor.get_current_block()
-                    logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
+                if current_block != subtensor.get_current_block() and axon.priority_threadpool.is_empty:
+                    with mutex:
+                        logger.info(f'local training\titeration: {iteration}\tstart')
+                        loss, _ = model( next(dataset).to(model.device) )
+                        if iteration > 0 : 
+                            losses += loss
+                        else:
+                            losses = loss
+                        iteration += 1
+                        current_block = subtensor.get_current_block()
+                        logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
             
             if iteration != 0:
                 (losses/iteration).backward()
@@ -389,13 +382,14 @@ def serve(
 
             logger.info('Optmization Started')
             print('Optmization Started')
-            clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            optimizer.zero_grad()
+            with mutex:
+                clip_grad_norm_(model.parameters(), 1.0)
+                optimizer.step()
+                optimizer.zero_grad()
             model.backward_gradients_count = 0
             logger.info('Optimization Successful: Model updated')
             print('Optimization Successful: Model updated')
-            
+
             if (config.neuron.local_train and iteration > 0):
                 local_data = {'local/loss': losses.detach().item() / iteration}
 

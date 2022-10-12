@@ -15,7 +15,6 @@ from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map,
 
 from loguru import logger; logger = logger.opt(colors=True)
 
-
 class server(torch.nn.Module):
     def __init__(self, 
                 config: 'bittensor.config' = None,
@@ -443,7 +442,6 @@ class server(torch.nn.Module):
                                                attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
 
-            # print('nucleus encode_forward_causallmnext _model_output.logits', torch.sum(_model_output.logits), _model_output.logits.shape)
             # model_output.logits: [batch_size, sequence_len, server_vocab_size]
             last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
 
