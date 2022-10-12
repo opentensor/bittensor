@@ -24,7 +24,10 @@ RUN apt install -y curl sudo nano git htop netcat wget unzip python3-dev python3
 RUN pip3 install --upgrade pip
 
 # Install nvm and pm2
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+RUN curl -o install_nvm.sh https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh && \
+	echo 'fabc489b39a5e9c999c7cab4d281cdbbcbad10ec2f8b9a7f7144ad701b6bfdc7 install_nvm.sh' | sha256sum --check && \
+	bash install_nvm.sh
+
 RUN bash -c "source $HOME/.nvm/nvm.sh && \
     # use node 16
     nvm install 16 && \
