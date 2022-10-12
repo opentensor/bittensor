@@ -33,8 +33,7 @@ RUN bash -c "source $HOME/.nvm/nvm.sh && \
 
 RUN mkdir -p /root/.bittensor/bittensor
 RUN cd ~/.bittensor/bittensor && \
-    git clone --branch master https://github.com/opentensor/bittensor.git . && \
-    python3 -m pip install -e .
+    python3 -m pip install bittensor
 
 # Increase ulimit to 1,000,000
 RUN prlimit --pid=$PPID --nofile=1000000
