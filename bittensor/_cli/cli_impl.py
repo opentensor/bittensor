@@ -196,7 +196,8 @@ class CLI:
         wallet.coldkeypub
 
         # Check registration
-        self.register()
+        ## Will exit if --wallet.reregister is False
+        wallet.reregister()
 
         # Run miner.
         if self.config.model == 'core_server':

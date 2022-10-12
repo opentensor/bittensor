@@ -19,6 +19,7 @@
 
 import argparse
 import copy
+from distutils.util import strtobool
 import os
 
 import bittensor
