@@ -88,6 +88,13 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    keywords=[
+        'nlp',
+        'crypto',
+        'machine learning',
+        'ml',
+        'tao'
+    ],
     python_requires='>=3.7',
     extras_require={
         'cubit': ['cubit>=1.1.0 @ git+https://github.com/opentensor/cubit.git']
