@@ -833,7 +833,7 @@ class cli:
         """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
         if torch.cuda.is_available():
             if not config.no_prompt:
-                if config.subtensor.register.cuda.get('use_cuda', 'NA') == 'NA': # flag not set
+                if config.subtensor.register.cuda.get('use_cuda') == None: # flag not set
                     # Ask about cuda registration only if a CUDA device is available.
                     cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
                     config.subtensor.register.cuda.use_cuda = cuda
