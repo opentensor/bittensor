@@ -4,7 +4,7 @@
 # In this script you are going to find the process of releasing bittensor.
 #
 # This script needs:
-#   - temporary file called NEW_RELEASE_NOTES.md
+#   -  that the current VERSION does not already exist
 #
 # This process will generate:
 #   - Python wheel in pypi: https://pypi.org/project/bittensor/
