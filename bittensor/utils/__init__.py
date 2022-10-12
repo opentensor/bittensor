@@ -796,7 +796,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                 hash_rate_ = (num_time * TPB * update_interval) / time_since_last
                 hash_rates.append(hash_rate_)
                 hash_rates.pop(0) # remove the 0th data point
-                curr_stats.hash_rate = sum([hash_rates[i]*weights[i] for i in range(n)])/(sum(weights))
+                curr_stats.hash_rate = sum([hash_rates[i]*weights[i] for i in range(n_samples)])/(sum(weights))
 
                 # update time last to now
                 time_last = time_now
