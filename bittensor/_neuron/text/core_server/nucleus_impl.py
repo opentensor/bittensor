@@ -562,4 +562,5 @@ class server(torch.nn.Module):
         bittensor.prioritythreadpool.add_args( parser )
         bittensor.dataset.add_args( parser )
         bittensor.metagraph.add_args( parser )
+        bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )

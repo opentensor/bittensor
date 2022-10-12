@@ -155,6 +155,12 @@ class dendrite:
             parser.add_argument('--' + prefix_str + 'dendrite.multiprocessing', dest = prefix_str + 'dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
             parser.add_argument('--' + prefix_str + 'dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
             parser.add_argument('--' + prefix_str + 'dendrite._mock', action='store_true', help='To turn on dendrite mocking for testing purposes.', default=False)
+            parser.add_argument('--' + prefix_str + 'dendrite.prometheus.level', 
+                required = False, 
+                type = str, 
+                choices = [l.name for l in list(bittensor.prometheus.level)], 
+                default = bittensor.defaults.dendrite.prometheus.level, 
+                help = '''Prometheus logging level for dendrite. <OFF | INFO | DEBUG>''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -171,6 +177,9 @@ class dendrite:
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
         defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_MULTIPROCESSING') if os.getenv('BT_DENDRITE_MULTIPROCESSING') != None else False
         defaults.dendrite.compression = os.getenv('BT_DENDRITE_COMPRESSION') if os.getenv('BT_DENDRITE_COMPRESSION') != None else 'NoCompression'
+        # Prometheus
+        defaults.dendrite.prometheus = bittensor.config()
+        defaults.dendrite.prometheus.level = os.getenv('BT_DENDRITE_PROMETHEUS_LEVEL') if os.getenv('BT_DENDRITE_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.name
 
 
     @classmethod   
@@ -182,6 +191,7 @@ class dendrite:
         assert 'requires_grad' in config.dendrite
         assert config.dendrite.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
         assert config.dendrite.max_active_receptors >= 0, 'max_active_receptors must be larger or eq to 0'
+        assert config.dendrite.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "dendrite.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])        
         bittensor.wallet.check_config( config )
 
     @classmethod
