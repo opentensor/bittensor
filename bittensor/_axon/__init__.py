@@ -24,7 +24,7 @@ import copy
 import inspect
 import time
 from concurrent import futures
-from typing import List, Callable
+from typing import List, Callable, Optional
 from bittensor._threadpool import prioritythreadpool
 
 import torch
@@ -35,90 +35,92 @@ import bittensor
 from . import axon_impl
 
 class axon:
-    """ The factor class for bittensor.Axon object
-    The Axon acts a grpc server for the bittensor network and allows for communication between neurons.
-    By default, the grpc server follows the bittensor protocol and transports forward and backwards requests
-    between validators and servers. 
+    """ The factory class for bittensor.Axon object
+    The Axon is a grpc server for the bittensor network which opens up communication between it and other neurons.
+    The server protocol is defined in bittensor.proto and describes the manner in which forward and backwards requests
+    are transported / encoded between validators and servers
     
     Examples:: 
-            >>> axon = bittensor.axon(config=config)
-            >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> axon.serve(subtensor=subtensor)
+            >>> config = bittensor.axon.config()
+            >>> axon = bittensor.axon( config = config )
+            >>> subtensor = bittensor.subtensor( network = 'nakamoto' )
+            >>> axon.serve( subtensor = subtensor )
     """
 
     def __new__(
-            cls, 
-            config: 'bittensor.config' = None,
-            wallet: 'bittensor.Wallet' = None,
-            forward_text: 'Callable' = None,
-            backward_text: 'Callable' = None,
-            synapse_last_hidden: 'Callable' = None,
-            synapse_causal_lm: 'Callable' = None,
-            synapse_causal_lm_next: 'Callable' = None,
-            synapse_seq_2_seq: 'Callable' = None,
-            synapse_lasthidden_timeout: int = None,
-            synapse_causallm_timeout: int = None,
-            synapse_causallmnext_timeout: int = None,
-            synapse_seq2seq_timeout: int = None,
-            synapse_checks: 'Callable' = None,
-            thread_pool: 'futures.ThreadPoolExecutor' = None,
-            priority_threadpool: 'bittensor.prioritythreadpool' = None,
-            server: 'grpc._Server' = None,
-            port: int = None,
-            ip: str = None,
-            external_ip: str = None,
-            external_port: int = None,
-            max_workers: int = None, 
-            maximum_concurrent_rpcs: int = None,
-            blacklist: 'Callable' = None,
-            priority: 'Callable' = None,
-            forward_timeout: int = None,
-            backward_timeout: int = None,
-            compression: str = None,
+            cls,
+            config: Optional['bittensor.config'] = None,
+            wallet: Optional['bittensor.Wallet'] = None,
+            forward_text: Optional['Callable'] = None,
+            backward_text:Optional['Callable'] = None,
+            synapse_last_hidden: Optional['Callable'] = None,
+            synapse_causal_lm: Optional['Callable'] = None,
+            synapse_causal_lm_next: Optional['Callable'] = None,
+            synapse_seq_2_seq: Optional['Callable'] = None,
+            synapse_lasthidden_timeout: Optional[int] = None,
+            synapse_causallm_timeout: Optional[int] = None,
+            synapse_causallmnext_timeout: Optional[int] = None,
+            synapse_seq2seq_timeout: Optional[int] = None,
+
+            synapse_checks: Optional['Callable'] = None,
+            thread_pool: Optional['futures.ThreadPoolExecutor'] = None,
+            priority_threadpool: Optional['bittensor.prioritythreadpool'] = None,
+            server: Optional['grpc._Server'] = None,
+            port: Optional[int] = None,
+            ip: Optional[str] = None,
+            external_ip: Optional[str] = None,
+            external_port: Optional[int] = None,
+            max_workers: Optional[int] = None, 
+            maximum_concurrent_rpcs: Optional[int] = None,
+            blacklist: Optional['Callable'] = None,
+            priority: Optional['Callable'] = None,
+            forward_timeout: Optional[int] = None,
+            backward_timeout: Optional[int] = None,
+            compression:Optional[str] = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
+                config (:obj:`Optional[bittensor.Config]`, `optional`): 
                     bittensor.axon.config()
-                wallet (:obj:`bittensor.Wallet`, `optional`):
+                wallet (:obj:`Optional[bittensor.Wallet]`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                forward_text (:obj:`callable`, `optional`):
+                forward_text (:obj:`Optional[callable]`, `optional`):
                     function which is called on forward text requests.
-                backward_text (:obj:`callable`, `optional`):
+                backward_text (:obj:`Optional[callable]`, `optional`):
                     function which is called on backward text requests.
-                synapse_last_hidden (:obj:`callable`, `optional`):
+                synapse_last_hidden (:obj:`Optional[callable]`, `optional`):
                     function which is called by the last hidden synapse
-                synapse_causal_lm (:obj:`callable`, `optional`):
+                synapse_causal_lm (:obj:`Optional[callable]`, `optional`):
                     function which is called by the causal lm synapse
-                synapse_causal_lm_next (:obj:`callable`, `optional`):
+                synapse_causal_lm_next (:obj:`Optional[callable]`, `optional`):
                     function which is called by the TextCausalLMNext synapse
-                synapse_seq_2_seq (:obj:`callable`, `optional`):
+                synapse_seq_2_seq (:obj:`Optional[callable]`, `optional`):
                     function which is called by the seq2seq synapse   
-                synapse_checks (:obj:`callable`, 'optional'):
+                synapse_checks (:obj:`Optional[callable]`, 'optional'):
                     function which is called before each synapse to check for stake        
-                thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
+                thread_pool (:obj:`Optional[ThreadPoolExecutor]`, `optional`):
                     Threadpool used for processing server queries.
-                server (:obj:`grpc._Server`, `required`):
+                server (:obj:`Optional[grpc._Server]`, `required`):
                     Grpc server endpoint, overrides passed threadpool.
-                port (:type:`int`, `optional`):
+                port (:type:`Optional[int]`, `optional`):
                     Binding port.
-                ip (:type:`str`, `optional`):
+                ip (:type:`Optional[str]`, `optional`):
                     Binding ip.
-                external_ip (:type:`str`, `optional`):
+                external_ip (:type:`Optional[str]`, `optional`):
                     The external ip of the server to broadcast to the network.
-                external_port (:type:`int`, `optional`):
+                external_port (:type:`Optional[int]`, `optional`):
                     The external port of the server to broadcast to the network.
-                max_workers (:type:`int`, `optional`):
+                max_workers (:type:`Optional[int]`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
-                maximum_concurrent_rpcs (:type:`int`, `optional`):
+                maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
                     Maximum allowed concurrently processed RPCs.
-                blacklist (:obj:`callable`, `optional`):
+                blacklist (:obj:`Optional[callable]`, `optional`):
                     function to blacklist requests.
-                priority (:obj:`callable`, `optional`):
+                priority (:obj:`Optional[callable]`, `optional`):
                     function to assign priority on requests.
-                forward_timeout (:type:`int`, `optional`):
+                forward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the forward requests. 
-                backward_timeout (:type:`int`, `optional`):
+                backward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the backward requests.              
         """   
 
@@ -194,6 +196,7 @@ class axon:
             priority_threadpool = priority_threadpool,
             forward_timeout = config.axon.forward_timeout,
             backward_timeout = config.axon.backward_timeout,
+            prometheus_level = config.axon.prometheus.level
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
@@ -255,6 +258,12 @@ class axon:
             help='Timeout for causallmnext synapse', default= bittensor.__blocktime__)
             parser.add_argument('--' +  prefix_str + 'axon.seq2seq_timeout', type = int, 
             help='Timeout for seq2seq synapse', default= 3*bittensor.__blocktime__)
+            parser.add_argument('--' + prefix_str + 'axon.prometheus.level', 
+                required = False, 
+                type = str, 
+                choices = [l.name for l in list(bittensor.prometheus.level)], 
+                default = bittensor.defaults.axon.prometheus.level, 
+                help = '''Prometheus logging level axon. <OFF | INFO | DEBUG>''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -279,12 +288,17 @@ class axon:
 
         defaults.axon.compression = 'NoCompression'
 
+        # Prometheus
+        defaults.axon.prometheus = bittensor.config()
+        defaults.axon.prometheus.level = os.getenv('BT_AXON_PROMETHEUS_LEVEL') if os.getenv('BT_AXON_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.name
+
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for axon port and wallet
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
         assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
+        assert config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
         bittensor.wallet.check_config( config )
 
     @classmethod   
