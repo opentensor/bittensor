@@ -95,8 +95,5 @@ setup(
         'ml',
         'tao'
     ],
-    python_requires='>=3.7',
-    extras_require={
-        'cubit': ['cubit>=1.1.0 @ git+https://github.com/opentensor/cubit.git']
-    }
+    python_requires='>=3.7'
 )
