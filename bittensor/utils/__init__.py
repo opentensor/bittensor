@@ -456,8 +456,8 @@ def solve_for_difficulty_fast( subtensor, wallet, num_processes: Optional[int] =
 
     hash_rate = 0 # EWMA hash_rate (H/s)
 
-    hash_rates = [0] * n # The last n true hash_rates
-    weights = [alpha_ ** i for i in range(n)] # weights decay by alpha
+    hash_rates = [0] * n_samples # The last n true hash_rates
+    weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
     
     while not wallet.is_registered(subtensor):
         # Wait until a solver finds a solution
@@ -584,7 +584,7 @@ class UsingSpawnStartMethod():
         multiprocessing.set_start_method(self._old_start_method, force=True)
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n: int = 5, alpha_: float = 0.70 ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 5, alpha_: float = 0.70 ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -676,8 +676,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         solution = None
         hash_rate = 0 # EWMA hash_rate (H/s)
 
-        hash_rates = [0] * n # The last n true hash_rates
-        weights = [alpha_ ** i for i in range(n)] # weights decay by alpha
+        hash_rates = [0] * n_samples # The last n true hash_rates
+        weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
         while not wallet.is_registered(subtensor):
             # Wait until a solver finds a solution
