@@ -23,6 +23,8 @@ from loguru import logger
 from substrateinterface import SubstrateInterface
 from torch.cuda import is_available as is_cuda_available
 
+from bittensor.utils import strtobool_with_default
+
 from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
@@ -187,13 +189,17 @@ class subtensor:
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')       
             parser.add_argument('--' + prefix_str + 'subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
-
-            parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest='subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
+            # registration args. Used for register and re-register and anything that calls register.
+            parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest=prefix_str + 'subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
             parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '--' + prefix_str + 'subtensor.register.cuda.update_interval', '--' + prefix_str + 'cuda.update_interval', '-u', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
-             # registration args. Used for register and re-register and anything that calls register.
-            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.use_cuda', '--' + prefix_str + 'cuda', '--' + prefix_str + 'cuda.use_cuda', default=argparse.SUPPRESS, help='''Set true to use CUDA.''', action='store_true', required=False )
-            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.dev_id', '--' + prefix_str + 'cuda.dev_id',  type=int, nargs='+', default=argparse.SUPPRESS, help='''Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
+            parser.add_argument('--' + prefix_str + 'subtensor.register.output_in_place', help="Whether to ouput the registration statistics in-place. Set flag to enable.", action='store_true', required=False, default=bittensor.defaults.subtensor.register.output_in_place)
+            parser.add_argument('--' + prefix_str + 'subtensor.register.verbose', help="Whether to ouput the registration statistics verbosely.", action='store_true', required=False, default=bittensor.defaults.subtensor.register.verbose)
+            
+            ## Registration args for CUDA registration.
+            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.use_cuda', '--' + prefix_str + 'cuda', '--' + prefix_str + 'cuda.use_cuda', default=argparse.SUPPRESS, help='''Set flag to use CUDA to register.''', action="store_true", required=False )
+            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.no_cuda', '--' + prefix_str + 'no_cuda', '--' + prefix_str + 'cuda.no_cuda', dest=prefix_str + 'subtensor.register.cuda.use_cuda', default=argparse.SUPPRESS, help='''Set flag to not use CUDA for registration''', action="store_false", required=False )
 
+            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.dev_id', '--' + prefix_str + 'cuda.dev_id',  type=int, nargs='+', default=argparse.SUPPRESS, help='''Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
         except argparse.ArgumentError:
@@ -212,11 +218,15 @@ class subtensor:
         defaults.subtensor.register = bittensor.Config()
         defaults.subtensor.register.num_processes = os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') if os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') != None else None # uses processor count by default within the function
         defaults.subtensor.register.update_interval = os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') if os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') != None else 50_000
+        defaults.subtensor.register.output_in_place = True
+        defaults.subtensor.register.verbose = False
 
         defaults.subtensor.register.cuda = bittensor.Config()
         defaults.subtensor.register.cuda.dev_id = [0]
         defaults.subtensor.register.cuda.use_cuda = False
         defaults.subtensor.register.cuda.TPB = 256
+
+        
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
@@ -225,7 +235,7 @@ class subtensor:
         if config.subtensor.get('register') and config.subtensor.register.get('cuda'):
             assert all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', []))
 
-            if config.subtensor.register.cuda.get('use_cuda', False):
+            if config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda):
                 try:
                     import cubit
                 except ImportError:

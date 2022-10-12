@@ -832,32 +832,38 @@ class cli:
     def _check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
         """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
         if torch.cuda.is_available():
-            if config.subtensor.register.cuda.get('use_cuda') is None:
-                # Ask about cuda registration only if a CUDA device is available.
-                cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
-                config.subtensor.register.cuda.use_cuda = cuda
+            if not config.no_prompt:
+                if config.subtensor.register.cuda.get('use_cuda') == None: # flag not set
+                    # Ask about cuda registration only if a CUDA device is available.
+                    cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
+                    config.subtensor.register.cuda.use_cuda = cuda
 
-            # Only ask about which CUDA device if the user has more than one CUDA device.
-            if config.subtensor.register.cuda.use_cuda and config.subtensor.register.cuda.get('dev_id') is None and torch.cuda.device_count() > 0:
-                devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
-                device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
-                console.print("Available CUDA devices:")
-                choices_str: str = ""
-                for i, device in enumerate(devices):
-                    choices_str += ("  {}: {}\n".format(device, device_names[i]))
-                console.print(choices_str)
-                dev_id = IntListPrompt.ask("Which GPU(s) would you like to use? Please list one, or comma-separated", choices=devices, default='All')
-                if dev_id == 'All':
-                    dev_id = list(range(torch.cuda.device_count()))
-                else:
-                    try:
-                        # replace the commas with spaces then split over whitespace.,
-                        # then strip the whitespace and convert to ints.
-                        dev_id = [int(dev_id.strip()) for dev_id in dev_id.replace(',', ' ').split()]
-                    except ValueError:
-                        console.error(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
-                        sys.exit(1)
-                config.subtensor.register.cuda.dev_id = dev_id
+
+                # Only ask about which CUDA device if the user has more than one CUDA device.
+                if config.subtensor.register.cuda.use_cuda and config.subtensor.register.cuda.get('dev_id') is None:
+                    devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
+                    device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
+                    console.print("Available CUDA devices:")
+                    choices_str: str = ""
+                    for i, device in enumerate(devices):
+                        choices_str += ("  {}: {}\n".format(device, device_names[i]))
+                    console.print(choices_str)
+                    dev_id = IntListPrompt.ask("Which GPU(s) would you like to use? Please list one, or comma-separated", choices=devices, default='All')
+                    if dev_id.lower() == 'all':
+                        dev_id = list(range(torch.cuda.device_count()))
+                    else:
+                        try:
+                            # replace the commas with spaces then split over whitespace.,
+                            # then strip the whitespace and convert to ints.
+                            dev_id = [int(dev_id.strip()) for dev_id in dev_id.replace(',', ' ').split()]
+                        except ValueError:
+                            console.log(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
+                            sys.exit(1)
+                    config.subtensor.register.cuda.dev_id = dev_id
+            else:
+                # flag was not set, use default value.
+                if config.subtensor.register.cuda.get('use_cuda') is None: 
+                    config.subtensor.register.cuda.use_cuda = bittensor.defaults.subtensor.register.cuda.use_cuda
 
     def check_register_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
