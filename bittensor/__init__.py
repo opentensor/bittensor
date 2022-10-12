@@ -62,8 +62,8 @@ __nakamoto_entrypoint__ = "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com
 
 __nobunaga_entrypoint__ = "staging.nobunaga.opentensor.ai:9944"
 
-
-__bellagene_entrypoint__ = "parachain.opentensor.ai:443"
+# Needs to use wss://
+__bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
 
 __local_entrypoint__ = "127.0.0.1:9944"
