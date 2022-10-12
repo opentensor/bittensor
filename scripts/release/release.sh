@@ -7,11 +7,11 @@
 #   -  that the current VERSION does not already exist
 #
 # This process will generate:
-#   - Python wheel in pypi: https://pypi.org/project/bittensor/
 #   - Tag in Github repo: https://github.com/opentensor/bittensor/tags
 #   - Release in Github: https://github.com/opentensor/bittensor/releases
-#   - Docker image in dockerhub: https://hub.docker.com/r/opentensorfdn/bittensor/tags (TODO)
 #   - New entry in CHANGELOG.md file
+#   - Python wheel in pypi: https://pypi.org/project/bittensor/
+#   - Docker image in dockerhub: https://hub.docker.com/r/opentensorfdn/bittensor/tags (TODO)
 #
 
 ###
