@@ -398,7 +398,6 @@ class neuron:
         self.prometheus_gauges.labels("sequence_length").set( sequence_length )
         self.prometheus_gauges.labels("validation_len").set( validation_len )
         self.prometheus_gauges.labels("min_allowed_weights").set( min_allowed_weights )
-        self.prometheus_gauges.labels("max_allowed_ratio").set( max_allowed_ratio )
         self.prometheus_gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
         self.prometheus_gauges.labels("epochs_until_reset").set( epochs_until_reset )
 
