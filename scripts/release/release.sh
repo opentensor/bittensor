@@ -7,7 +7,7 @@
 #   - temporary file called NEW_RELEASE_NOTES.md
 #
 # This process will generate:
-#   - Python wheel in pypi: https://pypi.org/project/bittensor/ (TODO)
+#   - Python wheel in pypi: https://pypi.org/project/bittensor/
 #   - Tag in Github repo: https://github.com/opentensor/bittensor/tags
 #   - Release in Github: https://github.com/opentensor/bittensor/releases
 #   - Docker image in dockerhub: https://hub.docker.com/r/opentensorfdn/bittensor/tags (TODO)
@@ -131,10 +131,10 @@ rm -rf dist/
 rm -rf build/
 
 echo_info "Generating python wheel"
-#python3 setup.py sdist bdist_wheel
+python3 setup.py sdist bdist_wheel
 
 # 5. Upload pypi wheel
-#python3 -m twine upload dist/*
+python3 -m twine upload dist/*
 
 # 6. Creating docker image
 
