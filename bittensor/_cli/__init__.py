@@ -32,6 +32,10 @@ from . import cli_impl
 
 console = bittensor.__console__
 
+# Remove incredibly large tracebacks.
+from rich.traceback import install
+install(show_locals=False)
+
 class cli:
     """
     Create and init the CLI class, which handles the coldkey, hotkey and tao transfer 
