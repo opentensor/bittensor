@@ -116,15 +116,16 @@ class server(torch.nn.Module):
         self.outputs_cache = None
         self.gradients_cache = None
         self.best_loss = math.inf
+        self.best_remote_loss = math.inf
 
         #checking if the parameters of the server makes sense
         if self.checking and pretrained == True:
             self.check()
-        
+
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
+        self.remote_losses = [] 
 
-        
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
             Returns: 
@@ -376,9 +377,7 @@ class server(torch.nn.Module):
             #removing the loss calculation for stablity testing
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
             translated_loss = self.get_loss_fct(logits_std, token_batch).item()
-            #message = 'Success'
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
-            # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
 
             return message, _model_output, logits_std
 
@@ -430,7 +429,6 @@ class server(torch.nn.Module):
             std_tokenizer = self.std_tokenizer
 
         tokens = self.token_remap(token_batch, std_tokenizer)
-        
 
         def _forward(_model_output=model_output):
             if _model_output is None:
@@ -449,6 +447,7 @@ class server(torch.nn.Module):
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
             message = f'Loss: {original_loss:.2f}'
 
+            _model_output.loss = original_loss
             return message, _model_output, topk_tensor
 
         if self.config.neuron.remote_train:
@@ -490,6 +489,7 @@ class server(torch.nn.Module):
                 'pretrained_model': self.pre_model.state_dict(), 
                 'decoder': self.decoder.state_dict(),
                 'best_loss': self.best_loss,
+                'best_remote_loss': self.best_remote_loss,
             }
             if self.padding == False:
                 state_dict['mapping'] = self.mapping.state_dict()
@@ -507,6 +507,7 @@ class server(torch.nn.Module):
                 if self.padding == False:
                     self.mapping.load_state_dict(state_dict['mapping'])
                 self.best_loss = state_dict['best_loss']
+                self.best_remote_loss = state_dict['best_remote_loss']
                 bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
 
 
@@ -547,6 +548,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
         parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
         parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
+        parser.add_argument('--neuron.num_remote_loss', type=int, help='Number of past remote loss to keep in stat.', default=20)
 
         # Synapse Arguements
         parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)

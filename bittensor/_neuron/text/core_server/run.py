@@ -278,12 +278,16 @@ def serve(
                             tensors = [ response_tensor ],
                             grad_tensors = [ grads_dy_norm ],
                             retain_graph=True
-                        )                        
+                        )
+                        # Only consider loss from causal LM next.
+                        if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
+                            model.remote_losses.append(model_output.loss)
+                            model.remote_losses = model.remote_losses[-config.neuron.num_remote_loss:] if len(model.remote_losses) > config.neuron.num_remote_loss else model.remote_losses
                         model.backward_gradients_count += inputs_x[index].size(0)
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.Success)
                         response_messages.append('Success')
-
+                        
                     else:
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
@@ -357,6 +361,8 @@ def serve(
                         iteration += 1
                         current_block = subtensor.get_current_block()
                         logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
+                else:
+                    time.sleep(1)
             
             if iteration != 0:
                 (losses/iteration).backward()
@@ -375,12 +381,10 @@ def serve(
                 optimizer.param_groups[0]['lr'] =  0.1
 
             logger.info('Optmization Started')
-            print('Optmization Started')
             with mutex:
                 clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 optimizer.zero_grad()
-            model.backward_gradients_count = 0
             logger.info('Optimization Successful: Model updated')
 
             if (config.neuron.local_train and iteration > 0):
@@ -390,6 +394,18 @@ def serve(
                     model.best_loss = local_data['local/loss']
                     model.save(config.neuron.full_path)
 
+            # Save it only when it gives a low average loss over a large sample size (config.neuron.num_remote_loss), default to 20. 
+            elif (config.neuron.remote_train and len(model.remote_losses) >= config.neuron.num_remote_loss):
+                local_data = {'local/remote_loss': sum(model.remote_losses) / len(model.remote_losses)}
+
+                if local_data['local/remote_loss'] < model.best_remote_loss:
+                    model.best_remote_loss = local_data['local/remote_loss']
+                    model.save(config.neuron.full_path)
+
+                model.remote_losses = []
+
+            model.backward_gradients_count = 0
+            
         wandb_data = {            
             'stake': nn.stake,
             'rank': nn.rank,
