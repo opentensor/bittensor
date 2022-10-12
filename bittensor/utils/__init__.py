@@ -406,8 +406,8 @@ class RegistrationStatisticsLogger:
             time spent: {timedelta(seconds=stats.time_spent)}""" + \
         (f"""
             time spent total: {stats.time_spent_total:.2f} s 
-            time spent average: {timedelta(seconds=stats.time_average)}
-        """ if verbose else "") + f"""
+            time spent average: {timedelta(seconds=stats.time_average)}""" if verbose else "") + \
+        f"""
             Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]
             Iters: [bold white]{get_human_readable(int(stats.hash_rate), 'H')}/s[/bold white]
             Block: [bold white]{stats.block_number}[/bold white]
