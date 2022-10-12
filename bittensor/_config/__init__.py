@@ -68,15 +68,15 @@ class config:
             # this can fail if the --config has already been added.
             pass
 
+        # Get args from argv if not passed in.
+        if args == None:
+            args = sys.argv[1:]
+
         # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args(args)[0])['config']
         except Exception as e:
             config_file_path = None
-
-        # Get args from argv if not passed in.
-        if args == None:
-            args = sys.argv[1:]
 
         # Parse args not strict
         params = cls.__parse_args__(args=args, parser=parser, strict=False)
