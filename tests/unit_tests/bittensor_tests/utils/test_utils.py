@@ -415,13 +415,14 @@ class TestCUDASolverRun(unittest.TestCase):
             update_interval=update_interval,
             stopEvent=MagicMock(is_set=MagicMock(return_value=False)),
             newBlockEvent=MagicMock(is_set=MagicMock(return_value=False)),
-            time_queue=MagicMock(put_nowait=MagicMock()),
-            limit=10000
+            finished_queue=MagicMock(put=MagicMock()),
+            limit=10000,
+            proc_num=0,
         )  
 
         
         with patch('bittensor.utils.solve_for_nonce_block_cuda',
-            side_effect=[(None, 10.0), MockException] # first call returns mocked no solution, second call raises exception
+            side_effect=[None, MockException] # first call returns mocked no solution, second call raises exception
         ) as mock_solve_for_nonce_block_cuda: 
         
             # Should exit early
