@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.4.1 / 2022-10-13
+
+## What's Changed
+* [Hotfix] Fix CUDA Reg update block by @camfairchild in https://github.com/opentensor/bittensor/pull/954
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.4.0...v3.4.1
+
 ## 3.4.0 / 2022-10-13
 
 ## What's Changed
