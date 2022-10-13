@@ -251,6 +251,88 @@ def test_registration_diff_pack_unpack_over_32_bits():
     bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
     assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
+class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
+    def test_check_for_newest_block_and_update_same_block(self):
+        # if the block is the same, the function should return the same block number
+        subtensor = MagicMock()
+        current_block_num: int = 1
+        subtensor.get_current_block = MagicMock( return_value=current_block_num )
+
+        self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
+            subtensor,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+        ), current_block_num)
+
+    def test_check_for_newest_block_and_update_new_block(self):
+        # if the block is new, the function should return the new block_number
+        mock_block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+
+        current_block_num: int = 1
+        current_diff: int = 0
+
+        mock_substrate = MagicMock(
+            get_block_hash=MagicMock(
+                return_value=mock_block_hash
+            ),
+
+        )
+        subtensor = MagicMock(
+            substrate=mock_substrate,
+            difficulty=current_diff + 1, # new diff
+        )
+        subtensor.get_current_block = MagicMock( return_value=current_block_num + 1 ) # new block
+
+        mock_update_curr_block = MagicMock()
+
+        mock_solvers = [
+            MagicMock(
+                newBlockEvent=MagicMock(
+                    set=MagicMock()
+                )
+        ), 
+        MagicMock(
+            newBlockEvent=MagicMock(
+                set=MagicMock()
+            )
+        )]
+
+        mock_curr_stats = MagicMock(
+            block_number=current_block_num,
+            block_hash=b'',
+            difficulty=0,
+        )
+
+        self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
+            subtensor,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            mock_update_curr_block,
+            MagicMock(),
+            mock_solvers,
+            mock_curr_stats,
+        ), current_block_num + 1)      
+
+        # check that the update_curr_block function was called
+        mock_update_curr_block.assert_called_once()
+
+        # check that the solvers got the event 
+        for solver in mock_solvers:
+            solver.newBlockEvent.set.assert_called_once()
+
+        # check the stats were updated
+        self.assertEqual(mock_curr_stats.block_number, current_block_num + 1)
+        self.assertEqual(mock_curr_stats.block_hash, mock_block_hash)
+        self.assertEqual(mock_curr_stats.difficulty, current_diff + 1)
+
 class TestGetBlockWithRetry(unittest.TestCase):
     def test_get_block_with_retry_network_error_exit(self):
         mock_subtensor = MagicMock(
