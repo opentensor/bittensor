@@ -20,6 +20,26 @@
 # Utils
 ###
 
+help(){
+    echo Usage:
+    echo \ \  $0
+    echo
+    echo This script release a bittensor version.
+    echo
+    echo This script needs:
+    echo \ \ - That the current VERSION does not already exist
+    echo \ \ - An existing pass secret with the key github/api_bash_access_token
+    echo \ \ \ \ - Check pass if you do not know it: https://www.passwordstore.org/
+    echo
+    echo The release process will generate:
+    echo \ \ - Tag in Github repo: https://github.com/opentensor/bittensor/tags
+    echo \ \ - Release in Github: https://github.com/opentensor/bittensor/releases
+    echo \ \ - New entry in CHANGELOG.md file
+    echo \ \ - Python wheel in pypi: https://pypi.org/project/bittensor/
+    echo \ \ - Docker image in dockerhub: https://hub.docker.com/r/opentensorfdn/bittensor/tags
+    echo
+}
+
 generate_github_release_notes_post_data()
 {
   cat <<EOF
@@ -63,6 +83,12 @@ function echo_info {
 # Start of release process
 ###
 
+# if the user requests help, the usage is shown.
+if [ "$1" == "--help" -o "$1" == "-h" ];then
+    help
+    exit 0
+fi
+
 VERSION=$(cat VERSION)
 TAG_NAME=v$VERSION
 
@@ -74,6 +100,7 @@ CURRENT_VERSION_EXISTS=$(git tag | grep $VERSION)
 
 if [[ ! -z $CURRENT_VERSION_EXISTS ]]; then
     echo_error "Current version '$VERSION' already exists"
+    help
     exit 1
 fi
 
