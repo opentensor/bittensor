@@ -264,11 +264,14 @@ class TestBlacklist(unittest.TestCase):
         bittensor.dataset.add_defaults( defaults )
         bittensor.logging.add_defaults( defaults )
         bittensor.wandb.add_defaults( defaults )
+        bittensor.prometheus.add_defaults( defaults )
+
         defaults.wandb.api_key = 'test'
         defaults.neuron = bittensor.neurons.core_server.neuron.config()
         defaults.neuron.learning_rate = 0.0001
         defaults.neuron.momentum = 0.9
-        
+        defaults.prometheus.level = "OFF"
+
         return defaults
     
     def exit_early(self, *args, **kwargs):
@@ -288,6 +291,9 @@ class TestBlacklist(unittest.TestCase):
         mock_wallet = MagicMock(
             reregister=MagicMock(),
             is_registered=MagicMock(return_value=True),
+            hotkey=MagicMock(
+                ss58_address=mock_hotkey
+            )
         )
 
         mock_metagraph = MagicMock(
