@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
 import bittensor
 
@@ -94,3 +94,131 @@ class TestWallet(unittest.TestCase):
         seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
         with pytest.raises(ValueError):
             self.mock_wallet.regenerate_hotkey(seed=seed_str_bad)
+
+class TestWalletReregister(unittest.TestCase):
+    def test_wallet_reregister_use_cuda_flag_none(self):
+        config = bittensor.Config()
+        config.wallet = bittensor.Config()
+        config.wallet.reregister = True
+
+        config.subtensor = bittensor.Config()
+        config.subtensor.register = bittensor.Config()
+        config.subtensor.register.cuda = bittensor.Config()
+        config.subtensor.register.cuda.use_cuda = None # don't set the argument, but do specify the flag
+        # No need to specify the other config options as they are default to None
+
+        mock_wallet = bittensor.wallet.mock()
+        mock_wallet.config = config
+
+        class MockException(Exception):
+            pass
+
+        def exit_early(*args, **kwargs):
+            raise MockException('exit_early')
+
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                mock_wallet.reregister()
+
+            call_args = mock_register.call_args
+            _, kwargs = call_args
+
+            mock_register.assert_called_once()
+            self.assertEqual(kwargs['cuda'], None) # should be None when no argument, but flag set
+
+    def test_wallet_reregister_use_cuda_flag_true(self):
+        config = bittensor.Config()
+        config.wallet = bittensor.Config()
+        config.wallet.reregister = True
+
+        config.subtensor = bittensor.Config()
+        config.subtensor.register = bittensor.Config()
+        config.subtensor.register.cuda = bittensor.Config()
+        config.subtensor.register.cuda.use_cuda = True
+        config.subtensor.register.cuda.dev_id = 0
+        # No need to specify the other config options as they are default to None
+
+        mock_wallet = bittensor.wallet.mock()
+        mock_wallet.config = config
+
+        class MockException(Exception):
+            pass
+
+        def exit_early(*args, **kwargs):
+            raise MockException('exit_early')
+
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                mock_wallet.reregister()
+
+            call_args = mock_register.call_args
+            _, kwargs = call_args
+
+            mock_register.assert_called_once()
+            self.assertEqual(kwargs['cuda'], True) # should be default when no argument
+
+    def test_wallet_reregister_use_cuda_flag_false(self):
+        config = bittensor.Config()
+        config.wallet = bittensor.Config()
+        config.wallet.reregister = True
+
+        config.subtensor = bittensor.Config()
+        config.subtensor.register = bittensor.Config()
+        config.subtensor.register.cuda = bittensor.Config()
+        config.subtensor.register.cuda.use_cuda = False
+        config.subtensor.register.cuda.dev_id = 0
+        # No need to specify the other config options as they are default to None
+
+        mock_wallet = bittensor.wallet.mock()
+        mock_wallet.config = config
+
+        class MockException(Exception):
+            pass
+
+        def exit_early(*args, **kwargs):
+            raise MockException('exit_early')
+
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                mock_wallet.reregister()
+
+            call_args = mock_register.call_args
+            _, kwargs = call_args
+
+            mock_register.assert_called_once()
+            self.assertEqual(kwargs['cuda'], False) # should be default when no argument
+
+    def test_wallet_reregister_use_cuda_flag_not_specified_false(self):
+        config = bittensor.Config()
+        config.wallet = bittensor.Config()
+        config.wallet.reregister = True
+
+        config.subtensor = bittensor.Config()
+        config.subtensor.register = bittensor.Config()
+        config.subtensor.register.cuda = bittensor.Config()
+        #config.subtensor.register.cuda.use_cuda # don't specify the flag
+        config.subtensor.register.cuda.dev_id = 0
+        # No need to specify the other config options as they are default to None
+
+        mock_wallet = bittensor.wallet.mock()
+        mock_wallet.config = config
+
+        class MockException(Exception):
+            pass
+
+        def exit_early(*args, **kwargs):
+            raise MockException('exit_early')
+
+        with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                mock_wallet.reregister()
+
+            call_args = mock_register.call_args
+            _, kwargs = call_args
+
+            mock_register.assert_called_once()
+            self.assertEqual(kwargs['cuda'], False) # should be False when no flag was set
