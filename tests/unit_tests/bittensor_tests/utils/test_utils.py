@@ -257,16 +257,6 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         subtensor = MagicMock()
         current_block_num: int = 1
         subtensor.get_current_block = MagicMock( return_value=current_block_num )
-        
-        """
-        old_block_number: int,
-        curr_diff: multiprocessing.Array,
-        curr_block: multiprocessing.Array,
-        curr_block_num: multiprocessing.Value,
-        update_curr_block: Callable,
-        check_block: 'multiprocessing.Lock',
-        solvers: List[Solver],
-        curr_stats: RegistrationStatistics"""
 
         self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
             subtensor,
