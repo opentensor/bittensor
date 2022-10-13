@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.4.0 / 2022-10-13
+
+## What's Changed
+* Release/3.4.0 by @Eugene-hu in https://github.com/opentensor/bittensor/pull/943
+* [Tooling][Release] Adding release script by @eduardogr in https://github.com/opentensor/bittensor/pull/948
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.3.4...v3.4.0
+
+
 ## 3.3.4 / 2022-10-03
 
 ### What's Changed
