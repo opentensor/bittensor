@@ -686,6 +686,8 @@ def check_for_newest_block_and_update(
         curr_stats.block_hash = block_hash
         curr_stats.difficulty = difficulty
 
+    return old_block_number
+
 
 def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 5, alpha_: float = 0.70, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
