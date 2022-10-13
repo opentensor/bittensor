@@ -4,7 +4,9 @@
 # In this script you are going to find the process of releasing bittensor.
 #
 # This script needs:
-#   -  that the current VERSION does not already exist
+#   - That the current VERSION does not already exist
+#   - An existing pass secret with the key github/api_bash_access_token
+#     - Check pass if you don't know it: https://www.passwordstore.org/
 #
 # This process will generate:
 #   - Tag in Github repo: https://github.com/opentensor/bittensor/tags
