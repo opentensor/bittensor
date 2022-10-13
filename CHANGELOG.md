@@ -3,7 +3,9 @@
 ## 3.4.0 / 2022-10-13
 
 ## What's Changed
-* Release/3.4.0 by @Eugene-hu in https://github.com/opentensor/bittensor/pull/943
+* Parameters update by @Eugene-hu  #936 
+* Bittensor Generate by @unconst  #941 
+* Prometheus by @unconst  #928 
 * [Tooling][Release] Adding release script by @eduardogr in https://github.com/opentensor/bittensor/pull/948
 
 
