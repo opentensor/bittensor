@@ -515,7 +515,6 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     logger.start()
 
     solution = None
-    hash_rate = 0 # EWMA hash_rate (H/s)
 
     hash_rates = [0] * n_samples # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
@@ -746,6 +745,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         hash_rates = [0] * n_samples # The last n true hash_rates
         weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
+        solution = None
         while not wallet.is_registered(subtensor):
             # Wait until a solver finds a solution
             try:
