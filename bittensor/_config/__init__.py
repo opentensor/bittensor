@@ -54,7 +54,7 @@ class config:
                 Nested config object created from parser arguments.
         """
         if parser == None:
-            parser = ArgumentParser()
+            return config_impl.Config()
 
         # Optionally add config specific arguments
         try:
