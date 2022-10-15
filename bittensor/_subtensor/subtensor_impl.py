@@ -96,7 +96,7 @@ class Subtensor:
             self._default_substrate.connect_websocket()
             return self._default_substrate
         except:
-            logger.warning('Failed to connect on the default substrate connection: {}'.format( self.chain_endpoint ))
+            bittensor.logging.warning(prefix = 'Substrate', sufix = 'Failed to connect on the default substrate connection: {}'.format( self.chain_endpoint ) )
             for endpoint_url in self.fallback_endpoints:
                 try:
                     connection = bittensor.subtensor.substrate_connection_for_url( endpoint_url )
@@ -104,7 +104,7 @@ class Subtensor:
                     # Successful connection.
                     return connection
                 except:
-                    logger.warning('Failed to connect on the fallback substrate endpoint: {}'.format( self.endpoint_url ))
+                    bittensor.logging.warning(prefix = 'Substrate', sufix = 'Failed to connect on the fallback substrate endpoint: {}'.format( self.endpoint_url ))
                     pass
             # Failed on all fallbacks.
             raise RuntimeError('Failed to connect to all active or fallback substrate connections.')
