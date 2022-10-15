@@ -117,9 +117,9 @@ class Balance:
             return Balance(int(self.rao + other.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.rao + other.rao))
+                # Attempt to cast to float
+                other = float(other)
+                return Balance(int(self.rao + other))
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -137,9 +137,9 @@ class Balance:
             return Balance(int(self.rao * other.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.rao * other.rao))
+                # Attempt to cast to float
+                other = float(other)
+                return Balance(int(self.rao * other))
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -151,9 +151,9 @@ class Balance:
             return Balance(int(self.rao / other.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.rao / other.rao))
+                # Attempt to cast to float
+                other = float(other)
+                return Balance(int(self.rao / other))
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -162,9 +162,9 @@ class Balance:
             return Balance(int(other.rao / self.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(other.rao / self.rao))
+                # Attempt to cast to float
+                other = float(other)
+                return Balance(int(other / self.rao))
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -173,9 +173,9 @@ class Balance:
             return Balance(int(self.tao // other.tao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.tao // other.tao))
+                # Attempt to cast to float
+                other = float(other)
+                return Balance(int(self.tao // other))
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -184,9 +184,9 @@ class Balance:
             return Balance(int(other.tao // self.tao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(other.tao // self.tao))
+                # Attempt to cast to float
+                other = float(other)
+                return Balance(int(other // self.tao))
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
