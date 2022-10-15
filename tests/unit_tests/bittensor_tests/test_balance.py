@@ -71,10 +71,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         sum_ = balance_ + balance2_
         assert isinstance(sum_, Balance)
@@ -90,10 +88,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         sum_ =  balance2_ + balance_ # This is an radd
         assert isinstance(sum_, Balance)
@@ -128,10 +124,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         diff_ =  balance_ - balance2_
         assert isinstance(diff_, Balance)
@@ -147,10 +141,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         diff_ =  balance2_ - balance_ # This is an rsub
         assert isinstance(diff_, Balance)
@@ -166,10 +158,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         prod_ = balance_ * balance2_
         assert isinstance(prod_, Balance)
@@ -185,10 +175,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         prod_ = balance_ * balance2_
         assert isinstance(prod_, Balance)
@@ -204,10 +192,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         prod_ =  balance2_ * balance_ # This is an rmul
         assert isinstance(prod_, Balance)
@@ -242,10 +228,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         quot_ = balance_ / balance2_
         assert isinstance(quot_, Balance)
@@ -261,10 +245,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         quot_ =  balance2_ / balance_ # This is an rtruediv
         assert isinstance(quot_, Balance)
@@ -299,10 +281,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         quot_ = balance_ // balance2_
         assert isinstance(quot_, Balance)
@@ -318,10 +298,8 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        if isinstance(balance2, int):
-            rao2_ = balance2
-        elif isinstance(balance2, float):
-            rao2_ = int(balance2 * pow(10, 9))
+        # convert balance2 to rao
+        rao2_ = int(balance2 * pow(10, 9))
 
         quot_ =  balance2_ // balance_ # This is an rfloordiv
         assert isinstance(quot_, Balance)
