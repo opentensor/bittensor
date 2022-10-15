@@ -71,7 +71,7 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        # convert balance2 to rao
+        # convert balance2 to rao. Assume balance2 was tao
         rao2_ = int(balance2 * pow(10, 9))
 
         sum_ = balance_ + balance2_
@@ -175,46 +175,38 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        # convert balance2 to rao
-        rao2_ = int(balance2 * pow(10, 9))
 
         prod_ = balance_ * balance2_
         assert isinstance(prod_, Balance)
-        assert CLOSE_IN_VALUE(prod_.rao, 5) == rao_ * rao2_
+        assert CLOSE_IN_VALUE(prod_.rao, 5) == rao_ * balance2 
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
     def test_balance_mul_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
-        rao2_: int
         if isinstance(balance, int):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        # convert balance2 to rao
-        rao2_ = int(balance2 * pow(10, 9))
 
         prod_ = balance_ * balance2_
         assert isinstance(prod_, Balance)
-        assert CLOSE_IN_VALUE(prod_.rao, 5) == rao_ * rao2_
+        assert CLOSE_IN_VALUE(prod_.rao, 5) == rao_ * balance2
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
     def test_balance_rmul_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
-        rao2_: int
         if isinstance(balance, int):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        # convert balance2 to rao
-        rao2_ = int(balance2 * pow(10, 9))
-
+        
         prod_ =  balance2_ * balance_ # This is an rmul
         assert isinstance(prod_, Balance)
-        assert CLOSE_IN_VALUE(prod_.rao, 5) == rao2_ * rao_
+        assert CLOSE_IN_VALUE(prod_.rao, 5) == balance2 * rao_
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy.filter(remove_zero_filter)) # Avoid zero division
     def test_balance_truediv(self, balance: Union[int, float], balance2: Union[int, float]):
