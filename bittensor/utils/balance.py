@@ -22,6 +22,8 @@ class Balance:
     Represents the bittensor balance of the wallet, stored as rao (int)
     The Balance object is immutable, and can be used as a number or as a string
     Can only guarantee that the balance is accurate to 9 decimal places (tao)
+
+    Note: In operations between Balance and int/float, other is assumed to be in tao
     """
 
     unit: str = "\u03C4" # This is the tao unit
