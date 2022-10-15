@@ -75,9 +75,9 @@ class Balance:
             return self.rao == other.rao
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return self.rao == other.rao
+                # Attempt to cast to float
+                other = float(other)
+                return self.rao == other
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -89,10 +89,10 @@ class Balance:
             return self.rao > other.rao
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return self.rao > other.rao
-            except TypeError:
+                # Attempt to cast to float
+                other = float(other)
+                return self.tao > other
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __lt__(self, other: Union[int, float, "Balance"]):
@@ -100,10 +100,10 @@ class Balance:
             return self.rao < other.rao
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return self.rao < other.rao
-            except TypeError:
+                # Attempt to cast to float
+                other = float(other)
+                return self.tao < other
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __le__(self, other: Union[int, float, "Balance"]):
@@ -120,7 +120,7 @@ class Balance:
                 # Attempt to cast to float
                 other = float(other)
                 return Balance(int(self.rao + other))
-            except TypeError:
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __radd__(self, other: Union[int, float, "Balance"]):
@@ -140,7 +140,7 @@ class Balance:
                 # Attempt to cast to float
                 other = float(other)
                 return Balance(int(self.rao * other))
-            except TypeError:
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __rmul__(self, other: Union[int, float, "Balance"]):
@@ -154,7 +154,7 @@ class Balance:
                 # Attempt to cast to float
                 other = float(other)
                 return Balance(int(self.rao / other))
-            except TypeError:
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __rtruediv__(self, other: Union[int, float, "Balance"]):
@@ -165,7 +165,7 @@ class Balance:
                 # Attempt to cast to float
                 other = float(other)
                 return Balance(int(other / self.rao))
-            except TypeError:
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __floordiv__(self, other: Union[int, float, "Balance"]):
@@ -176,7 +176,7 @@ class Balance:
                 # Attempt to cast to float
                 other = float(other)
                 return Balance(int(self.tao // other))
-            except TypeError:
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __rfloordiv__(self, other: Union[int, float, "Balance"]):
@@ -187,7 +187,7 @@ class Balance:
                 # Attempt to cast to float
                 other = float(other)
                 return Balance(int(other // self.tao))
-            except TypeError:
+            except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __int__(self) -> int:
