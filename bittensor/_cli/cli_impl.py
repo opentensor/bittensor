@@ -382,7 +382,7 @@ class CLI:
 
         # Ask to stake
         if not self.config.no_prompt:
-            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n  " + \
+            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n" + \
                     "".join([
                         f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
                     ])
