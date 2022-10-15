@@ -14,6 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+from matplotlib.pyplot import connect
 import torch
 from rich.prompt import Confirm, Prompt
 from typing import List, Dict, Union, Optional
@@ -46,27 +47,29 @@ class Subtensor:
     """
     def __init__( 
         self, 
-        substrate: 'SubstrateInterface',
         network: str,
         chain_endpoint: str,
+        fallback_endpoints: list[str],
     ):
         r""" Initializes a subtensor chain interface.
             Args:
-                substrate (:obj:`SubstrateInterface`, `required`): 
-                    substrate websocket client.
-                network (default='local', type=str)
+                network (:obj:`str`, `required`):
                     The subtensor network flag. The likely choices are:
                             -- local (local running network)
                             -- nobunaga (staging network)
                             -- nakamoto (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
-                chain_endpoint (default=None, type=str)
+                chain_endpoint (:obj:`str`, `required`):
                     The subtensor endpoint flag. If set, overrides the network argument.
+                fallback_endpoints  (:obj:`list[str]`, `required`):
+                    A list of fallback endpoints for subtensor connections.
         """
         self.network = network
         self.chain_endpoint = chain_endpoint
-        self.substrate = substrate
+        self.fallback_endpoints = fallback_endpoints
+        # Get first connection
+        self._default_substrate = self.substrate
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -78,61 +81,31 @@ class Subtensor:
 
     def __repr__(self) -> str:
         return self.__str__()
-  
-    def endpoint_for_network( 
-            self,
-            blacklist: List[str] = [] 
-        ) -> str:
-        r""" Returns a chain endpoint based on self.network.
-            Returns None if there are no available endpoints.
+
+    @property
+    def substrate(self) -> SubstrateInterface:
+        r""" Substrate connection property which falls back to fallback endpoints on a failed connect.
+            Returns:
+                active_substrate ( :obj:`SubstrateInterface`, `required`):
+                    Formatted endpoint i.e. ws://AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944
+            Raises:
+                RuntimeError:
+                    If the default substrate connection fails along with all remaining endpoints.
         """
-
-        # Chain endpoint overrides the --network flag.
-        if self.chain_endpoint != None:
-            if self.chain_endpoint in blacklist:
-                return None
-            else:
-                return self.chain_endpoint
-
-    def connect( self, timeout: int = 10, failure = True ) -> bool:
-        attempted_endpoints = []
-        while True:
-            def connection_error_message():
-                print('''
-Check that your internet connection is working and the chain endpoints are available: <blue>{}</blue>
-The subtensor.network should likely be one of the following choices:
-    -- local - (your locally running node)
-    -- nobunaga - (staging)
-    -- nakamoto - (main)
-Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
-To run a local node (See: docs/running_a_validator.md) \n
-                              '''.format( attempted_endpoints) )
-
-            # ---- Get next endpoint ----
-            ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
-            if ws_chain_endpoint == None:
-                logger.error("No more endpoints available for subtensor.network: <blue>{}</blue>, attempted: <blue>{}</blue>".format(self.network, attempted_endpoints))
-                connection_error_message()
-                if failure:
-                    logger.critical('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
-                else:
-                    return False
-            attempted_endpoints.append(ws_chain_endpoint)
-
-            # --- Attempt connection ----
-            try:
-                with self.substrate:
-                    logger.success("Network:".ljust(20) + "<blue>{}</blue>", self.network)
-                    logger.success("Endpoint:".ljust(20) + "<blue>{}</blue>", ws_chain_endpoint)
-                    return True
-            
-            except Exception:
-                logger.error( "Error while connecting to network:<blue>{}</blue> at endpoint: <blue>{}</blue>".format(self.network, ws_chain_endpoint))
-                connection_error_message()
-                if failure:
-                    raise RuntimeError('Unable to connect to network:<blue>{}</blue>.\nMake sure your internet connection is stable and the network is properly set.'.format(self.network))
-                else:
-                    return False
+        try:
+            self._default_substrate.connect_websocket()
+            return self._default_substrate
+        except:
+            for endpoint_url in self.fallback_endpoints:
+                try:
+                    connection = bittensor.subtensor.substrate_connection_for_url( endpoint_url )
+                    connection.connect_websocket()
+                    # Successful connection.
+                    return connection
+                except:
+                    pass
+            # Failed on all fallbacks.
+            raise RuntimeError('Failed to connect to all active or fallback substrate connections.')
 
     @property
     def rho (self) -> int:

@@ -76,13 +76,14 @@ class subtensor:
             config: 'bittensor.config' = None,
             network: str = None,
             chain_endpoint: str = None,
+            fallback_endpoints: list[str] = None,
             _mock: bool = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.subtensor.config()
-                network (default='local', type=str)
+                network (:obj:`str`, `optional`)
                     The subtensor network flag. The likely choices are:
                             -- local (local running network)
                             -- nakamoto (main network)
@@ -90,9 +91,11 @@ class subtensor:
                             -- mock (mock network for testing.)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
-                chain_endpoint (default=None, type=str)
+                chain_endpoint (:obj:`str`, `optional`)
                     The subtensor endpoint flag. If set, overrides the network argument.
-                _mock (bool, `optional`):
+                fallback_endpoints  (:obj:`list[str]`, `optional`):
+                    A list of fallback endpoints for subtensor connections.
+                _mock (:obj:`bool`, `optional`):
                     Returned object is mocks the underlying chain connection.
         """
         if config == None: config = subtensor.config()
@@ -136,10 +139,34 @@ class subtensor:
         # make sure it's wss:// or ws://
         # by default, add ws:// if neither are present
         endpoint_url: str = config.subtensor.chain_endpoint
-        if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
-            endpoint_url = "ws://{}".format(endpoint_url)
-        
-        substrate = SubstrateInterface(
+        endpoint_url = subtensor.format_endpoint(endpoint_url)
+
+        # Get fallback endpoints.
+        if fallback_endpoints == None:
+            if config.subtensor.fallback_endpoints != None:
+                fallback_endpoints = config.subtensor.fallback_endpoints
+            else:
+                fallback_endpoints = []
+        fallback_endpoints = [ subtensor.format_endpoint(end) for end in fallback_endpoints ]
+
+        subtensor.check_config( config )
+        return subtensor_impl.Subtensor( 
+            network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
+            chain_endpoint = config.subtensor.chain_endpoint,
+            fallback_endpoints = fallback_endpoints,
+        )
+
+    @staticmethod
+    def substrate_connection_for_url( endpoint_url: str ) -> SubstrateInterface:
+        r""" Returns a substrate connection for endpoint_url string.
+            Args:
+                endpoint_url (:obj:`str`, `required`): 
+                    The endpoint ws url i.e. AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944
+            Returns:
+                connection ( :obj:`SubstratesubInterface`, `required`):
+                    The substrate interface connection.
+        """
+        return SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
@@ -147,12 +174,20 @@ class subtensor:
             use_remote_preset=True
         )
 
-        subtensor.check_config( config )
-        return subtensor_impl.Subtensor( 
-            substrate = substrate,
-            network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
-            chain_endpoint = config.subtensor.chain_endpoint,
-        )
+    @staticmethod
+    def format_endpoint( endpoint_url: str ) -> str:
+        r""" Formats the passed websocket endpoint
+            Args:
+                endpoint_url (:obj:`str`, `required`): 
+                    Endpoint to be formatted i.e. AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944
+            Returns:
+                formatted_endpoint ( :obj:`str`, `required`):
+                    Formatted endpoint i.e. ws://AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944
+        """
+        if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
+            return "ws://{}".format(endpoint_url)
+        else: 
+            return endpoint_url        
 
     @staticmethod   
     def config() -> 'bittensor.Config':
@@ -184,7 +219,10 @@ class subtensor:
                                     ''')
             parser.add_argument('--' + prefix_str + 'subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str, 
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
-                                    ''')       
+                                    ''')  
+            parser.add_argument('--' + prefix_str + 'subtensor.fallback_endpoints',  nargs='+', default = bittensor.defaults.subtensor.fallback_endpoints, type=str, 
+                                help='''A list of potential subtensor fallback endpoints which will be tried in this order if the connection fails.''')       
+     
             parser.add_argument('--' + prefix_str + 'subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
             # registration args. Used for register and re-register and anything that calls register.
             parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest=prefix_str + 'subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
@@ -210,6 +248,7 @@ class subtensor:
         defaults.subtensor = bittensor.Config()
         defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
+        defaults.subtensor.fallback_endpoints = os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') if os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') != None else None
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
         defaults.subtensor.register = bittensor.Config()
