@@ -170,7 +170,6 @@ class TestBalance(unittest.TestCase):
         balance_ = Balance(balance)
         balance2_ = Balance(balance2)
         rao_: int
-        rao2_: int
         if isinstance(balance, int):
             rao_ = balance
         elif isinstance(balance, float):
