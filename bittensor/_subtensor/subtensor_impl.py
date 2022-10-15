@@ -104,7 +104,7 @@ class Subtensor:
                     # Successful connection.
                     return connection
                 except:
-                    bittensor.logging.warning(prefix = 'Substrate', sufix = 'Failed to connect on the fallback substrate endpoint: {}'.format( self.endpoint_url ))
+                    bittensor.logging.warning(prefix = 'Substrate', sufix = 'Failed to connect on the fallback substrate endpoint: {}'.format( endpoint_url ))
                     pass
             # Failed on all fallbacks.
             raise RuntimeError('Failed to connect to all active or fallback substrate connections.')
