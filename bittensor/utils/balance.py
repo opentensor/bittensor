@@ -23,7 +23,7 @@ class Balance:
     The Balance object is immutable, and can be used as a number or as a string
     Can only guarantee that the balance is accurate to 9 decimal places (tao)
 
-    Note: In operations between Balance and int/float, other is assumed to be in tao
+    Note: In operations between Balance and int/float, the other value is assumed to be in tao
     """
 
     unit: str = "\u03C4" # This is the tao unit
@@ -78,8 +78,8 @@ class Balance:
         else:
             try:
                 # Attempt to cast to float
-                other = float(other)
-                return self.rao == other
+                other = Balance.from_tao(float(other))
+                return self == other
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -92,8 +92,8 @@ class Balance:
         else:
             try:
                 # Attempt to cast to float
-                other = float(other)
-                return self.tao > other
+                other = Balance.from_tao(float(other))
+                return self > other
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -103,8 +103,8 @@ class Balance:
         else:
             try:
                 # Attempt to cast to float
-                other = float(other)
-                return self.tao < other
+                other = Balance.from_tao(float(other))
+                return self < other
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -119,9 +119,9 @@ class Balance:
             return Balance(int(self.rao + other.rao))
         else:
             try:
-                # Attempt to cast to float
-                other = float(other)
-                return Balance(int(self.rao + other))
+                # Attempt to cast to float from tao
+                other = Balance.from_tao(float(other))
+                return self + other
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -136,7 +136,7 @@ class Balance:
 
     def __mul__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao * other.rao))
+            return Balance(int(self.rao * other.tao))
         else:
             try:
                 # Attempt to cast to float
