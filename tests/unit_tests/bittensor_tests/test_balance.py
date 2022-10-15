@@ -79,6 +79,23 @@ class TestBalance(unittest.TestCase):
         assert CLOSE_IN_VALUE(sum_.rao, 5) == rao_ + rao2_
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
+    def test_balance_eq_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+        balance_ = Balance(balance)
+        balance2_ = balance # should be equal as tao
+        rao_: int
+        rao2_: int
+        if isinstance(balance, int):
+            rao_ = balance
+        elif isinstance(balance, float):
+            rao_ = int(balance * pow(10, 9))
+        # convert balance2 to rao. This assumes balance2 is a tao number
+        rao2_ = int(balance2 * pow(10, 9))
+
+        sum_ = balance_ + balance2_
+        assert isinstance(sum_, Balance)
+        assert CLOSE_IN_VALUE(rao_, 5) == rao2_
+
+    @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
     def test_balance_radd_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
         balance_ = Balance(balance)
         balance2_ = balance2
