@@ -1540,6 +1540,37 @@ To run a local node (See: docs/running_a_validator.md) \n
         
         return neurons
 
+    def blockAtRegistration_all(self, block: int = None ) -> List[int]: 
+        r""" Returns a list of blockAtRegistration for every uid from the chain, using the bundled subtensor-node-api
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[int]):
+                List of blockAtRegistration numbers.
+
+        Raises:
+            FastSyncException: If there is an issue during fast sync
+        """
+        neurons = []
+        if block is None:
+            block: int = self.get_current_block()
+
+        block_hash: str = self.substrate.get_block_hash( block )
+        endpoint_url: str = self.chain_endpoint
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
+    
+        # check if fast sync is available
+        FastSync.verify_fast_sync_support()
+        # try to fast sync
+        fast_sync: FastSync = FastSync(endpoint_url)
+        # get blockAtRegistration_all
+        fast_sync.get_blockAtRegistration_for_all_and_save(block_hash)
+        # load blockAtRegistration_all
+        blockAtRegistration_all = fast_sync.load_blockAtRegistration_for_all()
+        
+        return blockAtRegistration_all
+
 
     @staticmethod
     def _null_neuron() -> SimpleNamespace:
