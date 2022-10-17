@@ -179,6 +179,103 @@ class FastSync:
             subprocess.run([path_to_bin, "sync_and_save", "-u", self.endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
         except subprocess.SubprocessError as e:
             raise FastSyncRuntimeException("Error running fast sync binary: {}".format(e))
+
+    def get_blockAtRegistration_for_all_and_save(self, block_hash: str) -> None:
+        """Runs the fast sync binary to get blockAtRegistration for all neurons at a given block hash"""
+        FastSync.verify_fast_sync_support()
+        path_to_bin = FastSync.get_path_to_fast_sync()
+        bittensor.__console__.print("Using subtensor-node-api for blockAtRegistration storage retrieval...")
+        # will write to ~/.bittensor/blockAtRegistration_all.json by default
+        try:
+            subprocess.run([path_to_bin, "get_block_at_registration_for_all_and_save", "-u", self.endpoint_url, '-b', block_hash], check=True, stdout=subprocess.PIPE)
+        except subprocess.SubprocessError as e:
+            raise FastSyncRuntimeException("Error running fast sync binary: {}".format(e))
+
+    @classmethod
+    def load_blockAtRegistration_for_all(cls, json_file_location: str = '~/.bittensor/blockAtRegistration_all.json') -> List[int]:
+        """
+        Loads neurons from the blockAtRegistration JSON file
+
+        Args:
+            json_file_location (str, optional): The location of the blockAtRegistration JSON file. Defaults to '~/.bittensor/blockAtRegistration_all.json'.
+        
+        Raises:
+            FastSyncFileException: If the JSON file could not be read
+            FastSyncFormatException: If the JSON file is not in the correct format
+        
+        Returns:
+            List[int]
+                a list of the blockAtRegistration numbers
+        """
+        try:
+            with open(os.path.join(os.path.expanduser(json_file_location))) as f:
+                file_data = f.read()
+            return cls._load_neurons_from_blockAtRegistration_all_file_data(file_data)
+        except FileNotFoundError:
+            raise FastSyncFileException('{} not found. Try calling fast_sync_neurons() first.', json_file_location)
+        except OSError:
+            raise FastSyncFileException('Could not read {}', json_file_location)
+
+    @staticmethod
+    def validate_blockAtRegistration_data_and_return(blockAtRegistration_data: object) -> List[int]:
+        """
+        Validates the blockAtRegistration data and returns a List of integers
+
+        Args:
+            blockAtRegistration_data (object): The neuron data object to validate
+        
+        Returns:
+            List[int]: A list of the validated blockAtRegistration numbers
+
+        Raises:
+            FastSyncFormatException: If the neuron data is not formatted correctly for any fields
+        
+        """
+        if not isinstance(blockAtRegistration_data, list):
+            raise FastSyncFormatException("blockAtRegistration data must be a dict")
+
+        blockAtRegistration_list = []
+        for blockAtRegistration in blockAtRegistration_data:
+            if not isinstance(blockAtRegistration, str):
+                raise FastSyncFormatException("blockAtRegistration data must be a list of type str")
+            try:
+                blockAtRegistration = int(blockAtRegistration)
+                if blockAtRegistration < 0:
+                    raise FastSyncFormatException("each blockAtRegistration data must be a valid block number (>=0)")
+                
+                blockAtRegistration_list.append(blockAtRegistration)
+            except ValueError:
+                raise FastSyncFormatException("each blockAtRegistration data must be a valid int")
+
+        return blockAtRegistration_list
+
+
+    @classmethod
+    def _load_neurons_from_blockAtRegistration_all_file_data(cls, file_data: str) -> List[int]:
+        """
+        Loads neurons from the blockAtRegistration_all JSON file data
+        
+        Raises: FastSyncFormatException if the file is not in the correct format
+
+        Returns: List[int]
+            a list of the blockAtRegistration numbers
+        """
+        try:
+            data = json.loads(file_data)
+        except json.JSONDecodeError:
+            raise FastSyncFormatException('Could not parse blockAtRegistration JSON file data as json')
+
+        # all the large ints are strings
+        if not isinstance(data, list):
+            raise FastSyncFormatException('Expected a JSON array at the top level')
+        
+        try:
+            # validate the blockAtRegistration data
+            data_validated: List[int] = cls.validate_blockAtRegistration_data_and_return(data)
+        except Exception as e:
+            raise FastSyncFormatException('Could not parse blockAtRegistration JSON file data: {}'.format(e))
+            
+        return data_validated
     
     @staticmethod
     def validate_neuron_data_and_return(neuron_data: object) -> NeuronData:
