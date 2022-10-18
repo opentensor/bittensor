@@ -77,7 +77,7 @@ class Balance:
             return self.rao == other.rao
         else:
             try:
-                # Attempt to cast to float
+                # Attempt to cast to int from rao
                 other_rao = int(other)
                 return self.rao == other_rao
             except TypeError:
@@ -91,7 +91,7 @@ class Balance:
             return self.rao > other.rao
         else:
             try:
-                # Attempt to cast to float
+                # Attempt to cast to int from rao
                 other_rao = int(other)
                 return self.rao > other_rao
             except ValueError:
@@ -102,7 +102,7 @@ class Balance:
             return self.rao < other.rao
         else:
             try:
-                # Attempt to cast to float
+                # Attempt to cast to int from rao
                 other_rao = int(other)
                 return self.rao < other_rao
             except ValueError:
@@ -181,8 +181,7 @@ class Balance:
             return Balance.from_rao(int(other.rao // self.rao))
         else:
             try:
-                # Attempt to cast to float
-                other = float(other)
+                # Attempt to cast to int from rao
                 return Balance.from_rao(int(other // self.rao))
             except ValueError:
                 raise NotImplemented("Unsupported type")
