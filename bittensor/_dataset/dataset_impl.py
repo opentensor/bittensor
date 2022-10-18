@@ -135,7 +135,8 @@ class GenesisTextDataset( Dataset ):
         save_dataset,
         max_datasets,
         no_tokenizer, 
-        num_batches
+        num_batches,
+        max_directories
     ):
         super().__init__()
         self.block_size = block_size
@@ -153,6 +154,7 @@ class GenesisTextDataset( Dataset ):
         self.backup_dataset_cap_size = 5e7 # set 50MB limit per folder
         self.IPFS_fails_max = 10
         self.num_batches = num_batches
+        self.max_directories = max_directories
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -476,9 +478,10 @@ class GenesisTextDataset( Dataset ):
                 i = 0
 
                 # --- Dont stop until the corpus size and the minimum data_length was reached.
-                with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count()) as executor:
+                n_workers = cpu_count() if self.num_workers == 0 else self.num_workers
+                with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
                     future_map = {}
-                    for idx, call_arg in enumerate(directories[:500]):
+                    for idx, call_arg in enumerate(directories[:self.max_directories]):
                         future = executor.submit(self.get_text, call_arg)
                         future_map[future] = call_arg
 
