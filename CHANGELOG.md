@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.4.1 / 2022-10-13
+
+## What's Changed
+* [Hotfix] Fix CUDA Reg update block by @camfairchild in https://github.com/opentensor/bittensor/pull/954
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.4.0...v3.4.1
+
+## 3.4.0 / 2022-10-13
+
+## What's Changed
+* Parameters update by @Eugene-hu  #936 
+* Bittensor Generate by @unconst  #941 
+* Prometheus by @unconst  #928 
+* [Tooling][Release] Adding release script by @eduardogr in https://github.com/opentensor/bittensor/pull/948
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.3.4...v3.4.0
+
+
 ## 3.3.4 / 2022-10-03
 
 ### What's Changed
