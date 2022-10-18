@@ -208,7 +208,7 @@ class server(torch.nn.Module):
         result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
         to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
-        tokens = self.tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
+        tokens = self.tokenizer(to_text_batch, padding=True, truncation=True, max_length=token_batch.size(1), return_tensors='pt',
                                 add_special_tokens=False).to(self.device)  # assume tokenizer.padding_side = 'left'
 
         if return_offsets_mapping:  # get offsets_mapping in tokenization to delineate token segment positions
@@ -238,7 +238,6 @@ class server(torch.nn.Module):
 
         """
         message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)
-        
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()
         loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
@@ -267,8 +266,7 @@ class server(torch.nn.Module):
                 logits (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer)  # remap to server tokenizer
-
+        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
         if model_output == None:
             if self.config.neuron.local_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
