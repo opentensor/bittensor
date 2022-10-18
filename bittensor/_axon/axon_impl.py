@@ -219,7 +219,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     code = synapse_codes[ index ], 
                     call_time = synapse_call_times[ index ], 
                     pubkey = request.hotkey, 
-                    inputs = deserialized_forward_tensors [index].shape , 
+                    inputs = deserialized_forward_tensors [index].shape if deserialized_forward_tensors [index] != None else None , 
                     outputs = None if synapse_responses[index] == None else list( synapse_responses[index].shape ), 
                     message = synapse_messages[ index ] if message == None else message,
                     synapse = synapse.synapse_type
