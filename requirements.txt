@@ -46,7 +46,7 @@ wheel
 codecov
 tqdm
 qqdm
-wandb>=0.11.1<=0.13.3
+wandb>=0.11.1,<0.13.4
 ansible_vault>=2.1
 substrate-interface==1.2.4
 markupsafe==2.0.1
