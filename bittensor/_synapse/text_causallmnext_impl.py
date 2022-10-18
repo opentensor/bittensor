@@ -29,6 +29,7 @@ class TextCausalLMNext(Synapse):
     def __init__(
             self,
             topk: int = 4096,
+            decode_topk: bool = True,
             forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
             forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
             backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -57,6 +58,7 @@ class TextCausalLMNext(Synapse):
             backward_response_serializer_type
         )
         self.topk = topk
+        self.decode_topk = decode_topk
         self.synapse_type = TextCausalLMNext.synapse_type
 
     def __repr__(self) -> str:
@@ -115,14 +117,16 @@ class TextCausalLMNext(Synapse):
         if forward_response_tensor is None:
             raise ValueError("Empty Response")
 
-        if (
-                len(forward_response_tensor.shape) != 1 or
-                forward_response_tensor.size(0) < forward_request_tensor.shape[0] * (2 * self.topk + 1)
-        ):
-            raise ValueError(f"forward_response_tensor.shape must be in "
-                             f"[>={forward_request_tensor.shape[0]} x (2 x {self.topk} + 1)], "
-                             f"got: {forward_response_tensor.size(0)} for synapse: {self}")
-
+        if self.decode_topk:
+            if (
+                    len(forward_response_tensor.shape) != 1 or
+                    forward_response_tensor.size(0) < forward_request_tensor.shape[0] * (2 * self.topk + 1)
+            ):
+                raise ValueError(f"forward_response_tensor.shape must be in "
+                                f"[>={forward_request_tensor.shape[0]} x (2 x {self.topk} + 1)], "
+                                f"got: {forward_response_tensor.size(0)} for synapse: {self}")
+        else:
+            pass
     def check_backward_request_gradient(self, forward_request_tensor, backward_request_gradient):
         # forward_request_tensor: [batch_size, sequence_len]
         # backward_request_gradient: [batch_size, (topk + 1), max_len]
@@ -148,7 +152,7 @@ class TextCausalLMNext(Synapse):
         return compact_topk
 
     def decode_forward_response_tensor(self, forward_response_tensor: torch.Tensor) -> torch.Tensor:
-        """ Unravel [ >= batch_size * (2 * topk + 1)] into [batch_size, (topk + 1), max_len] topk std_token_phrases. """
+        """ Unravel [ >= batch_size * (2 * topk + 1)] into [batch_size, (topk + 1), max_len] topk std_token_phrases. """ 
         topk_tensor = unravel_topk_token_phrases(forward_response_tensor, topk=self.topk)
         return topk_tensor  # [batch_size, (topk + 1), max_len]
 

@@ -75,6 +75,7 @@ class synapse:
     @staticmethod
     def TextCausalLM ( 
         topk:int = 512,
+        decode_topk = True, 
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -96,6 +97,7 @@ class synapse:
         """
         return TextCausalLM ( 
             topk = topk,
+            decode_topk = decode_topk, 
             forward_request_serializer_type = forward_request_serializer_type,
             forward_response_serializer_type = forward_response_serializer_type,
             backward_request_serializer_type = backward_request_serializer_type,
@@ -104,7 +106,8 @@ class synapse:
 
     @staticmethod
     def TextCausalLMNext(
-        topk: int = 4096,
+        topk: int = 512,
+        decode_topk: bool = True, 
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -128,6 +131,7 @@ class synapse:
         """
         return TextCausalLMNext(
             topk=topk,
+            decode_topk = decode_topk, 
             forward_request_serializer_type=forward_request_serializer_type,
             forward_response_serializer_type=forward_response_serializer_type,
             backward_request_serializer_type=backward_request_serializer_type,
