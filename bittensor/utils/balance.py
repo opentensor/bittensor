@@ -23,7 +23,7 @@ class Balance:
     The Balance object is immutable, and can be used as a number or as a string
     Can only guarantee that the balance is accurate to 9 decimal places (tao)
 
-    Note: In operations between Balance and int/float, the other value is assumed to be in tao
+    Note: In operations between Balance and int/float, the other value is assumed to be in rao
     """
 
     unit: str = "\u03C4" # This is the tao unit
@@ -78,8 +78,8 @@ class Balance:
         else:
             try:
                 # Attempt to cast to float
-                other = Balance.from_tao(float(other))
-                return self == other
+                other_rao = int(other)
+                return self.rao == other_rao
             except TypeError:
                 raise NotImplemented("Unsupported type")
 
@@ -92,8 +92,8 @@ class Balance:
         else:
             try:
                 # Attempt to cast to float
-                other = Balance.from_tao(float(other))
-                return self > other
+                other_rao = int(other)
+                return self.rao > other_rao
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -103,8 +103,8 @@ class Balance:
         else:
             try:
                 # Attempt to cast to float
-                other = Balance.from_tao(float(other))
-                return self < other
+                other_rao = int(other)
+                return self.rao < other_rao
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -116,12 +116,11 @@ class Balance:
 
     def __add__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao + other.rao))
+            return Balance.from_rao(int(self.rao + other.rao))
         else:
             try:
-                # Attempt to cast to float from tao
-                other = Balance.from_tao(float(other))
-                return self + other
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao + other))
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -136,12 +135,11 @@ class Balance:
 
     def __mul__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao * other.tao))
+            return Balance.from_rao(int(self.rao * other.rao))
         else:
             try:
-                # Attempt to cast to float
-                other = float(other)
-                return Balance(int(self.rao * other))
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao * other))
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -150,45 +148,42 @@ class Balance:
 
     def __truediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao / other.rao))
+            return Balance.from_rao(int(self.rao / other.rao))
         else:
             try:
-                # Attempt to cast to float
-                other = float(other)
-                return Balance(int(self.rao / other))
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao / other))
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __rtruediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(other.rao / self.rao))
+            return Balance.from_rao(int(other.rao / self.rao))
         else:
             try:
-                # Attempt to cast to float
-                other = float(other)
-                return Balance(int(other / self.rao))
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(other / self.rao))
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __floordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.tao // other.tao))
+            return Balance.from_rao(int(self.tao // other.tao))
         else:
             try:
-                # Attempt to cast to float
-                other = float(other)
-                return Balance(int(self.tao // other))
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao // other))
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
     def __rfloordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(other.tao // self.tao))
+            return Balance.from_rao(int(other.rao // self.rao))
         else:
             try:
                 # Attempt to cast to float
                 other = float(other)
-                return Balance(int(other // self.tao))
+                return Balance.from_rao(int(other // self.rao))
             except ValueError:
                 raise NotImplemented("Unsupported type")
 
@@ -202,13 +197,13 @@ class Balance:
         return bool(self.rao)
 
     def __neg__(self):
-        return Balance(-self.rao)
+        return Balance.from_rao(-self.rao)
 
     def __pos__(self):
-        return Balance(self.rao)
+        return Balance.from_rao(self.rao)
 
     def __abs__(self):
-        return Balance(abs(self.rao))
+        return Balance.from_rao(abs(self.rao))
 
     @staticmethod
     def from_float(amount: float):
