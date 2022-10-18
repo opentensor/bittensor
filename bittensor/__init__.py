@@ -20,7 +20,7 @@ from rich.traceback import install
 from prometheus_client import Info
 
 # Bittensor code and protocol version.
-__version__ = '3.3.4'
+__version__ = '3.4.1'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
