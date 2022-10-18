@@ -142,11 +142,9 @@ class subtensor:
         endpoint_url = subtensor.format_endpoint(endpoint_url)
 
         # Get fallback endpoints.
-        if fallback_endpoints == None:
-            if config.subtensor.fallback_endpoints != None:
-                fallback_endpoints = config.subtensor.fallback_endpoints
-            else:
-                fallback_endpoints = []
+        fallback_endpoints = [] 
+        if fallback_endpoints == None and config.subtensor.fallback_endpoints != None:
+            fallback_endpoints = config.subtensor.fallback_endpoints
         fallback_endpoints = [ subtensor.format_endpoint(end) for end in fallback_endpoints ]
 
         subtensor.check_config( config )
