@@ -246,7 +246,7 @@ class subtensor:
         defaults.subtensor = bittensor.Config()
         defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
-        defaults.subtensor.fallback_endpoints = os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') if os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') != None else "wss://archivelb.nakamoto.opentensor.ai:9943"
+        defaults.subtensor.fallback_endpoints = os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') if os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') != None else None
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
         defaults.subtensor.register = bittensor.Config()

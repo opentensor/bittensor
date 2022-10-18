@@ -101,6 +101,8 @@ class Subtensor:
                 try:
                     connection = bittensor.subtensor.substrate_connection_for_url( endpoint_url )
                     connection.connect_websocket()
+                    self._active_substrate_endpoint = endpoint_url
+                    self._active_substrate_network = endpoint_url
                     # Successful connection.
                     return connection
                 except:
