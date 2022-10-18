@@ -23,8 +23,6 @@ from loguru import logger
 from substrateinterface import SubstrateInterface
 from torch.cuda import is_available as is_cuda_available
 
-from bittensor.utils import strtobool_with_default
-
 from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
