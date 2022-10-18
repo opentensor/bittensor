@@ -911,7 +911,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # Staking more than 1000 rao to the wallets.
             ## Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
             percent_reduction = 1 - (1000 / total_staking_rao)
-            amounts = [amount * percent_reduction for amount in amounts]
+            amounts = [Balance.from_tao(amount.tao * percent_reduction) for amount in amounts]
         
         successful_stakes = 0
         for wallet, amount, neuron in zip(wallets, amounts, neurons):
