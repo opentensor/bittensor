@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from rich.console import Console
+from rich.traceback import install
 from prometheus_client import Info
 
 # Bittensor code and protocol version.
@@ -31,6 +32,10 @@ install(show_locals=False)
 # Rich console.
 __console__ = Console()
 __use_console__ = True
+
+# Remove overdue locals in debug training.
+install(show_locals=False)
+
 def turn_console_off():
     from io import StringIO
     __use_console__ = False
