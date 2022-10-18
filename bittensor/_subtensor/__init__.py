@@ -20,6 +20,7 @@ import os
 
 import bittensor
 from loguru import logger
+from typing import Union
 from substrateinterface import SubstrateInterface
 from torch.cuda import is_available as is_cuda_available
 
@@ -74,7 +75,7 @@ class subtensor:
             config: 'bittensor.config' = None,
             network: str = None,
             chain_endpoint: str = None,
-            fallback_endpoints: list[str] = None,
+            fallback_endpoints: Union[list[str], str] = None,
             _mock: bool = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
@@ -91,8 +92,8 @@ class subtensor:
                     an entry point node from that network.
                 chain_endpoint (:obj:`str`, `optional`)
                     The subtensor endpoint flag. If set, overrides the network argument.
-                fallback_endpoints  (:obj:`list[str]`, `optional`):
-                    A list of fallback endpoints for subtensor connections.
+                fallback_endpoints  (:obj:`Union[list[str], str]`, `optional`):
+                    A list (or single string) of fallback endpoints for subtensor connection urls.
                 _mock (:obj:`bool`, `optional`):
                     Returned object is mocks the underlying chain connection.
         """
@@ -135,21 +136,22 @@ class subtensor:
             config.subtensor.network = bittensor.defaults.subtensor.network
         
         # make sure it's wss:// or ws://
-        # by default, add ws:// if neither are present
+        # If it's bellagene (parachain testnet) then it has to be wss
         endpoint_url: str = config.subtensor.chain_endpoint
         endpoint_url = subtensor.format_endpoint(endpoint_url)
 
         # Get fallback endpoints.
-        fallback_endpoints = [] 
-        if fallback_endpoints == None and config.subtensor.fallback_endpoints != None:
-            fallback_endpoints = config.subtensor.fallback_endpoints
-        fallback_endpoints = [ subtensor.format_endpoint(end) for end in fallback_endpoints ]
+        if fallback_endpoints != None:
+            config.subtensor.fallback_endpoints = fallback_endpoints 
+        if isinstance(config.subtensor.fallback_endpoints, str):
+            config.subtensor.fallback_endpoints = [config.subtensor.fallback_endpoints]
+        config.subtensor.fallback_endpoints = [ subtensor.format_endpoint(end) for end in config.subtensor.fallback_endpoints ]
 
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
             chain_endpoint = config.subtensor.chain_endpoint,
-            fallback_endpoints = fallback_endpoints,
+            fallback_endpoints = config.subtensor.fallback_endpoints,
         )
 
     @staticmethod
@@ -244,7 +246,7 @@ class subtensor:
         defaults.subtensor = bittensor.Config()
         defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
-        defaults.subtensor.fallback_endpoints = os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') if os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') != None else None
+        defaults.subtensor.fallback_endpoints = os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') if os.getenv('BT_SUBTENSOR_FALLBACK_ENDPOINTS') != None else "wss://archivelb.nakamoto.opentensor.ai:9943"
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
         defaults.subtensor.register = bittensor.Config()

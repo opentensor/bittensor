@@ -92,6 +92,7 @@ class Subtensor:
                     If the default substrate connection fails along with all remaining endpoints.
         """
         try:
+            self._default_substrate = bittensor.subtensor.substrate_connection_for_url( self.chain_endpoint )
             self._default_substrate.connect_websocket()
             return self._default_substrate
         except:

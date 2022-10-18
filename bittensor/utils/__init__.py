@@ -515,7 +515,6 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     logger.start()
 
     solution = None
-    hash_rate = 0 # EWMA hash_rate (H/s)
 
     hash_rates = [0] * n_samples # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
@@ -531,25 +530,17 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
             pass
 
         # check for new block
-        block_number = subtensor.get_current_block()
-        if block_number != old_block_number:
-            old_block_number = block_number
-            # update block information
-            block_hash = subtensor.substrate.get_block_hash( block_number)
-            while block_hash == None:
-                block_hash = subtensor.substrate.get_block_hash( block_number)
-            block_bytes = block_hash.encode('utf-8')[2:]
-            difficulty = subtensor.difficulty
-
-            update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
-            # Set new block events for each solver
-            for worker in solvers:
-                worker.newBlockEvent.set()
-            
-            # update stats
-            curr_stats.block_number = block_number
-            curr_stats.block_hash = block_hash
-            curr_stats.difficulty = difficulty
+        old_block_number = check_for_newest_block_and_update(
+            subtensor = subtensor,
+            old_block_number=old_block_number,
+            curr_diff=curr_diff,
+            curr_block=curr_block,
+            curr_block_num=curr_block_num,
+            curr_stats=curr_stats,
+            update_curr_block=update_curr_block,
+            check_block=check_block,
+            solvers=solvers
+        )
                 
         num_time = 0
         for _ in range(len(solvers)*2):
@@ -637,6 +628,66 @@ class UsingSpawnStartMethod():
         # restore the old start method
         multiprocessing.set_start_method(self._old_start_method, force=True)
 
+def check_for_newest_block_and_update(
+    subtensor: 'bittensor.Subtensor',
+    old_block_number: int,
+    curr_diff: multiprocessing.Array,
+    curr_block: multiprocessing.Array,
+    curr_block_num: multiprocessing.Value,
+    update_curr_block: Callable,
+    check_block: 'multiprocessing.Lock',
+    solvers: List[Solver],
+    curr_stats: RegistrationStatistics
+    ) -> int:
+    """
+    Checks for a new block and updates the current block information if a new block is found.
+
+    Args:
+        subtensor (:obj:`bittensor.Subtensor`, `required`):
+            The subtensor object to use for getting the current block.
+        old_block_number (:obj:`int`, `required`):
+            The old block number to check against.
+        curr_diff (:obj:`multiprocessing.Array`, `required`):
+            The current difficulty as a multiprocessing array.
+        curr_block (:obj:`multiprocessing.Array`, `required`):
+            Where the current block is stored as a multiprocessing array.
+        curr_block_num (:obj:`multiprocessing.Value`, `required`):
+            Where the current block number is stored as a multiprocessing value.
+        update_curr_block (:obj:`Callable`, `required`):
+            A function that updates the current block.
+        check_block (:obj:`multiprocessing.Lock`, `required`):
+            A mp lock that is used to check for a new block.
+        solvers (:obj:`List[Solver]`, `required`):
+            A list of solvers to update the current block for.
+        curr_stats (:obj:`RegistrationStatistics`, `required`):
+            The current registration statistics to update.
+
+    Returns:
+        (int) The current block number.
+    """
+    block_number = subtensor.get_current_block()
+    if block_number != old_block_number:
+        old_block_number = block_number
+        # update block information
+        block_hash = subtensor.substrate.get_block_hash( block_number)
+        while block_hash == None:
+            block_hash = subtensor.substrate.get_block_hash( block_number)
+        block_bytes = block_hash.encode('utf-8')[2:]
+        difficulty = subtensor.difficulty
+
+        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
+        # Set new block events for each solver
+
+        for worker in solvers:
+            worker.newBlockEvent.set()
+
+        # update stats
+        curr_stats.block_number = block_number
+        curr_stats.block_hash = block_hash
+        curr_stats.difficulty = difficulty
+
+    return old_block_number
+
 
 def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 5, alpha_: float = 0.70, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
@@ -681,13 +732,6 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
         curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
 
-        def update_curr_block(block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
-            with lock:
-                curr_block_num.value = block_number
-                for i in range(64):
-                    curr_block[i] = block_bytes[i]
-                registration_diff_pack(diff, curr_diff)
-
         # Establish communication queues
         stopEvent = multiprocessing.Event()
         stopEvent.clear()
@@ -713,7 +757,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         old_block_number = block_number
         
         # Set to current block
-        update_curr_block(block_number, block_bytes, difficulty, check_block)
+        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
 
         # Set new block events for each solver to start at the initial block
         for worker in solvers:
@@ -746,6 +790,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         hash_rates = [0] * n_samples # The last n true hash_rates
         weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
+        solution = None
         while not wallet.is_registered(subtensor):
             # Wait until a solver finds a solution
             try:
@@ -755,27 +800,19 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             except Empty:
                 # No solution found, try again
                 pass
-
-            if block_number != old_block_number:
-                old_block_number = block_number
-                # update block information
-                block_hash = subtensor.substrate.get_block_hash( block_number)
-                while block_hash == None:
-                    block_hash = subtensor.substrate.get_block_hash( block_number)
-                block_bytes = block_hash.encode('utf-8')[2:]
-                difficulty = subtensor.difficulty
-
-                update_curr_block(block_number, block_bytes, difficulty, check_block)
-                # Set new block events for each solver
-
-                for worker in solvers:
-                    worker.newBlockEvent.set()
-
-
-                # update stats
-                curr_stats.block_number = block_number
-                curr_stats.block_hash = block_hash
-                curr_stats.difficulty = difficulty
+            
+            # check for new block
+            old_block_number = check_for_newest_block_and_update(
+                subtensor = subtensor,
+                curr_diff=curr_diff,
+                curr_block=curr_block,
+                curr_block_num=curr_block_num,
+                old_block_number=old_block_number,
+                curr_stats=curr_stats,
+                update_curr_block=update_curr_block,
+                check_block=check_block,
+                solvers=solvers
+            )
                     
             num_time = 0
             # Get times for each solver
