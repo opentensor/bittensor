@@ -30,7 +30,15 @@ from rich.prompt import Confirm, Prompt, PromptBase
 
 from . import cli_impl
 
+# Turn off rich console locals trace.
+from rich.traceback import install
+install(show_locals=False)
+
 console = bittensor.__console__
+
+# Remove incredibly large tracebacks.
+from rich.traceback import install
+install(show_locals=False)
 
 class cli:
     """
