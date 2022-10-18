@@ -80,7 +80,7 @@ class Subtensor:
 
     def __repr__(self) -> str:
         return self.__str__()
-
+        
     @property
     def substrate(self) -> SubstrateInterface:
         r""" Substrate connection property which falls back to fallback endpoints on a failed connect.

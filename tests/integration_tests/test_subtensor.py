@@ -75,19 +75,15 @@ class TestSubtensor(unittest.TestCase):
         assert subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
 
     def test_connect_no_failure( self ):
-        self.subtensor.connect(timeout = 1, failure=False)
-
+        self.subtensor.substrate
+        assert True
 
     def test_connect_success( self ):
-        success = self.subtensor.connect()
-        assert success == True
-
-
-    def test_connect_fail( self ):
-        self.subtensor.substrate=None
-        with pytest.raises(RuntimeError):
-            self.subtensor.connect()
-
+        try:
+            self.subtensor.substrate
+            assert True
+        except:
+            assert False
 
     def test_neurons( self ):
         assert len(self.neurons) > 0
