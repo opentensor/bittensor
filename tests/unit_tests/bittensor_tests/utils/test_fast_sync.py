@@ -140,62 +140,62 @@ class TestLoadNeurons(unittest.TestCase):
 
         fake_neuron_json_data = json.dumps(fake_neurons)
         with pytest.raises(FastSyncFormatException):
-            _ = FastSync._load_neurons_from_metragraph_file_data(fake_neuron_json_data)
+            FastSync._load_neurons_from_metragraph_file_data(fake_neuron_json_data)
     
     def test_load_neurons_from_metagraph_file_json_error(self):
         bad_json_string = "bad json string"
         with pytest.raises(FastSyncFormatException):
-            _ = FastSync._load_neurons_from_metragraph_file_data(bad_json_string)
+            FastSync._load_neurons_from_metragraph_file_data(bad_json_string)
 
     def test_load_neurons_file_os_error(self):
         with patch("builtins.open", side_effect=OSError):
             with pytest.raises(FastSyncFileException):
-                _ = FastSync.load_neurons("") # Should raise an OSError
+                FastSync.load_neurons("") # Should raise an OSError
 
 
     def test_load_neurons_from_metagraph_file_no_file(self):
         with patch("builtins.open", side_effect=FileNotFoundError):
             with pytest.raises(FastSyncFileException):
-                _ = FastSync.load_neurons("") # Should raise a FileNotFoundError
+                FastSync.load_neurons("") # Should raise a FileNotFoundError
        
 class TestSupportCheck(unittest.TestCase):
     def test_os_not_supported_windows(self):
         with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="win32"): # Windows is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
-                _ = FastSync.verify_os_support()
+                FastSync.verify_os_support()
 
     def test_os_not_supported_other(self):
         with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="someotheros"): # Some other os that is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
-                _ = FastSync.verify_os_support()
+                FastSync.verify_os_support()
 
     def test_os_not_supported_freebsd(self):
         with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="freebsd"): # freebsd is not supported
             with pytest.raises(FastSyncOSNotSupportedException):
-                _ = FastSync.verify_os_support()
+                FastSync.verify_os_support()
     
     def test_os_supported_linux(self):
         with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="linux"): # linux is supported
-            _ = FastSync.verify_os_support()
+            FastSync.verify_os_support()
 
     def test_os_supported_macos(self):
         with patch("bittensor.utils.fast_sync.FastSync.get_platform", return_value="darwin"): # darwin is macos and is supported
-            _ = FastSync.verify_os_support()
+            FastSync.verify_os_support()
     
     def test_binary_not_found(self):
         with patch("os.path.exists", return_value=False): # Binary does not exist
             with pytest.raises(FastSyncNotFoundException):
-                _ = FastSync.verify_binary_exists()
+                FastSync.verify_binary_exists()
 
         with patch("os.path.exists", return_value=True):
             with patch("os.path.isfile", return_value=False): # Binary exists but is not a file
                 with pytest.raises(FastSyncNotFoundException):
-                    _ = FastSync.verify_binary_exists()
+                    FastSync.verify_binary_exists()
         
     def test_binary_found(self):
         with patch("os.path.exists", return_value=True):
             with patch("os.path.isfile", return_value=True):
-                _ = FastSync.verify_binary_exists() # no exception should be raised
+                FastSync.verify_binary_exists() # no exception should be raised
 
 class TestFailureAndFallback(unittest.TestCase):
     def test_fast_sync_fails_fallback_to_regular_sync(self):
