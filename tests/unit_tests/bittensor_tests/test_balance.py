@@ -18,13 +18,13 @@
 import unittest
 from typing import Union
 
+import pytest
 from bittensor import Balance
 from tests.helpers import CLOSE_IN_VALUE
 from hypothesis import given
 from hypothesis import strategies as st
 
 """
-TODO: Add tests for the balance class and new number operations
 Test the Balance class
 """
 valid_tao_numbers_strategy = st.one_of(st.integers(max_value=21_000_000, min_value=-21_000_000), st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False, max_value=21_000_000.00, min_value=-21_000_000.00))
@@ -317,6 +317,41 @@ class TestBalance(unittest.TestCase):
     def test_balance_neq_none(self, balance: Union[int, float]):
         balance_ = Balance(balance)
         assert balance_ != None
+
+    def test_balance_init_from_invalid_value(self):
+        with pytest.raises(TypeError):
+            Balance('invalid not a number')
+
+    @given(balance=valid_tao_numbers_strategy)
+    def test_balance_add_invalid_type(self, balance: Union[int, float]):
+        balance_ = Balance(balance)
+        with pytest.raises(ValueError):
+            _ = balance_ + ""
+
+    @given(balance=valid_tao_numbers_strategy)
+    def test_balance_sub_invalid_type(self, balance: Union[int, float]):
+        balance_ = Balance(balance)
+        with pytest.raises(ValueError):
+            _ = balance_ - ""
+
+    @given(balance=valid_tao_numbers_strategy)
+    def test_balance_div_invalid_type(self, balance: Union[int, float]):
+        balance_ = Balance(balance)
+        with pytest.raises(ValueError):
+            _ = balance_ / ""
+
+    @given(balance=valid_tao_numbers_strategy)
+    def test_balance_mul_invalid_type(self, balance: Union[int, float]):
+        balance_ = Balance(balance)
+        with pytest.raises(ValueError):
+            _ = balance_ * ""
+
+    @given(balance=valid_tao_numbers_strategy)
+    def test_balance_eq_invalid_type(self, balance: Union[int, float]):
+        balance_ = Balance(balance)
+        with pytest.raises(ValueError):
+            balance_ == ""
+
 
 if __name__ == "__main__":
     unittest.main()
