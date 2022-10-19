@@ -17,10 +17,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import concurrent
 import json
 import os
 import random
 import time
+from multiprocessing import cpu_count
 from typing import Union
 
 import requests
@@ -36,7 +38,8 @@ from .thread_queue import ThreadQueue
 
 logger = logger.opt(colors=True)
 
-class Dataset():
+
+class Dataset:
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
     def __init__(self):
@@ -132,7 +135,8 @@ class GenesisTextDataset( Dataset ):
         save_dataset,
         max_datasets,
         no_tokenizer, 
-        num_batches
+        num_batches,
+        max_directories
     ):
         super().__init__()
         self.block_size = block_size
@@ -150,6 +154,7 @@ class GenesisTextDataset( Dataset ):
         self.backup_dataset_cap_size = 5e7 # set 50MB limit per folder
         self.IPFS_fails_max = 10
         self.num_batches = num_batches
+        self.max_directories = max_directories
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -473,25 +478,23 @@ class GenesisTextDataset( Dataset ):
                 i = 0
 
                 # --- Dont stop until the corpus size and the minimum data_length was reached.
-                for directory in directories:
-                    # --- Get a directory that leads to a datafile.
-                    random_datafile_dir = self.get_root_text_hash(directory)
-                    if random_datafile_dir == None:
-                        pass
+                n_workers = cpu_count() if self.num_workers == 0 else self.num_workers
+                with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+                    future_map = {}
+                    for idx, call_arg in enumerate(directories[:self.max_directories]):
+                        future = executor.submit(self.get_text, call_arg)
+                        future_map[future] = call_arg
 
-                    # --- Get text from the datafile directory
-                    text = self.get_text(random_datafile_dir)
-                    
-                    if text != None:
-                        text_list = text.split() 
-                        data_corpus.extend(text_list)
-                        total_dataset_size += int(random_datafile_dir['Size'])
-                        total_dataset_len += len(text_list)
+                    for i, future in enumerate(concurrent.futures.as_completed(future_map)):
+                        text = future.result()
 
-                    i += 1
-                    
-                    if (total_dataset_len > min_data_len) or self.IPFS_fails > self.IPFS_fails_max:
-                        break
+                        if text is not None:
+                            text_list = text.split()
+                            data_corpus.extend(text_list)
+                            total_dataset_len += len(text_list)
+
+                        if (total_dataset_len > min_data_len) or self.IPFS_fails > self.IPFS_fails_max:
+                            break
 
             else:
                 logger.error("It appears the directory is empty... Restart your miner to try again.")

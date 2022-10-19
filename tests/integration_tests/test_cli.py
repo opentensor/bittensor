@@ -1086,7 +1086,7 @@ class TestCli(unittest.TestCase):
         with patch('bittensor.Subtensor.register', return_value=True):
             cli = bittensor.cli(config)
             cli.run()
-
+            
     def test_stake( self ):
         wallet = TestCli.generate_wallet()
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
@@ -1327,35 +1327,98 @@ class TestCli(unittest.TestCase):
             # This shouldn't raise an error anymore
             cli.run()
 
-def test_btcli_help():
-    """
-    Verify the correct help text is output when the --help flag is passed
-    """
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        with patch('argparse.ArgumentParser._print_message', return_value=None) as mock_print_message:
-            args = [
-                '--help'
+    def test_btcli_help(self):
+        """
+        Verify the correct help text is output when the --help flag is passed
+        """
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            with patch('argparse.ArgumentParser._print_message', return_value=None) as mock_print_message:
+                args = [
+                    '--help'
+                ]
+                bittensor.cli(args=args).run()
+
+        # Should try to print help
+        mock_print_message.assert_called_once()
+
+        call_args = mock_print_message.call_args
+        args, _ = call_args
+        help_out = args[0]
+
+        # Expected help output even if parser isn't working well
+        ## py3.6-3.9 or py3.10+
+        assert 'optional arguments' in help_out or 'options' in help_out
+        # Expected help output if all commands are listed
+        assert 'positional arguments' in help_out
+        # Verify that cli is printing the help message for 
+        assert 'overview' in help_out
+        assert 'run' in help_out
+
+
+    def test_register_cuda_use_cuda_flag(self):
+            class ExitEarlyException(Exception):
+                """Raised by mocked function to exit early"""
+                pass
+
+            base_args = [
+                "register",
+                "--subtensor._mock",
+                "--subtensor.network", "mock",
+                "--wallet.path", "tmp/walletpath",
+                "--wallet.name", "mock",
+                "--wallet.hotkey", "hk0",
+                "--no_prompt",
+                "--cuda.dev_id", "0",
             ]
-            bittensor.cli(args=args).run()
 
-    # Should try to print help
-    mock_print_message.assert_called_once()
+            with patch('torch.cuda.is_available', return_value=True):
+                with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
+                    # Should be able to set true without argument
+                    args = base_args + [
+                        "--subtensor.register.cuda.use_cuda", # should be True without any arugment
+                    ]
+                    with pytest.raises(ExitEarlyException):
+                        cli = bittensor.cli(args=args)
+                        cli.run()
 
-    call_args = mock_print_message.call_args
-    args, _ = call_args
-    help_out = args[0]
+                    assert cli.config.subtensor.register.cuda.get('use_cuda') == True # should be None
 
-    # Expected help output even if parser isn't working well
-    ## py3.6-3.9 or py3.10+
-    assert 'optional arguments' in help_out or 'options' in help_out
-    # Expected help output if all commands are listed
-    assert 'positional arguments' in help_out
-    # Verify that cli is printing the help message for 
-    assert 'overview' in help_out
-    assert 'run' in help_out
+                    # Should be able to set to false with no argument
 
+                    args = base_args + [
+                        "--subtensor.register.cuda.no_cuda",
+                    ]
+                    with pytest.raises(ExitEarlyException):
+                        cli = bittensor.cli(args=args)
+                        cli.run()
 
-if __name__ == "__main__":
-    cli = TestCli()
-    cli.setUp()
-    cli.test_stake()
+                    assert cli.config.subtensor.register.cuda.use_cuda == False
+class TestCLIUsingArgs(unittest.TestCase):
+    """
+    Test the CLI by passing args directly to the bittensor.cli factory
+    """
+    def test_run_reregister_false(self):
+        """
+        Verify that the btcli run command does not reregister a not registered wallet
+            if --wallet.reregister is False
+        """
+
+        with patch('bittensor.Wallet.is_registered', MagicMock(return_value=False)) as mock_wallet_is_reg: # Wallet is not registered
+            with patch('bittensor.Subtensor.register', MagicMock(side_effect=Exception("shouldn't register during test"))):
+                with pytest.raises(SystemExit):
+                    cli = bittensor.cli(args=[
+                        'run',
+                        '--wallet.name', 'mock',
+                        '--wallet.hotkey', 'mock_hotkey',
+                        '--wallet._mock', 'True',
+                        '--subtensor.network', 'mock',
+                        '--subtensor._mock', 'True',
+                        '--no_prompt',
+                        '--wallet.reregister', 'False' # Don't reregister
+                    ])
+                    cli.run()
+
+                    args, kwargs = mock_wallet_is_reg.call_args
+                    # args[0] should be self => the wallet
+                    assert args[0].config.wallet.reregister == False
+

@@ -105,9 +105,16 @@ class neuron:
             config = config,
             logging_dir = config.neuron.full_path,
         )
+        # Init prometheus.
+        # By default we pick the prometheus port to be axon.port - 1000 so that we can match port to server.
+        bittensor.prometheus ( 
+            config = config,
+            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
+        )
 
         self.model = server(config = config)
         self.config = config
+        self.config.to_prometheus()
 
         self.subtensor = subtensor
         self.wallet = wallet
@@ -121,7 +128,7 @@ class neuron:
             subtensor = self.subtensor,
             wallet = self.wallet,
             axon = self.axon,
-            metagraph= self.metagraph,
+            metagraph = self.metagraph,
         )
 
 
@@ -140,6 +147,7 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.wandb.check_config( config )
+        bittensor.prometheus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.get('name', bittensor.defaults.wallet.name), config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
         if not os.path.exists(config.neuron.full_path):
