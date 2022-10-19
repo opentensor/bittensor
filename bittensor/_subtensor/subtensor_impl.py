@@ -862,6 +862,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         
         if len(wallets) == 0:
             return True
+            
 
         if amounts is not None and len(amounts) != len(wallets):
             raise ValueError("amounts must be a list of the same length as wallets")
@@ -925,7 +926,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
             # Assign decrypted coldkey from wallet_0
             #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0._coldkey
+            wallet._coldkey = wallet_0.coldkey
             staking_all = False
             # Convert to bittensor.Balance
             if amount == None:
