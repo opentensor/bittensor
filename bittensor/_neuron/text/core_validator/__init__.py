@@ -46,6 +46,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 from threading import Lock
+from prometheus_client import Counter, Gauge, Histogram, Summary, Info
 
 logger = logger.opt( colors=True )
 console = Console()
@@ -110,6 +111,8 @@ class neuron:
                 bittensor dendrite object
             dataset (:obj:bittensor.dendrite, `optional`):
                 bittensor dendrite object
+            axon (:obj:bittensor.axon, `optional`):
+                bittensor axon object
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
             >>> validator = bittensor.neuron.text.core_validator.neuron(subtensor=subtensor)
@@ -122,7 +125,8 @@ class neuron:
         subtensor: 'bittensor.Subtensor' = None,
         metagraph: 'bittensor.Metagraph' = None,
         dendrite: 'bittensor.Dendrite' = None,
-        dataset: 'bittensor.dataset' = None
+        dataset: 'bittensor.dataset' = None,
+        axon: 'bittensor.axon' = None
     ):
 
         # === Set up Config ===
@@ -137,7 +141,19 @@ class neuron:
             self.config.dendrite._mock = True
             self.config.metagraph._mock = True
             self.config.subtensor._mock = True
+            self.config.axon._mock = True
         print ( self.config )
+
+        # ===  Logging + prometheus ===
+        self.config.to_prometheus()
+        bittensor.logging( 
+            config = self.config, 
+            logging_dir = self.config.neuron.full_path 
+        )
+        bittensor.prometheus ( 
+            config = self.config, 
+            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
+        )
 
         # === Create Bittensor objects ===
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
@@ -145,6 +161,7 @@ class neuron:
         self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
         self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor ) if metagraph == None else metagraph
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.
+        self.axon = bittensor.axon ( config = self.config, wallet = self.wallet ) if axon == None else axon
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
         self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
@@ -172,6 +189,13 @@ class neuron:
             # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
             self.synapse_keys = ['shapley_values_min']
 
+        # === Prometheus stats ===
+        # Turn this off by passing the --prometheus.off flag
+        self.prometheus_info = Info("neuron_info", "Info sumamries for the running server-miner.")
+        self.prometheus_gauges = Gauge('validator_gauges', 'Gauges for the running validator.', ['validator_gauges_name'])
+        self.prometheus_counters = Counter('validator_counters', 'Counters for the running validator.', ['validator_counters_name'])
+        self.prometheus_step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0,2*bittensor.__blocktime__,1)))
+
         # load last saved validator values from the file system
         if not config.neuron.restart:
             self.load()
@@ -188,6 +212,8 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.dendrite.check_config( config )
         bittensor.wandb.check_config( config )
+        bittensor.axon.check_config( config )
+        bittensor.prometheus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
         config.using_wandb = config.wandb.api_key != 'default'
@@ -211,7 +237,7 @@ class neuron:
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
         parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
-        parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting.', default=0.1)
+        parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting. (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
     def config ( cls ):
@@ -225,6 +251,8 @@ class neuron:
         bittensor.logging.add_args( parser )
         bittensor.dataset.add_args( parser )
         bittensor.wandb.add_args(parser)
+        bittensor.axon.add_args( parser )
+        bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
 
     def __repr__(self) -> str:
@@ -270,6 +298,19 @@ class neuron:
                 root_dir = self.config.neuron.full_path
             )
 
+        # === Set prometheus run info ===
+        # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
+        self.axon.serve( subtensor = self.subtensor )
+        self.prometheus_gauges.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
+        self.prometheus_gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
+        self.prometheus_info.info({
+            'type': "core_validator",
+            'uid': str(self.uid),
+            'network': self.config.subtensor.network,
+            'coldkey': str(self.wallet.coldkeypub.ss58_address),
+            'hotkey': str(self.wallet.hotkey.ss58_address),
+        })
+
     def save(self, path=None):
         r""" Save validated hotkeys and neuron_stats to filesystem. """
         try:
@@ -306,7 +347,7 @@ class neuron:
         r""" Run the validator and terminate on Keyboard interrupt.
         """
         # === Setup ===
-        # Checks wallet and starts monitoring with wandb.
+        # Checks wallet and starts monitoring.
         with self:
 
             # === Start forward requests ===
@@ -328,6 +369,7 @@ class neuron:
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
+                    self.prometheus_counters.labels('failures').inc()
                     console.print_exception(show_locals=False)
                     print( traceback.format_exc() )
                     print( 'Unknown exception: {}', e )
@@ -346,9 +388,18 @@ class neuron:
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+
+        # === Logs Prometheus ===
+        self.prometheus_gauges.labels("current_block").set( current_block )
+        self.prometheus_gauges.labels("batch_size").set( batch_size )
+        self.prometheus_gauges.labels("sequence_length").set( sequence_length )
+        self.prometheus_gauges.labels("validation_len").set( validation_len )
+        self.prometheus_gauges.labels("min_allowed_weights").set( min_allowed_weights )
+        self.prometheus_gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
+        self.prometheus_gauges.labels("epochs_until_reset").set( epochs_until_reset )
 
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len != self.dataset.block_size):
@@ -358,7 +409,7 @@ class neuron:
         if self.config.using_wandb:
             wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
                        'era/validation_len': validation_len,
-                       'era/min_allowed_weights': min_allowed_weights, 'era/max_allowed_ratio': max_allowed_ratio,
+                       'era/min_allowed_weights': min_allowed_weights, 'era/max_weight_limit': max_weight_limit,
                        'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
                       step=current_block)
 
@@ -376,6 +427,8 @@ class neuron:
         epoch_queried_uids = set()
         epoch_start_time = time.time()
 
+        self.prometheus_gauges.labels("epoch_steps").set(0)
+
         start_block = self.subtensor.block
         # normal epoch duration is blocks_per_epoch if all UIDs have been queried
         # try to query each UID at least once - assumes nucleus samples without replacement
@@ -389,6 +442,7 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
+            self.prometheus_gauges.labels("loss").set( loss.item() )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
@@ -409,8 +463,18 @@ class neuron:
             # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
+            self.prometheus_gauges.labels("global_step").inc()
+            self.prometheus_gauges.labels("epoch_steps").inc()
+
+            # === Block state ===
             current_block = self.subtensor.block
+            self.prometheus_gauges.labels("current_block").set(current_block)
+            self.prometheus_gauges.labels("last_updated").set( current_block - self.metagraph.last_update[self.uid] )
+
+            # === Step time ===
             step_time = time.time() - start_time
+            self.prometheus_step_time.observe( step_time )
+            self.prometheus_gauges.labels('step_time').set( step_time )
             
             if epoch_steps % 25 == 1:
                 # validator identifier status console message (every 25 validation steps)
@@ -507,8 +571,8 @@ class neuron:
               f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
               f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
               f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-              f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
-              f'({max_allowed_ratio} allowed)')
+              f'\[{sample_weights.max().item()}:1] '
+              f'({max_weight_limit} allowed)')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
@@ -530,6 +594,16 @@ class neuron:
             wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block, commit=False)
             wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
+
+        # === Epoch Prometheus ===
+        self.prometheus_gauges.labels("epoch").inc()
+        self.prometheus_gauges.labels("set_weights").inc()
+        self.prometheus_gauges.labels("stake").set( self.metagraph.stake[self.uid] )
+        self.prometheus_gauges.labels("rank").set( self.metagraph.ranks[self.uid] )
+        self.prometheus_gauges.labels("trust").set( self.metagraph.trust[self.uid] )
+        self.prometheus_gauges.labels("incentive").set( self.metagraph.incentive[self.uid] )
+        self.prometheus_gauges.labels("dividends").set( self.metagraph.dividends[self.uid] )
+        self.prometheus_gauges.labels("emission").set( self.metagraph.emission[self.uid] )
 
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
@@ -603,7 +677,7 @@ class neuron:
 
         # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_weight_limit = self.subtensor.max_weight_limit
 
         non_responsive_uids = queried_uids - responsive_uids
         non_queried_uids = set(range(self.metagraph.n)) - queried_uids
@@ -633,12 +707,15 @@ class neuron:
         sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
         sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
 
-        logger.info(f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
+        # === If no uids responds, return ===
+        if len(sample_uids) == 0:
+            return sample_uids, sample_weights
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
+        quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
         if 0 < max_exclude:
-            exclude_quantile = min([self.config.neuron.exclude_quantile, max_exclude])  # reduce quantile to meet min_allowed_weights
+            exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
             lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
             sample_uids = sample_uids[lowest_quantile <= sample_weights]  # exclude uids with weights below quantile
             sample_weights = sample_weights[lowest_quantile <= sample_weights]  # exclude weights below quantile
@@ -646,11 +723,11 @@ class neuron:
             logger.info(f'Exclude {exclude_quantile} quantile ({lowest_quantile}) | '
                         f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
 
-        # === Normalize and apply max_allowed_ratio ===
-        sample_weights = bittensor.utils.weight_utils.normalize_max_multiple(x=sample_weights,
-                                                                             multiple=max_allowed_ratio)
-        logger.info(f'{len(sample_weights)} normalize_max_multiple | '
-                    f'min:{sample_weights.min()} max:{sample_weights.max()}')
+        # === Normalize and apply max_weight_limit ===
+        sample_weights = bittensor.utils.weight_utils.normalize_max_weight(x=sample_weights,
+                                                                             limit=max_weight_limit)
+        logger.info(f'{len(sample_weights)} normalize_max_weight | '
+                    f'max:{sample_weights.max()}')
 
         return sample_uids, sample_weights
 
@@ -658,7 +735,7 @@ class neuron:
         r""" Prints weights table given sample_uids and sample_weights.
         """
         min_allowed_weights = self.subtensor.min_allowed_weights
-        max_allowed_ratio = self.subtensor.max_allowed_min_max_ratio
+        max_weight_limit = self.subtensor.max_weight_limit
 
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights
@@ -688,8 +765,8 @@ class neuron:
                     f'sum:{sample_weights.sum().item():.2g} '
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                    f'\[{sample_weights.max().item() / sample_weights.min().item():.1f}:1] '
-                    f'({max_allowed_ratio} allowed)',  # caption
+                    f'\[{sample_weights.max().item()}:1] '
+                    f'({max_weight_limit} allowed)',  # caption
                     mark_uids=avail_include_uids)
 
 
@@ -699,6 +776,10 @@ class nucleus( torch.nn.Module ):
     def __init__( self, config, device, subtensor ):
         super(nucleus, self).__init__()
         self.config = config
+
+        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+
         self.device = device
         self.max_n = subtensor.max_n
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
@@ -743,8 +824,8 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
         parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
-        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.5)
-        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.', default=0.6)
+        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
+        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
     def config ( cls ):

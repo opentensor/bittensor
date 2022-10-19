@@ -246,16 +246,18 @@ class Wallet():
             if not self.config.wallet.get('reregister'):
                 sys.exit(0)
 
-            subtensor.register(
-                wallet = self,
+            self.register(
+                subtensor = subtensor,
                 prompt = prompt,
                 TPB = self.config.subtensor.register.cuda.get('TPB', None),
                 update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
                 num_processes = self.config.subtensor.register.get('num_processes', None),
-                cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
+                cuda = self.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
                 dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
+                output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
+                log_verbose = self.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
             )
 
         return self
@@ -272,6 +274,8 @@ class Wallet():
             TPB: int = 256,
             num_processes: Optional[int] = None,
             update_interval: Optional[int] = None,
+            output_in_place: bool = True,
+            log_verbose: bool = False,
         ) -> 'bittensor.Wallet':
         """ Registers the wallet to chain.
         Args:
@@ -297,6 +301,10 @@ class Wallet():
                 The number of processes to use to register.
             update_interval (int):
                 The number of nonces to solve between updates.
+            output_in_place (bool):
+                If true, the registration output is printed in-place.
+            log_verbose (bool):
+                If true, the registration output is more verbose.
         Returns:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block. 
@@ -309,11 +317,13 @@ class Wallet():
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
             prompt=prompt, max_allowed_attempts=max_allowed_attempts,
+            output_in_place = output_in_place,
             cuda=cuda,
             dev_id=dev_id,
             TPB=TPB,
             num_processes=num_processes,
-            update_interval=update_interval
+            update_interval=update_interval,
+            log_verbose=log_verbose,
         )
         
         return self
