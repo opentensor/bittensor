@@ -376,7 +376,7 @@ class CLI:
                 if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
                     # Skip hotkey if max_stake is less than current stake.
                     continue
-                wallet_balance -= stake_amount_tao
+                wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
             final_amounts.append(stake_amount_tao)
             final_wallets.append(wallet)
 
