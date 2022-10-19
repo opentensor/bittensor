@@ -27,7 +27,7 @@ from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
-from bittensor.utils.fast_sync import FastSyncException, FastSync
+from subtensorapi import FastSyncException, FastSync
 from types import SimpleNamespace
 
 # Mocking imports

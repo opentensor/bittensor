@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -15,16 +16,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import codecs
-import os
-import re
-import sys
-from io import open
-from os import path
-from typing import Optional
-
-from pkg_resources import parse_requirements
 from setuptools import setup, find_packages
+from pkg_resources import parse_requirements
+from os import path
+from io import open
+import codecs
+import re
+import os
 
 here = path.abspath(path.dirname(__file__))
 
@@ -38,24 +36,6 @@ with open('requirements.txt') as requirements_file:
 with codecs.open(os.path.join(here, 'bittensor/__init__.py'), encoding='utf-8') as init_file:
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M)
     version_string = version_match.group(1)
-
-package_data = {
-    'bittensor': []
-}
-
-platform: Optional[str] = os.environ.get('BT_BUILD_TARGET') or sys.platform
-
-# Check platform and remove unsupported subtensor node api binaries.
-if platform == "linux" or platform == "linux2":
-    # linux
-    package_data['bittensor'].append('subtensor-node-api-linux')
-elif platform == "darwin":
-    # OS X
-    package_data['bittensor'].append('subtensor-node-api-macos')
-else: # e.g. platform == None
-    # neither linux or macos
-    # include neither binaries
-    pass
 
 setup(
     name='bittensor',
@@ -71,7 +51,6 @@ setup(
     license='MIT',
     install_requires=install_requires,
     scripts=['bin/btcli'],
-    package_data=package_data,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
