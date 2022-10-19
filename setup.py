@@ -24,7 +24,7 @@ from os import path
 from typing import Optional
 
 from pkg_resources import parse_requirements
-from setuptools import setup
+from setuptools import setup, find_packages
 
 here = path.abspath(path.dirname(__file__))
 
@@ -48,10 +48,10 @@ platform: Optional[str] = os.environ.get('BT_BUILD_TARGET') or sys.platform
 # Check platform and remove unsupported subtensor node api binaries.
 if platform == "linux" or platform == "linux2":
     # linux
-    package_data['bittensor'].append('../bin/subtensor-node-api-linux')
+    package_data['bittensor'].append('subtensor-node-api-linux')
 elif platform == "darwin":
     # OS X
-    package_data['bittensor'].append('../bin/subtensor-node-api-macos')
+    package_data['bittensor'].append('subtensor-node-api-macos')
 else: # e.g. platform == None
     # neither linux or macos
     # include neither binaries
