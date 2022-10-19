@@ -325,31 +325,31 @@ class TestBalance(unittest.TestCase):
     @given(balance=valid_tao_numbers_strategy)
     def test_balance_add_invalid_type(self, balance: Union[int, float]):
         balance_ = Balance(balance)
-        with pytest.raises(ValueError):
+        with pytest.raises(NotImplementedError):
             _ = balance_ + ""
 
     @given(balance=valid_tao_numbers_strategy)
     def test_balance_sub_invalid_type(self, balance: Union[int, float]):
         balance_ = Balance(balance)
-        with pytest.raises(ValueError):
+        with pytest.raises(NotImplementedError):
             _ = balance_ - ""
 
     @given(balance=valid_tao_numbers_strategy)
     def test_balance_div_invalid_type(self, balance: Union[int, float]):
         balance_ = Balance(balance)
-        with pytest.raises(ValueError):
+        with pytest.raises(NotImplementedError):
             _ = balance_ / ""
 
     @given(balance=valid_tao_numbers_strategy)
     def test_balance_mul_invalid_type(self, balance: Union[int, float]):
         balance_ = Balance(balance)
-        with pytest.raises(ValueError):
+        with pytest.raises(NotImplementedError):
             _ = balance_ * ""
 
     @given(balance=valid_tao_numbers_strategy)
     def test_balance_eq_invalid_type(self, balance: Union[int, float]):
         balance_ = Balance(balance)
-        with pytest.raises(ValueError):
+        with pytest.raises(NotImplementedError):
             balance_ == ""
 
 
