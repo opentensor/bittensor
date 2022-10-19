@@ -6,10 +6,9 @@ import subprocess
 import sys
 from types import SimpleNamespace
 from typing import List
-import weakref
+from tqdm import tqdm
 
 import bittensor
-from bittensor.utils import is_valid_ss58_address
 
 RAOPERTAO: int = bittensor.__rao_per_tao__
 U64MAX: int = 18446744073709551615
@@ -216,40 +215,6 @@ class FastSync:
         except OSError:
             raise FastSyncFileException('Could not read {}', json_file_location)
 
-    @staticmethod
-    def validate_blockAtRegistration_data_and_return(blockAtRegistration_data: object) -> List[int]:
-        """
-        Validates the blockAtRegistration data and returns a List of integers
-
-        Args:
-            blockAtRegistration_data (object): The neuron data object to validate
-        
-        Returns:
-            List[int]: A list of the validated blockAtRegistration numbers
-
-        Raises:
-            FastSyncFormatException: If the neuron data is not formatted correctly for any fields
-        
-        """
-        if not isinstance(blockAtRegistration_data, list):
-            raise FastSyncFormatException("blockAtRegistration data must be a dict")
-
-        blockAtRegistration_list = []
-        for blockAtRegistration in blockAtRegistration_data:
-            if not isinstance(blockAtRegistration, str):
-                raise FastSyncFormatException("blockAtRegistration data must be a list of type str")
-            try:
-                blockAtRegistration = int(blockAtRegistration)
-                if blockAtRegistration < 0:
-                    raise FastSyncFormatException("each blockAtRegistration data must be a valid block number (>=0)")
-                
-                blockAtRegistration_list.append(blockAtRegistration)
-            except ValueError:
-                raise FastSyncFormatException("each blockAtRegistration data must be a valid int")
-
-        return blockAtRegistration_list
-
-
     @classmethod
     def _load_neurons_from_blockAtRegistration_all_file_data(cls, file_data: str) -> List[int]:
         """
@@ -271,206 +236,13 @@ class FastSync:
         
         try:
             # validate the blockAtRegistration data
-            data_validated: List[int] = cls.validate_blockAtRegistration_data_and_return(data)
+            blockAtRegistration_all: List[int] = [
+                int(blockAtRegistration) for blockAtRegistration in tqdm(data)
+            ]
         except Exception as e:
             raise FastSyncFormatException('Could not parse blockAtRegistration JSON file data: {}'.format(e))
             
-        return data_validated
-    
-    @staticmethod
-    def validate_neuron_data_and_return(neuron_data: object) -> NeuronData:
-        """
-        Validates the neuron data and returns a NeuronData object
-
-        Args:
-            neuron_data (object): The neuron data object to validate
-        
-        Returns:
-            NeuronData: The validated neuron data object
-
-        Raises:
-            FastSyncFormatException: If the neuron data is not formatted correctly for any fields
-        
-        """
-        if not isinstance(neuron_data, dict):
-            raise FastSyncFormatException("Neuron data must be a dict")
-
-        hotkey = neuron_data.get("hotkey")
-        if not isinstance(hotkey, str):
-            raise FastSyncFormatException("Neuron data must have a hotkey field of type str")
-        
-        if not is_valid_ss58_address(hotkey):
-            raise FastSyncFormatException("Neuron data must have a valid hotkey")
-
-        coldkey = neuron_data.get("coldkey")
-        if not isinstance(coldkey, str):
-            raise FastSyncFormatException("Neuron data must have a coldkey field of type str")
-
-        if not is_valid_ss58_address(coldkey):
-            raise FastSyncFormatException("Neuron data must have a valid coldkey")
-
-        uid = neuron_data.get("uid")
-        if not isinstance(uid, int):
-            raise FastSyncFormatException("Neuron data must have a uid field of type int")
-
-        active = neuron_data.get("active")
-        if not isinstance(active, int):
-            raise FastSyncFormatException("Neuron data must have an active field of type int")
-        if active != 0 and active != 1:
-            raise FastSyncFormatException("Neuron data must have an active field of value 0 or 1")
-
-        ip = neuron_data.get("ip")
-        if not isinstance(ip, str):
-            raise FastSyncFormatException("Neuron data must have an ip field of type str")
-
-        port = neuron_data.get("port")
-        if not isinstance(port, int):
-            raise FastSyncFormatException("Neuron data must have a port field of type int")
-
-        stake = neuron_data.get("stake")
-        if not isinstance(stake, str):
-            raise FastSyncFormatException("Neuron data must have a stake field of type str")
-        try:
-            stake = int(stake)
-            if stake < 0:
-                raise FastSyncFormatException("Neuron data must have a stake field >= 0")
-            neuron_data["stake"] = stake
-        except ValueError:
-            raise FastSyncFormatException("Neuron data stake field must be a valid int")
-
-        rank = neuron_data.get("rank")
-        if not isinstance(rank, str):
-            raise FastSyncFormatException("Neuron data must have a rank field of type str")
-        try:
-            rank = int(rank)
-            if rank < 0:
-                raise FastSyncFormatException("Neuron data must have a rank field >= 0")
-            if rank > U64MAX:
-                raise FastSyncFormatException("Neuron data must have a rank field <= U64MAX")
-            neuron_data["rank"] = rank
-        except ValueError:
-            raise FastSyncFormatException("Neuron data rank field must be a valid int")
-
-        emission = neuron_data.get("emission")
-        if not isinstance(emission, str):
-            raise FastSyncFormatException("Neuron data must have an emission field of type str")
-        try:
-            emission = int(emission)
-            if emission < 0:
-                raise FastSyncFormatException("Neuron data must have an emission field >= 0")
-            neuron_data["emission"] = emission
-        except ValueError:
-            raise FastSyncFormatException("Neuron data emission field must be a valid int")
-
-        incentive = neuron_data.get("incentive")
-        if not isinstance(incentive, str):
-            raise FastSyncFormatException("Neuron data must have an incentive field of type str")
-        try:
-            incentive = int(incentive)
-            if incentive < 0:
-                raise FastSyncFormatException("Neuron data must have an incentive field >= 0")
-            if incentive > U64MAX:
-                raise FastSyncFormatException("Neuron data must have an incentive field <= U64MAX")
-            neuron_data["incentive"] = incentive
-        except ValueError:
-            raise FastSyncFormatException("Neuron data incentive field must be a valid int")
-
-        consensus = neuron_data.get("consensus")
-        if not isinstance(consensus, str):
-            raise FastSyncFormatException("Neuron data must have a consensus field of type str")
-        try:
-            consensus = int(consensus)
-            if consensus < 0:
-                raise FastSyncFormatException("Neuron data must have a consensus field >= 0")
-            if consensus > U64MAX:
-                raise FastSyncFormatException("Neuron data must have a consensus field <= U64MAX")
-            neuron_data["consensus"] = consensus
-        except ValueError:
-            raise FastSyncFormatException("Neuron data consensus field must be a valid int")
-        
-        trust = neuron_data.get("trust")
-        if not isinstance(trust, str):
-            raise FastSyncFormatException("Neuron data must have a trust field of type str")
-        try:
-            trust = int(trust)
-            if trust < 0:
-                raise FastSyncFormatException("Neuron data must have a trust field >= 0")
-            if trust > U64MAX:
-                raise FastSyncFormatException("Neuron data must have a trust field <= U64MAX")
-            neuron_data["trust"] = trust
-        except ValueError:
-            raise FastSyncFormatException("Neuron data trust field must be a valid int")
-
-        dividends = neuron_data.get("dividends")
-        if not isinstance(dividends, str):
-            raise FastSyncFormatException("Neuron data must have a dividends field of type str")
-        try:
-            dividends = int(dividends)
-            if dividends < 0:
-                raise FastSyncFormatException("Neuron data must have a dividends field >= 0")
-            if dividends > U64MAX:
-                raise FastSyncFormatException("Neuron data must have a dividends field <= U64MAX")
-            neuron_data["dividends"] = dividends
-        except ValueError:
-            raise FastSyncFormatException("Neuron data dividends field must be a valid int")
-
-        modality = neuron_data.get("modality")
-        if not isinstance(modality, int):
-            raise FastSyncFormatException("Neuron data must have a modality field of type int")
-
-        last_update = neuron_data.get("last_update")
-        if not isinstance(last_update, str):
-            raise FastSyncFormatException("Neuron data must have a last_update field of type str")
-        try:    
-            last_update = int(last_update)
-            if last_update < 0:
-                raise FastSyncFormatException("Neuron data must have a last_update field >= 0")
-            neuron_data["last_update"] = last_update
-        except ValueError:
-            raise FastSyncFormatException("Neuron data last_update field must be a valid int")
-
-        version = neuron_data.get("version")
-        if not isinstance(version, int):
-            raise FastSyncFormatException("Neuron data must have a version field of type int")
-
-        priority = neuron_data.get("priority")
-        if not isinstance(priority, str):
-            raise FastSyncFormatException("Neuron data must have a priority field of type str")
-        try:
-            priority = int(priority)
-            if priority < 0:
-                raise FastSyncFormatException("Neuron data must have a priority field >= 0")
-            neuron_data["priority"] = priority
-        except ValueError:
-            raise FastSyncFormatException("Neuron data priority field must be a valid int")
-        
-        weights = neuron_data.get("weights")
-        if not isinstance(weights, list):
-            raise FastSyncFormatException("Neuron data must have a weights field of type list")
-        if not all(isinstance(w0, int) and isinstance(w1, int) for w0, w1 in weights):
-            raise FastSyncFormatException("Neuron data weights field must be a list of int pairs")
-        
-        bonds = neuron_data.get("bonds")
-        if not isinstance(bonds, list):
-            raise FastSyncFormatException("Neuron data must have a bonds field of type list")
-        if not all(isinstance(uid, int) and isinstance(b, str)  for uid, b in bonds):
-            raise FastSyncFormatException("Neuron data bonds field must be a list of int, str(int) pairs")
-        try:
-            for bond, i in zip(bonds, range(len(bonds))):
-                bonds[i] = [bond[0], int(bond[1])]
-
-                if bonds[i][0] < 0:
-                    raise FastSyncFormatException("Neuron data bonds field must have all uids >= 0")
-                if bonds[i][1] < 0:
-                    raise FastSyncFormatException("Neuron data bonds field must have a bond >= 0")
-                neuron_data["bonds"] = bonds
-        except ValueError:
-            raise FastSyncFormatException("Neuron data bonds field must be a list of int, str(int) pairs")
-
-        return NeuronData(
-            **neuron_data
-        )
-
+        return blockAtRegistration_all
 
     @classmethod
     def _load_neurons_from_metragraph_file_data(cls, file_data: str) -> List[SimpleNamespace]:
@@ -491,31 +263,31 @@ class FastSync:
         if not isinstance(data, list):
             raise FastSyncFormatException('Expected a JSON array at the top level')
         
-        neurons: SimpleNamespace = []
+        neurons: List[SimpleNamespace] = []
         try:
-            for neuron_data in data:
+            
+            for neuron_data in tqdm(data):
                 # validate the neuron data
-                neuron_data_validated: NeuronData = cls.validate_neuron_data_and_return(neuron_data)
-                neuron = SimpleNamespace( **neuron_data_validated.__dict__ )
+                neuron = SimpleNamespace( **neuron_data )
                 # hotkey and coldkey are strings
                 # uid is an int
                 # active is an int
                 # ip is a string
                 # ip_type is an int
                 # port is an int
-                neuron.stake = neuron.stake / RAOPERTAO
-                neuron.rank = neuron.rank / U64MAX
-                neuron.emission = neuron.emission / RAOPERTAO
-                neuron.incentive = neuron.incentive / U64MAX
-                neuron.consensus = neuron.consensus / U64MAX
-                neuron.trust = neuron.trust / U64MAX
-                neuron.dividends = neuron.dividends / U64MAX
+                neuron.stake = int(neuron.stake) / RAOPERTAO
+                neuron.rank = int(neuron.rank) / U64MAX
+                neuron.emission = int(neuron.emission) / RAOPERTAO
+                neuron.incentive = int(neuron.incentive) / U64MAX
+                neuron.consensus = int(neuron.consensus) / U64MAX
+                neuron.trust = int(neuron.trust) / U64MAX
+                neuron.dividends = int(neuron.dividends) / U64MAX
                 # modality is an int
-                # last_update is an int from the validate function
+                neuron.last_update = int(neuron.last_update)
                 # version is an int
-                # priority is an int from the validate function
+                neuron.priority = int(neuron.priority)
                 # weights are already ints
-                # bonds are already ints from the validate function
+                neuron.bonds = [[bond[0], int(bond[1])] for bond in neuron.bonds]
 
                 neuron.is_null = False
                 neurons.append( neuron )
