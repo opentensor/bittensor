@@ -108,40 +108,6 @@ class TestLoadNeurons(unittest.TestCase):
             else:
                 self.assertEqual(loaded_neuron[key], fake_neuron[key], f"Loaded neuron {key} is not the same as the fake neuron {key}: {loaded_neuron[key]} != {fake_neuron[key]}")
 
-    def test_load_neurons_from_metagraph_file_bad_data_missing_fields(self):
-        fake_neurons: List[SimpleNamespace] = [
-            SimpleNamespace(
-                #hotkey="5FTWCbNmsywinyF38vFRDJRKHono5ssbtzEq8naPbSPpkpnd",
-                #coldkey="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm", # Missing hotkey and coldkey
-                uid=0,
-                active=0,
-                ip="",
-                ip_type=0,
-                port=0,
-                stake="0",
-                rank="0",
-                emission=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
-                incentive=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
-                consensus=str(random.randint(0, U64MAX)),
-                trust=str(random.randint(0, U64MAX)),
-                dividends=str(random.randint(0, U64MAX)),
-                modality=0,
-                last_update=str(random.randint(0, 10000)),
-                version=0,
-                priority=str(random.randint(0, U64MAX)),
-                weights=[
-                    [0, random.randint(0, U32MAX)],
-                ],
-                bonds=[
-                    [0, str(random.randint(0, 100) * bittensor.__rao_per_tao__)],
-                ],
-            ).__dict__
-        ]
-
-        fake_neuron_json_data = json.dumps(fake_neurons)
-        with pytest.raises(FastSyncFormatException):
-            _ = FastSync._load_neurons_from_metragraph_file_data(fake_neuron_json_data)
-
     def test_load_neurons_from_metagraph_file_bad_data_bad_numbers(self):
         fake_neurons: List[SimpleNamespace] = [
             SimpleNamespace(
@@ -156,7 +122,7 @@ class TestLoadNeurons(unittest.TestCase):
                 rank="0",
                 emission=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
                 incentive=str(random.randint(0, 100) * bittensor.__rao_per_tao__),
-                consensus=123, # should be str
+                consensus="this is not an integer", # should be str(int)
                 trust=str(random.randint(0, U64MAX)),
                 dividends=str(random.randint(0, U64MAX)),
                 modality=0,
