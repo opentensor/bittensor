@@ -81,7 +81,7 @@ class Balance:
                 other_rao = int(other)
                 return self.rao == other_rao
             except TypeError:
-                raise NotImplemented("Unsupported type")
+                raise NotImplementedError("Unsupported type")
 
     def __ne__(self, other: Union[int, float, "Balance"]):
         return not self == other
@@ -95,7 +95,7 @@ class Balance:
                 other_rao = int(other)
                 return self.rao > other_rao
             except ValueError:
-                raise NotImplemented("Unsupported type")
+                raise NotImplementedError("Unsupported type")
 
     def __lt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
@@ -106,7 +106,7 @@ class Balance:
                 other_rao = int(other)
                 return self.rao < other_rao
             except ValueError:
-                raise NotImplemented("Unsupported type")
+                raise NotImplementedError("Unsupported type")
 
     def __le__(self, other: Union[int, float, "Balance"]):
         return self < other or self == other
@@ -121,8 +121,8 @@ class Balance:
             try:
                 # Attempt to cast to int from rao
                 return Balance.from_rao(int(self.rao + other))
-            except ValueError:
-                raise NotImplemented("Unsupported type")
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __radd__(self, other: Union[int, float, "Balance"]):
         return self + other
@@ -140,8 +140,8 @@ class Balance:
             try:
                 # Attempt to cast to int from rao
                 return Balance.from_rao(int(self.rao * other))
-            except ValueError:
-                raise NotImplemented("Unsupported type")
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __rmul__(self, other: Union[int, float, "Balance"]):
         return self * other
@@ -153,8 +153,8 @@ class Balance:
             try:
                 # Attempt to cast to int from rao
                 return Balance.from_rao(int(self.rao / other))
-            except ValueError:
-                raise NotImplemented("Unsupported type")
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __rtruediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
@@ -163,8 +163,8 @@ class Balance:
             try:
                 # Attempt to cast to int from rao
                 return Balance.from_rao(int(other / self.rao))
-            except ValueError:
-                raise NotImplemented("Unsupported type")
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __floordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
@@ -173,8 +173,8 @@ class Balance:
             try:
                 # Attempt to cast to int from rao
                 return Balance.from_rao(int(self.rao // other))
-            except ValueError:
-                raise NotImplemented("Unsupported type")
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __rfloordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
@@ -183,8 +183,8 @@ class Balance:
             try:
                 # Attempt to cast to int from rao
                 return Balance.from_rao(int(other // self.rao))
-            except ValueError:
-                raise NotImplemented("Unsupported type")
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __int__(self) -> int:
         return self.rao
