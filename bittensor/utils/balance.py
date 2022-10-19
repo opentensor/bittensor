@@ -84,7 +84,10 @@ class Balance:
                 raise NotImplementedError("Unsupported type")
 
     def __ne__(self, other: Union[int, float, "Balance"]):
-        return not self == other
+        try:
+            return not self == other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __gt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
@@ -109,10 +112,16 @@ class Balance:
                 raise NotImplementedError("Unsupported type")
 
     def __le__(self, other: Union[int, float, "Balance"]):
-        return self < other or self == other
+        try:
+            return self < other or self == other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __ge__(self, other: Union[int, float, "Balance"]):
-        return self > other or self == other
+        try:
+            return self > other or self == other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __add__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
@@ -125,13 +134,22 @@ class Balance:
                 raise NotImplementedError("Unsupported type")
 
     def __radd__(self, other: Union[int, float, "Balance"]):
-        return self + other
+        try:
+            return self + other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __sub__(self, other: Union[int, float, "Balance"]):
-        return self + -other
+        try:
+            return self + -other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __rsub__(self, other: Union[int, float, "Balance"]):
-        return -self + other
+        try:
+            return -self + other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __mul__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
