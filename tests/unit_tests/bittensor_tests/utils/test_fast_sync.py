@@ -20,36 +20,7 @@ RAOPERTAO = bittensor.__rao_per_tao__
 class TestLoadNeurons(unittest.TestCase):
     def test_load_neurons_from_metagraph_file(self):
         # tests that the function can load a valid metagraph JSON string
-
-        """
-        We expect a JSON array of:
-        {
-            "hotkey": str,
-            "coldkey": str,
-            "uid": int,
-            "active": int,
-            "ip": str,
-            "ip_type": int,
-            "port": int,
-            "stake": str(int),
-            "rank": str(int),
-            "emission": str(int),
-            "incentive": str(int),
-            "consensus": str(int),
-            "trust": str(int),
-            "dividends": str(int),
-            "modality": int,
-            "last_update": str(int),
-            "version": int,
-            "priority": str(int),
-            "weights": [
-                [int, int],
-            ],
-            "bonds": [
-                [int, str(int)],
-            ],
-        }
-        """
+        # See https://github.com/opentensor/subtensor-node-api#neuron-structure
 
         fake_neurons: List[SimpleNamespace] = [
             SimpleNamespace(

@@ -248,6 +248,7 @@ class FastSync:
     def _load_neurons_from_metragraph_file_data(cls, file_data: str) -> List[SimpleNamespace]:
         """
         Loads neurons from the metagraph file data
+        See: https://github.com/opentensor/subtensor-node-api#neuron-structure
         
         Raises: FastSyncFormatException if the file is not in the correct format
 
