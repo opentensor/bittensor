@@ -299,6 +299,9 @@ class server(torch.nn.Module):
                 encoded_hidden (:type:`torch.Tensor`, `required`)
                     The hidden layer output as a torch tensor of shape [batch_size, sequence_len, __network_dim__ ]
         """
+        transformers.set_seed(0)
+        transformers.enable_full_determinism(0)
+
         sen_len = inputs.size()
         tokens = self.token_remap(inputs, tokenizer)  # remap to server tokenizer
 
@@ -353,6 +356,9 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
+        transformers.set_seed(0)
+        transformers.enable_full_determinism(0)
+
         tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
 
         def _forward(_model_output=model_output):
@@ -376,7 +382,7 @@ class server(torch.nn.Module):
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
             translated_loss = self.get_loss_fct(logits_std, token_batch).item()
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
-
+            
             return message, _model_output, logits_std
 
         if self.config.neuron.remote_train:

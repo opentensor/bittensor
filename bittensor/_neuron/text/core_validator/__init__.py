@@ -915,6 +915,7 @@ class nucleus( torch.nn.Module ):
                 neuron_stats.setdefault(_uid, {})
                 neuron_stats[_uid].update(_stats)  # gather neuron synapse validation measures and statistics
 
+        loss.backward()
         return loss, neuron_stats
 
 
