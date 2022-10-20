@@ -442,18 +442,18 @@ def serve(
                 # --- query the chain for the most current number of peers on the network
                 chain_weights = torch.zeros(subtensor.n)
                 chain_weights [ uid ] = 1 
-                if config.neuron.no_set_weights: 
+                if not config.neuron.no_set_weights: 
                     did_set = subtensor.set_weights(
                         uids=torch.arange(0,subtensor.n),
                         weights = chain_weights,
                         wait_for_inclusion = False,
                         wallet = wallet,
                     )
+                    if did_set:
+                        logger.success('Successfully set weights on the chain')
+                    else:
+                        logger.error('Failed to set weights on chain. (Timeout)')
                 
                 metagraph.sync()
-                if did_set:
-                    logger.success('Successfully set weights on the chain')
-                else:
-                    logger.error('Failed to set weights on chain. (Timeout)')
             except Exception as e:
                 logger.error('Failure setting weights on chain with error: {}', e)
