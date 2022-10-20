@@ -80,14 +80,11 @@ class Balance:
                 # Attempt to cast to int from rao
                 other_rao = int(other)
                 return self.rao == other_rao
-            except TypeError:
+            except (TypeError, ValueError):
                 raise NotImplementedError("Unsupported type")
 
     def __ne__(self, other: Union[int, float, "Balance"]):
-        try:
-            return not self == other
-        except (TypeError):
-            raise NotImplementedError("Unsupported type")
+        return not self == other
 
     def __gt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
