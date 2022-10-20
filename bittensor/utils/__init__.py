@@ -409,7 +409,10 @@ class RegistrationStatisticsLogger:
             time spent average: {timedelta(seconds=stats.time_average)}""" if verbose else "") + \
         f"""
             Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]
-            Iters: [bold white]{get_human_readable(int(stats.hash_rate), 'H')}/s[/bold white]
+            Iters: [bold white]{get_human_readable(int(stats.hash_rate), 'H')}/s[/bold white]""" + \
+        (f"""
+            Iters perpetual: {get_human_readable(stats.hash_rate_perpetual, 'H')}/s""" if verbose else "") + \
+        f"""
             Block: [bold white]{stats.block_number}[/bold white]
             Block_hash: [bold white]{stats.block_hash.encode('utf-8')}[/bold white]"""
         return message.replace(" ", "")
@@ -422,7 +425,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 5, alpha_: float = 0.70, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.60, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -689,7 +692,7 @@ def check_for_newest_block_and_update(
     return old_block_number
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 5, alpha_: float = 0.70, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.60, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -843,7 +846,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             new_time_spent_total = time_now - start_time_perpetual
             curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+1)
             curr_stats.rounds_total += 1
-            curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + curr_stats.hash_rate)/ new_time_spent_total
+            curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + (num_time * TPB * update_interval))/ new_time_spent_total
             curr_stats.time_spent_total = new_time_spent_total
 
             # Update the logger
