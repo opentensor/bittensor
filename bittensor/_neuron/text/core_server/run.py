@@ -434,25 +434,26 @@ def serve(
         prometheus_guages.labels("emission").set( nn.emission )
 
         if current_block - last_set_block > blocks_per_set_weights:
-            try: 
-                bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
-
-                last_set_block = current_block
-                # Set self weights to maintain activity.
-                # --- query the chain for the most current number of peers on the network
-                chain_weights = torch.zeros(subtensor.n)
-                chain_weights [ uid ] = 1 
-                did_set = subtensor.set_weights(
-                    uids=torch.arange(0,subtensor.n),
-                    weights = chain_weights,
-                    wait_for_inclusion = False,
-                    wallet = wallet,
-                )
-                
-                metagraph.sync()
-                if did_set:
-                    logger.success('Successfully set weights on the chain')
-                else:
-                    logger.error('Failed to set weights on chain. (Timeout)')
-            except Exception as e:
-                logger.error('Failure setting weights on chain with error: {}', e)
+            bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+            metagraph.sync()
+            if not config.neuron.no_set_weights:
+                try: 
+                    bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+                    last_set_block = current_block
+                    # Set self weights to maintain activity.
+                    # --- query the chain for the most current number of peers on the network
+                    chain_weights = torch.zeros(subtensor.n)
+                    chain_weights [ uid ] = 1 
+                    did_set = subtensor.set_weights(
+                        uids=torch.arange(0,subtensor.n),
+                        weights = chain_weights,
+                        wait_for_inclusion = False,
+                        wallet = wallet,
+                    )
+                    if did_set:
+                        logger.success('Successfully set weights on the chain')
+                    else:
+                        logger.error('Failed to set weights on chain. (Timeout)')
+                    
+                except Exception as e:
+                    logger.error('Failure setting weights on chain with error: {}', e)
