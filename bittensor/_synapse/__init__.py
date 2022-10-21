@@ -74,7 +74,7 @@ class synapse:
 
     @staticmethod
     def TextCausalLM ( 
-        topk:int = 512,
+        topk:int = 64,
         decode_topk = True, 
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
