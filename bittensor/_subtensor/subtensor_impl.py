@@ -1594,7 +1594,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         # try to fast sync
         fast_sync: FastSync = FastSync(endpoint_url)
         # get neurons
-        fast_sync.sync_neurons(block_hash)
+        fast_sync.sync_and_save(bittensor.__console__, block_hash)
         # load neurons
         neurons = fast_sync.load_neurons()
         
@@ -1625,7 +1625,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         # try to fast sync
         fast_sync: FastSync = FastSync(endpoint_url)
         # get blockAtRegistration_all
-        fast_sync.get_blockAtRegistration_for_all_and_save(block_hash)
+        fast_sync.get_blockAtRegistration_for_all_and_save(bittensor.__console__, block_hash)
         # load blockAtRegistration_all
         blockAtRegistration_all = fast_sync.load_blockAtRegistration_for_all()
         
