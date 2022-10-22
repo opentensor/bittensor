@@ -28,6 +28,7 @@ from .text_causallm_impl import TextCausalLM
 from .text_causallmnext_impl import TextCausalLMNext
 from .text_lasthiddenstate_impl import TextLastHiddenState
 from .text_seq2seq_impl import TextSeq2Seq
+from .json_general_impl import JSONGeneral
 
 
 
@@ -138,6 +139,9 @@ class synapse:
             backward_response_serializer_type=backward_response_serializer_type,
         )
 
+
+
+
     @staticmethod
     def TextSeq2Seq ( 
         topk:int = 50, 
@@ -228,5 +232,35 @@ class synapse:
             return TextCausalLMNext.deserialize_from_wire_proto(synapse_wire_proto)
         elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
+        elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.JSONGeneral:
+            return JSONGeneral.deserialize_from_wire_proto( synapse_wire_proto )
         else:
             return NullSynapse()
+
+    @staticmethod
+    def JSONGeneral(
+        forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        backward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+    ) -> JSONGeneral:
+        """ Factory function which returns a JSONGeneral synapse adapter given arguments.
+            Args:
+                forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serializer used to pack torch tensors on forward request.
+                forward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serializer used to pack torch tensors on forward response.
+                backward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serializer used to pack torch tensors on forward request.
+                backward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serializer used to pack torch tensors on backward response.
+            Returns:
+                JSONGeneral (:obj:`JSONGeneral`, `required`):
+                    JSONGeneral instance adapter class.
+        """
+        return JSONGeneral(
+            forward_request_serializer_type=forward_request_serializer_type,
+            forward_response_serializer_type=forward_response_serializer_type,
+            backward_request_serializer_type=backward_request_serializer_type,
+            backward_response_serializer_type=backward_response_serializer_type,
+        )
