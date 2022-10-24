@@ -2,10 +2,18 @@ import unittest
 from unittest.mock import patch
 import pytest
 import bittensor
-from subtensorapi import FastSync
-from subtensorapi.exceptions import *
+try:
+    from subtensorapi import FastSync
+    from subtensorapi.exceptions import *
+    fastsync_imported = True
+except ImportError:
+    fastsync_imported = False
 
 class TestFailureAndFallback(unittest.TestCase):
+    def setUp(self) -> None:
+        if not fastsync_imported:
+            self.skipTest("FastSync not installed")
+
     def test_fast_sync_fails_fallback_to_regular_sync(self):
         mock_self_subtensor = bittensor.subtensor(_mock=True)
         mock_self_subtensor.use_fast_sync = True
