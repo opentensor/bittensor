@@ -1817,10 +1817,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, block = block )
 
-class NeuronPullException(SyncException):
-    """Raised when pullin a Neuron from the chain fails."""
-    pass
-
 class SyncException(Exception):
     """Raised when syncing from the chain fails."""
+    pass
+
+class NeuronPullException(SyncException):
+    """Raised when pullin a Neuron from the chain fails."""
     pass
