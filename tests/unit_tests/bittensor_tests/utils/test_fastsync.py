@@ -34,12 +34,12 @@ class TestFailureAndFallback(unittest.TestCase):
 
                 with patch("subtensorapi.FastSync.verify_fast_sync_support", return_value=None): # mock support check passes
 
-                    with patch("subtensorapi.FastSync.sync_neurons", side_effect=FastSyncRuntimeException): # mock fast sync runtime error
+                    with patch("subtensorapi.FastSync.sync_and_save", side_effect=FastSyncRuntimeException): # mock fast sync runtime error
                         with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to runtime error
                             mock_self_subtensor.neurons()
                     mock_self_subtensor.use_fast_sync = True
 
-                    with patch("subtensorapi.FastSync.sync_neurons", return_value=None): # mock sync succeeds
+                    with patch("subtensorapi.FastSync.sync_and_save", return_value=None): # mock sync succeeds
                         with patch("subtensorapi.FastSync.load_neurons", side_effect=FastSyncFormatException): # mock fast sync format error
                             with pytest.raises(ExitEarly): # neuron_for_uid should be called because fast sync failed due to format error
                                 mock_self_subtensor.neurons()
