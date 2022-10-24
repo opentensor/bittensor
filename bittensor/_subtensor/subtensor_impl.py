@@ -1591,7 +1591,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         try:
             from subtensorapi import FastSync
         except ImportError:
-            return SyncException("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+            raise SyncException("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
         
         try:
             # check if fast sync is available
