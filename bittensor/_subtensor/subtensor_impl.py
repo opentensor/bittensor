@@ -15,9 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import torch
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm
 from typing import List, Dict, Union, Optional
-from multiprocessing import Process
 
 import bittensor
 from tqdm import tqdm
