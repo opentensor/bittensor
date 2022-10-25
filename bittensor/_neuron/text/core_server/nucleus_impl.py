@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from types import SimpleNamespace
 from typing import Tuple, Optional
 
+import transformers
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map, translate_logits_to_probs_std, \
@@ -115,14 +116,16 @@ class server(torch.nn.Module):
         self.outputs_cache = None
         self.gradients_cache = None
         self.best_loss = math.inf
+        self.best_remote_loss = math.inf
 
         #checking if the parameters of the server makes sense
         if self.checking and pretrained == True:
             self.check()
-        
+
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
-        
+        self.remote_losses = [] 
+
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
             Returns: 
@@ -205,7 +208,7 @@ class server(torch.nn.Module):
         result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
         to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
-        tokens = self.tokenizer(to_text_batch, padding=True, truncation=True, return_tensors='pt',
+        tokens = self.tokenizer(to_text_batch, padding=True, truncation=True, max_length=token_batch.size(1), return_tensors='pt',
                                 add_special_tokens=False).to(self.device)  # assume tokenizer.padding_side = 'left'
 
         if return_offsets_mapping:  # get offsets_mapping in tokenization to delineate token segment positions
@@ -235,7 +238,6 @@ class server(torch.nn.Module):
 
         """
         message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)
-        
         shift_logits = decoded_targets[..., :-1, :].contiguous()
         shift_labels = inputs[..., 1:].contiguous()
         loss = self.loss_fct( shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1) )
@@ -264,8 +266,7 @@ class server(torch.nn.Module):
                 logits (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
-        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer)  # remap to server tokenizer
-
+        tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
         if model_output == None:
             if self.config.neuron.local_train:
                 model_output = self.pre_model(input_ids=tokens['input_ids'],
@@ -298,6 +299,9 @@ class server(torch.nn.Module):
                 encoded_hidden (:type:`torch.Tensor`, `required`)
                     The hidden layer output as a torch tensor of shape [batch_size, sequence_len, __network_dim__ ]
         """
+        transformers.set_seed(0)
+        transformers.enable_full_determinism(0)
+
         sen_len = inputs.size()
         tokens = self.token_remap(inputs, tokenizer)  # remap to server tokenizer
 
@@ -352,6 +356,9 @@ class server(torch.nn.Module):
                 logits_std (:obj:`torch.FloatTensor`):
                     The nucleus's logit outputs as a torch tensor of shape [batch_size, sequence_len, __vocab_size__]
         """
+        transformers.set_seed(0)
+        transformers.enable_full_determinism(0)
+
         tokens = self.token_remap(token_batch, std_tokenizer=tokenizer, return_offsets_mapping=True)  # remap to server tokenizer
 
         def _forward(_model_output=model_output):
@@ -374,10 +381,8 @@ class server(torch.nn.Module):
             #removing the loss calculation for stablity testing
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
             translated_loss = self.get_loss_fct(logits_std, token_batch).item()
-            #message = 'Success'
             message = f'Loss: {original_loss:.2f} → {translated_loss:.2f}'
-            # logger.info(f'TextCausalLM \t| Server loss: {original_loss: .2f} \t| Translated loss: {translated_loss: .2f}')
-
+            
             return message, _model_output, logits_std
 
         if self.config.neuron.remote_train:
@@ -421,10 +426,12 @@ class server(torch.nn.Module):
                       [prob_floor_b=1, ignore_index, ..., ignore_index]],
                      [...]]
         """
+        transformers.set_seed(0)
+        transformers.enable_full_determinism(0)
+        
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer
 
-        # remap to server tokenizer, expect right-aligned sequences so that last position keeps continuation prediction
         tokens = self.token_remap(token_batch, std_tokenizer)
 
         def _forward(_model_output=model_output):
@@ -442,8 +449,8 @@ class server(torch.nn.Module):
 
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
             message = f'Loss: {original_loss:.2f}'
-            #message = 'Success'
 
+            _model_output.loss = original_loss
             return message, _model_output, topk_tensor
 
         if self.config.neuron.remote_train:
@@ -485,6 +492,7 @@ class server(torch.nn.Module):
                 'pretrained_model': self.pre_model.state_dict(), 
                 'decoder': self.decoder.state_dict(),
                 'best_loss': self.best_loss,
+                'best_remote_loss': self.best_remote_loss,
             }
             if self.padding == False:
                 state_dict['mapping'] = self.mapping.state_dict()
@@ -502,6 +510,7 @@ class server(torch.nn.Module):
                 if self.padding == False:
                     self.mapping.load_state_dict(state_dict['mapping'])
                 self.best_loss = state_dict['best_loss']
+                self.best_remote_loss = state_dict['best_remote_loss']
                 bittensor.logging.success( prefix = 'Reloaded model', sufix = '<blue>{}/model.torch</blue>'.format( path ))
 
 
@@ -534,6 +543,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
+        parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.', default=False)
         parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=10)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
@@ -542,6 +552,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
         parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
         parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
+        parser.add_argument('--neuron.num_remote_loss', type=int, help='Number of past remote loss to keep in stat.', default=20)
 
         # Synapse Arguements
         parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
