@@ -20,7 +20,7 @@ import os
 
 import bittensor
 from loguru import logger
-from typing import Union
+from typing import Union, List
 from substrateinterface import SubstrateInterface
 from torch.cuda import is_available as is_cuda_available
 
@@ -75,7 +75,7 @@ class subtensor:
             config: 'bittensor.config' = None,
             network: str = None,
             chain_endpoint: str = None,
-            fallback_endpoints: Union[list[str], str] = None,
+            fallback_endpoints: Union[List[str], str] = None,
             _mock: bool = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
