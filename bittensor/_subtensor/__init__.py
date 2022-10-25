@@ -137,21 +137,31 @@ class subtensor:
         
         # make sure it's wss:// or ws://
         # If it's bellagene (parachain testnet) then it has to be wss
-        endpoint_url: str = config.subtensor.chain_endpoint
-        endpoint_url = subtensor.format_endpoint(endpoint_url)
+        config.subtensor.chain_endpoint = subtensor.format_endpoint(config.subtensor.chain_endpoint)
 
         # Get fallback endpoints.
+        realized_fallback_endpoints = []
         if fallback_endpoints != None:
-            config.subtensor.fallback_endpoints = fallback_endpoints 
-        if isinstance(config.subtensor.fallback_endpoints, str):
-            config.subtensor.fallback_endpoints = [config.subtensor.fallback_endpoints]
-        config.subtensor.fallback_endpoints = [ subtensor.format_endpoint(end) for end in config.subtensor.fallback_endpoints ]
+            if isinstance(fallback_endpoints, str):
+                realized_fallback_endpoints = [ subtensor.format_endpoint(fallback_endpoints) ]
+            elif isinstance(fallback_endpoints, list):
+                realized_fallback_endpoints = [ subtensor.format_endpoint(end) for end in fallback_endpoints ]
+            else:
+                raise ValueError('Passed fallback endpoints must be of type list or str, got {}'.format(type(fallback_endpoints)))
+        elif config.subtensor.fallback_endpoints != None:
+            if isinstance(config.subtensor.fallback_endpoints, str):
+                realized_fallback_endpoints = [ subtensor.format_endpoint(config.subtensor.fallback_endpoints) ]
+            elif isinstance(config.subtensor.fallback_endpoints, list):
+                realized_fallback_endpoints = [ subtensor.format_endpoint(end) for end in config.subtensor.fallback_endpoints ]
+            else:
+                raise ValueError('Passed fallback endpoints must be of type list or str, got {}'.format(type(config.subtensor.fallback_endpoints)))
+        config.subtensor.fallback_endpoints = realized_fallback_endpoints
 
         subtensor.check_config( config )
         return subtensor_impl.Subtensor( 
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
             chain_endpoint = config.subtensor.chain_endpoint,
-            fallback_endpoints = config.subtensor.fallback_endpoints,
+            fallback_endpoints = realized_fallback_endpoints,
         )
 
     @staticmethod
