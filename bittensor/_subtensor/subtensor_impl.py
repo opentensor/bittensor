@@ -48,7 +48,7 @@ class Subtensor:
         self, 
         network: str,
         chain_endpoint: str,
-        fallback_endpoints: list[str],
+        fallback_endpoints: List[str],
     ):
         r""" Initializes a subtensor chain interface.
             Args:
