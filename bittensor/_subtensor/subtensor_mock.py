@@ -60,17 +60,10 @@ class mock_subtensor():
 
         endpoint = bittensor.__mock_entrypoint__
         port = int(endpoint.split(':')[1])
-        substrate = SubstrateInterface(
-            ss58_format = bittensor.__ss58_format__,
-            type_registry_preset='substrate-node-template',
-            type_registry = __type_registery__,
-            url = "ws://{}".format('localhost:{}'.format(port)),
-            use_remote_preset=True
-        )
         subtensor = Mock_Subtensor( 
-            substrate = substrate,
             network = 'mock',
             chain_endpoint = 'localhost:{}'.format(port),
+            fallback_endpoints = [],
 
             # Is mocked, optionally has owned process for ref counting.
             _is_mocked = True,
