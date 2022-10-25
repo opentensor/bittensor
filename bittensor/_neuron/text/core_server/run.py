@@ -292,17 +292,22 @@ def serve(
             for index, synapse in enumerate(synapses):
                 try:
                     if synapse.synapse_type in axon.synapse_callbacks and axon.synapse_callbacks[synapse.synapse_type] != None:
-                        model_output, response_tensor = axon.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
+                        message, model_output, response_tensor = axon.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
                         grads_dy_norm = grads_dy[index]/(grads_dy[index].sum() + 0.00001)
                         torch.autograd.backward (
                             tensors = [ response_tensor ],
                             grad_tensors = [ grads_dy_norm ],
                             retain_graph=True
-                        )                        
+                        )
+                        # Only consider loss from causal LM next.
+                        if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
+                            model.remote_losses.append(model_output.loss)
+                            model.remote_losses = model.remote_losses[-config.neuron.num_remote_loss:] if len(model.remote_losses) > config.neuron.num_remote_loss else model.remote_losses
                         model.backward_gradients_count += inputs_x[index].size(0)
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.Success)
                         response_messages.append('Success')
+                        
                     else:
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
@@ -356,7 +361,6 @@ def serve(
 
     # --- Run Forever.
     while True:
-        
         iteration = 0
         local_data = {}
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
@@ -366,15 +370,19 @@ def serve(
         if config.neuron.local_train:
             # --- Training step.
             while end_block >= current_block:
-                if current_block != subtensor.get_current_block():
-                    loss, _ = model( next( dataset ).to(model.device) )
-                    if iteration > 0 : 
-                        losses += loss
-                    else:
-                        losses = loss
-                    iteration += 1
-                    current_block = subtensor.get_current_block()
-                    logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
+                if current_block != subtensor.get_current_block() and axon.priority_threadpool.is_empty:
+                    with mutex:
+                        logger.info(f'local training\titeration: {iteration}\tstart')
+                        loss, _ = model( next(dataset).to(model.device) )
+                        if iteration > 0 : 
+                            losses += loss
+                        else:
+                            losses = loss
+                        iteration += 1
+                        current_block = subtensor.get_current_block()
+                        logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
+                else:
+                    time.sleep(1)
             
             if iteration != 0:
                 (losses/iteration).backward()
@@ -384,7 +392,6 @@ def serve(
                 time.sleep(12)
                 current_block = subtensor.get_current_block()
 
-
         # --- Update parameters
         if (config.neuron.local_train and iteration > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
             # Custom learning rate
@@ -393,18 +400,32 @@ def serve(
             else:
                 optimizer.param_groups[0]['lr'] =  0.1
 
-            logger.info('Backpropagation Started')
-            clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            optimizer.zero_grad()
-            model.backward_gradients = 0
-            logger.info('Backpropagation Successful: Model updated')
-            local_data = {'local/loss': losses.detach().item() / iteration}
+            logger.info('Optmization Started')
+            with mutex:
+                clip_grad_norm_(model.parameters(), 1.0)
+                optimizer.step()
+                optimizer.zero_grad()
+            logger.info('Optimization Successful: Model updated')
 
-            if local_data['local/loss'] < model.best_loss:
-                model.best_loss = local_data['local/loss']
-                model.save(config.neuron.full_path)
+            if (config.neuron.local_train and iteration > 0):
+                local_data = {'local/loss': losses.detach().item() / iteration}
 
+                if local_data['local/loss'] < model.best_loss:
+                    model.best_loss = local_data['local/loss']
+                    model.save(config.neuron.full_path)
+
+            # Save it only when it gives a low average loss over a large sample size (config.neuron.num_remote_loss), default to 20. 
+            elif (config.neuron.remote_train and len(model.remote_losses) >= config.neuron.num_remote_loss):
+                local_data = {'local/remote_loss': sum(model.remote_losses) / len(model.remote_losses)}
+
+                if local_data['local/remote_loss'] < model.best_remote_loss:
+                    model.best_remote_loss = local_data['local/remote_loss']
+                    model.save(config.neuron.full_path)
+
+                model.remote_losses = []
+
+            model.backward_gradients_count = 0
+            
         wandb_data = {            
             'stake': nn.stake,
             'rank': nn.rank,
