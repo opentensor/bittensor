@@ -30,8 +30,19 @@ class Config ( Munch ):
     def __init__(self, loaded_config = None ):
         super().__init__()
         if loaded_config:
+            assert isinstance(loaded_config, str)
+            self.loaded_config(loaded_config)
             raise NotImplementedError('Function load_from_relative_path is not fully implemented.')
 
+    def load_config(self,path:str):
+        with open(path, "r") as stream:
+            self = Munch(yaml.safe_load(stream))
+        return self
+    def save_config(self, path:str, default_flow_style=False, *arg, **kwargs):
+        with open('data.yml', 'w') as stream:
+            yaml.dump(self.toDict(), stream, default_flow_style=default_flow_style, *arg, **kwargs)
+        return path
+        
     def __repr__(self) -> str:
         return self.__str__()
     

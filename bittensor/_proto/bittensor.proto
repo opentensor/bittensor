@@ -339,7 +339,7 @@ enum TensorType {
 	TORCH = 0; // Torch object
 	TENSORFLOW = 1; // Tensorflow tensor type.
 	NUMPY = 2; // Numpy tensor type.
-	JSON = 3;
+	JSON = 3; // JSON tensor type (Dictionary)
 }
 
 // Dtype: [REQUIRED] The tensor datatype.

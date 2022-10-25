@@ -67,6 +67,11 @@ class Serializer(object):
         elif from_type == bittensor.proto.TensorType.TENSORFLOW:
             return self.serialize_from_tensorflow( tensorflow_tensor = tensor_obj, modality = modality)
 
+
+        elif from_type == bittensor.proto.TensorType.JSON:
+            return self.serialize_from_json( json_tensor = tensor_obj, modality = modality)
+
+
         else:
             raise bittensor.serializer.SerializationTypeNotImplementedException("Serialization from type {} not implemented.".format(from_type))
 
@@ -103,6 +108,10 @@ class Serializer(object):
         elif to_type == bittensor.proto.TensorType.TENSORFLOW:
             return self.deserialize_to_tensorflow( tensor_pb2 )
 
+        elif to_type == bittensor.proto.TensorType.JSON:
+            return self.deserialize_to_json( tensor_pb2 )
+
+
         else:
             raise bittensor.serializer.SerializationTypeNotImplementedException("Deserialization to type {} not implemented.".format(to_type))
 
@@ -114,6 +123,11 @@ class Serializer(object):
         """ torch -> bittensor.proto.Tensor """
         raise bittensor.serializer.SerializationTypeNotImplementedException
     
+    def serialize_from_json(self, json_tensor: Union[str, dict], modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ json -> bittensor.proto.Tensor """
+        raise bittensor.serializer.SerializationTypeNotImplementedException
+    
+
     def serialize_from_numpy(self, numpy_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
         """ numpy -> bittensor.proto.Tensor """
         raise bittensor.serializer.SerializationTypeNotImplementedException
@@ -129,7 +143,10 @@ class Serializer(object):
     def deserialize_to_numpy(self, tensor_pb2: bittensor.proto.Tensor) -> object:
         """ bittensor.proto.Tensor -> numpy """
         raise bittensor.serializer.SerializationTypeNotImplementedException
-
+    def deserialize_to_json(self, tensor_pb2: bittensor.proto.Tensor) -> bittensor.proto.Tensor:
+        """ bittensor.proto.Tensor -> json """
+        raise bittensor.serializer.SerializationTypeNotImplementedException
+    
 
 class MSGPackSerializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch
@@ -182,6 +199,55 @@ class MSGPackSerializer( Serializer ):
         return torch_object.type(dtype)
 
 
+    def serialize_from_json(self, json_tensor: dict, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto in float16
+
+        Args:
+            json_tensor (dict): 
+                Torch tensor to serialize.
+
+
+            
+            modality (bittensor.proto.Modality): (NOT REQUIRED)
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE, JSON
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        assert isinstance(json_tensor, dict)
+        
+        json_str = json.dumps(json_tensor)
+        data_buffer = msgpack.packb(json_str)
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    # shape = shape,
+                                    # dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.CMPPACK,
+                                    tensor_type = bittensor.proto.TensorType.JSON,
+                                    modality = modality,
+                                )
+        return json_proto
+
+    def deserialize_to_json(self, json_proto: bittensor.proto.Tensor) -> dict:
+        """Deserializes an bittensor.proto.Tensor to a JSON (dictionary) object.
+
+        Args:
+            json_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            dictionary: 
+                Deserialized torch tensor.
+        """
+        json_object_bytes = msgpack.unpackb(json_proto.buffer)
+        json_object = json.loads(json_object_bytes)
+        return json_object
+
+
+
+
 class CMPPackSerializer( Serializer ):
     """ Make conversion between torch and bittensor.proto.torch in float16
     """
@@ -232,3 +298,50 @@ class CMPPackSerializer( Serializer ):
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
 
+
+
+    def serialize_from_json(self, json_tensor: dict, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto in float16
+
+        Args:
+            json_tensor (dict): 
+                Torch tensor to serialize.
+
+
+            
+            modality (bittensor.proto.Modality): (NOT REQUIRED)
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE, JSON
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        assert isinstance(json_tensor, dict)
+        
+        json_str = json.dumps(json_tensor)
+        data_buffer = msgpack.packb(json_str)
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    # shape = shape,
+                                    # dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.CMPPACK,
+                                    tensor_type = bittensor.proto.TensorType.JSON,
+                                    modality = modality,
+                                )
+        return json_proto
+
+    def deserialize_to_json(self, json_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Tensor to a JSON (dictionary) object.
+
+        Args:
+            json_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            dictionary: 
+                Deserialized torch tensor.
+        """
+        json_object_bytes = msgpack.unpackb(json_proto.buffer)
+        json_object = json.loads(json_object_bytes)
+        return json_object
