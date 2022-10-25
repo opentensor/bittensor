@@ -60,9 +60,10 @@ class mock_subtensor():
 
         endpoint = bittensor.__mock_entrypoint__
         port = int(endpoint.split(':')[1])
+        endpoint_formatted = subtensor.format_endpoint('localhost:{}'.format(port))
         subtensor = Mock_Subtensor( 
             network = 'mock',
-            chain_endpoint = 'localhost:{}'.format(port),
+            chain_endpoint = endpoint_formatted,
             fallback_endpoints = [],
 
             # Is mocked, optionally has owned process for ref counting.
