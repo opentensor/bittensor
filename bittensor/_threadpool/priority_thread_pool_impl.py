@@ -148,6 +148,10 @@ class PriorityThreadPoolExecutor(_base.Executor):
         self._initializer = initializer
         self._initargs = initargs
 
+    @property
+    def is_empty(self):
+        return self._work_queue.empty()
+
     def submit(self, fn, *args, **kwargs):
         with self._shutdown_lock:
             if self._broken:
