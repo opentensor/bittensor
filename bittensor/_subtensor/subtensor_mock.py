@@ -60,7 +60,7 @@ class mock_subtensor():
 
         endpoint = bittensor.__mock_entrypoint__
         port = int(endpoint.split(':')[1])
-        endpoint_formatted = subtensor.format_endpoint('localhost:{}'.format(port))
+        endpoint_formatted = bittensor.subtensor.format_endpoint('localhost:{}'.format(port))
         subtensor = Mock_Subtensor( 
             network = 'mock',
             chain_endpoint = endpoint_formatted,
