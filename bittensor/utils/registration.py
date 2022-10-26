@@ -525,9 +525,9 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
         # Update stats
         curr_stats.time_spent = time_since_last
         new_time_spent_total = time_now - start_time_perpetual
-        curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+1)
-        curr_stats.rounds_total += 1
-        curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + curr_stats.hash_rate)/ new_time_spent_total
+        curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+num_time)
+        curr_stats.rounds_total += num_time
+        curr_stats.hash_rate_perpetual = (curr_stats.rounds_total*update_interval)/ new_time_spent_total
         curr_stats.time_spent_total = new_time_spent_total
 
         # Update the logger
@@ -786,9 +786,9 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             # Update stats
             curr_stats.time_spent = time_since_last
             new_time_spent_total = time_now - start_time_perpetual
-            curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+1)
-            curr_stats.rounds_total += 1
-            curr_stats.hash_rate_perpetual = (curr_stats.time_spent_total*curr_stats.hash_rate_perpetual + (num_time * TPB * update_interval))/ new_time_spent_total
+            curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+num_time)
+            curr_stats.rounds_total += num_time
+            curr_stats.hash_rate_perpetual = (curr_stats.rounds_total * (TPB * update_interval))/ new_time_spent_total
             curr_stats.time_spent_total = new_time_spent_total
 
             # Update the logger
