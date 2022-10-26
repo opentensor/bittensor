@@ -503,7 +503,7 @@ class TestCUDASolverRun(unittest.TestCase):
         )  
 
         
-        with patch('bittensor.utils.solve_for_nonce_block_cuda',
+        with patch('bittensor.utils.registration.solve_for_nonce_block_cuda',
             side_effect=[None, MockException] # first call returns mocked no solution, second call raises exception
         ) as mock_solve_for_nonce_block_cuda: 
         
