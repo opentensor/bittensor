@@ -424,11 +424,11 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     stopEvent.clear()
 
     solution_queue = multiprocessing.Queue()
-    finished_queue = multiprocessing.Queue()
+    finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
     check_block = multiprocessing.Lock()
     
     # Start consumers
-    solvers = [ Solver(i, num_processes, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
+    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
                 for i in range(num_processes) ]
 
     # Get first block
@@ -500,13 +500,12 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
         )
                 
         num_time = 0
-        for _ in range(len(solvers)*2):
+        for finished_queue in finished_queues:
             try:
                 proc_num = finished_queue.get(timeout=0.1)
                 num_time += 1
 
             except Empty:
-                # no more times
                 continue
         
         time_now = time.time() # get current time
@@ -678,18 +677,18 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
         curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
 
+        ## Create a worker per CUDA device
+        num_processes = len(dev_id)
+
         # Establish communication queues
         stopEvent = multiprocessing.Event()
         stopEvent.clear()
         solution_queue = multiprocessing.Queue()
-        finished_queue = multiprocessing.Queue()
+        finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
         check_block = multiprocessing.Lock()
         
         # Start workers
-        ## Create a worker per CUDA device
-        num_processes = len(dev_id)
-
-        solvers = [ CUDASolver(i, num_processes, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
+        solvers = [ CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
                     for i in range(num_processes) ]
 
 
@@ -762,13 +761,12 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                     
             num_time = 0
             # Get times for each solver
-            for _ in range(len(solvers)*2):
+            for finished_queue in finished_queues:
                 try:
                     proc_num = finished_queue.get(timeout=0.1)
                     num_time += 1
             
                 except Empty:
-                    # no more times
                     continue
             
             time_now = time.time() # get current time
