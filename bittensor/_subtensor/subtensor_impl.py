@@ -1606,8 +1606,50 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         return neurons
 
-    def blockAtRegistration_all(self, block: int = None ) -> List[int]: 
-        r""" Returns a list of blockAtRegistration for every uid from the chain, using the bundled subtensor-node-api
+    def blockAtRegistration_all(self, block: int = None) -> List[int]:
+        r""" Returns a list of blockAtRegistration for every uid from the chain
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[int]):
+                List of blockAtRegistration numbers.
+        """
+        if block is None:
+            block: int = self.get_current_block()
+
+        if self.use_fast_sync:
+            try:
+                return self.blockAtRegistration_all_fast(block)
+            except SyncException as e:
+                logger.warning("Failed to get blockAtRegistration_all fast, falling back to manual sync.: {}".format(e))
+                self.use_fast_sync = False
+                return self.blockAtRegistration_all(block)
+        else:
+            return self.blockAtRegistration_all_pysub(block)
+
+    def blockAtRegistration_all_pysub(self, block: int = None) -> List[int]:
+        r""" Returns a list of blockAtRegistration for every uid from the chain, using pysubstrateinterface
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[int]):
+                List of blockAtRegistration numbers.
+        """
+        blockAtRegistration_all = []
+        for uid in tqdm(range(self.get_n( block ))): 
+            try:
+                blockAtRegistration = self.blockAtRegistration_for_uid(uid, block)
+                blockAtRegistration_all.append( blockAtRegistration )
+            except SyncException as e:
+                logger.error('Exception encountered when getting blockAtRegistration for uid:{}: {}'.format(uid, e))
+                break
+        return blockAtRegistration_all
+
+
+    def blockAtRegistration_all_fast(self, block: int = None ) -> List[int]: 
+        r""" Returns a list of blockAtRegistration for every uid from the chain, using subtensorapi
         Args:
             block (int):
                 block to sync from.
@@ -1643,7 +1685,37 @@ To run a local node (See: docs/running_a_validator.md) \n
             return blockAtRegistration_all
         except Exception as e:
             raise SyncException("Failed to get blockAtRegistration_all: {}".format(e))
-        
+    
+    def blockAtRegistration_for_uid( self, uid: int, block: int = None ) -> int: 
+        r""" Returns the blockAtRegistration for a given uid from the chain 
+        Args:
+            uid ( int ):
+                The uid to query for.
+            block ( int ):
+                The neuron at a particular block
+        Returns:
+            blockAtRegistration ( int ):
+                The blockAtRegistration for the given uid.
+
+        Raises:
+            SyncException: If there is an issue during sync from the chain
+
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                result = substrate.query( 
+                    module='SubtensorModule',  
+                    storage_function='BlockAtRegistration', 
+                    params = [ uid ], 
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                ).value 
+            return result
+        try:
+            result = make_substrate_call_with_retry()
+            return result
+        except Exception as e:
+            raise SyncException("Failed to pull blockAtRegistration for uid: {} at block: {} with error: {}".format(uid, block, e))
 
     @staticmethod
     def _null_neuron() -> SimpleNamespace:
