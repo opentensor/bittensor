@@ -258,7 +258,6 @@ class logging:
         ):
         """ Debug logging for the communication between endpoints with axon/dendrite 
         """
-
         if axon:
             prefix = "Axon"
         else:

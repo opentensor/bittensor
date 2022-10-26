@@ -19,6 +19,9 @@ from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
 
+import nest_asyncio
+nest_asyncio.apply()
+
 # Bittensor code and protocol version.
 __version__ = '3.4.1'
 version_split = __version__.split(".")

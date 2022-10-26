@@ -686,6 +686,7 @@ def test_backward_grads_shape_error():
 
 
 def test_backward_response_success_hidden():
+    bittensor.logging(debug = True)
     def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
         return None, dict(), torch.zeros( [1, 1, bittensor.__network_dim__], requires_grad=True)
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
@@ -1251,5 +1252,7 @@ if __name__ == "__main__":
     # test_forward_joint_success()
     # test_forward_joint_missing_synapse()
     # test_forward_priority_timeout()
-    test_forward_priority_2nd_request_timeout()
+    #test_forward_priority_2nd_request_timeout()
     # test_forward_joint_faulty_synapse()
+
+    test_backward_response_success_hidden()
