@@ -522,11 +522,12 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
             # update time last to now
             time_last = time_now
 
+            curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+num_time)
+            curr_stats.rounds_total += num_time
+
         # Update stats
         curr_stats.time_spent = time_since_last
         new_time_spent_total = time_now - start_time_perpetual
-        curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+num_time)
-        curr_stats.rounds_total += num_time
         curr_stats.hash_rate_perpetual = (curr_stats.rounds_total*update_interval)/ new_time_spent_total
         curr_stats.time_spent_total = new_time_spent_total
 
