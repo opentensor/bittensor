@@ -376,13 +376,13 @@ class CLI:
                 if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
                     # Skip hotkey if max_stake is less than current stake.
                     continue
-                wallet_balance -= stake_amount_tao
+                wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
             final_amounts.append(stake_amount_tao)
             final_wallets.append(wallet)
 
         # Ask to stake
         if not self.config.no_prompt:
-            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n  " + \
+            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n" + \
                     "".join([
                         f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
                     ])

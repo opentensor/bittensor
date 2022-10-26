@@ -634,7 +634,7 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_unstake.assert_has_calls(
-                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str] - config.max_stake).tao, 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
+                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str].tao - config.max_stake), 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
                     any_order = True
                 )
 
@@ -1071,7 +1071,7 @@ class TestCli(unittest.TestCase):
                 total_staked = sum(amounts_passed)
                 
                 # We should not try to stake more than the mock_balance
-                assert CLOSE_IN_VALUE(total_staked, 0.001) == mock_balance.tao
+                self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
 
     def test_register( self ):
 
@@ -1422,3 +1422,6 @@ class TestCLIUsingArgs(unittest.TestCase):
                     # args[0] should be self => the wallet
                     assert args[0].config.wallet.reregister == False
 
+
+if __name__ == '__main__':
+    unittest.main()
