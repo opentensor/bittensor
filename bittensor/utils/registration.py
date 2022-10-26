@@ -83,7 +83,7 @@ def millify(n: int):
     millidx = max(0,min(len(millnames)-1,
                         int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
 
-    return '{:.0f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+    return '{:.2f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
 
 def POWNotStale(subtensor: 'bittensor.Subtensor', pow_result: Dict) -> bool:
@@ -356,20 +356,19 @@ class RegistrationStatisticsLogger:
 
 
     def get_status_message(cls, stats: RegistrationStatistics, verbose: bool = False) -> str:
-        message = f"""Solving 
-            time spent: {timedelta(seconds=stats.time_spent)}""" + \
-        (f"""
-            time spent total: {stats.time_spent_total:.2f} s 
-            time spent average: {timedelta(seconds=stats.time_average)}""" if verbose else "") + \
-        f"""
-            Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]
-            Iters: [bold white]{get_human_readable(int(stats.hash_rate), 'H')}/s[/bold white]""" + \
-        (f"""
-            Iters perpetual: {get_human_readable(stats.hash_rate_perpetual, 'H')}/s""" if verbose else "") + \
-        f"""
-            Block: [bold white]{stats.block_number}[/bold white]
-            Block_hash: [bold white]{stats.block_hash.encode('utf-8')}[/bold white]"""
-        return message.replace(" ", "")
+        message = \
+        "Solving\n" + \
+        f"Time Spent (total): [bold white]{timedelta(seconds=stats.time_spent_total)}[/bold white]\n" + \
+        (
+            f"Time Spent This Round: {timedelta(seconds=stats.time_spent)}\n" + \
+            f"Time Spent Average: {timedelta(seconds=stats.time_average)}\n" if verbose else ""
+        ) + \
+        f"Registration Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]\n" + \
+        f"Iters (Inst/Perp): [bold white]{get_human_readable(stats.hash_rate, 'H')}/s / " + \
+            f"{get_human_readable(stats.hash_rate_perpetual, 'H')}/s[/bold white]\n" + \
+        f"Block Number: [bold white]{stats.block_number}[/bold white]\n" + \
+        f"Block Hash: [bold white]{stats.block_hash.encode('utf-8')}[/bold white]\n"
+        return message
 
 
     def update( self, stats: RegistrationStatistics, verbose: bool = False ) -> None:
@@ -379,7 +378,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.60, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -634,7 +633,7 @@ def check_for_newest_block_and_update(
     return old_block_number
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.60, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
