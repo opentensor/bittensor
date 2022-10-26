@@ -862,6 +862,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         
         if len(wallets) == 0:
             return True
+            
 
         if amounts is not None and len(amounts) != len(wallets):
             raise ValueError("amounts must be a list of the same length as wallets")
@@ -911,7 +912,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # Staking more than 1000 rao to the wallets.
             ## Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
             percent_reduction = 1 - (1000 / total_staking_rao)
-            amounts = [amount * percent_reduction for amount in amounts]
+            amounts = [Balance.from_tao(amount.tao * percent_reduction) for amount in amounts]
         
         successful_stakes = 0
         for wallet, amount, neuron in zip(wallets, amounts, neurons):
@@ -925,7 +926,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
             # Assign decrypted coldkey from wallet_0
             #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0._coldkey
+            wallet._coldkey = wallet_0.coldkey
             staking_all = False
             # Convert to bittensor.Balance
             if amount == None:
