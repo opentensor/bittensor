@@ -120,7 +120,7 @@ class ReceptorPool ( torch.nn.Module ):
             timeout: int,
             min_success:int = None, 
             return_success_only:bool=False, 
-            return_type:str = 'dict',
+            return_type:str = 'tuple',
             max_workers:int=None,
             graph:'bittensor.Metagraph'=None,
             graph_features:List[str]=['stake', 'ranks', 'trust', 'consensus', 'incentive', 'emission', 'dividends'],
