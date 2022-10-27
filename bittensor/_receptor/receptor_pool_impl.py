@@ -18,7 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import math
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Dict
 from threading import Lock
 
 import torch
@@ -118,13 +118,13 @@ class ReceptorPool ( torch.nn.Module ):
             synapses: List[ 'bittensor.Synapse' ],
             inputs: Union[List [ torch.Tensor ], torch.Tensor],
             timeout: int,
-            min_success = None, 
-            return_success_only=False, 
-            return_type = tuple,
-            max_workers=None,
-            graph=None,
-            graph_features=['stake', 'ranks', 'trust', 'consensus', 'incentive', 'emission', 'dividends'],
-        ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
+            min_success:int = None, 
+            return_success_only:bool=False, 
+            return_type:str = 'dict',
+            max_workers:int=None,
+            graph:'bittensor.Metagraph'=None,
+            graph_features:List[str]=['stake', 'ranks', 'trust', 'consensus', 'incentive', 'emission', 'dividends'],
+        ) -> Union[Tuple[List[torch.Tensor], List[int], List[float]], Dict[str, Union[torch.Tensor, int, float]]]:
         r""" Forward tensor inputs to endpoints.
             Args:
                 endpoints (:obj:`List[ bittensor.Endpoint ]` of shape :obj:`(num_endpoints)`, `required`):
@@ -152,10 +152,10 @@ class ReceptorPool ( torch.nn.Module ):
                     Note: If you include metagraph features this will be added in the order of the {graph_features} list
                 max_workers (int),
                     Maximum number of workers. If None, defaults to the number of endpoints.
-                graph (bittensor.graph):
-                    if the graph is passed, the state of the graph will be added to the uids for additional info.
+                graph (bittensor.graph): only if return_type == 'dict'
+                    if the graph is passed, the state of the graph will be added to the uids for additional info. 
                 
-                graph_features (:obj:`List[torch.Tensor]`)
+                graph_features (:obj:`List[torch.Tensor]`) only if return_type == 'dict'
                     The list of additional graph features per uid you want to include in the response.
                     defaults: ['stake', 'ranks', 'trust', 'consensus', 'incentive', 'emission', 'dividends'],
             Returns:
@@ -167,7 +167,7 @@ class ReceptorPool ( torch.nn.Module ):
                         dendrite backward call return ops.
                     forward_times (:obj:`List[ List [float] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
                         dendrite backward call times
-                    **graph_features)
+
                 elif return_type in [dict]:
                     dictionary of keys {outputs, codes, times, **graph_features}
         """
@@ -285,10 +285,6 @@ class ReceptorPool ( torch.nn.Module ):
                     results_dict['times'],
                     results_dict['uids']]
 
-            # add graph features if they exists
-            for k in graph_features:
-                if k in results_dict:
-                    return_result.append(results_dict[k])
             return tuple(return_result)
         elif return_type in ['dict', dict]:
             return results_dict
