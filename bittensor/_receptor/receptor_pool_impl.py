@@ -79,45 +79,103 @@ class ReceptorPool ( torch.nn.Module ):
         """
         return {hotkey: v.state() for hotkey, v in self.receptors.items()}
 
-    def forward (
+
+
+    def get_receptor_hotkeys(self):
+        """
+        Returns the receptor hotkeys.
+        Returns:
+            receptor_hotkeys: list of strings 
+
+        """
+        receptor_hotkeys = list(self.receptor.keys())
+        return receptor_hotkeys
+
+    def rm_receptor(self, key):
+        '''
+        Remove a receptor by the key.
+        Args:
+            key (str): The hotkey of the receptor to remove.
+        Returns:
+            key (str): The hotkey of the remove receptor
+        
+
+        '''
+
+        self.receptors[ key ].close()
+        del self.receptors[ key ]
+        return key
+    delete_receptor = del_receptor = rm_receptor
+
+    def rm_all_receptors(self):
+        for key in  deepcopy(list(self.receptors.keys())):
+            self.rm_receptor(key=key)
+    delete_all_receptors = del_all_receptors = remove_all_receptors = rm_all_receptors
+
+    def forward(
             self, 
             endpoints: List [ 'bittensor.Endpoint' ],
             synapses: List[ 'bittensor.Synapse' ],
-            inputs: List [ torch.Tensor ],
+            inputs: Union[List [ torch.Tensor ], torch.Tensor],
             timeout: int,
+            min_success = None, 
+            return_success_only=False, 
+            return_type = tuple,
+            max_workers=None,
+            graph=None,
+            graph_features=['stake', 'ranks', 'trust', 'consensus', 'incentive', 'emission', 'dividends'],
         ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
         r""" Forward tensor inputs to endpoints.
-
             Args:
                 endpoints (:obj:`List[ bittensor.Endpoint ]` of shape :obj:`(num_endpoints)`, `required`):
                     List of remote endpoints which match length of inputs. Tensors from x are sent forward to these endpoints.
-
                 synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
                     Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
                     Responses are packed in this ordering. 
-
                 inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
                     TODO(const): Allow multiple tensors.
                     List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
                     modality.
-
                 timeout (int):
                     Request timeout.
 
+                min_success (int):
+                    Minimum Number of Successes before Returning the Function. This can be useful
+                    if you want to call many endpoints but only need to receive the first N to come back successful.
+
+                return_success_only (bool):
+                    Return successful returns (code==1) only if True.
+                return_type (str/type):
+                    The return type of the tensor. The options are as follows
+                        tuple: return a tuple of (tensors, codes, times, *graph_features)
+                        dict: return a dictionary of {tensors: tensors, codes: codes, times: times, **graph_features_dictionary}
+                    Note: If you include metagraph features this will be added in the order of the {graph_features} list
+                max_workers (int),
+                    Maximum number of workers. If None, defaults to the number of endpoints.
+                graph (bittensor.graph):
+                    if the graph is passed, the state of the graph will be added to the uids for additional info.
+                
+                graph_features (:obj:`List[torch.Tensor]`)
+                    The list of additional graph features per uid you want to include in the response.
+                    defaults: ['stake', 'ranks', 'trust', 'consensus', 'incentive', 'emission', 'dividends'],
             Returns:
-                forward_outputs (:obj:`List[ List[ torch.FloatTensor ]]` of shape :obj:`(num_endpoints * (num_synapses * (shape)))`, `required`):
-                    Output encodings of tensors produced by remote endpoints. Non-responses are zeroes of common shape.
 
-                forward_codes (:obj:`List[ List[bittensor.proto.ReturnCodes] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
-                    dendrite backward call return ops.
-
-                forward_times (:obj:`List[ List [float] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
-                    dendrite backward call times
+                if return_type in [tuple]:
+                    (forward_outputs (:obj:`List[ List[ torch.FloatTensor ]]` of shape :obj:`(num_endpoints * (num_synapses * (shape)))`, `required`):
+                        Output encodings of tensors produced by remote endpoints. Non-responses are zeroes of common shape.
+                    forward_codes (:obj:`List[ List[bittensor.proto.ReturnCodes] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
+                        dendrite backward call return ops.
+                    forward_times (:obj:`List[ List [float] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
+                        dendrite backward call times
+                    **graph_features)
+                elif return_type in [dict]:
+                    dictionary of keys {outputs, codes, times, **graph_features}
         """
+
+
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
 
-        # Init receptors.
         receptors = [ self._get_or_create_receptor_for_endpoint( endpoint ) for endpoint in endpoints ]
 
         # Init argument iterables.
@@ -133,28 +191,109 @@ class ReceptorPool ( torch.nn.Module ):
         # Init function.
         def call_forward( args ):
             return args['receptor'].forward( args['synapses'], args['inputs'], args['timeout'] )
+        
+        # Unpack responses
+        results_dict = dict(
+            outputs=[],
+            codes=[],
+            times=[],
+            uids=[]
+        )
+
+
+        # resolve the minumum number of successes
+        if min_success == None:
+            min_success = len(endpoints)
+        if min_success < 1:
+            min_success = int(min_success*len(endpoints))
+        elif min_success >= 1:
+            min_success = int(min(min_success,len(endpoints)))
+        elif min_success <= 0:
+            raise Exception(' REQUIRED: 0<min_success<len(endpoints)')
+
+
+        # ensure max_workers
+        if not isinstance(max_workers, int):
+            max_workers = len(endpoints)
+
 
         # Submit calls to receptors.
-        with concurrent.futures.ThreadPoolExecutor( max_workers = len(endpoints) ) as executor:
-            responses = executor.map( call_forward, call_args, timeout=10*timeout)
-        
-        # Release semephore.
-        for receptor in receptors:
-            receptor.semaphore.release()
+        with concurrent.futures.ThreadPoolExecutor( max_workers = max_workers ) as executor:
             
-        # Unpack responses
-        forward_outputs = []
-        forward_codes = []
-        forward_times = []
-        for response in responses:
-            forward_outputs.append( response[0] )
-            forward_codes.append( response[1] )
-            forward_times.append( response[2] )
 
-        # ---- Kill receptors ----
+            # submit the calls asynchronously
+            # map the futures to the call_arguments in case you want to the the inputs in the final result (not currently implemented)
+
+            future_map = {}
+            for idx, call_arg in enumerate(call_args):
+                future = executor.submit( call_forward, call_arg)
+                future_map[future] = call_arg
+
+            success_response_cnt = 0 # success count 
+            for i,future in enumerate(concurrent.futures.as_completed(future_map)):
+                
+                # get future_call_argds
+                future_call_args = future_map.pop(future)
+
+                # get uid (for metagraph retreival) make 1 uid per synapse (same uid)
+                endpoint_uid = [future_call_args['receptor'].endpoint.uid ]*len(synapses)
+                
+                # get respone
+                response = future.result()
+
+                if response[1][0] == 1:
+                    # this indicates a successful response 
+                    success_response_cnt += 1
+                    results_dict['outputs'].append( response[0] )
+                    results_dict['codes'].append( response[1] )
+                    results_dict['times'].append( response[2] )
+                    results_dict['uids'].append(endpoint_uid)
+                else:
+                    # when return_success_only, ignore the responses that arent successful        
+                    if not return_success_only:
+                        results_dict['outputs'].append( response[0] )
+                        results_dict['codes'].append( response[1] )
+                        results_dict['times'].append( response[2] )
+                        results_dict['uids'].append(endpoint_uid)
+
+                future_call_args['receptor'].semaphore.release()  
+
+                if graph != None:
+                    graph_state_dict = graph.state_dict()
+                    for k in graph_features:
+                        results_dict[k] = [[v]*len(synapses) for v in graph_state_dict[k][[i[0] for i in results_dict['uids']]].tolist()]
+        
+                # when the success_response_cnt > min_success
+                if success_response_cnt >= min_success:
+                    break
+
+        # cancel all the running futures and delete the future map
+        for future, future_call_args in future_map.items():
+            future.cancel()
+            future_call_args['receptor'].semaphore.release()
+        del future_map
+ 
         self._destroy_receptors_over_max_allowed()
-        # ---- Return ----
-        return forward_outputs, forward_codes, forward_times
+
+
+
+        # resolve output type as either a tuple or a dictionary
+
+        if return_type in ['tuple', tuple]:
+            return_result =  [results_dict['outputs'], 
+                    results_dict['codes'], 
+                    results_dict['times'],
+                    results_dict['uids']]
+
+            # add graph features if they exists
+            for k in graph_features:
+                if k in results_dict:
+                    return_result.append(results_dict[k])
+            return tuple(return_result)
+        elif return_type in ['dict', dict]:
+            return results_dict
+
+
 
     def backward(
                 self, 
