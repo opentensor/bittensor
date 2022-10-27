@@ -115,11 +115,8 @@ class Receptor(nn.Module):
         try:
             result = self.channel._channel.check_connectivity_state(True)
             if self.state_dict[result] != self.state_dict[result].SHUTDOWN: 
-                try:
-                    loop = asyncio.get_running_loop()
-                except:
-                    loop = asyncio.new_event_loop()
-                loop.run_until_complete( self.channel.close() ) 
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete ( self.channel.close() )
         except:
             pass
     
@@ -670,12 +667,9 @@ class Receptor(nn.Module):
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
-            print ('dene calls')
-
             # Wait for essentially no time this allows us to get UnAuth errors to pass through.
             await asyncio.wait_for( asyncio_future, timeout = 0.1 )
 
-            print ('wait calls')
 
         # ====================================
         # ==== Handle GRPC Errors ====
@@ -721,7 +715,6 @@ class Receptor(nn.Module):
         # ==== Handle GRPC Unknown Errors ====
         # ====================================
         except Exception as e:
-            print (e)
 
             # Request failed with unknown exception.
             code = bittensor.proto.ReturnCode.UnknownException
@@ -730,8 +723,6 @@ class Receptor(nn.Module):
             synapse_codes = [code for _ in synapses ]
             synapse_call_times = [call_time for _ in synapses ]
             synapse_messages = [ message for _ in synapses ]
-
-        print ('7')
 
         # ======================================
         # ==== Finalize backward call times ====
