@@ -280,11 +280,7 @@ class ReceptorPool ( torch.nn.Module ):
         # resolve output type as either a tuple or a dictionary
 
         if return_type in ['tuple', tuple]:
-            return_result =  tuple(results_dict['outputs'], 
-                    results_dict['codes'], 
-                    results_dict['times'])
-
-            return return_result
+            return results_dict['outputs'], results_dict['codes'], results_dict['times']
         elif return_type in ['dict', dict]:
             return results_dict
 
