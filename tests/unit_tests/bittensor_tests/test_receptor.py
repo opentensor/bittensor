@@ -121,7 +121,6 @@ def test_receptor_neuron_request_empty():
     assert [list(o.shape) for o in out] == [[0]]*len(synapses)
 
 def test_receptor_neuron_mock_server():
-    bittensor.logging(debug=True)
     y_hidden = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallm = torch.rand(3, 3, bittensor.__network_dim__)
     y_causallmnext = bittensor.synapse.TextCausalLMNext().nill_forward_response_tensor(torch.ones(3), encoded=True)
@@ -577,7 +576,6 @@ def test_axon_receptor_connection_backward_works():
     axon.stop()
 
 def test_axon_receptor_connection_backward_unauthenticated():
-    bittensor.logging(debug=True)
     def forward_generate( input, synapse ):
         return torch.zeros( [3, 70])
 
@@ -664,7 +662,6 @@ def test_axon_receptor_connection_forward_unimplemented():
 ## -- timeout error
 
 def test_axon_receptor_connection_forward_timeout():
-    bittensor.logging(debug = True)
 
     def forward_generate( inputs, synapse, model_output = None):
         clock.sleep(5)
@@ -715,7 +712,6 @@ def test_axon_receptor_connection_forward_timeout():
     axon.stop()
 
 def test_axon_receptor_connection_backward_timeout():
-    bittensor.logging(debug = True)
     def forward_generate( inputs, synapse ):
         clock.sleep(5)
         raise TimeoutError('Timeout')

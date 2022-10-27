@@ -293,7 +293,6 @@ def test_receptor_pool_missing_synapse():
     [bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException, bittensor.proto.ReturnCode.ResponseShapeException]]
 
 def test_receptor_pool_backward_hang():
-    bittensor.logging(debug = True)
     endpoints = [neuron_obj,neuron_obj]
     x = [ torch.ones( (2,2) ), torch.ones( (2,2) ) ]
     mock_return_val = bittensor.proto.TensorMessage(

@@ -88,9 +88,6 @@ class receptor_pool:
             Args:
                 wallet (:obj:`bittensor.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
-                max_worker_threads (:type:`int`, `optional`):
-                    Maximum number of active client threads. Does not override passed 
-                    Threadpool.
                 max_active_receptors (:type:`int`, `optional`):
                     Maximum allowed active allocated TCP connections.
         """        
