@@ -74,15 +74,12 @@ class TestSubtensor(unittest.TestCase):
         subtensor = bittensor.subtensor(network='nobunaga', config=config, )
         assert subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
 
-    def test_connect_no_failure( self ):
-        self.subtensor.substrate
-        assert True
-
     def test_connect_success( self ):
         try:
             self.subtensor.substrate
             assert True
         except:
+            # Will fail if we cannot make a clean connection.
             assert False
 
     def test_neurons( self ):
@@ -487,46 +484,6 @@ class TestSubtensor(unittest.TestCase):
             # should return True
             assert self.subtensor.register(wallet=wallet,) == False
             assert bittensor.utils.create_pow.call_count == 3 
-
-    def test_registration_stale_then_continue( self ):
-        # verifty that after a stale solution, the solve will continue without exiting
-
-        class ExitEarly(Exception):
-            pass
-
-        mock_not_stale = MagicMock(
-            side_effect = [False, True]
-        )
-
-        mock_substrate_enter = MagicMock(
-                    side_effect=ExitEarly()
-        )
-
-        mock_subtensor_self = MagicMock(
-            neuron_for_pubkey = MagicMock( return_value = MagicMock(is_null = True) ), # not registered
-            substrate=MagicMock(
-                __enter__ = mock_substrate_enter
-            )
-        )
-
-        mock_wallet = MagicMock()
-
-        mock_create_pow = MagicMock(
-            return_value = MagicMock()
-        )
-
-
-        with patch('bittensor.utils.create_pow', mock_create_pow):
-            with patch('bittensor.utils.POWNotStale', mock_not_stale):
-                # should create a pow and check if it is stale
-                # then should create a new pow and check if it is stale
-                # then should enter substrate and exit early because of test
-                with pytest.raises(ExitEarly):
-                    bittensor.Subtensor.register(mock_subtensor_self, mock_wallet)
-                assert mock_create_pow.call_count == 2 # must try another pow after stale
-                assert mock_not_stale.call_count == 2
-                assert mock_substrate_enter.call_count == 1 # only tries to submit once, then exits
-
 
 def test_subtensor_mock():
     mock_subtensor.kill_global_mock_process()

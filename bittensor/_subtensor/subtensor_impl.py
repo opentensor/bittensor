@@ -68,7 +68,8 @@ class Subtensor:
         self.chain_endpoint = chain_endpoint
         self.fallback_endpoints = fallback_endpoints
         # Get first connection
-        self._default_substrate = self.substrate
+        self.substrate = None
+        self.substrate = self.get_substrate()
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -81,8 +82,7 @@ class Subtensor:
     def __repr__(self) -> str:
         return self.__str__()
         
-    @property
-    def substrate(self) -> SubstrateInterface:
+    def get_substrate(self) -> SubstrateInterface:
         r""" Substrate connection property which falls back to fallback endpoints on a failed connect.
             Returns:
                 active_substrate ( :obj:`SubstrateInterface`, `required`):
@@ -92,24 +92,40 @@ class Subtensor:
                     If the default substrate connection fails along with all remaining endpoints.
         """
         try:
-            self._default_substrate = bittensor.subtensor.substrate_connection_for_url( self.chain_endpoint )
-            self._default_substrate.connect_websocket()
-            return self._default_substrate
+            if self.substrate == None:
+                self.substrate = bittensor.subtensor.substrate_connection_for_url( self.chain_endpoint )
+            self.substrate.connect_websocket()
+            return self.substrate
         except:
             bittensor.logging.warning(prefix = 'Substrate', sufix = 'Failed to connect on the default substrate connection: {}'.format( self.chain_endpoint ) )
             for endpoint_url in self.fallback_endpoints:
                 try:
-                    connection = bittensor.subtensor.substrate_connection_for_url( endpoint_url )
-                    connection.connect_websocket()
+                    self.substrate = bittensor.subtensor.substrate_connection_for_url( endpoint_url )
+                    self.substrate.connect_websocket()
                     self._active_substrate_endpoint = endpoint_url
                     self._active_substrate_network = endpoint_url
                     # Successful connection.
-                    return connection
+                    return self.substrate
                 except:
                     bittensor.logging.warning(prefix = 'Substrate', sufix = 'Failed to connect on the fallback substrate endpoint: {}'.format( endpoint_url ))
                     pass
             # Failed on all fallbacks.
             raise RuntimeError('Failed to connect to all active or fallback substrate connections.')
+
+    def endpoint_for_network( 
+            self,
+            blacklist: List[str] = [] 
+        ) -> str:
+        r""" Returns a chain endpoint based on self.network.
+            Returns None if there are no available endpoints.
+        """
+
+        # Chain endpoint overrides the --network flag.
+        if self.chain_endpoint != None:
+            if self.chain_endpoint in blacklist:
+                return None
+            else:
+                return self.chain_endpoint
 
     @property
     def rho (self) -> int:
@@ -120,7 +136,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'Rho' ).value
         return make_substrate_call_with_retry()
 
@@ -133,7 +149,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'Kappa' ).value
         return make_substrate_call_with_retry()
 
@@ -146,7 +162,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'Difficulty' ).value
         return make_substrate_call_with_retry()
 
@@ -159,7 +175,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
         return make_substrate_call_with_retry()
 
@@ -172,7 +188,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'ImmunityPeriod' ).value
         return make_substrate_call_with_retry()
 
@@ -185,7 +201,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'ValidatorBatchSize' ).value
         return make_substrate_call_with_retry()
 
@@ -199,7 +215,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'ValidatorSequenceLength' ).value
         return make_substrate_call_with_retry()
 
@@ -212,7 +228,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'ValidatorEpochsPerReset' ).value
         return make_substrate_call_with_retry()
 
@@ -225,7 +241,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'ValidatorEpochLen' ).value
         return make_substrate_call_with_retry()
 
@@ -238,7 +254,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake' ).value )
         return make_substrate_call_with_retry()
 
@@ -251,7 +267,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'MinAllowedWeights' ).value
         return make_substrate_call_with_retry()
 
@@ -264,7 +280,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 U32_MAX = 4294967295
                 return substrate.query( module='SubtensorModule', storage_function = 'MaxWeightLimit' ).value/U32_MAX
         return make_substrate_call_with_retry()
@@ -278,7 +294,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 MAX = 100
                 return substrate.query( module='SubtensorModule', storage_function = 'ScalingLawPower' ).value/MAX
         return make_substrate_call_with_retry()
@@ -292,7 +308,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 MAX = 100
                 return substrate.query( module='SubtensorModule', storage_function = 'SynergyScalingLawPower' ).value/MAX
         return make_substrate_call_with_retry()
@@ -306,7 +322,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 MAX = 100
                 return substrate.query( module='SubtensorModule', storage_function = 'ValidatorExcludeQuantile' ).value/MAX
         return make_substrate_call_with_retry()
@@ -320,7 +336,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'MaxAllowedMaxMinRatio' ).value
         return make_substrate_call_with_retry()
 
@@ -333,7 +349,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'N' ).value
         return make_substrate_call_with_retry()
 
@@ -346,7 +362,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'MaxAllowedUids' ).value
         return make_substrate_call_with_retry()
 
@@ -368,7 +384,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'BlocksSinceLastStep' ).value
         return make_substrate_call_with_retry()
 
@@ -381,7 +397,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query( module='SubtensorModule', storage_function = 'BlocksPerStep' ).value
         return make_substrate_call_with_retry()
 
@@ -393,7 +409,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query(  
                     module='SubtensorModule', 
                     storage_function = 'N',
@@ -553,7 +569,7 @@ class Subtensor:
                 with bittensor.__console__.status(":satellite: Submitting POW..."):
                     # check if pow result is still valid
                     while bittensor.utils.POWNotStale(self, pow_result):
-                        with self.substrate as substrate:
+                        with self.get_substrate() as substrate:
                             # create extrinsic call
                             call = substrate.compose_call( 
                                 call_module='SubtensorModule',  
@@ -671,7 +687,7 @@ class Subtensor:
                 return False
         
         with bittensor.__console__.status(":satellite: Serving axon on: [white]{}[/white] ...".format(self.network)):
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule',
                     call_function='serve_axon',
@@ -746,7 +762,7 @@ class Subtensor:
         # Estimate transfer fee.
         staking_fee = None # To be filled.
         with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule', 
                     call_function='add_stake',
@@ -774,7 +790,7 @@ class Subtensor:
                 return False
 
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule', 
                     call_function='add_stake',
@@ -918,7 +934,7 @@ class Subtensor:
             # Estimate staking fee.
             stake_fee = None # To be filled.
             with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-                with self.substrate as substrate:
+                with self.get_substrate() as substrate:
                     call = substrate.compose_call(
                     call_module='SubtensorModule', 
                     call_function='add_stake',
@@ -950,7 +966,7 @@ class Subtensor:
                     continue
 
             with bittensor.__console__.status(":satellite: Staking to chain: [white]{}[/white] ...".format(self.network)):
-                with self.substrate as substrate:
+                with self.get_substrate() as substrate:
                     call = substrate.compose_call(
                     call_module='SubtensorModule', 
                     call_function='add_stake',
@@ -1051,7 +1067,7 @@ class Subtensor:
 
         # Estimate transfer fee.
         with bittensor.__console__.status(":satellite: Estimating Transfer Fees..."):
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 call = substrate.compose_call(
                     call_module='Balances',
                     call_function='transfer',
@@ -1079,7 +1095,7 @@ class Subtensor:
                 return False
 
         with bittensor.__console__.status(":satellite: Transferring..."):
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 call = substrate.compose_call(
                     call_module='Balances',
                     call_function='transfer',
@@ -1170,7 +1186,7 @@ class Subtensor:
         # Estimate unstaking fee.
         unstake_fee = None # To be filled.
         with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule', 
                     call_function='remove_stake',
@@ -1193,7 +1209,7 @@ class Subtensor:
                 return False
 
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule', 
                     call_function='remove_stake',
@@ -1326,7 +1342,7 @@ class Subtensor:
             # Estimate unstaking fee.
             unstake_fee = None # To be filled.
             with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-                with self.substrate as substrate:
+                with self.get_substrate() as substrate:
                     call = substrate.compose_call(
                         call_module='SubtensorModule', 
                         call_function='remove_stake',
@@ -1349,7 +1365,7 @@ class Subtensor:
                     continue
 
             with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
-                with self.substrate as substrate:
+                with self.get_substrate() as substrate:
                     call = substrate.compose_call(
                         call_module='SubtensorModule', 
                         call_function='remove_stake',
@@ -1432,7 +1448,7 @@ class Subtensor:
 
         with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(self.network)):
             try:
-                with self.substrate as substrate:
+                with self.get_substrate() as substrate:
                     call = substrate.compose_call(
                         call_module='SubtensorModule',
                         call_function='set_weights',
@@ -1478,7 +1494,7 @@ class Subtensor:
         try:
             @retry(delay=2, tries=3, backoff=2, max_delay=4)
             def make_substrate_call_with_retry():
-                with self.substrate as substrate:
+                with self.get_substrate() as substrate:
                     return substrate.query(
                         module='System',
                         storage_function='Account',
@@ -1499,14 +1515,14 @@ class Subtensor:
         """        
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.get_block_number(None)
         return make_substrate_call_with_retry()
 
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query_map(
                     module='System',
                     storage_function='Account',
@@ -1595,7 +1611,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 result = dict( substrate.query( 
                     module='SubtensorModule',  
                     storage_function='Neurons', 
@@ -1618,7 +1634,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query (
                     module='SubtensorModule',
                     storage_function='Hotkeys',
@@ -1663,7 +1679,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return substrate.query (
                     module='SubtensorModule',
                     storage_function='Hotkeys',
@@ -1691,7 +1707,7 @@ class Subtensor:
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
+            with self.get_substrate() as substrate:
                 return int(substrate.query(  module='SubtensorModule', storage_function = 'N', block_hash = None if block == None else substrate.get_block_hash( block ) ).value)
         return make_substrate_call_with_retry()
 
