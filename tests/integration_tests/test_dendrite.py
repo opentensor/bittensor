@@ -223,7 +223,6 @@ def test_dendrite_multiple():
     config = bittensor.dendrite.config()
     receptor_pool = bittensor.receptor_pool( 
         wallet = wallet,
-        max_worker_threads = config.dendrite.max_worker_threads,
         max_active_receptors = config.dendrite.max_active_receptors,
         compression = config.dendrite.compression,
     )

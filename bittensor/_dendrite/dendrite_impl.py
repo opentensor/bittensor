@@ -281,7 +281,6 @@ class Dendrite(torch.autograd.Function):
                     Call times per endpoint per synapse.
 
         """
-        start_time = time.time()
         timeout:int = timeout if timeout is not None else self.config.dendrite.timeout
         requires_grad:bool = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
 
