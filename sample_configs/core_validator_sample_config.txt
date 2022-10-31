@@ -9,7 +9,6 @@ dataset.num_workers: 0
 dataset.save_dataset: false
 
 dendrite.max_active_receptors: 500
-dendrite.max_worker_threads: 150
 dendrite.requires_grad: true
 dendrite.timeout: 12
 

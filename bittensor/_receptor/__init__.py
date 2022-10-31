@@ -28,12 +28,12 @@ class receptor:
     """ Create and init the receptor object, which encapsulates a grpc connection to an axon endpoint
     """
     def __new__( 
-             cls,
-             endpoint: 'bittensor.Endpoint',
-             max_processes: 'int' = 1,
-             wallet: 'bittensor.Wallet' = None,
-             external_ip: 'str' = None,
-             compression: str = None,
+            cls,
+            endpoint: 'bittensor.Endpoint',
+            max_processes: 'int' = 1,
+            wallet: 'bittensor.Wallet' = None,
+            external_ip: 'str' = None,
+            compression: str = None,
         ) -> 'bittensor.Receptor':
         r""" Initializes a receptor grpc connection.
             Args:
@@ -59,7 +59,7 @@ class receptor:
         else:
             compress_alg = grpc.Compression.NoCompression
 
-        channel = grpc.insecure_channel(
+        channel = grpc.aio.insecure_channel(
             endpoint_str,
             options=[('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1),
@@ -73,35 +73,26 @@ class receptor:
             max_processes=max_processes
         )
 
+        
+
 class receptor_pool:
     """ Create and init the receptor_pool object, which manage a pool of grpc connections 
     """
     def __new__( 
             cls, 
             wallet: 'bittensor.Wallet',
-            thread_pool: ThreadPoolExecutor = None,
-            max_worker_threads: int = 150,
-            max_active_receptors: int = 500,
+            max_active_receptors: int = 4096,
             compression: str = None,
         ) -> 'bittensor.ReceptorPool':
         r""" Initializes a receptor grpc connection.
             Args:
                 wallet (:obj:`bittensor.Wallet`, `required`):
                     bittensor wallet with hotkey and coldkeypub.
-                thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
-                    thread pool executor passed the receptor pool unless defined.
-                max_worker_threads (:type:`int`, `optional`):
-                    Maximum number of active client threads. Does not override passed 
-                    Threadpool.
                 max_active_receptors (:type:`int`, `optional`):
                     Maximum allowed active allocated TCP connections.
         """        
-        if thread_pool == None:
-            thread_pool = ThreadPoolExecutor( max_workers = max_worker_threads )
         return bittensor.ReceptorPool ( 
             wallet = wallet,
-            thread_pool = thread_pool,
-            max_worker_threads = max_worker_threads,
             max_active_receptors = max_active_receptors,
             compression = compression
         )
