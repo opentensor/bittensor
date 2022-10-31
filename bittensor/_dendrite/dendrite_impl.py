@@ -20,6 +20,7 @@
 from types import SimpleNamespace
 from typing import Tuple, List, Union, Optional
 
+import asyncio
 import sys
 import torch
 import pandas
@@ -164,31 +165,43 @@ class Dendrite(torch.autograd.Function):
         ctx.endpoints, ctx.synapses, ctx.inputs, ctx.timeout, ctx.does_requires_grad = endpoints, synapses, inputs, timeout, requires_grad
         inputs:List[torch.Tensor] = [x.cpu().clone().detach() for x in inputs]
 
-        # Ouputs are list of lists where the outer list corresponds to the endpoints and the 
-        # inner list corresponds to the synapses.
-        forward_outputs, forward_codes, forward_times = ctx.receptor_pool.forward (
-            endpoints = endpoints,
-            synapses = synapses,
-            inputs = inputs,
-            timeout = timeout,
-        )
-        ctx.forward_codes = forward_codes
+
+        # Result contains a list of items per endpoint.
+        # Each item of the list contains a Tuple[ List[torch.Tensor], List[int], List[float] ].
+        # Each tuple contains a set of lists each the response code per synapse.
+        async def _gather_forward() -> List[ Tuple[ List[torch.Tensor], List[int], List[float] ] ]:
+            calls = []
+            for index, endpoint in enumerate(endpoints):
+                receptor = ctx.receptor_pool._get_or_create_receptor_for_endpoint( endpoint = endpoint )
+                calls.append( 
+                    receptor.async_forward(
+                        synapses = synapses,
+                        inputs = inputs[index], 
+                        timeout = timeout
+                    )
+                )
+            return await asyncio.gather( *calls )
+
+        # Pass function to asyncio loop.
+        loop = asyncio.get_event_loop()
+        gather_results = loop.run_until_complete ( _gather_forward () )
+        ctx.forward_codes = [ endpoint_tuple[1] for endpoint_tuple in gather_results ]
+        ctx.timeout = timeout
 
         # We need to flatten the outputs across the synapse dimension.
         def flatten(t):
             return [item for sublist in t for item in sublist]
-        # flattened items now have length num_endpoints * num_synapses
-        # where endpoint i's jth outputs is at position (num_synapses * i ) + j
-        flattened_forward_codes: List[ bittensor.proto.ReturnCode ] = flatten( forward_codes )
-        flattened_forward_times: List[float] = flatten( forward_times )
-        flattened_forward_outputs: List[torch.Tensor] = flatten( forward_outputs )
 
-        # We will pack all the codes and times into a single tensor 
-        flattened_torch_codes: torch.LongTensor = torch.tensor(flattened_forward_codes, dtype=torch.int64)
-        flattened_torch_times: torch.FloatTensor  = torch.tensor(flattened_forward_times, dtype=torch.float32)
+        flat_codes: List[ int] = flatten( [ endpoint_tuple[1] for endpoint_tuple in gather_results ] )
+        flat_times: List[float] = flatten([ endpoint_tuple[2] for endpoint_tuple in gather_results ])
+
+        tensor_codes: torch.LongTensor = torch.tensor( flat_codes, dtype = torch.int64 )
+        tensor_times: torch.FloatTensor = torch.tensor( flat_times, dtype = torch.float32 )
+        tensor_outputs: List[ torch.Tensor ] = flatten([ endpoint_tuple[0] for endpoint_tuple in gather_results ])
 
         # Return all outputs as a tuple of torch tensors of length 2 + (num_endpoints * num_synapses) 
-        return (flattened_torch_codes, flattened_torch_times, *flattened_forward_outputs)
+        return (tensor_codes, tensor_times, *tensor_outputs)
+
 
     @staticmethod
     @once_differentiable
@@ -224,23 +237,30 @@ class Dendrite(torch.autograd.Function):
         # into a list of lists.
         packed_grads: List[ List [ torch.FloatTensor ] ] = [ output_grads[ s : s + len(ctx.synapses) ] for s in range (0, len(output_grads), len( ctx.synapses )) ]
         if ctx.does_requires_grad:
-            input_grads, _, _ = ctx.receptor_pool.backward(
-                endpoints = ctx.endpoints,
-                inputs = ctx.inputs,
-                synapses = ctx.synapses,
-                grads = packed_grads,
-                timeout = ctx.timeout,
-            )
-            # Input grads is a list of lists
-            # We need to flatten the outputs across the synapse dimension.
-            def flatten(t):
-                return [item for sublist in t for item in sublist]
-            flattened_input_grads: List[torch.FloatTensor]  = flatten( input_grads )
-            return (None, None, None, None, None, None, *flattened_input_grads)
-        else:
-            # Create nill responses for each input and each synapse.
-            input_grads = [ syn.nill_backward_response_tensor ( inp ) for inp in ctx.inputs for syn in ctx.synapses ]
-            return (None, None, None, None, None, None, *input_grads)
+            # Result contains a list of items per endpoint.
+            # Each item of the list contains a Tuple[ List[torch.Tensor], List[int], List[float] ].
+            # Each tuple contains a set of lists each the response code per synapse.
+            async def _gather_backward() -> List[ Tuple[ List[torch.Tensor], List[int], List[float] ] ]:
+                calls = []
+                for index, endpoint in enumerate(ctx.endpoints):
+                    receptor = ctx.receptor_pool._get_or_create_receptor_for_endpoint( endpoint = endpoint )
+                    calls.append ( 
+                        receptor.async_backward(
+                            synapses = ctx.synapses,
+                            inputs = ctx.inputs[index], 
+                            grads = packed_grads[index],
+                            timeout = ctx.timeout
+                        )
+                    )
+                return await asyncio.gather( *calls )
+
+            # Pass function to asyncio loop.
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete ( _gather_backward () )
+
+        # Create nill responses for each input and each synapse.
+        input_grads = [ syn.nill_backward_response_tensor ( inp ) for inp in ctx.inputs for syn in ctx.synapses ]
+        return (None, None, None, None, None, None, *input_grads)
 
     def _forward(
             self,
@@ -1025,3 +1045,4 @@ class Dendrite(torch.autograd.Function):
         except Exception as e:
             bittensor.logging.error( prefix='failed dendrite.to_wandb()', sufix = str(e))
             return {}
+

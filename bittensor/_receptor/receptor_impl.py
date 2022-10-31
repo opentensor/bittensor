@@ -654,7 +654,6 @@ class Receptor(nn.Module):
         # ==== Make RPC Call ====
         # =======================
         try:
-            print ('make call')
             self.stats.backward_qps.update(1)
             self.stats.backward_bytes_out.update(sys.getsizeof(grpc_request))
             # Fire and forget.
