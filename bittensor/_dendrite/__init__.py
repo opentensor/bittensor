@@ -209,4 +209,4 @@ class dendrite:
         ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state', 'get_total_requests'])
         manager = ManagerServer(address=('', 4098), authkey=authkey)
 
-        return 
+        return manager
