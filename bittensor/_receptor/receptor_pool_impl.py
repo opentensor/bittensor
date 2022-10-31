@@ -112,7 +112,12 @@ class ReceptorPool ( torch.nn.Module ):
         """
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
-        loop = asyncio.get_event_loop()
+        
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         return loop.run_until_complete ( 
             self.async_forward(
                 endpoints = endpoints,
@@ -168,7 +173,11 @@ class ReceptorPool ( torch.nn.Module ):
         for grads_per_synapse in grads:
             if len(grads_per_synapse) != len(synapses):
                 raise ValueError('Gradients must have the same length as passed synapses. Got {} and {}'.format(len(grads_per_synapse), len(synapses)))
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         return loop.run_until_complete (
             self.async_backward(
                 endpoints = endpoints,
@@ -371,5 +380,4 @@ class ReceptorPool ( torch.nn.Module ):
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
             
-        receptor.semaphore.acquire()
         return receptor
