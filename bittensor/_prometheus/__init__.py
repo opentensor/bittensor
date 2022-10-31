@@ -126,7 +126,7 @@ class prometheus:
         defaults.prometheus = bittensor.Config()
         # Default the prometheus port to axon.port - 1000
         defaults.prometheus.port = os.getenv('BT_PROMETHEUS_PORT') if os.getenv('BT_PROMETHEUS_PORT') != None else 7091
-        defaults.prometheus.level = os.getenv('BT_PROMETHEUS_LEVEL') if os.getenv('BT_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.OFF.value
+        defaults.prometheus.level = os.getenv('BT_PROMETHEUS_LEVEL') if os.getenv('BT_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.INFO.value
 
     @classmethod
     def check_config(cls, config: 'bittensor.Config' ):
