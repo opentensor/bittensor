@@ -91,7 +91,6 @@ class Config ( Munch ):
 
             if 'dendrite' in self.keys():
                 bittensor.defaults.dendrite.timeout = self.dendrite.timeout
-                bittensor.defaults.dendrite.max_worker_threads = self.dendrite.max_worker_threads
                 bittensor.defaults.dendrite.max_active_receptors = self.dendrite.max_active_receptors
                 bittensor.defaults.dendrite.requires_grad = self.dendrite.requires_grad
 
