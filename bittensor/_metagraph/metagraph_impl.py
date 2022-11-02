@@ -424,7 +424,7 @@ class Metagraph( torch.nn.Module ):
 
         return neurons
 
-    def sync ( self, block: int = None, cached: bool = True ) -> 'Metagraph':
+    def sync ( self, block: int = None, cached: bool = True, fast:bool = True ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
         """
         logger.success(self.subtensor)
@@ -446,7 +446,10 @@ class Metagraph( torch.nn.Module ):
                     except:
                         # For some reason IPFS cache is down, fallback on regular sync
                         logger.warning("IPFS cache may be down, falling back to regular sync")
-                        neurons = self.subtensor.neurons()
+                        if fast:
+                            neurons = self.subtensor.neurons_fast()
+                        else: 
+                            neurons = self.subtensor.neurons() 
                     n_total = len(neurons)
             else:
                 neurons = self.subtensor.neurons( block = block )
@@ -468,7 +471,10 @@ class Metagraph( torch.nn.Module ):
                     except:
                         # For some reason IPFS cache is down, fallback on regular sync
                         logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                        neurons = self.subtensor.neurons( block = block )
+                        if fast:
+                            neurons = self.subtensor.neurons_fast( block = block)
+                        else: 
+                            neurons = self.subtensor.neurons( block = block ) 
                     n_total = len(neurons)
             else:
                 neurons = self.subtensor.neurons( block = block )
