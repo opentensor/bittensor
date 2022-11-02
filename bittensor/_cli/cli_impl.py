@@ -490,7 +490,7 @@ class CLI:
         subtensor = bittensor.subtensor( config = self.config )
         metagraph = bittensor.metagraph( subtensor = subtensor )
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network))
-        metagraph.sync()
+        metagraph.sync( cached=not self.config.subtensor.get('use_fast_sync', bittensor.defaults.subtensor.use_fast_sync) )
         metagraph.save()
         issuance = subtensor.total_issuance
         difficulty = subtensor.difficulty
@@ -782,8 +782,8 @@ class CLI:
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
         meta: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor )
-        # Get metagraph, use no_cache if flagged
-        meta.sync(cached = not self.config.get('no_cache', False))
+        # Get metagraph, use no_cache if set or if use_fast_sync is set
+        meta.sync(cached = not (self.config.get('no_cache', False) or self.config.get('subtensor.use_fast_sync', bittensor.defaults.subtensor.use_fast_sync)))
         neurons = []
         block = subtensor.block
 

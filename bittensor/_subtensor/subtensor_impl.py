@@ -15,9 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import torch
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm
 from typing import List, Dict, Union, Optional
-from multiprocessing import Process
 
 import bittensor
 from tqdm import tqdm
@@ -30,12 +29,8 @@ from bittensor.utils import is_valid_bittensor_address_or_public_key
 from types import SimpleNamespace
 
 # Mocking imports
-import os
-import random
 import scalecodec
 import time
-import subprocess
-from sys import platform   
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -49,6 +44,7 @@ class Subtensor:
         substrate: 'SubstrateInterface',
         network: str,
         chain_endpoint: str,
+        use_fast_sync: bool = False,
     ):
         r""" Initializes a subtensor chain interface.
             Args:
@@ -63,10 +59,13 @@ class Subtensor:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                use_fast_sync (default=False, type=bool)
+                    If true, uses the fast neuron implementation.
         """
         self.network = network
         self.chain_endpoint = chain_endpoint
         self.substrate = substrate
+        self.use_fast_sync = use_fast_sync
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -1551,15 +1550,173 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
+        if self.use_fast_sync:
+            try:
+                return self.neurons_fast(block)
+            except SyncException as e:
+                logger.warning("Failed to get neurons fast, falling back to manual sync.: {}".format(e))
+                self.use_fast_sync = False
+                return self.neurons(block)
+        
         neurons = []
         for id in tqdm(range(self.get_n( block ))): 
             try:
                 neuron = self.neuron_for_uid(id, block)
                 neurons.append( neuron )
-            except Exception as e:
+            except NeuronPullException as e:
                 logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
                 break
         return neurons
+
+    def neurons_fast(self, block: int = None ) -> List[SimpleNamespace]: 
+        r""" Returns a list of neuron from the chain, using the bundled subtensor-node-api
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[SimpleNamespace]):
+                List of neuron objects.
+
+        Raises:
+            SyncException: If there is an issue during fast sync from chain
+        """
+        neurons = []
+        if block is None:
+            block: int = self.get_current_block()
+
+        block_hash: str = self.substrate.get_block_hash( block )
+        endpoint_url: str = self.chain_endpoint
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
+        
+        try:
+            from subtensorapi import FastSync
+        except ImportError:
+            raise SyncException("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+        
+        try:
+            # check if fast sync is available
+            FastSync.verify_fast_sync_support()
+            # try to fast sync
+            fast_sync: FastSync = FastSync(endpoint_url)
+            # get neurons
+            fast_sync.sync_and_save(bittensor.__console__, block_hash)
+            # load neurons
+            neurons = fast_sync.load_neurons()
+        except Exception as e:
+            raise SyncException("Failed to fast sync neurons: {}".format(e))
+
+        return neurons
+
+    def blockAtRegistration_all(self, block: int = None) -> List[int]:
+        r""" Returns a list of blockAtRegistration for every uid from the chain
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[int]):
+                List of blockAtRegistration numbers.
+        """
+        if block is None:
+            block: int = self.get_current_block()
+
+        if self.use_fast_sync:
+            try:
+                return self.blockAtRegistration_all_fast(block)
+            except SyncException as e:
+                logger.warning("Failed to get blockAtRegistration_all fast, falling back to manual sync.: {}".format(e))
+                self.use_fast_sync = False
+                return self.blockAtRegistration_all(block)
+        else:
+            return self.blockAtRegistration_all_pysub(block)
+
+    def blockAtRegistration_all_pysub(self, block: int = None) -> List[int]:
+        r""" Returns a list of blockAtRegistration for every uid from the chain, using pysubstrateinterface
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[int]):
+                List of blockAtRegistration numbers.
+        """
+        blockAtRegistration_all = []
+        for uid in tqdm(range(self.get_n( block ))): 
+            try:
+                blockAtRegistration = self.blockAtRegistration_for_uid(uid, block)
+                blockAtRegistration_all.append( blockAtRegistration )
+            except SyncException as e:
+                logger.error('Exception encountered when getting blockAtRegistration for uid:{}: {}'.format(uid, e))
+                break
+        return blockAtRegistration_all
+
+
+    def blockAtRegistration_all_fast(self, block: int = None ) -> List[int]: 
+        r""" Returns a list of blockAtRegistration for every uid from the chain, using subtensorapi
+        Args:
+            block (int):
+                block to sync from.
+        Returns:
+            neuron (List[int]):
+                List of blockAtRegistration numbers.
+
+        Raises:
+            SyncException: If there is an issue during fast sync from chain
+        """
+        if block is None:
+            block: int = self.get_current_block()
+
+        block_hash: str = self.substrate.get_block_hash( block )
+        endpoint_url: str = self.chain_endpoint
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
+
+        try:
+            from subtensorapi import FastSync
+        except ImportError:
+            raise SyncException("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+
+        try:
+            # check if fast sync is available
+            FastSync.verify_fast_sync_support()
+            # try to fast sync
+            fast_sync: FastSync = FastSync(endpoint_url)
+            # get blockAtRegistration_all
+            fast_sync.get_blockAtRegistration_for_all_and_save(bittensor.__console__, block_hash)
+            # load blockAtRegistration_all
+            blockAtRegistration_all = fast_sync.load_blockAtRegistration_for_all()
+
+            return blockAtRegistration_all
+        except Exception as e:
+            raise SyncException("Failed to get blockAtRegistration_all: {}".format(e))
+    
+    def blockAtRegistration_for_uid( self, uid: int, block: int = None ) -> int: 
+        r""" Returns the blockAtRegistration for a given uid from the chain 
+        Args:
+            uid ( int ):
+                The uid to query for.
+            block ( int ):
+                The neuron at a particular block
+        Returns:
+            blockAtRegistration ( int ):
+                The blockAtRegistration for the given uid.
+
+        Raises:
+            SyncException: If there is an issue during sync from the chain
+
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                result = substrate.query( 
+                    module='SubtensorModule',  
+                    storage_function='BlockAtRegistration', 
+                    params = [ uid ], 
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                ).value 
+            return result
+        try:
+            result = make_substrate_call_with_retry()
+            return result
+        except Exception as e:
+            raise SyncException("Failed to pull blockAtRegistration for uid: {} at block: {} with error: {}".format(uid, block, e))
 
     @staticmethod
     def _null_neuron() -> SimpleNamespace:
@@ -1592,7 +1749,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return Subtensor._null_neuron()
         else:
-            RAOPERTAO = 1000000000
+            RAOPERTAO = bittensor.__rao_per_tao__
             U64MAX = 18446744073709551615
             neuron = SimpleNamespace( **neuron_dict )
             neuron.stake = neuron.stake / RAOPERTAO
@@ -1626,8 +1783,11 @@ To run a local node (See: docs/running_a_validator.md) \n
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 ).value )
             return result
-        result = make_substrate_call_with_retry()
-        neuron = Subtensor._neuron_dict_to_namespace( result )
+        try:
+            result = make_substrate_call_with_retry()
+            neuron = Subtensor._neuron_dict_to_namespace( result )
+        except Exception as e:
+            raise NeuronPullException("Failed to pull neuron for uid: {} at block: {} with error: {}".format(uid, block, e))
         return neuron
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
@@ -1728,3 +1888,11 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron object associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, block = block )
+
+class SyncException(Exception):
+    """Raised when syncing from the chain fails."""
+    pass
+
+class NeuronPullException(SyncException):
+    """Raised when pullin a Neuron from the chain fails."""
+    pass

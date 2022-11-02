@@ -17,6 +17,7 @@
 import argparse
 import copy
 import os
+from typing import Optional
 
 import bittensor
 from loguru import logger
@@ -77,6 +78,7 @@ class subtensor:
             network: str = None,
             chain_endpoint: str = None,
             _mock: bool = None,
+            use_fast_sync: Optional[bool] = None,
         ) -> 'bittensor.Subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
@@ -94,6 +96,8 @@ class subtensor:
                     The subtensor endpoint flag. If set, overrides the network argument.
                 _mock (bool, `optional`):
                     Returned object is mocks the underlying chain connection.
+                use_fast_sync (bool, `optional`):
+                    Returned object uses the fast neuron implementation.
         """
         if config == None: config = subtensor.config()
         config = copy.deepcopy( config )
@@ -136,11 +140,11 @@ class subtensor:
         # make sure it's wss:// or ws://
         # If it's bellagene (parachain testnet) then it has to be wss
         endpoint_url: str = config.subtensor.chain_endpoint
-        if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
-            if config.subtensor.network == "bellagene":
-                endpoint_url = "wss://{}".format(endpoint_url)
-            else:
-                endpoint_url = "ws://{}".format(endpoint_url)
+        if config.subtensor.network == "bellagene":
+            endpoint_url = "wss://{}".format(endpoint_url)
+        
+        # make sure formatting is good
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
         
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
@@ -155,6 +159,7 @@ class subtensor:
             substrate = substrate,
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
             chain_endpoint = config.subtensor.chain_endpoint,
+            use_fast_sync=use_fast_sync if use_fast_sync is not None else config.subtensor.get('use_fast_sync', bittensor.defaults.subtensor.use_fast_sync),
         )
 
     @staticmethod   
@@ -202,6 +207,8 @@ class subtensor:
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.dev_id', '--' + prefix_str + 'cuda.dev_id',  type=int, nargs='+', default=argparse.SUPPRESS, help='''Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
+            parser.add_argument('--' + prefix_str + 'subtensor.no_fast_sync', '--' + prefix_str + 'no_fast_sync', action='store_false', dest='subtensor.use_fast_sync', help='''Set flag to disable fast sync feature.''', default=True)
+
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -226,7 +233,7 @@ class subtensor:
         defaults.subtensor.register.cuda.use_cuda = False
         defaults.subtensor.register.cuda.TPB = 256
 
-        
+        defaults.subtensor.use_fast_sync = os.getenv('BT_SUBTENSOR_NEURONS_FAST') if os.getenv('BT_SUBTENSOR_NEURONS_FAST') != None else False
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):

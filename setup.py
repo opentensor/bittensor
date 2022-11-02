@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -68,8 +69,12 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.7',
-    extras_requires={
-        'cubit': ['cubit>=1.1.0 @ git+https://github.com/opentensor/cubit.git']
-    }
+    keywords=[
+        'nlp',
+        'crypto',
+        'machine learning',
+        'ml',
+        'tao'
+    ],
+    python_requires='>=3.7'
 )

@@ -81,6 +81,7 @@ __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
 __local_entrypoint__ = "127.0.0.1:9944"
 
+__rao_per_tao__ = 1000000000
 
 # Avoid collisions with other processes
 from .utils.test_utils import get_random_unused_port
