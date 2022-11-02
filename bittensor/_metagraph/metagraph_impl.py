@@ -430,55 +430,34 @@ class Metagraph( torch.nn.Module ):
         logger.success(self.subtensor)
         if block == None:
             block = self.subtensor.get_current_block()
-            if cached and self.subtensor.network in ("nakamoto", "local"):
-                if bittensor.__use_console__:
-                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        try:
-                            neurons = self.retrieve_cached_neurons( )
-                        except:
-                            # For some reason IPFS cache is down, fallback on regular sync
-                            logger.warning("IPFS cache may be down, falling back to regular sync")
-                            neurons = self.subtensor.neurons()
-                        n_total = len(neurons)
-                else:
-                    try:
-                        neurons = self.retrieve_cached_neurons( )
-                    except:
-                        # For some reason IPFS cache is down, fallback on regular sync
-                        logger.warning("IPFS cache may be down, falling back to regular sync")
-                        if fast:
-                            neurons = self.subtensor.neurons_fast()
-                        else: 
-                            neurons = self.subtensor.neurons() 
-                    n_total = len(neurons)
-            else:
-                neurons = self.subtensor.neurons( block = block )
-                n_total = len(neurons)
-        else:
-            if cached and self.subtensor.network in ("nakamoto", "local"):
-                if bittensor.__use_console__:
-                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        try:
-                            neurons = self.retrieve_cached_neurons( block = block )
-                        except:
-                            # For some reason IPFS cache is down, fallback on regular sync
-                            logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                            neurons = self.subtensor.neurons( block = block )
-                        n_total = len(neurons)
-                else:
+            
+        if cached and self.subtensor.network in ("nakamoto", "local"):
+            if bittensor.__use_console__:
+                with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
                     try:
                         neurons = self.retrieve_cached_neurons( block = block )
                     except:
                         # For some reason IPFS cache is down, fallback on regular sync
                         logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                        if fast:
-                            neurons = self.subtensor.neurons_fast( block = block)
-                        else: 
-                            neurons = self.subtensor.neurons( block = block ) 
+                        neurons = self.subtensor.neurons( block = block )
                     n_total = len(neurons)
             else:
-                neurons = self.subtensor.neurons( block = block )
+                try:
+                    neurons = self.retrieve_cached_neurons( block = block )
+                except:
+                    # For some reason IPFS cache is down, fallback on regular sync
+                    logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                    if fast:
+                        neurons = self.subtensor.neurons_fast( block = block)
+                    else: 
+                        neurons = self.subtensor.neurons( block = block ) 
                 n_total = len(neurons)
+        else:
+            if fast:
+                neurons = self.subtensor.neurons_fast( block = block)
+            else:
+                neurons = self.subtensor.neurons( block = block )
+            n_total = len(neurons)
 
         # Fill arrays.
         uids = [ i for i in range(n_total) ]
