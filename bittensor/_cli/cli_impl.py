@@ -41,7 +41,6 @@ class CLI:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
         """
-        print (config.no_version_checking)
         if not config.no_version_checking:
             try:
                 bittensor.utils.version_checking()
