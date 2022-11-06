@@ -345,12 +345,13 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
             key (str, `optional`):
-                 key for authentication header in the metadata (default= Bittensor)
-            black_list (Fucntion, `optional`):
+                 key for authentication header in the metadata (default = Bittensor)
+            black_list (Function, `optional`):
                 black list function that prevents certain pubkeys from sending messages
         """
         super().__init__()
-        self._valid_metadata = ("rpc-auth-header", key)
+        self._signature_separator = "bitxx"
+        self._expected_auth_metadata = ("rpc-auth-header", key)
         self.nounce_dic = {}
         self.message = "Invalid key"
         self.blacklist = blacklist
@@ -362,7 +363,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
-        meta = handler_call_details.invocation_metadata
+        meta = dict(handler_call_details.invocation_metadata)
 
         try:
             # version checking
@@ -380,9 +381,19 @@ class AuthInterceptor(grpc.ServerInterceptor):
             self.message = str(e)
             return self._deny
 
-    def vertification(self, meta):
-        r"""vertification of signature in metadata. Uses the pubkey and nounce"""
-        variable_length_messages = meta[1].value.split("bitxx")
+    def get_signature(self, meta):
+        r"""get_signature from the metadata. Raises exception when the signature is missing"""
+        signature = meta.get("bittensor-signature")
+        if signature is None:
+            raise Exception("Request signature missing")
+        return signature
+
+    def verification(self, meta):
+        r"""verification of signature in metadata. Uses the pubkey and nounce"""
+        variable_length_messages = self.get_signature(meta).split(
+            self._signature_separator
+        )
+
         nounce = int(variable_length_messages[0])
         pubkey = variable_length_messages[1]
         message = variable_length_messages[2]
@@ -413,27 +424,32 @@ class AuthInterceptor(grpc.ServerInterceptor):
         return verification
 
     def signature_checking(self, meta):
-        r"""Calls the vertification of the signature and raises an error if failed"""
-        if self.vertification(meta):
-            pass
-        else:
-            raise Exception("Incorrect Signature")
+        r"""Calls the verification of the signature and raises an error if failed"""
+        if not self.verification(meta):
+            raise Exception("Signature mismatch")
 
     def version_checking(self, meta):
         r"""Checks the header and version in the metadata"""
-        if meta[0] == self._valid_metadata:
-            pass
-        else:
-            raise Exception("Incorrect Metadata format")
+        (key, expected_value) = self._expected_auth_metadata
+        provided_value = meta.get(key)
+        if provided_value is None or provided_value != expected_value:
+            raise Exception("Unexpected caller metadata")
 
     def black_list_checking(self, meta):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
-        variable_length_messages = meta[1].value.split("bitxx")
+        variable_length_messages = self.get_signature(meta).split(
+            self._signature_separator
+        )
         pubkey = variable_length_messages[1]
 
         if self.blacklist == None:
-            pass
-        elif self.blacklist(pubkey, int(meta[3].value)):
-            raise Exception("Black listed")
-        else:
-            pass
+            return
+
+        request_type = meta.get("request_type")
+        if request_type is None:
+            raise Exception("Missing request type")
+        request_type = int(request_type)
+
+        if self.blacklist(pubkey, request_type):
+            raise Exception("Request type is blacklisted")
+
