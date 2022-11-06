@@ -363,17 +363,18 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
-        meta = dict(handler_call_details.invocation_metadata)
+        method = handler_call_details.method
+        metadata = dict(handler_call_details.invocation_metadata)
 
         try:
             # version checking
-            self.version_checking(meta)
+            self.version_checking(metadata)
 
             # signature checking
-            self.signature_checking(meta)
+            self.signature_checking(metadata)
 
             # blacklist checking
-            self.black_list_checking(meta)
+            self.black_list_checking(metadata, method)
 
             return continuation(handler_call_details)
 
@@ -388,9 +389,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Request signature missing")
         return signature
 
-    def verification(self, meta):
+    def verification(self, metadata):
         r"""verification of signature in metadata. Uses the pubkey and nounce"""
-        variable_length_messages = self.get_signature(meta).split(
+        variable_length_messages = self.get_signature(metadata).split(
             self._signature_separator
         )
 
@@ -423,32 +424,34 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         return verification
 
-    def signature_checking(self, meta):
+    def signature_checking(self, metadata):
         r"""Calls the verification of the signature and raises an error if failed"""
-        if not self.verification(meta):
+        if not self.verification(metadata):
             raise Exception("Signature mismatch")
 
-    def version_checking(self, meta):
+    def version_checking(self, metadata):
         r"""Checks the header and version in the metadata"""
         (key, expected_value) = self._expected_auth_metadata
-        provided_value = meta.get(key)
+        provided_value = metadata.get(key)
         if provided_value is None or provided_value != expected_value:
             raise Exception("Unexpected caller metadata")
 
-    def black_list_checking(self, meta):
+    def black_list_checking(self, metadata, method):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
-        variable_length_messages = self.get_signature(meta).split(
-            self._signature_separator
-        )
-        pubkey = variable_length_messages[1]
-
         if self.blacklist == None:
             return
 
-        request_type = meta.get("request_type")
+        request_type = {
+            "/Bittensor/Forward": bittensor.proto.RequestType.FORWARD,
+            "/Bittensor/Backward": bittensor.proto.RequestType.BACKWARD,
+        }.get(method)
         if request_type is None:
-            raise Exception("Missing request type")
-        request_type = int(request_type)
+            raise Exception("Unknown request type")
+
+        variable_length_messages = self.get_signature(metadata).split(
+            self._signature_separator
+        )
+        pubkey = variable_length_messages[1]
 
         if self.blacklist(pubkey, request_type):
             raise Exception("Request type is blacklisted")
