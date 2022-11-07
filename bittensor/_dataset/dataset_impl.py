@@ -12,7 +12,6 @@ from tqdm import tqdm
 import bittensor
 import glob
 import queue
-import streamlit as st
 import numpy as np
 import asyncio
 import aiohttp
