@@ -86,15 +86,24 @@ class Dendrite(torch.autograd.Function):
         self.stats = self._init_stats()
 
         # == Prometheus
-        # We are running over various suffix values in the event that there are multiple dendrites in the same process.
-        # The first dendrite is created with a null suffix. Values are ordered like so: dendrite_counters, dendrite_counters_1, dendrite_counters_2 etc...
         if self.config.dendrite.prometheus.level != bittensor.prometheus.level.OFF.name:
-            registry = CollectorRegistry()
-            self.prometheus_counters = Counter('dendrite_counters', 'dendrite_counters', ['name'], registry=registry)
-            self.prometheus_latency = Histogram('dendrite_latency', 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,1)), registry=registry) 
-            self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid', 'dendrite_latency_per_uid', ['uid'], registry=registry)
-            self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid', 'dendrite_successes_per_uid', ['uid'], registry=registry)
-            self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid', 'dendrite_failures_per_uid', ['uid'], registry=registry)
+            # We are running over various suffix values in the event that there are multiple dendrites in the same process.
+            # The first dendrite is created with a null suffix. Values are ordered like so: dendrite_counters, dendrite_counters_1, dendrite_counters_2 etc...
+            # This avoids overlap such that further dendrites created on the same process are numbered with suffixes in order.
+            suffix = ""
+            suffix_increment = 0
+            while True:
+                try:
+                    self.prometheus_counters = Counter('dendrite_counters{}'.format(suffix), 'dendrite_counters', ['name'])
+                    self.prometheus_latency = Histogram('dendrite_latency{}'.format(suffix), 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,1))) 
+                    self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid{}'.format(suffix), 'dendrite_latency_per_uid', ['uid'])
+                    self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid{}'.format(suffix), 'dendrite_successes_per_uid', ['uid'])
+                    self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid{}'.format(suffix), 'dendrite_failures_per_uid', ['uid'])
+                except ValueError: 
+                    suffix_increment += 1
+                    suffix = "_{}".format(suffix_increment)
+                    continue
+                break
 
     def __str__(self):
         return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
