@@ -47,6 +47,7 @@ class dataset:
             save_dataset: bool=None,
             no_tokenizer: bool=None,
             num_batches: int = None,
+            run_generator: bool = False,
             _mock:bool=None
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
@@ -97,7 +98,8 @@ class dataset:
                 max_directories = config.dataset.max_directories
             )
         else:
-            return dataset_impl.GenesisTextDataset(
+
+            return dataset_impl.Dataset(
                 block_size = config.dataset.block_size,
                 batch_size = config.dataset.batch_size,
                 num_workers = config.dataset.num_workers,
@@ -107,6 +109,7 @@ class dataset:
                 max_datasets = config.dataset.max_datasets,
                 no_tokenizer = config.dataset.no_tokenizer,
                 num_batches = config.dataset.num_batches,
+                run_generator = run_generator,
                 max_directories = config.dataset.max_directories
             )
 
