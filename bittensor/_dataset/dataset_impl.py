@@ -53,7 +53,7 @@ class ThreadManager:
         self._shutdown = False
 
 
-    def submit(self, fn, args:list=[],kwargs:dict={}):
+    def submit(self, fn, args:Optional[list]=[],kwargs:Optional[dict]={}):
         '''
         Submit a function with args and kwargs on a seperate thread.
 
@@ -108,7 +108,7 @@ class GenesisTextDataset:
             sequence_length: int=256,
             block_size: int = 10000,
             num_workers: int = 1,
-            datasets: List[str]=['ArXiv'], 
+            datasets: Optional[Union[List[str], str]]=['ArXiv'], 
             loop:'asyncio.loop'=None, 
             no_tokenizer: bool = False,
             data_dir: str =  os.path.expanduser('~/./bittensor/data'),
@@ -133,7 +133,7 @@ class GenesisTextDataset:
                 multiple samples.
             num_workers (int):
                 Number of workers for pytorch Dataset.
-            datasets (List[str]):
+            datasets (Optional[Union[List[str], str]]):
                 List of dataset names to include from the pile.
             loop ('asyncio.loop'):
                 Asyncio loop for class, defaults to default event loop.
@@ -567,8 +567,14 @@ class GenesisTextDataset:
             raw_text = random.choice(self.cached_text_list).split()
             start_idx = idx * self.sequence_length % (len(list(raw_text)) - self.sequence_length)
             end_idx = start_idx + self.sequence_length
+
             
             output_dict = raw_text[start_idx:end_idx]
+
+            remainder = self.sequence_length - len(output_dict)
+            if remainder > 0:
+                output_dict = output_dict + ['FILLER_TOKEN']*remainder
+            output_dict = ' '.join(output_dict)
         if not self.no_tokenizer:
             tokenized_dict = random.choice(self.cached_text_list)
 
