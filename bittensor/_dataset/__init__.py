@@ -105,7 +105,7 @@ class dataset:
             )
         else:
 
-            return dataset_impl.Dataset(
+            return dataset_impl.GenesisTextDataset(
                 block_size = config.dataset.block_size,
                 batch_size = config.dataset.batch_size,
                 num_workers = config.dataset.num_workers,

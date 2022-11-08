@@ -27,7 +27,7 @@ from . import dataset_impl
 
 logger = logger.opt(colors=True)
 
-class MockGenesisTextDataset( dataset_impl.Dataset ):
+class MockGenesisTextDataset( dataset_impl.GenesisTextDataset ):
     def __init__(
         self,
         block_size,
