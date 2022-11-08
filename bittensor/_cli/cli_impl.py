@@ -41,7 +41,11 @@ class CLI:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
         """
-        bittensor.utils.version_checking()
+        if not config.no_version_checking:
+            try:
+                bittensor.utils.version_checking()
+            except:
+                raise RuntimeError("To avoid internet based version checking pass --no_version_checking while running the CLI.")
         self.config = config
 
     def run ( self ):
