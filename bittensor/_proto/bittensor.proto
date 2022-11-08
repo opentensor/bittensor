@@ -93,7 +93,8 @@ message TensorMessage {
 	// i.e. where to send them
  	repeated Synapse synapses = 9;
 
-	// Signature.
+	// Message Signature generated as: wallet.hotkey.keypair.sign( wallet.hotkey.keypair.ss58_address + str(TensorMessage.tensors[0]) + str(TensorMessage.tensors[1]) + ...  )
+	// Receivers check vis a via: keypair( TensorMessage.hotkey ).verify( TensorMessage.hotkey + str(TensorMessage.tensors[0]) + str(TensorMessage.tensors[1]) + ... , TensorMessage.signature )
  	string signature = 10;
 }
 
