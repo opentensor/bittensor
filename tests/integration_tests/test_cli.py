@@ -120,6 +120,7 @@ class TestCli(unittest.TestCase):
         config.seed = None
         config.uids = [1,2,3]
         config.weights = [0.25, 0.25, 0.25, 0.25]
+        config.no_version_checking = False
 
         cli = bittensor.cli
         
@@ -145,6 +146,7 @@ class TestCli(unittest.TestCase):
             config.subtensor.network = "mock"
             config.no_prompt = True
             config.all = False
+            config.no_version_checking = False
 
             cli = bittensor.cli(config)
             with patch('os.walk', return_value=iter(
@@ -173,6 +175,7 @@ class TestCli(unittest.TestCase):
             config.subtensor.network = "mock"
             config.no_prompt = True
             config.all = False
+            config.no_version_checking = False
 
             cli = bittensor.cli(config)
             cli.run()
@@ -187,6 +190,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -201,6 +205,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         with patch('bittensor.Metagraph.retrieve_cached_neurons') as mock_retrieve_cached_neurons:
             # Mock the cache retrieval to fail
@@ -220,6 +225,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -234,6 +240,7 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True
         config.wallet.hotkeys = ['some_hotkey']
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -247,6 +254,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -261,6 +269,7 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True
         config.wallet.sort_by = "rank"
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -275,6 +284,7 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True
         config.wallet.sort_by = "totallynotmatchingcolumnname"
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -288,6 +298,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -302,6 +313,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -316,6 +328,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -330,6 +343,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -344,6 +358,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -358,6 +373,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -370,6 +386,8 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.no_version_checking = False
+
         config.all = True
         cli = bittensor.cli(config)
         cli.run()
@@ -389,6 +407,7 @@ class TestCli(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_coldkey = "" # Not None
 
@@ -467,6 +486,7 @@ class TestCli(unittest.TestCase):
         # Notice wallet.hotkeys not specified
         config.wallet.all_hotkeys = True
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_coldkey = "" # Not None
 
@@ -520,6 +540,7 @@ class TestCli(unittest.TestCase):
         config.wallet.hotkeys = ["hk1"] # Exclude hk1
         config.wallet.all_hotkeys = True
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_coldkey = "" # Not None
 
@@ -576,6 +597,7 @@ class TestCli(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_coldkey = "" # Not None
 
@@ -654,6 +676,7 @@ class TestCli(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_coldkey = "" # Not None
 
@@ -738,6 +761,7 @@ class TestCli(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_coldkey = "" # Not None
 
@@ -806,6 +830,7 @@ class TestCli(unittest.TestCase):
         # Notice wallet.hotkeys is not specified
         config.wallet.all_hotkeys = True
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_hotkeys = ['hk0', 'hk1', 'hk2']
 
@@ -856,6 +881,8 @@ class TestCli(unittest.TestCase):
         config.wallet.name = "fake_wallet"
         config.wallet.hotkeys = ['hk1'] # exclude hk1
         config.wallet.all_hotkeys = True
+        config.no_version_checking = False
+
         # Notice no max_stake specified
 
         mock_hotkeys = ['hk0', 'hk1', 'hk2']
@@ -912,6 +939,7 @@ class TestCli(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
+        config.no_version_checking = False
 
         mock_balance = bittensor.Balance(15.0 * 3) # Enough to stake 15.0 on each hotkey
 
@@ -994,6 +1022,8 @@ class TestCli(unittest.TestCase):
             'hk0', 'hk1', 'hk2'
         ]   
         config.wallet.all_hotkeys = False
+        config.no_version_checking = False
+
         # Notice no max_stake specified
 
         mock_balance = bittensor.Balance(1.0) # Not enough to stake 15.0 on each hotkey
@@ -1082,6 +1112,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.register.update_interval = 50_000
         config.subtensor.network = "mock"
         config.no_prompt = True
+        config.no_version_checking = False
 
         with patch('bittensor.Subtensor.register', return_value=True):
             cli = bittensor.cli(config)
@@ -1099,7 +1130,8 @@ class TestCli(unittest.TestCase):
         config.amount = 0.5
         config.stake_all = False
         config.no_password = True
-        
+        config.no_version_checking = False
+
         config.model = "core_server"
 
         cli = bittensor.cli(config)
@@ -1119,6 +1151,7 @@ class TestCli(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_coldkey = True
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1138,6 +1171,7 @@ class TestCli(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_hotkey = True
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1157,6 +1191,7 @@ class TestCli(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_coldkey = True
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1172,6 +1207,7 @@ class TestCli(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_coldkeypub = True
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1190,6 +1226,7 @@ class TestCli(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_hotkey = True
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1201,6 +1238,7 @@ class TestCli(unittest.TestCase):
         config.subtensor.network = "mock"
         config.no_prompt = True
         config.subtensor._mock = True
+        config.no_version_checking = False
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1216,6 +1254,7 @@ class TestCli(unittest.TestCase):
         config.subtensor._mock = True
         config.n_words = 12
         config.use_password = False
+        config.no_version_checking = False
 
 
         config.overwrite_hotkey = True
@@ -1240,6 +1279,7 @@ class TestCli(unittest.TestCase):
         config.use_password = False
         config.overwrite_coldkey = True
         config.overwrite_hotkey = True
+        config.no_version_checking = False
 
         # First create a new coldkey
         config.command = "new_coldkey"
@@ -1299,6 +1339,7 @@ class TestCli(unittest.TestCase):
             config.no_prompt = True
             config.subtensor._mock = True
             config.command = "list"
+            config.no_version_checking = False
 
             cli = bittensor.cli(config)
             with patch('os.walk', side_effect=[iter(
@@ -1322,7 +1363,8 @@ class TestCli(unittest.TestCase):
             config.no_prompt = True
             config.subtensor._mock = True
             config.command = "list"
-        
+            config.no_version_checking = False
+
             cli = bittensor.cli(config)
             # This shouldn't raise an error anymore
             cli.run()
