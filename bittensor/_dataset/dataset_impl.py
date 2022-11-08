@@ -21,12 +21,15 @@ import os
 import threading
 import asyncio
 import nest_asyncio
+from loguru import logger
 ##########################
 ##### Get args ###########
 ##########################
 from typing import *
 
 import streamlit as st
+
+logger = logger.opt(colors=True)
 
 class ThreadManager:
     """ Base threadpool executor with a priority queue 
@@ -135,7 +138,7 @@ class Dataset:
         self.max_datasets = max_datasets
         if len(self.dataset_name) == 0 or self.dataset_name == 'default':
             self.dataset_name = self.available_datasets
-        self.dataset_name = self.dataset_name[:self.max_datasets]
+        self.datasets = self.dataset_name = self.dataset_name[:self.max_datasets]
         self.no_tokenizer = no_tokenizer
         if not  self.no_tokenizer:
             self.set_tokenizer(tokenizer=tokenizer)
@@ -151,8 +154,7 @@ class Dataset:
         # we need to build the dataset or load existing text file hashes
         # notice the heirarchy of ipfs hashes is DATASET -> FOLDER -> TEXT HASH, 
         # we want to flatten each dataset FOLDER -> TEXT HASH into FOLDER*TEXT
-        
-        import streamlit as st
+    
 
         self.build_datasets(datasets=self.dataset_name, load=self.load_dataset, save=self.save_dataset)
 
@@ -199,23 +201,20 @@ class Dataset:
         # run through each chunk, then tokenize it,
 
         batch_count = 0
-        self
         
 
         for text_hash in self.all_text_file_metas:
 
             if batch_count > self.num_batches:
                 break
-
             raw_text = self.async_run(self.get_text(text_hash=text_hash), loop=loop)
-
 
             if not queue.full():
             # skip queue if it is full
 
                 queue.put(raw_text)
 
-    def build_datasets(self, datasets:List[str], save:bool=False, load:bool=True, loop:'asyncio.loop'=None):
+    def build_datasets(self, datasets:List[str]=None, save:bool=None, load:bool=None, loop:'asyncio.loop'=None):
         """ Building all of the datasets specified by getting each of their 
             text hashes from IPFS or local
         Args:
@@ -230,6 +229,13 @@ class Dataset:
 
         Returns: None
         """
+        if datasets == None:
+            datasets = self.datasets
+        if save == None:
+            save = self.save_dataset
+        if load == None:
+            load = self.load_dataset
+
         self.dataset_size = 0
 
         all_text_file_metas = []
@@ -258,6 +264,7 @@ class Dataset:
             self.dataset_size += self.dataset_size_map[k]
         self.all_text_file_metas = all_text_file_metas
 
+    construct_text_corpus = build_datasets
     async def async_save_json(self, 
                               path:str,
                               obj:Union[dict, list],
@@ -378,8 +385,9 @@ class Dataset:
         hash2file_meta = {}
         if load:
             loaded_file_metas =  self.load_json(path=f'{dataset}/file_metas', default=[], loop=loop)
-            for file_metas in loaded_file_metas:
-                hash2file_meta[file_meta['Hash']] = file_metas
+            for file_meta in loaded_file_metas:
+                hash2file_meta[file_meta['Hash']] = file_meta
+
 
         if len(hash2file_meta)<num_samples:
             for f in folder_hashes:
@@ -411,6 +419,45 @@ class Dataset:
                 return file_meta
 
         raise Exception('This is forbidden terirtory')
+
+
+
+    def set_data_size(self, batch_size, block_size):
+        r""" Update the size of data (batch_size, block_size) that we need.
+
+        Args: 
+            batch_size(int, required):
+                The batch_size of data that should be produced by dataloader.
+
+            block_size(int, required):
+                The block_size of data that should be produced by dataloader. 
+        """
+        def check_valid(size):
+            r""" Check if the size is a valid positive intiget, if not, return False.
+            """
+            if size <= 0 or (not isinstance(size, int)):
+                return False
+            else:
+                return True
+
+        old_batch_size = self.batch_size
+        old_block_size = self.block_size
+        
+        if check_valid(batch_size):
+            self.batch_size = batch_size
+        
+        if check_valid(block_size):
+            self.block_size = block_size
+
+        # empty the queue
+        while not self.data_queue.empty():
+            self.data_queue.get()
+
+        # empty the dataset_iterator with the old sizing
+        self.__infinite_dataset_iterator = None
+
+        logger.success(f"Updated data size: batch_size: {old_batch_size} --> {self.batch_size}, block_size: {old_block_size} --> {self.block_size}")
+
 
 
     cached_raw_text_list = []
@@ -846,9 +893,6 @@ class Dataset:
             return next(self.__infinite_dataset_iterator)
 
 
-    def __del__(self):
-        del self.thread_manager
-        
 
     def __len__(self):
         """Returns number of samples (blocks) of dataset
@@ -858,3 +902,14 @@ class Dataset:
         """
 
         return self.dataset_size // self.block_size
+
+    def __del__(self):
+        self.close()
+
+    def close(self):
+        if hasattr(self, 'data_queue'):
+            del self.data_queue
+        if hasattr(self, 'thread_manager'):
+            del self.thread_manager
+        
+        
