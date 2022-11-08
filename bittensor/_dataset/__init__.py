@@ -40,18 +40,18 @@ class dataset:
     def __new__(
             cls,
             config: 'bittensor.config' = None,
-            block_size: int = 10000,
+            block_size: int = 2000,
             batch_size: int = None,
             num_workers: int = None,
             dataset_name: list = [],
-            save_dataset: bool=False,
-            sequence_length: int=256,
-            load_dataset: bool=False,
-            no_tokenizer: bool=None,
+            save_dataset: bool = False,
+            sequence_length: int = 256,
+            load_dataset: bool = False,
+            no_tokenizer: bool = None,
             num_batches: int = None,
             run_generator: bool = False,
             cache_size: int = 10, 
-            cache_calls_per_block: int=100,
+            cache_calls_per_block: int = 100,
             _mock:bool=None
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
