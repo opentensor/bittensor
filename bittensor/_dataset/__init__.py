@@ -44,10 +44,13 @@ class dataset:
             batch_size: int = None,
             num_workers: int = None,
             dataset_name: list = [],
-            save_dataset: bool=None,
+            save_dataset: bool=True,
+            sequence_length: int=None,
+            load_dataset: bool=True,
             no_tokenizer: bool=None,
             num_batches: int = None,
             run_generator: bool = False,
+            
             _mock:bool=None
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
@@ -77,9 +80,12 @@ class dataset:
         config = copy.deepcopy( config )
         config.dataset.block_size = block_size if block_size != None else config.dataset.block_size
         config.dataset.batch_size = batch_size if batch_size != None else config.dataset.batch_size
+        config.dataset.sequence_length = sequence_length if sequence_length != None else config.dataset.sequence_length
         config.dataset.num_workers = num_workers if num_workers != None else config.dataset.num_workers
         config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
+        config.dataset.load_dataset = load_dataset if load_dataset != None else config.dataset.load_dataset
+        config.dataset.run_generator = run_generator if run_generator != None else config.dataset.run_generator
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
         config.dataset.num_batches = num_batches if num_batches != None else config.dataset.num_batches
         config.dataset._mock = _mock if _mock != None else config.dataset._mock
@@ -106,10 +112,12 @@ class dataset:
                 dataset_name = config.dataset.dataset_name,
                 data_dir = config.dataset.data_dir,
                 save_dataset = config.dataset.save_dataset,
+                load_dataset = config.dataset.load_dataset,
                 max_datasets = config.dataset.max_datasets,
+                sequence_length = config.dataset.sequence_length,
                 no_tokenizer = config.dataset.no_tokenizer,
                 num_batches = config.dataset.num_batches,
-                run_generator = run_generator,
+                run_generator = config.dataset.run_generator,
                 max_directories = config.dataset.max_directories
             )
 
