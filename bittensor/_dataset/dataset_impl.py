@@ -53,14 +53,12 @@ class ThreadManager:
     """ Base threadpool executor with a priority queue 
     """
 
-    def __init__(self,  max_threads=None):
+    def __init__(self,  max_threads:int=None):
         """Initializes a new ThreadPoolExecutor instance.
         Args:
-            max_threads: The maximum number of threads that can be used to
+            max_threads: 
+                The maximum number of threads that can be used to
                 execute the given calls.
-            thread_name_prefix: An optional name prefix to give our threads.
-            initializer: An callable used to initialize worker threads.
-            initargs: A tuple of arguments to pass to the initializer.
         """
         self.max_threads = max_threads
         self._idle_semaphore = threading.Semaphore(0)
@@ -68,7 +66,18 @@ class ThreadManager:
         self._shutdown_lock = threading.Lock()
         self._shutdown = False
 
-    def submit(self, fn, args=[],kwargs={}):
+    def submit(self, fn, args:list=[],kwargs:dict={}):
+        '''
+        Submit a function with args and kwargs on a seperate thread.
+
+        Args
+            fn (Callable):
+                Function to place on the thread.
+            args (list):
+                Arguments to a function.
+            kwargs (dict):
+                Key word arguments to a function.
+        '''
         with self._shutdown_lock:
             if self._shutdown:
                 raise RuntimeError('cannot schedule new futures after shutdown')
@@ -82,12 +91,14 @@ class ThreadManager:
 
     @property
     def threads(self):
+        '''List threads.'''
         return self._threads
 
     def __del__(self):
         self.shutdown()
 
     def shutdown(self, wait=True):
+        '''Shutdown threads'''
         if wait:
             for t in self._threads:
                 t.join()
@@ -523,6 +534,14 @@ class GenesisTextDataset:
         from the blocks, a FIFO priority is used to churn old blocks for new blocks, to avoid
         data staleness.
 
+        Args:
+            idx (int):
+                Sample index of dataset
+            
+        Returns:
+            output_dict (Union[str, torch.tensor])
+
+
         '''
         # Random sampel idx if None.
         if idx == None:
@@ -562,7 +581,14 @@ class GenesisTextDataset:
 
         return output_dict
     
-    async def get_dataset_hashes(self):
+    async def get_dataset_hashes(self)-> List[dict]:
+        '''
+        Get the hashes representing the root of each dataset
+        
+        Returns
+            response (dict):
+            
+        '''
         mountain_meta = {'Name': 'mountain', 'Folder': 'meta_data', 'Hash': self.mountain_hash}
         response = await self.api_post( url=f'{self.ipfs_url}/object/get',  params={'arg': mountain_meta['Hash']}, return_json= True)
         response = response.get('Links', None)
@@ -944,6 +970,9 @@ class GenesisTextDataset:
         self.close()
 
     def close(self):
+        '''
+        Close queue and thread manager.
+        '''
         if hasattr(self, 'data_queue'):
             del self.data_queue
         if hasattr(self, 'thread_manager'):
