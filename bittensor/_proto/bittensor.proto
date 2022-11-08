@@ -94,7 +94,7 @@ message TensorMessage {
  	repeated Synapse synapses = 9;
 
 	// Signature.
- 	bytes signature = 10;
+ 	string signature = 10;
 }
 
 

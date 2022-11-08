@@ -127,8 +127,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def __repr__(self) -> str:
         return self.__str__()
 
-    def sign_response( self, response_tensors ) -> bytes:
-        """ Signs the response tensors with the axon key and returns the signature as bytes.       
+    def sign_response( self, response_tensors ) -> str:
+        """ Signs the response tensors with the axon key and returns the signature as a string.       
             Args:
                 response_tensors (:obj:`List[bittensor.proto.Tensor`, `required`): 
                     response_tensors to be signed            
@@ -140,7 +140,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         if response_tensors != None:
             for resp_tensor in response_tensors:
                 signature_messages += resp_tensor.serializeToString()
-        return self.wallet.hotkey.sign( signature_messages ).hex()
+        return self.wallet.hotkey.sign( signature_messages )
 
     def Forward(self, request: bittensor.proto.TensorMessage, context: grpc.ServicerContext) -> bittensor.proto.TensorMessage:
         r""" The function called by remote GRPC Forward requests from other neurons.
