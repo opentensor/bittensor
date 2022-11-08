@@ -45,7 +45,6 @@ from loguru import logger
 ##########################
 from typing import *
 
-import streamlit as st
 
 logger = logger.opt(colors=True)
 
@@ -65,6 +64,7 @@ class ThreadManager:
         self._threads = []
         self._shutdown_lock = threading.Lock()
         self._shutdown = False
+
 
     def submit(self, fn, args:list=[],kwargs:dict={}):
         '''
@@ -131,7 +131,9 @@ class GenesisTextDataset:
             buffer_size:int=100,
             num_batches: int = 100,
             max_datasets: int = 2,
-            max_directories: int=10):
+            max_directories: int=10,
+            cache_size: int = 10, 
+            cache_calls_per_block: int=100):
 
         """
         Args:
@@ -160,10 +162,14 @@ class GenesisTextDataset:
                 Run the background loop for fecthing data blocks.
             buffer_size (int):
                 Size of the queue for asynchronously putting data blocks.
-            num_batches: (int):
+            num_batches (int):
                 Number of generated batches in epoch.
-            max_datasets: (int):
+            max_datasets (int):
                 Max number of datasets.
+            cache_size (int):
+                size of blocks to cache while training
+            cache_calls_per_block (int):
+                calls per block when caching
 
         """
         self.__infinite_dataset_iterator = None
@@ -188,7 +194,10 @@ class GenesisTextDataset:
         self.buffer_size = buffer_size
         self.num_batches = num_batches
         self.max_directories = max_directories
-
+        self.cache_size = cache_size
+        self.cache_calls_per_block = cache_calls_per_block
+        self.set_cache(cache_size=self.cache_size, 
+                       cache_calls_per_block=self.cache_calls_per_block)
         # we need to build the dataset or load existing text file hashes
         # notice the heirarchy of ipfs hashes is DATASET -> FOLDER -> TEXT HASH, 
         # we want to flatten each dataset FOLDER -> TEXT HASH into FOLDER*TEXT
@@ -484,7 +493,7 @@ class GenesisTextDataset:
                 file_meta['start_bytes'] = idx - current_idx
                 return file_meta
 
-        raise Exception('This is forbidden terirtory')
+        return file_meta
 
     def set_data_size(self, batch_size, block_size):
         r""" Update the size of data (batch_size, block_size) that we need.
@@ -522,10 +531,16 @@ class GenesisTextDataset:
 
         logger.success(f"Updated data size: batch_size: {old_batch_size} --> {self.batch_size}, block_size: {old_block_size} --> {self.block_size}")
 
-    cached_text_list = [] # Cache list for raw text.
-    cache_size = 5  # The maximum size of the cache (FIFO).
-    calls_for_current_block = 0 # The number of current calls on the set of blocks
-    calls_per_block = 1000 # The maximum calls ber block before replacing a block with a new block.
+
+
+    def set_cache(self, cache_size=10, cache_calls_per_block=100):
+        self.cached_text_list = [] # Cache list for raw text.
+        self.cache_size = cache_size  # The maximum size of the cache (FIFO).
+        self.calls_for_current_block = 0 # The number of current calls on the set of blocks
+        self.cache_calls_per_block = cache_calls_per_block # The maximum calls ber block before replacing a block with a new block.
+
+
+
     def __getitem__(self, idx: int= None) -> Union[str, torch.tensor]:
         '''
         Sample from queue or lazy loading. 
@@ -549,7 +564,7 @@ class GenesisTextDataset:
         
         # Increment block.
         self.calls_for_current_block += 1
-        if self.calls_for_current_block>self.calls_per_block:
+        if self.calls_for_current_block>self.cache_calls_per_block:
             # Remove earliest block with new one.
             if len(self.cached_text_list) >= 1:
                 self.cached_text_list = self.cached_text_list[1:]
@@ -567,20 +582,23 @@ class GenesisTextDataset:
                 self.cached_text_list[-1] =  self.tokenizer(self.cached_text_list[-1], padding=True)
 
         if self.no_tokenizer:
-            raw_text = random.choice(self.cached_text_list)
+            raw_text = random.choice(self.cached_text_list).split()
+            start_idx = idx * self.sequence_length % (len(list(raw_text)) - self.sequence_length)
+            end_idx = start_idx + self.sequence_length
+            
+            output_dict = raw_text[start_idx:end_idx]
         if not self.no_tokenizer:
             tokenized_dict = random.choice(self.cached_text_list)
 
             start_idx = idx * self.sequence_length % (len(list(tokenized_dict.values())[0]) - self.sequence_length)
             end_idx = start_idx + self.sequence_length
             
-            
             output_dict = {}
             for k,v in tokenized_dict.items():  
-                v = torch.tensor(v)[start_idx:end_idx]              
+                v = torch.tensor(v)[start_idx:end_idx][:self.sequence_length]           
                 # Append the remainder with 0 (TODO use stop token)
                 seqeunce_length_remainder =  self.sequence_length - v.shape[0]
-                if seqeunce_length_remainder:
+                if seqeunce_length_remainder>0:
                     v = torch.nn.functional.pad(input=v, pad=(0,seqeunce_length_remainder), mode='constant', value=0 ) 
                 output_dict[k] = v
 

@@ -50,7 +50,8 @@ class dataset:
             no_tokenizer: bool=None,
             num_batches: int = None,
             run_generator: bool = False,
-            
+            cache_size: int = 10, 
+            cache_calls_per_block: int=100,
             _mock:bool=None
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
@@ -88,6 +89,10 @@ class dataset:
         config.dataset.run_generator = run_generator if run_generator != None else config.dataset.run_generator
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
         config.dataset.num_batches = num_batches if num_batches != None else config.dataset.num_batches
+        config.dataset.cache_size = cache_size if cache_size != None else config.dataset.cache_size
+        config.dataset.cache_calls_per_block = cache_calls_per_block if cache_calls_per_block != None else config.dataset.cache_calls_per_block
+
+
         config.dataset._mock = _mock if _mock != None else config.dataset._mock
         dataset.check_config( config )
         if config.dataset._mock:
