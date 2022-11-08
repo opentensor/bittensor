@@ -565,12 +565,12 @@ class GenesisTextDataset:
 
         if self.no_tokenizer:
             raw_text = random.choice(self.cached_text_list).split()
-            start_idx = idx * self.sequence_length % (len(list(raw_text)) - self.sequence_length)
+            if (len(list(raw_text)) == self.sequence_length):
+                start_idx = 0
+            else:
+                start_idx = idx * self.sequence_length % (len(list(raw_text)) - self.sequence_length)
             end_idx = start_idx + self.sequence_length
-
-            
             output_dict = raw_text[start_idx:end_idx]
-
             remainder = self.sequence_length - len(output_dict)
             if remainder > 0:
                 output_dict = output_dict + ['FILLER_TOKEN']*remainder
