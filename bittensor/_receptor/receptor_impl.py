@@ -131,6 +131,21 @@ class Receptor(nn.Module):
         spliter = 'bitxx'
         signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), "0x" + self.wallet.hotkey.sign(message).hex(), str(self.receptor_uid) ])
         return signature
+
+    def check_forward_response_signature ( self, tensor_message ) -> bool:
+        """ Checks the signature from the response tensor to ensure that the endpoint produced the passed tensors.   
+            Args:
+                response_proto (:obj:`List[bittensor.proto.TensorMessage`, `required`): 
+                    Tensor messsage to be checked.            
+            Returns:
+                correct (bool, required): 
+                    Check result.
+        """
+        remote_keypair = bittensor.Keypair( ss58_address = tensor_message.hotkey )
+        signature_message_built = tensor_message.hotkey
+        for resp_tensor in tensor_message.tensors:
+            signature_message_built += resp_tensor.serializeToString()
+        return remote_keypair.verify( signature_message_built, tensor_message.signature_buffer)
     
     def nounce ( self ):
         r"""creates a string representation of the time
@@ -458,6 +473,19 @@ class Receptor(nn.Module):
             return synapse_responses, synapse_codes, synapse_call_times
 
 
+        # ======================================
+        # ==== Check response length ====
+        # ======================================
+        if not self.check_forward_response_signature(grpc_response):
+            # The message was not correctly signed by the endpoint.
+            code = bittensor.proto.ReturnCode.InvalidResponse
+            call_time = clock.time() - start_time
+            message = "Response did not pass signature verification"
+            synapse_codes = [code for _ in synapses ]
+            synapse_call_times = [call_time for _ in synapses ]
+            synapse_messages = [ message for _ in synapses ]
+            finalize_stats_and_logs()
+            return synapse_responses, synapse_codes, synapse_call_times
 
         # ======================================
         # ==== Check response length ====

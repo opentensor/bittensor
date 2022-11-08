@@ -92,6 +92,9 @@ message TensorMessage {
 	// Synapses hold function information this tells the axon how to use the tensor inputs.
 	// i.e. where to send them
  	repeated Synapse synapses = 9;
+
+	// Signature.
+ 	bytes signature = 10;
 }
 
 
