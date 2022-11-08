@@ -51,3 +51,4 @@ ansible_vault>=2.1
 substrate-interface==1.2.4
 markupsafe==2.0.1
 nest-asyncio==1.5.5
+aiohttp==3.8.3

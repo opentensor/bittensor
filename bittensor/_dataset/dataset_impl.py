@@ -1,4 +1,5 @@
-""" Implementation of Axon, services Forward and Backward requests from other neurons.
+"""
+ Implementation of Dataset using Asyncio and IPFS
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -17,34 +18,20 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-
-
+import os
+import json
 import torch
-import concurrent.futures
-import time
-import psutil
-import sys
 import random
-import argparse
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 import bittensor
-import glob
 from queue import Queue
 import numpy as np
 import asyncio
 import aiohttp
-import json
-import os
 import threading
-import asyncio
-import nest_asyncio
 from loguru import logger
-##########################
-##### Get args ###########
-##########################
 from typing import *
-
 
 logger = logger.opt(colors=True)
 
@@ -121,10 +108,10 @@ class GenesisTextDataset:
             sequence_length: int=256,
             block_size: int = 10000,
             num_workers: int = 1,
-            dataset_name: List[str]=['ArXiv'], 
+            datasets: List[str]=['ArXiv'], 
             loop:'asyncio.loop'=None, 
             no_tokenizer: bool = False,
-            data_dir: str =  os.path.expanduser('~/./bittensor/dataset'),
+            data_dir: str =  os.path.expanduser('~/./bittensor/data'),
             save_dataset : bool = False,
             load_dataset : bool = True,
             run_generator:bool=True,
@@ -146,7 +133,7 @@ class GenesisTextDataset:
                 multiple samples.
             num_workers (int):
                 Number of workers for pytorch Dataset.
-            dataset_name (List[str]):
+            datasets (List[str]):
                 List of dataset names to include from the pile.
             loop ('asyncio.loop'):
                 Asyncio loop for class, defaults to default event loop.
@@ -178,13 +165,14 @@ class GenesisTextDataset:
         self.block_size = block_size
         self.num_workers = num_workers
         self.sequence_length = sequence_length
-        self.dataset_name = dataset_name
+        self.datasets = datasets
         self.set_event_loop(loop=loop)
         # if datasets is None then refer to all of the availabe datasets 
         self.max_datasets = max_datasets
-        if len(self.dataset_name) == 0 or self.dataset_name == 'default':
-            self.dataset_name = self.available_datasets
-        self.datasets = self.dataset_name = self.dataset_name[:self.max_datasets]
+        assert len(self.datasets) > 0
+        if self.datasets == 'default':
+            self.datasets = self.available_datasets
+        self.datasets = self.datasets[:self.max_datasets]
         self.no_tokenizer = no_tokenizer
         self.tokenizer = None if self.no_tokenizer else bittensor.tokenizer()
         self.data_dir =  data_dir
@@ -203,7 +191,7 @@ class GenesisTextDataset:
         # we want to flatten each dataset FOLDER -> TEXT HASH into FOLDER*TEXT
     
 
-        self.build_datasets(datasets=self.dataset_name, load=self.load_dataset, save=self.save_dataset)
+        self.build_datasets(datasets=self.datasets, load=self.load_dataset, save=self.save_dataset)
 
         self.data_queue = Queue(buffer_size)
         # this runs the a thread that has its own asyncio loop. 
@@ -235,13 +223,6 @@ class GenesisTextDataset:
         # the loop needs to be set within the new thread
         if loop != None:
             asyncio.set_event_loop(loop)
-
-        # chunk the text hashes into batch_sie chunks
-        text_hash_batch_list = self.chunk(self.all_text_file_metas,
-                                chunk_size=batch_size,
-                                append_remainder=False,
-                                distribute_remainder=False,
-                                num_chunks= None)
 
         # run through each chunk, then tokenize it,
 
@@ -284,20 +265,19 @@ class GenesisTextDataset:
         all_text_file_metas = []
         dataset_hash_map = {}
 
-        if len(dataset_hash_map) == 0:
-            tasks = []
+        tasks = []
 
-            # Gather dataset hashes async as their state is independent.
-            for dataset in datasets:
-                tasks += [self.build_dataset(dataset=dataset, save=save, load=load, loop=loop)]
+        # Gather dataset hashes async as their state is independent.
+        for dataset in datasets:
+            tasks += [self.build_single_dataset(dataset=dataset, save=save, load=load, loop=loop)]
 
-            dataset_hashes = self.async_run(asyncio.gather(*tasks), loop=loop)
+        dataset_hashes = self.async_run(asyncio.gather(*tasks), loop=loop)
 
-            # Create a hash map of dataset -> text hashes.
-            for k,v in zip(datasets, dataset_hashes):
-                if len(v) > 0:
-                    dataset_hash_map[k] = v
-                    
+        # Create a hash map of dataset -> text hashes.
+        for k,v in zip(datasets, dataset_hashes):
+            if len(v) > 0:
+                dataset_hash_map[k] = v
+                
 
         self.dataset_size_map = {}
         self.dataset_hash_map = dataset_hash_map
@@ -344,13 +324,13 @@ class GenesisTextDataset:
         if not os.path.isdir(dir_path):
             os.makedirs(dir_path)
 
-        assert os.access( dir_path , os.R_OK )
+        assert os.access( dir_path , os.W_OK ), f'dir_path:{dir_path} is not writable'
         with open(path, 'w') as outfile:
             json.dump(obj, outfile)
 
         return path
 
-    def save_json(self,loop:'asyncio.loop'=None, *args,**kwargs) -> str:
+    def save_json(self,loop:'asyncio.loop'=None, *args,**kwargs) -> dict:
         '''
         Sync verson of async_save_json
         Args
@@ -386,7 +366,7 @@ class GenesisTextDataset:
 
         # Ensure extension.
         dir_path = os.path.dirname(path)
-        if path[-len('.json'):] != '.json':
+        if os.path.splitext(path)[-1] != '.json':
             path += '.json'
 
         # Ensure dictionary.
@@ -398,6 +378,8 @@ class GenesisTextDataset:
             with open(path, 'r') as f:
                 obj = json.load(f)
         except FileNotFoundError:
+            obj = default
+        except json.JSONDecodeError:
             obj = default
 
         if isinstance(obj, str):
@@ -422,7 +404,7 @@ class GenesisTextDataset:
 
         return output
 
-    async def build_dataset(self, dataset:str = None, num_folders = 10, num_samples:int = 40, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None):
+    async def build_single_dataset(self, dataset:str = None, num_folders = 10, num_samples:int = 40, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None):
         """ Building a single dataset by fetching its text file metas ({Hash:str, Name:str, Size: int})
         Args:
             dataset (List[str]):
