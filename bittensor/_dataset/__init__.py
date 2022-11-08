@@ -45,7 +45,7 @@ class dataset:
             num_workers: int = None,
             dataset_name: list = [],
             save_dataset: bool=True,
-            sequence_length: int=None,
+            sequence_length: int=256,
             load_dataset: bool=True,
             no_tokenizer: bool=None,
             num_batches: int = None,

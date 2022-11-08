@@ -404,8 +404,10 @@ class Dataset:
     def idx2filemeta(self, idx:int=0): 
         current_idx = 0 
         for file_meta in self.all_text_file_metas:
-            current_idx += file_meta['Size'] // self.block_size
+            step = file_meta['Size'] // self.block_size
+            current_idx += step
             if current_idx >= idx:
+                file_meta['start_bytes'] = idx - current_idx
                 return file_meta
 
         raise Exception('This is forbidden terirtory')
@@ -419,8 +421,6 @@ class Dataset:
         '''
         Get the item of the queue (only use when sample_generator is running)
         '''
-
-        st.write('BROOOO')
 
         if idx == None:
             idx = random.randint(0, self.__len__())
