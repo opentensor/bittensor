@@ -24,7 +24,7 @@ import copy
 import inspect
 import time
 from concurrent import futures
-from typing import List, Callable, Optional
+from typing import Dict, List, Callable, Optional
 from bittensor._threadpool import prioritythreadpool
 
 import torch
@@ -353,13 +353,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self._signature_separator = "bitxx"
         self._expected_auth_metadata = ("rpc-auth-header", key)
         self.nounce_dic = {}
-        self.message = "Invalid key"
         self.blacklist = blacklist
-
-        def deny(_, context):
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, self.message)
-
-        self._deny = grpc.unary_unary_rpc_method_handler(deny)
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
@@ -379,17 +373,20 @@ class AuthInterceptor(grpc.ServerInterceptor):
             return continuation(handler_call_details)
 
         except Exception as e:
-            self.message = str(e)
-            return self._deny
+            return grpc.unary_unary_rpc_method_handler(
+                lambda _, context: context.abort(
+                    grpc.StatusCode.UNAUTHENTICATED, str(e)
+                )
+            )
 
-    def get_signature(self, meta):
+    def get_signature(self, metadata: Dict[str, str]) -> str:
         r"""get_signature from the metadata. Raises exception when the signature is missing"""
-        signature = meta.get("bittensor-signature")
+        signature = metadata.get("bittensor-signature")
         if signature is None:
             raise Exception("Request signature missing")
         return signature
 
-    def verification(self, metadata):
+    def verification(self, metadata: Dict[str, str]) -> bool:
         r"""verification of signature in metadata. Uses the pubkey and nounce"""
         variable_length_messages = self.get_signature(metadata).split(
             self._signature_separator
@@ -424,19 +421,19 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         return verification
 
-    def signature_checking(self, metadata):
+    def signature_checking(self, metadata: Dict[str, str]):
         r"""Calls the verification of the signature and raises an error if failed"""
         if not self.verification(metadata):
             raise Exception("Signature mismatch")
 
-    def version_checking(self, metadata):
+    def version_checking(self, metadata: Dict[str, str]):
         r"""Checks the header and version in the metadata"""
         (key, expected_value) = self._expected_auth_metadata
         provided_value = metadata.get(key)
         if provided_value is None or provided_value != expected_value:
             raise Exception("Unexpected caller metadata")
 
-    def black_list_checking(self, metadata, method):
+    def black_list_checking(self, metadata: Dict[str, str], method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
         if self.blacklist == None:
             return
@@ -455,4 +452,3 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
         if self.blacklist(pubkey, request_type):
             raise Exception("Request type is blacklisted")
-
