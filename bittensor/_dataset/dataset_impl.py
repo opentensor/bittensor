@@ -335,7 +335,7 @@ class GenesisTextDataset:
         if not os.path.isdir(dir_path):
             os.makedirs(dir_path)
 
-        assert os.access( path , os.R_OK )
+        assert os.access( dir_path , os.R_OK )
         with open(path, 'w') as outfile:
             json.dump(obj, outfile)
 
@@ -522,8 +522,8 @@ class GenesisTextDataset:
 
         logger.success(f"Updated data size: batch_size: {old_batch_size} --> {self.batch_size}, block_size: {old_block_size} --> {self.block_size}")
 
-    cached_raw_text_list = [] # Cache list for raw text.
-    cache_size = 20  # The maximum size of the cache (FIFO).
+    cached_text_list = [] # Cache list for raw text.
+    cache_size = 5  # The maximum size of the cache (FIFO).
     calls_for_current_block = 0 # The number of current calls on the set of blocks
     calls_per_block = 1000 # The maximum calls ber block before replacing a block with a new block.
     def __getitem__(self, idx: int= None) -> Union[str, torch.tensor]:
@@ -551,28 +551,33 @@ class GenesisTextDataset:
         self.calls_for_current_block += 1
         if self.calls_for_current_block>self.calls_per_block:
             # Remove earliest block with new one.
-            if len(self.cached_raw_text_list) >= 1:
-                self.cached_raw_text_list = self.cached_raw_text_list[1:]
+            if len(self.cached_text_list) >= 1:
+                self.cached_text_list = self.cached_text_list[1:]
             # Reset Count.
             self.calls_for_current_block = 0
 
-        if len(self.cached_raw_text_list) < self.cache_size:
+        if len(self.cached_text_list) < self.cache_size:
             if self.data_queue.empty():
                 file_meta = self.idx2filemeta(idx=idx)
                 raw_text =  self.async_run(self.get_text(file_meta=file_meta))
             else:
                 raw_text = self.data_queue.get()
-            self.cached_raw_text_list.append(raw_text)
+            self.cached_text_list.append(raw_text)
+            if not self.no_tokenizer:
+                self.cached_text_list[-1] =  self.tokenizer(self.cached_text_list[-1], padding=True)
 
-        raw_text = random.choice(self.cached_raw_text_list)
-        if  self.no_tokenizer:
-            output_dict = raw_text
-        else:
-            tokenized_dict = self.tokenizer(raw_text, padding=True)
+        if self.no_tokenizer:
+            raw_text = random.choice(self.cached_text_list)
+        if not self.no_tokenizer:
+            tokenized_dict = random.choice(self.cached_text_list)
+
+            start_idx = idx * self.sequence_length % (len(list(tokenized_dict.values())[0]) - self.sequence_length)
+            end_idx = start_idx + self.sequence_length
+            
+            
             output_dict = {}
-            for k,v in tokenized_dict.items():
-                v = torch.tensor(v[:self.sequence_length])
-                
+            for k,v in tokenized_dict.items():  
+                v = torch.tensor(v)[start_idx:end_idx]              
                 # Append the remainder with 0 (TODO use stop token)
                 seqeunce_length_remainder =  self.sequence_length - v.shape[0]
                 if seqeunce_length_remainder:

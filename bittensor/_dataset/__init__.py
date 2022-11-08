@@ -40,7 +40,7 @@ class dataset:
     def __new__(
             cls,
             config: 'bittensor.config' = None,
-            block_size: int = None,
+            block_size: int = 10000,
             batch_size: int = None,
             num_workers: int = None,
             dataset_name: list = [],
