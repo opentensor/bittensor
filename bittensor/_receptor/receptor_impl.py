@@ -148,7 +148,7 @@ class Receptor(nn.Module):
     def nonce ( self ):
         r"""creates a string representation of the time
         """
-        return int(clock.time() * 1000)
+        return clock.monotonic_ns()
         
     def state ( self ):
         try: 

@@ -429,7 +429,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         if endpoint_key in self.nonces.keys():
             previous_nonce = self.nonces[endpoint_key]
             # Nonces must be strictly monotonic over time.
-            if nonce - previous_nonce <= -10:
+            if nonce <= previous_nonce:
                 raise Exception("Nonce is too small")
             if not keypair.verify(message, signature):
                 raise Exception("Signature mismatch")

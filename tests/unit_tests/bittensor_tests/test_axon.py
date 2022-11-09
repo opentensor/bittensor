@@ -37,7 +37,7 @@ axon = bittensor.axon(wallet = wallet)
 sender_wallet = bittensor.wallet.mock()
 
 def gen_nonce():
-    return str(int(time.time() * 1000))
+    return f"{time.monotonic_ns()}"
 
 def sign_v1(wallet):
     nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
