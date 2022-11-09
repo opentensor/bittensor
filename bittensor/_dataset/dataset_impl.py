@@ -186,11 +186,11 @@ class GenesisTextDataset:
         self.cache_calls_per_block = cache_calls_per_block
         self.set_cache(cache_size=self.cache_size, 
                        cache_calls_per_block=self.cache_calls_per_block)
-        # we need to build the dataset or load existing text file hashes
+       
+       
+       # we need to build the dataset or load existing text file hashes
         # notice the heirarchy of ipfs hashes is DATASET -> FOLDER -> TEXT HASH, 
         # we want to flatten each dataset FOLDER -> TEXT HASH into FOLDER*TEXT
-    
-
         self.build_datasets(datasets=self.datasets, load=self.load_dataset, save=self.save_dataset)
 
         self.data_queue = Queue(buffer_size)
