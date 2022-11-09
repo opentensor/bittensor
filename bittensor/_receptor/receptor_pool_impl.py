@@ -22,9 +22,11 @@ from typing import Tuple, List, Union
 from threading import Lock
 
 import torch
+import asyncio
 from loguru import logger
 import concurrent
 import bittensor
+from bittensor._endpoint import endpoint
 import bittensor.utils.networking as net
 from concurrent.futures import ThreadPoolExecutor
 
@@ -36,15 +38,11 @@ class ReceptorPool ( torch.nn.Module ):
     def __init__(
         self, 
         wallet: 'bittensor.Wallet',
-        thread_pool: 'ThreadPoolExecutor',
-        max_worker_threads: int,
         max_active_receptors: int,
         compression: str,
     ):
         super().__init__()
         self.wallet = wallet
-        self.thread_pool = thread_pool
-        self.max_worker_threads = max_worker_threads
         self.max_active_receptors = max_active_receptors
         self.receptors = {}
         self.cull_mutex = Lock()
@@ -52,8 +50,6 @@ class ReceptorPool ( torch.nn.Module ):
         self.compression = compression
         self.total_requests = 0
 
-
-        
         try:
             self.external_ip = str(net.get_external_ip())
         except Exception:
@@ -116,45 +112,21 @@ class ReceptorPool ( torch.nn.Module ):
         """
         if len(endpoints) != len(inputs):
             raise ValueError('Endpoints must have the same length as passed inputs. Got {} and {}'.format(len(endpoints), len(inputs)))
-
-        # Init receptors.
-        receptors = [ self._get_or_create_receptor_for_endpoint( endpoint ) for endpoint in endpoints ]
-
-        # Init argument iterables.
-        call_args = []
-        for idx, receptor in enumerate( receptors ):
-            call_args.append({ 
-                'receptor': receptor, 
-                'inputs': inputs [ idx ] ,
-                'synapses': synapses, 
-                'timeout': timeout
-            }) 
-
-        # Init function.
-        def call_forward( args ):
-            return args['receptor'].forward( args['synapses'], args['inputs'], args['timeout'] )
-
-        # Submit calls to receptors.
-        with concurrent.futures.ThreadPoolExecutor( max_workers = len(endpoints) ) as executor:
-            responses = executor.map( call_forward, call_args, timeout=10*timeout)
         
-        # Release semephore.
-        for receptor in receptors:
-            receptor.semaphore.release()
-            
-        # Unpack responses
-        forward_outputs = []
-        forward_codes = []
-        forward_times = []
-        for response in responses:
-            forward_outputs.append( response[0] )
-            forward_codes.append( response[1] )
-            forward_times.append( response[2] )
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return loop.run_until_complete ( 
+            self.async_forward(
+                endpoints = endpoints,
+                synapses = synapses,
+                inputs = inputs,
+                timeout = timeout
+            ) 
+        )
 
-        # ---- Kill receptors ----
-        self._destroy_receptors_over_max_allowed()
-        # ---- Return ----
-        return forward_outputs, forward_codes, forward_times
 
     def backward(
                 self, 
@@ -201,37 +173,139 @@ class ReceptorPool ( torch.nn.Module ):
         for grads_per_synapse in grads:
             if len(grads_per_synapse) != len(synapses):
                 raise ValueError('Gradients must have the same length as passed synapses. Got {} and {}'.format(len(grads_per_synapse), len(synapses)))
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return loop.run_until_complete (
+            self.async_backward(
+                endpoints = endpoints,
+                synapses = synapses,
+                inputs = inputs,
+                grads = grads,
+                timeout = timeout
+            ) 
+        )
 
+    async def async_forward (
+            self, 
+            endpoints: List [ 'bittensor.Endpoint' ],
+            synapses: List[ 'bittensor.Synapse' ],
+            inputs: List [ torch.Tensor ],
+            timeout: int,
+        ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
+        r""" Forward tensor inputs to endpoints.
+
+            Args:
+                endpoints (:obj:`List[ bittensor.Endpoint ]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of remote endpoints which match length of inputs. Tensors from x are sent forward to these endpoints.
+
+                synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
+                    Responses are packed in this ordering. 
+
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
+                    TODO(const): Allow multiple tensors.
+                    List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
+                    modality.
+
+                timeout (int):
+                    Request timeout.
+
+            Returns:
+                forward_outputs (:obj:`List[ List[ torch.FloatTensor ]]` of shape :obj:`(num_endpoints * (num_synapses * (shape)))`, `required`):
+                    Output encodings of tensors produced by remote endpoints. Non-responses are zeroes of common shape.
+
+                forward_codes (:obj:`List[ List[bittensor.proto.ReturnCodes] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
+                    dendrite backward call return ops.
+
+                forward_times (:obj:`List[ List [float] ]` of shape :obj:`(num_endpoints * ( num_synapses ))`, `required`):
+                    dendrite backward call times
+        """
         # Init receptors.
         receptors = [ self._get_or_create_receptor_for_endpoint( endpoint ) for endpoint in endpoints ]
 
-        # Init argument iterables.
-        call_args = []
-        for idx, receptor in enumerate( receptors ):
-            call_args.append({ 
-                'receptor': receptor, 
-                'synapses': synapses, 
-                'inputs': inputs [ idx ] ,
-                'grads': grads [ idx ] ,
-                'timeout': timeout
-            }) 
-
-        # Init function.
-        def call_backward( args ):
-            return args['receptor'].backward ( 
-                synapses = args['synapses'], 
-                inputs = args['inputs'], 
-                grads = args['grads'], 
-                timeout = args['timeout'] 
+        # Make calls.
+        calls = []
+        for index, receptor in enumerate(receptors):
+            calls.append( 
+                receptor.async_forward(
+                    synapses = synapses,
+                    inputs = inputs[index], 
+                    timeout = timeout
+                )
             )
 
-        # Submit calls to receptors.
-        with concurrent.futures.ThreadPoolExecutor( max_workers = len(endpoints) ) as executor:
-            responses = executor.map ( call_backward, call_args, timeout=10*timeout )
+        responses = await asyncio.gather( *calls )
 
-        # Release semephore.
-        for receptor in receptors:
-            receptor.semaphore.release()
+        # Unpack responses
+        forward_outputs = []
+        forward_codes = []
+        forward_times = []
+        for response in responses:
+            forward_outputs.append( response[0] )
+            forward_codes.append( response[1] )
+            forward_times.append( response[2] )
+
+        # ---- Kill receptors ----
+        self._destroy_receptors_over_max_allowed()
+        # ---- Return ----
+        return forward_outputs, forward_codes, forward_times
+
+    async def async_backward(
+                self, 
+                endpoints: List [ 'bittensor.Endpoint' ],
+                synapses: List[ 'bittensor.Synapse' ],
+                inputs: List [ torch.Tensor ],
+                grads: List [ List[ torch.FloatTensor ] ],
+                timeout: int
+            ) -> Tuple[List[torch.Tensor], List[int], List[float]]:
+        r""" Backward tensor inputs to endpoints.
+
+            Args:
+                endpoints (:obj:`List['bittensor.Endpoint']` of shape :obj:`(num_endpoints)`, `required`):
+                    List of remote endpoints which match length of x. Tensors from x are sent backward to these endpoints.
+
+                synapses (:obj:`List[ 'bittensor.Synapse' ]` of shape :obj:`(num_synapses)`, `required`):
+                    Bittensor synapse objects with arguments. Each corresponds to a synapse function on the axon.
+                    Responses are packed in this ordering. 
+
+                inputs (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
+                    List of tensors to send to corresponsing endpoints. Tensors are of arbitrary type and shape depending on the
+                    synapse.
+
+                grads (:obj:`List[torch.Tensor]` of shape :obj:`(num_endpoints * [shape])`, `required`):
+                    List of list of grad tensors where each grad corresponds to a synapse call on an endpoint.
+                
+                timeout (int):
+                    request timeout.
+
+            Returns:
+                backward_outputs (:obj:`List[ List[ torch.FloatTensor] ]` of shape :obj:`num_endpoints * (batch_size, sequence_len, -1)]`, `required`):
+                    Gradients returned from the backward call one per endpoint.
+
+                backward_codes (:obj:`List[ List[ bittensor.proto.ReturnCodes ] ]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of list of Backward call return ops, one per endpoint and synapse.
+
+                backward_times (:obj:`List[float]` of shape :obj:`(num_endpoints)`, `required`):
+                    List of list of Backward call times one per endpoint and synapse.
+        """
+        # Init receptors.
+        receptors = [ self._get_or_create_receptor_for_endpoint( endpoint ) for endpoint in endpoints ]
+
+        # Make calls.
+        calls = []
+        for index, receptor in enumerate(receptors):
+            calls.append( 
+                receptor.async_backward (
+                    synapses = synapses,
+                    inputs = inputs[index], 
+                    grads = grads[index],
+                    timeout = timeout
+                )
+            )
+        responses = await asyncio.gather( *calls )
             
         # Unpack responses
         backward_outputs = []
@@ -306,5 +380,4 @@ class ReceptorPool ( torch.nn.Module ):
             )
             self.receptors[ receptor.endpoint.hotkey ] = receptor
             
-        receptor.semaphore.acquire()
         return receptor

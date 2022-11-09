@@ -223,7 +223,6 @@ def test_dendrite_multiple():
     config = bittensor.dendrite.config()
     receptor_pool = bittensor.receptor_pool( 
         wallet = wallet,
-        max_worker_threads = config.dendrite.max_worker_threads,
         max_active_receptors = config.dendrite.max_active_receptors,
         compression = config.dendrite.compression,
     )
@@ -286,7 +285,7 @@ def test_successful_synapse():
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
     axon.attach_synapse_callback( forward_generate,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
     axon.attach_synapse_callback( forward_casual_lm,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM )
-    axon.attach_synapse_callback(forward_casual_lm_next, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+    axon.attach_synapse_callback( forward_casual_lm_next, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
     axon.start()
 
     endpoint = bittensor.endpoint(

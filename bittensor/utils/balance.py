@@ -22,6 +22,8 @@ class Balance:
     Represents the bittensor balance of the wallet, stored as rao (int)
     The Balance object is immutable, and can be used as a number or as a string
     Can only guarantee that the balance is accurate to 9 decimal places (tao)
+
+    Note: In operations between Balance and int/float, the other value is assumed to be in rao
     """
 
     unit: str = "\u03C4" # This is the tao unit
@@ -75,11 +77,11 @@ class Balance:
             return self.rao == other.rao
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return self.rao == other.rao
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                other_rao = int(other)
+                return self.rao == other_rao
+            except (TypeError, ValueError):
+                raise NotImplementedError("Unsupported type")
 
     def __ne__(self, other: Union[int, float, "Balance"]):
         return not self == other
@@ -89,106 +91,115 @@ class Balance:
             return self.rao > other.rao
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return self.rao > other.rao
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                other_rao = int(other)
+                return self.rao > other_rao
+            except ValueError:
+                raise NotImplementedError("Unsupported type")
 
     def __lt__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
             return self.rao < other.rao
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return self.rao < other.rao
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                other_rao = int(other)
+                return self.rao < other_rao
+            except ValueError:
+                raise NotImplementedError("Unsupported type")
 
     def __le__(self, other: Union[int, float, "Balance"]):
-        return self < other or self == other
+        try:
+            return self < other or self == other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __ge__(self, other: Union[int, float, "Balance"]):
-        return self > other or self == other
+        try:
+            return self > other or self == other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __add__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao + other.rao))
+            return Balance.from_rao(int(self.rao + other.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.rao + other.rao))
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao + other))
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __radd__(self, other: Union[int, float, "Balance"]):
-        return self + other
+        try:
+            return self + other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __sub__(self, other: Union[int, float, "Balance"]):
-        return self + -other
+        try:
+            return self + -other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __rsub__(self, other: Union[int, float, "Balance"]):
-        return -self + other
+        try:
+            return -self + other
+        except (TypeError):
+            raise NotImplementedError("Unsupported type")
 
     def __mul__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao * other.rao))
+            return Balance.from_rao(int(self.rao * other.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.rao * other.rao))
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao * other))
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __rmul__(self, other: Union[int, float, "Balance"]):
         return self * other
 
     def __truediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.rao / other.rao))
+            return Balance.from_rao(int(self.rao / other.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.rao / other.rao))
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao / other))
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __rtruediv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(other.rao / self.rao))
+            return Balance.from_rao(int(other.rao / self.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(other.rao / self.rao))
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(other / self.rao))
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __floordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(self.tao // other.tao))
+            return Balance.from_rao(int(self.tao // other.tao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(self.tao // other.tao))
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(self.rao // other))
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __rfloordiv__(self, other: Union[int, float, "Balance"]):
         if hasattr(other, "rao"):
-            return Balance(int(other.tao // self.tao))
+            return Balance.from_rao(int(other.rao // self.rao))
         else:
             try:
-                # Attempt to cast
-                other = Balance(other)
-                return Balance(int(other.tao // self.tao))
-            except TypeError:
-                raise NotImplemented("Unsupported type")
+                # Attempt to cast to int from rao
+                return Balance.from_rao(int(other // self.rao))
+            except (ValueError, TypeError):
+                raise NotImplementedError("Unsupported type")
 
     def __int__(self) -> int:
         return self.rao
@@ -200,13 +211,13 @@ class Balance:
         return bool(self.rao)
 
     def __neg__(self):
-        return Balance(-self.rao)
+        return Balance.from_rao(-self.rao)
 
     def __pos__(self):
-        return Balance(self.rao)
+        return Balance.from_rao(self.rao)
 
     def __abs__(self):
-        return Balance(abs(self.rao))
+        return Balance.from_rao(abs(self.rao))
 
     @staticmethod
     def from_float(amount: float):

@@ -32,7 +32,6 @@ class dendrite:
     The dendrite class operates as a normal torch autograd friendly operation which accepts a list of bittensor.endpoints and a list of torch tensors. 
     The passed endpoints are queried with the passed inputs and either return results or zeros. The operation is fully differentiable with a torch 
     computation graph such that calls to loss.backward() produce Backward calls on the passed endpoints.
-
     
     """
 
@@ -42,7 +41,6 @@ class dendrite:
             wallet: 'bittensor.Wallet' = None,
             timeout: int = None,
             requires_grad: bool = None,
-            max_worker_threads: int = None,
             max_active_receptors: int = None,
             receptor_pool: 'bittensor.ReceptorPool' = None,
             multiprocess: bool = None,
@@ -60,9 +58,6 @@ class dendrite:
                     Default request timeout.
                 requires_grad (:type:`bool`, `optional`, default: bittensor.dendrite.config().dendrite.requires_grad):
                     If true, the dendrite passes gradients on the wire by default.
-                max_worker_threads (:type:`int`, `optional`, default: bittensor.dendrite.config().dendrite.max_worker_threads):
-                    Maximum number of active client threads. Does not override the
-                    optionally passed receptor pool.
                 max_active_receptors (:type:`int`, `optional`, default: bittensor.dendrite.config().dendrite.max_active_receptors):
                     Maximum allowed active allocated TCP connections. Does not override the
                     optionally passed receptor pool.
@@ -77,7 +72,6 @@ class dendrite:
         config = copy.deepcopy(config)
         config.dendrite.timeout = timeout if timeout != None else config.dendrite.timeout
         config.dendrite.requires_grad = requires_grad if requires_grad != None else config.dendrite.requires_grad
-        config.dendrite.max_worker_threads = max_worker_threads if max_worker_threads != None else config.dendrite.max_worker_threads
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
         config.dendrite.multiprocessing = multiprocess if multiprocess != None else config.dendrite.multiprocessing
         config.dendrite.compression = compression if compression != None else config.dendrite.compression
@@ -90,7 +84,6 @@ class dendrite:
         if receptor_pool == None:
             receptor_pool = bittensor.receptor_pool( 
                 wallet = wallet,
-                max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors,
                 compression = config.dendrite.compression,
             )
@@ -147,7 +140,6 @@ class dendrite:
         """
         prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--' + prefix_str + 'dendrite.max_worker_threads', type=int, help='''Max number of concurrent threads used for sending RPC requests.''', default = bittensor.defaults.dendrite.max_worker_threads)
             parser.add_argument('--' + prefix_str + 'dendrite.max_active_receptors', type=int, help='''Max number of concurrently active receptors / tcp-connections''',  default = bittensor.defaults.dendrite.max_active_receptors) 
             parser.add_argument('--' + prefix_str + 'dendrite.timeout', type=int, help='''Default request timeout.''', default = bittensor.defaults.dendrite.timeout)
             parser.add_argument('--' + prefix_str + 'dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
@@ -171,8 +163,7 @@ class dendrite:
         """ Adds parser defaults to object from enviroment variables.
         """
         defaults.dendrite = bittensor.Config()
-        defaults.dendrite.max_worker_threads = os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') if os.getenv('BT_DENDRITE_MAX_WORKER_THREADS') != None else 150
-        defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 2000
+        defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 4096
         defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__ + 2
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
         defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_MULTIPROCESSING') if os.getenv('BT_DENDRITE_MULTIPROCESSING') != None else False
@@ -189,7 +180,6 @@ class dendrite:
         assert config.dendrite
         assert 'timeout' in config.dendrite
         assert 'requires_grad' in config.dendrite
-        assert config.dendrite.max_worker_threads > 0, 'max_worker_threads must be larger than 0'
         assert config.dendrite.max_active_receptors >= 0, 'max_active_receptors must be larger or eq to 0'
         assert config.dendrite.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "dendrite.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])        
         bittensor.wallet.check_config( config )
@@ -214,7 +204,6 @@ class dendrite:
         if receptor_pool == None:
             receptor_pool = bittensor.receptor_pool( 
                 wallet = wallet,
-                max_worker_threads = config.dendrite.max_worker_threads,
                 max_active_receptors = config.dendrite.max_active_receptors
             )
         ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state', 'get_total_requests'])

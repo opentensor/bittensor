@@ -30,7 +30,15 @@ from rich.prompt import Confirm, Prompt, PromptBase
 
 from . import cli_impl
 
+# Turn off rich console locals trace.
+from rich.traceback import install
+install(show_locals=False)
+
 console = bittensor.__console__
+
+# Remove incredibly large tracebacks.
+from rich.traceback import install
+install(show_locals=False)
 
 class cli:
     """
@@ -117,7 +125,7 @@ class cli:
             type=str,
             help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)'''
         )
-        
+        overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )  
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
@@ -148,7 +156,7 @@ class cli:
             default='None', 
             help='''Synapses available through bittensor.synapse'''
         )
-        
+        run_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.subtensor.add_args( run_parser )
         bittensor.wallet.add_args( run_parser )
 
@@ -163,6 +171,7 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        metagraph_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.subtensor.add_args( metagraph_parser )
 
 
@@ -177,6 +186,7 @@ class cli:
             choices= list(bittensor.neurons.__text_neurons__.keys()), 
             default='None', 
         )
+        help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
 
         update_parser = cmd_parsers.add_parser(
             'update', 
@@ -190,6 +200,7 @@ class cli:
             help='''Set true to skip prompt from update.''',
             default=False,
         )
+        update_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
 
         inspect_parser = cmd_parsers.add_parser(
             'inspect', 
@@ -202,6 +213,8 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        inspect_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( inspect_parser )
         bittensor.subtensor.add_args( inspect_parser )
 
@@ -224,6 +237,8 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        query_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( query_parser )
         bittensor.subtensor.add_args( query_parser )
         bittensor.dendrite.add_args( query_parser )
@@ -240,6 +255,8 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        weights_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( weights_parser )
         bittensor.subtensor.add_args( weights_parser )
 
@@ -256,6 +273,8 @@ class cli:
         )
         set_weights_parser.add_argument ("--uids", type=int, required=False, nargs='*', action='store', help="Uids to set.")
         set_weights_parser.add_argument ("--weights", type=float, required=False, nargs='*', action='store', help="Weights to set.")
+        
+        set_weights_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.wallet.add_args( set_weights_parser )
         bittensor.subtensor.add_args( set_weights_parser )
 
@@ -270,45 +289,65 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        list_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( list_parser )
 
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
         )
+        transfer_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         register_parser = cmd_parsers.add_parser(
             'register', 
             help='''Register a wallet to a network.'''
         )
+        register_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
 
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
         )
+        unstake_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         stake_parser = cmd_parsers.add_parser(
             'stake', 
             help='''Stake to your hotkey accounts.'''
         )
+        stake_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed value'''
         )
+        regen_coldkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         regen_coldkeypub_parser = cmd_parsers.add_parser(
             'regen_coldkeypub',
             help='''Regenerates a coldkeypub from the public part of the coldkey.'''
         )
+        regen_coldkeypub_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
         )
+        regen_hotkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         new_coldkey_parser = cmd_parsers.add_parser(
             'new_coldkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. '''
         )
+        new_coldkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         new_hotkey_parser = cmd_parsers.add_parser(
             'new_hotkey', 
             help='''Creates a new hotkey (for running a miner) under the specified path.'''
         )
+        new_hotkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
          
         # Fill arguments for the regen coldkey command.
         regen_coldkey_parser.add_argument(

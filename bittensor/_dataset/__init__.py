@@ -93,7 +93,8 @@ class dataset:
                 save_dataset = config.dataset.save_dataset,
                 max_datasets = config.dataset.max_datasets,
                 no_tokenizer = config.dataset.no_tokenizer,
-                num_batches = config.dataset.num_batches
+                num_batches = config.dataset.num_batches,
+                max_directories = config.dataset.max_directories
             )
         else:
             return dataset_impl.GenesisTextDataset(
@@ -105,7 +106,8 @@ class dataset:
                 save_dataset = config.dataset.save_dataset,
                 max_datasets = config.dataset.max_datasets,
                 no_tokenizer = config.dataset.no_tokenizer,
-                num_batches = config.dataset.num_batches
+                num_batches = config.dataset.num_batches,
+                max_directories = config.dataset.max_directories
             )
 
     @classmethod
@@ -138,6 +140,7 @@ class dataset:
             parser.add_argument('--' + prefix_str + 'dataset.no_tokenizer', action='store_true', help='To return non-tokenized text (EXPERIMENTAL, DO NOT USE)',default=False)
             parser.add_argument('--' + prefix_str + 'dataset.num_batches', type=int, help='The number of data to download each time(measured by the number of batches).', default=bittensor.defaults.dataset.num_batches)
             parser.add_argument('--' + prefix_str + 'dataset._mock', action='store_true', help='To turn on dataset mocking for testing purposes.', default=False)
+            parser.add_argument('--' + prefix_str + 'dataset.max_directories', type=int, help='Maximum number of directories to consider when loading text from IPFS', default=bittensor.defaults.dataset.max_directories)
 
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -165,6 +168,7 @@ class dataset:
         defaults.dataset.save_dataset = os.getenv('BT_DATASET_SAVE_DATASET') if os.getenv('BT_DATASET_SAVE_DATASET') != None else False
         defaults.dataset.max_datasets = os.getenv('BT_DATASET_MAX_DATASETS') if os.getenv('BT_DATASET_MAX_DATASETS') != None else 3
         defaults.dataset.num_batches = os.getenv('BT_DATASET_NUM_BATCHES') if os.getenv('BT_DATASET_NUM_BATCHES') != None else 500
+        defaults.dataset.max_directories = os.getenv('BT_DATASET_MAX_DIRECTORIES') if os.getenv('BT_DATASET_MAX_DIRECTORIES') != None else 250
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
