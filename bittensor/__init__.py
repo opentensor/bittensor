@@ -16,16 +16,29 @@
 # DEALINGS IN THE SOFTWARE.
 
 from rich.console import Console
+from rich.traceback import install
 from prometheus_client import Info
 
+import nest_asyncio
+nest_asyncio.apply()
+
 # Bittensor code and protocol version.
-__version__ = '3.4.1'
+__version__ = '3.4.2'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
+
+
+# Turn off rich console locals trace.
+from rich.traceback import install
+install(show_locals=False)
 
 # Rich console.
 __console__ = Console()
 __use_console__ = True
+
+# Remove overdue locals in debug training.
+install(show_locals=False)
+
 def turn_console_off():
     from io import StringIO
     __use_console__ = False
@@ -62,8 +75,8 @@ __nakamoto_entrypoint__ = "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com
 
 __nobunaga_entrypoint__ = "staging.nobunaga.opentensor.ai:9944"
 
-
-__bellagene_entrypoint__ = "parachain.opentensor.ai:443"
+# Needs to use wss://
+__bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
 
 __local_entrypoint__ = "127.0.0.1:9944"

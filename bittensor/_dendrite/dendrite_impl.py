@@ -25,6 +25,7 @@ import torch
 import pandas
 import random
 import time
+import uuid
 
 from torch.autograd.function import once_differentiable
 from loguru import logger
@@ -40,13 +41,19 @@ import bittensor.utils.codes as codes
 
 import wandb
 
-from prometheus_client import Summary, Counter, Histogram, CollectorRegistry
 
 logger = logger.opt(colors=True)
 
 # dummy tensor that triggers autograd 
 DUMMY = torch.empty(0, requires_grad=True)
 
+# Global prometheus 
+from prometheus_client import Summary, Counter, Histogram, CollectorRegistry
+PROM_prometheus_counters = Counter('dendrite_counters', 'dendrite_counters', ['wallet', 'identifier', 'name'])
+PROM_prometheus_latency = Histogram('dendrite_latency', 'dendrite_latency', ['wallet', 'identifier'], buckets=list(range(0,bittensor.__blocktime__,1))) 
+PROM_prometheus_latency_per_uid = Summary('dendrite_latency_per_uid', 'dendrite_latency_per_uid', ['wallet', 'identifier', 'uid'])
+PROM_prometheus_successes_per_uid = Counter('dendrite_successes_per_uid', 'dendrite_successes_per_uid', ['wallet', 'identifier', 'uid'])
+PROM_prometheus_failures_per_uid = Counter('dendrite_failures_per_uid', 'dendrite_failures_per_uid', ['wallet', 'identifier', 'uid'])
 
 class Dendrite(torch.autograd.Function):
     r""" This is the implementation class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
@@ -57,7 +64,7 @@ class Dendrite(torch.autograd.Function):
     Args:
         config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.dendrite.config()):
             config namespace object created by calling bittensor.dendrite.config()
-        wallet (:obj:`bittensor.Wallet`, `optional`, defaults to bittensor.wallet( name = 'default', hotkey = 'default')):
+        wallet (:obj:`bittensor.Wallet`, `optional`, defaults to bittensor.wallet( name = 'default', wallet ='default')):
             A bittensor wallet object containing a pair of cryptographic keys, the hot and coldkey, used for signing messages
             on the wire.
         receptor_pool (:obj:`bittensor.ReceptorPool`, `optional`, defaults to bittensor.receptor_pool()):
@@ -84,17 +91,7 @@ class Dendrite(torch.autograd.Function):
         # ---- Dendrite stats
         # num of time we have sent request to a peer, received successful respond, and the respond time
         self.stats = self._init_stats()
-
-        # == Prometheus
-        # We are running over various suffix values in the event that there are multiple dendrites in the same process.
-        # The first dendrite is created with a null suffix. Values are ordered like so: dendrite_counters, dendrite_counters_1, dendrite_counters_2 etc...
-        if self.config.dendrite.prometheus.level != bittensor.prometheus.level.OFF.name:
-            registry = CollectorRegistry()
-            self.prometheus_counters = Counter('dendrite_counters', 'dendrite_counters', ['name'], registry=registry)
-            self.prometheus_latency = Histogram('dendrite_latency', 'dendrite_latency', buckets=list(range(0,bittensor.__blocktime__,1)), registry=registry) 
-            self.prometheus_latency_per_uid = Summary('dendrite_latency_per_uid', 'dendrite_latency_per_uid', ['uid'], registry=registry)
-            self.prometheus_successes_per_uid = Counter('dendrite_successes_per_uid', 'dendrite_successes_per_uid', ['uid'], registry=registry)
-            self.prometheus_failures_per_uid = Counter('dendrite_failures_per_uid', 'dendrite_failures_per_uid', ['uid'], registry=registry)
+        self._prometheus_uuid = uuid.uuid1()
 
     def __str__(self):
         return "Dendrite({}, {})".format(self.wallet.hotkey.ss58_address, self.receptor_pool)
@@ -281,7 +278,6 @@ class Dendrite(torch.autograd.Function):
                     Call times per endpoint per synapse.
 
         """
-        start_time = time.time()
         timeout:int = timeout if timeout is not None else self.config.dendrite.timeout
         requires_grad:bool = requires_grad if requires_grad is not None else self.config.dendrite.requires_grad
 
@@ -314,16 +310,16 @@ class Dendrite(torch.autograd.Function):
         outputs: List[torch.Tensor] = forward_response[2:]
         packed_outputs: List[ List[torch.Tensor] ] = [  outputs[ s : s + len(synapses) ] for s in range (0, len(outputs), len( synapses )) ]
 
-         # === Prometheus counters.
+        # === Prometheus counters.
         if self.config.dendrite.prometheus.level != bittensor.prometheus.level.OFF.name:
-            self.prometheus_counters.labels( 'total_requests' ).inc()
-            self.prometheus_counters.labels( 'total_endpoint_requests' ).inc( len(endpoints) )
-            self.prometheus_counters.labels( 'total_request_bytes' ).inc( sum(p.element_size() * p.nelement() for p in inputs) )
-            self.prometheus_counters.labels( 'total_request_params' ).inc( sum(p.numel() for p in inputs) )
+            PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_requests' ).inc()
+            PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_endpoint_requests' ).inc( len(endpoints) )
+            PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_request_bytes' ).inc( sum(p.element_size() * p.nelement() for p in inputs) )
+            PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_request_params' ).inc( sum(p.numel() for p in inputs) )
 
             # Capture synapses.
             for synapse in enumerate( synapses ):
-                self.prometheus_counters.labels( str(synapse) ).inc()
+                PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = str(synapse) ).inc()
 
             for i in range(len(endpoints)):
                 n_success = (codes[i] == 1).sum().item()
@@ -331,23 +327,23 @@ class Dendrite(torch.autograd.Function):
                 response_time = times[i].mean().item()
 
                 # Capture outputs.
-                self.prometheus_counters.labels( 'total_response_bytes' ).inc( sum(p.element_size() * p.nelement() for p in outputs[i]) )
-                self.prometheus_counters.labels( 'total_response_params' ).inc( sum(p.numel() for p in outputs[i]) )
+                PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_response_bytes' ).inc( sum(p.element_size() * p.nelement() for p in outputs[i]) )
+                PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_response_params' ).inc( sum(p.numel() for p in outputs[i]) )
 
                 # Capture global success rates.
                 if is_success: 
-                    self.prometheus_counters.labels( 'total_success' ).inc()
-                    self.prometheus_latency.observe( response_time )
+                    PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_success' ).inc()
+                    PROM_prometheus_latency.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid).observe( response_time )
                 else: 
-                    self.prometheus_counters.labels( 'total_failure' ).inc()
+                    PROM_prometheus_counters.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, name = 'total_failure' ).inc()
 
                 # === Prometheus DEBUG (per uid info.)
                 if self.config.dendrite.prometheus.level == bittensor.prometheus.level.DEBUG.name:
                     if is_success:
-                        self.prometheus_latency_per_uid.labels(str(endpoints[i].uid)).observe( response_time )
-                        self.prometheus_successes_per_uid.labels(str(endpoints[i].uid)).inc()
+                        PROM_prometheus_latency_per_uid.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, uid = str(endpoints[i].uid) ).observe( response_time )
+                        PROM_prometheus_successes_per_uid.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, uid = str(endpoints[i].uid) ).inc()
                     else:
-                        self.prometheus_failures_per_uid.labels(str(endpoints[i].uid)).inc()
+                        PROM_prometheus_failures_per_uid.labels( wallet = self.wallet.hotkey.ss58_address, identifier = self._prometheus_uuid, uid = str(endpoints[i].uid) ).inc()
 
         return packed_outputs, packed_codes, packed_times
 

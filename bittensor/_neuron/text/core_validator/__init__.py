@@ -178,7 +178,7 @@ class neuron:
         # === Neuron statistics variables ===
         self.neuron_stats = {}  # neuron statistics dict of dicts: [uid] -> {'stat1': val1, 'stat2': val2, ...}
         self.neuron_hotkeys = []  # keep neuron hotkeys to compare and check for changes after metagraph.sync()
-        self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
+        self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
 
         if self.config.neuron.validation_synapse == 'TextCausalLMNext':
             self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
@@ -264,14 +264,14 @@ class neuron:
                 f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])')
 
     def __del__(self):
-        self.__exit__()
+        self.dataset.close()
+        self.dendrite.__del__()
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
         """
         print(exc_type, exc_value, exc_traceback)
-        self.dataset.close()
-        self.dendrite.__del__()
+        self.__del__()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -823,7 +823,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
-        parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
+        parser.add_argument('--nucleus.no_dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
         parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
 
@@ -962,7 +962,7 @@ class nucleus( torch.nn.Module ):
             timeout=bittensor.__blocktime__
         )
 
-        if not self.config.nucleus.dendrite_backward:
+        if self.config.nucleus.no_dendrite_backward:
             query_responses = [[syn.detach().to(self.device) for syn in res] for res in query_responses]
             return_ops = [ops.detach().to(self.device) for ops in return_ops]
             times = [t.detach().to(self.device) for t in times]
