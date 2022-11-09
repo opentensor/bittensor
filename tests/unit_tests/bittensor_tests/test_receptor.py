@@ -433,7 +433,7 @@ def test_receptor_backward_endpoint_exception():
 
 #-- axon receptor connection -- 
 
-def test_axon_receptor_connection_forward_works():
+def run_test_axon_receptor_connection_forward_works(receiver_version):
     def forward_generate( input, synapse, model_output = None):
         return None, None, torch.zeros( [3, 70])
 
@@ -459,7 +459,7 @@ def test_axon_receptor_connection_forward_works():
     axon.start()
     
     endpoint = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
+        version = receiver_version,
         uid = 0,
         ip = '127.0.0.1',
         ip_type = 4,
@@ -479,6 +479,10 @@ def test_axon_receptor_connection_forward_works():
     assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
     axon.stop()
 
+
+def test_axon_receptor_connection_forward_works():
+    for receiver_version in [341, bittensor.__new_signature_version__, bittensor.__version_as_int__]:
+        run_test_axon_receptor_connection_forward_works(receiver_version)
 
 def test_axon_receptor_connection_forward_unauthenticated():
     def forward_generate( input, synapse, model_output = None ):
