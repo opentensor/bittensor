@@ -53,7 +53,7 @@ class ThreadManager:
         self._shutdown = False
 
 
-    def submit(self, fn, args:Optional[list]=[],kwargs:Optional[dict]={}):
+    def submit(self, fn, args:Optional[list]=[],kwargs:Optional[dict]={}) -> Any:
         '''
         Submit a function with args and kwargs on a seperate thread.
 
@@ -205,7 +205,7 @@ class GenesisTextDataset:
     def sample_generator(self, 
                          queue:Queue, 
                          loop:'asyncio.loop'=None, 
-                         return_json:bool=False):
+                         return_json:bool=False) -> None:
 
         """ Sample generator on seperate thread with its own asyncio loop for generating
             background samples while the user fetches them in the foreground.
@@ -241,7 +241,7 @@ class GenesisTextDataset:
 
                 queue.put(raw_text)
 
-    def build_datasets(self, datasets:List[str]=None, save:bool=None, load:bool=None, loop:'asyncio.loop'=None):
+    def build_datasets(self, datasets:List[str]=None, save:bool=None, load:bool=None, loop:'asyncio.loop'=None) -> None :
         """ Building all of the datasets specified by getting each of their 
             text hashes from IPFS or local
         Args:
@@ -288,6 +288,7 @@ class GenesisTextDataset:
             self.dataset_size += self.dataset_size_map[k]
         self.all_text_file_metas = all_text_file_metas
 
+
     construct_text_corpus = build_datasets
     async def async_save_json(self, 
                               path:str,
@@ -331,7 +332,7 @@ class GenesisTextDataset:
 
         return path
 
-    def save_json(self,loop:'asyncio.loop'=None, *args,**kwargs) -> dict:
+    def save_json(self,loop:'asyncio.loop'=None, *args,**kwargs) -> str:
         '''
         Sync verson of async_save_json
         Args
@@ -405,7 +406,7 @@ class GenesisTextDataset:
 
         return output
 
-    async def build_single_dataset(self, dataset:str = None, num_folders = 10, num_samples:int = 40, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None):
+    async def build_single_dataset(self, dataset:str = None, num_folders = 10, num_samples:int = 40, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None) -> List[dict] :
         """ Building a single dataset by fetching its text file metas ({Hash:str, Name:str, Size: int})
         Args:
             dataset (List[str]):
@@ -478,7 +479,7 @@ class GenesisTextDataset:
 
         return file_meta
 
-    def set_data_size(self, batch_size, block_size):
+    def set_data_size(self, batch_size, block_size) -> None:
         r""" Update the size of data (batch_size, block_size) that we need.
 
         Args: 
@@ -517,7 +518,7 @@ class GenesisTextDataset:
 
 
 
-    def set_cache(self, cache_size=10, cache_calls_per_block=100):
+    def set_cache(self, cache_size=10, cache_calls_per_block=100) -> None:
         self.cached_text_list = [] # Cache list for raw text.
         self.cache_size = cache_size  # The maximum size of the cache (FIFO).
         self.calls_for_current_block = 0 # The number of current calls on the set of blocks
@@ -665,7 +666,7 @@ class GenesisTextDataset:
             # hashes[i] =bytes('{'+ hashes[i+1] + '}')
 
     total = 0 
-    async def get_text(self, file_meta, loop=None, num_blocks=1, queue=None):
+    async def get_text(self, file_meta, loop=None, num_blocks=1, queue=None) -> str:
         
         """
         Get text hashes from a folder
@@ -849,7 +850,7 @@ class GenesisTextDataset:
         self.loop = loop
         return self.loop
          
-    def async_run(self, job, loop=None): 
+    def async_run(self, job:'asyncio.coroutine', loop: 'asyncio.loop'=None) -> Any: 
         '''
         Set the event loop.
 
@@ -894,56 +895,7 @@ class GenesisTextDataset:
             self._dataset_hashes = self.async_run(self.get_dataset_hashes())
         return self._dataset_hashes
 
-    @staticmethod
-    def chunk(sequence:list,
-            chunk_size:str=None,
-            append_remainder:bool=False,
-            distribute_remainder:bool=True,
-            num_chunks:int= None):
-
-        '''
-        Chunk a list into N chunks for batching
-
-        Args:
-            sequence (list):
-                Size of the sequence Length
-            chunk_size (str):
-                Size of the chunk.
-            append_remainder (bool):
-                Append the remainder
-            distribute_remainder (bool):
-                Distribute the remainder as round robin
-            num_chunks (int):
-                The number of chunks.
-        Returns (int)
-        '''
-
-        # Chunks of 1000 documents at a time.
-
-        if chunk_size is None:
-            assert (type(num_chunks) == int)
-            chunk_size = len(sequence) // num_chunks
-
-        if chunk_size >= len(sequence):
-            return [sequence]
-        remainder_chunk_len = len(sequence) % chunk_size
-        remainder_chunk = sequence[:remainder_chunk_len]
-        sequence = sequence[remainder_chunk_len:]
-        sequence_chunks = [sequence[j:j + chunk_size] for j in range(0, len(sequence), chunk_size)]
-
-        if append_remainder:
-            # append the remainder to the sequence
-            sequence_chunks.append(remainder_chunk)
-        else:
-            if distribute_remainder:
-                # distributes teh remainder round robin to each of the chunks
-                for i, remainder_val in enumerate(remainder_chunk):
-                    chunk_idx = i % len(sequence_chunks)
-                    sequence_chunks[chunk_idx].append(remainder_val)
-
-        return sequence_chunks
-
-    def dataloader(self, epoch_length = 100):
+    def dataloader(self, epoch_length = 100) -> DataLoader:
         """ Creates a torch dataloader out of a subclass of this class.
 
         Args:
@@ -961,7 +913,7 @@ class GenesisTextDataset:
                     num_workers=self.num_workers,
                     drop_last=True)
     
-    def __next__(self):
+    def __next__(self) -> Dict[str, torch.tensor]:
         """Returns the next element from the dataset. 
         """
         if self.__infinite_dataset_iterator == None:
@@ -973,7 +925,7 @@ class GenesisTextDataset:
             self.__infinite_dataset_iterator = iter(list(self.dataloader()))
             return next(self.__infinite_dataset_iterator)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns number of samples (blocks) of dataset
 
@@ -983,10 +935,10 @@ class GenesisTextDataset:
 
         return self.dataset_size // self.block_size
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         '''
         Close queue and thread manager.
         '''
@@ -994,6 +946,6 @@ class GenesisTextDataset:
             del self.data_queue
         if hasattr(self, 'thread_manager'):
             del self.thread_manager
-
-        del self.tokenizer
+        if hasattr(self, 'tokenizer'):
+            del self.tokenizer
         
