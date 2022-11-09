@@ -114,7 +114,7 @@ class GenesisTextDataset:
             data_dir: str =  os.path.expanduser('~/./bittensor/data'),
             save_dataset : bool = False,
             load_dataset : bool = True,
-            run_generator:bool=True,
+            run_generator:bool=False,
             buffer_size:int=100,
             num_batches: int = 100,
             max_datasets: int = 2,
@@ -233,7 +233,7 @@ class GenesisTextDataset:
 
             if batch_count > self.num_batches:
                 break
-            raw_text = self.async_run(self.get_text(text_hash=text_hash), loop=loop)
+            raw_text = self.async_run(self.get_text(file_meta=text_hash), loop=loop)
 
             if not queue.full():
             # skip queue if it is full
@@ -568,7 +568,7 @@ class GenesisTextDataset:
             if (len(list(raw_text)) == self.sequence_length):
                 start_idx = 0
             else:
-                start_idx = idx * self.sequence_length % (len(list(raw_text)) - self.sequence_length)
+                start_idx = (idx * self.sequence_length) % (len(raw_text) - self.sequence_length)
             end_idx = start_idx + self.sequence_length
             output_dict = raw_text[start_idx:end_idx]
             remainder = self.sequence_length - len(output_dict)
