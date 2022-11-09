@@ -341,16 +341,13 @@ class axon:
 class AuthInterceptor(grpc.ServerInterceptor):
     """Creates a new server interceptor that authenticates incoming messages from passed arguments."""
 
-    def __init__(self, key: str = "Bittensor", blacklist: List = []):
+    def __init__(self, blacklist: List = []):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
-            key (str, `optional`):
-                 key for authentication header in the metadata (default = Bittensor)
             black_list (Function, `optional`):
                 black list function that prevents certain pubkeys from sending messages
         """
         super().__init__()
-        self.auth_header_value = key
         self.nonces = {}
         self.blacklist = blacklist
 
@@ -406,12 +403,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Signature mismatch")
         self.nonces[endpoint_key] = nonce
 
-    def version_checking(self, metadata: Dict[str, str]):
-        r"""Checks the header and version in the metadata"""
-        provided_value = metadata.get("rpc-auth-header")
-        if provided_value is None or provided_value != self.auth_header_value:
-            raise Exception("Unexpected caller metadata")
-
     def black_list_checking(self, pubkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
         if self.blacklist == None:
@@ -433,9 +424,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         metadata = dict(handler_call_details.invocation_metadata)
 
         try:
-            # version checking
-            self.version_checking(metadata)
-
             (nonce, pubkey, signature, receptor_uuid) = self.parse_signature(metadata)
 
             # signature checking
