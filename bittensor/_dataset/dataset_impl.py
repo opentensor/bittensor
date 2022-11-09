@@ -994,4 +994,6 @@ class GenesisTextDataset:
             del self.data_queue
         if hasattr(self, 'thread_manager'):
             del self.thread_manager
+
+        del self.tokenizer
         
