@@ -44,10 +44,10 @@ def test_change_data_size():
 
 
 def test_text_dataset():
-    batch_size = 20
+    batch_size = 10
     block_size = 128
-    num_batches = 10
-    epoch_length = 10
+    num_batches = 5
+    epoch_length = 5
 
     dataset = bittensor.dataset (
         _mock = True,

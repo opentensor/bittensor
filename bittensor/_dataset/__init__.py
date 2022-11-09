@@ -43,7 +43,8 @@ class dataset:
             block_size: int = 1000,
             batch_size: int = None,
             num_workers: int = None,
-            dataset_name: list = [],
+            dataset_name: list = ['ArXiv'],
+            max_datasets: int = None,
             save_dataset: bool = False,
             sequence_length: int = 128,
             load_dataset: bool = False,
@@ -84,6 +85,7 @@ class dataset:
         config.dataset.sequence_length = sequence_length if sequence_length != None else config.dataset.sequence_length
         config.dataset.num_workers = num_workers if num_workers != None else config.dataset.num_workers
         config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
+        config.dataset.max_datasets = max_datasets if max_datasets != [] else config.dataset.max_datasets
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
         config.dataset.load_dataset = load_dataset if load_dataset != None else config.dataset.load_dataset
         config.dataset.run_generator = run_generator if run_generator != None else config.dataset.run_generator
