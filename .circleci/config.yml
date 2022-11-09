@@ -6,7 +6,7 @@ orbs:
 
 jobs:
   build-and-test:
-    resource_class: medium
+    resource_class: large
     parallelism: 2
     parameters:
       python-version:
