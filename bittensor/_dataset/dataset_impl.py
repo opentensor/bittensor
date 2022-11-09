@@ -193,10 +193,11 @@ class GenesisTextDataset:
         # we want to flatten each dataset FOLDER -> TEXT HASH into FOLDER*TEXT
         self.build_datasets(datasets=self.datasets, load=self.load_dataset, save=self.save_dataset)
 
-        self.data_queue = Queue(buffer_size)
         # this runs the a thread that has its own asyncio loop. 
         # The loop is passed into nested async functions to use loo.run_until_complete function
         if self.run_generator:
+            self.data_queue = Queue(buffer_size)
+
             # the thread manager is used for running a background thread
             self.thread_manager = ThreadManager()
             # start the genrator
@@ -505,8 +506,9 @@ class GenesisTextDataset:
             self.block_size = block_size
 
         # empty the queue
-        while not self.data_queue.empty():
-            self.data_queue.get()
+        if self.run_generator:
+            while not self.data_queue.empty():
+                self.data_queue.get()
 
         # empty the dataset_iterator with the old sizing
         self.__infinite_dataset_iterator = None
@@ -554,28 +556,32 @@ class GenesisTextDataset:
             self.calls_for_current_block = 0
 
         if len(self.cached_text_list) < self.cache_size:
-            if self.data_queue.empty():
+            if self.run_generator :
+                raw_text = self.data_queue.get()
+            else:
                 file_meta = self.idx2filemeta(idx=idx)
                 raw_text =  self.async_run(self.get_text(file_meta=file_meta))
-            else:
-                raw_text = self.data_queue.get()
+            
             self.cached_text_list.append(raw_text)
             if not self.no_tokenizer:
                 self.cached_text_list[-1] =  self.tokenizer(self.cached_text_list[-1], padding=True)
 
         if self.no_tokenizer:
-            raw_text = random.choice(self.cached_text_list).split()
+            random_text_block =  random.choice(self.cached_text_list)
+            raw_text =random_text_block.split()
             if (len(list(raw_text)) == self.sequence_length):
                 start_idx = 0
             else:
-                start_idx = (idx * self.sequence_length) % (len(raw_text) - self.sequence_length)
+                max_start_idx = (len(raw_text) - self.sequence_length)
+                start_idx = (idx * self.sequence_length) % max_start_idx
+
             end_idx = start_idx + self.sequence_length
             output_dict = raw_text[start_idx:end_idx]
             remainder = self.sequence_length - len(output_dict)
             if remainder > 0:
                 output_dict = output_dict + ['FILLER_TOKEN']*remainder
             output_dict = ' '.join(output_dict)
-        if not self.no_tokenizer:
+        else:
             tokenized_dict = random.choice(self.cached_text_list)
 
             start_idx = idx * self.sequence_length % (len(list(tokenized_dict.values())[0]) - self.sequence_length)
