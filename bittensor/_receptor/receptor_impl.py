@@ -664,7 +664,7 @@ class Receptor(nn.Module):
                     ('rpc-auth-header','Bittensor'),
                     ('bittensor-signature',self.sign()),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
-                    ('request_type', str(bittensor.proto.RequestType.FORWARD)),
+                    ('request_type', str(bittensor.proto.RequestType.BACKWARD)),
                 ))
             asyncio_future.cancel()
 
