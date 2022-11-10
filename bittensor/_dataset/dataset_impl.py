@@ -534,7 +534,7 @@ class GenesisTextDataset:
             idx (int):
                 Sample index of dataset
             filler_token (str):
-                Filler token to pad raw text. 
+                Filler token to pad raw text 
             
         Returns:
             output_dict (Union[str, torch.tensor])
@@ -679,7 +679,7 @@ class GenesisTextDataset:
 
         """
         try:
-            data = await self.api_post('cat', params={'arg':file_meta['Hash']}, return_json=False, num_chunks=10)
+            data = await self.api_post('cat', params={'arg':file_meta['Hash']}, return_json=False, chunk_size=1024, num_chunks=1)
         except KeyError:
             return []
         decoded_hashes = []
