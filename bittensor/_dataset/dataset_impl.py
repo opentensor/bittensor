@@ -678,10 +678,7 @@ class GenesisTextDataset:
         Returns List[str]
 
         """
-        try:
-            data = await self.api_post('cat', params={'arg':file_meta['Hash']}, return_json=False, chunk_size=1024, num_chunks=1)
-        except KeyError:
-            return []
+        data = await self.api_post('cat', params={'arg':file_meta['Hash']}, return_json=False,  num_chunks=10)
         decoded_hashes = []
         hashes = ['['+h + '}]'for h in data.decode().split('},')]
         for i in range(len(hashes)-1):
@@ -693,6 +690,8 @@ class GenesisTextDataset:
             if len(decoded_hashes) >= num_hashes:
                 return decoded_hashes
             # hashes[i] =bytes('{'+ hashes[i+1] + '}')
+        
+        return decoded_hashes
 
     total = 0 
     async def get_text(self, file_meta, offset:int = 0, length:int= 1024, loop=None, queue=None) -> str:
