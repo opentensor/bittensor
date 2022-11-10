@@ -565,7 +565,6 @@ class GenesisTextDataset:
             
             self.cached_text_list.append(raw_text)
             if not self.no_tokenizer:
-                import streamlit as st
                 self.cached_text_list[-1] =  self.tokenizer(str(self.cached_text_list[-1]), padding=True)
 
 
