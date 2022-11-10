@@ -666,9 +666,7 @@ class Receptor(nn.Module):
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
-            # Wait for essentially no time this allows us to get UnAuth errors to pass through.
-            await asyncio.wait_for( asyncio_future, timeout = 0.1 )
-
+            asyncio_future.cancel()
 
         # ====================================
         # ==== Handle GRPC Errors ====
