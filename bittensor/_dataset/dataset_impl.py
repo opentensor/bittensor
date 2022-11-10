@@ -565,7 +565,9 @@ class GenesisTextDataset:
             
             self.cached_text_list.append(raw_text)
             if not self.no_tokenizer:
-                self.cached_text_list[-1] =  self.tokenizer(self.cached_text_list[-1], padding=True)
+                import streamlit as st
+                self.cached_text_list[-1] =  self.tokenizer(str(self.cached_text_list[-1]), padding=True)
+
 
         if self.no_tokenizer:
             random_text_block =  random.choice(self.cached_text_list)
@@ -608,7 +610,7 @@ class GenesisTextDataset:
             
         '''
         mountain_meta = {'Name': 'mountain', 'Folder': 'meta_data', 'Hash': self.mountain_hash}
-        response = await self.api_post( url=f'{self.ipfs_url}/object/get',  params={'arg': mountain_meta['Hash']}, return_json= True)
+        response = await self.api_post( 'object/get',  params={'arg': mountain_meta['Hash']}, return_json= True)
         response = response.get('Links', None)
         return response
 
@@ -628,7 +630,7 @@ class GenesisTextDataset:
         '''
         links = (await self.get_links(file_meta))[:100]
 
-        unfinished = [self.loop.create_task(self.api_post(self.ipfs_url+'/object/get', params={'arg':link['Hash']}, return_json=True)) for link in links]
+        unfinished = [self.loop.create_task(self.api_post('object/get', params={'arg':link['Hash']}, return_json=True)) for link in links]
         folder_hashes = []
         while len(unfinished)>0:
             finished, unfinished = await asyncio.wait(unfinished, return_when=asyncio.FIRST_COMPLETED)
@@ -636,6 +638,32 @@ class GenesisTextDataset:
                 folder_hashes.extend(res.get('Links'))
         return folder_hashes
 
+    async def cat(self, cid:str, offset:int=None, length:int=None)->bytes:
+        '''
+        Cat endpoint.
+        Args:
+            cid (str):
+                cid of the object.
+            offset (int):
+                The offset in bytes.
+            length  (int):
+                The length in bytes.
+            
+        Returns:
+            response (bytes):
+                
+
+            
+
+        '''
+        params = dict(arg=cid)
+        if offset != None:
+            params['offset'] = offset
+        if length != None:
+            params['length'] = length
+        headers = {}
+        response = await self.api_post('cat', params=params, headers=headers)
+        return response
     async def get_text_file_metas(self, file_meta:dict, num_hashes:int=50) -> List[str]:
         """
         Get text hashes from a folder
@@ -650,7 +678,7 @@ class GenesisTextDataset:
 
         """
         try:
-            data = await self.api_post(f'{self.ipfs_url}/cat', params={'arg':file_meta['Hash']}, return_json=False, num_chunks=10)
+            data = await self.api_post('cat', params={'arg':file_meta['Hash']}, return_json=False, num_chunks=10)
         except KeyError:
             return []
         decoded_hashes = []
@@ -666,7 +694,7 @@ class GenesisTextDataset:
             # hashes[i] =bytes('{'+ hashes[i+1] + '}')
 
     total = 0 
-    async def get_text(self, file_meta, loop=None, num_blocks=1, queue=None) -> str:
+    async def get_text(self, file_meta, offset:int = 0, length:int= 1024, loop=None, queue=None) -> str:
         
         """
         Get text hashes from a folder
@@ -689,27 +717,15 @@ class GenesisTextDataset:
 
         assert isinstance(file_meta, dict )
         
-        def task_cb(context):
-            self.total += len(context.result())
-
         headers = {}
         # we need to  set the 
         content_type = None
         url = f'{self.ipfs_url}/cat'
-        params={'arg':file_meta['Hash']}
-        timeout = aiohttp.ClientTimeout(sock_connect=10, sock_read=10)
-        async with aiohttp.ClientSession( timeout=timeout) as session:
-            async with session.post(url,params=params,headers=headers) as res:
-
-                # return_result = await res.json(content_type=content_type)
-                count = 0
-                async for data in res.content.iter_chunked(self.block_size):
-                    count += 1
-                    if isinstance(queue, Queue): 
-                        queue.put(str(data))
-                    else:
-                        if count >= num_blocks:
-                            return str(data)
+        data = await self.cat(cid=file_meta['Hash'],  offset= offset, length=length)
+        if isinstance(queue, Queue): 
+            queue.put(str(data))
+        else:
+            return str(data)
 
     async def get_links(self, file_meta:dict, **kwargs) -> List[dict]:
         '''
@@ -718,16 +734,16 @@ class GenesisTextDataset:
         Args
             file_meta (dict): 
                 Dictionary containing hash and name of root link
-        
+
         Returns (List[dict])
 
         '''
-        response = await self.api_post( url=f'{self.ipfs_url}/object/get',  params={'arg': file_meta['Hash']}, return_json= True)
+        response = await self.api_post( 'object/get',  params={'arg': file_meta['Hash']}, return_json= True)
         response_links = response.get('Links', [])
         return response_links
 
     async def api_post(self, 
-                      url:str, 
+                      endpoint:str, 
                       return_json:bool = False, 
                       content_type:str=None, 
                       chunk_size:int=1024, 
@@ -750,6 +766,7 @@ class GenesisTextDataset:
                 Number of chunks to stream.
         Returns (aiohttp.Response)
         '''
+        url = os.path.join(self.ipfs_url, endpoint)
         headers = kwargs.pop('headers', {}) 
         params = kwargs.pop('params', kwargs)
         return_result = None
@@ -774,11 +791,13 @@ class GenesisTextDataset:
         return return_result
 
     async def api_get(self, 
-                      url:str,
-                    return_json:bool = True,
+                      endpoint:str,
+                      headers:str={},
+                      params:str={},
+                     return_json:bool = True,
                      content_type:str=None, 
                      chunk_size:int=1024, 
-                     num_chunks:int=1,
+                     num_chunks:int=None,
                      **kwargs) -> 'aiohttp.Response':
         '''
         async api post
@@ -796,8 +815,7 @@ class GenesisTextDataset:
                 Number of chunks to stream.
         Returns (aiohttp.Response)
         '''
-        headers = kwargs.pop('headers', {}) 
-        params = kwargs.pop('params', kwargs)
+        url = os.path.join(self.ipfs_url, endpoint)
         return_result = None
         async with aiohttp.ClientSession(loop=self.loop) as session:
             async with session.get(url,params=params,headers=headers) as res:
