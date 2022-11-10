@@ -155,8 +155,9 @@ class axon:
         if thread_pool == None:
             thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
         if server == None:
+            receiver_hotkey = wallet.hotkey.ss58_address
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor(wallet=wallet, blacklist=blacklist),),
+                                  interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                   options = [('grpc.keepalive_time_ms', 100000),
                                              ('grpc.keepalive_timeout_ms', 500000)]
@@ -343,20 +344,20 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def __init__(
         self,
-        wallet: "bittensor.Wallet",
+        receiver_hotkey: str,
         blacklist: Callable = None,
     ):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
-            wallet(bittensor.Wallet):
-                the wallet of the receiver which runs the interceptor
+            receiver_hotkey(str):
+                the SS58 address of the hotkey which should be targeted by RPCs
             black_list (Function, `optional`):
                 black list function that prevents certain pubkeys from sending messages
         """
         super().__init__()
         self.nonces = {}
         self.blacklist = blacklist
-        self.wallet = wallet
+        self.receiver_hotkey = receiver_hotkey
 
     def parse_legacy_signature(
         self, signature: str
@@ -416,8 +417,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         keypair = Keypair(ss58_address=sender_hotkey)
         # Build the expected message which was used to build the signature.
         if format == 2:
-            receiver_hotkey = self.wallet.hotkey.ss58_address
-            message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{receptor_uuid}"
+            message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
         elif format == 1:
             message = f"{nonce}{sender_hotkey}{receptor_uuid}"
         else:
