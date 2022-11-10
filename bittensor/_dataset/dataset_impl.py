@@ -241,7 +241,7 @@ class GenesisTextDataset:
 
                 queue.put(raw_text)
 
-    def build_datasets(self, datasets:List[str]=None, save:bool=None, load:bool=None, loop:'asyncio.loop'=None) -> None :
+    def build_datasets(self, datasets:List[str]=None, save:bool=False, load:bool=False, loop:'asyncio.loop'=None) -> None :
         """ Building all of the datasets specified by getting each of their 
             text hashes from IPFS or local
         Args:
@@ -256,10 +256,6 @@ class GenesisTextDataset:
         """
         if datasets == None:
             datasets = self.datasets
-        if save == None:
-            save = self.save_dataset
-        if load == None:
-            load = self.load_dataset
 
         self.dataset_size = 0
 
@@ -270,7 +266,7 @@ class GenesisTextDataset:
 
         # Gather dataset hashes async as their state is independent.
         for dataset in datasets:
-            tasks += [self.build_single_dataset(dataset=dataset, save=save, load=load, loop=loop)]
+            tasks += [self.async_build_single_dataset(dataset=dataset, save=save, load=load, loop=loop)]
 
         dataset_hashes = self.async_run(asyncio.gather(*tasks), loop=loop)
 
@@ -406,7 +402,7 @@ class GenesisTextDataset:
 
         return output
 
-    async def build_single_dataset(self, dataset:str = None, num_folders = 10, num_samples:int = 40, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None) -> List[dict] :
+    async def async_build_single_dataset(self, dataset:str = None, num_folders = 10, num_samples:int = 40, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None) -> List[dict] :
         """ Building a single dataset by fetching its text file metas ({Hash:str, Name:str, Size: int})
         Args:
             dataset (List[str]):
@@ -526,7 +522,7 @@ class GenesisTextDataset:
 
 
 
-    def __getitem__(self, idx: int= None) -> Union[str, torch.tensor]:
+    def __getitem__(self, idx: int= None, filler_token:str='FILLER_TEXT') -> Union[str, torch.tensor]:
         '''
         Sample from queue or lazy loading. 
         This involves sampling large text files that are then cached, generating
@@ -537,6 +533,8 @@ class GenesisTextDataset:
         Args:
             idx (int):
                 Sample index of dataset
+            filler_token (str):
+                Filler token to pad raw text. 
             
         Returns:
             output_dict (Union[str, torch.tensor])
@@ -556,6 +554,8 @@ class GenesisTextDataset:
             # Reset Count.
             self.calls_for_current_block = 0
 
+
+        # only sample if the cache is less than the cache_sizex
         if len(self.cached_text_list) < self.cache_size:
             if self.run_generator :
                 raw_text = self.data_queue.get()
@@ -565,7 +565,6 @@ class GenesisTextDataset:
             
             self.cached_text_list.append(raw_text)
             if not self.no_tokenizer:
-                import streamlit as st
                 self.cached_text_list[-1] =  self.tokenizer(str(self.cached_text_list[-1]), padding=True)
 
 
@@ -575,8 +574,10 @@ class GenesisTextDataset:
             if (len(list(raw_text)) == self.sequence_length):
                 start_idx = 0
             else:
+                # Get the modulus of the sequence_length to get a relatively random vibe.
                 max_start_idx = (len(raw_text) - self.sequence_length)
                 start_idx = (idx * self.sequence_length) % max_start_idx
+
 
             end_idx = start_idx + self.sequence_length
             output_dict = raw_text[start_idx:end_idx]
