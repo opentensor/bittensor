@@ -40,7 +40,9 @@ synapses = [bittensor.synapse.TextLastHiddenState(),
             bittensor.synapse.TextCausalLM(),
             bittensor.synapse.TextCausalLMNext(),
             bittensor.synapse.TextSeq2Seq(num_to_generate=constant.synapse.num_to_generate)]
-dataset = bittensor.dataset(num_batches=20, dataset_name = ['ArXiv'], no_tokenizer=True)
+
+# NOTE: memory issues with larger batch sizes
+dataset = bittensor.dataset(num_batches=20, dataset_name = ['ArXiv'], no_tokenizer=True, sequence_length=10, batch_size=10)
 inputs = next(dataset)
 def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
