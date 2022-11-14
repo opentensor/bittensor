@@ -178,7 +178,7 @@ class neuron:
         # === Neuron statistics variables ===
         self.neuron_stats = {}  # neuron statistics dict of dicts: [uid] -> {'stat1': val1, 'stat2': val2, ...}
         self.neuron_hotkeys = []  # keep neuron hotkeys to compare and check for changes after metagraph.sync()
-        self.alpha = 0.05  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
+        self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
 
         if self.config.neuron.validation_synapse == 'TextCausalLMNext':
             self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
