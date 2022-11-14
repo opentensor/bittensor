@@ -43,7 +43,7 @@ synapses = [bittensor.synapse.TextLastHiddenState(),
 
 # NOTE: memory issues with larger batch sizes
 dataset = bittensor.dataset(num_batches=20, dataset_name = ['ArXiv'], no_tokenizer=True, sequence_length=10, batch_size=10)
-inputs = next(dataset)
+
 def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
     assert list(resp[0][0].shape) == [block_size, seq_len, bittensor.__network_dim__]
@@ -302,7 +302,7 @@ def test_successful_synapse():
     )
 
     dendrite = bittensor.dendrite()
-    # inputs = next(dataset)
+    inputs = next(dataset)
     synapses = [bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextCausalLM(),
                 bittensor.synapse.TextCausalLMNext(), bittensor.synapse.TextSeq2Seq(num_to_generate=20)]
 
@@ -351,7 +351,7 @@ def test_failing_synapse():
     )
 
     dendrite = bittensor.dendrite()
-    # inputs = next(dataset)
+    inputs = next(dataset)
     synapses = [bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextCausalLM(),
                 bittensor.synapse.TextCausalLMNext(), bittensor.synapse.TextSeq2Seq(num_to_generate=20)]
 
@@ -407,7 +407,7 @@ def test_missing_synapse():
     )
 
     dendrite = bittensor.dendrite()
-    # inputs = next(dataset)
+    inputs = next(dataset)
     synapses = [bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextCausalLM(),
                 bittensor.synapse.TextCausalLMNext(), bittensor.synapse.TextSeq2Seq(num_to_generate=20)]
 
@@ -466,7 +466,7 @@ def test_dendrite_timeout():
     )
 
     dendrite = bittensor.dendrite()
-    # inputs = next(dataset)
+    inputs = next(dataset)
     synapses = [bittensor.synapse.TextLastHiddenState(), bittensor.synapse.TextCausalLM(),
                 bittensor.synapse.TextCausalLMNext()]
 
