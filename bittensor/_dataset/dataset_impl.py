@@ -118,6 +118,7 @@ class GenesisTextDataset:
             buffer_size:int=100,
             num_batches: int = 100,
             max_datasets: int = 2,
+            num_folders: int = 10,
             max_directories: int=10,
             cache_size: int = 10, 
             cache_calls_per_block: int=100):
@@ -166,6 +167,7 @@ class GenesisTextDataset:
         self.num_workers = num_workers
         self.sequence_length = sequence_length
         self.datasets = datasets
+        self.num_folders = num_folders
         self.set_event_loop(loop=loop)
         # if datasets is None then refer to all of the availabe datasets 
         self.max_datasets = max_datasets
@@ -402,7 +404,7 @@ class GenesisTextDataset:
 
         return output
 
-    async def async_build_single_dataset(self, dataset:str = None, num_folders = 10, num_samples:int = 40, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None) -> List[dict] :
+    async def async_build_single_dataset(self, dataset:str = None, num_folders = None, num_samples:int = 10000, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None) -> List[dict] :
         """ Building a single dataset by fetching its text file metas ({Hash:str, Name:str, Size: int})
         Args:
             dataset (List[str]):
@@ -420,10 +422,13 @@ class GenesisTextDataset:
 
         Returns: None
         """
+        num_folders = num_folders if num_folders else self.num_folders
+            
         folder_hashes = (await self.get_folder_hashes(self.dataset2hash[dataset]))[:num_folders]
+
+        # In some cases, the dataset is the folder hash. This will throw an error otherwise
         if len(folder_hashes) == 0:
             folder_hashes = [self.dataset2hash[dataset]]
-        
         random.shuffle(folder_hashes)
 
         hash2file_meta = {}
@@ -434,22 +439,30 @@ class GenesisTextDataset:
 
 
         if len(hash2file_meta)<num_samples:
+            tasks = []
             for f in folder_hashes:
                 self.total = 0
-                loaded_file_metas = await self.get_text_file_metas(f)
-                for file_meta in loaded_file_metas:
+                tasks.append(self.get_text_file_metas(f))
+            
+            loaded_file_metas = []
+            for folder_text_file_metas in await asyncio.gather(*tasks):
+                for file_meta in folder_text_file_metas:
+                    if 'Size' in file_meta and 'Hash' in file_meta:
+                        loaded_file_metas.append(file_meta)
 
+                for file_meta in loaded_file_metas:
+                    # sometimes the file_meta is empty.
                     hash2file_meta[file_meta['Hash']] = file_meta   
                     if len(hash2file_meta) >=num_samples:
                         break
 
-                if len(hash2file_meta) >=num_samples:
-                    break
-
         text_file_metas = list(hash2file_meta.values())
+
 
         if save:
             self.save_json(path=f'{dataset}/file_metas', obj=text_file_metas, loop=loop)
+        
+        
         return text_file_metas
 
 
@@ -567,7 +580,7 @@ class GenesisTextDataset:
             if not self.no_tokenizer:
                 self.cached_text_list[-1] =  self.tokenizer(str(self.cached_text_list[-1]), padding=True)
 
-
+        
         if self.no_tokenizer:
             random_text_block =  random.choice(self.cached_text_list)
             raw_text =random_text_block.split()
@@ -587,9 +600,11 @@ class GenesisTextDataset:
             output_dict = ' '.join(output_dict)
         else:
             tokenized_dict = random.choice(self.cached_text_list)
-
+            
             start_idx = idx * self.sequence_length % (len(list(tokenized_dict.values())[0]) - self.sequence_length)
             end_idx = start_idx + self.sequence_length
+
+
             
             output_dict = {}
             for k,v in tokenized_dict.items():  
@@ -663,7 +678,7 @@ class GenesisTextDataset:
         if length != None:
             params['length'] = length
         headers = {}
-        response = await self.api_post('cat', params=params, headers=headers)
+        response = await self.api_post('cat', params=params, headers=headers, chunk_size=length, num_chunks=1)
         return response
     async def get_text_file_metas(self, file_meta:dict, num_hashes:int=50) -> List[str]:
         """
@@ -678,7 +693,8 @@ class GenesisTextDataset:
         Returns List[str]
 
         """
-        data = await self.api_post('cat', params={'arg':file_meta['Hash']}, return_json=False,  num_chunks=10)
+
+        data = await self.api_post('cat', params={'arg':file_meta['Hash'], 'offset': 0, 'length': self.block_size}, return_json=False,  chunk_size=self.block_size,  num_chunks=100)
         decoded_hashes = []
         hashes = ['['+h + '}]'for h in data.decode().split('},')]
         for i in range(len(hashes)-1):
@@ -689,7 +705,8 @@ class GenesisTextDataset:
 
             if len(decoded_hashes) >= num_hashes:
                 return decoded_hashes
-            # hashes[i] =bytes('{'+ hashes[i+1] + '}')
+
+            hashes[i] ='{'+ hashes[i+1] + '}'
         
         return decoded_hashes
 

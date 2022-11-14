@@ -52,6 +52,7 @@ class dataset:
             num_batches: int = None,
             run_generator: bool = False,
             cache_size: int = 5, 
+            num_folders: int = 10,
             cache_calls_per_block: int = 100,
             _mock:bool=None
         ):
@@ -74,6 +75,8 @@ class dataset:
                     To return non-tokenized text (EXPERIMENTAL, DO NOT USE)
                 num_batches (:obj:`int`, `optional`):
                     The number of batches of data to prepare for the dataloader.
+                num_folders (int):
+                    The number of folders per dataset.
                 _mock (:obj:`bool`, `optional`):
                     For testing, if true the dataset if filled with fake text data.  
         """   
@@ -91,6 +94,8 @@ class dataset:
         config.dataset.run_generator = run_generator if run_generator != None else config.dataset.run_generator
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
         config.dataset.num_batches = num_batches if num_batches != None else config.dataset.num_batches
+        config.dataset.num_folders = num_folders if num_folders != None else config.dataset.num_folders
+
         config.dataset.cache_size = cache_size if cache_size != None else config.dataset.cache_size
         config.dataset.cache_calls_per_block = cache_calls_per_block if cache_calls_per_block != None else config.dataset.cache_calls_per_block
 
@@ -125,6 +130,7 @@ class dataset:
                 no_tokenizer = config.dataset.no_tokenizer,
                 num_batches = config.dataset.num_batches,
                 run_generator = config.dataset.run_generator,
+                num_folders = config.dataset.num_folders,
                 max_directories = config.dataset.max_directories
             )
 
