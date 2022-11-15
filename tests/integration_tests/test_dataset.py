@@ -48,24 +48,22 @@ def test_change_data_size():
 def test_text_dataset():
     
     batch_size = 10
-    block_size = 128
-    num_batches = 5
-    epoch_length = 5
+    sequence_length = 128
+    block_size = 100
+
 
     dataset = bittensor.dataset (
-        _mock = True,
-        batch_size = batch_size, 
         block_size = block_size,
-        num_batches = num_batches
+        batch_size = batch_size,
+        sequence_length = sequence_lengt
     )
-    
-    dataloader = dataset.dataloader(epoch_length)
 
-    assert len(dataloader) == epoch_length
-    assert len(dataloader) != len(dataset)
-    assert len(dataset[0]) == block_size
-    assert len(dataloader.dataset) == batch_size * epoch_length
     
+
+
+    input = next(dataloader)
+    assert input.shape[0] == batch_size
+    assert input.shape[1] == sequence_length
     dataset.close()
 
 
