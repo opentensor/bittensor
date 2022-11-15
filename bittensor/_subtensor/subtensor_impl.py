@@ -1678,7 +1678,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             fast_sync: FastSync = FastSync(endpoint_url)
             # get blockAtRegistration_all
             blockAtRegistration_all = fast_sync.get_blockAtRegistration_for_all_fd(block_hash)
-            
+
             return blockAtRegistration_all
         except Exception as e:
             raise SyncException("Failed to get blockAtRegistration_all: {}".format(e))
@@ -1758,7 +1758,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron.is_null = False
             return neuron
 
-    def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None ]: 
+    def neuron_for_uid( self, uid: int, block: int = None ) -> Optional[SimpleNamespace]:
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
@@ -1766,25 +1766,71 @@ To run a local node (See: docs/running_a_validator.md) \n
             block ( int ):
                 The neuron at a particular block
         Returns:
-            neuron (dict(NeuronMetadata)):
+            neuron Optional[SimpleNamespace]:
                 neuron object associated with uid or None if it does not exist.
         """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                result = dict( substrate.query( 
-                    module='SubtensorModule',  
-                    storage_function='Neurons', 
-                    params = [ uid ], 
-                    block_hash = None if block == None else substrate.get_block_hash( block )
-                ).value )
-            return result
+        if self.use_fast_sync:
+            try:
+                return self.neuron_for_uid_fast(uid, block)
+            except SyncException as e:
+                logger.warning("Failed to get blockAtRegistration_all fast, falling back to manual sync.: {}".format(e))
+                self.use_fast_sync = False
+                return self.neuron_for_uid(uid, block)
+        else:
+            @retry(delay=2, tries=3, backoff=2, max_delay=4)
+            def make_substrate_call_with_retry():
+                with self.substrate as substrate:
+                    result = dict( substrate.query( 
+                        module='SubtensorModule',  
+                        storage_function='Neurons', 
+                        params = [ uid ], 
+                        block_hash = None if block == None else substrate.get_block_hash( block )
+                    ).value )
+                return result
+            try:
+                result = make_substrate_call_with_retry()
+                neuron = Subtensor._neuron_dict_to_namespace( result )
+            except Exception as e:
+                raise NeuronPullException("Failed to pull neuron for uid: {} at block: {} with error: {}".format(uid, block, e))
+            return neuron
+
+    def neuron_for_uid_fast( self, uid: int, block: int = None ) -> Optional[SimpleNamespace]:
+        r""" Returns a neuron from the chain, using subtensorapi
+        Args:
+            uid ( int ):
+                The uid of the neuron to query for.
+            block ( int ):
+                The block number to query for.
+        Returns:
+            neuron Optional[SimpleNamespace]:
+                neuron object associated with uid or None if it does not exist.
+        """
+        neuron = None
+        if block is None:
+            block: int = "latest"
+
+        endpoint_url: str = self.chain_endpoint
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
+        
         try:
-            result = make_substrate_call_with_retry()
-            neuron = Subtensor._neuron_dict_to_namespace( result )
+            from subtensorapi import FastSync
+        except ImportError:
+            raise SyncException("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+        
+        try:
+            # check if fast sync is available
+            FastSync.verify_fast_sync_support()
+            # try to fast sync
+            fast_sync: FastSync = FastSync(endpoint_url)
+            # get historical neuron
+            result = fast_sync.sync_historical_fd(block_numbers=[block], uids=[uid])
+            block_requested = list(result.values())[0]
+            neuron = block_requested[uid] 
         except Exception as e:
-            raise NeuronPullException("Failed to pull neuron for uid: {} at block: {} with error: {}".format(uid, block, e))
+            raise SyncException("Failed to fast sync neuron: {}".format(e))
+
         return neuron
+        
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
         r""" Returns true if the passed hotkey is registered on the chain.
