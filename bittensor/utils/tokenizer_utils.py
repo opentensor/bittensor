@@ -866,11 +866,17 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
                  [...]]
     """
 
+    atol = 1e-6  # absolute tolerance
     # Find probability markers (per batch item: topk phrase probabilities + floor_prob)
-    prob_idx = torch.where(compact_topk <= 1.5)[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
+    prob_idx = torch.where((-atol < compact_topk) & (compact_topk < 1 + atol))[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
 
     batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
-    assert batch_size * (topk + 1) == len(prob_idx), f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
+    assert batch_size * (topk + 1) == len(prob_idx), f'unravel_topk_token_phrases() probability marker failure: ' \
+                                                     f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
+
+    probs = torch.clamp(compact_topk[prob_idx], 0, 1)  # [batch_size * (topk + 1)] ensure probabilities within [0, 1]
+    probs_sum = probs.reshape(batch_size, topk + 1).sum(dim=1)  # [batch_size, (topk + 1)]
+    assert torch.all((-atol < probs_sum) & (probs_sum < 1 + atol)), f'unravel_topk_token_phrases(): probs_sum not in [0, 1]'
 
     # Obtain phrase lengths and maximum phrase length
     phrase_len = prob_idx[1:] - prob_idx[:-1]  # [batch_size * (topk + 1) - 1] length of each phrase
@@ -900,7 +906,7 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     topk_tensor -= 2  # remove token offset, overwrites probability column, replace probabilities below
 
     # grafting probability tensors into first column to attach gradients
-    topk_tensor[:, 0] = compact_topk[prob_idx]  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
+    topk_tensor[:, 0] = probs  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
     topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
 
@@ -952,6 +958,9 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
     topk_tokens = topk_tensor[:, :-1, 1:]  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
     topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
     floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
+
+    topk_probs = torch.clamp(topk_probs, 0, 1)  # [batch_size, topk] ensure probabilities within [0, 1]
+    floor_probs = torch.clamp(floor_probs, 0, 1)  # [batch_size] ensure floor probabilities within [0, 1]
 
     # === Ensure total probability is 1 ===
     total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
