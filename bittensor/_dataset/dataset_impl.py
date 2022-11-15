@@ -97,10 +97,10 @@ class GenesisTextDataset:
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
 
-    ipfs_url = 'http://global.ipfs.opentensor.ai/api/v0'
-    dataset_dir = 'http://global.ipfs.opentensor.ai/api/v0/cat' 
-    text_dir = 'http://global.ipfs.opentensor.ai/api/v0/object/get'
-    mountain_hash = 'QmSdDg6V9dgpdAFtActs75Qfc36qJtm9y8a7yrQ1rHm7ZX'
+    ipfs_url = bittensor.__ipfs_url__
+    dataset_dir = bittensor.__dataset_dir__
+    text_dir = bittensor.__text_dir__
+    mountain_hash = bittensor.__mountain_hash__
 
     def __init__(
             self, 
