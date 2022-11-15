@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import types
 import bittensor
 import torch
 from typing import Union, List, Tuple, Optional
@@ -29,13 +30,12 @@ class TextLastHiddenState (Synapse):
     @staticmethod
     def shift_mask_based_on_shape ( mask: List[int], batch_size: int, sequence_length: int ) -> List[int]:
         # Expands mask based on batch size and sequence length.
-
         # Translate mask to explicit postion -1 --> sequence_length etc.
         translated_mask = []
         for mask_i in mask:
             if mask_i < -sequence_length or mask_i > sequence_length:
                 raise ValueError("Mask element {} cannot be interpreted for sequence_length {}".format(mask_i, sequence_length) )
-            translated_mask.appned( list( range( sequence_length ) )[ mask_i ] )
+            translated_mask.append( list( range( sequence_length ) )[ mask_i ] )
 
         # Shift mask to absolute positions 2 --> [ 2, 2 + 1 * sequence_len, 2 + 2 * sequence_len, ... ]
         shifted_mask = []
@@ -158,13 +158,18 @@ class TextLastHiddenState (Synapse):
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
+        
+        # If there is no mask, we simply return the full tensor.
+        if self.mask == None or len( self.mask ) == 0:
+            return forward_response_tensor
 
         # Expand mask based on batch size and sequence length.
         shifted_mask = TextLastHiddenState.shift_mask_based_on_shape( 
             self.mask, 
-            batch_size = forward_response_tensor.shape(0),
-            sequence_length  = forward_response_tensor.shape(1)
+            batch_size = forward_response_tensor.shape[0],
+            sequence_length = forward_response_tensor.shape[1]
         )
+        print (shifted_mask)
 
         # Reshape the forward_response_tensor to a stack of representations
         # stacked_forward_response_tensor [ bs * seq, net_dim ]
@@ -173,9 +178,14 @@ class TextLastHiddenState (Synapse):
         # The self.mask is a list of indices which refer to distinct rows in the  
         # stacked stacked_forward_response_tensor [ bs * seq, net_dim ]. We pull only these 
         # representations for the encoding so the respons has shape [ len(mask), net_dim ]
-        return stacked_forward_response_tensor[ shifted_mask : ]
+        return stacked_forward_response_tensor[ shifted_mask, : ]
 
     def decode_forward_response_tensor   ( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
+
+        # If there is no mask, we simply return the full tensor.
+        if self.mask == None or len( self.mask ) == 0:
+            return forward_response_tensor
+
         # Expand mask based on batch size and sequence length.
         shifted_mask = TextLastHiddenState.shift_mask_based_on_shape( 
             self.mask, 
@@ -191,7 +201,7 @@ class TextLastHiddenState (Synapse):
         # Iterate through the mask and the rows of the forward_response_tensor
         # replacing each row in the destination with the row from the response_tensor.
         for i, j in list(zip(shifted_mask, len( shifted_mask ))):
-            destination[i,:] = forward_response_tensor[j,:]
+            destination[i, :] = forward_response_tensor[j, :]
         
         # Reshape the destination tensor to the proper expanded size.
         destination.reshape( (forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__network_dim__) )

@@ -141,7 +141,7 @@ message Synapse {
 		bool requires_grad = 6;
 
 		// Mask
-		repeated int mask = 7;
+		repeated int32 mask = 7;
 	}
 
 	message TextCausalLM {
