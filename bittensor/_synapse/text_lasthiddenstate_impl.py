@@ -26,37 +26,25 @@ class TextLastHiddenState (Synapse):
     """
     synapse_type: bittensor.proto.Synapse.SynapseType = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE
 
-    def interpret_mask_for_request_tensor( mask: Union[ int, List[int] ], request_tensor ) -> List[int]:
-        bs, _, _ = request_tensor.shape
+    @staticmethod
+    def shift_mask_based_on_shape ( mask: List[int], batch_size: int, sequence_length: int ) -> List[int]:
+        # Expands mask based on batch size and sequence length.
 
-        # Converts an integer mask to a real index.
-        def translate_int_mask( int_mask:int ) -> int:
-            if int_mask < -bs or int_mask > bs:
-                raise ValueError("Mask element {} cannot be interpreted for tensor of shape {}".format(int_mask, request_tensor.shape))
-            # Translate mask to real index -1 --> (bs-1)
-            translated_mask = list( range( bs ) )[ mask ]
-            return translated_mask
+        # Translate mask to explicit postion -1 --> sequence_length etc.
+        translated_mask = []
+        for mask_i in mask:
+            if mask_i < -sequence_length or mask_i > sequence_length:
+                raise ValueError("Mask element {} cannot be interpreted for sequence_length {}".format(mask_i, sequence_length) )
+            translated_mask.appned( list( range( sequence_length ) )[ mask_i ] )
 
-        # Interpret mask from solo int.
-        if isinstance( mask, int ):
-            int_mask = translate_int_mask(mask)
-            # Interprets the mask as refering the to an index from each example
-            # in the batch.
-            return [ int_mask * (i+1) for i in range(bs) ]
+        # Shift mask to absolute positions 2 --> [ 2, 2 + 1 * sequence_len, 2 + 2 * sequence_len, ... ]
+        shifted_mask = []
+        for batch_index_i in range( batch_size ):
+            for mask_i in translated_mask:
+                shift = batch_index_i * sequence_length
+                shifted_mask.append( mask_i + shift )
 
-        # Interpret mask as list of ints
-        elif isinstance( mask, list ):
-            # Translate mask to real index -1 --> (bs-1)
-            translated_masks = [ translate_int_mask(mi) for mi in mask ]
-            shifted_mask = []
-            for bi in range(bs):
-                for mi in translated_masks:
-                    shifted_mask.append( mi * (bi + 1) )
-            return shifted_mask
-
-        # Interpret mask as a double list of ints
-        else:
-            raise ValueError("Mask element {} must be of type Union[ int, List[int] ], got {}".format(mask, type(mask) ))
+        return shifted_mask
 
 
     def __init__( 
@@ -170,6 +158,14 @@ class TextLastHiddenState (Synapse):
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
+
+        # Expand mask based on batch size and sequence length.
+        shifted_mask = TextLastHiddenState.shift_mask_based_on_shape( 
+            self.mask, 
+            batch_size = forward_response_tensor.shape(0),
+            sequence_length  = forward_response_tensor.shape(1)
+        )
+
         # Reshape the forward_response_tensor to a stack of representations
         # stacked_forward_response_tensor [ bs * seq, net_dim ]
         stacked_forward_response_tensor = forward_response_tensor.reshape( -1, bittensor.__network_dim__ )
@@ -177,9 +173,16 @@ class TextLastHiddenState (Synapse):
         # The self.mask is a list of indices which refer to distinct rows in the  
         # stacked stacked_forward_response_tensor [ bs * seq, net_dim ]. We pull only these 
         # representations for the encoding so the respons has shape [ len(mask), net_dim ]
-        return stacked_forward_response_tensor[ self.mask, : ]
+        return stacked_forward_response_tensor[ shifted_mask : ]
 
     def decode_forward_response_tensor   ( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
+        # Expand mask based on batch size and sequence length.
+        shifted_mask = TextLastHiddenState.shift_mask_based_on_shape( 
+            self.mask, 
+            batch_size = forward_response_tensor.shape(0),
+            sequence_length  = forward_response_tensor.shape(1)
+        )
+
         # From the encode_forward_response function the forward_response_tensor is [ len(mask), net_dim ]
         # a set of rows from the stacked_forward_response_tensor = [ bs * seq, net_dim ]
         # We will load these rows into a destination tensor = [bs, seq, net_dim]
@@ -187,7 +190,7 @@ class TextLastHiddenState (Synapse):
 
         # Iterate through the mask and the rows of the forward_response_tensor
         # replacing each row in the destination with the row from the response_tensor.
-        for i, j in list(zip(self.mask, len(self.mask))):
+        for i, j in list(zip(shifted_mask, len( shifted_mask ))):
             destination[i,:] = forward_response_tensor[j,:]
         
         # Reshape the destination tensor to the proper expanded size.
