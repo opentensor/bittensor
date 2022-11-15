@@ -420,7 +420,9 @@ class GenesisTextDataset:
             loop (asyncio.Loop):
                 Asyncio loop 
 
-        Returns: None
+        Returns: 
+            text_file_metas (List[Dict): 
+                List of text file metas with the format of {Hash:String, Size:String, Name:String}
         """
         num_folders = num_folders if num_folders else self.num_folders
             
@@ -538,7 +540,7 @@ class GenesisTextDataset:
 
 
 
-    def __getitem__(self, idx: int= None, filler_token:str='FILLER_TEXT') -> Union[str, torch.tensor]:
+    def __getitem__(self, idx: Optional[int]= None, filler_token:str='FILLER_TEXT') -> Union[str, torch.tensor]:
         '''
         Sample from queue or lazy loading. 
         This involves sampling large text files that are then cached, generating
