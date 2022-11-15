@@ -8,6 +8,14 @@
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.4.2...v3.4.3
 
+## 3.4.2 / 2022-11-09
+
+## What's Changed
+* Adding 3.4.0 changelog to CHANGELOG.md by @eduardogr in https://github.com/opentensor/bittensor/pull/953
+* Release 3.4.2 by @unconst in https://github.com/opentensor/bittensor/pull/970
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.4.1...v3.4.2
 
 ## 3.4.1 / 2022-10-13
 
