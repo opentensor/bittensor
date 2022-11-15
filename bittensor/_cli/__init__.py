@@ -993,7 +993,7 @@ class cli:
             model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
             config.model = model
 
-        if 'server' in config.model and config.synapse == 'None' and not config.no_prompt:
+        if 'server' in config.model and config.get('synapse', 'None') == 'None' and not config.no_prompt:
             synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__) + ['All'], default = 'All')
             config.synapse = synapse
 
