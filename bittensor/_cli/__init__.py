@@ -742,15 +742,27 @@ class cli:
                 sys.exit()
             else:
                 config.dest = str(dest)
+
+        # Get current balance and print to user.
+        if not config.no_prompt:
+            wallet = bittensor.wallet( config )
+            subtensor = bittensor.subtensor( config )
+            with bittensor.__console__.status(":satellite: Checking Balance..."):
+                account_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+                bittensor.__console__.print("Balance: [green]{}[/green]".format(account_balance))
                     
         # Get amount.
         if not config.get('amount'):
-            amount = Prompt.ask("Enter Tao amount to transfer")
-            try:
-                config.amount = float(amount)
-            except ValueError:
-                console.print(":cross_mark:[red] Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
-                sys.exit()
+            if not config.no_prompt:
+                amount = Prompt.ask("Enter TAO amount to transfer")
+                try:
+                    config.amount = float(amount)
+                except ValueError:
+                    console.print(":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(amount))
+                    sys.exit()
+            else:
+                console.print(":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(amount))
+                sys.exit(1)
 
     def check_unstake_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
