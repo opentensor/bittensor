@@ -123,6 +123,10 @@ class TextCausalLMNext(Synapse):
                              f"[>={forward_request_tensor.shape[0]} x (2 x {self.topk} + 1)], "
                              f"got: {forward_response_tensor.size(0)} for synapse: {self}")
 
+        atol = 1e-6  # absolute tolerance
+        if (forward_response_tensor < -atol).any():
+            raise ValueError("forward_response_tensor values below tolerance.")
+
     def check_backward_request_gradient(self, forward_request_tensor, backward_request_gradient):
         # forward_request_tensor: [batch_size, sequence_len]
         # backward_request_gradient: [batch_size, (topk + 1), max_len]
