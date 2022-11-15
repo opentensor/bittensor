@@ -30,8 +30,40 @@ import torch
 from loguru import logger
 from torch.utils.data.dataloader import DataLoader
 import bittensor
-
 logger = logger.opt(colors=True)
+
+
+def chunk(sequence:list, 
+        chunk_size:Optional[int]=None, 
+        append_remainder:bool=False,
+        distribute_remainder:bool=False,
+        num_chunk: Optional[int]= None):
+    # Chunks of 1000 documents at a time.
+
+    if chunk_size is None:
+        assert (type(num_chunks) == int)
+        chunk_size = len(sequence) // num_chunks
+
+    if chunk_size >= len(sequence):
+        return [sequence]
+    remainder_chunk_len = len(sequence) % chunk_size
+    remainder_chunk = sequence[:remainder_chunk_len]
+    sequence = sequence[remainder_chunk_len:]
+    sequence_chunks = [sequence[j:j + chunk_size] for j in range(0, len(sequence), chunk_size)]
+
+    if append_remainder:
+        # append the remainder to the sequence
+        sequence_chunks.append(remainder_chunk)
+    else:
+        if distribute_remainder:
+            # distributes teh remainder round robin to each of the chunks
+            for i, remainder_val in enumerate(remainder_chunk):
+                chunk_idx = i % len(sequence_chunks)
+                sequence_chunks[chunk_idx].append(remainder_val)
+
+    return sequence_chunks
+
+
 
 class ThreadManager:
     """ Base threadpool executor with a priority queue 
@@ -88,13 +120,9 @@ class ThreadManager:
             for t in self._threads:
                 t.join()
 
-
-
-
 class GenesisTextDataset:
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
-
     ipfs_url = bittensor.__ipfs_url__
     dataset_dir = bittensor.__dataset_dir__
     text_dir = bittensor.__text_dir__
@@ -117,6 +145,7 @@ class GenesisTextDataset:
             num_batches: int = 100,
             max_datasets: int = 2,
             num_folders: int = 10,
+            max_blocks_per_dataset: int = 10,
             max_directories: int=10,
             cache_size: int = 10, 
             cache_calls_per_block: int=100):
@@ -159,12 +188,12 @@ class GenesisTextDataset:
 
         """
         self.__infinite_dataset_iterator = None
-        self.dataset_size = 0
         self.batch_size = batch_size
         self.block_size = block_size
         self.num_workers = num_workers
         self.sequence_length = sequence_length
         self.datasets = datasets
+        self.max_blocks_per_dataset = max_blocks_per_dataset
         self.num_folders = num_folders
         self.set_event_loop(loop=loop)
         # if datasets is None then refer to all of the availabe datasets 
@@ -181,22 +210,20 @@ class GenesisTextDataset:
         self.run_generator= run_generator
         self.buffer_size = buffer_size
         self.num_batches = num_batches
-        self.max_directories = max_directories
-        self.cache_size = cache_size
-        self.cache_calls_per_block = cache_calls_per_block
-        self.set_cache(cache_size=self.cache_size, 
-                       cache_calls_per_block=self.cache_calls_per_block)
+
+        self.sample_count = 0
+        self.batch_count = 0
        
        
        # we need to build the dataset or load existing text file hashes
         # notice the heirarchy of ipfs hashes is DATASET -> FOLDER -> TEXT HASH, 
         # we want to flatten each dataset FOLDER -> TEXT HASH into FOLDER*TEXT
         self.build_datasets(datasets=self.datasets, load=self.load_dataset, save=self.save_dataset)
-
+        self.set_cache(cache_size=cache_size)
         # this runs the a thread that has its own asyncio loop. 
         # The loop is passed into nested async functions to use loo.run_until_complete function
         if self.run_generator:
-            self.data_queue = Queue(buffer_size)
+            self.data_queue = Queue(self.cache_size)
 
             # the thread manager is used for running a background thread
             self.thread_manager = ThreadManager()
@@ -226,20 +253,24 @@ class GenesisTextDataset:
             asyncio.set_event_loop(loop)
 
         # run through each chunk, then tokenize it,
-
         batch_count = 0
+
+        sample_cat_params_chunks = chunk(self.sample_cat_params_list, self.cache_size)
         
-
-        for text_hash in self.all_text_file_metas:
-
-            if batch_count > self.num_batches:
+        sample_count = 0
+        batch_count = 0
+        for sample_cat_params_chunk in sample_cat_params_chunks:
+            tasks = [self.cat(**sample_cat_params) for sample_cat_params in sample_cat_params_chunk]
+            sample_list = self.async_run(asyncio.gather(*tasks), loop=loop)
+            sample_count += len(sample_list)
+            batch_count = sample_count // self.batch_size
+            for sample in sample_list:
+                queue.put(sample)
+        
+            if batch_count >= self.num_batches:
                 break
-            raw_text = self.async_run(self.get_text(file_meta=text_hash), loop=loop)
 
-            if not queue.full():
-            # skip queue if it is full
 
-                queue.put(raw_text)
 
     def build_datasets(self, datasets:List[str]=None, save:bool=False, load:bool=False, loop:'asyncio.loop'=None) -> None :
         """ Building all of the datasets specified by getting each of their 
@@ -263,6 +294,7 @@ class GenesisTextDataset:
 
         tasks = []
 
+        self.dataset_size_map = {d:0 for d in datasets}
         # Gather dataset hashes async as their state is independent.
         for dataset in datasets:
             tasks += [self.async_build_single_dataset(dataset=dataset, save=save, load=load, loop=loop)]
@@ -274,17 +306,17 @@ class GenesisTextDataset:
             if len(v) > 0:
                 dataset_hash_map[k] = v
                 
-        self.dataset_size = 0
-        self.dataset_size_map = {}
         self.dataset_hash_map = dataset_hash_map
         for  k,file_meta_list in dataset_hash_map.items():
             all_text_file_metas += v
-            self.dataset_size_map[k] =  sum([f['Size'] for f in file_meta_list])
-            self.dataset_size += self.dataset_size_map[k]
-            print(self.dataset_size_map[k])
         self.all_text_file_metas = all_text_file_metas
 
-
+        self.sample_cat_params_list = [] 
+        for file_meta in self.all_text_file_metas:
+            for offset in range(0, file_meta['Size'], self.block_size):
+                if file_meta['Size'] - offset >= self.block_size:
+                    params = { 'cid': file_meta['Hash'],'offset': offset, 'length': self.block_size}
+                    self.sample_cat_params_list.append(params)
     construct_text_corpus = build_datasets
     async def async_save_json(self, 
                               path:str,
@@ -402,7 +434,7 @@ class GenesisTextDataset:
 
         return output
 
-    async def async_build_single_dataset(self, dataset:str = None, num_folders = None, num_samples:int = 10000, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None) -> List[dict] :
+    async def async_build_single_dataset(self, dataset:str = None, num_folders = None, save:bool=False, load:bool=True, loop: 'asyncio.loop' =None) -> List[dict] :
         """ Building a single dataset by fetching its text file metas ({Hash:str, Name:str, Size: int})
         Args:
             dataset (List[str]):
@@ -431,30 +463,27 @@ class GenesisTextDataset:
             folder_hashes = [self.dataset2hash[dataset]]
         random.shuffle(folder_hashes)
 
+
         hash2file_meta = {}
         if load:
             loaded_file_metas =  self.load_json(path=f'{dataset}/file_metas', default=[], loop=loop)
             for file_meta in loaded_file_metas:
                 hash2file_meta[file_meta['Hash']] = file_meta
 
+        tasks = []
+        for f in folder_hashes:
+            self.total = 0
+            tasks.append(self.get_text_file_metas(f, dataset=dataset))
+        
+        loaded_file_metas = []
+        for folder_text_file_metas in await asyncio.gather(*tasks):
+            for file_meta in folder_text_file_metas:
+                if 'Size' in file_meta and 'Hash' in file_meta:
+                    loaded_file_metas.append(file_meta)
 
-        if len(hash2file_meta)<num_samples:
-            tasks = []
-            for f in folder_hashes:
-                self.total = 0
-                tasks.append(self.get_text_file_metas(f))
-            
-            loaded_file_metas = []
-            for folder_text_file_metas in await asyncio.gather(*tasks):
-                for file_meta in folder_text_file_metas:
-                    if 'Size' in file_meta and 'Hash' in file_meta:
-                        loaded_file_metas.append(file_meta)
-
-                for file_meta in loaded_file_metas:
-                    # sometimes the file_meta is empty.
-                    hash2file_meta[file_meta['Hash']] = file_meta   
-                    if len(hash2file_meta) >=num_samples:
-                        break
+            for file_meta in loaded_file_metas:
+                # sometimes the file_meta is empty.
+                hash2file_meta[file_meta['Hash']] = file_meta   
 
         text_file_metas = list(hash2file_meta.values())
 
@@ -465,28 +494,6 @@ class GenesisTextDataset:
         
         return text_file_metas
 
-
-    def idx2filemeta(self, idx:int=0) -> Dict: 
-        '''
-        convert a sample idx to filemeta text file. This assumes that multiple samples can 
-        occupy a single text file given the size of most of the files.
-        Args:
-
-            idx (int): 
-                sample index
-        
-        Returns (Dict)
-            File Mets
-        '''
-        current_idx = 0 
-        for file_meta in self.all_text_file_metas:
-            step = file_meta['Size'] // self.block_size
-            current_idx += step
-            if current_idx >= idx:
-                file_meta['start_bytes'] = idx - current_idx
-                return file_meta
-
-        return file_meta
 
     def set_data_size(self, batch_size, block_size) -> None:
         r""" Update the size of data (batch_size, block_size) that we need.
@@ -530,14 +537,38 @@ class GenesisTextDataset:
 
 
 
-    def set_cache(self, cache_size=10, cache_calls_per_block=100) -> None:
-        self.cached_text_list = [] # Cache list for raw text.
-        self.cache_size = cache_size  # The maximum size of the cache (FIFO).
-        self.calls_for_current_block = 0 # The number of current calls on the set of blocks
-        self.cache_calls_per_block = cache_calls_per_block # The maximum calls ber block before replacing a block with a new block.
+    def set_cache(self, cache_size=10) -> list:
+        '''
+        Set the cache
+        '''
+        self.sample_cache = [] # Cache list for raw text.
+        self.cache_size = min(cache_size, len(self) )  # The maximum size of the cache (FIFO).
+        self.cache_size = (self.cache_size // self.batch_size) * self.batch_size
+        return self.sample_cache
+
+    @property
+    def num_free_cache_slots(self):
+        '''
+        Number of free cache slots
+        '''
+        return self.cache_size - len(self.sample_cache)
 
 
+    def resolve_sample_cache(self)-> List[str]:
+        '''
+        Checks the sample cache, and builds it if it is empty
 
+        Returns:
+            self.sample_cache (List[str]): 
+                The sample cache.
+        '''
+        if len(self.sample_cache) == 0:
+            sample_cat_params_list = random.sample(self.sample_cat_params_list, self.cache_size)
+            cache_sample_tasks = [self.cat(**sample_cat_params) for sample_cat_params in sample_cat_params_list]
+            self.sample_cache = self.async_run(asyncio.gather(*cache_sample_tasks))
+
+
+        return self.sample_cache
     def __getitem__(self, idx: Optional[int]= None, filler_token:str='FILLER_TEXT') -> Union[List[str], torch.tensor]:
         '''
         Sample from queue or lazy loading. 
@@ -560,52 +591,29 @@ class GenesisTextDataset:
         # Random sampel idx if None.
         if idx == None:
             idx = random.randint(0, self.__len__())
-        
-        # Increment block.
-        self.calls_for_current_block += 1
-        if self.calls_for_current_block>self.cache_calls_per_block:
-            # Remove earliest block with new one.
-            if len(self.cached_text_list) >= 1:
-                self.cached_text_list = self.cached_text_list[1:]
-            # Reset Count.
-            self.calls_for_current_block = 0
+
+        # only sample if the cache is less than the cache_size
+
+        self.sample_count += 1
+        self.batch_count =  self.sample_count // self.batch_size
+        assert self.batch_count < self.num_batches, f' You exceeded the batch limit ({self.num_batches})'
+        if self.run_generator :
+            raw_text = self.data_queue.get()
+        else:
+            self.resolve_sample_cache()
+            raw_text = self.sample_cache.pop(idx % len(self.sample_cache))
 
 
-        # only sample if the cache is less than the cache_sizex
-        if len(self.cached_text_list) < self.cache_size:
-            if self.run_generator :
-                raw_text = self.data_queue.get()
-            else:
-                file_meta = self.idx2filemeta(idx=idx)
-                raw_text =  self.async_run(self.get_text(file_meta=file_meta))
-            
-            self.cached_text_list.append(raw_text)
-            if not self.no_tokenizer:
-                self.cached_text_list[-1] =  self.tokenizer(str(self.cached_text_list[-1]), padding=True)['input_ids']
-
-        
         if self.no_tokenizer:
-            random_text_block =  random.choice(self.cached_text_list)
-            raw_text =random_text_block.split()
-            if (len(list(raw_text)) == self.sequence_length):
-                start_idx = 0
-            else:
-                # Get the modulus of the sequence_length to get a relatively random vibe.
-                max_start_idx = (len(raw_text) - self.sequence_length)
-                start_idx = (idx * self.sequence_length) % max_start_idx
-
-
-            end_idx = start_idx + self.sequence_length
-            output = raw_text[start_idx:end_idx]
+            raw_text =str(raw_text).split()
+            output = raw_text[:self.sequence_length]
             remainder = self.sequence_length - len(output)
             if remainder > 0:
                 output = output + ['FILLER_TOKEN']*remainder
             output = ' '.join(output)
         else:
-            tokenized_text = random.choice(self.cached_text_list)
-            start_idx = idx * self.sequence_length % (len(tokenized_text) - self.sequence_length)
-            end_idx = start_idx + self.sequence_length
-            output = torch.tensor(tokenized_text)[start_idx:end_idx][:self.sequence_length]           
+            tokenized_text =  self.tokenizer(str(raw_text), padding=True)['input_ids']
+            output = torch.tensor(tokenized_text)[:self.sequence_length]           
             # Append the remainder with 0 (TODO use stop token)
             seqeunce_length_remainder =  self.sequence_length - output.shape[0]
             if seqeunce_length_remainder>0:
@@ -649,7 +657,7 @@ class GenesisTextDataset:
                 folder_hashes.extend(res.get('Links'))
         return folder_hashes
 
-    async def cat(self, cid:str, offset:int=None, length:int=None)->bytes:
+    async def cat(self, cid:str, offset:int=0, length:int=None)->bytes:
         '''
         Cat endpoint.
         Args:
@@ -663,45 +671,47 @@ class GenesisTextDataset:
         Returns:
             response (bytes):
                 
-
-            
-
         '''
-        params = dict(arg=cid)
-        if offset != None:
-            params['offset'] = offset
-        if length != None:
-            params['length'] = length
+        params = dict(arg=cid, offset=offset)
+        params['length'] = self.block_size
         headers = {}
         response = await self.api_post('cat', params=params, headers=headers, chunk_size=length, num_chunks=1)
         return response
-    async def get_text_file_metas(self, file_meta:dict, num_hashes:int=50) -> List[str]:
+    async def get_text_file_metas(self, file_meta:dict, dataset:str, max_chunks:int=100) -> List[str]:
         """
         Get text hashes from a folder
 
         Args:
             file_meta (dict):
                 File meta contianing the hash and name of the link.
-            num_hashes:
-                The maximum number of hashes before stopping.
+            dataset (str):
+                The name of the dataset for self.dataset_hash_map
+            max_chunks (int): 
+                Max number of chunks to call when fetching file metas.
         
         Returns List[str]
 
         """
-
-        data = await self.api_post('cat', params={'arg':file_meta['Hash'], 'offset': 0, 'length': self.block_size}, return_json=False,  chunk_size=self.block_size,  num_chunks=100)
-        decoded_hashes = []
-        hashes = ['['+h + '}]'for h in data.decode().split('},')]
-        for i in range(len(hashes)-1):
-            try:
-                decoded_hashes += [json.loads(hashes[i+1][1:-1])]
-            except json.JSONDecodeError:
-                pass
-
-            if len(decoded_hashes) >= num_hashes:
-                return decoded_hashes
+        for i in range(max_chunks):
+            data = await self.api_post('cat', params={'arg':file_meta['Hash'], 'offset': 0, 'length': self.block_size}, return_json=False,  chunk_size=self.block_size, num_chunks=1)
+            decoded_hashes = []
+            hashes = ['['+h + '}]'for h in data.decode().split('},')]
+            for i in range(len(hashes)-1):
+                if self.dataset_size_map[dataset] >= self.max_bytes_per_dataset:
+                    return decoded_hashes
+                try:
+                    decoded_hash = json.loads(hashes[i+1][1:-1])
+                    decoded_hash_size_bytes = decoded_hash.get('Size', 0)
+                    if decoded_hash_size_bytes > 0:
+                        self.dataset_size_map[dataset] += decoded_hash_size_bytes
+                        decoded_hashes.append(decoded_hash)
+                except json.JSONDecodeError:
+                    pass
+                
+                
 
             hashes[i] ='{'+ hashes[i+1] + '}'
+
         
         return decoded_hashes
 
@@ -916,6 +926,10 @@ class GenesisTextDataset:
         return {v['Name'].replace('.txt', '') :v for v in self.dataset_hashes}
     
     @property
+    def dataset_size(self):
+        return sum(list(self.dataset_size_map.values()))
+
+    @property
     def dataset_hashes(self) -> List[str]:
         '''
         Return the dataset hashes
@@ -962,8 +976,8 @@ class GenesisTextDataset:
         Returns:
             length: int
         """
+        return len(self.sample_cat_params_list)
 
-        return self.dataset_size // self.block_size
 
     def __del__(self) -> None:
         self.close()
@@ -978,4 +992,6 @@ class GenesisTextDataset:
             del self.thread_manager
         if hasattr(self, 'tokenizer'):
             del self.tokenizer
-        
+    @property
+    def max_bytes_per_dataset(self):
+        return self.max_blocks_per_dataset*self.block_size 

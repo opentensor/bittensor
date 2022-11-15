@@ -40,18 +40,19 @@ class dataset:
     def __new__(
             cls,
             config: 'bittensor.config' = None,
-            block_size: int = 1000,
+            block_size: int = 500,
+            max_blocks_per_dataset: int = 100,
             batch_size: int = None,
             num_workers: int = None,
-            dataset_name: list = ['ArXiv'],
+            dataset_name: list = 'default',
             max_datasets: int = None,
             save_dataset: bool = False,
             sequence_length: int = 128,
             load_dataset: bool = False,
             no_tokenizer: bool = None,
-            num_batches: int = None,
+            num_batches: int = 100,
             run_generator: bool = False,
-            cache_size: int = 5, 
+            cache_size: int = 100, 
             num_folders: int = 10,
             cache_calls_per_block: int = 100,
             _mock:bool=None
@@ -77,6 +78,8 @@ class dataset:
                     The number of batches of data to prepare for the dataloader.
                 num_folders (int):
                     The number of folders per dataset.
+                max_blocks_per_dataset (int):
+                    The number of blocks per dataset.
                 _mock (:obj:`bool`, `optional`):
                     For testing, if true the dataset if filled with fake text data.  
         """   
@@ -93,6 +96,7 @@ class dataset:
         config.dataset.load_dataset = load_dataset if load_dataset != None else config.dataset.load_dataset
         config.dataset.run_generator = run_generator if run_generator != None else config.dataset.run_generator
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
+        config.dataset.max_blocks_per_dataset = max_blocks_per_dataset if max_blocks_per_dataset != None else config.dataset.max_blocks_per_dataset
         config.dataset.num_batches = num_batches if num_batches != None else config.dataset.num_batches
         config.dataset.num_folders = num_folders if num_folders != None else config.dataset.num_folders
 
@@ -131,6 +135,8 @@ class dataset:
                 num_batches = config.dataset.num_batches,
                 run_generator = config.dataset.run_generator,
                 num_folders = config.dataset.num_folders,
+                max_blocks_per_dataset = config.dataset.max_blocks_per_dataset,
+                cache_size=config.dataset.cache_size,
                 max_directories = config.dataset.max_directories
             )
 

@@ -33,7 +33,7 @@ def test_change_data_size():
     for data_size in data_sizes:
         dataset.set_data_size(*data_size)
         sample = next(dataset)
-        sample.shape[0] == data_size[0]
+        sample[0].shape[0] == data_size[0]
         
     dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, run_generator=False, no_tokenizer=True)
 
@@ -46,11 +46,10 @@ def test_change_data_size():
 def test_next_tokenized_sample():
     batch_size = 10
     sequence_length = 128
-    block_size = 1000
+    block_size = 500
     num_batches = 10
-    for run_generator in [True, False]:
+    for run_generator in [ True, False]:
         
-
         dataset = bittensor.dataset (
             block_size = block_size,
             batch_size = batch_size,
@@ -89,19 +88,6 @@ def test_next_raw_sample():
         dataset.close()
 
 
-def test_mock():
-    dataset = bittensor.dataset(_mock=True, dataset_name = constant.dataset.dataset_name)
-    next(dataset)
-    next(dataset)
-    next(dataset)
-    dataset.close()
-
-def test_mock_function():
-    dataset = bittensor.dataset.mock()
-    next(dataset)
-    next(dataset)
-    next(dataset)
-    dataset.close()
 
 def test_fail_IPFS_server():
     dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
