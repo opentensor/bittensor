@@ -399,7 +399,7 @@ class CLI:
         
         if len(final_wallets) == 1:
             # do regular stake
-            return subtensor.add_stake( final_wallets[0], amount = None if self.config.get('stake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not self.config.no_prompt )
+            return subtensor.add_stake( wallet=final_wallets[0], amount = None if self.config.get('stake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
         subtensor.add_stake_multiple( wallets = final_wallets, amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
