@@ -576,7 +576,7 @@ class Dendrite(torch.autograd.Function):
                         times per call.
         """
         if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
-            raise ValueError( "Passed synapse must have type: {} got {} instead".formate( bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM, synapses.synapse_type ) )
+            raise ValueError( "Passed synapse must have type: {} got {} instead".format( bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM, synapses.synapse_type ) )
 
         # Format inputs.
         formatted_endpoints, formatted_inputs = self.format_text_inputs ( 
@@ -674,6 +674,7 @@ class Dendrite(torch.autograd.Function):
             self,
             endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
+            mask: Union[int, List[int]] = [],
             synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = synapse.TextLastHiddenState(),
             timeout: int = None,
             requires_grad: bool = None,
@@ -696,6 +697,13 @@ class Dendrite(torch.autograd.Function):
                             - a tensor with shape [batch_size, sequence_len], assumed to be the output of bittensor tokenizer.
                             - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
                         If inputs are tensors they will be cast to int64 format before sending on the wire.
+
+                    mask (:obj:`Union[int,  List[int]]` of shape :obj:`-1`, `optional`):
+                        A mask used to select which hidden states of the sequence are to be returned by the query.
+                            - None or empty: none of the sequences are masked.
+                            - a single int: referring to a single sequence index across all batches i.e 0 (first), 5(fifth), -1 (last)
+                            - a list of ints: referring to a set of sequence indices across all batches to return. [ 0 (first), 5(fifth), -1 ( and last)]
+                        The mask determines the shape of the response. [ bs, num_masked, network_dim]
 
                     synapse (:type:`'bittensor.synapse.TextLastHiddenState'`, default = bittensor.synapse.TextLastHiddenState(), `optional`):
                         Synapse axon function call which defaults to bittensor.synapse.TextLastHiddenState().
@@ -726,6 +734,10 @@ class Dendrite(torch.autograd.Function):
             inputs = inputs
         )
         synapses = [ synapse ]
+
+        # Fill mask.
+        synapse.set_mask( mask, formatted_inputs )
+
         # Make calls.
         outputs, codes, times = self._forward (
             endpoints = formatted_endpoints,

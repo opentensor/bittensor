@@ -27,9 +27,8 @@ from .synapse_impl import Synapse, NullSynapse
 from .text_causallm_impl import TextCausalLM
 from .text_causallmnext_impl import TextCausalLMNext
 from .text_lasthiddenstate_impl import TextLastHiddenState
+from .text_masked_lasthiddenstate_impl import TextMaskedLastHiddenState
 from .text_seq2seq_impl import TextSeq2Seq
-
-
 
 class synapse:
     """
@@ -66,6 +65,38 @@ class synapse:
                     TextLastHiddenState instance adapter class.
         """
         return TextLastHiddenState (
+            forward_request_serializer_type = forward_request_serializer_type,
+            forward_response_serializer_type = forward_response_serializer_type,
+            backward_request_serializer_type = backward_request_serializer_type,
+            backward_response_serializer_type = backward_response_serializer_type,
+        )
+
+    @staticmethod
+    def TextMaskedLastHiddenState (
+        mask: List[int] = [],
+        forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        backward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+    ) -> TextMaskedLastHiddenState:
+        """ Factory function which returns a TextLastHiddenState synapse adapter given arguments.
+            Args:
+                mask (:obj:`List[int]` of shape :obj:`(-1)`, `optional`, :default: `[]`):
+                    List containing sequence positions that should be masked in request.
+                forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serializer used to pack torch tensors on forward request.
+                forward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serializer used to pack torch tensors on forward response.
+                backward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serializer used to pack torch tensors on forward request.
+                backward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
+                    Serialzer used to pack torch tensors on backward response.
+            Returns:
+                TextLastHiddenState (:obj:`TextLastHiddenState`, `required`):
+                    TextLastHiddenState instance adapter class.
+        """
+        return TextMaskedLastHiddenState (
+            mask = mask,
             forward_request_serializer_type = forward_request_serializer_type,
             forward_response_serializer_type = forward_response_serializer_type,
             backward_request_serializer_type = backward_request_serializer_type,
@@ -224,5 +255,7 @@ class synapse:
             return TextCausalLMNext.deserialize_from_wire_proto(synapse_wire_proto)
         elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
+        elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_MASKED_LAST_HIDDEN_STATE:
+            return TextMaskedLastHiddenState.deserialize_from_wire_proto( synapse_wire_proto )
         else:
             return NullSynapse()
