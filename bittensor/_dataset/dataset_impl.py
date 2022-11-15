@@ -498,6 +498,9 @@ class GenesisTextDataset:
             block_size(int, required):
                 The block_size of data that should be produced by dataloader. 
         """
+
+        assert self.run_generator == False, 'Please ensure that run_generator is false'
+
         def check_valid(size):
             r""" Check if the size is a valid positive intiget, if not, return False.
             """

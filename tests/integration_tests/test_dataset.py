@@ -21,11 +21,13 @@ from unittest.mock import MagicMock
 logging = bittensor.logging()
 
 def test_construct_text_corpus():
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, save_dataset = True, dataset_name = constant.dataset.dataset_name)
-    dataset.construct_text_corpus()
-    dataset.close()
+    for run_generator in [True, False]: 
+        dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, save_dataset = True, dataset_name = constant.dataset.dataset_name, run_generator=run_generator)
+        dataset.construct_text_corpus()
+        dataset.close()
 
 def test_change_data_size():
+    # only for run_generator is False
     data_sizes = [(10,1000), (15, 2000),(30, 3000), (25,4000)]
     dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, run_generator=False, no_tokenizer=False)
     for data_size in data_sizes:
@@ -44,6 +46,7 @@ def test_change_data_size():
 
 
 def test_text_dataset():
+    
     batch_size = 10
     block_size = 128
     num_batches = 5
@@ -67,11 +70,11 @@ def test_text_dataset():
 
 
 def test_next():
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
-    next(dataset)
-    next(dataset)
-    next(dataset)
-    dataset.close()
+    for run_generator  in [True,  False]:
+        dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
+        next(dataset)
+        next(dataset)
+        dataset.close()
 
 def test_mock():
     dataset = bittensor.dataset(_mock=True, dataset_name = constant.dataset.dataset_name)
