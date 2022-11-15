@@ -13,25 +13,23 @@
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
 # the Software.
 
+import asyncio
+import json
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import os
-import json
-import torch
 import random
-from torch.utils.data.dataloader import DataLoader
-from tqdm import tqdm
-import bittensor
-from queue import Queue
-import numpy as np
-import asyncio
-import aiohttp
 import threading
-from loguru import logger
+from queue import Queue
 from typing import *
+import aiohttp
+import torch
+from loguru import logger
+from torch.utils.data.dataloader import DataLoader
+import bittensor
 
 logger = logger.opt(colors=True)
 
@@ -540,7 +538,7 @@ class GenesisTextDataset:
 
 
 
-    def __getitem__(self, idx: Optional[int]= None, filler_token:str='FILLER_TEXT') -> Union[str, torch.tensor]:
+    def __getitem__(self, idx: Optional[int]= None, filler_token:str='FILLER_TEXT') -> Union[List[str], torch.tensor]:
         '''
         Sample from queue or lazy loading. 
         This involves sampling large text files that are then cached, generating
@@ -555,7 +553,7 @@ class GenesisTextDataset:
                 Filler token to pad raw text 
             
         Returns:
-            output_dict (Union[str, torch.tensor])
+            output (Union[str, torch.tensor])
 
 
         '''
@@ -583,7 +581,7 @@ class GenesisTextDataset:
             
             self.cached_text_list.append(raw_text)
             if not self.no_tokenizer:
-                self.cached_text_list[-1] =  self.tokenizer(str(self.cached_text_list[-1]), padding=True)
+                self.cached_text_list[-1] =  self.tokenizer(str(self.cached_text_list[-1]), padding=True)['input_ids']
 
         
         if self.no_tokenizer:
@@ -598,29 +596,21 @@ class GenesisTextDataset:
 
 
             end_idx = start_idx + self.sequence_length
-            output_dict = raw_text[start_idx:end_idx]
-            remainder = self.sequence_length - len(output_dict)
+            output = raw_text[start_idx:end_idx]
+            remainder = self.sequence_length - len(output)
             if remainder > 0:
-                output_dict = output_dict + ['FILLER_TOKEN']*remainder
-            output_dict = ' '.join(output_dict)
+                output = output + ['FILLER_TOKEN']*remainder
+            output = ' '.join(output)
         else:
-            tokenized_dict = random.choice(self.cached_text_list)
-            
-            start_idx = idx * self.sequence_length % (len(list(tokenized_dict.values())[0]) - self.sequence_length)
+            tokenized_text = random.choice(self.cached_text_list)
+            start_idx = idx * self.sequence_length % (len(tokenized_text) - self.sequence_length)
             end_idx = start_idx + self.sequence_length
-
-
-            
-            output_dict = {}
-            for k,v in tokenized_dict.items():  
-                v = torch.tensor(v)[start_idx:end_idx][:self.sequence_length]           
-                # Append the remainder with 0 (TODO use stop token)
-                seqeunce_length_remainder =  self.sequence_length - v.shape[0]
-                if seqeunce_length_remainder>0:
-                    v = torch.nn.functional.pad(input=v, pad=(0,seqeunce_length_remainder), mode='constant', value=0 ) 
-                output_dict[k] = v
-
-        return output_dict
+            output = torch.tensor(tokenized_text)[start_idx:end_idx][:self.sequence_length]           
+            # Append the remainder with 0 (TODO use stop token)
+            seqeunce_length_remainder =  self.sequence_length - output.shape[0]
+            if seqeunce_length_remainder>0:
+                output = torch.nn.functional.pad(input=output, pad=(0,seqeunce_length_remainder), mode='constant', value=0 ) 
+        return output
     
     async def get_dataset_hashes(self)-> List[dict]:
         '''

@@ -32,9 +32,8 @@ def test_change_data_size():
     dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, run_generator=False, no_tokenizer=False)
     for data_size in data_sizes:
         dataset.set_data_size(*data_size)
-        sample_dict = next(dataset)
-        for k,v in sample_dict.items():
-            v.shape[0] == data_size[0]
+        sample = next(dataset)
+        sample.shape[0] == data_size[0]
         
     dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, run_generator=False, no_tokenizer=True)
 
@@ -61,10 +60,9 @@ def test_next_tokenized_sample():
             no_tokenizer=False
         )
 
-
         input = next(dataset)
-        assert input['input_ids'].shape[0] == input['attention_mask'].shape[0] == batch_size
-        assert input['input_ids'].shape[1] == input['attention_mask'].shape[1] == sequence_length
+        assert input.shape[0] == batch_size
+        assert input.shape[1]  == sequence_length
         dataset.close()
 
 
