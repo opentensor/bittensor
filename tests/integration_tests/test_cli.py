@@ -740,7 +740,8 @@ class TestCli(unittest.TestCase):
                 ## https://docs.python.org/3.7/library/unittest.mock.html#call
                 ## Uses the 1st index as args list
                 ## call.args only works in Python 3.8+
-                mock_wallets_ = mock_unstake.mock_calls[0][2]['wallets']
+                args, kwargs = mock_unstake.call_args
+                mock_wallets_ = kwargs['wallets']
                 
 
                 # We shouldn't unstake from hk1 as it has less than max_stake staked
@@ -1092,11 +1093,8 @@ class TestCli(unittest.TestCase):
                 
                 total_staked = 0.0
 
-                # Python 3.7 
-                ## https://docs.python.org/3.7/library/unittest.mock.html#call
-                ## Uses the 2nd index as kwargs dict
-                ## call.kwargs only works in Python 3.8+
-                amounts_passed = mock_add_stake.mock_calls[0][2]['amounts']
+                args, kwargs = mock_add_stake.call_args
+                amounts_passed = kwargs['amounts']
 
                 total_staked = sum(amounts_passed)
                 
