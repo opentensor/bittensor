@@ -259,7 +259,6 @@ class GenesisTextDataset:
         if datasets == None:
             datasets = self.datasets
 
-        self.dataset_size = 0
 
         all_text_file_metas = []
         dataset_hash_map = {}
@@ -277,13 +276,14 @@ class GenesisTextDataset:
             if len(v) > 0:
                 dataset_hash_map[k] = v
                 
-
+        self.dataset_size = 0
         self.dataset_size_map = {}
         self.dataset_hash_map = dataset_hash_map
         for  k,file_meta_list in dataset_hash_map.items():
             all_text_file_metas += v
             self.dataset_size_map[k] =  sum([f['Size'] for f in file_meta_list])
             self.dataset_size += self.dataset_size_map[k]
+            print(self.dataset_size_map[k])
         self.all_text_file_metas = all_text_file_metas
 
 

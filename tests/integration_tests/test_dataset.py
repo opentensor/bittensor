@@ -44,35 +44,52 @@ def test_change_data_size():
     
     dataset.close() 
 
-
-def test_text_dataset():
-    
+def test_next_tokenized_sample():
     batch_size = 10
     sequence_length = 128
-    block_size = 100
+    block_size = 1000
+    num_batches = 10
+    for run_generator in [True, False]:
+        
+
+        dataset = bittensor.dataset (
+            block_size = block_size,
+            batch_size = batch_size,
+            sequence_length = sequence_length,
+            num_batches=num_batches,
+            run_generator = run_generator,
+            no_tokenizer=False
+        )
 
 
-    dataset = bittensor.dataset (
-        block_size = block_size,
-        batch_size = batch_size,
-        sequence_length = sequence_lengt
-    )
-
-    
-
-
-    input = next(dataloader)
-    assert input.shape[0] == batch_size
-    assert input.shape[1] == sequence_length
-    dataset.close()
-
-
-def test_next():
-    for run_generator  in [True,  False]:
-        dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
-        next(dataset)
-        next(dataset)
+        input = next(dataset)
+        assert input['input_ids'].shape[0] == input['attention_mask'].shape[0] == batch_size
+        assert input['input_ids'].shape[1] == input['attention_mask'].shape[1] == sequence_length
         dataset.close()
+
+
+def test_next_raw_sample():
+    batch_size = 10
+    sequence_length = 128
+    block_size = 1000
+    num_batches = 10
+    for run_generator in [True, False]:
+        dataset = bittensor.dataset (
+            block_size = block_size,
+            batch_size = batch_size,
+            sequence_length = sequence_length,
+            num_batches=num_batches,
+            run_generator = run_generator,
+            no_tokenizer = True
+        )
+
+        input = next(dataset)
+        assert len(input) == batch_size
+        for i in range(len(input)):
+            assert len(input[i].split()) == sequence_length
+
+        dataset.close()
+
 
 def test_mock():
     dataset = bittensor.dataset(_mock=True, dataset_name = constant.dataset.dataset_name)
