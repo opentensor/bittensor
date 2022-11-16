@@ -1080,7 +1080,7 @@ class TestCli(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
+            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
