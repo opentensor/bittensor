@@ -174,9 +174,9 @@ class TextLastHiddenState (Synapse):
         # stacked_forward_response_tensor [ bs * seq, net_dim ]
         stacked_forward_response_tensor = forward_response_tensor.reshape( -1, bittensor.__network_dim__ )
         
-        # The self.mask is a list of indices which refer to distinct rows in the  
+        # The shifted_mask is a list of indices which refer to distinct rows in the  
         # stacked stacked_forward_response_tensor [ bs * seq, net_dim ]. We pull only these 
-        # representations for the encoding so the respons has shape [ len(mask), net_dim ]
+        # representations for the encoding so the response has shape [ len(mask), net_dim ]
         return stacked_forward_response_tensor[ shifted_mask, : ]
 
     def decode_forward_response_tensor   ( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
