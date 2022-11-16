@@ -728,7 +728,7 @@ class Dendrite(torch.autograd.Function):
         """
         # If the synapse is None, create it.
         if synapse == None:
-            synapse = bittensor.synapse.TexLastHiddenState()
+            synapse = bittensor.synapse.TextLastHiddenState()
         
         # Check past synapse.
         elif synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
