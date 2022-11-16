@@ -1094,9 +1094,7 @@ class TestCli(unittest.TestCase):
                 total_staked = 0.0
 
                 args, kwargs = mock_add_stake.call_args
-                amounts_passed = kwargs['amounts']
-
-                total_staked = sum(amounts_passed)
+                total_staked = kwargs['amount']
                 
                 # We should not try to stake more than the mock_balance
                 self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
