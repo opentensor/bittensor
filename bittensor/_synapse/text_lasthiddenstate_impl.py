@@ -101,8 +101,13 @@ class TextLastHiddenState (Synapse):
                 synapse_instance_clasee (:obj:`torch.Tensor`, `required`):
                     Deserialized instance class.
         """
+        # Get the optional mask item.
+        try:
+            mask = instance_proto.mask
+        except AttributeError:
+            mask = []
         return TextLastHiddenState (
-            mask = instance_proto.forward_request_serializer_type,
+            mask = mask,
             forward_request_serializer_type = instance_proto.forward_request_serializer_type,
             forward_response_serializer_type = instance_proto.forward_response_serializer_type,
             backward_request_serializer_type = instance_proto.backward_request_serializer_type,
@@ -138,14 +143,20 @@ class TextLastHiddenState (Synapse):
         if forward_response_tensor == None:
             raise ValueError('Empty Response')
             
-        if ( 
-             len( forward_response_tensor.shape ) != 3 or
-             forward_response_tensor.size(0) != forward_request_tensor.size(0) or
-             forward_response_tensor.size(1) != forward_request_tensor.size(1) - len(self.mask) or
-             forward_response_tensor.size(2) != bittensor.__network_dim__
-            ):
-            raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(forward_response_tensor.shape), self ) ) 
-   
+        if len( forward_response_tensor.shape ) == 3:
+            if ( forward_response_tensor.size(0) != forward_request_tensor.size(0) or
+                 forward_response_tensor.size(1) != forward_request_tensor.size(1) or
+                 forward_response_tensor.size(2) != bittensor.__network_dim__ ):
+                raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(forward_response_tensor.shape), self ) ) 
+        
+        elif len( forward_response_tensor.shape ) == 2:
+            mask_len = forward_request_tensor.size(1) if self.mask == [] else len(self.mask)
+            if ( forward_response_tensor.size(0) != forward_request_tensor.size(0) * mask_len or
+                 forward_response_tensor.size(2) != bittensor.__network_dim__ ):
+                raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(forward_response_tensor.shape), self ) ) 
+        else:
+            raise ValueError( "forward_response_tensor.shape must have len 3 or 2 got: {} for synapse: {}".format( len( forward_response_tensor.shape ), self ) ) 
+
     def check_backward_request_gradient  ( self, forward_request_tensor, backward_request_gradient ): 
         if ( 
              len( backward_request_gradient.shape ) != 3 or
@@ -184,6 +195,12 @@ class TextLastHiddenState (Synapse):
         # If there is no mask, we simply return the full tensor.
         if self.mask == None or len( self.mask ) == 0:
             return forward_response_tensor
+
+        # Check if the forward_response tensor has not been mask packed.
+        # It is possible that the responding peer does not pack the message as expected.
+        if forward_response_tensor.shape[0] == forward_request_tensor.shape[0] and forward_response_tensor.shape[1] == forward_request_tensor.shape[1]:
+            # In this case we will simply encode using our mask.
+            forward_response_tensor = self.encode_forward_response_tensor( forward_response_tensor )
 
         # Expand mask based on batch size and sequence length.
         shifted_mask = TextLastHiddenState.shift_mask_based_on_shape( 
