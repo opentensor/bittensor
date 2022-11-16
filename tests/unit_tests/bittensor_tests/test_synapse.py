@@ -40,6 +40,15 @@ def test_last_hidden_state_encode_forward_response_tensor_no_mask():
     assert encoded_forward_response_tensor.shape[2] == 1024
     assert torch.all(torch.eq(encoded_forward_response_tensor[0, 0, :], forward_response_tensor[0, 0, :]))
 
+    decoded_forward_response_tensor = synapse.decode_forward_response_tensor( torch.randn( 30, 256 ), encoded_forward_response_tensor )
+    assert decoded_forward_response_tensor.shape[0] == 30
+    assert decoded_forward_response_tensor.shape[1] == 256
+    assert decoded_forward_response_tensor.shape[2] == 1024
+    for i in range(30):
+        for j in range( 256 ):
+            assert torch.all( torch.eq(decoded_forward_response_tensor[ i, j, :], forward_response_tensor[ i, j, :] ) ) 
+
+
 def test_last_hidden_state_encode_forward_response_tensor_mask_first():
     # Test mask all but first.
     synapse = bittensor.synapse.TextLastHiddenState(
@@ -52,11 +61,22 @@ def test_last_hidden_state_encode_forward_response_tensor_mask_first():
     assert encoded_forward_response_tensor.shape[1] == 1024
     assert torch.all(torch.eq(encoded_forward_response_tensor[0, :], forward_response_tensor[0, 0, :]))
 
+    decoded_forward_response_tensor = synapse.decode_forward_response_tensor( torch.randn( 30, 256 ), encoded_forward_response_tensor )
+    assert decoded_forward_response_tensor.shape[0] == 30
+    assert decoded_forward_response_tensor.shape[1] == 256
+    assert decoded_forward_response_tensor.shape[2] == 1024
+    for i in range(30):
+        assert torch.all( torch.eq(decoded_forward_response_tensor[ i, 0, :], forward_response_tensor[ i, 0, :]) ) 
+    for i in range(30):
+        for j in range( 1, 256 ):
+            assert torch.all( torch.eq(decoded_forward_response_tensor[ i, j, :], torch.zeros_like( forward_response_tensor[ i, j, :] )) ) 
+
 
 def test_last_hidden_state_encode_forward_response_tensor_mask_last():
     # Test mask last
+    mask = [-1]
     synapse = bittensor.synapse.TextLastHiddenState(
-        mask = [-1], # Only return the first representation from each batch.
+        mask = mask, # Only return the first representation from each batch.
     )
     forward_response_tensor = torch.randn( 30, 256, 1024)
     encoded_forward_response_tensor = synapse.encode_forward_response_tensor( forward_response_tensor )
@@ -65,11 +85,22 @@ def test_last_hidden_state_encode_forward_response_tensor_mask_last():
     assert encoded_forward_response_tensor.shape[1] == 1024
     assert torch.all( torch.eq(encoded_forward_response_tensor[0, :], forward_response_tensor[0, 255, :]) ) 
 
+    decoded_forward_response_tensor = synapse.decode_forward_response_tensor( torch.randn( 30, 256 ), encoded_forward_response_tensor )
+    assert decoded_forward_response_tensor.shape[0] == 30
+    assert decoded_forward_response_tensor.shape[1] == 256
+    assert decoded_forward_response_tensor.shape[2] == 1024
+    for i in range(30):
+        assert torch.all( torch.eq(decoded_forward_response_tensor[ i, -1, :], forward_response_tensor[ i, -1, :]) ) 
+    for i in range(30):
+        for j in range( 255 ):
+            assert torch.all( torch.eq(decoded_forward_response_tensor[ i, j, :], torch.zeros_like( forward_response_tensor[ i, j, :] )) ) 
+
 def test_last_hidden_state_encode_forward_response_tensor_mask_multiple():
     # Test mask last
     n = 5
+    mask = list(range(n))
     synapse = bittensor.synapse.TextLastHiddenState(
-        mask = list(range(n)), # Only return the first representation from each batch.
+        mask = mask, # Only return the first representation from each batch.
     )
     forward_response_tensor = torch.randn( 30, 256, 1024)
     encoded_forward_response_tensor = synapse.encode_forward_response_tensor( forward_response_tensor )
@@ -79,13 +110,34 @@ def test_last_hidden_state_encode_forward_response_tensor_mask_multiple():
     
     # Iterate through all and check equality.
     idx = 0
-    for j in range(30):
+    for j in range( 30 ):
         for i in range( n ):
             assert torch.all( torch.eq(encoded_forward_response_tensor[ idx, :], forward_response_tensor[ j, i, :]) ) 
             idx += 1
+
+    decoded_forward_response_tensor = synapse.decode_forward_response_tensor( torch.randn( 30, 256 ), encoded_forward_response_tensor )
+    assert decoded_forward_response_tensor.shape[0] == 30
+    assert decoded_forward_response_tensor.shape[1] == 256
+    assert decoded_forward_response_tensor.shape[2] == 1024
+
+    for i in range( 30 ):
+        for j in range( 256 ):
+            if j in mask:
+                assert torch.all( torch.eq(decoded_forward_response_tensor[ i, j, :], forward_response_tensor[ i, j, :]) ) 
+            if j not in mask:
+                assert torch.all( torch.eq(decoded_forward_response_tensor[ i, j, :], torch.zeros_like(forward_response_tensor[ i, j, :])) ) 
+
+
 
 
 
 
 if __name__ == "__main__":
     test_create_last_hidden_state()
+    test_create_casuallm()
+    test_create_casuallm_next()
+    test_create_seq2seq()
+    test_last_hidden_state_encode_forward_response_tensor_no_mask()
+    test_last_hidden_state_encode_forward_response_tensor_mask_first()
+    test_last_hidden_state_encode_forward_response_tensor_mask_last()
+    test_last_hidden_state_encode_forward_response_tensor_mask_multiple()

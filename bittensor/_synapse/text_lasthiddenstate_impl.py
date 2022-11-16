@@ -169,7 +169,6 @@ class TextLastHiddenState (Synapse):
             batch_size = forward_response_tensor.shape[0],
             sequence_length = forward_response_tensor.shape[1]
         )
-        print (shifted_mask)
 
         # Reshape the forward_response_tensor to a stack of representations
         # stacked_forward_response_tensor [ bs * seq, net_dim ]
@@ -189,8 +188,8 @@ class TextLastHiddenState (Synapse):
         # Expand mask based on batch size and sequence length.
         shifted_mask = TextLastHiddenState.shift_mask_based_on_shape( 
             self.mask, 
-            batch_size = forward_response_tensor.shape(0),
-            sequence_length  = forward_response_tensor.shape(1)
+            batch_size = forward_request_tensor.shape[0],
+            sequence_length  = forward_request_tensor.shape[1]
         )
 
         # From the encode_forward_response function the forward_response_tensor is [ len(mask), net_dim ]
@@ -200,11 +199,11 @@ class TextLastHiddenState (Synapse):
 
         # Iterate through the mask and the rows of the forward_response_tensor
         # replacing each row in the destination with the row from the response_tensor.
-        for i, j in list(zip(shifted_mask, len( shifted_mask ))):
+        for i, j in list(zip(shifted_mask, range(len( shifted_mask )))):
             destination[i, :] = forward_response_tensor[j, :]
         
         # Reshape the destination tensor to the proper expanded size.
-        destination.reshape( (forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__network_dim__) )
+        destination = destination.reshape( (forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__network_dim__) )
 
         # Destination has shape [ bs, seq, net_dim ]
         return destination
@@ -220,6 +219,7 @@ class TextLastHiddenState (Synapse):
             return torch.zeros( ( forward_request_tensor.size(0), forward_request_tensor.size(1), bittensor.__network_dim__ ), dtype=torch.float32)
         except:
             return torch.tensor([])
+
     def nill_backward_response_tensor( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns a zeroed tensor used as response to a dendrite backward call when the call fails.
         """
