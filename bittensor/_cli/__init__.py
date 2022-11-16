@@ -152,7 +152,7 @@ class cli:
         run_parser.add_argument(
             '--synapse', 
             type=str, 
-            choices= list(bittensor.synapse.__synapses_types__), 
+            choices= list(bittensor.synapse.__synapses_types__) + ['All'], 
             default='None', 
             help='''Synapses available through bittensor.synapse'''
         )
@@ -993,8 +993,8 @@ class cli:
             model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
             config.model = model
 
-        if 'server' in config.model and not config.no_prompt:
-            synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__), default = 'All')
+        if 'server' in config.model and config.get('synapse', 'None') == 'None' and not config.no_prompt:
+            synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__) + ['All'], default = 'All')
             config.synapse = synapse
 
         # Don't need to ask about registration if they don't want to reregister the wallet.
