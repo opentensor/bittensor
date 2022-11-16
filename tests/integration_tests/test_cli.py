@@ -30,7 +30,7 @@ from substrateinterface.base import Keypair
 from tests.helpers import CLOSE_IN_VALUE
 
 
-class TestCli(unittest.TestCase):
+class TestCLI(unittest.TestCase):
 
     def setUp(self):
         mock_subtensor.kill_global_mock_process()
