@@ -699,7 +699,7 @@ class Dendrite(torch.autograd.Function):
                             - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
                         If inputs are tensors they will be cast to int64 format before sending on the wire.
 
-                    mask (:obj:`Union[int,  List[int]]` of shape :obj:`-1`, `optional`):
+                    mask (:obj:`Union[int,  List[int]]` of shape :obj:`-1`, default = [], `optional`):
                         A mask used to select which hidden states of the sequence are to be returned by the query.
                             - None or empty: none of the sequences are masked.
                             - a single int: referring to a single sequence index across all batches i.e 0 (first), 5(fifth), -1 (last)
