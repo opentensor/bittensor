@@ -199,7 +199,7 @@ class TextLastHiddenState (Synapse):
         # Check if the forward_response tensor has not been mask packed.
         # It is possible that the responding peer does not pack the message as expected.
         if forward_response_tensor.shape[0] == forward_request_tensor.shape[0] and forward_response_tensor.shape[1] == forward_request_tensor.shape[1]:
-            # In this case we will simply encode using our mask.
+            # In this case we will simply encode it ourselves using the mask.
             forward_response_tensor = self.encode_forward_response_tensor( forward_response_tensor )
 
         # Expand mask based on batch size and sequence length.
