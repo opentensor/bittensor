@@ -750,9 +750,6 @@ class Dendrite(torch.autograd.Function):
         )
         synapses = [ synapse ]
 
-        # Fill mask.
-        synapse.set_mask( mask, formatted_inputs )
-
         # Make calls.
         outputs, codes, times = self._forward (
             endpoints = formatted_endpoints,
