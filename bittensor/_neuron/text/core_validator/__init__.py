@@ -1424,7 +1424,9 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
                     phrase = topk_tokens[i]
                     phrase = phrase[phrase >= 0]
                     phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # escape and truncate
-                    preds += f"[[white]{topk_probs[i]:.3f}[/white]: {phrase_str} "
+                    prob = f'{topk_probs[i]:.3f}'
+                    prob = prob[1:] if prob[0] == '0' else prob
+                    preds += f"[green]{prob}[/green]: {phrase_str} "
 
                 predictions[uid] = preds[:-1]  # strip trailing space
 
@@ -1447,6 +1449,9 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
         if i % task_repeat == 0:
             # === Response table ===
             table = Table(width=console_width, box=None)
+            if i == 0:
+                table.title = f'[white] Response sample [/white]'
+
             for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
                 table.add_column(col, style=stl, justify='right')
 
@@ -1456,7 +1461,7 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
             task, predictions = batch_predictions[batch_perm[batch_item]]
 
             if i % task_repeat == 0:
-                table.add_column(task, style='', justify='left')
+                table.add_column(task, header_style='not bold', style='', justify='left')
 
             row += [predictions[uid]]
 
@@ -1465,6 +1470,9 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
         if i % task_repeat == task_repeat - 1:
             print(table)
 
+    if (len(sort) - 1) % task_repeat != task_repeat - 1:
+        table.caption = f'[white]context[/white]prediction'
+        print(table)
     print()
 
 
