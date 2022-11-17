@@ -1410,7 +1410,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
         context = repr(std_tokenizer.decode(context))[1:-1][-30:]  # strip '' and truncate
         answer = repr(std_tokenizer.decode(answer))[1:-1][:15]  # strip '' and truncate
 
-        task = f"[bold reverse]{context}[/bold reverse]{answer}"
+        task = f"[reverse]{context}[/reverse][bold]{answer}[/bold]"
 
         predictions = {}
         for index, uid in enumerate(uids.tolist()):
@@ -1425,7 +1425,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
                     phrase = phrase[phrase >= 0]
                     phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # escape and truncate
                     prob = f'{topk_probs[i]:.3f}'
-                    prob = prob[1:] if prob[0] == '0' else prob
+                    prob = prob[1:] if prob[0] == '0' else prob[:-1]
                     preds += f"[green]{prob}[/green]: {phrase_str} "
 
                 predictions[uid] = preds[:-1]  # strip trailing space
@@ -1450,7 +1450,7 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
             # === Response table ===
             table = Table(width=console_width, box=None)
             if i == 0:
-                table.title = f'[white] Response sample [/white]'
+                table.title = f'[white] Query responses [/white]'
 
             for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
                 table.add_column(col, style=stl, justify='right')
@@ -1471,7 +1471,7 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
             print(table)
 
     if (len(sort) - 1) % task_repeat != task_repeat - 1:
-        table.caption = f'[white]context[/white]prediction'
+        table.caption = f'[white]context[/white][bold]prediction[/bold]'
         print(table)
     print()
 
