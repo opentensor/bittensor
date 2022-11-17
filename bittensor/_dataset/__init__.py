@@ -41,7 +41,7 @@ class dataset:
             cls,
             config: 'bittensor.config' = None,
             block_size: int = 500,
-            max_blocks_per_dataset: int = 100,
+            max_blocks_per_dataset: int = 1000,
             batch_size: int = None,
             num_workers: int = None,
             dataset_name: list = 'default',

@@ -22,13 +22,13 @@ logging = bittensor.logging()
 
 def test_construct_text_corpus():
     for run_generator in [True, False]: 
-        dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, save_dataset = True, dataset_name = constant.dataset.dataset_name, run_generator=run_generator)
-        dataset.construct_text_corpus()
+        dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, save_dataset = False, dataset_name = constant.dataset.dataset_name, run_generator=run_generator)
+        # dataset.construct_text_corpus()
         dataset.close()
 
 def test_change_data_size():
     # only for run_generator is False
-    data_sizes = [(10,1000), (15, 2000),(30, 3000), (25,4000)]
+    data_sizes = [(10,1000), (15, 2000),(30, 3000), (25,4000), (30,-1) ]
     dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, run_generator=False, no_tokenizer=False)
     for data_size in data_sizes:
         dataset.set_data_size(*data_size)
