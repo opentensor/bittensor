@@ -1178,6 +1178,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Statistics per endpoint for this batch.
     """
 
+    batch_size = inputs.shape[0]
     inputs_nxt = inputs[..., -validation_len:]  # input validation with next token target phrase [batch_size, val_len]
 
     def _base_params(_stats, query_response):
@@ -1232,6 +1233,10 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
+        batch_item, predictions = response_predictions(uids, query_responses, batch_size, index_s)
+        response_table(predictions, inputs[batch_item], validation_len, stats,
+                       sort_col='shapley_values_nxt', console_width=console_width, index_s=index_s)
+
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
         synergy_table(stats, syn_loss_diff, 'shapley_values_nxt', console_width)
@@ -1390,6 +1395,83 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
                 second['synergy' + ext] += synergy_share
 
     return syn_loss_diff
+
+
+def response_predictions(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
+                         return_ops: List[torch.LongTensor], batch_size: int,
+                         index_s: int = 0, number_of_predictions: int = 10, batch_item: int = None):
+
+    if batch_item is None:
+        batch_item = random.randint(0, batch_size - 1)
+
+    std_tokenizer = bittensor.tokenizer()
+    predictions = {}
+    for index, uid in enumerate(uids.tolist()):
+        if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+            topk_tensor = query_responses[index][index_s]
+            """topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+                Content structure:
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                 [...]]
+            """
+            topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+            topk_probs = topk_tensor[batch_item, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+
+            preds = {}
+            for i in range(number_of_predictions):
+                phrase = topk_tokens[i]
+                phrase = phrase[phrase >= 0]
+                preds[f'phrase{i}'] = repr(std_tokenizer.decode(phrase))
+                preds[f'prob{i}'] = topk_probs[i]
+
+            predictions[uid] = preds
+
+    return batch_item, predictions
+
+
+def response_table(predictions: Dict, inputs: torch.FloatTensor, validation_len: int, stats: Dict,
+                   sort_col: str, console_width: int, index_s: int = 0, number_of_predictions: int = 10):
+
+    # Query response table columns
+    #   [Column_name, key_name, format_string, rich_style]  # description
+    phrase_columns = sum([[['p', f'prob{i}', '{:.4f}', 'grey30'],  # probability of top prediction
+                           ['pred', f'phrase{i}', '{}', ''],  # phrase string prediction
+                           ] for i in range(number_of_predictions)], [])
+    columns = [column for column in neuron_stats_columns if column[1] in ['uid', 'loss_nxt', 'synergy_nxt']]
+
+    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
+                  reverse=True, key=lambda _row: _row[1])
+
+    rows = []
+    for uid, val in sort:
+        row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
+        row += [txt.format(predictions[uid][key]) for _, key, txt, _ in phrase_columns]
+        rows += [row]
+
+    # === Response table ===
+    table = Table(width=console_width, box=None)
+    table.title = f'[white] [bold]context[/bold]prediction [/white] ' \
+                  f'[bold]{repr(inputs[-validation_len-8:-validation_len])}[/bold]' \
+                  f'{repr(inputs[-validation_len:])}'
+    table.caption = f'[bold]{repr(inputs[-validation_len-28:-validation_len])}[/bold]{repr(inputs[-validation_len:])}'
+
+    for col, _, _, stl in columns + phrase_columns:  # [Column_name, key_name, format_string, rich_style]
+        table.add_column(col, style=stl, justify='right')
+    for row in rows:
+        table.add_row(*row)
+
+    if len(rows):
+        print(table)
+        print()
 
 
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
