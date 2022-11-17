@@ -1233,7 +1233,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
-        batch_item, predictions = response_predictions(uids, query_responses, batch_size, index_s)
+        batch_item, predictions = response_predictions(uids, query_responses, return_ops, batch_size, index_s)
         response_table(predictions, inputs[batch_item], validation_len, stats,
                        sort_col='shapley_values_nxt', console_width=console_width, index_s=index_s)
 
