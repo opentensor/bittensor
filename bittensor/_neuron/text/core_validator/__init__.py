@@ -1416,6 +1416,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
 
         predictions = {}
         for index, uid in enumerate(uids.tolist()):
+            print('uid', uid, 'index', index, 'index_s', index_s, len(return_ops), end='; ')
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
                 topk_tensor = query_responses[index][index_s]  # [batch_size, (topk + 1), max_len] (prob_k) + floor_prob
                 topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
@@ -1429,7 +1430,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
                     preds += f"[[white]{topk_probs[i]:.3f}[/white]: {phrase_str} "
 
                 predictions[uid] = preds[:-1]  # strip trailing space
-
+        print()
         batch_predictions += [(task, predictions)]
 
     return batch_predictions
