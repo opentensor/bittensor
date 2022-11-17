@@ -267,24 +267,25 @@ class GenesisTextDataset:
         batch_count = 0
         
         tasks = []
-        for sample_cat_params in self.sample_cat_params_list:
+        while self.run_generator:
+            for sample_cat_params in self.sample_cat_params_list:
 
-            finished_tasks = []
-            while len(tasks) >= self.cache_size:
-                tmp_finished_tasks, tasks = asyncio.run(asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED))
-                finished_tasks = finished_tasks + list(tmp_finished_tasks)
-                tasks = list(tasks)
+                finished_tasks = []
+                while len(tasks) >= self.cache_size:
+                    tmp_finished_tasks, tasks = asyncio.run(asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED))
+                    finished_tasks = finished_tasks + list(tmp_finished_tasks)
+                    tasks = list(tasks)
 
-                if self.run_generator == False:
-                    break
+                    if self.run_generator == False:
+                        break
+                
+                
+                tasks += [self.cat(**sample_cat_params)]
+
+                for finished_task in finished_tasks:
+                    sample = asyncio.run(finished_task)
+                    queue.put(sample)
             
-            
-            tasks += [self.cat(**sample_cat_params)]
-
-            for finished_task in finished_tasks:
-                sample = asyncio.run(finished_task)
-                queue.put(sample)
-        
 
     def stop_generator(self):
         self.run_generator = False
