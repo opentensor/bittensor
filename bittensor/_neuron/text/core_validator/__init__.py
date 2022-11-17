@@ -1178,7 +1178,6 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Statistics per endpoint for this batch.
     """
 
-    batch_size = inputs.shape[0]
     inputs_nxt = inputs[..., -validation_len:]  # input validation with next token target phrase [batch_size, val_len]
 
     def _base_params(_stats, query_response):
@@ -1233,8 +1232,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
-        batch_predictions = format_predictions(uids, query_responses, return_ops,
-                                               inputs, validation_len, batch_size, index_s)
+        batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
         response_table(batch_predictions, stats, sort_col='shapley_values_nxt', console_width=console_width)
 
         # === Synergy table ===
@@ -1416,7 +1414,6 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
 
         predictions = {}
         for index, uid in enumerate(uids.tolist()):
-            print('uid', uid, 'index', index, 'index_s', index_s, len(return_ops), end='; ')
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
                 topk_tensor = query_responses[index][index_s]  # [batch_size, (topk + 1), max_len] (prob_k) + floor_prob
                 topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
@@ -1430,7 +1427,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
                     preds += f"[[white]{topk_probs[i]:.3f}[/white]: {phrase_str} "
 
                 predictions[uid] = preds[:-1]  # strip trailing space
-        print()
+
         batch_predictions += [(task, predictions)]
 
     return batch_predictions
