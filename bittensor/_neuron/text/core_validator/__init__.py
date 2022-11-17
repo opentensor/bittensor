@@ -1436,7 +1436,7 @@ def response_predictions(uids: torch.Tensor, query_responses: List[List[torch.Fl
                 phrase = topk_tokens[i]
                 phrase = phrase[phrase >= 0]
                 preds[f'phrase{i}'] = repr(std_tokenizer.decode(phrase))
-                preds[f'prob{i}'] = topk_probs[i]
+                preds[f'prob{i}'] = topk_probs[i].item()
 
             predictions[uid] = preds
 
