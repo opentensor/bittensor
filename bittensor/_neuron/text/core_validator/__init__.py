@@ -1233,8 +1233,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
-        batch_item, predictions = response_predictions(uids, query_responses, return_ops, batch_size, index_s)
-        response_table(predictions, inputs[batch_item], validation_len, stats,
+        context, answer, predictions = response_predictions(uids, query_responses, return_ops, inputs, batch_size, index_s)
+        response_table(predictions, context, answer, stats,
                        sort_col='shapley_values_nxt', console_width=console_width, index_s=index_s)
 
         # === Synergy table ===
@@ -1398,13 +1398,17 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
 
 
 def response_predictions(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
-                         return_ops: List[torch.LongTensor], batch_size: int,
+                         return_ops: List[torch.LongTensor], inputs: torch.FloatTensor,
+                         validation_len: int, batch_size: int,
                          index_s: int = 0, number_of_predictions: int = 10, batch_item: int = None):
 
     if batch_item is None:
         batch_item = random.randint(0, batch_size - 1)
 
     std_tokenizer = bittensor.tokenizer()
+    context = std_tokenizer.decode(inputs[batch_item][:-validation_len])
+    answer = std_tokenizer.decode(inputs[batch_item][-validation_len:])
+
     predictions = {}
     for index, uid in enumerate(uids.tolist()):
         if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
@@ -1435,10 +1439,10 @@ def response_predictions(uids: torch.Tensor, query_responses: List[List[torch.Fl
 
             predictions[uid] = preds
 
-    return batch_item, predictions
+    return context, answer, predictions
 
 
-def response_table(predictions: Dict, inputs: torch.FloatTensor, validation_len: int, stats: Dict,
+def response_table(predictions: Dict, context: str, answer: str, stats: Dict,
                    sort_col: str, console_width: int, index_s: int = 0, number_of_predictions: int = 10):
 
     # Query response table columns
@@ -1453,6 +1457,7 @@ def response_table(predictions: Dict, inputs: torch.FloatTensor, validation_len:
 
     rows = []
     for uid, val in sort:
+        print(uid, predictions[uid])
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
         row += [txt.format(predictions[uid][key]) for _, key, txt, _ in phrase_columns]
         rows += [row]
@@ -1460,9 +1465,9 @@ def response_table(predictions: Dict, inputs: torch.FloatTensor, validation_len:
     # === Response table ===
     table = Table(width=console_width, box=None)
     table.title = f'[white] [bold]context[/bold]prediction [/white] ' \
-                  f'[bold]{repr(inputs[-validation_len-8:-validation_len])}[/bold]' \
-                  f'{repr(inputs[-validation_len:])}'
-    table.caption = f'[bold]{repr(inputs[-validation_len-28:-validation_len])}[/bold]{repr(inputs[-validation_len:])}'
+                  f'[bold]{repr(context[-15:])}[/bold]' \
+                  f'{repr(answer)}'
+    table.caption = f'[bold]{repr(context[-25:])}[/bold]{repr(answer)}'
 
     for col, _, _, stl in columns + phrase_columns:  # [Column_name, key_name, format_string, rich_style]
         table.add_column(col, style=stl, justify='right')
