@@ -1468,6 +1468,8 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
         table.add_row(*row)
 
         if i % task_repeat == task_repeat - 1:
+            if i == len(sort) - 1:
+                table.caption = f'[white]context[/white][bold]prediction[/bold]'
             print(table)
 
     if (len(sort) - 1) % task_repeat != task_repeat - 1:
