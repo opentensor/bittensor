@@ -1410,7 +1410,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
         context = repr(std_tokenizer.decode(context))[1:-1][-30:]  # strip '' and truncate
         answer = repr(std_tokenizer.decode(answer))[1:-1][:15]  # strip '' and truncate
 
-        task = f"[bold]{context}[/bold]{answer}"
+        task = f"[bold reverse]{context}[/bold reverse]{answer}"
 
         predictions = {}
         for index, uid in enumerate(uids.tolist()):
