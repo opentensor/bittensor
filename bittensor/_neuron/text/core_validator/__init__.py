@@ -1452,7 +1452,7 @@ def response_table(predictions: Dict, context: str, answer: str, stats: Dict,
                            ['pred', f'phrase{i}', '{}', ''],  # phrase string prediction
                            ] for i in range(number_of_predictions)], [])
     columns = [column for column in neuron_stats_columns if column[1] in ['uid', 'loss_nxt', 'synergy_nxt']]
-
+    print('phrase_columns', phrase_columns)
     sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
                   reverse=True, key=lambda _row: _row[1])
 
@@ -1461,6 +1461,7 @@ def response_table(predictions: Dict, context: str, answer: str, stats: Dict,
         print(uid, predictions[uid])
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
         row += [txt.format(predictions[uid][key]) for _, key, txt, _ in phrase_columns]
+        print(row)
         rows += [row]
 
     # === Response table ===
