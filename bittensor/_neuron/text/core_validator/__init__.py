@@ -1452,7 +1452,7 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
 
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
         for j in range(tasks_per_server):
-            batch_item = batch_size % ((i // task_repeat) * tasks_per_server + j)  # do not exceed batch_size, repeat task over servers
+            batch_item = ((i // task_repeat) * tasks_per_server + j) % batch_size  # repeat task over servers, do not exceed batch_size
             task, predictions = batch_predictions[batch_perm[batch_item]]
 
             if i % task_repeat == 0:
