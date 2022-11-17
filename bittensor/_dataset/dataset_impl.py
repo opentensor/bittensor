@@ -592,7 +592,7 @@ class GenesisTextDataset:
 
         return self.sample_cache
 
-    def __getitem__(self, idx: Optional[int]= None, filler_token:str='FILLER_TEXT') -> Union[List[str], torch.tensor]:
+    def __getitem__(self, idx: Optional[int]= None) -> Union[List[str], torch.tensor]:
         '''
         Sample from queue or lazy loading. 
         This involves sampling large text files that are then cached, generating
@@ -603,8 +603,6 @@ class GenesisTextDataset:
         Args:
             idx (int):
                 Sample index of dataset
-            filler_token (str):
-                Filler token to pad raw text 
             
         Returns:
             output (Union[str, torch.tensor])
@@ -633,16 +631,12 @@ class GenesisTextDataset:
             output = raw_text[:self.sequence_length]
             remainder = self.sequence_length - len(output)
             if remainder > 0:
-                output = output + [self.pad_token]*remainder
+                # left side padding
+                output = [self.pad_token]*remainder + output 
             output = ' '.join(output)
         else:
-            
-            tokenized_text =  self.tokenizer(raw_text, padding=True)['input_ids']
-            output = torch.tensor(tokenized_text)[:self.sequence_length]           
-            # Append the remainder with 0 (TODO use stop token)
-            seqeunce_length_remainder =  self.sequence_length - output.shape[0]
-            if seqeunce_length_remainder>0:
-                output = torch.nn.functional.pad(input=output, pad=(0,seqeunce_length_remainder), mode='constant', value=self.pad_token_idx  ) 
+            output = self.tokenizer(raw_text, max_length=self.sequence_length, truncation=True, padding="max_length", return_tensors="pt")["input_ids"]
+            output = output.to(torch.long).squeeze(0) #  [1,seq_len] -> [seq_len]
 
         return output
     

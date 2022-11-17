@@ -40,7 +40,7 @@ class dataset:
     def __new__(
             cls,
             config: 'bittensor.config' = None,
-            block_size: int = 500,
+            block_size: int = 1500,
             max_blocks_per_dataset: int = 1000,
             batch_size: int = None,
             num_workers: int = None,
@@ -191,7 +191,7 @@ class dataset:
         """
         defaults.dataset = bittensor.Config()
         defaults.dataset.batch_size = os.getenv('BT_DATASET_BATCH_SIZE') if os.getenv('BT_DATASET_BATCH_SIZE') != None else 10
-        defaults.dataset.block_size = os.getenv('BT_DATASET_BLOCK_SIZE') if os.getenv('BT_DATASET_BLOCK_SIZE') != None else 20
+        defaults.dataset.block_size = 1500
         defaults.dataset.num_workers = os.getenv('BT_DATASET_NUM_WORKERS') if os.getenv('BT_DATASET_NUM_WORKERS') != None else 0
         defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
         defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else os.path.expanduser('~/./bittensor/data')
