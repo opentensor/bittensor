@@ -22,6 +22,7 @@ import json
 import os
 import random
 import threading
+from copy import deepcopy
 from queue import Queue
 from typing import *
 import aiohttp
@@ -30,6 +31,7 @@ from loguru import logger
 from torch.utils.data.dataloader import DataLoader
 import bittensor
 logger = logger.opt(colors=True)
+
 
 def chunk(sequence:list, 
         chunk_size:Optional[int]=None, 
@@ -204,6 +206,8 @@ class GenesisTextDataset:
         self.no_tokenizer = no_tokenizer
 
 
+        self.sample_cat_tasks = []
+        self.sample_cache = []
         self.tokenizer =  bittensor.tokenizer()
         self.pad_token = self.tokenizer.pad_token
         self.pad_token_idx = self.tokenizer(self.pad_token)['input_ids'][0]
@@ -217,7 +221,6 @@ class GenesisTextDataset:
         self.sample_count = 0
         self.batch_count = 0
        
-       
        # we need to build the dataset or load existing text file hashes
         # notice the heirarchy of ipfs hashes is DATASET -> FOLDER -> TEXT HASH, 
         # we want to flatten each dataset FOLDER -> TEXT HASH into FOLDER*TEXT
@@ -226,7 +229,6 @@ class GenesisTextDataset:
         # this runs the a thread that has its own asyncio loop. 
         # The loop is passed into nested async functions to use loo.run_until_complete function
         
-        sample_cat_params_chunks = chunk(self.sample_cat_params_list, self.cache_size)
         if self.run_generator:
             self.data_queue = Queue(self.cache_size)
 
@@ -259,12 +261,8 @@ class GenesisTextDataset:
             asyncio.set_event_loop(loop)
 
         # run through each chunk, then tokenize it,
-        batch_count = 0
-
-        sample_cat_params_chunks = chunk(self.sample_cat_params_list, self.cache_size)
-        
+        batch_count = 0        
         sample_count = 0
-        batch_count = 0
         
         tasks = []
         while self.run_generator:
@@ -275,18 +273,14 @@ class GenesisTextDataset:
                     tmp_finished_tasks, tasks = asyncio.run(asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED))
                     finished_tasks = finished_tasks + list(tmp_finished_tasks)
                     tasks = list(tasks)
-
                     if self.run_generator == False:
                         break
-                
-                
                 tasks += [self.cat(**sample_cat_params)]
 
                 for finished_task in finished_tasks:
                     sample = asyncio.run(finished_task)
                     queue.put(sample)
             
-
     def stop_generator(self):
         self.run_generator = False
 
@@ -305,7 +299,6 @@ class GenesisTextDataset:
         """
         if datasets == None:
             datasets = self.datasets
-
 
         all_text_file_metas = []
         dataset_hash_map = {}
@@ -490,6 +483,19 @@ class GenesisTextDataset:
             text_file_metas (List[Dict): 
                 List of text file metas with the format of {Hash:String, Size:String, Name:String}
         """
+
+
+
+        hash2file_meta = {}
+        if load:
+            loaded_file_metas =  self.load_json(path=f'{dataset}/file_metas', default=[], loop=loop)
+            for file_meta in loaded_file_metas:
+                hash2file_meta[file_meta['Hash']] = file_meta
+            
+            text_file_metas = list(hash2file_meta.values())
+
+            return text_file_metas
+
         num_folders = num_folders if num_folders else self.num_folders
             
         folder_hashes = (await self.get_folder_hashes(self.dataset2hash[dataset]))[:num_folders]
@@ -499,11 +505,6 @@ class GenesisTextDataset:
             folder_hashes = [self.dataset2hash[dataset]]
         random.shuffle(folder_hashes)
 
-        hash2file_meta = {}
-        if load:
-            loaded_file_metas =  self.load_json(path=f'{dataset}/file_metas', default=[], loop=loop)
-            for file_meta in loaded_file_metas:
-                hash2file_meta[file_meta['Hash']] = file_meta
 
         tasks = []
         for f in folder_hashes:
@@ -577,7 +578,9 @@ class GenesisTextDataset:
         self.cache_size = (self.cache_size // self.batch_size) * self.batch_size
         return self.sample_cache
 
-    def resolve_sample_cache(self)-> List[str]:
+
+
+    async def async_generate_sample(self, local_cache_fraction=0.5)-> List[str]:
         '''
         Checks the sample cache, and builds it if it is empty
 
@@ -585,13 +588,27 @@ class GenesisTextDataset:
             self.sample_cache (List[str]): 
                 The sample cache.
         '''
-        if len(self.sample_cache) == 0:
-            sample_cat_params_list = random.sample(self.sample_cat_params_list, self.cache_size)
-            cache_sample_tasks = [self.cat(**sample_cat_params) for sample_cat_params in sample_cat_params_list]
-            self.sample_cache = [sample_bytes for sample_bytes in self.async_run(asyncio.gather(*cache_sample_tasks))]
+        sample_cache = deepcopy(self.sample_cache )
+        if len(sample_cache) > self.batch_size:
+            return sample_cache.pop(random.randint(0,len(sample_cache)-1))
 
+        cache_free_space = self.cache_size - len(self.sample_cat_tasks) 
+        if cache_free_space > 0  :
+            sample_cat_params_list = random.sample(self.sample_cat_params_list, cache_free_space)
+            self.sample_cat_tasks += [self.cat(**sample_cat_params) for sample_cat_params in sample_cat_params_list]
+            
+        finished_tasks, running_tasks  = await asyncio.wait(self.sample_cat_tasks, return_when=asyncio.FIRST_COMPLETED) 
+        
+        self.sample_cat_tasks = list(running_tasks)
+        finished_tasks = list(finished_tasks)
 
-        return self.sample_cache
+        for finished_task in finished_tasks:
+            self.sample_cache += [finished_task.result()]
+
+        if len(self.sample_cache) > self.cache_size:
+            self.sample_cache = self.sample_cache[-self.cache_size:]
+
+        return random.choice(self.sample_cache)
 
     def __getitem__(self, idx: Optional[int]= None) -> Union[List[str], torch.tensor]:
         '''
@@ -620,8 +637,7 @@ class GenesisTextDataset:
         if self.run_generator :
             raw_text_bytes = self.data_queue.get()
         else:
-            self.resolve_sample_cache()
-            raw_text_bytes = self.sample_cache.pop(idx % len(self.sample_cache))
+            raw_text_bytes = asyncio.run(self.async_generate_sample())
         
         try:
             raw_text = raw_text_bytes.decode()
