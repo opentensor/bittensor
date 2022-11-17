@@ -1233,10 +1233,9 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
-        context, answer, predictions = response_predictions(uids, query_responses, return_ops,
-                                                            inputs, validation_len, batch_size, index_s)
-        response_table(predictions, context, answer, stats,
-                       sort_col='shapley_values_nxt', console_width=console_width, index_s=index_s)
+        batch_predictions = format_predictions(uids, query_responses, return_ops,
+                                               inputs, validation_len, batch_size, index_s)
+        response_table(batch_predictions, stats, sort_col='shapley_values_nxt', console_width=console_width)
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
@@ -1398,85 +1397,77 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
     return syn_loss_diff
 
 
-def response_predictions(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
-                         return_ops: List[torch.LongTensor], inputs: torch.FloatTensor,
-                         validation_len: int, batch_size: int,
-                         index_s: int = 0, number_of_predictions: int = 10, batch_item: int = None):
+def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
+                       return_ops: List[torch.LongTensor], inputs: torch.FloatTensor,
+                       validation_len: int, index_s: int = 0, number_of_predictions: int = 3):
 
-    if batch_item is None:
-        batch_item = random.randint(0, batch_size - 1)
-
+    batch_size = inputs.shape[0]
+    batch_predictions = []
     std_tokenizer = bittensor.tokenizer()
-    context = std_tokenizer.decode(inputs[batch_item][:-validation_len])
-    answer = std_tokenizer.decode(inputs[batch_item][-validation_len:])
 
-    predictions = {}
-    for index, uid in enumerate(uids.tolist()):
-        if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
-            topk_tensor = query_responses[index][index_s]
-            """topk_tensor (:obj:`torch.Tensor`, `required`):
-                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
-                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
-                Content structure:
-                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
-                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
-                  [...],
-                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
-                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
-                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
-                  [...],
-                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
-                 [...]]
-            """
-            topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
-            topk_probs = topk_tensor[batch_item, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+    for batch_item in range(batch_size):
+        context = inputs[batch_item][:-validation_len]
+        answer = inputs[batch_item][-validation_len:]
 
-            preds = {}
-            for i in range(number_of_predictions):
-                phrase = topk_tokens[i]
-                phrase = phrase[phrase >= 0]
-                preds[f'phrase{i}'] = repr(std_tokenizer.decode(phrase))
-                preds[f'prob{i}'] = topk_probs[i].item()
+        context = repr(std_tokenizer.decode(context))[1:-1][-30:]  # strip '' and truncate
+        answer = repr(std_tokenizer.decode(answer))[1:-1][:15]  # strip '' and truncate
 
-            predictions[uid] = preds
+        task = f"[bold]{context}[/bold]{answer}"
 
-    return context, answer, predictions
+        predictions = {}
+        for index, uid in enumerate(uids.tolist()):
+            if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+                topk_tensor = query_responses[index][index_s]  # [batch_size, (topk + 1), max_len] (prob_k) + floor_prob
+                topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+                topk_probs = topk_tensor[batch_item, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+
+                preds = ''
+                for i in range(number_of_predictions):
+                    phrase = topk_tokens[i]
+                    phrase = phrase[phrase >= 0]
+                    phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # escape and truncate
+                    preds += f"[[white]{topk_probs[i]:.3f}[/white]: {phrase_str} "
+
+                predictions[uid] = preds[:-1]  # strip trailing space
+
+        batch_predictions += [(task, predictions)]
+
+    return batch_predictions
 
 
-def response_table(predictions: Dict, context: str, answer: str, stats: Dict,
-                   sort_col: str, console_width: int, index_s: int = 0, number_of_predictions: int = 10):
-
-    # Query response table columns
-    #   [Column_name, key_name, format_string, rich_style]  # description
-    phrase_columns = sum([[['p', f'prob{i}', '{:.4f}', 'magenta'],  # probability of top prediction
-                           ['pred', f'phrase{i}', '{}', ''],  # phrase string prediction
-                           ] for i in range(number_of_predictions)], [])
+def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_width: int,
+                   task_repeat: int = 4, tasks_per_server: int = 3):
     columns = [column for column in neuron_stats_columns if column[1] in ['uid', 'loss_nxt', 'synergy_nxt']]
 
     sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
                   reverse=True, key=lambda _row: _row[1])
 
-    rows = []
-    for uid, val in sort:
+    batch_size = len(batch_predictions)
+    batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
+
+    for i, (uid, val) in enumerate(sort):
+        if i % task_repeat == 0:
+            # === Response table ===
+            table = Table(width=console_width, box=None)
+            for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
+                table.add_column(col, style=stl, justify='right')
+
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
-        row += [txt.format(predictions[uid][key]) for _, key, txt, _ in phrase_columns]
-        rows += [row]
+        for j in range(tasks_per_server):
+            batch_item = batch_size % ((i // task_repeat) * tasks_per_server + j)  # do not exceed batch_size, repeat task over servers
+            task, predictions = batch_predictions[batch_perm[batch_item]]
 
-    # === Response table ===
-    table = Table(width=console_width, box=None)
-    table.title = f'[white] [bold]context[/bold]prediction [/white] ' \
-                  f'[bold]{repr(context[-15:])}[/bold]' \
-                  f'{repr(answer)}'
-    table.caption = f'[bold]{repr(context[-25:])}[/bold]{repr(answer)}'
+            if i % task_repeat == 0:
+                table.add_column(task, style='', justify='left')
 
-    for col, _, _, stl in columns + phrase_columns:  # [Column_name, key_name, format_string, rich_style]
-        table.add_column(col, style=stl, justify='right')
-    for row in rows:
+            row += [predictions[uid]]
+
         table.add_row(*row)
 
-    if len(rows):
-        print(table)
-        print()
+        if i % task_repeat == task_repeat - 1:
+            print(table)
+
+    print()
 
 
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
