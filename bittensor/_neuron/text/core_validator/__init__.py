@@ -1437,13 +1437,15 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
 
 def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_width: int,
                    task_repeat: int = 4, tasks_per_server: int = 3):
+    batch_size = len(batch_predictions)
+    if batch_size == 0:
+        return
+    batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
+
     columns = [column for column in neuron_stats_columns if column[1] in ['uid', 'loss_nxt', 'synergy_nxt']]
 
     sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
                   reverse=True, key=lambda _row: _row[1])
-
-    batch_size = len(batch_predictions)
-    batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
 
     for i, (uid, val) in enumerate(sort):
         if i % task_repeat == 0:
@@ -1454,6 +1456,9 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
 
             for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
                 table.add_column(col, style=stl, justify='right')
+
+        if i == len(sort) - 1:
+            table.caption = f'[white]context[/white][bold]prediction[/bold]'
 
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
         for j in range(tasks_per_server):
@@ -1467,15 +1472,14 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
 
         table.add_row(*row)
 
-        if i % task_repeat == task_repeat - 1:
-            if i == len(sort) - 1:
-                table.caption = f'[white]context[/white][bold]prediction[/bold]'
-            print(table)
-
-    if (len(sort) - 1) % task_repeat != task_repeat - 1:
-        table.caption = f'[white]context[/white][bold]prediction[/bold]'
-        print(table)
-    print()
+        if (i == len(sort) - 1) or (i % task_repeat == task_repeat - 1):
+            try:
+                print(table)
+            except Exception as e:
+                print(e)
+            else:
+                if i == len(sort) - 1:
+                    print()
 
 
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
