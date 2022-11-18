@@ -21,71 +21,62 @@ from unittest.mock import MagicMock
 logging = bittensor.logging()
 
 def test_construct_text_corpus():
-    for run_generator in [True, False]: 
-        dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, save_dataset = False, dataset_name = constant.dataset.dataset_name, run_generator=run_generator)
-        # dataset.construct_text_corpus()
-        dataset.close()
+    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
+    dataset.close()
 
 def test_change_data_size():
-    # only for run_generator is False
-    data_sizes = [(10,1000), (15, 2000),(30, 3000), (25,4000), (30,-1) ]
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, run_generator=False, no_tokenizer=False)
+    # (batch_size, block_size, buffer_size)
+    data_sizes = [(10,1000, 100), (15, 2000, 1000),(30, 3000,200), (25,4000, 1000) ]
+    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, no_tokenizer=False)
     for data_size in data_sizes:
         dataset.set_data_size(*data_size)
         sample = next(dataset)
-        sample[0].shape[0] == data_size[0]
+        assert sample.shape[0] == data_size[0]
+        assert dataset.block_size == data_size[1]
+        assert dataset.buffer_size == data_size[2]
         
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, run_generator=False, no_tokenizer=True)
 
-    for data_size in data_sizes:
-        raw_text_sample = next(dataset)
-        len(raw_text_sample)  == data_size[1]
-    
     dataset.close() 
+
 
 def test_next_tokenized_sample():
     batch_size = 10
     sequence_length = 128
     block_size = 500
     num_batches = 10
-    for run_generator in [ True, False]:
-        
-        dataset = bittensor.dataset (
-            block_size = block_size,
-            batch_size = batch_size,
-            sequence_length = sequence_length,
-            num_batches=num_batches,
-            run_generator = run_generator,
-            no_tokenizer=False
-        )
+    
+    dataset = bittensor.dataset (
+        block_size = block_size,
+        batch_size = batch_size,
+        sequence_length = sequence_length,
+        num_batches=num_batches,
+        no_tokenizer=False
+    )
 
-        input = next(dataset)
-        assert input.shape[0] == batch_size
-        assert input.shape[1]  == sequence_length
-        dataset.close()
-
+    input = next(dataset)
+    assert input.shape[0] == batch_size
+    assert input.shape[1]  == sequence_length
+    dataset.close()
 
 def test_next_raw_sample():
     batch_size = 10
     sequence_length = 128
     block_size = 1000
     num_batches = 10
-    for run_generator in [True, False]:
-        dataset = bittensor.dataset (
-            block_size = block_size,
-            batch_size = batch_size,
-            sequence_length = sequence_length,
-            num_batches=num_batches,
-            run_generator = run_generator,
-            no_tokenizer = True
-        )
+    dataset = bittensor.dataset (
+        block_size = block_size,
+        batch_size = batch_size,
+        sequence_length = sequence_length,
+        num_batches=num_batches,
+        no_tokenizer = True
+    )
 
-        input = next(dataset)
-        assert len(input) == batch_size
-        for i in range(len(input)):
-            assert len(input[i].split()) == sequence_length
+    input = next(dataset)
+    assert len(input) == batch_size
+    for i in range(len(input)):
+        assert len(input[i].split()) == sequence_length
 
-        dataset.close()
+    dataset.close()
 
 
 
@@ -96,6 +87,7 @@ def test_fail_IPFS_server():
     next(dataset)
     next(dataset)
     dataset.close()
+
 
 if __name__ == "__main__":
     test_change_data_size()
