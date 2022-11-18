@@ -1477,9 +1477,10 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
 
         # === Last table section ===
         if i == len(sort) - 1:
-            table.caption = f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | ' \
+            table.caption = f'[bold]{len(sort)}[/bold]/{len(stats)} (respond/topk) | ' \
                             f'[bold]{tasks_per_server}[/bold] tasks per server | ' \
-                            f'repeat tasks over [bold]{task_repeat}[/bold] servers'
+                            f'repeat tasks over [bold]{task_repeat}[/bold] servers ' \
+                            f'\[{batch_size}]'
 
         # === Row addition ===
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
@@ -1576,10 +1577,10 @@ def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
 def synapse_table(name, stats, sort_col, console_width, start_time):
     r""" Prints the evaluation of the neuron responses to the validator request
     """
-
     stats_table(stats, sort_col, console_width,
                 f'[white] \[{name}] responses [/white] | Validator forward',  # title
-                f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | '
+                f'[bold]{len([s for s in stats.values() if len(s) and sort_col in s])}[/bold]/'
+                f'{len(stats)} (respond/topk) | '
                 f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
                 )
 
