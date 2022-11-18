@@ -36,6 +36,7 @@ from rich import print
 from rich.console import Console
 from rich.style import Style
 from rich.table import Table
+from rich.errors import MarkupError
 from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
@@ -1233,7 +1234,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
     if logging:
         # === Response table ===
-        # Prints the query response table: top prediction probabilities and texts for batch items
+        # Prints the query response table: top prediction probabilities and texts for batch tasks
         batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
         response_table(batch_predictions, stats, sort_col='shapley_values_nxt', console_width=console_width)
 
@@ -1399,13 +1400,15 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
 
 def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
                        return_ops: List[torch.LongTensor], inputs: torch.FloatTensor,
-                       validation_len: int, index_s: int = 0, number_of_predictions: int = 3):
-
-    batch_size = inputs.shape[0]
+                       validation_len: int, index_s: int = 0, number_of_predictions: int = 3) -> List:
+    r""" Format batch task topk predictions for rich table print of query responses.
+    """
     batch_predictions = []
     std_tokenizer = bittensor.tokenizer()
 
-    for batch_item in range(batch_size):
+    # === Batch iteration ===
+    for batch_item in range(inputs.shape[0]):
+        # === Task formatting ===
         context = inputs[batch_item][:-validation_len]
         answer = inputs[batch_item][-validation_len:]
 
@@ -1414,6 +1417,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
 
         task = f"[reverse]{context}[/reverse][bold]{answer}[/bold]"
 
+        # === Prediction formatting ===
         predictions = {}
         for index, uid in enumerate(uids.tolist()):
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
@@ -1421,16 +1425,19 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
                 topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
                 topk_probs = topk_tensor[batch_item, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
 
-                preds = ''
+                # === Topk iteration ===
+                topk_predictions = ''
                 for i in range(number_of_predictions):
                     phrase = topk_tokens[i]
-                    phrase = phrase[phrase >= 0]
-                    phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # escape and truncate
-                    prob = f'{topk_probs[i]:.3f}'
-                    prob = prob[1:] if prob[0] == '0' else prob[:-1]
-                    preds += f"[green]{prob}[/green]: {phrase_str} "
+                    phrase = phrase[phrase >= 0]  # strip negative ignore_index = -100
+                    phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # decode, escape and truncate
 
-                predictions[uid] = preds[:-1]  # strip trailing space
+                    prob = f'{topk_probs[i]:.3f}'
+                    prob = prob[1:] if prob[0] == '0' else prob[:-1]  # remove obvious leading 0
+
+                    topk_predictions += f"[green]{prob}[/green]: {phrase_str} "
+
+                predictions[uid] = topk_predictions[:-1]  # strip trailing space
 
         batch_predictions += [(task, predictions)]
 
@@ -1439,36 +1446,42 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
 
 def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_width: int,
                    task_repeat: int = 4, tasks_per_server: int = 3):
+    r""" Prints the query response table: top prediction probabilities and texts for batch tasks.
+    """
+    # === Batch permutation ===
     batch_size = len(batch_predictions)
     if batch_size == 0:
         return
     batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
 
-    columns = [c[:] for c in neuron_stats_columns if c[1] in ['uid', 'shapley_values_nxt', 'loss_nxt', 'synergy_nxt']]
-    # === Sort rows ===
-    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
-                  reverse=True, key=lambda _row: _row[1])
+    # === Column selection ===
+    columns = [c[:] for c in neuron_stats_columns if c[1] in ['uid', sort_col, 'loss_nxt', 'synergy_nxt']]
     col_keys = [c[1] for c in columns]
+
+    # === Sort rows ===
+    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s], reverse=True, key=lambda _row: _row[1])
     if sort_col in col_keys:
         sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
         columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
 
     for i, (uid, val) in enumerate(sort):
+        # === New table section ===
         if i % task_repeat == 0:
-            # === Response table ===
             table = Table(width=console_width, box=None)
             if i == 0:
                 table.title = f"[white bold] Query responses [/white bold] | " \
-                              f"[white]context[/white][bold]continuation[/bold] | " \
-                              f".prob: 'prediction'"
+                              f"[white]context[/white][bold]continuation[/bold] | .prob: 'prediction'"
 
             for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
                 table.add_column(col, style=stl, justify='right')
 
+        # === Last table section ===
         if i == len(sort) - 1:
             table.caption = f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | ' \
-                            f'{tasks_per_server} tasks per server | repeat tasks over {task_repeat} servers'
+                            f'[bold]{tasks_per_server}[/bold] tasks per server | ' \
+                            f'repeat tasks over [bold]{task_repeat}[/bold] servers'
 
+        # === Row addition ===
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
         for j in range(tasks_per_server):
             batch_item = ((i // task_repeat) * tasks_per_server + j) % batch_size  # repeat task over servers, do not exceed batch_size
@@ -1480,10 +1493,11 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
 
         table.add_row(*row)
 
+        # === Table print ===
         if (i == len(sort) - 1) or (i % task_repeat == task_repeat - 1):
             try:
                 print(table)
-            except Exception as e:
+            except MarkupError as e:
                 print(e)
             else:
                 if i == len(sort) - 1:
