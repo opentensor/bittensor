@@ -1444,9 +1444,14 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
         return
     batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
 
-    columns = [column for column in neuron_stats_columns if column[1] in ['uid', 'loss_nxt', 'synergy_nxt']]
+    columns = [c[:] for c in neuron_stats_columns if c[1] in ['uid', 'shapley_values_nxt', 'loss_nxt', 'synergy_nxt']]
+    # === Sort rows ===
     sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
                   reverse=True, key=lambda _row: _row[1])
+    col_keys = [c[1] for c in columns]
+    if sort_col in col_keys:
+        sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
+        columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
 
     for i, (uid, val) in enumerate(sort):
         if i % task_repeat == 0:
