@@ -1232,6 +1232,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
+        # === Response table ===
+        # Prints the query response table: top prediction probabilities and texts for batch items
         batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
         response_table(batch_predictions, stats, sort_col='shapley_values_nxt', console_width=console_width)
 
@@ -1443,7 +1445,6 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
     batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
 
     columns = [column for column in neuron_stats_columns if column[1] in ['uid', 'loss_nxt', 'synergy_nxt']]
-
     sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
                   reverse=True, key=lambda _row: _row[1])
 
@@ -1452,23 +1453,25 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
             # === Response table ===
             table = Table(width=console_width, box=None)
             if i == 0:
-                table.title = f'[white] Query responses [/white]'
+                table.title = f"[white bold] Query responses [/white bold] | " \
+                              f"[white]context[/white][bold]continuation[/bold] | " \
+                              f".prob: 'prediction'"
 
             for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
                 table.add_column(col, style=stl, justify='right')
 
         if i == len(sort) - 1:
-            table.caption = f'[white]context[/white][bold]prediction[/bold]'
+            table.caption = f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | ' \
+                            f'{tasks_per_server} tasks per server | repeat tasks over {task_repeat} servers'
 
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
         for j in range(tasks_per_server):
             batch_item = ((i // task_repeat) * tasks_per_server + j) % batch_size  # repeat task over servers, do not exceed batch_size
             task, predictions = batch_predictions[batch_perm[batch_item]]
+            row += [predictions[uid]]
 
             if i % task_repeat == 0:
                 table.add_column(task, header_style='not bold', style='', justify='left')
-
-            row += [predictions[uid]]
 
         table.add_row(*row)
 
