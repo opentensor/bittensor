@@ -1480,7 +1480,8 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
             table.caption = f'[bold]{len(sort)}[/bold]/{len(stats)} (respond/topk) | ' \
                             f'[bold]{tasks_per_server}[/bold] tasks per server | ' \
                             f'repeat tasks over [bold]{task_repeat}[/bold] servers ' \
-                            f'\[{batch_size}]'
+                            f'[white]\[{math.ceil(1. * len(sort) / task_repeat) * tasks_per_server}/' \
+                            f'{batch_size} batch tasks][/white]'
 
         # === Row addition ===
         row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
