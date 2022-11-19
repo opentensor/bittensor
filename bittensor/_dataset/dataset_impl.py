@@ -34,7 +34,6 @@ import bittensor
 from .utils import CustomThread, ThreadManager
 from munch import Munch
 logger = logger.opt(colors=True)
-import streamlit as st
 
 
 
@@ -853,10 +852,8 @@ class GenesisTextDataset:
         """
         return self.dataset_size // self.block_size
 
-
     def __del__(self) -> None:
         self.close()
 
     def close(self) -> None:
         del self.tokenizer
-
