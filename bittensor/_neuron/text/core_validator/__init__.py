@@ -418,8 +418,6 @@ class neuron:
         # Each block length lasts blocks_per_epoch blocks.
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
-        if self.epoch > 0:  # skip first epoch: already synced at start of run
-            self.metagraph_sync()  # Reset metagraph.
 
         self.nucleus.permute_uids = []  # clear nucleus permutation before epoch
 
@@ -551,9 +549,8 @@ class neuron:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
-                
-        # Iterate epochs.
-        self.epoch += 1
+
+        self.metagraph_sync()  # Reset metagraph.
 
         # === Calculate neuron weights ===
         sample_uids, sample_weights = self.calculate_weights()
@@ -605,6 +602,9 @@ class neuron:
         self.prometheus_gauges.labels("incentive").set( self.metagraph.incentive[self.uid] )
         self.prometheus_gauges.labels("dividends").set( self.metagraph.dividends[self.uid] )
         self.prometheus_gauges.labels("emission").set( self.metagraph.emission[self.uid] )
+
+        # Iterate epochs.
+        self.epoch += 1
 
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
