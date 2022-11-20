@@ -179,6 +179,7 @@ class neuron:
         # === Neuron statistics variables ===
         self.neuron_stats = {}  # neuron statistics dict of dicts: [uid] -> {'stat1': val1, 'stat2': val2, ...}
         self.neuron_hotkeys = []  # keep neuron hotkeys to compare and check for changes after metagraph.sync()
+        self.neuron_register = {}  # neuron registration dict of dicts of dicts: [uid] -> [block] -> {'new_hotkey': , 'old_hotkey': , 'old_stats':}
         self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
 
         if self.config.neuron.validation_synapse == 'TextCausalLMNext':
@@ -320,7 +321,8 @@ class neuron:
 
             state_dict = {
                 'neuron_stats': self.neuron_stats,
-                'neuron_hotkeys': self.neuron_hotkeys
+                'neuron_hotkeys': self.neuron_hotkeys,
+                'neuron_register': self.neuron_register
             }
 
             torch.save(state_dict, f'{path}/model.torch')
@@ -338,6 +340,7 @@ class neuron:
 
             self.neuron_stats = state_dict['neuron_stats']
             self.neuron_hotkeys = state_dict['neuron_hotkeys']
+            self.neuron_register = state_dict['neuron_register'] if 'neuron_register' in state_dict else {}
 
             bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
 
@@ -609,21 +612,28 @@ class neuron:
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
         """
-        old_hotkeys = self.neuron_hotkeys if self.neuron_hotkeys else self.metagraph.hotkeys
+        old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
         self.metagraph.sync()
         self.neuron_hotkeys = self.metagraph.hotkeys
+
+        assert len(old_hotkeys) == len(self.neuron_hotkeys), 'metagraph hotkeys length do not match'
+        assert self.metagraph.S == len(self.neuron_hotkeys), 'metagraph hotkeys do not match metagraph size'
 
         changed_hotkeys = []
         # === Reset neuron stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.neuron_hotkeys[uid]:
+                self.neuron_register.setdefault(uid, {})  # [uid] -> dict() of blocks
+                self.neuron_register[uid][self.subtensor.block] = {'new_hotkey': self.neuron_hotkeys[uid],
+                                                                   'old_hotkey': old_hotkey}
                 if uid in self.neuron_stats:
+                    self.neuron_register[uid][self.subtensor.block]['old_stats'] = self.neuron_stats[uid]
                     del self.neuron_stats[uid]
                     changed_hotkeys += [uid]
 
         if len(changed_hotkeys):
             logger.info(f"Hotkeys changed: {changed_hotkeys}")
-            self.save()  # save neuron_stats and neuron_hotkeys to filesystem
+            self.save()  # save neuron_stats, neuron_hotkeys, and neuron_register to filesystem
 
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
