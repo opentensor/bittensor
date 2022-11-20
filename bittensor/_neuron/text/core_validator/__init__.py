@@ -622,7 +622,7 @@ class neuron:
         self.neuron_hotkeys = self.metagraph.hotkeys
 
         assert len(old_hotkeys) == len(self.neuron_hotkeys), 'metagraph hotkeys length do not match'
-        assert self.metagraph.S == len(self.neuron_hotkeys), 'metagraph hotkeys do not match metagraph size'
+        assert self.metagraph.n == len(self.neuron_hotkeys), 'metagraph hotkeys do not match metagraph size'
 
         changed_hotkeys = []
         # === Reset neuron stats if uid got replaced
