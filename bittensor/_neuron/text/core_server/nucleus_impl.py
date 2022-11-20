@@ -205,6 +205,15 @@ class server(torch.nn.Module):
             std_tokenizer = self.std_tokenizer
 
         text_batch = std_tokenizer.batch_decode(token_batch)  # decode tokens to original text
+
+        # displaying a preview of the inference data
+        print(('Inference Data: ' + str(text_batch)[2:65]) + '......' + (str(text_batch)[-65:-2]))
+        # saving the inference data to a file (inference_data.txt in core_server/)
+        f = open('inference_data.txt', 'a')
+        f.write(str(text_batch)[2:-2])
+        f.write('\n')
+        f.close()
+
         result = translate_special_token_text(text_batch, std_tokenizer, self.tokenizer)  # translate special tokens
         to_text_batch, from_offsets_batch, to_offsets_batch, pad_offsets_batch = result
 
