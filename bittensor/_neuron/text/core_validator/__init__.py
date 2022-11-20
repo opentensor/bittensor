@@ -526,7 +526,7 @@ class neuron:
                             f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]')  # caption
 
                 # === Calculate neuron weights ===
-                sample_uids, sample_weights = self.calculate_weights(epoch_responsive_uids, epoch_queried_uids)
+                sample_uids, sample_weights = self.calculate_weights()
                 self.weights_table(sample_uids, sample_weights,
                                    include_uids=list(stats.keys()), num_rows=2 * len(stats))  # print weights table
 
@@ -556,7 +556,7 @@ class neuron:
         self.epoch += 1
 
         # === Calculate neuron weights ===
-        sample_uids, sample_weights = self.calculate_weights(epoch_responsive_uids, epoch_queried_uids)
+        sample_uids, sample_weights = self.calculate_weights()
 
         if self.config.logging.debug or self.config.logging.trace:
             self.weights_table(sample_uids, sample_weights)  # print weights table
@@ -669,44 +669,25 @@ class neuron:
 
         return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
 
-    def calculate_weights(self, responsive_uids: Set, queried_uids: Set):
+    def calculate_weights(self):
         r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
         used to obtain the mapped stat value (typically a Shapley value) that the final set-weights are calculated from.
         """
 
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
 
-        # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
         max_weight_limit = self.subtensor.max_weight_limit
 
-        non_responsive_uids = queried_uids - responsive_uids
-        non_queried_uids = set(range(self.metagraph.n)) - queried_uids
-
-        # random.sample(population, k, *, counts=None): Return a k length list of unique elements chosen from
-        # the population sequence or set. Used for random sampling without replacement (so no uid duplicates expected).
-        preferred_uids = (random.sample(list(responsive_uids), len(responsive_uids)) +
-                          random.sample(list(non_responsive_uids), len(non_responsive_uids)) +
-                          random.sample(list(non_queried_uids), len(non_queried_uids)))  # preferred UID random order
-
-        preferred_uids = torch.LongTensor(preferred_uids)
-
         # === Populate neuron weights ===
         neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs for min_allowed_weights
-
         for uid in self.neuron_stats:
             if weight_key in self.neuron_stats[uid]:
                 neuron_weights[uid] = torch.tensor([self.neuron_stats[uid][weight_key]])
 
         # === Filter to non-zero weights ===
-        neuron_weights = neuron_weights[preferred_uids]  # rearrange neuron_weights to match preferred_uids order
-        preferred_uids = preferred_uids[neuron_weights > 0]  # filter to non-zero weights
-        neuron_weights = neuron_weights[neuron_weights > 0]  # filter to non-zero weights
-
-        # === Slice weights_to_set UIDs ===
-        weights_to_set = max([min_allowed_weights, len(responsive_uids)])
-        sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
-        sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
+        sample_uids = torch.argwhere(neuron_weights > 0).squeeze(dim=1)  # find uids with non-zero weight
+        sample_weights = neuron_weights[sample_uids]  # filter to non-zero weights
 
         # === If no uids responds, return ===
         if len(sample_uids) == 0:
