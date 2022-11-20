@@ -578,8 +578,7 @@ class neuron:
               f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
               f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
               f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-              f'\[{sample_weights.max().item()}:1] '
-              f'({max_weight_limit} allowed)')
+              f'\[{max_weight_limit:.4g} allowed]')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
