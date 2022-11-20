@@ -208,8 +208,8 @@ class server(torch.nn.Module):
 
         # displaying a preview of the inference data
         print(('Inference Data: ' + str(text_batch)[2:65]) + '......' + (str(text_batch)[-65:-2]))
-        # saving the inference data to a file (inference_data.txt in core_server/)
-        f = open('inference_data.txt', 'a')
+        # saving the last inference data query to a file (inference_data_last.txt in core_server/)
+        f = open('inference_data_last.txt', 'w')
         f.write(str(text_batch)[2:-2])
         f.write('\n')
         f.close()
