@@ -431,13 +431,18 @@ class neuron:
 
         self.prometheus_gauges.labels("epoch_steps").set(0)
 
-        start_block = self.subtensor.block
         # normal epoch duration is blocks_per_epoch if all UIDs have been queried
         # try to query each UID at least once - assumes nucleus samples without replacement
-        # but keep maximum epoch duration at 2 * blocks_per_epoch
+        # but keep minimum epoch duration at blocks_per_epoch * 12 sec block_period
+        # in case of subtensor outage causing invalid block readings to prevent fast repeated weight setting
+        start_block = self.subtensor.block
         while (self.subtensor.block < start_block + blocks_per_epoch or
-               (self.subtensor.block < start_block + 2 * blocks_per_epoch and
-                len(epoch_queried_uids) < self.metagraph.n)):
+               time.time() - epoch_start_time < blocks_per_epoch * 12):
+
+            logger.info(f'Run epoch {self.epoch} (step {epoch_steps}) while '
+                        f'{self.subtensor.block} < {start_block} + {blocks_per_epoch} or '
+                        f'{time.time() - epoch_start_time} < {blocks_per_epoch * 12}')
+
             start_time = time.time()
 
             # === Forward ===
