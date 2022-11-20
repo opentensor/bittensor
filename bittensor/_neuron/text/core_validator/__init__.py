@@ -747,8 +747,7 @@ class neuron:
                     f'sum:{sample_weights.sum().item():.2g} '
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                    f'\[{sample_weights.max().item()}:1] '
-                    f'({max_weight_limit} allowed)',  # caption
+                    f'\[{max_weight_limit:.4g} allowed]',  # caption
                     mark_uids=avail_include_uids)
 
 
