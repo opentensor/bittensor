@@ -440,8 +440,9 @@ class neuron:
                time.time() - epoch_start_time < blocks_per_epoch * 12):
 
             logger.info(f'Run epoch {self.epoch} (step {epoch_steps}) while '
-                        f'{self.subtensor.block} < {start_block} + {blocks_per_epoch} or '
-                        f'{time.time() - epoch_start_time} < {blocks_per_epoch * 12}')
+                        f'({self.subtensor.block} < {start_block + blocks_per_epoch} '
+                        f'= {start_block} + {blocks_per_epoch}) or '
+                        f'({time.time() - epoch_start_time:.2f} < {blocks_per_epoch * 12})')
 
             start_time = time.time()
 
