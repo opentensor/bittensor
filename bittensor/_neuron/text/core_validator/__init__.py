@@ -422,8 +422,6 @@ class neuron:
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
 
-        self.nucleus.permute_uids = []  # clear nucleus permutation before epoch
-
         epoch_steps = 0
         epoch_responsive_uids = set()
         epoch_queried_uids = set()
