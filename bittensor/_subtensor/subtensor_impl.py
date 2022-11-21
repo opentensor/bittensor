@@ -1629,7 +1629,9 @@ To run a local node (See: docs/running_a_validator.md) \n
             metagraphs = []
             str_block_range = [ str(block) for block in block_range ]
             uid_range = [str(i) for i in range(4096) ]
-            for block in tqdm( str_block_range ):
+            tqdm_bar = tqdm( str_block_range )
+            for block in tqdm_bar:
+                tqdm_bar.set_description( "Syncing block: %s" % block )
                 f = FastSync(self.chain_endpoint)
                 f.sync_and_save_historical([block], uid_range)
                 neurons = f.load_historical_neurons()
