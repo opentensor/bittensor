@@ -47,7 +47,7 @@ def test_change_data_size():
 
 
 
-def test_next_tokenized_sample():
+def test_next_sample():
     batch_size = 10
     sequence_length = 128
     block_size = 500
@@ -64,25 +64,13 @@ def test_next_tokenized_sample():
     input = next(dataset)
     assert input.shape[0] == batch_size
     assert input.shape[1]  == sequence_length
-    dataset.close()
 
-def test_next_raw_sample():
-    batch_size = 10
-    sequence_length = 128
-    block_size = 500
-    dataset = bittensor.dataset (
-        block_size = block_size,
-        batch_size = batch_size,
-        sequence_length = sequence_length,
-        dataset_name = constant.dataset.dataset_name,
-        no_tokenizer = True
-    )
+    bittensor.no_tokenizer = True
 
     input = next(dataset)
     assert len(input) == batch_size
     for i in range(len(input)):
         assert len(input[i].split()) == sequence_length
-
     dataset.close()
 
 
