@@ -301,8 +301,7 @@ class neuron:
 
         # Check if no_serve is set.
         if self.config.neuron.no_serve:
-            logger.info('--neuron.no_serve flag set, not serving to network.')
-            logger.warning('Prometheus metrics will not be available.')
+            print('--neuron.no_serve flag set, not serving to network. Prometheus metrics will not be available.')
             return
 
         # === Set prometheus run info ===
