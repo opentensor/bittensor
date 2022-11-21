@@ -1605,15 +1605,15 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         return neurons
 
-    def get_metagraph_range( self, start_block: int, end_block:int, n:int ) -> List['bittensor.Metagraph']:
+    def get_metagraph_range( self, start_block: int = None, end_block:int = None, n:int = None ) -> List['bittensor.Metagraph']:
         r""" Returns a list of metagraphs synced from this subtensor connection 
             on rangee start to end with increments determined by passed n.
         Args:
-            start_block (int):
+            start_block (int, default: subtensor.block - 7200 (1 day)):
                 The beginning block to sync from.
-            end_block (int):
+            end_block (int, default: subtensor.block ):
                 The end block to sync to.
-            n (int):
+            n (int, default: 10):
                 The number of metagraphs to return on this range.
         Returns:
             metagraphs (List[bittensor.Metagraph]):
@@ -1624,6 +1624,14 @@ To run a local node (See: docs/running_a_validator.md) \n
             from subtensorapi import FastSync
         except ImportError:
             raise ValueError("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+
+        # Fill defaults.
+        if start_block == None:
+            start_block = self.block
+        if end_block == None:
+            end_block = self.block - 7200
+        if n == None:
+            n = 10
         
         if end_block >= start_block:
             raise ValueError("Failed sync. end_block {} must be larger than start_block {}".format(end_block, start_block))
