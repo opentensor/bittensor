@@ -1633,7 +1633,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         if n == None:
             n = 10
         
-        if end_block >= start_block:
+        if end_block <= start_block:
             raise ValueError("Failed sync. end_block {} must be larger than start_block {}".format(end_block, start_block))
 
         if n <= 0:
