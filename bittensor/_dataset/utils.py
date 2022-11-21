@@ -2,6 +2,7 @@ import threading
 import ctypes
 import time
 from typing import *
+import asyncio
 
 class CustomThread(threading.Thread):
     def __init__(self, fn, args=[], kwargs={}, forever:bool=False,  ):
@@ -42,18 +43,20 @@ class CustomThread(threading.Thread):
 
 
 
-def chunk(sequence:list, 
-        chunk_size:Optional[int]=None, 
-        append_remainder:bool=False,
-        distribute_remainder:bool=False,
-        num_chunk: Optional[int]= None):
+def chunk(sequence:list, chunk_size:Optional[int]=None, append_remainder:bool=False):
+    '''
+    Chunk a sequence into several chunks:
+    
+    Args:
+        sequence (list):
+            A seqeunce that we want to chunk.
+        chunk_size (Optional[int]): 
+            The size of the chunks we want to chunk
+        append_remainder (bool):
+            If true, append the remainder to the last chunk.
+    '''
 
-    if chunk_size is None:
-        assert (type(num_chunks) == int)
-        chunk_size = len(sequence) // num_chunks
-
-    if chunk_size >= len(sequence):
-        return [sequence]
+    assert chunk_size < len(sequence)
     remainder_chunk_len = len(sequence) % chunk_size
     remainder_chunk = sequence[:remainder_chunk_len]
     sequence = sequence[remainder_chunk_len:]
@@ -62,16 +65,8 @@ def chunk(sequence:list,
     if append_remainder:
         # append the remainder to the sequence
         sequence_chunks.append(remainder_chunk)
-    else:
-        if distribute_remainder:
-            # distributes teh remainder round robin to each of the chunks
-            for i, remainder_val in enumerate(remainder_chunk):
-                chunk_idx = i % len(sequence_chunks)
-                sequence_chunks[chunk_idx].append(remainder_val)
 
     return sequence_chunks
-
-
 
 
 class ThreadManager:
@@ -130,3 +125,19 @@ class ThreadManager:
                 # forces thread to stop
                 t.raise_exception()
                 t.join()
+
+def sync_wrapper(fn:'asyncio.callable') -> 'callable':
+    '''
+    Convert Async funciton to Sync.
+
+    Args:
+        fn (callable): 
+            An asyncio function.
+
+    Returns: 
+        wrapper_fn (callable):
+            Synchronous version of asyncio function.
+    '''
+    def wrapper_fn(*args, **kwargs):
+        return asyncio.run(fn(*args, **kwargs))
+    return  wrapper_fn
