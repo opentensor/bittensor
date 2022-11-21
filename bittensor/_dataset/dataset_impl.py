@@ -35,7 +35,6 @@ from munch import Munch
 logger = logger.opt(colors=True)
 
 
-
 class GenesisTextDataset:
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
@@ -175,34 +174,10 @@ class GenesisTextDataset:
 
         # Flatten the hashes to a list of hashes.
         for  k,file_meta_list in dataset_hash_map.items():
-            all_text_file_metas += v
+           
+            all_text_file_metas += [fm  for fm in file_meta_list if fm['Size'] >= self.block_size]
+        assert len(all_text_file_metas) > 0
         self.all_text_file_metas = all_text_file_metas
-
-    @staticmethod
-    def build_sample_cat_params(all_text_file_metas:List[dict], block_size:int)-> List[str]:
-        '''
-        Builds sample cat params from all_text_file_metas using block_size.
-
-        Args:
-            all_text_file_metas (List[dict]):
-                List of file metas containing {Hash:str, Size:int in bytes}.
-            block_size (int):
-                Size of the block.
-            
-        Returns 
-            sample_cat_params_list (List[dict]):
-                List of params for cat representing a block of text from an api call to ipfs cat.
-        '''
-        assert len(all_text_file_metas)>0
-        sample_cat_params_list = [] 
-
-        for file_meta in all_text_file_metas:
-            for offset in range(0, file_meta['Size'], block_size):
-                if file_meta['Size'] - offset >= block_size:
-                    params = { 'cid': file_meta['Hash'], 'offset': offset, 'length': block_size}
-                    sample_cat_params_list.append(params)
-        
-        return sample_cat_params_list
 
     async def async_save_json(self, 
                               path:str,
@@ -311,7 +286,7 @@ class GenesisTextDataset:
 
         hash2file_meta = {}
         if load:
-            loaded_file_metas =  self.load_json(path=f'{dataset}/file_metas', default=[], loop=loop)
+            loaded_file_metas =  self.load_json(path=f'{dataset}/file_metas', default=[])
             for file_meta in loaded_file_metas:
                 hash2file_meta[file_meta['Hash']] = file_meta
             
@@ -391,8 +366,6 @@ class GenesisTextDataset:
             
 
 
-
-
     async def async_generate_sample(self, local_buffer_fraction = 0.2, calls_per_update = 100, sample_cat_tasks:list = None, sample_buffer = None)-> List[str]:
         '''
         Checks the sample buffer, and builds it if it is empty
@@ -404,8 +377,10 @@ class GenesisTextDataset:
 
         buffer_free_space = self.buffer_size - len(self.sample_buffer) 
         if buffer_free_space > 0  :
+
             sample_cat_params_list = random.sample(self.all_text_file_metas, buffer_free_space)
-            self.sample_cat_tasks += [self.cat(cid=sample_cat_params['Hash'], offset=0, length=self.max_hash_size) for sample_cat_params in sample_cat_params_list]
+            
+            self.sample_cat_tasks += [asyncio.create_task(self.cat(cid=sample_cat_params['Hash'], offset=0, length=self.max_hash_size)) for sample_cat_params in sample_cat_params_list]
             finished_tasks, running_tasks  = await asyncio.wait(self.sample_cat_tasks) 
             self.sample_cat_tasks = list(running_tasks)
             finished_tasks = list(finished_tasks)
@@ -414,7 +389,6 @@ class GenesisTextDataset:
                 sample = finished_task.result()
                 self.sample_buffer += [finished_task.result()]
             
-
         random_idx = random.randint(0,len(self.sample_buffer)-1)
         raw_chunk = self.sample_buffer[random_idx]
         self.sample_count += 1
@@ -429,7 +403,7 @@ class GenesisTextDataset:
         if (self.sample_count //  self.batch_size) >= self.buffer_calls_per_update:
             self.sample_count = 0 
             self.sample_buffer.pop(0)
-
+        
         return sample
 
     def __getitem__(self, idx: Optional[int] = None) -> Union[List[str], torch.tensor]:
@@ -529,9 +503,9 @@ class GenesisTextDataset:
                 
         '''
         params = dict(arg=cid, offset=offset)
-        params['length'] = self.block_size
+        params['length'] = length
         headers = {}
-        response = await self.api_post('cat', params=params, headers=headers, chunk_size=length, num_chunks=1)
+        response = await self.api_post('cat', params=params, headers=headers, chunk_size=10000000, num_chunks=1)
         return response
     async def get_folder_text_hashes(self, file_meta:dict, dataset:str, max_chunks:int = 1, chunk_size:int = 100000000) -> List[Dict[str, Union[str, int]]]:
         """
