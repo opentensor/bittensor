@@ -65,7 +65,7 @@ def test_next_sample():
     assert input.shape[0] == batch_size
     assert input.shape[1]  == sequence_length
 
-    bittensor.no_tokenizer = True
+    dataset.no_tokenizer = True
 
     input = next(dataset)
     assert len(input) == batch_size
