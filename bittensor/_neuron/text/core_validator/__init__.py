@@ -235,6 +235,7 @@ class neuron:
         parser.add_argument('--neuron.print_neuron_stats', action='store_true', help='If True, print neuron_stats and exit.', default=False)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, reset neuron_stats and validate anew.', default=False)
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
+        parser.add_argument('--neuron.metagraph_cached', action='store_true', help='''Use metagraph.sync(cached=True).''', default=False)
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
@@ -616,7 +617,7 @@ class neuron:
         r""" Syncing metagraph together with other metagraph-size related objects
         """
         old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
-        self.metagraph.sync(cached=False)
+        self.metagraph.sync(cached=self.config.neuron.metagraph_cached)
         self.neuron_hotkeys = self.metagraph.hotkeys
 
         assert len(old_hotkeys) == len(self.neuron_hotkeys), 'metagraph hotkeys length do not match'
