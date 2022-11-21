@@ -1591,7 +1591,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         try:
             from subtensorapi import FastSync
         except ImportError:
-            raise SyncException("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+            raise ValueError("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
         
         try:
             # check if fast sync is available
@@ -1601,9 +1601,52 @@ To run a local node (See: docs/running_a_validator.md) \n
             # get neurons
             neurons = fast_sync.sync_fd(block_hash)
         except Exception as e:
-            raise SyncException("Failed to fast sync neurons: {}".format(e))
+            raise ValueError("Failed to fast sync neurons: {}".format(e))
 
         return neurons
+
+    def get_metagraph_range( self, start_block: int, end_block:int, n:int ) -> List['bittensor.Metagraph']:
+        r""" Returns a list of metagraphs synced from this subtensor connection 
+            on rangee start to end with increments determined by passed n.
+        Args:
+            start_block (int):
+                The beginning block to sync from.
+            end_block (int):
+                The end block to sync to.
+            n (int):
+                The number of metagraphs to return on this range.
+        Returns:
+            metagraphs (List[bittensor.Metagraph]):
+                Returned metagraphs.
+        """
+
+        try:
+            from subtensorapi import FastSync
+        except ImportError:
+            raise ValueError("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+        
+        if end_block >= start_block:
+            raise ValueError("Failed sync. end_block {} must be larger than start_block {}".format(end_block, start_block))
+
+        if n <= 0:
+            raise ValueError("Failed sync. n {} must be greater than 0".format(n))
+
+        if n > (end_block - start_block):
+            raise ValueError("Failed sync. n {} must be less than the block range: {} ".format(n, end_block - start_block))
+
+        try:
+            metagraphs = []
+            block_range = [ str(block) for block in range( start_block, int( end_block, (end_block - start_block)/n ) )]
+            uid_range = [str(i) for i in range(4096) ]
+            for block in tqdm( block_range ):
+                f = FastSync("wss://archivelb.nakamoto.opentensor.ai:9943")
+                f.sync_and_save_historical([block], uid_range)
+                metagraphs.append( bittensor.metagraph().from_neurons( f.load_historical_neurons() ) )
+        except Exception as e:
+            raise ValueError("Failed to fast sync neurons: {}".format(e))
+
+        return metagraphs
+
 
     def blockAtRegistration_all(self, block: int = None) -> List[int]:
         r""" Returns a list of blockAtRegistration for every uid from the chain
