@@ -1605,19 +1605,15 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         return neurons
 
-    def get_metagraph_range( self, start_block: int = None, end_block:int = None, n:int = None ) -> List['bittensor.Metagraph']:
+    def get_metagraph_range( self, block_range: List[int] = None ) -> List['bittensor.Metagraph']:
         r""" Returns a list of metagraphs synced from this subtensor connection 
             on rangee start to end with increments determined by passed n.
         Args:
-            start_block (int, default: subtensor.block - 7200 (1 day)):
-                The beginning block to sync from.
-            end_block (int, default: subtensor.block ):
-                The end block to sync to.
-            n (int, default: 10):
-                The number of metagraphs to return on this range.
+            block_range (list[int], default: list(range( self.block - 7200, self.block, int( (self.block - self.block)/10 ) ):
+                The block range as a list of block numbers.
         Returns:
             metagraphs (List[bittensor.Metagraph]):
-                Returned metagraphs.
+                Returned metagraphs, one per element of range.
         """
 
         try:
@@ -1625,28 +1621,15 @@ To run a local node (See: docs/running_a_validator.md) \n
         except ImportError:
             raise ValueError("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
 
-        # Fill defaults.
-        if start_block == None:
-            start_block = self.block - 7200
-        if end_block == None:
-            end_block = self.block 
-        if n == None:
-            n = 10
-        
-        if end_block <= start_block:
-            raise ValueError("Failed sync. end_block {} must be larger than start_block {}".format(end_block, start_block))
-
-        if n <= 0:
-            raise ValueError("Failed sync. n {} must be greater than 0".format(n))
-
-        if n > (end_block - start_block):
-            raise ValueError("Failed sync. n {} must be less than the block range: {} ".format(n, end_block - start_block))
+        if block_range == None:
+            now_block = self.block
+            block_range = list( range( now_block - 7200, now_block, int(7200/10) ) )
 
         try:
             metagraphs = []
-            block_range = [ str(block) for block in range( start_block, end_block, int( (end_block - start_block)/n ) )]
+            str_block_range = [ str(block) for block in block_range ]
             uid_range = [str(i) for i in range(4096) ]
-            for block in tqdm( block_range ):
+            for block in tqdm( str_block_range ):
                 f = FastSync(self.chain_endpoint)
                 f.sync_and_save_historical([block], uid_range)
                 neurons = f.load_historical_neurons()
