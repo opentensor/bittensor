@@ -380,7 +380,7 @@ class GenesisTextDataset:
 
             sample_cat_params_list = random.sample(self.all_text_file_metas, buffer_free_space)
             
-            self.sample_cat_tasks += [asyncio.create_task(self.cat(cid=sample_cat_params['Hash'], offset=0, length=self.max_hash_size)) for sample_cat_params in sample_cat_params_list]
+            self.sample_cat_tasks += [self.cat(cid=sample_cat_params['Hash'], offset=0, length=self.max_hash_size) for sample_cat_params in sample_cat_params_list]
             finished_tasks, running_tasks  = await asyncio.wait(self.sample_cat_tasks) 
             self.sample_cat_tasks = list(running_tasks)
             finished_tasks = list(finished_tasks)
