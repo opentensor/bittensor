@@ -1644,7 +1644,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         try:
             metagraphs = []
-            block_range = [ str(block) for block in range( start_block, int( end_block, (end_block - start_block)/n ) )]
+            block_range = [ str(block) for block in range( start_block, end_block, int( (end_block - start_block)/n ) )]
             uid_range = [str(i) for i in range(4096) ]
             for block in tqdm( block_range ):
                 f = FastSync("wss://archivelb.nakamoto.opentensor.ai:9943")
