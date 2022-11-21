@@ -1651,7 +1651,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 f.sync_and_save_historical([block], uid_range)
                 neurons = f.load_historical_neurons()
                 neurons = [ neurons[block][str(uid)] for uid in range(4096) ]
-                metagraphs.append( bittensor.metagraph().from_neurons( block = int(block), neurons = neurons ) )
+                metagraphs.append( bittensor.metagraph( subtensor = self ).from_neurons( block = int(block), neurons = neurons ) )
         except Exception as e:
             raise ValueError("Failed to fast sync neurons: {}".format(e))
 
