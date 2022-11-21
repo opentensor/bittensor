@@ -233,6 +233,7 @@ class neuron:
         parser.add_argument('--neuron.print_neuron_stats', action='store_true', help='If True, print neuron_stats and exit.', default=False)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, reset neuron_stats and validate anew.', default=False)
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
+        parser.add_argument('--neuron.no_serve',  action='store_true', help='If True, neuron wont serve axon (disables prometheus)', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
@@ -297,6 +298,12 @@ class neuron:
                 hot_pubkey = self.wallet.hotkey.ss58_address,
                 root_dir = self.config.neuron.full_path
             )
+
+        # Check if no_serve is set.
+        if self.config.neuron.no_serve:
+            logger.info('--neuron.no_serve flag set, not serving to network.')
+            logger.warning('Prometheus metrics will not be available.')
+            return
 
         # === Set prometheus run info ===
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
