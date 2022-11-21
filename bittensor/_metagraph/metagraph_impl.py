@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+from types import SimpleNamespace
 
 from typing import List
 from loguru import logger
@@ -424,7 +425,7 @@ class Metagraph( torch.nn.Module ):
 
         return neurons
 
-    def from_neurons( self, neurons: List[dict], block: int ) -> 'Metagraph':
+    def from_neurons( self, neurons: List[SimpleNamespace], block: int ) -> 'Metagraph':
 
         # Fill arrays.
         n_total = len(neurons)
