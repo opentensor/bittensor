@@ -1627,9 +1627,9 @@ To run a local node (See: docs/running_a_validator.md) \n
 
         # Fill defaults.
         if start_block == None:
-            start_block = self.block
+            start_block = self.block - 7200
         if end_block == None:
-            end_block = self.block - 7200
+            end_block = self.block 
         if n == None:
             n = 10
         
