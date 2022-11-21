@@ -51,12 +51,13 @@ def test_next_tokenized_sample():
     batch_size = 10
     sequence_length = 128
     block_size = 500
-    num_batches = 10
+
     
     dataset = bittensor.dataset (
         block_size = block_size,
         batch_size = batch_size,
         sequence_length = sequence_length,
+         dataset_name = constant.dataset.dataset_name,
         num_batches=num_batches,
         no_tokenizer=False
     )
@@ -69,13 +70,12 @@ def test_next_tokenized_sample():
 def test_next_raw_sample():
     batch_size = 10
     sequence_length = 128
-    block_size = 1000
-    num_batches = 10
+    block_size = 500
     dataset = bittensor.dataset (
         block_size = block_size,
         batch_size = batch_size,
         sequence_length = sequence_length,
-        num_batches=num_batches,
+        dataset_name = constant.dataset.dataset_name
         no_tokenizer = True
     )
 
@@ -85,7 +85,6 @@ def test_next_raw_sample():
         assert len(input[i].split()) == sequence_length
 
     dataset.close()
-
 
 
 def test_fail_IPFS_server():
