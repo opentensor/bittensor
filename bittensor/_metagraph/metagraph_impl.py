@@ -424,42 +424,10 @@ class Metagraph( torch.nn.Module ):
 
         return neurons
 
-    def sync ( self, block: int = None, cached: bool = True, fast:bool = True ) -> 'Metagraph':
-        r""" Synchronizes this metagraph with the chain state.
-        """
-        logger.success(self.subtensor)
-        if block == None:
-            block = self.subtensor.get_current_block()
-            
-        if cached and self.subtensor.network in ("nakamoto", "local"):
-            if bittensor.__use_console__:
-                with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                    try:
-                        neurons = self.retrieve_cached_neurons( block = block )
-                    except:
-                        # For some reason IPFS cache is down, fallback on regular sync
-                        logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                        neurons = self.subtensor.neurons( block = block )
-                    n_total = len(neurons)
-            else:
-                try:
-                    neurons = self.retrieve_cached_neurons( block = block )
-                except:
-                    # For some reason IPFS cache is down, fallback on regular sync
-                    logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                    if fast:
-                        neurons = self.subtensor.neurons_fast( block = block)
-                    else: 
-                        neurons = self.subtensor.neurons( block = block ) 
-                n_total = len(neurons)
-        else:
-            if fast:
-                neurons = self.subtensor.neurons_fast( block = block)
-            else:
-                neurons = self.subtensor.neurons( block = block )
-            n_total = len(neurons)
+    def from_neurons( self, neurons: List[dict] ) -> 'Metagraph':
 
         # Fill arrays.
+        n_total = len(neurons)
         uids = [ i for i in range(n_total) ]
         active = [ 0 for _ in range(n_total) ]
         stake = [ 0 for _ in range(n_total) ]
@@ -549,6 +517,42 @@ class Metagraph( torch.nn.Module ):
             
         # For contructor.
         return self
+
+
+    def sync ( self, block: int = None, cached: bool = True, fast:bool = True ) -> 'Metagraph':
+        r""" Synchronizes this metagraph with the chain state.
+        """
+        logger.success(self.subtensor)
+        if block == None:
+            block = self.subtensor.get_current_block()
+            
+        if cached and self.subtensor.network in ("nakamoto", "local"):
+            if bittensor.__use_console__:
+                with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                    try:
+                        neurons = self.retrieve_cached_neurons( block = block )
+                    except:
+                        # For some reason IPFS cache is down, fallback on regular sync
+                        logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                        neurons = self.subtensor.neurons( block = block )
+            else:
+                try:
+                    neurons = self.retrieve_cached_neurons( block = block )
+                except:
+                    # For some reason IPFS cache is down, fallback on regular sync
+                    logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
+                    if fast:
+                        neurons = self.subtensor.neurons_fast( block = block)
+                    else: 
+                        neurons = self.subtensor.neurons( block = block ) 
+        else:
+            if fast:
+                neurons = self.subtensor.neurons_fast( block = block)
+            else:
+                neurons = self.subtensor.neurons( block = block )
+        return self.from_neurons(neurons=neurons)
+
+        
 
     def to_dataframe(self):
         try:
