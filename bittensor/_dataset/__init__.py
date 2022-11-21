@@ -51,7 +51,7 @@ class dataset:
             load_dataset: bool = False,
             no_tokenizer: bool = None,
             num_batches: int = 100,
-            buffer_size: int = 100, 
+            buffer_size: int = 1000, 
             buffer_calls_per_update: int = 100,
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.

@@ -338,17 +338,20 @@ class GenesisTextDataset:
 
         return text_file_metas
 
-    def set_data_size(self, batch_size:int, block_size:int, buffer_size:int) -> None:
+    def set_data_size(self, batch_size:Optional[int] = None, sequence_length:Optional[int] = None,  block_size:Optional[int]= None, buffer_size:Optional[int]=None) -> None:
         r""" Update the size of data (batch_size, block_size) that we need.
 
         Args: 
             batch_size(int, required):
                 The batch_size of data that should be produced by dataloader.
 
-            block_size(int, required):
-                The block_size of data that should be produced by dataloader. 
+            sequence_length(int, required):
+                The number of tokens for each sample.
 
-            buffer_size(int, required):
+            block_size(int, required):
+                The block_size of data in bytes that should be produced by dataloader. 
+
+            buffer_size(int, optional):
                 The size of the buffer. 
         """
 
@@ -364,6 +367,9 @@ class GenesisTextDataset:
         if check_valid(batch_size):
             self.batch_size = batch_size
             self.__infinite_dataset_iterator = None
+
+        if check_valid(sequence_length):
+            self.sequence_length = sequence_length
         
         if check_valid(block_size):
             self.block_size = block_size
@@ -382,6 +388,7 @@ class GenesisTextDataset:
         self.buffer_size = buffer_size 
         if len(self.sample_buffer) > self.buffer_size:
             self.sample_buffer = self.sample_buffer[:self.buffer_size]
+            
 
 
 
@@ -449,8 +456,6 @@ class GenesisTextDataset:
         # only sample if the buffer is less than the buffer_size
 
         raw_text_bytes = asyncio.run(self.async_generate_sample())
-        
-
 
         try:
             raw_text = raw_text_bytes.decode()
