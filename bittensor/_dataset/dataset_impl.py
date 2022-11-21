@@ -673,6 +673,7 @@ class GenesisTextDataset:
                             break
         return return_result
 
+    @property
     def available_datasets(self) -> List[str]:
         '''
         List of available datasets.
