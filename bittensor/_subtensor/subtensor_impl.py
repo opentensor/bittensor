@@ -1647,9 +1647,11 @@ To run a local node (See: docs/running_a_validator.md) \n
             block_range = [ str(block) for block in range( start_block, end_block, int( (end_block - start_block)/n ) )]
             uid_range = [str(i) for i in range(4096) ]
             for block in tqdm( block_range ):
-                f = FastSync("wss://archivelb.nakamoto.opentensor.ai:9943")
+                f = FastSync(self.chain_endpoint)
                 f.sync_and_save_historical([block], uid_range)
-                metagraphs.append( bittensor.metagraph().from_neurons( f.load_historical_neurons() ) )
+                neurons = f.load_historical_neurons()
+                neurons = [ neurons[block][str(uid)] for uid in range(4096) ]
+                metagraphs.append( bittensor.metagraph().from_neurons( int(block), neurons ) )
         except Exception as e:
             raise ValueError("Failed to fast sync neurons: {}".format(e))
 

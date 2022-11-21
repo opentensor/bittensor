@@ -424,7 +424,7 @@ class Metagraph( torch.nn.Module ):
 
         return neurons
 
-    def from_neurons( self, neurons: List[dict] ) -> 'Metagraph':
+    def from_neurons( self, neurons: List[dict], block: int ) -> 'Metagraph':
 
         # Fill arrays.
         n_total = len(neurons)
@@ -550,7 +550,7 @@ class Metagraph( torch.nn.Module ):
                 neurons = self.subtensor.neurons_fast( block = block)
             else:
                 neurons = self.subtensor.neurons( block = block )
-        return self.from_neurons(neurons=neurons)
+        return self.from_neurons(neurons=neurons, block=block)
 
         
 
