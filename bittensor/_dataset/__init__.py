@@ -193,7 +193,7 @@ class dataset:
         defaults.dataset.max_directories = os.getenv('BT_DATASET_MAX_DIRECTORIES') if os.getenv('BT_DATASET_MAX_DIRECTORIES') != None else 250
         defaults.dataset.buffer_size = os.getenv('BT_DATASET_BUFFER_SIZE') if os.getenv('BT_DATASET_BUFFER_SIZE') != None else 1000
         defaults.dataset.buffer_calls_per_update = os.getenv('BT_DATASET_BUFFER_CALLS_PER_UPDATE') if os.getenv('BT_DATASET_BUFFER_CALLS_PER_UPDATE') != None else 100
-        defaults.dataset.max_hash_size = os.getenv('BT_DATASET_MAX_HASH_SIZE') if os.getenv('BT_DATASET_MAX_HASH_SIZE') != None else 1e5
+        defaults.dataset.max_hash_size = os.getenv('BT_DATASET_MAX_HASH_SIZE') if os.getenv('BT_DATASET_MAX_HASH_SIZE') != None else 100_000
         defaults.dataset.block_size_bytes = os.getenv('BT_DATASET_BLOCK_SIZE_BYTES') if os.getenv('BT_DATASET_BLOCK_SIZE_BYTES') != None else 1500
 
 
