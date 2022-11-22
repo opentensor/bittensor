@@ -179,7 +179,7 @@ class neuron:
         # === Neuron statistics variables ===
         self.neuron_stats = {}  # neuron statistics dict of dicts: [uid] -> {'stat1': val1, 'stat2': val2, ...}
         self.neuron_hotkeys = []  # keep neuron hotkeys to compare and check for changes after metagraph.sync()
-        self.neuron_register = {}  # neuron registration dict of dicts of dicts: [uid] -> [block] -> {'new_hotkey': , 'old_hotkey': , 'old_stats':}
+        self.neuron_changes = {}  # neuron hotkey changes dict of dicts of dicts: [uid] -> [block] -> {'new_hotkey': , 'old_hotkey': , 'old_stats':}
         self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
 
         if self.config.neuron.validation_synapse == 'TextCausalLMNext':
@@ -233,6 +233,7 @@ class neuron:
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.print_neuron_stats', action='store_true', help='If True, print neuron_stats and exit.', default=False)
+        parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, reset neuron_stats and validate anew.', default=False)
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron.metagraph_cached', action='store_true', help='''Use metagraph.sync(cached=True).''', default=False)
@@ -322,9 +323,11 @@ class neuron:
 
             state_dict = {
                 'neuron_stats': self.neuron_stats,
-                'neuron_hotkeys': self.neuron_hotkeys,
-                'neuron_register': self.neuron_register
+                'neuron_hotkeys': self.neuron_hotkeys
             }
+
+            if self.config.neuron.track_hotkey_changes:
+                state_dict['neuron_changes'] = self.neuron_changes
 
             torch.save(state_dict, f'{path}/model.torch')
             bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
@@ -341,7 +344,9 @@ class neuron:
 
             self.neuron_stats = state_dict['neuron_stats']
             self.neuron_hotkeys = state_dict['neuron_hotkeys']
-            self.neuron_register = state_dict['neuron_register'] if 'neuron_register' in state_dict else {}
+
+            if 'neuron_changes' in state_dict and self.config.neuron.track_hotkey_changes:
+                self.neuron_changes = state_dict['neuron_changes']
 
             bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
 
@@ -624,17 +629,20 @@ class neuron:
         # === Reset neuron stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.neuron_hotkeys[uid]:
-                block = self.subtensor.block
-                self.neuron_register.setdefault(uid, {})  # [uid] -> dict() of blocks
-                self.neuron_register[uid][block] = {'new_hotkey': self.neuron_hotkeys[uid], 'old_hotkey': old_hotkey}
+                if self.config.neuron.track_hotkey_changes:
+                    block = self.subtensor.block
+                    self.neuron_changes.setdefault(uid, {})  # [uid] -> dict() of blocks
+                    self.neuron_changes[uid][block] = {'new_hotkey': self.neuron_hotkeys[uid], 'old_hotkey': old_hotkey}
+                    if uid in self.neuron_stats:
+                        self.neuron_changes[uid][block]['old_stats'] = self.neuron_stats[uid]
+
                 if uid in self.neuron_stats:
-                    self.neuron_register[uid][block]['old_stats'] = self.neuron_stats[uid]
                     del self.neuron_stats[uid]
                     changed_hotkeys += [uid]
 
         if len(changed_hotkeys):
             logger.info(f"Hotkeys changed: {changed_hotkeys}")
-            self.save()  # save neuron_stats, neuron_hotkeys, and neuron_register to filesystem
+            self.save()  # save neuron_stats, neuron_hotkeys, and neuron_changes to filesystem
 
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
