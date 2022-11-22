@@ -28,6 +28,7 @@ jobs:
           command: |
             python -m venv env/
             . env/bin/activate
+            python -m pip install --upgrade pip
             pip install '.'
 
       - save_cache:
