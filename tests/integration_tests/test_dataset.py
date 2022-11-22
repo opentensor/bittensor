@@ -26,8 +26,8 @@ def test_construct_text_corpus():
 
 def test_change_data_size():
     data_sizes = [dict(batch_size=10,sequence_length=64, block_size_bytes=1000, buffer_size=2000),
-                        dict(batch_size=20,sequence_length=128, block_size_bytes=2000, buffer_size=3000),
-                        dict(batch_size=30,sequence_length=256, block_size_bytes=4000, buffer_size=1000) ]
+                        dict(batch_size=20,sequence_length=128, block_size_bytes=500, buffer_size=3000),
+                        dict(batch_size=30,sequence_length=256, block_size_bytes=1500, buffer_size=1000) ]
     dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name, no_tokenizer=False)
     for data_size in data_sizes:
         dataset.set_data_size(**data_size)
