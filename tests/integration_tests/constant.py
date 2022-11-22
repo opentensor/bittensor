@@ -2,8 +2,10 @@ from munch import Munch
 
 dataset = Munch().fromDict(
   {
-    'dataset_name': ["Books3"],
-    'num_batches': 10
+    'dataset_name': ["ArXiv"],
+    'num_batches': 10, 
+    'max_hash_size': 10000,
+    'buffer_size': 1000
   }
 )
 
