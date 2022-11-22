@@ -432,16 +432,16 @@ class neuron:
 
         # normal epoch duration is blocks_per_epoch if all UIDs have been queried
         # try to query each UID at least once - assumes nucleus samples without replacement
-        # but keep minimum epoch duration at blocks_per_epoch * 12 sec block_period
+        # but keep minimum epoch duration at blocks_per_epoch * block_period
         # in case of subtensor outage causing invalid block readings to prevent fast repeated weight setting
         start_block = self.subtensor.block
         while (self.subtensor.block < start_block + blocks_per_epoch or
-               time.time() - epoch_start_time < blocks_per_epoch * 12):
+               time.time() - epoch_start_time < blocks_per_epoch * bittensor.__blocktime__):
 
             logger.info(f'Run epoch {self.epoch} (step {epoch_steps}) while '
                         f'({self.subtensor.block} < {start_block + blocks_per_epoch} '
                         f'= {start_block} + {blocks_per_epoch}) or '
-                        f'({time.time() - epoch_start_time:.2f} < {blocks_per_epoch * 12})')
+                        f'({time.time() - epoch_start_time:.2f} < {blocks_per_epoch * bittensor.__blocktime__})')
 
             start_time = time.time()
 
@@ -619,9 +619,6 @@ class neuron:
         old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
         self.metagraph.sync(cached=self.config.neuron.metagraph_cached or self.subtensor.network != 'local')
         self.neuron_hotkeys = self.metagraph.hotkeys
-
-        assert len(old_hotkeys) == len(self.neuron_hotkeys), 'metagraph hotkeys length do not match'
-        assert self.metagraph.n == len(self.neuron_hotkeys), 'metagraph hotkeys do not match metagraph size'
 
         changed_hotkeys = []
         # === Reset neuron stats if uid got replaced
