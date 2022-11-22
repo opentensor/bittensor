@@ -627,11 +627,11 @@ class neuron:
         # === Reset neuron stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.neuron_hotkeys[uid]:
+                block = self.subtensor.block
                 self.neuron_register.setdefault(uid, {})  # [uid] -> dict() of blocks
-                self.neuron_register[uid][self.subtensor.block] = {'new_hotkey': self.neuron_hotkeys[uid],
-                                                                   'old_hotkey': old_hotkey}
+                self.neuron_register[uid][block] = {'new_hotkey': self.neuron_hotkeys[uid], 'old_hotkey': old_hotkey}
                 if uid in self.neuron_stats:
-                    self.neuron_register[uid][self.subtensor.block]['old_stats'] = self.neuron_stats[uid]
+                    self.neuron_register[uid][block]['old_stats'] = self.neuron_stats[uid]
                     del self.neuron_stats[uid]
                     changed_hotkeys += [uid]
 
