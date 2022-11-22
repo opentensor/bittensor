@@ -103,9 +103,9 @@ class GenesisTextDataset:
         self.set_event_loop(loop=loop)
         self.max_datasets = max_datasets
     
-        assert len(self.datasets) > 0
         if self.datasets == 'default' or self.datasets == None:
             self.datasets = self.available_datasets
+
         self.datasets = self.datasets[:self.max_datasets]
         self.no_tokenizer = no_tokenizer
         self.buffer_calls_per_update = buffer_calls_per_update

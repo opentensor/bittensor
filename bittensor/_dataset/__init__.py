@@ -102,8 +102,8 @@ class dataset:
         config.dataset.sequence_length = config.dataset.block_size
         config.dataset.batch_size = batch_size if batch_size != None else config.dataset.batch_size
         config.dataset.num_workers = num_workers if num_workers != None else config.dataset.num_workers
-        config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
-        config.dataset.max_datasets = max_datasets if max_datasets != [] else config.dataset.max_datasets
+        config.dataset.dataset_name = dataset_name if dataset_name != None else config.dataset.dataset_name
+        config.dataset.max_datasets = max_datasets if max_datasets != None else config.dataset.max_datasets
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
         config.dataset.load_dataset = load_dataset if load_dataset != None else config.dataset.load_dataset
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
