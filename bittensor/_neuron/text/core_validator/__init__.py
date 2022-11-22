@@ -617,7 +617,7 @@ class neuron:
         r""" Syncing metagraph together with other metagraph-size related objects
         """
         old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
-        self.metagraph.sync(cached=self.config.neuron.metagraph_cached)
+        self.metagraph.sync(cached=self.config.neuron.metagraph_cached or self.subtensor.network != 'local')
         self.neuron_hotkeys = self.metagraph.hotkeys
 
         assert len(old_hotkeys) == len(self.neuron_hotkeys), 'metagraph hotkeys length do not match'
