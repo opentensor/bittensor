@@ -236,7 +236,6 @@ class neuron:
         parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, reset neuron_stats and validate anew.', default=False)
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
-        parser.add_argument('--neuron.metagraph_cached', action='store_true', help='''Use metagraph.sync(cached=True).''', default=False)
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
         parser.add_argument('--neuron.wait_for_finalization', action='store_true', help='''when setting weights the miner waits for trnasaction finalization.''', default=False)
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
@@ -622,7 +621,7 @@ class neuron:
         r""" Syncing metagraph together with other metagraph-size related objects
         """
         old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
-        self.metagraph.sync(cached=self.config.neuron.metagraph_cached or self.subtensor.network != 'local')
+        self.metagraph.sync()
         self.neuron_hotkeys = self.metagraph.hotkeys
 
         changed_hotkeys = []
