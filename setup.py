@@ -22,14 +22,26 @@ from io import open
 import codecs
 import re
 import os
+import pathlib
+
+
+def read_requirements(path):
+    with pathlib.Path(path).open() as requirements_txt:
+        return [
+            str(requirement)
+            for requirement
+            in parse_requirements(requirements_txt)
+        ]
+
+requirements = read_requirements('requirements/prod.txt')
+extra_requirements_dev = read_requirements('requirements/dev.txt')
+extra_requirements_cubit = read_requirements('requirements/cubit.txt')
 
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
-    
-with open('requirements.txt') as requirements_file:
-    install_requires = [str(requirement) for requirement in parse_requirements(requirements_file)]
+
 
 # loading version from setup.py
 with codecs.open(os.path.join(here, 'bittensor/__init__.py'), encoding='utf-8') as init_file:
@@ -48,7 +60,12 @@ setup(
     include_package_data=True,
     author_email='',
     license='MIT',
-    install_requires=install_requires,
+    python_requires='>=3.7',
+    install_requires=requirements,
+    extras_requires={
+        'cubit': extra_requirements_cubit,
+        'dev': extra_requirements_dev,
+    },
     scripts=['bin/btcli'],
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -68,8 +85,4 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.7',
-    extras_requires={
-        'cubit': ['cubit>=1.1.0 @ git+https://github.com/opentensor/cubit.git']
-    }
 )

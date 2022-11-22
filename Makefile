@@ -1,3 +1,7 @@
+SHELL:=/bin/bash
+
+init-venv:
+	python3 -m venv venv && source ./venv/bin/activate
 
 clean-venv:
 	pip freeze > make_venv_to_uninstall.txt && \
@@ -6,3 +10,9 @@ clean-venv:
 
 install:
 	python3 -m pip install .
+
+install-dev:
+	python3 -m pip install '.[dev]'
+
+install-cubit:
+	python3 -m pip install '.[cubit]'
