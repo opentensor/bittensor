@@ -26,9 +26,10 @@ jobs:
       - run:
           name: Update & Activate venv
           command: |
+            python -m pip install --upgrade pip
             python -m venv env/
             . env/bin/activate
-            pip install '.[dev]'
+            pip install '.'
 
       - save_cache:
           name: Save cached venv
@@ -40,7 +41,7 @@ jobs:
           name: Install Bittensor
           command: |
             . env/bin/activate
-            pip install -e '.[dev]'
+            pip install -e '.'
 
       - run:
           name: Instantiate Mock Wallet & Protos
