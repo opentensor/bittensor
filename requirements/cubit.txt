@@ -1,0 +1,2 @@
+cubit>=1.1.0
+cubit @ git+https://github.com/opentensor/cubit.git
