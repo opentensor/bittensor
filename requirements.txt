@@ -16,6 +16,7 @@ msgpack==1.0.4
 msgpack-numpy==0.4.7.1
 miniupnpc
 munch
+nest_asyncio
 netaddr==0.8.0
 pandas
 psutil
