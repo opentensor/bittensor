@@ -19,10 +19,8 @@
 # DEALINGS IN THE SOFTWARE.
 import os
 import random
-import threading
 from copy import deepcopy
-from queue import Queue
-from typing import *
+from typing import Optional, Union, Dict, List, Any
 import aiohttp
 import torch
 from loguru import logger
@@ -30,8 +28,7 @@ from torch.utils.data.dataloader import DataLoader
 import asyncio
 import json
 import bittensor
-from .utils import CustomThread, ThreadManager, sync_wrapper
-from munch import Munch
+from .utils import sync_wrapper
 logger = logger.opt(colors=True)
 
 
@@ -47,10 +44,10 @@ class GenesisTextDataset:
             self, 
             batch_size: int, 
             sequence_length: int,
-            block_size: int ,
+            block_size_bytes: int ,
             max_hash_size:int,
             num_workers: int,
-            datasets: Optional[Union[List[str], str]], 
+            datasets: Union[List[str], str], 
             no_tokenizer: bool ,
             data_dir: str ,
             save_dataset : bool ,
@@ -67,7 +64,7 @@ class GenesisTextDataset:
                 The size of the batch.
             sequence_length (int):
                 The length of the seqeunce (tokenwise).
-            block_size (int): 
+            block_size_bytes (int): 
                 The  size of the text data block which is used to create 
                 multiple samples.
             max_hash_size (int): 
@@ -97,7 +94,7 @@ class GenesisTextDataset:
         """
         self.__infinite_dataset_iterator = None
         self.batch_size = batch_size
-        self.block_size = block_size
+        self.block_size_bytes = block_size_bytes
         self.num_workers = num_workers
         self.sequence_length = sequence_length
         self.datasets = datasets
@@ -175,7 +172,7 @@ class GenesisTextDataset:
         # Flatten the hashes to a list of hashes.
         for  k,file_meta_list in dataset_hash_map.items():
            
-            all_text_file_metas += [fm  for fm in file_meta_list if fm['Size'] >= self.block_size]
+            all_text_file_metas += [fm  for fm in file_meta_list if fm['Size'] >= self.block_size_bytes]
         assert len(all_text_file_metas) > 0
         self.all_text_file_metas = all_text_file_metas
 
@@ -313,18 +310,18 @@ class GenesisTextDataset:
 
         return text_file_metas
 
-    def set_data_size(self, batch_size:Optional[int] = None, sequence_length:Optional[int] = None,  block_size:Optional[int]= None, buffer_size:Optional[int]=None) -> None:
-        r""" Update the size of data (batch_size, block_size) that we need.
+    def set_data_size(self, batch_size:Optional[int] = None, block_size:Optional[int] = None, sequence_length:Optional[int] = None,  block_size_bytes:Optional[int]= None, buffer_size:Optional[int]=None) -> None:
+        r""" Update the size of data (batch_size, sequence_length, block_size_bytes) that we need.
 
         Args: 
-            batch_size(int, required):
+            batch_size (int, optional):
                 The batch_size of data that should be produced by dataloader.
 
-            sequence_length(int, required):
+            sequence_length (int, optional):
                 The number of tokens for each sample.
 
-            block_size(int, required):
-                The block_size of data in bytes that should be produced by dataloader. 
+            block_size_bytes (int, optional):
+                The block_size_bytes of data in bytes that should be produced by dataloader. 
 
             buffer_size(int, optional):
                 The size of the buffer. 
@@ -334,7 +331,7 @@ class GenesisTextDataset:
         def check_valid(size):
             r""" Check if the size is a valid positive intiget, if not, return False.
             """
-            if size <= 0 or (not isinstance(size, int)):
+            if (not isinstance(size, int)) or size <= 0:
                 return False
             else:
                 return True
@@ -345,9 +342,14 @@ class GenesisTextDataset:
 
         if check_valid(sequence_length):
             self.sequence_length = sequence_length
-        
+
         if check_valid(block_size):
-            self.block_size = block_size
+            logger.warning('The block size represents the seqeunce length and will be depracted')
+            self.sequence_length = sequence_length
+    
+        if check_valid(block_size_bytes):
+            self.block_size_bytes = block_size_bytes
+    
 
         if check_valid(buffer_size):
             self.set_buffer(buffer_size= buffer_size)
@@ -379,7 +381,6 @@ class GenesisTextDataset:
         if buffer_free_space > 0  :
 
             sample_cat_params_list = random.sample(self.all_text_file_metas, buffer_free_space)
-            
             self.sample_cat_tasks += [self.cat(cid=sample_cat_params['Hash'], offset=0, length=self.max_hash_size) for sample_cat_params in sample_cat_params_list]
             finished_tasks, running_tasks  = await asyncio.wait(self.sample_cat_tasks) 
             self.sample_cat_tasks = list(running_tasks)
@@ -393,11 +394,11 @@ class GenesisTextDataset:
         raw_chunk = self.sample_buffer[random_idx]
         self.sample_count += 1
 
-        if self.block_size < len(raw_chunk):
-            start_idx = random.randint(0, len(raw_chunk) - self.block_size)
+        if self.block_size_bytes < len(raw_chunk):
+            start_idx = random.randint(0, len(raw_chunk) - self.block_size_bytes)
         else:
             start_idx = 0
-        end_idx = start_idx + self.block_size
+        end_idx = start_idx + self.block_size_bytes
         sample = raw_chunk[start_idx:end_idx]
 
         if (self.sample_count //  self.batch_size) >= self.buffer_calls_per_update:
@@ -735,10 +736,15 @@ class GenesisTextDataset:
         Returns:
             length: int
         """
-        return self.dataset_size // self.block_size
+        return self.dataset_size // self.block_size_bytes
 
     def __del__(self) -> None:
         self.close()
 
     def close(self) -> None:
-        del self.tokenizer
+        # Cancel sample tasks.
+        if len(self.sample_cat_tasks)> 0:
+            for t in self.sample_cat_tasks:
+                t.cancel()
+
+        
