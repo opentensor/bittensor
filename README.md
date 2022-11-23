@@ -340,7 +340,7 @@ representations, _, _ = den.forward_text (
 ```
 
 ## 5. Release
-The release manager should follow the instructions of the [RELEASING.md](./RELEASING.md) document.
+The release manager should follow the instructions of the [RELEASE_GUIDELINES.md](./RELEASE_GUIDELINES.md) document.
 
 ## 6. License
 The MIT License (MIT)
