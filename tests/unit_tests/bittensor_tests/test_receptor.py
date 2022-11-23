@@ -431,6 +431,49 @@ def test_receptor_backward_endpoint_exception():
         out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
         assert ops == [bittensor.proto.ReturnCode.UnknownException] * len(synapses)
 
+def test_receptor_signature_output():
+    def verify_v1(signature: str):
+        (nonce, sender_address, signature, receptor_uuid) = signature.split("bitxx")
+        assert nonce == "123"
+        assert sender_address == "5Ey8t8pBJSYqLYCzeC3HiPJu5DxzXy2Dzheaj29wRHvhjoai"
+        assert receptor_uuid == "6d8b8788-6b6a-11ed-916f-0242c0a85003"
+        message = f"{nonce}{sender_address}{receptor_uuid}"
+        assert wallet.hotkey.verify(message, signature)
+
+    def verify_v2(signature: str):
+        (nonce, sender_address, signature, receptor_uuid) = signature.split(".")
+        assert nonce == "123"
+        assert sender_address == "5Ey8t8pBJSYqLYCzeC3HiPJu5DxzXy2Dzheaj29wRHvhjoai"
+        assert receptor_uuid == "6d8b8788-6b6a-11ed-916f-0242c0a85003"
+        message = f"{nonce}.{sender_address}.5CSbZ7wG456oty4WoiX6a1J88VUbrCXLhrKVJ9q95BsYH4TZ.{receptor_uuid}"
+        assert wallet.hotkey.verify(message, signature)
+
+    matrix = {
+        bittensor.__new_signature_version__ - 1: verify_v1,
+        bittensor.__new_signature_version__: verify_v2,
+    }
+
+    for (receiver_version, verify) in matrix.items():
+        endpoint = bittensor.endpoint(
+            version=receiver_version,
+            uid=0,
+            ip="127.0.0.1",
+            ip_type=4,
+            port=65000,
+            hotkey="5CSbZ7wG456oty4WoiX6a1J88VUbrCXLhrKVJ9q95BsYH4TZ",
+            coldkey="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm",
+            modality=2,
+        )
+
+        receptor = bittensor.receptor(
+            endpoint=endpoint,
+            wallet=wallet,
+        )
+        receptor.receptor_uid = "6d8b8788-6b6a-11ed-916f-0242c0a85003"
+        receptor.nonce = lambda: 123
+
+        verify(receptor.sign())
+
 #-- axon receptor connection -- 
 
 def run_test_axon_receptor_connection_forward_works(receiver_version):
