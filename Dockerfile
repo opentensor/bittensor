@@ -12,7 +12,6 @@ LABEL bittensor.image.authors="bittensor.com" \
 LABEL bittensor.dependencies.versions.torch="1.12.0"
 LABEL bittensor.dependencies.versions.cuda="11.3"
 LABEL bittensor.dependencies.versions.cudnn="8"
-LABEL bittensor.packages="curl,sudo,nano,git,htop,netcat,wget,unzip,python3-dev,python3-pip,tmux,apt-utils,cmake,build-essential,nvm,pm2"
 ARG DEBIAN_FRONTEND=noninteractive
 
 #nvidia key migration
