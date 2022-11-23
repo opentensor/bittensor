@@ -1428,10 +1428,7 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
                     phrase = topk_tokens[i]
                     phrase = phrase[phrase >= 0]  # strip negative ignore_index = -100
                     phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # decode, escape and truncate
-
-                    prob = f'{topk_probs[i]:.3f}'
-                    prob = prob[1:] if prob[0] == '0' else prob[:-1]  # remove obvious leading 0
-
+                    prob = f'{topk_probs[i]:.3f}'.lstrip('0')
                     topk_predictions += f"[green]{prob}[/green]: {phrase_str} "
 
                 predictions[uid] = topk_predictions[:-1]  # strip trailing space
@@ -1511,12 +1508,12 @@ def synergy_table(stats, syn_loss_diff, sort_col, console_width):
     columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
     rows = [[uid_col[2].format(s[0])] +
             [('[bright_cyan]{:.2f}[/bright_cyan]' if t == s else
-              '[magenta]{:.2f}[/magenta]' if syn_loss_diff[s[0]][t[0]] > 0 else
+              '[magenta]{:.2f}[/magenta]'.lstrip('0') if syn_loss_diff[s[0]][t[0]] > 0 else
               '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]) for t in sort] for s in sort]
 
     # === Synergy table ===
     table = Table(width=console_width, box=None)
-    table.title = f'[white] Synergy [/white]'
+    table.title = f'[white] Synergy table [/white] | Pairwise synergy'
     table.caption = f'loss decrease'
 
     for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
