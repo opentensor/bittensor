@@ -661,6 +661,9 @@ class cli:
             type=str, 
             required=False
         )
+        if len(sys.argv) == 1:
+            parser.print_help()
+            sys.exit()
 
         return bittensor.config( parser, args=args )
 
@@ -704,6 +707,8 @@ class cli:
             cli.check_help_config(config)
         elif config.command == "update":
             cli.check_update_config(config)
+        else:
+            config.he
 
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
