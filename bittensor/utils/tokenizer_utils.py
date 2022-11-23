@@ -955,7 +955,7 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
     batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
     topk = topk_p1 - 1
 
-    topk_tokens = topk_tensor[:, :-1, 1:]  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+    topk_tokens = topk_tensor[:, :-1, 1:].round().int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
     topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
     floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
 
@@ -973,6 +973,8 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
         target_phrase = target_phrases[b]
         if not isinstance(target_phrase, torch.Tensor):
             target_phrase = torch.tensor(target_phrases[b])
+        if isinstance(target_phrase, torch.FloatTensor):
+            target_phrase = target_phrase.round().int()
 
         match = (topk_tokens[b, :, 0] == target_phrase[0].item())  # bool where first tokens match (validation token)
         if match.sum() > 0:
