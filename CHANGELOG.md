@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.5.1 / 2022-11-24
+
+## What's Changed
+* [hotfix] pin scalecodec lower by @camfairchild in https://github.com/opentensor/bittensor/pull/1013
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.5.0...v3.5.1
+
+
 ## 3.4.3 / 2022-11-15
 
 ## What's Changed
