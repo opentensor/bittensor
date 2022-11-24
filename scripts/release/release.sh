@@ -4,9 +4,8 @@
 # In this script you are going to find the process of releasing bittensor.
 #
 # This script needs:
-#   - That the current VERSION does not already exist
-#   - An existing pass secret with the key github/api_bash_access_token
-#     - Check pass if you don't know it: https://www.passwordstore.org/
+#   - An existing VERSION file
+#   - Version in VERSION file is not a git tag already
 #
 # This process will generate:
 #   - Tag in Github repo: https://github.com/opentensor/bittensor/tags
@@ -20,151 +19,133 @@
 # Utils
 ###
 
-help(){
+source ${BASH_SOURCE%/*}/utils.sh
+
+function help(){
     echo Usage:
     echo \ \  $0
     echo
     echo This script release a bittensor version.
     echo
     echo This script needs:
-    echo \ \ - That the current VERSION does not already exist
-    echo \ \ - An existing pass secret with the key github/api_bash_access_token
-    echo \ \ \ \ - Check pass if you do not know it: https://www.passwordstore.org/
-    echo
-    echo The release process will generate:
-    echo \ \ - Tag in Github repo: https://github.com/opentensor/bittensor/tags
-    echo \ \ - Release in Github: https://github.com/opentensor/bittensor/releases
-    echo \ \ - New entry in CHANGELOG.md file
-    echo \ \ - Python wheel in pypi: https://pypi.org/project/bittensor/
-    echo \ \ - Docker image in dockerhub: https://hub.docker.com/r/opentensorfdn/bittensor/tags
+    echo \ \ - An existing VERSION file
+    echo \ \ - Version in VERSION file is not a git tag already
     echo
 }
-
-generate_github_release_notes_post_data()
-{
-  cat <<EOF
-{
-  "tag_name":"$TAG_NAME",
-  "name":"$RELEASE_NAME",
-  "draft":false,
-  "prerelease":false,
-  "generate_release_notes":false
-}
-EOF
-}
-
-generate_github_release_post_data()
-{
-  cat <<EOF
-{
-  "tag_name":"$TAG_NAME",
-  "name":"$RELEASE_NAME",
-  "body":"$DESCRIPTION",
-  "draft":false,
-  "prerelease":false,
-  "generate_release_notes":false
-}
-EOF
-}
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
-
-function echo_error {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-function echo_info {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
+###
 
 ###
 # Start of release process
 ###
 
-# if the user requests help, the usage is shown.
-if [ "$1" == "--help" -o "$1" == "-h" ];then
-    help
-    exit 0
+# 0. Check requirements
+# Expected state for the execution environment
+#  - VERSION file exists
+#  - __version__ exists inside file 'bittensor/__init__.py'
+#  - Both versions have the expected format and are the same
+
+VERSION_FILENAME='VERSION'
+CODE_WITH_VERSION='bittensor/__init__.py'
+
+if [[ ! -f $VERSION_FILENAME ]]; then
+  echo_error "Requirement failure: $VERSION_FILENAME does not exist"
+  help
+  exit 1
 fi
 
-VERSION=$(cat VERSION)
-TAG_NAME=v$VERSION
+CODE_VERSION=`grep '__version__\ \=\ ' $CODE_WITH_VERSION | awk '{print $3}' | sed "s/'//g"`
+VERSION=$(cat $VERSION_FILENAME)
 
-# 0. Check requirements
+if ! [[ "$CODE_VERSION" =~ ^[0-9]+.[0-9]+.[0-9]+$ ]];then
+  echo_error "Requirement failure: Version in code '$CODE_VERSION' with wrong format"
+  exit 1
+fi
 
-## 0.1. Current VERSION is not already a tag
+if ! [[ "$VERSION" =~ ^[0-9]+.[0-9]+.[0-9]+$ ]];then
+  echo_error "Requirement failure: Version in file '$VERSION' with wrong format"
+  exit 1
+fi
+
+if [[ $CODE_VERSION != $VERSION ]]; then
+  echo_error "Requirement failure: version in code ($CODE_VERSION) and version in file ($VERSION) are not the same. You should fix that before release code."
+  help
+  exit 1
+fi
+
+# 1. Get options
+
+## Defaults
+APPLY="false"
+APPLY_ACTION=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      help
+      exit 0
+      ;;
+    -A|--apply)
+      APPLY="true"
+      APPLY_ACTION="--apply"
+      shift # past argument
+      ;;
+    -T|--github-token)
+      GITHUB_TOKEN="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+if [[ $APPLY == "true" ]]; then
+  echo_warning "Not a Dry run exection"
+else
+  echo_warning "Dry run execution"
+fi
+
+# 2. Checking version
 
 CURRENT_VERSION_EXISTS=$(git tag | grep $VERSION)
-
 if [[ ! -z $CURRENT_VERSION_EXISTS ]]; then
     echo_error "Current version '$VERSION' already exists"
     help
     exit 1
 fi
 
-# 1. Update version if applied
-## Using script: ./scripts/update_version.sh
+VERSION=$(cat $VERSION_FILENAME)
+PREV_VERSION_TAG=`get_git_tag_higher_version`
 
-echo_info "Detected version: $VERSION"
+TAG_NAME=v$VERSION
+
+## 2.1. Current VERSION is not already a tag
+
+echo_info "Detected new version tag: $VERSION"
+echo_info "Previous version tag: $PREV_VERSION_TAG"
 echo_info "Tag generated: $TAG_NAME"
 
-# 2. Tag the repository with version
-function tag_repository()
-{
-    git tag -a v$VERSION -m "Release $VERSION"
-    git push origin --tags
-}
+# 3. Create Github resources
+${BASH_SOURCE%/*}/release_github.sh $APPLY_ACTION --github-token $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
 
-echo_info "Tagging repository"
-tag_repository
+# 4. Generate python wheel and upload it to Pypi
+if [[ $APPLY == "true" ]]; then
+  echo_warning "Releasing pip package"
+  ${BASH_SOURCE%/*}/release_pip.sh $APPLY_ACTION
+else
+  echo_warning "Dry run execution. Not releasing pip package"
+fi
 
-# 3. Create Github release
-function generate_github_release_notes()
-{
-    curl --silent \
-        -X POST \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer $(pass github/api_bash_access_token)" \
-        https://api.github.com/repos/opentensor/bittensor/releases/generate-notes \
-        --data "$(generate_github_release_notes_post_data)"
-}
-
-function create_github_release()
-{
-    curl --silent \
-        -X POST \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer $(pass github/api_bash_access_token)" \
-        https://api.github.com/repos/opentensor/bittensor/releases \
-        --data "$(generate_github_release_post_data)" > /dev/null
-}
-
-DATE=$(date +"%Y-%m-%d")
-RELEASE_NAME="$VERSION / $DATE"
-
-echo_info "Generating Github release notes"
-DESCRIPTION=$(generate_github_release_notes | jq '.body' | tail -1 | sed "s/\"//g")
-
-echo_info "Generating Github release"
-create_github_release
-
-echo_info "Adding release notes to CHANGELOG.md"
-sed -i "2 i\\\n## $RELEASE_NAME" CHANGELOG.md
-sed -i "4 i\\\n$DESCRIPTION\n" CHANGELOG.md
-
-# 4. Generate python wheel
-echo_info "Removing dirs: dist/ and build/"
-rm -rf dist/
-rm -rf build/
-
-echo_info "Generating python wheel"
-python3 setup.py sdist bdist_wheel
-
-# 5. Upload pypi wheel
-python3 -m twine upload dist/*
-
-# 6. Creating docker image
-
-# 7. Uploading docker image
+# 5. Creating docker image and upload
+if [[ $APPLY == "true" ]]; then
+  echo_warning "Releasing docker image"
+  ${BASH_SOURCE%/*}/release_docker.sh $APPLY_ACTION --version $VERSION
+else
+  echo_warning "Dry run execution. Not releasing docker image"
+fi
