@@ -81,8 +81,8 @@ while [[ $# -gt 0 ]]; do
       APPLY="true"
       shift # past argument
       ;;
-    -P|--previous-version)
-      PREV_VERSION="$2"
+    -P|--previous-version-tag)
+      PREV_TAG_VERSION="$2"
       shift # past argument
       shift # past value
       ;;
@@ -112,8 +112,8 @@ if [[ -z $GITHUB_TOKEN ]]; then
     exit 1
 fi
 
-if [[ -z $PREV_VERSION ]]; then
-    echo_error "Previous version required (-P, --previous-version)"
+if [[ -z $PREV_TAG_VERSION ]]; then
+    echo_error "Previous version tag required (-P, --previous-version-tag)"
     exit 1
 fi
 
@@ -125,7 +125,7 @@ fi
 # 2. Github
 DATE=$(date +"%Y-%m-%d")
 RELEASE_NAME="$VERSION / $DATE"
-PREV_TAG_NAME=v$PREV_VERSION
+PREV_TAG_NAME=$PREV_TAG_VERSION
 TAG_NAME=v$VERSION
 
 # 2.1 Create Git tag for the repository

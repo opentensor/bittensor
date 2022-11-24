@@ -89,11 +89,6 @@ while [[ $# -gt 0 ]]; do
       APPLY_ACTION="--apply"
       shift # past argument
       ;;
-    -V|--version)
-      VERSION_TYPE="$2"
-      shift # past argument
-      shift # past value
-      ;;
     -T|--github-token)
       GITHUB_TOKEN="$2"
       shift # past argument
@@ -110,44 +105,34 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ $VERSION_TYPE != "major" && $VERSION_TYPE != "minor" && $VERSION_TYPE != "patch" ]]; then
-  echo_error "Incorrect version type (-V|--version). Version types accepted: {major, minor, patch}"
-  exit 1
-else
-  echo_info "Increase '$VERSION_TYPE' version"
-fi
-
 if [[ $APPLY == "true" ]]; then
   echo_warning "Not a Dry run exection"
 else
   echo_warning "Dry run execution"
 fi
 
-# 2. Update version
-## Using script: ./scripts/release/versioning.sh
+# 2. Checking version
 
-PREV_VERSION=$VERSION
-
-${BASH_SOURCE%/*}/versioning.sh $APPLY_ACTION --update $VERSION_TYPE
-
-VERSION=$(cat $VERSION_FILENAME)
-TAG_NAME=v$VERSION
 CURRENT_VERSION_EXISTS=$(git tag | grep $VERSION)
-
 if [[ ! -z $CURRENT_VERSION_EXISTS ]]; then
     echo_error "Current version '$VERSION' already exists"
     help
     exit 1
 fi
 
+VERSION=$(cat $VERSION_FILENAME)
+PREV_VERSION_TAG=`get_git_tag_higher_version`
+
+TAG_NAME=v$VERSION
+
 ## 2.1. Current VERSION is not already a tag
 
-echo_info "Previous version: $PREV_VERSION"
-echo_info "Detected version: $VERSION"
+echo_info "Detected new version tag: $VERSION"
+echo_info "Previous version tag: $PREV_VERSION_TAG"
 echo_info "Tag generated: $TAG_NAME"
 
 # 3. Create Github resources
-${BASH_SOURCE%/*}/release_github.sh $APPLY_ACTION --github-token $GITHUB_TOKEN -P $PREV_VERSION -V $VERSION
+${BASH_SOURCE%/*}/release_github.sh $APPLY_ACTION --github-token $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
 
 # 4. Generate python wheel and upload it to Pypi
 if [[ $APPLY == "true" ]]; then

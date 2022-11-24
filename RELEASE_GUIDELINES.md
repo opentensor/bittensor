@@ -1,12 +1,32 @@
-# Releasing bittensor
+# Release Guidelines
 
-The release manager in charge can release a Bittensor version using the script:
+The release manager in charge can release a Bittensor version using two scripts:
+  - [./scripts/release/versioning.sh](./scripts/release/versioning.sh)
   - [./scripts/release/release.sh](./scripts/release/release.sh)
+
+The release manager will need the right permissions for:
+  - github.com
+  - pypi.org
+  - hub.docker.com
+
+If you are new in this role, ask for the proper setup you need to run this process manually.
+
+## Process of release
+
+1. Create a branch called `release/VERSION`, having VERSION with the version to release.
+1. Update the version using the versioning script
+  1. `./scripts/release/versioning.sh --update UPDATE_TYPE`, UPDATE_TYPE could be major, minor or patch.
+1. Execute the release script
+
+## Versioning script usage
+
+Options:
+  - -U, --update: type of update. It could be major, minor, patch or rc (release candidate).
+  - -A, --apply: This specify to apply the release. Without this the versioning will just show a dry run with no changes.
 
 ## Release script usage
 
 Options:
-  - -V, --version: type of update. It could be major, minor or patch.
   - -A, --apply: This specify to apply the release. Without this the release will just show a dry run with no changes.
   - -T,--github-token: A github personal access token to interact with the Github API.
 
