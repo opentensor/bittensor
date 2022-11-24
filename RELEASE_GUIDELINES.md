@@ -17,7 +17,7 @@ If you are new in this role, ask for the proper setup you need to run this proce
 1. Within the release branch; Update the version using the versioning script:
   1. `./scripts/release/versioning.sh --update UPDATE_TYPE`, UPDATE_TYPE could be major, minor or patch.
 1. Test the release branch and verify that it meets the requirements.
-1. After merge the release branch; Execute the release script
+1. After merging the release branch; Run the release script
 
 ## Versioning script usage
 

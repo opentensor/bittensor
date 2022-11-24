@@ -48,9 +48,9 @@ PATCH=$(awk -F. '{print $3}' <<< $VERSION)
 # RC version
 RC=$(awk -F- '{print $NF}' <<< $version)
 if [ -z $RC ]; then
-    echo_info "Current version: $MAJOR.$MINOR.$PATCH"
+  CURRENT_VERSION="$MAJOR.$MINOR.$PATCH"
 else
-    echo_info "Current version: $MAJOR.$MINOR.$PATCH-$RC"
+  CURRENT_VERSION="$MAJOR.$MINOR.$PATCH-$RC"
 fi
 
 case $VERSION_TYPE in
@@ -80,10 +80,14 @@ case $VERSION_TYPE in
     ;;
 esac
 
+
+echo_info "Current version: $CURRENT_VERSION"
 echo_info "New version: $NEW_VERSION"
 
 if [[ $APPLY == "true" ]]; then
-    sed -i "18,22s/$VERSION/$NEW_VERSION/g" $CODE_WITH_VERSION
+    echo_info "Updating version in code: sed -i "18,30s/$VERSION/$NEW_VERSION/g" $CODE_WITH_VERSION"
+    sed -i "18,30s/$VERSION/$NEW_VERSION/g" $CODE_WITH_VERSION
+    echo_info "Updating version in file: echo -n $NEW_VERSION > VERSION"
     echo -n $NEW_VERSION > VERSION
 else
     echo_warning "Dry run execution. Version update not applied"
