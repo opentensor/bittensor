@@ -9,6 +9,8 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.revision="${VCS_REF}" \
 	bittensor.image.created="${BUILD_DATE}" \
 	bittensor.image.documentation="https://app.gitbook.com/@opentensor/s/bittensor/"
+LABEL bittensor.dependencies.versions.torch="1.12.0"
+LABEL bittensor.dependencies.versions.cuda="11.3"
 ARG DEBIAN_FRONTEND=noninteractive
 
 #nvidia key migration
@@ -34,9 +36,10 @@ RUN bash -c "source $HOME/.nvm/nvm.sh && \
     # install pm2
     npm install --location=global pm2"
 
-RUN mkdir -p /root/.bittensor/bittensor
-RUN cd ~/.bittensor/bittensor && \
-    python3 -m pip install bittensor
+RUN mkdir -p /root/.bittensor/
+RUN cd /root/.bittensor/ && \
+    git clone https://github.com/opentensor/bittensor.git bittensor && \
+    python3 -m pip install -e bittensor
 
 # Increase ulimit to 1,000,000
 RUN prlimit --pid=$PPID --nofile=1000000

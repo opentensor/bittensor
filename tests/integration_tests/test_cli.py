@@ -1464,6 +1464,37 @@ class TestCLIUsingArgs(unittest.TestCase):
                     # args[0] should be self => the wallet
                     assert args[0].config.wallet.reregister == False
 
+    def test_run_synapse_all(self):
+        """
+        Verify that setting --synapse All works
+        """
+
+        class MockException(Exception):
+            """Raised by mocked function to exit early"""
+            pass
+
+        with patch('bittensor.neurons.core_server.neuron', MagicMock(side_effect=MockException("should exit early"))) as mock_neuron:
+            with patch('bittensor.Wallet.is_registered', MagicMock(return_value=True)): # mock registered
+                with pytest.raises(MockException):
+                    cli = bittensor.cli(args=[
+                        'run',
+                        '--wallet.name', 'mock',
+                        '--wallet.hotkey', 'mock_hotkey',
+                        '--wallet._mock', 'True',
+                        '--subtensor.network', 'mock',
+                        '--subtensor._mock', 'True',
+                        '--cuda.no_cuda',
+                        '--no_prompt',
+                        '--model', 'core_server',
+                        '--synapse', 'All',
+                    ])
+                    cli.run()
+
+                assert mock_neuron.call_count == 1
+                args, kwargs = mock_neuron.call_args
+
+                assert len(args) == 0 and len(kwargs) == 0 # should not have any args; indicates that "All" synapses are being used
+
 
 if __name__ == '__main__':
     unittest.main()
