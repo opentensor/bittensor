@@ -36,6 +36,7 @@ from rich import print
 from rich.console import Console
 from rich.style import Style
 from rich.table import Table
+from rich.errors import MarkupError
 from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
@@ -178,6 +179,7 @@ class neuron:
         # === Neuron statistics variables ===
         self.neuron_stats = {}  # neuron statistics dict of dicts: [uid] -> {'stat1': val1, 'stat2': val2, ...}
         self.neuron_hotkeys = []  # keep neuron hotkeys to compare and check for changes after metagraph.sync()
+        self.neuron_changes = {}  # neuron hotkey changes dict of dicts of dicts: [uid] -> [block] -> {'new_hotkey': , 'old_hotkey': , 'old_stats':}
         self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
 
         if self.config.neuron.validation_synapse == 'TextCausalLMNext':
@@ -230,7 +232,7 @@ class neuron:
         parser.add_argument('--neuron.validation_len', type=int, help='Number of tokens to holdout for phrase validation beyond sequence context.', default=8)
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
-        parser.add_argument('--neuron.print_neuron_stats', action='store_true', help='If True, print neuron_stats and exit.', default=False)
+        parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
         parser.add_argument('--neuron.restart', action='store_true', help='If True, reset neuron_stats and validate anew.', default=False)
         parser.add_argument('--neuron.restart_on_failure',  action='store_true', help='''Restart neuron on unknown error.''', default=True )
         parser.add_argument('--neuron._mock', action='store_true', help='To turn on neuron mocking for testing purposes.', default=False )
@@ -322,6 +324,9 @@ class neuron:
                 'neuron_hotkeys': self.neuron_hotkeys
             }
 
+            if self.config.neuron.track_hotkey_changes:
+                state_dict['neuron_changes'] = self.neuron_changes
+
             torch.save(state_dict, f'{path}/model.torch')
             bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
 
@@ -337,6 +342,9 @@ class neuron:
 
             self.neuron_stats = state_dict['neuron_stats']
             self.neuron_hotkeys = state_dict['neuron_hotkeys']
+
+            if 'neuron_changes' in state_dict and self.config.neuron.track_hotkey_changes:
+                self.neuron_changes = state_dict['neuron_changes']
 
             bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
 
@@ -417,10 +425,6 @@ class neuron:
         # Each block length lasts blocks_per_epoch blocks.
         # This gives us a consistent network wide timer.
         # Here we run until blocks_per_epochs have progressed.
-        if self.epoch > 0:  # skip first epoch: already synced at start of run
-            self.metagraph_sync()  # Reset metagraph.
-
-        self.nucleus.permute_uids = []  # clear nucleus permutation before epoch
 
         epoch_steps = 0
         epoch_responsive_uids = set()
@@ -429,13 +433,19 @@ class neuron:
 
         self.prometheus_gauges.labels("epoch_steps").set(0)
 
-        start_block = self.subtensor.block
         # normal epoch duration is blocks_per_epoch if all UIDs have been queried
         # try to query each UID at least once - assumes nucleus samples without replacement
-        # but keep maximum epoch duration at 2 * blocks_per_epoch
+        # but keep minimum epoch duration at blocks_per_epoch * block_period
+        # in case of subtensor outage causing invalid block readings to prevent fast repeated weight setting
+        start_block = self.subtensor.block
         while (self.subtensor.block < start_block + blocks_per_epoch or
-               (self.subtensor.block < start_block + 2 * blocks_per_epoch and
-                len(epoch_queried_uids) < self.metagraph.n)):
+               time.time() - epoch_start_time < blocks_per_epoch * bittensor.__blocktime__):
+
+            logger.info(f'Run epoch {self.epoch} (step {epoch_steps}) while '
+                        f'({self.subtensor.block} < {start_block + blocks_per_epoch} '
+                        f'= {start_block} + {blocks_per_epoch}) or '
+                        f'({time.time() - epoch_start_time:.2f} < {blocks_per_epoch * bittensor.__blocktime__})')
+
             start_time = time.time()
 
             # === Forward ===
@@ -525,7 +535,7 @@ class neuron:
                             f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]')  # caption
 
                 # === Calculate neuron weights ===
-                sample_uids, sample_weights = self.calculate_weights(epoch_responsive_uids, epoch_queried_uids)
+                sample_uids, sample_weights = self.calculate_weights()
                 self.weights_table(sample_uids, sample_weights,
                                    include_uids=list(stats.keys()), num_rows=2 * len(stats))  # print weights table
 
@@ -550,12 +560,11 @@ class neuron:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
-                
-        # Iterate epochs.
-        self.epoch += 1
+
+        self.metagraph_sync()  # Reset metagraph.
 
         # === Calculate neuron weights ===
-        sample_uids, sample_weights = self.calculate_weights(epoch_responsive_uids, epoch_queried_uids)
+        sample_uids, sample_weights = self.calculate_weights()
 
         if self.config.logging.debug or self.config.logging.trace:
             self.weights_table(sample_uids, sample_weights)  # print weights table
@@ -571,8 +580,7 @@ class neuron:
               f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
               f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
               f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-              f'\[{sample_weights.max().item()}:1] '
-              f'({max_weight_limit} allowed)')
+              f'\[{max_weight_limit:.4g} allowed]')
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
@@ -605,10 +613,13 @@ class neuron:
         self.prometheus_gauges.labels("dividends").set( self.metagraph.dividends[self.uid] )
         self.prometheus_gauges.labels("emission").set( self.metagraph.emission[self.uid] )
 
+        # Iterate epochs.
+        self.epoch += 1
+
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
         """
-        old_hotkeys = self.neuron_hotkeys if self.neuron_hotkeys else self.metagraph.hotkeys
+        old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
         self.metagraph.sync()
         self.neuron_hotkeys = self.metagraph.hotkeys
 
@@ -616,13 +627,20 @@ class neuron:
         # === Reset neuron stats if uid got replaced
         for uid, old_hotkey in enumerate(old_hotkeys):
             if old_hotkey != self.neuron_hotkeys[uid]:
+                if self.config.neuron.track_hotkey_changes:
+                    block = self.subtensor.block
+                    self.neuron_changes.setdefault(uid, {})  # [uid] -> dict() of blocks
+                    self.neuron_changes[uid][block] = {'new_hotkey': self.neuron_hotkeys[uid], 'old_hotkey': old_hotkey}
+                    if uid in self.neuron_stats:
+                        self.neuron_changes[uid][block]['old_stats'] = self.neuron_stats[uid]
+
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
                     changed_hotkeys += [uid]
 
         if len(changed_hotkeys):
             logger.info(f"Hotkeys changed: {changed_hotkeys}")
-            self.save()  # save neuron_stats and neuron_hotkeys to filesystem
+            self.save()  # save neuron_stats, neuron_hotkeys, and neuron_changes to filesystem
 
     def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
@@ -668,44 +686,25 @@ class neuron:
 
         return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
 
-    def calculate_weights(self, responsive_uids: Set, queried_uids: Set):
+    def calculate_weights(self):
         r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
         used to obtain the mapped stat value (typically a Shapley value) that the final set-weights are calculated from.
         """
 
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
 
-        # === Randomize UIDs in preferred order (responsive -> queried -> rest) ===
         min_allowed_weights = self.subtensor.min_allowed_weights
         max_weight_limit = self.subtensor.max_weight_limit
 
-        non_responsive_uids = queried_uids - responsive_uids
-        non_queried_uids = set(range(self.metagraph.n)) - queried_uids
-
-        # random.sample(population, k, *, counts=None): Return a k length list of unique elements chosen from
-        # the population sequence or set. Used for random sampling without replacement (so no uid duplicates expected).
-        preferred_uids = (random.sample(list(responsive_uids), len(responsive_uids)) +
-                          random.sample(list(non_responsive_uids), len(non_responsive_uids)) +
-                          random.sample(list(non_queried_uids), len(non_queried_uids)))  # preferred UID random order
-
-        preferred_uids = torch.LongTensor(preferred_uids)
-
         # === Populate neuron weights ===
         neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs for min_allowed_weights
-
         for uid in self.neuron_stats:
             if weight_key in self.neuron_stats[uid]:
                 neuron_weights[uid] = torch.tensor([self.neuron_stats[uid][weight_key]])
 
         # === Filter to non-zero weights ===
-        neuron_weights = neuron_weights[preferred_uids]  # rearrange neuron_weights to match preferred_uids order
-        preferred_uids = preferred_uids[neuron_weights > 0]  # filter to non-zero weights
-        neuron_weights = neuron_weights[neuron_weights > 0]  # filter to non-zero weights
-
-        # === Slice weights_to_set UIDs ===
-        weights_to_set = max([min_allowed_weights, len(responsive_uids)])
-        sample_uids = preferred_uids[:weights_to_set]  # slice to weights_to_set
-        sample_weights = neuron_weights[:weights_to_set]  # slice to weights_to_set
+        sample_uids = torch.argwhere(neuron_weights > 0).squeeze(dim=1)  # find uids with non-zero weight
+        sample_weights = neuron_weights[sample_uids]  # filter to non-zero weights
 
         # === If no uids responds, return ===
         if len(sample_uids) == 0:
@@ -765,8 +764,7 @@ class neuron:
                     f'sum:{sample_weights.sum().item():.2g} '
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                    f'\[{sample_weights.max().item()}:1] '
-                    f'({max_weight_limit} allowed)',  # caption
+                    f'\[{max_weight_limit:.4g} allowed]',  # caption
                     mark_uids=avail_include_uids)
 
 
@@ -1232,6 +1230,11 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
+        # === Response table ===
+        # Prints the query response table: top prediction probabilities and texts for batch tasks
+        batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
+        response_table(batch_predictions, stats, sort_col='shapley_values_nxt', console_width=console_width)
+
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
         synergy_table(stats, syn_loss_diff, 'shapley_values_nxt', console_width)
@@ -1392,6 +1395,111 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
     return syn_loss_diff
 
 
+def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
+                       return_ops: List[torch.LongTensor], inputs: torch.FloatTensor,
+                       validation_len: int, index_s: int = 0, number_of_predictions: int = 3) -> List:
+    r""" Format batch task topk predictions for rich table print of query responses.
+    """
+    batch_predictions = []
+    std_tokenizer = bittensor.tokenizer()
+
+    # === Batch iteration ===
+    for batch_item in range(inputs.shape[0]):
+        # === Task formatting ===
+        context = inputs[batch_item][:-validation_len]
+        answer = inputs[batch_item][-validation_len:]
+
+        context = repr(std_tokenizer.decode(context))[1:-1][-30:]  # strip '' and truncate
+        answer = repr(std_tokenizer.decode(answer))[1:-1][:15]  # strip '' and truncate
+
+        task = f"[reverse]{context}[/reverse][bold]{answer}[/bold]"
+
+        # === Prediction formatting ===
+        predictions = {}
+        for index, uid in enumerate(uids.tolist()):
+            if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+                topk_tensor = query_responses[index][index_s]  # [batch_size, (topk + 1), max_len] (prob_k) + floor_prob
+                topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+                topk_probs = topk_tensor[batch_item, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+
+                # === Topk iteration ===
+                topk_predictions = ''
+                for i in range(number_of_predictions):
+                    phrase = topk_tokens[i]
+                    phrase = phrase[phrase >= 0]  # strip negative ignore_index = -100
+                    phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # decode, escape and truncate
+                    prob = f'{topk_probs[i]:.3f}'.lstrip('0').replace('1.000', '1.00')
+                    topk_predictions += f"[green]{prob}[/green]: {phrase_str} "
+
+                predictions[uid] = topk_predictions[:-1]  # strip trailing space
+
+        batch_predictions += [(task, predictions)]
+
+    return batch_predictions
+
+
+def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_width: int,
+                   task_repeat: int = 4, tasks_per_server: int = 3):
+    r""" Prints the query response table: top prediction probabilities and texts for batch tasks.
+    """
+    # === Batch permutation ===
+    batch_size = len(batch_predictions)
+    if batch_size == 0:
+        return
+    batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
+
+    # === Column selection ===
+    columns = [c[:] for c in neuron_stats_columns if c[1] in ['uid', sort_col, 'loss_nxt', 'synergy_nxt']]
+    col_keys = [c[1] for c in columns]
+
+    # === Sort rows ===
+    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s], reverse=True, key=lambda _row: _row[1])
+    if sort_col in col_keys:
+        sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
+        columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
+
+    for i, (uid, val) in enumerate(sort):
+        # === New table section ===
+        if i % task_repeat == 0:
+            table = Table(width=console_width, box=None)
+            if i == 0:
+                table.title = f"[white bold] Query responses [/white bold] | " \
+                              f"[white]context[/white][bold]continuation[/bold] | .prob: 'prediction'"
+
+            for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
+                table.add_column(col, style=stl, justify='right')
+
+        # === Last table section ===
+        if i == len(sort) - 1:
+            table.caption = f'[bold]{len(sort)}[/bold]/{len(stats)} (respond/topk) | ' \
+                            f'[bold]{tasks_per_server}[/bold] tasks per server | ' \
+                            f'repeat tasks over [bold]{task_repeat}[/bold] servers ' \
+                            f'[white]\[{math.ceil(1. * len(sort) / task_repeat) * tasks_per_server}/' \
+                            f'{batch_size} batch tasks][/white]'
+
+        # === Row addition ===
+        row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
+        for j in range(tasks_per_server):
+            batch_item = ((i // task_repeat) * tasks_per_server + j) % batch_size  # repeat task over servers, do not exceed batch_size
+            task, predictions = batch_predictions[batch_perm[batch_item]]
+            row += [predictions[uid]]
+
+            if i % task_repeat == 0:
+                table.add_column(task, header_style='not bold', style='', justify='left')
+
+        table.add_row(*row)
+
+        # === Table print ===
+        if (i == len(sort) - 1) or (i % task_repeat == task_repeat - 1):
+            try:
+                print(table)
+            except MarkupError as e:
+                print(e)
+            else:
+                if i == len(sort) - 1:
+                    print()
+
+
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
     r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
     """
@@ -1400,12 +1508,12 @@ def synergy_table(stats, syn_loss_diff, sort_col, console_width):
     columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
     rows = [[uid_col[2].format(s[0])] +
             [('[bright_cyan]{:.2f}[/bright_cyan]' if t == s else
-              '[magenta]{:.2f}[/magenta]' if syn_loss_diff[s[0]][t[0]] > 0 else
-              '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]) for t in sort] for s in sort]
+              '[magenta]{:.3f}[/magenta]' if syn_loss_diff[s[0]][t[0]] > 0 else
+              '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]).replace('0.', '.') for t in sort] for s in sort]
 
     # === Synergy table ===
     table = Table(width=console_width, box=None)
-    table.title = f'[white] Synergy [/white]'
+    table.title = f'[white] Synergy table [/white] | Pairwise synergy'
     table.caption = f'loss decrease'
 
     for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
@@ -1464,10 +1572,10 @@ def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
 def synapse_table(name, stats, sort_col, console_width, start_time):
     r""" Prints the evaluation of the neuron responses to the validator request
     """
-
     stats_table(stats, sort_col, console_width,
                 f'[white] \[{name}] responses [/white] | Validator forward',  # title
-                f'[bold]{len([s for s in stats.values() if len(s)])}[/bold]/{len(stats)} (respond/topk) | '
+                f'[bold]{len([s for s in stats.values() if len(s) and sort_col in s])}[/bold]/'
+                f'{len(stats)} (respond/topk) | '
                 f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
                 )
 
