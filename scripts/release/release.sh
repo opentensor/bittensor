@@ -111,6 +111,11 @@ else
   echo_warning "Dry run execution"
 fi
 
+if [[ -z $GITHUB_TOKEN ]]; then
+    echo_error "Github token required (-T, --github-token)"
+    exit 1
+fi
+
 # 2. Checking version
 
 CURRENT_VERSION_EXISTS=$(git tag | grep $VERSION)
