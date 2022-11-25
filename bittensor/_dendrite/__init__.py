@@ -73,7 +73,6 @@ class dendrite:
         config.dendrite.timeout = timeout if timeout != None else config.dendrite.timeout
         config.dendrite.requires_grad = requires_grad if requires_grad != None else config.dendrite.requires_grad
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
-        config.dendrite.multiprocessing = multiprocess if multiprocess != None else config.dendrite.multiprocessing
         config.dendrite.compression = compression if compression != None else config.dendrite.compression
         config.dendrite._mock = _mock if _mock != None else config.dendrite._mock
         dendrite.check_config( config )
@@ -91,24 +90,6 @@ class dendrite:
             return dendrite_mock.DendriteMock ( 
                 config = config,
                 wallet = wallet
-            )
-        elif config.dendrite.multiprocessing:
-            authkey = wallet.hotkey.ss58_address.encode('UTF-8')
-            try:
-                manager_client = dendrite.manager_connect(authkey = authkey)
-                logger.success('Receptor Pool Server Connected')
-                
-            except:
-                dendrite.manager_serve(config, wallet, receptor_pool, authkey = authkey)
-                logger.success('Receptor Pool Server Started')
-                manager_client = dendrite.manager_connect(authkey = authkey)
-                logger.success('Receptor Pool Server Connected')
-            
-            return dendrite_impl.Dendrite ( 
-                config = config,
-                wallet = wallet, 
-                receptor_pool = manager_client.get_receptorpool(),
-                manager = manager_client,
             )
         else:
             return dendrite_impl.Dendrite ( 
@@ -144,7 +125,6 @@ class dendrite:
             parser.add_argument('--' + prefix_str + 'dendrite.timeout', type=int, help='''Default request timeout.''', default = bittensor.defaults.dendrite.timeout)
             parser.add_argument('--' + prefix_str + 'dendrite.requires_grad', action='store_true', help='''If true, the dendrite passes gradients on the wire.''', default = bittensor.defaults.dendrite.requires_grad)
             parser.add_argument('--' + prefix_str + 'dendrite.no_requires_grad', dest = prefix_str + 'dendrite.requires_grad', action='store_false', help='''If set, the dendrite will not passes gradients on the wire.''')
-            parser.add_argument('--' + prefix_str + 'dendrite.multiprocessing', dest = prefix_str + 'dendrite.multiprocessing', action='store_true', help='''If set, the dendrite will initialize multiprocessing''', default=bittensor.defaults.dendrite.multiprocessing)
             parser.add_argument('--' + prefix_str + 'dendrite.compression', type=str, help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.dendrite.compression)
             parser.add_argument('--' + prefix_str + 'dendrite._mock', action='store_true', help='To turn on dendrite mocking for testing purposes.', default=False)
             parser.add_argument('--' + prefix_str + 'dendrite.prometheus.level', 
@@ -166,7 +146,6 @@ class dendrite:
         defaults.dendrite.max_active_receptors = os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') if os.getenv('BT_DENDRITE_MAX_ACTIVE_RECEPTORS') != None else 4096
         defaults.dendrite.timeout = os.getenv('BT_DENDRITE_TIMEOUT') if os.getenv('BT_DENDRITE_TIMEOUT') != None else bittensor.__blocktime__ + 2
         defaults.dendrite.requires_grad = os.getenv('BT_DENDRITE_REQUIRES_GRAD') if os.getenv('BT_DENDRITE_REQUIRES_GRAD') != None else True
-        defaults.dendrite.multiprocessing = os.getenv('BT_DENDRITE_MULTIPROCESSING') if os.getenv('BT_DENDRITE_MULTIPROCESSING') != None else False
         defaults.dendrite.compression = os.getenv('BT_DENDRITE_COMPRESSION') if os.getenv('BT_DENDRITE_COMPRESSION') != None else 'NoCompression'
         # Prometheus
         defaults.dendrite.prometheus = bittensor.config()
@@ -183,30 +162,3 @@ class dendrite:
         assert config.dendrite.max_active_receptors >= 0, 'max_active_receptors must be larger or eq to 0'
         assert config.dendrite.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "dendrite.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])        
         bittensor.wallet.check_config( config )
-
-    @classmethod
-    def manager_connect(cls, authkey = b'abracadabra'):
-        r"""Creates a custom manager class and connects it to the local server.
-        """
-        BaseManager.register('get_receptorpool')
-        BaseManager.register('add_connection_count')
-        BaseManager.register('deduct_connection_count')
-        BaseManager.register('get_total_requests')
-        manager = BaseManager(address=('', 4098), authkey=authkey)
-        manager.connect()
-        manager.add_connection_count()
-        return manager
-
-    @classmethod
-    def manager_serve(cls, config, wallet, receptor_pool = None, authkey = b'abracadabra'):
-        r"""Creates/Uses a receptor pool to create a local server for receptor pool
-        """
-        if receptor_pool == None:
-            receptor_pool = bittensor.receptor_pool( 
-                wallet = wallet,
-                max_active_receptors = config.dendrite.max_active_receptors
-            )
-        ManagerServer.register('get_receptorpool', callable=lambda:receptor_pool,exposed=['forward','backward','get_receptors_state', 'get_total_requests'])
-        manager = ManagerServer(address=('', 4098), authkey=authkey)
-
-        return manager
