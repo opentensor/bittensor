@@ -110,6 +110,18 @@ jobs:
             pip3 install --upgrade coveralls
             coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
 
+  check-version-updated:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+
+      - run:
+          name: Version is updated
+          command: |
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep bittensor/__init__.py | wc -l) == 1 ]] && echo "bittensor/__init__.py has changed"
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep VERSION | wc -l) == 1 ]] && echo "VERSION has changed"
+
 workflows:
   pre-pr:
     jobs:
@@ -123,3 +135,11 @@ workflows:
       #- coveralls:
           #requires:
             #- build-and-test
+
+  check-version-updated:
+    jobs:
+      - check-version-updated:
+          filters:
+            branches:
+              only:
+                - /^(release|hotfix)/.*/
