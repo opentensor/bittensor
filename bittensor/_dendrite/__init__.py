@@ -73,7 +73,6 @@ class dendrite:
         config.dendrite.timeout = timeout if timeout != None else config.dendrite.timeout
         config.dendrite.requires_grad = requires_grad if requires_grad != None else config.dendrite.requires_grad
         config.dendrite.max_active_receptors = max_active_receptors if max_active_receptors != None else config.dendrite.max_active_receptors
-        config.dendrite.multiprocessing = multiprocess if multiprocess != None else config.dendrite.multiprocessing
         config.dendrite.compression = compression if compression != None else config.dendrite.compression
         config.dendrite._mock = _mock if _mock != None else config.dendrite._mock
         dendrite.check_config( config )
