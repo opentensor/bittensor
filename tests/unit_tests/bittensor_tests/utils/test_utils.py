@@ -1,24 +1,24 @@
 import binascii
 import hashlib
-import unittest
-import bittensor
-import sys
-import subprocess
-import time
-import pytest
-import os 
-import random
-import torch
+import math
 import multiprocessing
+import os
+import random
+import subprocess
+import sys
+import time
+import unittest
+from sys import platform
 from types import SimpleNamespace
-
-from sys import platform   
-from substrateinterface.base import Keypair
-from _pytest.fixtures import fixture
-from loguru import logger
-
 from unittest.mock import MagicMock, patch
 
+import bittensor
+import pytest
+import torch
+from _pytest.fixtures import fixture
+from bittensor.utils import CUDASolver
+from loguru import logger
+from substrateinterface.base import Keypair
 
 
 @fixture(scope="function")
@@ -251,6 +251,88 @@ def test_registration_diff_pack_unpack_over_32_bits():
     bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
     assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
+class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
+    def test_check_for_newest_block_and_update_same_block(self):
+        # if the block is the same, the function should return the same block number
+        subtensor = MagicMock()
+        current_block_num: int = 1
+        subtensor.get_current_block = MagicMock( return_value=current_block_num )
+
+        self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
+            subtensor,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+        ), current_block_num)
+
+    def test_check_for_newest_block_and_update_new_block(self):
+        # if the block is new, the function should return the new block_number
+        mock_block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+
+        current_block_num: int = 1
+        current_diff: int = 0
+
+        mock_substrate = MagicMock(
+            get_block_hash=MagicMock(
+                return_value=mock_block_hash
+            ),
+
+        )
+        subtensor = MagicMock(
+            substrate=mock_substrate,
+            difficulty=current_diff + 1, # new diff
+        )
+        subtensor.get_current_block = MagicMock( return_value=current_block_num + 1 ) # new block
+
+        mock_update_curr_block = MagicMock()
+
+        mock_solvers = [
+            MagicMock(
+                newBlockEvent=MagicMock(
+                    set=MagicMock()
+                )
+        ), 
+        MagicMock(
+            newBlockEvent=MagicMock(
+                set=MagicMock()
+            )
+        )]
+
+        mock_curr_stats = MagicMock(
+            block_number=current_block_num,
+            block_hash=b'',
+            difficulty=0,
+        )
+
+        self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
+            subtensor,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            mock_update_curr_block,
+            MagicMock(),
+            mock_solvers,
+            mock_curr_stats,
+        ), current_block_num + 1)      
+
+        # check that the update_curr_block function was called
+        mock_update_curr_block.assert_called_once()
+
+        # check that the solvers got the event 
+        for solver in mock_solvers:
+            solver.newBlockEvent.set.assert_called_once()
+
+        # check the stats were updated
+        self.assertEqual(mock_curr_stats.block_number, current_block_num + 1)
+        self.assertEqual(mock_curr_stats.block_hash, mock_block_hash)
+        self.assertEqual(mock_curr_stats.difficulty, current_diff + 1)
+
 class TestGetBlockWithRetry(unittest.TestCase):
     def test_get_block_with_retry_network_error_exit(self):
         mock_subtensor = MagicMock(
@@ -399,5 +481,54 @@ def test_pow_called_for_cuda():
                     call_params = call1[1]['call_params']
                     assert call_params['nonce'] == mock_result['nonce']
 
+class TestCUDASolverRun(unittest.TestCase):      
+    def test_multi_cuda_run_updates_nonce_start(self):
+        class MockException(Exception):
+            pass
+
+        TPB: int = 512
+        update_interval: int = 70_000
+        nonce_limit: int = int(math.pow(2, 64)) - 1
+
+        mock_solver_self = MagicMock(
+            spec=CUDASolver,
+            TPB=TPB,
+            dev_id=0,
+            update_interval=update_interval,
+            stopEvent=MagicMock(is_set=MagicMock(return_value=False)),
+            newBlockEvent=MagicMock(is_set=MagicMock(return_value=False)),
+            finished_queue=MagicMock(put=MagicMock()),
+            limit=10000,
+            proc_num=0,
+        )  
+
+        
+        with patch('bittensor.utils.registration.solve_for_nonce_block_cuda',
+            side_effect=[None, MockException] # first call returns mocked no solution, second call raises exception
+        ) as mock_solve_for_nonce_block_cuda: 
+        
+            # Should exit early
+            with pytest.raises(MockException):
+                CUDASolver.run(mock_solver_self)
+            
+            mock_solve_for_nonce_block_cuda.assert_called()
+            calls = mock_solve_for_nonce_block_cuda.call_args_list
+            self.assertEqual(len(calls), 2, f"solve_for_nonce_block_cuda was called {len(calls)}. Expected 2") # called only twice
+            
+            # args, kwargs
+            args_call_0, _ = calls[0]
+            initial_nonce_start: int = args_call_0[1] # second arg should be nonce_start
+            self.assertIsInstance(initial_nonce_start, int)
+            
+            args_call_1, _ = calls[1]
+            nonce_start_after_iteration: int = args_call_1[1] # second arg should be nonce_start
+            self.assertIsInstance(nonce_start_after_iteration, int)
+
+            # verify nonce_start is updated after each iteration
+            self.assertNotEqual(nonce_start_after_iteration, initial_nonce_start, "nonce_start was not updated after iteration")
+            ## Should incerase by the number of nonces tried == TPB * update_interval
+            self.assertEqual(nonce_start_after_iteration, (initial_nonce_start + update_interval * TPB) % nonce_limit,  "nonce_start was not updated by the correct amount")
+
+
 if __name__ == "__main__":
-    test_solve_for_difficulty_fast_registered_already()
+    unittest.main()

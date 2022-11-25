@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -16,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import unittest
 import unittest.mock as mock
 import uuid
 
@@ -27,15 +29,11 @@ import bittensor
 from bittensor.utils.test_utils import get_random_unused_port
 import concurrent
 
+from concurrent.futures import ThreadPoolExecutor
+
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon(wallet = wallet)
-bittensor.logging(debug = True)
-"""
-TODO: Tests that need to be added
- - Different synapses in combination
- - Different errors for different synapses
- - Correct Messages when only a single synapse fails
-"""
+
 
 
 def sign(wallet):
@@ -812,6 +810,70 @@ def test_forward_tensor_success_priority():
     response, code, synapses = axon._forward( request )
     assert code == bittensor.proto.ReturnCode.Success
 
+
+def test_forward_priority_timeout():
+    def priority(pubkey:str, request_type:str, inputs_x):
+        return 100
+
+    def forward( inputs_x: torch.FloatTensor, synapses, hotkey):
+        time.sleep(15)
+
+    axon = bittensor.axon(wallet = wallet, priority= priority, forward_timeout = 5)
+    axon.attach_forward_callback(forward)
+
+    inputs_raw = torch.rand(1,1)
+    synapses = [bittensor.synapse.TextLastHiddenState()]
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized = serializer.serialize(inputs_raw, from_type = bittensor.proto.TensorType.TORCH)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        hotkey = axon.wallet.hotkey.ss58_address,
+        synapses= [ syn.serialize_to_wire_proto() for syn in synapses ]
+    )
+
+    response, code, synapses = axon._forward( request )
+    assert code == bittensor.proto.ReturnCode.Timeout
+
+    axon.stop()
+
+def test_forward_priority_2nd_request_timeout():
+    def priority(pubkey:str, request_type:str, inputs_x):
+        return 100
+
+    axon = bittensor.axon(wallet = wallet, priority= priority, priority_threadpool = bittensor.prioritythreadpool(max_workers = 1))
+
+    def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
+        time.sleep(2)
+        return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
+    
+    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    inputs_raw = torch.rand(3, 3)
+    synapses = [bittensor.synapse.TextLastHiddenState()]
+    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
+    inputs_serialized =  synapses[0].serialize_forward_request_tensor(inputs_raw)
+    request = bittensor.proto.TensorMessage(
+        version = bittensor.__version_as_int__,
+        tensors=[inputs_serialized],
+        synapses= [ syn.serialize_to_wire_proto() for syn in synapses ],
+        hotkey = axon.wallet.hotkey.ss58_address,
+    )
+    start_time = time.time()
+    executor = ThreadPoolExecutor(2)
+    future = executor.submit(axon._forward, (request))
+    future2 = executor.submit(axon._forward, (request))
+    response, code, synapses = future.result()
+    assert code == bittensor.proto.ReturnCode.Success
+    
+    try: 
+        response2, code2, synapses2 = future2.result(timeout = 1 - (time.time() - start_time))
+    except concurrent.futures.TimeoutError:
+        pass
+    else:
+        raise AssertionError('Expected to Timeout')
+
+    axon.stop()
+
 def test_backward_response_success_text_priority():
         
     def priority(pubkey:str, request_type:str, inputs_x):
@@ -1041,8 +1103,153 @@ def test_axon_is_destroyed():
     axonB.__del__()
     assert is_port_in_use( port ) == False
 
+# test external axon args
+class TestExternalAxon(unittest.TestCase):
+    """
+    Tests the external axon config flags 
+    `--axon.external_port` and `--axon.external_ip`
+    Need to verify the external config is used when broadcasting to the network
+    and the internal config is used when creating the grpc server
+
+    Also test the default behaviour when no external axon config is provided
+    (should use the internal axon config, like usual)
+    """
+
+    def test_external_ip_not_set_dont_use_internal_ip(self):
+        # Verify that not setting the external ip arg will NOT default to the internal axon ip
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        mock_config = bittensor.axon.config()
+
+        axon = bittensor.axon ( ip = 'fake_ip', server=mock_server, config=mock_config )
+        assert axon.external_ip != axon.ip # should be different
+        assert axon.external_ip is None # should be None
+
+    def test_external_port_not_set_use_internal_port(self):
+        # Verify that not setting the external port arg will default to the internal axon port
+        mock_config = bittensor.axon.config()
+
+        axon = bittensor.axon ( port = 1234, config=mock_config )
+        assert axon.external_port == axon.port
+
+    def test_external_port_set_full_address_internal(self):
+        internal_port = 1234
+        external_port = 5678
+
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+        
+        mock_config = bittensor.axon.config()
+
+        _ = bittensor.axon( port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_port}' in full_address0 and f':{external_port}' not in full_address0
+
+        mock_add_insecure_port.reset_mock()
+
+        # Test using config
+        mock_config = bittensor.axon.config()
+
+        mock_config.axon.port = internal_port
+        mock_config.axon.external_port = external_port
+
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_port}' in full_address0, f'{internal_port} was not found in {full_address0}'
+        assert f':{external_port}' not in full_address0, f':{external_port} was found in {full_address0}'
+
+    def test_external_ip_set_full_address_internal(self):
+        internal_ip = 'fake_ip_internal'
+        external_ip = 'fake_ip_external'
+
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        mock_config = bittensor.axon.config()
+
+        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_ip}' in full_address0 and f'{external_ip}' not in full_address0
+
+        mock_add_insecure_port.reset_mock()
+
+        # Test using config
+        mock_config = bittensor.axon.config()
+        mock_config.axon.external_ip = external_ip
+        mock_config.axon.ip = internal_ip
+
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_ip}' in full_address0, f'{internal_ip} was not found in {full_address0}'
+        assert f'{external_ip}' not in full_address0, f'{external_ip} was found in {full_address0}'
+
+    def test_external_ip_port_set_full_address_internal(self):
+        internal_ip = 'fake_ip_internal'
+        external_ip = 'fake_ip_external'
+        internal_port = 1234
+        external_port = 5678
+
+        mock_add_insecure_port = mock.MagicMock(return_value=None)
+        mock_server = mock.MagicMock(
+            add_insecure_port=mock_add_insecure_port
+        )
+
+        mock_config = bittensor.axon.config()
+
+        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address0 = args[0]
+
+        assert f'{internal_ip}:{internal_port}' == full_address0 and f'{external_ip}:{external_port}' != full_address0
+
+        mock_add_insecure_port.reset_mock()
+
+        # Test using config
+        mock_config = bittensor.axon.config()
+
+        mock_config.axon.ip = internal_ip
+        mock_config.axon.external_ip = external_ip
+        mock_config.axon.port = internal_port
+        mock_config.axon.external_port = external_port
+
+        _ = bittensor.axon( config=mock_config, server=mock_server )
+        
+        mock_add_insecure_port.assert_called_once()
+        args, _ = mock_add_insecure_port.call_args
+        full_address1 = args[0]
+
+        assert f'{internal_ip}:{internal_port}' == full_address1, f'{internal_ip}:{internal_port} is not eq to {full_address1}'
+        assert f'{external_ip}:{external_port}' != full_address1, f'{external_ip}:{external_port} is eq to {full_address1}'
+
 
 if __name__ == "__main__":
     # test_forward_joint_success()
-    test_forward_joint_missing_synapse()
+    # test_forward_joint_missing_synapse()
+    # test_forward_priority_timeout()
+    test_forward_priority_2nd_request_timeout()
     # test_forward_joint_faulty_synapse()

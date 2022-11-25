@@ -3,6 +3,7 @@ Implementation of the config class, which manages the config of different bitten
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -19,7 +20,10 @@ Implementation of the config class, which manages the config of different bitten
 # DEALINGS IN THE SOFTWARE.
 
 import yaml
+import json
 from munch import Munch
+from prometheus_client import Info
+from pandas.io.json import json_normalize
 import bittensor
 
 class Config ( Munch ):
@@ -48,11 +52,30 @@ class Config ( Munch ):
         for key,val in kwargs.items():
             self[key] = val
 
+    def to_prometheus(self):
+        """
+            Sends the config to the inprocess prometheus server if it exists.
+        """
+        try:
+            prometheus_info = Info('config', 'Config Values')
+            config_info = json_normalize(json.loads(json.dumps(self)), sep='.').to_dict(orient='records')[0]
+            formatted_info = {}
+            for key in config_info:
+                config_info[key] = str(config_info[key])
+                formatted_info[key.replace('.', '_')] = str(config_info[key])
+            prometheus_info.info(formatted_info)
+        except ValueError:
+            # The user called this function twice in the same session.
+            # TODO(const): need a way of distinguishing the various config items.
+            bittensor.__console__.print("The config has already been added to prometheus.", highlight=True)
+
     def to_defaults(self):
         try: 
             if 'axon' in self.keys():
                 bittensor.defaults.axon.port = self.axon.port
                 bittensor.defaults.axon.ip = self.axon.ip
+                bittensor.defaults.axon.external_port = self.axon.external_port
+                bittensor.defaults.axon.external_ip = self.axon.external_ip
                 bittensor.defaults.axon.max_workers = self.axon.max_workers
                 bittensor.defaults.axon.maximum_concurrent_rpcs = self.axon.maximum_concurrent_rpcs
             
@@ -68,7 +91,6 @@ class Config ( Munch ):
 
             if 'dendrite' in self.keys():
                 bittensor.defaults.dendrite.timeout = self.dendrite.timeout
-                bittensor.defaults.dendrite.max_worker_threads = self.dendrite.max_worker_threads
                 bittensor.defaults.dendrite.max_active_receptors = self.dendrite.max_active_receptors
                 bittensor.defaults.dendrite.requires_grad = self.dendrite.requires_grad
 

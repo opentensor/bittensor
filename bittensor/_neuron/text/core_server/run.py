@@ -32,6 +32,9 @@ from torch.nn.utils.rnn import pad_sequence
 
 import wandb
 import pandas
+# Prometheus
+from prometheus_client import Counter, Gauge, Histogram, Summary, Info, CollectorRegistry
+# Torch
 import torch
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
@@ -56,7 +59,6 @@ def serve(
     else:
         wallet.reregister(subtensor=subtensor)
 
-
     # Load/Sync/Save our metagraph.
     if metagraph == None:
         metagraph = bittensor.metagraph ( 
@@ -72,6 +74,22 @@ def serve(
         momentum = config.neuron.momentum,
     )
     mutex = Lock()
+
+    # --- Setup prometheus summaries.
+    # These will not be posted if the user passes --prometheus.level OFF
+    registry = CollectorRegistry()
+    prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['neuron_counters_name'], registry=registry)
+    prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['neuron_guages_name'], registry=registry)
+    prometheus_info = Info('neuron_info', "Info sumamries for the running server-miner.", registry=registry)
+    prometheus_guages.labels( 'model_size_params' ).set( sum(p.numel() for p in model.parameters()) )
+    prometheus_guages.labels( 'model_size_bytes' ).set( sum(p.element_size() * p.nelement() for p in model.parameters()) )
+    prometheus_info.info ({
+        'type': "core_server",
+        'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
+        'network': config.subtensor.network,
+        'coldkey': str(wallet.coldkeypub.ss58_address),
+        'hotkey': str(wallet.hotkey.ss58_address),
+    })
 
     timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
     n_topk_peer_weights = subtensor.min_allowed_weights
@@ -157,8 +175,10 @@ def serve(
             is_registered = pubkey in metagraph.hotkeys
             if not is_registered:
                 if config.neuron.blacklist_allow_non_registered:
-                    
                     return False
+
+                prometheus_counters.labels("blacklisted.registration").inc()
+
                 raise Exception('Registration blacklist')
 
         # Check for stake
@@ -166,6 +186,8 @@ def serve(
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
             if metagraph.S[uid].item() < config.neuron.blacklist.stake:
+                prometheus_counters.labels("blacklisted.stake").inc()
+
                 raise Exception('Stake blacklist')
             return False
 
@@ -180,24 +202,22 @@ def serve(
                     timecheck[pubkey] = current_time
                 else:
                     timecheck[pubkey] = current_time
+                    prometheus_counters.labels("blacklisted.time").inc()
+
                     raise Exception('Time blacklist')
             else:
                 timecheck[pubkey] = current_time
         
             return False
 
-
         # Black list or not
         try:
             registration_check()
-
             time_check()
-
-            #stake_check()
-            
+            stake_check()            
             return False
-
         except Exception as e:
+            prometheus_counters.labels("blacklisted").inc()
             return True
     
     def synapse_check(synapse, hotkey):
@@ -272,17 +292,22 @@ def serve(
             for index, synapse in enumerate(synapses):
                 try:
                     if synapse.synapse_type in axon.synapse_callbacks and axon.synapse_callbacks[synapse.synapse_type] != None:
-                        model_output, response_tensor = axon.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
+                        message, model_output, response_tensor = axon.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
                         grads_dy_norm = grads_dy[index]/(grads_dy[index].sum() + 0.00001)
                         torch.autograd.backward (
                             tensors = [ response_tensor ],
                             grad_tensors = [ grads_dy_norm ],
                             retain_graph=True
-                        )                        
+                        )
+                        # Only consider loss from causal LM next.
+                        if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
+                            model.remote_losses.append(model_output.loss)
+                            model.remote_losses = model.remote_losses[-config.neuron.num_remote_loss:] if len(model.remote_losses) > config.neuron.num_remote_loss else model.remote_losses
                         model.backward_gradients_count += inputs_x[index].size(0)
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.Success)
                         response_messages.append('Success')
+                        
                     else:
                         response_tensors.append(None)
                         response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
@@ -331,11 +356,11 @@ def serve(
         )
 
     last_set_block = subtensor.get_current_block()
-
+    blocks_per_epoch = subtensor.blocks_per_epoch if config.neuron.blocks_per_epoch == -1 else config.neuron.blocks_per_epoch
+    blocks_per_set_weights = subtensor.blocks_per_epoch if config.neuron.blocks_per_set_weights == -1 else config.neuron.blocks_per_set_weights
 
     # --- Run Forever.
     while True:
-        
         iteration = 0
         local_data = {}
         nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
@@ -345,15 +370,19 @@ def serve(
         if config.neuron.local_train:
             # --- Training step.
             while end_block >= current_block:
-                if current_block != subtensor.get_current_block():
-                    loss, _ = model( next( dataset ).to(model.device) )
-                    if iteration > 0 : 
-                        losses += loss
-                    else:
-                        losses = loss
-                    iteration += 1
-                    current_block = subtensor.get_current_block()
-                    logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
+                if current_block != subtensor.get_current_block() and axon.priority_threadpool.is_empty:
+                    with mutex:
+                        logger.info(f'local training\titeration: {iteration}\tstart')
+                        loss, _ = model( next(dataset).to(model.device) )
+                        if iteration > 0 : 
+                            losses += loss
+                        else:
+                            losses = loss
+                        iteration += 1
+                        current_block = subtensor.get_current_block()
+                        logger.info(f'local training\titeration: {iteration}\tloss: {loss}')
+                else:
+                    time.sleep(1)
             
             if iteration != 0:
                 (losses/iteration).backward()
@@ -363,7 +392,6 @@ def serve(
                 time.sleep(12)
                 current_block = subtensor.get_current_block()
 
-
         # --- Update parameters
         if (config.neuron.local_train and iteration > 0) or (config.neuron.remote_train and model.backward_gradients_count > 0):
             # Custom learning rate
@@ -372,18 +400,32 @@ def serve(
             else:
                 optimizer.param_groups[0]['lr'] =  0.1
 
-            logger.info('Backpropagation Started')
-            clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            optimizer.zero_grad()
-            model.backward_gradients = 0
-            logger.info('Backpropagation Successful: Model updated')
-            local_data = {'local/loss': losses.detach().item() / iteration}
+            logger.info('Optmization Started')
+            with mutex:
+                clip_grad_norm_(model.parameters(), 1.0)
+                optimizer.step()
+                optimizer.zero_grad()
+            logger.info('Optimization Successful: Model updated')
 
-            if local_data['local/loss'] < model.best_loss:
-                model.best_loss = local_data['local/loss']
-                model.save(config.neuron.full_path)
+            if (config.neuron.local_train and iteration > 0):
+                local_data = {'local/loss': losses.detach().item() / iteration}
 
+                if local_data['local/loss'] < model.best_loss:
+                    model.best_loss = local_data['local/loss']
+                    model.save(config.neuron.full_path)
+
+            # Save it only when it gives a low average loss over a large sample size (config.neuron.num_remote_loss), default to 20. 
+            elif (config.neuron.remote_train and len(model.remote_losses) >= config.neuron.num_remote_loss):
+                local_data = {'local/remote_loss': sum(model.remote_losses) / len(model.remote_losses)}
+
+                if local_data['local/remote_loss'] < model.best_remote_loss:
+                    model.best_remote_loss = local_data['local/remote_loss']
+                    model.save(config.neuron.full_path)
+
+                model.remote_losses = []
+
+            model.backward_gradients_count = 0
+            
         wandb_data = {            
             'stake': nn.stake,
             'rank': nn.rank,
@@ -404,26 +446,35 @@ def serve(
             wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
-        if current_block - last_set_block > config.neuron.blocks_per_set_weights:
-            try: 
-                bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+        # === Prometheus logging.
+        prometheus_guages.labels("stake").set( nn.stake )
+        prometheus_guages.labels("rank").set( nn.rank )
+        prometheus_guages.labels("trust").set( nn.trust )
+        prometheus_guages.labels("consensus").set( nn.consensus )
+        prometheus_guages.labels("incentive").set( nn.incentive )
+        prometheus_guages.labels("emission").set( nn.emission )
 
-                last_set_block = current_block
-                # Set self weights to maintain activity.
-                # --- query the chain for the most current number of peers on the network
-                chain_weights = torch.zeros(subtensor.n)
-                chain_weights [ uid ] = 1 
-                did_set = subtensor.set_weights(
-                    uids=torch.arange(0,subtensor.n),
-                    weights = chain_weights,
-                    wait_for_inclusion = False,
-                    wallet = wallet,
-                )
-                
-                metagraph.sync()
-                if did_set:
-                    logger.success('Successfully set weights on the chain')
-                else:
-                    logger.error('Failed to set weights on chain. (Timeout)')
-            except Exception as e:
-                logger.error('Failure setting weights on chain with error: {}', e)
+        if current_block - last_set_block > blocks_per_set_weights:
+            bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+            metagraph.sync()
+            if not config.neuron.no_set_weights:
+                try: 
+                    bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+                    last_set_block = current_block
+                    # Set self weights to maintain activity.
+                    # --- query the chain for the most current number of peers on the network
+                    chain_weights = torch.zeros(subtensor.n)
+                    chain_weights [ uid ] = 1 
+                    did_set = subtensor.set_weights(
+                        uids=torch.arange(0,subtensor.n),
+                        weights = chain_weights,
+                        wait_for_inclusion = False,
+                        wallet = wallet,
+                    )
+                    if did_set:
+                        logger.success('Successfully set weights on the chain')
+                    else:
+                        logger.error('Failed to set weights on chain. (Timeout)')
+                    
+                except Exception as e:
+                    logger.error('Failure setting weights on chain with error: {}', e)

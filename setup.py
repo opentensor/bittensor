@@ -70,6 +70,6 @@ setup(
     ],
     python_requires='>=3.7',
     extras_requires={
-        'cubit': ['cubit>=1.0.5 @ git+https://github.com/opentensor/cubit.git']
+        'cubit': ['cubit>=1.1.0 @ git+https://github.com/opentensor/cubit.git']
     }
 )

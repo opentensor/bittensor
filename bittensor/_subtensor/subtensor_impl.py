@@ -144,7 +144,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'Rho').value
+                return substrate.query( module='SubtensorModule', storage_function = 'Rho' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -157,7 +157,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'Kappa').value
+                return substrate.query( module='SubtensorModule', storage_function = 'Kappa' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -170,7 +170,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'Difficulty').value
+                return substrate.query( module='SubtensorModule', storage_function = 'Difficulty' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -196,7 +196,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'ImmunityPeriod').value
+                return substrate.query( module='SubtensorModule', storage_function = 'ImmunityPeriod' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -209,7 +209,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorBatchSize').value
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorBatchSize' ).value
         return make_substrate_call_with_retry()
 
 
@@ -223,7 +223,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorSequenceLength').value
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorSequenceLength' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -236,7 +236,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochsPerReset').value
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorEpochsPerReset' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -249,7 +249,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'ValidatorEpochLen').value
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorEpochLen' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -262,7 +262,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake').value )
+                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake' ).value )
         return make_substrate_call_with_retry()
 
     @property
@@ -275,7 +275,63 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'MinAllowedWeights').value
+                return substrate.query( module='SubtensorModule', storage_function = 'MinAllowedWeights' ).value
+        return make_substrate_call_with_retry()
+
+    @property
+    def max_weight_limit (self) -> int:
+        r""" Returns MaxWeightLimit
+        Returns:
+            max_weight (int):
+                the max value for weights after normalizaiton
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                U32_MAX = 4294967295
+                return substrate.query( module='SubtensorModule', storage_function = 'MaxWeightLimit' ).value/U32_MAX
+        return make_substrate_call_with_retry()
+
+    @property
+    def scaling_law_power (self) -> int:
+        r""" Returns ScalingLawPower
+        Returns:
+            ScalingLawPower (float):
+                the power term attached to scaling law
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                MAX = 100
+                return substrate.query( module='SubtensorModule', storage_function = 'ScalingLawPower' ).value/MAX
+        return make_substrate_call_with_retry()
+
+    @property
+    def synergy_scaling_law_power (self) -> int:
+        r""" Returns SynergyScalingLawPower
+        Returns:
+            SynergyScalingLawPower (float):
+                the term attached to synergy calculation during shapley scores
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                MAX = 100
+                return substrate.query( module='SubtensorModule', storage_function = 'SynergyScalingLawPower' ).value/MAX
+        return make_substrate_call_with_retry()
+
+    @property
+    def validator_exclude_quantile (self) -> int:
+        r""" Returns ValidatorExcludeQuantile
+        Returns:
+            ValidatorExcludeQuantile (float):
+                the quantile that validators should exclude when setting their weights
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                MAX = 100
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorExcludeQuantile' ).value/MAX
         return make_substrate_call_with_retry()
 
     @property
@@ -288,7 +344,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedMaxMinRatio').value
+                return substrate.query( module='SubtensorModule', storage_function = 'MaxAllowedMaxMinRatio' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -301,7 +357,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'N').value
+                return substrate.query( module='SubtensorModule', storage_function = 'N' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -314,7 +370,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'MaxAllowedUids').value
+                return substrate.query( module='SubtensorModule', storage_function = 'MaxAllowedUids' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -336,7 +392,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksSinceLastStep').value
+                return substrate.query( module='SubtensorModule', storage_function = 'BlocksSinceLastStep' ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -349,7 +405,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query(  module='SubtensorModule', storage_function = 'BlocksPerStep').value
+                return substrate.query( module='SubtensorModule', storage_function = 'BlocksPerStep' ).value
         return make_substrate_call_with_retry()
 
     def get_n (self, block: int = None) -> int:
@@ -412,15 +468,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             except net.UPNPCException as upnpc_exception:
                 raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
         else:
-            external_port = axon.port
+            external_port = axon.external_port
 
         # ---- Get external ip ----
-        try:
-            external_ip = net.get_external_ip()
-            bittensor.__console__.print(":white_heavy_check_mark: [green]Found external ip: {}[/green]".format( external_ip ))
-            bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format( external_ip ))
-        except Exception as E:
-            raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
+        if axon.external_ip == None:
+            try:
+                external_ip = net.get_external_ip()
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Found external ip: {}[/green]".format( external_ip ))
+                bittensor.logging.success(prefix = 'External IP', sufix = '<blue>{}</blue>'.format( external_ip ))
+            except Exception as E:
+                raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
+        else:
+            external_ip = axon.external_ip
             
         # ---- Subscribe to chain ----
         serve_success = self.serve(
@@ -441,11 +500,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         wait_for_finalization: bool = True,
         prompt: bool = False,
         max_allowed_attempts: int = 3,
+        output_in_place: bool = True,
         cuda: bool = False,
-        dev_id: int = 0,
+        dev_id: Union[List[int], int] = 0,
         TPB: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
+        log_verbose: bool = False,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -462,15 +523,17 @@ To run a local node (See: docs/running_a_validator.md) \n
             max_allowed_attempts (int):
                 Maximum number of attempts to register the wallet.
             cuda (bool):
-                If true, the wallet should be registered on the cuda device.
-            dev_id (int):
-                The cuda device id.
+                If true, the wallet should be registered using CUDA device(s).
+            dev_id (Union[List[int], int]):
+                The CUDA device id to use, or a list of device ids.
             TPB (int):
-                The number of threads per block (cuda).
+                The number of threads per block (CUDA).
             num_processes (int):
                 The number of processes to use to register.
             update_interval (int):
                 The number of nonces to solve between updates.
+            log_verbose (bool):
+                If true, the registration process will log more information.
         Returns:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block. 
@@ -478,10 +541,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         """
 
         with bittensor.__console__.status(":satellite: Checking Account..."):
-            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-            if not neuron.is_null:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
-                return True
+             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+             if not neuron.is_null:
+                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
+                 return True
 
         if prompt:
             if not Confirm.ask("Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]".format( wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, self.network ) ):
@@ -497,9 +560,9 @@ To run a local node (See: docs/running_a_validator.md) \n
                     if prompt:
                         bittensor.__console__.error('CUDA is not available.')
                     return False
-                pow_result = bittensor.utils.create_pow( self, wallet, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval )
+                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
             else:
-                pow_result = bittensor.utils.create_pow( self, wallet, num_processes=num_processes, update_interval=update_interval)
+                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
 
             # pow failed
             if not pow_result:
@@ -559,7 +622,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                     else:
                         # Exited loop because pow is no longer valid.
                         bittensor.__console__.print( "[red]POW is stale.[/red]" )
-                        return False
+                        # Try again.
+                        continue
                         
             if attempts < max_allowed_attempts:
                 #Failed registration, retry pow
@@ -798,6 +862,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         
         if len(wallets) == 0:
             return True
+            
 
         if amounts is not None and len(amounts) != len(wallets):
             raise ValueError("amounts must be a list of the same length as wallets")
@@ -847,7 +912,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # Staking more than 1000 rao to the wallets.
             ## Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
             percent_reduction = 1 - (1000 / total_staking_rao)
-            amounts = [amount * percent_reduction for amount in amounts]
+            amounts = [Balance.from_tao(amount.tao * percent_reduction) for amount in amounts]
         
         successful_stakes = 0
         for wallet, amount, neuron in zip(wallets, amounts, neurons):
@@ -861,7 +926,7 @@ To run a local node (See: docs/running_a_validator.md) \n
 
             # Assign decrypted coldkey from wallet_0
             #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0._coldkey
+            wallet._coldkey = wallet_0.coldkey
             staking_all = False
             # Convert to bittensor.Balance
             if amount == None:

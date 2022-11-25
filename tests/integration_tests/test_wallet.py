@@ -125,7 +125,6 @@ def test_wallet_coldkeypub_create():
     check_keys_exists(the_wallet, coldkey_exists=False, hotkey_exists=False) # Don't check the coldkey or hotkey
     assert the_wallet.coldkeypub.ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
 
-
 def test_wallet_add_stake():
     subtensor = bittensor.subtensor(network = 'nobunaga')
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
@@ -167,7 +166,6 @@ def test_wallet_transfer():
     the_wallet.is_registered = MagicMock(return_value = False)
     the_wallet.remove_stake(subtensor = subtensor)
 
-
 def test_wallet_mock():
     wallet = bittensor.wallet(_mock=True)
     assert wallet.hotkey_file.exists_on_device()
@@ -176,7 +174,6 @@ def test_wallet_mock():
     assert wallet.hotkey
     assert wallet.coldkey
     assert wallet.coldkeypub
-
 
 def test_wallet_mock_from_config():
     config = bittensor.wallet.config()
@@ -189,7 +186,6 @@ def test_wallet_mock_from_config():
     assert wallet.coldkey
     assert wallet.coldkeypub
 
-
 def test_wallet_mock_from_name():
     wallet = bittensor.wallet(name = 'mock')
     assert wallet.hotkey_file.exists_on_device()
@@ -198,7 +194,6 @@ def test_wallet_mock_from_name():
     assert wallet.hotkey
     assert wallet.coldkey
     assert wallet.coldkeypub
-
 
 def test_wallet_mock_from_func():
     wallet = bittensor.wallet.mock()

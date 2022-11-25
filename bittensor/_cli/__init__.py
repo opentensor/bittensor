@@ -3,6 +3,7 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -21,41 +22,54 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 import argparse
 import os
 import sys
-from typing import List
+from typing import List, Optional
 
 import bittensor
 import torch
-from rich.prompt import Confirm, Prompt
-from substrateinterface.utils.ss58 import ss58_decode, ss58_encode
+from rich.prompt import Confirm, Prompt, PromptBase
 
 from . import cli_impl
 
+# Turn off rich console locals trace.
+from rich.traceback import install
+install(show_locals=False)
+
 console = bittensor.__console__
+
+# Remove incredibly large tracebacks.
+from rich.traceback import install
+install(show_locals=False)
 
 class cli:
     """
-    Create and init the CLI class, which handles the coldkey, hotkey and tau transfer 
+    Create and init the CLI class, which handles the coldkey, hotkey and tao transfer 
     """
     def __new__(
-            cls, 
-            config: 'bittensor.Config' = None,
+            cls,
+            config: Optional['bittensor.Config'] = None,
+            args: Optional[List[str]] = None, 
         ) -> 'bittensor.CLI':
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.cli.config()
+                args (`List[str]`, `optional`): 
+                    The arguments to parse from the command line.
         """
         if config == None: 
-            config = cli.config()
+            config = cli.config(args)
         cli.check_config( config )
         return cli_impl.CLI( config = config)
 
     @staticmethod   
-    def config() -> 'bittensor.config':
+    def config(args: List[str]) -> 'bittensor.config':
         """ From the argument parser, add config to bittensor.executor and local config 
             Return: bittensor.config object
         """
-        parser = argparse.ArgumentParser(description="Bittensor cli", usage="btcli <command> <command args>", add_help=True)
+        parser = argparse.ArgumentParser(
+            description=f"bittensor cli v{bittensor.__version__}",
+            usage="btcli <command> <command args>",
+            add_help=True)
 
         cmd_parsers = parser.add_subparsers(dest='command')
         overview_parser = cmd_parsers.add_parser(
@@ -111,13 +125,13 @@ class cli:
             type=str,
             help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)'''
         )
-        
+        overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )  
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
         
         run_parser = cmd_parsers.add_parser(
             'run', 
-            add_help=False,
+            add_help=True,
             help='''Run the miner.'''
         )
         run_parser.add_argument(
@@ -138,11 +152,11 @@ class cli:
         run_parser.add_argument(
             '--synapse', 
             type=str, 
-            choices= list(bittensor.synapse.__synapses_types__), 
+            choices= list(bittensor.synapse.__synapses_types__) + ['All'], 
             default='None', 
             help='''Synapses available through bittensor.synapse'''
         )
-        
+        run_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.subtensor.add_args( run_parser )
         bittensor.wallet.add_args( run_parser )
 
@@ -157,6 +171,7 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        metagraph_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.subtensor.add_args( metagraph_parser )
 
 
@@ -171,6 +186,7 @@ class cli:
             choices= list(bittensor.neurons.__text_neurons__.keys()), 
             default='None', 
         )
+        help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
 
         update_parser = cmd_parsers.add_parser(
             'update', 
@@ -184,6 +200,7 @@ class cli:
             help='''Set true to skip prompt from update.''',
             default=False,
         )
+        update_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
 
         inspect_parser = cmd_parsers.add_parser(
             'inspect', 
@@ -196,6 +213,8 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        inspect_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( inspect_parser )
         bittensor.subtensor.add_args( inspect_parser )
 
@@ -218,6 +237,8 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        query_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( query_parser )
         bittensor.subtensor.add_args( query_parser )
         bittensor.dendrite.add_args( query_parser )
@@ -234,6 +255,8 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        weights_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( weights_parser )
         bittensor.subtensor.add_args( weights_parser )
 
@@ -250,6 +273,8 @@ class cli:
         )
         set_weights_parser.add_argument ("--uids", type=int, required=False, nargs='*', action='store', help="Uids to set.")
         set_weights_parser.add_argument ("--weights", type=float, required=False, nargs='*', action='store', help="Weights to set.")
+        
+        set_weights_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.wallet.add_args( set_weights_parser )
         bittensor.subtensor.add_args( set_weights_parser )
 
@@ -264,45 +289,65 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        list_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         bittensor.wallet.add_args( list_parser )
 
         transfer_parser = cmd_parsers.add_parser(
             'transfer', 
             help='''Transfer Tao between accounts.'''
         )
+        transfer_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         register_parser = cmd_parsers.add_parser(
             'register', 
             help='''Register a wallet to a network.'''
         )
+        register_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
 
         unstake_parser = cmd_parsers.add_parser(
             'unstake', 
             help='''Unstake from hotkey accounts.'''
         )
+        unstake_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         stake_parser = cmd_parsers.add_parser(
             'stake', 
             help='''Stake to your hotkey accounts.'''
         )
+        stake_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed value'''
         )
+        regen_coldkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         regen_coldkeypub_parser = cmd_parsers.add_parser(
             'regen_coldkeypub',
             help='''Regenerates a coldkeypub from the public part of the coldkey.'''
         )
+        regen_coldkeypub_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         regen_hotkey_parser = cmd_parsers.add_parser(
             'regen_hotkey',
             help='''Regenerates a hotkey from a passed mnemonic'''
         )
+        regen_hotkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         new_coldkey_parser = cmd_parsers.add_parser(
             'new_coldkey', 
             help='''Creates a new coldkey (for containing balance) under the specified path. '''
         )
+        new_coldkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
         new_hotkey_parser = cmd_parsers.add_parser(
             'new_hotkey', 
             help='''Creates a new hotkey (for running a miner) under the specified path.'''
         )
+        new_hotkey_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+
          
         # Fill arguments for the regen coldkey command.
         regen_coldkey_parser.add_argument(
@@ -387,6 +432,12 @@ class cli:
             required=False, 
             nargs="+", 
             help='Mnemonic used to regen your key i.e. horse cart dog ...'
+        )
+        regen_hotkey_parser.add_argument(
+            "--seed", 
+            required=False,  
+            default=None,
+            help='Seed hex string used to regen your key i.e. 0x1234...'
         )
         regen_hotkey_parser.add_argument(
             '--use_password', 
@@ -611,7 +662,7 @@ class cli:
             required=False
         )
 
-        return bittensor.config( parser )
+        return bittensor.config( parser, args=args )
 
     @staticmethod   
     def check_config (config: 'bittensor.Config'):
@@ -817,6 +868,42 @@ class cli:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
+    def _check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
+        """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
+        if torch.cuda.is_available():
+            if not config.no_prompt:
+                if config.subtensor.register.cuda.get('use_cuda') == None: # flag not set
+                    # Ask about cuda registration only if a CUDA device is available.
+                    cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
+                    config.subtensor.register.cuda.use_cuda = cuda
+
+
+                # Only ask about which CUDA device if the user has more than one CUDA device.
+                if config.subtensor.register.cuda.use_cuda and config.subtensor.register.cuda.get('dev_id') is None:
+                    devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
+                    device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
+                    console.print("Available CUDA devices:")
+                    choices_str: str = ""
+                    for i, device in enumerate(devices):
+                        choices_str += ("  {}: {}\n".format(device, device_names[i]))
+                    console.print(choices_str)
+                    dev_id = IntListPrompt.ask("Which GPU(s) would you like to use? Please list one, or comma-separated", choices=devices, default='All')
+                    if dev_id.lower() == 'all':
+                        dev_id = list(range(torch.cuda.device_count()))
+                    else:
+                        try:
+                            # replace the commas with spaces then split over whitespace.,
+                            # then strip the whitespace and convert to ints.
+                            dev_id = [int(dev_id.strip()) for dev_id in dev_id.replace(',', ' ').split()]
+                        except ValueError:
+                            console.log(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
+                            sys.exit(1)
+                    config.subtensor.register.cuda.dev_id = dev_id
+            else:
+                # flag was not set, use default value.
+                if config.subtensor.register.cuda.get('use_cuda') is None: 
+                    config.subtensor.register.cuda.use_cuda = bittensor.defaults.subtensor.register.cuda.use_cuda
+
     def check_register_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
@@ -829,27 +916,8 @@ class cli:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
-        if not config.no_prompt and config.subtensor.register.cuda.use_cuda == bittensor.defaults.subtensor.register.cuda.use_cuda:
-            # Ask about cuda registration only if a CUDA device is available.
-            if torch.cuda.is_available():
-                cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
-                config.subtensor.register.cuda.use_cuda = cuda
-                # Only ask about which CUDA device if the user has more than one CUDA device.
-                if cuda and config.subtensor.register.cuda.get('dev_id') is None and torch.cuda.device_count() > 0:
-                    devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
-                    device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
-                    console.print("Available CUDA devices:")
-                    choices_str: str = ""
-                    for i, device in enumerate(devices):
-                        choices_str += ("  {}: {}\n".format(device, device_names[i]))
-                    console.print(choices_str)
-                    dev_id = Prompt.ask("Which GPU would you like to use?", choices=devices, default=str(bittensor.defaults.subtensor.register.cuda.dev_id))
-                    try:
-                        dev_id = int(dev_id)
-                    except ValueError:
-                        console.error(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
-                        sys.exit(1)
-                    config.subtensor.register.cuda.dev_id = dev_id
+        if not config.no_prompt:
+            cli._check_for_cuda_reg_config(config)
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
@@ -874,8 +942,12 @@ class cli:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         
-        if config.mnemonic == None:
-            config.mnemonic = Prompt.ask("Enter mnemonic")
+        if config.mnemonic == None and config.seed == None:
+            prompt_answer = Prompt.ask("Enter mnemonic or seed")
+            if prompt_answer.startswith("0x"):
+                config.seed = prompt_answer
+            else:
+                config.mnemonic = prompt_answer
 
     def check_regen_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
@@ -883,7 +955,6 @@ class cli:
             config.wallet.name = str(wallet_name)
         if config.mnemonic == None and config.seed == None:
             prompt_answer = Prompt.ask("Enter mnemonic or seed")
-            print(prompt_answer)
             if prompt_answer.startswith("0x"):
                 config.seed = prompt_answer
             else:
@@ -922,9 +993,13 @@ class cli:
             model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
             config.model = model
 
-        if 'server' in config.model and not config.no_prompt:
-            synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__), default = 'All')
+        if 'server' in config.model and config.get('synapse', 'None') == 'None' and not config.no_prompt:
+            synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__) + ['All'], default = 'All')
             config.synapse = synapse
+
+        # Don't need to ask about registration if they don't want to reregister the wallet.
+        if config.wallet.get('reregister', bittensor.defaults.wallet.reregister) and not config.no_prompt:
+            cli._check_for_cuda_reg_config(config)
                 
     def check_help_config( config: 'bittensor.Config'):
         if config.model == 'None':
@@ -935,3 +1010,13 @@ class cli:
         if not config.no_prompt:
             answer = Prompt.ask('This will update the local bittensor package', choices = ['Y','N'], default = 'Y')
             config.answer = answer
+
+class IntListPrompt(PromptBase):
+    """ Prompt for a list of integers. """
+    
+    def check_choice( self, value: str ) -> bool:
+        assert self.choices is not None
+        # check if value is a valid choice or all the values in a list of ints are valid choices
+        return value == "All" or \
+            value in self.choices or \
+            all( val.strip() in self.choices for val in value.replace(',', ' ').split( ))

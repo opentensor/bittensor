@@ -58,7 +58,7 @@ class mock_subtensor():
             _owned_mock_subtensor_process = None
             print ('Mock subtensor already running.')
 
-        endpoint = bittensor.__mock_entrypoints__[0]
+        endpoint = bittensor.__mock_entrypoint__
         port = int(endpoint.split(':')[1])
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
@@ -105,7 +105,7 @@ class mock_subtensor():
         try:
             operating_system = "OSX" if platform == "darwin" else "Linux"
             path = "./bin/chain/{}/node-subtensor".format(operating_system)
-            ws_port = int(bittensor.__mock_entrypoints__[0].split(':')[1])
+            ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
             print(ws_port)
             print(os.getpid())
             baseport = get_random_unused_port()

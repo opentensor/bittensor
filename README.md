@@ -1,7 +1,7 @@
 <div align="center">
 
 # **Bittensor** <!-- omit in toc -->
-[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/3rUr6EcvbB)
+[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
 [![PyPI version](https://badge.fury.io/py/bittensor.svg)](https://badge.fury.io/py/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
@@ -9,7 +9,7 @@
 
 ### Internet-scale Neural Networks <!-- omit in toc -->
 
-[Discord](https://discord.gg/3rUr6EcvbB) • [Docs](https://app.gitbook.com/@opentensor/s/bittensor/) • [Network](https://www.bittensor.com/metagraph) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU) • [Code](https://github.com/opentensor/BitTensor)
+[Discord](https://discord.gg/bittensor) • [Docs](https://docs.bittensor.com/) • [Network](https://www.bittensor.com/network) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU) • [Code](https://github.com/opentensor/BitTensor)
 
 </div>
 
@@ -31,8 +31,9 @@ At Bittensor, we are creating an open, decentralized, peer-to-peer network that 
   - [4.7. Finding and creating the endpoints for other nodes in the network](#47-finding-and-creating-the-endpoints-for-other-nodes-in-the-network)
   - [4.8. Querying others in the network](#48-querying-others-in-the-network)
   - [4.9. Creating a Priority Thread Pool for the axon](#49-creating-a-priority-thread-pool-for-the-axon)
-- [5. License](#5-license)
-- [6. Acknowledgments](#6-acknowledgments)
+- [5. Release](#5-release)
+- [6. License](#6-license)
+- [7. Acknowledgments](#7-acknowledgments)
 
 ## 1. Documentation
 
@@ -63,20 +64,35 @@ The following examples showcase how to use the Bittensor API for 3 separate purp
 
 ### 3.1. Client 
 
+Querying the network for generations.
+
+```python
+import bittensor
+wallet = bittensor.wallet().create_if_non_existent()
+graph = bittensor.metagraph().sync()
+print ( bittensor.dendrite( wallet = wallet ).generate
+        ( 
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            prompt = "The quick brown fox jumped over the lazy dog", 
+            num_to_generate = 20
+        )
+)
+```
+
 Querying the network for representations.
 
 ```python
 import bittensor
-import torch
-wallet = bittensor.wallet().create().register()
+wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
-representations, _, _ = bittensor.dendrite( wallet = wallet ).text_last_hidden_state(
-    endpoints = graph.endpoints,
-    inputs = "The quick brown fox jumped over the lazy dog"
+print ( bittensor.dendrite( wallet = wallet ).text_last_hidden_state
+        (
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            inputs = "The quick brown fox jumped over the lazy dog"
+        )
 )
-representations = // N tensors with shape (1, 9, 1024)
 ...
-// Distill model. 
+// Apply model. 
 ...
 loss.backward() // Accumulate gradients on endpoints.
 ```
@@ -323,7 +339,10 @@ representations, _, _ = den.forward_text (
 
 ```
 
-## 5. License
+## 5. Release
+The release manager should follow the instructions of the [RELEASE_GUIDELINES.md](./RELEASE_GUIDELINES.md) document.
+
+## 6. License
 The MIT License (MIT)
 Copyright © 2021 Yuma Rao
 
@@ -334,5 +353,5 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-## 6. Acknowledgments
+## 7. Acknowledgments
 **learning-at-home/hivemind**

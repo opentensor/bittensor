@@ -246,16 +246,18 @@ class Wallet():
             if not self.config.wallet.get('reregister'):
                 sys.exit(0)
 
-            subtensor.register(
-                wallet = self,
+            self.register(
+                subtensor = subtensor,
                 prompt = prompt,
                 TPB = self.config.subtensor.register.cuda.get('TPB', None),
                 update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
                 num_processes = self.config.subtensor.register.get('num_processes', None),
-                cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
+                cuda = self.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
                 dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
+                output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
+                log_verbose = self.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
             )
 
         return self
@@ -272,6 +274,8 @@ class Wallet():
             TPB: int = 256,
             num_processes: Optional[int] = None,
             update_interval: Optional[int] = None,
+            output_in_place: bool = True,
+            log_verbose: bool = False,
         ) -> 'bittensor.Wallet':
         """ Registers the wallet to chain.
         Args:
@@ -297,6 +301,10 @@ class Wallet():
                 The number of processes to use to register.
             update_interval (int):
                 The number of nonces to solve between updates.
+            output_in_place (bool):
+                If true, the registration output is printed in-place.
+            log_verbose (bool):
+                If true, the registration output is more verbose.
         Returns:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block. 
@@ -309,11 +317,13 @@ class Wallet():
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
             prompt=prompt, max_allowed_attempts=max_allowed_attempts,
+            output_in_place = output_in_place,
             cuda=cuda,
             dev_id=dev_id,
             TPB=TPB,
             num_processes=num_processes,
-            update_interval=update_interval
+            update_interval=update_interval,
+            log_verbose=log_verbose,
         )
         
         return self
@@ -669,7 +679,7 @@ class Wallet():
     # Short name for regenerate_coldkeypub
     regen_coldkeypub = regenerate_coldkeypub
 
-    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -700,11 +710,13 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
 
-    def regen_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regen_hotkey( self, mnemonic: Optional[Union[list, str]], seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -713,13 +725,15 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created hotkey.
         """
-        self.regenerate_hotkey(mnemonic, use_password, overwrite)
+        self.regenerate_hotkey(mnemonic, seed, use_password, overwrite)
 
-    def regenerate_hotkey( self, mnemonic: Union[list, str], use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regenerate_hotkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
+                seed: (str, optional):
+                    Seed as hex string.
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -728,10 +742,17 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created hotkey.
         """
-        if isinstance( mnemonic, str): mnemonic = mnemonic.split()
-        if len(mnemonic) not in [12,15,18,21,24]:
-            raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
-        keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-        display_mnemonic_msg( keypair, "hotkey" )
+        if mnemonic is None and seed is None:
+            raise ValueError("Must pass either mnemonic or seed")
+        if mnemonic is not None:
+            if isinstance( mnemonic, str): mnemonic = mnemonic.split()
+            if len(mnemonic) not in [12,15,18,21,24]:
+                raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
+            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
+            display_mnemonic_msg( keypair, "hotkey" )
+        else:
+            # seed is not None
+            keypair = Keypair.create_from_seed(seed)
+        
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self 

@@ -866,28 +866,47 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
                  [...]]
     """
 
+    atol = 1e-6  # absolute tolerance
     # Find probability markers (per batch item: topk phrase probabilities + floor_prob)
-    prob_idx = torch.where(compact_topk <= 1.5)[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
+    prob_idx = torch.where((-atol < compact_topk) & (compact_topk < 1 + atol))[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
 
     batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
-    assert batch_size * (topk + 1) == len(prob_idx), f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
+    assert batch_size * (topk + 1) == len(prob_idx), f'unravel_topk_token_phrases() probability marker failure: ' \
+                                                     f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
 
-    # split into topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-    phrases = [s.tolist() for s in torch.tensor_split(compact_topk, prob_idx)]  # tolist for faster list comprehension
-    phrases = phrases[1:]  # ignore first (empty) split
+    probs = torch.clamp(compact_topk[prob_idx], 0, 1)  # [batch_size * (topk + 1)] ensure probabilities within [0, 1]
+    probs_sum = probs.reshape(batch_size, topk + 1).sum(dim=1)  # [batch_size]
+    assert torch.all((-atol < probs_sum) & (probs_sum < 1 + atol)), f'unravel_topk_token_phrases(): probs_sum not in [0, 1]'
 
-    # determine width of topk_tensor as max len of all phrase lists (with prob in front)
-    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
+    # Obtain phrase lengths and maximum phrase length
+    phrase_len = prob_idx[1:] - prob_idx[:-1]  # [batch_size * (topk + 1) - 1] length of each phrase
+    phrase_len = torch.cat((phrase_len, torch.tensor([1])))  # [batch_size * (topk + 1)] prob_floor is always len=1
+    max_len = phrase_len.max()  # determine width of topk_tensor as max len of all phrase lists (with prob in front)
 
-    ignore_index_2 = ignore_index + 2  # increment with 2, as decrement with 2 follows
+    # Initialize topk_tensor with ignore_index + 2, since decrement with 2 follows to remove token offset later
+    topk_tensor = torch.ones((batch_size * (topk + 1), max_len), device=compact_topk.device)
+    topk_tensor *= ignore_index + 2  # [batch_size * (topk + 1), max_len]
 
-    # form single 2D tensor with topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-    topk_tensor = torch.tensor([p + [ignore_index_2] * (max_len - len(p))
-                                for p in phrases]).to(compact_topk.device)  # [batch_size * (topk + 1), max_len]
-    topk_tensor -= 2  # remove token offset
+    # Insert phrases of each unique length as block into topk_tensor
+    for unique_len in phrase_len.unique():
+        if unique_len <= 1:
+            continue  # skip probability column, will be added afterward
+
+        phrase_idx = torch.where(phrase_len == unique_len)[0]  # phrase indices where phrase_len is unique_len
+        compact_idx = prob_idx[phrase_idx]  # indices in compact_topk
+
+        # Create indexing block, add index for each phrase position, skip first (prob) position
+        block_idx = [compact_idx + position for position in range(1, unique_len)]  # incrementally add each position of phrase
+        # transpose .t() ensures correct interleaving of consecutive positions:
+        # [[phrase_a_1, phrase_a_2, ..., phrase_a_n], [phrase_b_1, phrase_b_2, ..., phrase_b_n], ...]
+        block_idx = torch.vstack(block_idx).t().reshape(-1, unique_len - 1)  # [-1, unique_len - 1] for all phrases with unique_len
+
+        topk_tensor[phrase_idx, 1:unique_len] = compact_topk[block_idx]  # slice selected phrases and copy into topk_tensor
+
+    topk_tensor -= 2  # remove token offset, overwrites probability column, replace probabilities below
 
     # grafting probability tensors into first column to attach gradients
-    topk_tensor[:, 0] = compact_topk[prob_idx]  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
+    topk_tensor[:, 0] = probs  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
     topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
 
@@ -936,9 +955,12 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
     batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
     topk = topk_p1 - 1
 
-    topk_tokens = topk_tensor[:, :-1, 1:]  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+    topk_tokens = topk_tensor[:, :-1, 1:].round().int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
     topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
     floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
+
+    topk_probs = torch.clamp(topk_probs, 0, 1)  # [batch_size, topk] ensure probabilities within [0, 1]
+    floor_probs = torch.clamp(floor_probs, 0, 1)  # [batch_size] ensure floor probabilities within [0, 1]
 
     # === Ensure total probability is 1 ===
     total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
@@ -951,6 +973,8 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
         target_phrase = target_phrases[b]
         if not isinstance(target_phrase, torch.Tensor):
             target_phrase = torch.tensor(target_phrases[b])
+        if isinstance(target_phrase, torch.FloatTensor):
+            target_phrase = target_phrase.round().int()
 
         match = (topk_tokens[b, :, 0] == target_phrase[0].item())  # bool where first tokens match (validation token)
         if match.sum() > 0:

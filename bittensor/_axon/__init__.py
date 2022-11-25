@@ -2,6 +2,7 @@
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -23,7 +24,7 @@ import copy
 import inspect
 import time
 from concurrent import futures
-from typing import List, Callable
+from typing import Dict, List, Callable, Optional, Tuple, Union
 from bittensor._threadpool import prioritythreadpool
 
 import torch
@@ -34,79 +35,92 @@ import bittensor
 from . import axon_impl
 
 class axon:
-    """ The factor class for bittensor.Axon object
-    The Axon acts a grpc server for the bittensor network and allows for communication between neurons.
-    By default, the grpc server follows the bittensor protocol and transports forward and backwards requests
-    between validators and servers. 
+    """ The factory class for bittensor.Axon object
+    The Axon is a grpc server for the bittensor network which opens up communication between it and other neurons.
+    The server protocol is defined in bittensor.proto and describes the manner in which forward and backwards requests
+    are transported / encoded between validators and servers
     
     Examples:: 
-            >>> axon = bittensor.axon(config=config)
-            >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> axon.serve(subtensor=subtensor)
+            >>> config = bittensor.axon.config()
+            >>> axon = bittensor.axon( config = config )
+            >>> subtensor = bittensor.subtensor( network = 'nakamoto' )
+            >>> axon.serve( subtensor = subtensor )
     """
 
     def __new__(
-            cls, 
-            config: 'bittensor.config' = None,
-            wallet: 'bittensor.Wallet' = None,
-            forward_text: 'Callable' = None,
-            backward_text: 'Callable' = None,
-            synapse_last_hidden: 'Callable' = None,
-            synapse_causal_lm: 'Callable' = None,
-            synapse_causal_lm_next: 'Callable' = None,
-            synapse_seq_2_seq: 'Callable' = None,
-            synapse_checks: 'Callable' = None,
-            thread_pool: 'futures.ThreadPoolExecutor' = None,
-            server: 'grpc._Server' = None,
-            port: int = None,
-            ip: str = None,
-            max_workers: int = None, 
-            maximum_concurrent_rpcs: int = None,
-            blacklist: 'Callable' = None,
-            priority: 'Callable' = None,
-            forward_timeout: int = None,
-            backward_timeout: int = None,
-            compression: str = None,
+            cls,
+            config: Optional['bittensor.config'] = None,
+            wallet: Optional['bittensor.Wallet'] = None,
+            forward_text: Optional['Callable'] = None,
+            backward_text:Optional['Callable'] = None,
+            synapse_last_hidden: Optional['Callable'] = None,
+            synapse_causal_lm: Optional['Callable'] = None,
+            synapse_causal_lm_next: Optional['Callable'] = None,
+            synapse_seq_2_seq: Optional['Callable'] = None,
+            synapse_lasthidden_timeout: Optional[int] = None,
+            synapse_causallm_timeout: Optional[int] = None,
+            synapse_causallmnext_timeout: Optional[int] = None,
+            synapse_seq2seq_timeout: Optional[int] = None,
+
+            synapse_checks: Optional['Callable'] = None,
+            thread_pool: Optional['futures.ThreadPoolExecutor'] = None,
+            priority_threadpool: Optional['bittensor.prioritythreadpool'] = None,
+            server: Optional['grpc._Server'] = None,
+            port: Optional[int] = None,
+            ip: Optional[str] = None,
+            external_ip: Optional[str] = None,
+            external_port: Optional[int] = None,
+            max_workers: Optional[int] = None, 
+            maximum_concurrent_rpcs: Optional[int] = None,
+            blacklist: Optional['Callable'] = None,
+            priority: Optional['Callable'] = None,
+            forward_timeout: Optional[int] = None,
+            backward_timeout: Optional[int] = None,
+            compression:Optional[str] = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
+                config (:obj:`Optional[bittensor.Config]`, `optional`): 
                     bittensor.axon.config()
-                wallet (:obj:`bittensor.Wallet`, `optional`):
+                wallet (:obj:`Optional[bittensor.Wallet]`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                forward_text (:obj:`callable`, `optional`):
+                forward_text (:obj:`Optional[callable]`, `optional`):
                     function which is called on forward text requests.
-                backward_text (:obj:`callable`, `optional`):
+                backward_text (:obj:`Optional[callable]`, `optional`):
                     function which is called on backward text requests.
-                synapse_last_hidden (:obj:`callable`, `optional`):
+                synapse_last_hidden (:obj:`Optional[callable]`, `optional`):
                     function which is called by the last hidden synapse
-                synapse_causal_lm (:obj:`callable`, `optional`):
+                synapse_causal_lm (:obj:`Optional[callable]`, `optional`):
                     function which is called by the causal lm synapse
-                synapse_causal_lm_next (:obj:`callable`, `optional`):
+                synapse_causal_lm_next (:obj:`Optional[callable]`, `optional`):
                     function which is called by the TextCausalLMNext synapse
-                synapse_seq_2_seq (:obj:`callable`, `optional`):
+                synapse_seq_2_seq (:obj:`Optional[callable]`, `optional`):
                     function which is called by the seq2seq synapse   
-                synapse_checks (:obj:`callable`, 'optional'):
+                synapse_checks (:obj:`Optional[callable]`, 'optional'):
                     function which is called before each synapse to check for stake        
-                thread_pool (:obj:`ThreadPoolExecutor`, `optional`):
+                thread_pool (:obj:`Optional[ThreadPoolExecutor]`, `optional`):
                     Threadpool used for processing server queries.
-                server (:obj:`grpc._Server`, `required`):
+                server (:obj:`Optional[grpc._Server]`, `required`):
                     Grpc server endpoint, overrides passed threadpool.
-                port (:type:`int`, `optional`):
+                port (:type:`Optional[int]`, `optional`):
                     Binding port.
-                ip (:type:`str`, `optional`):
+                ip (:type:`Optional[str]`, `optional`):
                     Binding ip.
-                max_workers (:type:`int`, `optional`):
+                external_ip (:type:`Optional[str]`, `optional`):
+                    The external ip of the server to broadcast to the network.
+                external_port (:type:`Optional[int]`, `optional`):
+                    The external port of the server to broadcast to the network.
+                max_workers (:type:`Optional[int]`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
-                maximum_concurrent_rpcs (:type:`int`, `optional`):
+                maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
                     Maximum allowed concurrently processed RPCs.
-                blacklist (:obj:`callable`, `optional`):
+                blacklist (:obj:`Optional[callable]`, `optional`):
                     function to blacklist requests.
-                priority (:obj:`callable`, `optional`):
+                priority (:obj:`Optional[callable]`, `optional`):
                     function to assign priority on requests.
-                forward_timeout (:type:`int`, `optional`):
+                forward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the forward requests. 
-                backward_timeout (:type:`int`, `optional`):
+                backward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the backward requests.              
         """   
 
@@ -115,11 +129,17 @@ class axon:
         config = copy.deepcopy(config)
         config.axon.port = port if port != None else config.axon.port
         config.axon.ip = ip if ip != None else config.axon.ip
+        config.axon.external_ip = external_ip if external_ip != None else config.axon.external_ip
+        config.axon.external_port = external_port if external_port != None else config.axon.external_port
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
         config.axon.backward_timeout = backward_timeout if backward_timeout != None else config.axon.backward_timeout
         config.axon.compression = compression if compression != None else config.axon.compression
+        config.axon.lasthidden_timeout = synapse_lasthidden_timeout if synapse_lasthidden_timeout != None else config.axon.lasthidden_timeout
+        config.axon.causallm_timeout = synapse_causallm_timeout if synapse_causallm_timeout != None else config.axon.causallm_timeout
+        config.axon.causallmnext_timeout = synapse_causallmnext_timeout if synapse_causallmnext_timeout is not None else config.axon.causallmnext_timeout
+        config.axon.seq2seq_timeout = synapse_seq2seq_timeout if synapse_seq2seq_timeout != None else config.axon.seq2seq_timeout
         axon.check_config( config )
 
         # Determine the grpc compression algorithm
@@ -147,27 +167,36 @@ class axon:
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM] = synapse_causal_lm
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT] = synapse_causal_lm_next
         synapses[bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ] = synapse_seq_2_seq
+
+        synapse_timeouts = {
+            bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE: config.axon.lasthidden_timeout,
+            bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM: config.axon.causallm_timeout,
+            bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT: config.axon.causallmnext_timeout,
+            bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ: config.axon.seq2seq_timeout
+        }
         
         synapse_check_function = synapse_checks if synapse_checks != None else axon.default_synapse_check
 
-        if priority != None:
+        if priority != None and priority_threadpool == None:
             priority_threadpool = bittensor.prioritythreadpool(config=config)
-        else: 
-            priority_threadpool = None
 
-        axon_instance = axon_impl.Axon( 
+        axon_instance = axon_impl.Axon(
             wallet = wallet, 
             server = server,
             ip = config.axon.ip,
             port = config.axon.port,
+            external_ip=config.axon.external_ip, # don't use internal ip if it is None, we will try to find it later
+            external_port=config.axon.external_port or config.axon.port, # default to internal port if external port is not set
             forward = forward_text,
             backward = backward_text,
             synapses = synapses,
             synapse_checks = synapse_check_function,
+            synapse_timeouts = synapse_timeouts,
             priority = priority,
             priority_threadpool = priority_threadpool,
             forward_timeout = config.axon.forward_timeout,
             backward_timeout = config.axon.backward_timeout,
+            prometheus_level = config.axon.prometheus.level
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
@@ -199,9 +228,13 @@ class axon:
         prefix_str = '' if prefix == None else prefix + '.'
         try:
             parser.add_argument('--' + prefix_str + 'axon.port', type=int, 
-                    help='''The port this axon endpoint is served on. i.e. 8091''', default = bittensor.defaults.axon.port)
+                    help='''The local port this axon endpoint is bound to. i.e. 8091''', default = bittensor.defaults.axon.port)
             parser.add_argument('--' + prefix_str + 'axon.ip', type=str, 
                 help='''The local ip this axon binds to. ie. [::]''', default = bittensor.defaults.axon.ip)
+            parser.add_argument('--' + prefix_str + 'axon.external_port', type=int, required=False,
+                    help='''The public port this axon broadcasts to the network. i.e. 8091''', default = bittensor.defaults.axon.external_port)
+            parser.add_argument('--' + prefix_str + 'axon.external_ip', type=str, required=False,
+                help='''The external ip this axon broadcasts to the network to. ie. [::]''', default = bittensor.defaults.axon.external_ip)
             parser.add_argument('--' + prefix_str + 'axon.max_workers', type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
@@ -217,6 +250,20 @@ class axon:
                 help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)
             parser.add_argument('--' + prefix_str + 'axon.compression', type=str, 
                 help='''Which compression algorithm to use for compression (gzip, deflate, NoCompression) ''', default = bittensor.defaults.axon.compression)
+            parser.add_argument('--' +  prefix_str + 'axon.lasthidden_timeout', type = int, 
+            help='Timeout for last hidden synapse', default= bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.causallm_timeout', type = int, 
+            help='Timeout for causallm synapse', default= bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.causallmnext_timeout', type = int, 
+            help='Timeout for causallmnext synapse', default= bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.seq2seq_timeout', type = int, 
+            help='Timeout for seq2seq synapse', default= 3*bittensor.__blocktime__)
+            parser.add_argument('--' + prefix_str + 'axon.prometheus.level', 
+                required = False, 
+                type = str, 
+                choices = [l.name for l in list(bittensor.prometheus.level)], 
+                default = bittensor.defaults.axon.prometheus.level, 
+                help = '''Prometheus logging level axon. <OFF | INFO | DEBUG>''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -227,23 +274,31 @@ class axon:
     def add_defaults(cls, defaults):
         """ Adds parser defaults to object from enviroment variables.
         """
-        defaults.axon = bittensor.config()
+        defaults.axon = bittensor.Config()
         defaults.axon.port = os.getenv('BT_AXON_PORT') if os.getenv('BT_AXON_PORT') != None else 8091
         defaults.axon.ip = os.getenv('BT_AXON_IP') if os.getenv('BT_AXON_IP') != None else '[::]'
+        defaults.axon.external_port = os.getenv('BT_AXON_EXTERNAL_PORT') if os.getenv('BT_AXON_EXTERNAL_PORT') != None else None
+        defaults.axon.external_ip = os.getenv('BT_AXON_EXTERNAL_IP') if os.getenv('BT_AXON_EXTERNAL_IP') != None else None
         defaults.axon.max_workers = os.getenv('BT_AXON_MAX_WORERS') if os.getenv('BT_AXON_MAX_WORERS') != None else 10
         defaults.axon.maximum_concurrent_rpcs = os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') if os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') != None else 400
         
-        defaults.axon.priority = bittensor.config()
+        defaults.axon.priority = bittensor.Config()
         defaults.axon.priority.max_workers = os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') if os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') != None else 10
         defaults.axon.priority.maxsize = os.getenv('BT_AXON_PRIORITY_MAXSIZE') if os.getenv('BT_AXON_PRIORITY_MAXSIZE') != None else -1
 
         defaults.axon.compression = 'NoCompression'
+
+        # Prometheus
+        defaults.axon.prometheus = bittensor.config()
+        defaults.axon.prometheus.level = os.getenv('BT_AXON_PROMETHEUS_LEVEL') if os.getenv('BT_AXON_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.name
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for axon port and wallet
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
+        assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
+        assert config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
         bittensor.wallet.check_config( config )
 
     @classmethod   
@@ -284,102 +339,114 @@ class axon:
         forward_callback([sample_input], synapses, hotkey='')
 
 class AuthInterceptor(grpc.ServerInterceptor):
-    """ Creates a new server interceptor that authenticates incoming messages from passed arguments.
-    """
-    def __init__(self, key:str = 'Bittensor',blacklist:List = []):
-        r""" Creates a new server interceptor that authenticates incoming messages from passed arguments.
+    """Creates a new server interceptor that authenticates incoming messages from passed arguments."""
+
+    def __init__(self, key: str = "Bittensor", blacklist: List = []):
+        r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
             key (str, `optional`):
-                 key for authentication header in the metadata (default= Bittensor)
-            black_list (Fucntion, `optional`): 
+                 key for authentication header in the metadata (default = Bittensor)
+            black_list (Function, `optional`):
                 black list function that prevents certain pubkeys from sending messages
         """
         super().__init__()
-        self._valid_metadata = ('rpc-auth-header', key)
-        self.nounce_dic = {}
-        self.message = 'Invalid key'
+        self.auth_header_value = key
+        self.nonces = {}
         self.blacklist = blacklist
-        def deny(_, context):
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, self.message)
 
-        self._deny = grpc.unary_unary_rpc_method_handler(deny)
+    def parse_legacy_signature(
+        self, signature: str
+    ) -> Union[Tuple[int, str, str, str], None]:
+        r"""Attempts to parse a signature using the legacy format, using `bitxx` as a separator"""
+        parts = signature.split("bitxx")
+        if len(parts) < 4:
+            return None
+        try:
+            nonce = int(parts[0])
+            parts = parts[1:]
+        except ValueError:
+            return None
+        receptor_uuid, parts = parts[-1], parts[:-1]
+        message, parts = parts[-1], parts[:-1]
+        pubkey = "".join(parts)
+        return (nonce, pubkey, message, receptor_uuid)
+
+    def parse_signature(self, metadata: Dict[str, str]) -> Tuple[int, str, str, str]:
+        r"""Attempts to parse a signature from the metadata"""
+        signature = metadata.get("bittensor-signature")
+        if signature is None:
+            raise Exception("Request signature missing")
+        parts = self.parse_legacy_signature(signature)
+        if parts is not None:
+            return parts
+        raise Exception("Unknown signature format")
+
+    def check_signature(
+        self, nonce: int, pubkey: str, signature: str, receptor_uuid: str
+    ):
+        r"""verification of signature in metadata. Uses the pubkey and nonce"""
+        keypair = Keypair(ss58_address=pubkey)
+        # Build the expected message which was used to build the signature.
+        message = f"{nonce}{pubkey}{receptor_uuid}"
+        # Build the key which uniquely identifies the endpoint that has signed
+        # the message.
+        endpoint_key = f"{pubkey}:{receptor_uuid}"
+
+        if endpoint_key in self.nonces.keys():
+            previous_nonce = self.nonces[endpoint_key]
+            # Nonces must be strictly monotonic over time.
+            if nonce - previous_nonce <= -10:
+                raise Exception("Nonce is too small")
+            if not keypair.verify(message, signature):
+                raise Exception("Signature mismatch")
+            self.nonces[endpoint_key] = nonce
+            return
+
+        if not keypair.verify(message, signature):
+            raise Exception("Signature mismatch")
+        self.nonces[endpoint_key] = nonce
+
+    def version_checking(self, metadata: Dict[str, str]):
+        r"""Checks the header and version in the metadata"""
+        provided_value = metadata.get("rpc-auth-header")
+        if provided_value is None or provided_value != self.auth_header_value:
+            raise Exception("Unexpected caller metadata")
+
+    def black_list_checking(self, pubkey: str, method: str):
+        r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
+        if self.blacklist == None:
+            return
+
+        request_type = {
+            "/Bittensor/Forward": bittensor.proto.RequestType.FORWARD,
+            "/Bittensor/Backward": bittensor.proto.RequestType.BACKWARD,
+        }.get(method)
+        if request_type is None:
+            raise Exception("Unknown request type")
+
+        if self.blacklist(pubkey, request_type):
+            raise Exception("Request type is blacklisted")
 
     def intercept_service(self, continuation, handler_call_details):
-        r""" Authentication between bittensor nodes. Intercepts messages and checks them
-        """
-        meta = handler_call_details.invocation_metadata
+        r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
+        method = handler_call_details.method
+        metadata = dict(handler_call_details.invocation_metadata)
 
-        try: 
-            #version checking
-            self.version_checking(meta)
+        try:
+            # version checking
+            self.version_checking(metadata)
 
-            #signature checking
-            self.signature_checking(meta)
+            (nonce, pubkey, signature, receptor_uuid) = self.parse_signature(metadata)
 
-            #blacklist checking
-            self.black_list_checking(meta)
+            # signature checking
+            self.check_signature(nonce, pubkey, signature, receptor_uuid)
+
+            # blacklist checking
+            self.black_list_checking(pubkey, method)
 
             return continuation(handler_call_details)
 
         except Exception as e:
-            self.message = str(e)
-            return self._deny
-
-
-    def vertification(self,meta):
-        r"""vertification of signature in metadata. Uses the pubkey and nounce
-        """
-        variable_length_messages = meta[1].value.split('bitxx')
-        nounce = int(variable_length_messages[0])
-        pubkey = variable_length_messages[1]
-        message = variable_length_messages[2]
-        unique_receptor_uid = variable_length_messages[3]
-        _keypair = Keypair(ss58_address=pubkey)
-
-        # Unique key that specifies the endpoint.
-        endpoint_key = str(pubkey) + str(unique_receptor_uid)
-        
-        #checking the time of creation, compared to previous messages
-        if endpoint_key in self.nounce_dic.keys():
-            prev_data_time = self.nounce_dic[ endpoint_key ]
-            if nounce - prev_data_time > -10:
-                self.nounce_dic[ endpoint_key ] = nounce
-
-                #decrypting the message and verify that message is correct
-                verification = _keypair.verify( str(nounce) + str(pubkey) + str(unique_receptor_uid), message)
-            else:
-                verification = False
-        else:
-            self.nounce_dic[ endpoint_key ] = nounce
-            verification = _keypair.verify( str( nounce ) + str(pubkey) + str(unique_receptor_uid), message)
-
-        return verification
-
-    def signature_checking(self,meta):
-        r""" Calls the vertification of the signature and raises an error if failed
-        """
-        if self.vertification(meta):
-            pass
-        else:
-            raise Exception('Incorrect Signature')
-
-    def version_checking(self,meta):
-        r""" Checks the header and version in the metadata
-        """
-        if meta[0] == self._valid_metadata:
-            pass
-        else:
-            raise Exception('Incorrect Metadata format')
-
-    def black_list_checking(self,meta):
-        r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey 
-        """
-        variable_length_messages = meta[1].value.split('bitxx')
-        pubkey = variable_length_messages[1]
-        
-        if self.blacklist == None:
-            pass
-        elif self.blacklist(pubkey,int(meta[3].value)):
-            raise Exception('Black listed')
-        else:
-            pass
+            message = str(e)
+            abort = lambda _, ctx: ctx.abort(grpc.StatusCode.UNAUTHENTICATED, message)
+            return grpc.unary_unary_rpc_method_handler(abort)

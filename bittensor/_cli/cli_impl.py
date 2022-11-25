@@ -41,7 +41,11 @@ class CLI:
                 config (:obj:`bittensor.Config`, `required`): 
                     bittensor.cli.config()
         """
-        bittensor.utils.version_checking()
+        if not config.no_version_checking:
+            try:
+                bittensor.utils.version_checking()
+            except:
+                raise RuntimeError("To avoid internet based version checking pass --no_version_checking while running the CLI.")
         self.config = config
 
     def run ( self ):
@@ -114,7 +118,7 @@ class CLI:
         r""" Creates a new coldkey under this wallet.
         """
         wallet = bittensor.wallet(config = self.config)
-        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
+        wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, seed=self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
 
     def query ( self ):
         r""" Query an endpoint and get query time.
@@ -196,7 +200,8 @@ class CLI:
         wallet.coldkeypub
 
         # Check registration
-        self.register()
+        ## Will exit if --wallet.reregister is False
+        wallet.reregister()
 
         # Run miner.
         if self.config.model == 'core_server':
@@ -245,8 +250,10 @@ class CLI:
             TPB = self.config.subtensor.register.cuda.get('TPB', None),
             update_interval = self.config.subtensor.register.get('update_interval', None),
             num_processes = self.config.subtensor.register.get('num_processes', None),
-            cuda = self.config.subtensor.register.cuda.get('use_cuda', None),
-            dev_id = self.config.subtensor.register.cuda.get('dev_id', None)
+            cuda = self.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
+            dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
+            output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
+            log_verbose = self.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
         )
 
     def transfer( self ):
@@ -373,13 +380,13 @@ class CLI:
                 if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
                     # Skip hotkey if max_stake is less than current stake.
                     continue
-                wallet_balance -= stake_amount_tao
+                wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
             final_amounts.append(stake_amount_tao)
             final_wallets.append(wallet)
 
         # Ask to stake
         if not self.config.no_prompt:
-            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n  " + \
+            if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n" + \
                     "".join([
                         f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
                     ])
