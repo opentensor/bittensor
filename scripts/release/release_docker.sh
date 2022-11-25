@@ -60,7 +60,7 @@ fi
 # 4. Uploading docker image
 if [[ $APPLY == "true" ]]; then
   echo_info "Pushing docker image"
-sudo docker push $DOCKER_IMAGE_NAME
+  sudo docker push $DOCKER_IMAGE_NAME
 else
   echo_warning "Dry run execution. Not pushing docker image '$DOCKER_IMAGE_NAME'"
 fi
