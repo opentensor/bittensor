@@ -119,8 +119,8 @@ jobs:
       - run:
           name: Version is updated
           command: |
-            [[ $(git diff-tree --no-commit-id --name-only -r HEAD | grep bittensor/__init__.py | wc -l) == 1 ]] && echo "bittensor/__init__.py has changed"
-            [[ $(git diff-tree --no-commit-id --name-only -r HEAD | grep VERSION | wc -l) == 1 ]] && echo "VERSION has changed"
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep bittensor/__init__.py | wc -l) == 1 ]] && echo "bittensor/__init__.py has changed"
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep VERSION | wc -l) == 1 ]] && echo "VERSION has changed"
 
 workflows:
   pre-pr:
