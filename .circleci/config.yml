@@ -111,6 +111,8 @@ jobs:
             coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
 
   check-version-updated:
+    docker:
+      - image: cimg/python:3.10
     steps:
       - checkout
 
