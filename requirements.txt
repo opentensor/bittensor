@@ -37,7 +37,7 @@ pyyaml
 rich>=12.5.1
 retry
 requests>=2.25.0
-scalecodec>=1.0.35
+scalecodec>=1.0.35,<1.1.0
 sentencepiece
 termcolor
 torch>=1.11
