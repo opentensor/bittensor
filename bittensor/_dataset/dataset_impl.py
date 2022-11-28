@@ -17,20 +17,20 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-import os
-import random
-from copy import deepcopy
-from typing import Optional, Union, Dict, List, Any
-import aiohttp
-import torch
-from loguru import logger
-from torch.utils.data.dataloader import DataLoader
 import asyncio
-import json
+import aiohttp
 import bittensor
+from copy import deepcopy
+import json
+from loguru import logger
+import random
+import os
+import torch
+from torch.utils.data.dataloader import DataLoader
+from typing import Optional, Union, Dict, List, Any
 from .utils import sync_wrapper
-logger = logger.opt(colors=True)
 
+logger = logger.opt(colors=True)
 
 class GenesisTextDataset:
     """ Implementation for the dataset class, which handles dataloading from ipfs
@@ -59,6 +59,7 @@ class GenesisTextDataset:
             max_directories: int,
             loop: Optional['asyncio.loop'] = None ):
         """
+        The genesis dataset that represents interfacing with the mountain stored in IPFS hosted by Bittensor's IPFS nodes.
         Args:
             batch_size (int, required):
                 The size of the batch.
@@ -145,12 +146,9 @@ class GenesisTextDataset:
         """
 
         datasets = datasets if datasets else self.datasets
-
         all_text_file_metas = []
         dataset_hash_map = {}
-
         tasks = []
-
         self.dataset_size_map = {d:0 for d in datasets}
         
         # Gather dataset hashes async as their state is independent.
@@ -168,8 +166,7 @@ class GenesisTextDataset:
         self.dataset_hash_map = dataset_hash_map
 
         # Flatten the hashes to a list of hashes.
-        for  k,file_meta_list in dataset_hash_map.items():
-           
+        for k,file_meta_list in dataset_hash_map.items():
             all_text_file_metas += [fm  for fm in file_meta_list if fm['Size'] >= self.block_size_bytes]
         
         # Ensure the hash list is not empty.
@@ -334,7 +331,6 @@ class GenesisTextDataset:
                 The size of the buffer. 
         """
 
-
         def check_valid(size:int):
             r""" 
             Check if the size is a valid positive integer, if not, return False.
@@ -357,11 +353,9 @@ class GenesisTextDataset:
     
         if check_valid(block_size_bytes):
             self.block_size_bytes = block_size_bytes
-    
 
         if check_valid(buffer_size):
             self.set_buffer(buffer_size= buffer_size)
-
 
     def set_buffer(self, buffer_size:int) -> None:
         """
@@ -370,9 +364,7 @@ class GenesisTextDataset:
         Args:
             buffer_size (int, required):
                 The size of the sample buffer.
-
         """
-
         if not hasattr(self, 'sample_buffer'):
             self.sample_buffer = []
 
@@ -390,7 +382,6 @@ class GenesisTextDataset:
             self.sample_buffer (List[str]): 
                 The sample buffer.
         '''
-
         # See if there is free space, if so, add jobs to fill the free space with samples.
         buffer_free_space = self.buffer_size - len(self.sample_buffer) 
         
@@ -446,8 +437,6 @@ class GenesisTextDataset:
             
         Returns:
             output (Union[str, torch.tensor])
-
-
         '''
         # Random sampel idx if None.
         if idx == None:
@@ -548,7 +537,12 @@ class GenesisTextDataset:
         response = await self.api_post('cat', params=params, headers=headers, chunk_size=10000000, num_chunks=1)
         return response
 
-    async def get_folder_text_hashes(self, file_meta:dict, dataset:str, max_chunks:int = 1, chunk_size:int = 100000000) -> List[Dict[str, Union[str, int]]]:
+    async def get_folder_text_hashes(
+                                    self, 
+                                    file_meta:dict, 
+                                    dataset:str, 
+                                    max_chunks:int = 1, 
+                                    chunk_size:int = 100000000) -> List[Dict[str, Union[str, int]]]:
         """
         Get text hashes from a folder
 
@@ -564,15 +558,11 @@ class GenesisTextDataset:
             text_file_metas (List[Dict[str, Union[str, int]]):
                 List of the text file_metas of the folder.
         """
-
         text_file_metas = []
         
         for chunk_i in range(max_chunks):
-
             data = await self.cat(file_meta['Hash'], offset=chunk_i*chunk_size ,length=chunk_size)
-
             hashes = ['['+h + '}]'for h in data.decode().split('},')]
-            
             for i in range(len(hashes)-1):
                 try:
                     decoded_hash = json.loads(hashes[i+1][1:-1])
@@ -592,21 +582,24 @@ class GenesisTextDataset:
         Get Links from file_meta
 
         Args
-            file_meta (dict): 
+            file_meta (dict, required): 
                 Dictionary containing hash and name of root link.
-
-        Returns 
-            response_links (List[dict])
-                The response links from the get call.
-        
-
         '''
         response = await self.api_post( 'object/get',  params={'arg': file_meta['Hash']}, return_json= True)
         response_links = response.get('Links', [])
         return response_links
 
-    async def api_post(self, endpoint:str, params:Optional[Dict[str, Any]] = {}, headers:Optional[Dict[str, Any]] = {}, return_json:Optional[bool] = False,  content_type:Optional[str] = None, chunk_size:Optional[int] = 1024, num_chunks:Optional[int] = None, sock_connect:Optional[int]=20, sock_read:Optional[int]=20) -> Union[Dict, 'aiohttp.Response', bytes]:
-        
+    async def api_post(
+                    self, 
+                    endpoint:str, 
+                    params:Optional[Dict[str, Any]] = {}, 
+                    headers:Optional[Dict[str, Any]] = {}, 
+                    return_json:Optional[bool] = False,  
+                    content_type:Optional[str] = None, 
+                    chunk_size:Optional[int] = 1024, 
+                    num_chunks:Optional[int] = None, 
+                    sock_connect:Optional[int]=20, 
+                    sock_read:Optional[int]=20) -> Union[Dict, 'aiohttp.Response', bytes]:
         '''
         Async api post to ipfs server.
 
@@ -635,11 +628,9 @@ class GenesisTextDataset:
                     - Dictionary if return_json = True. 
                     - Bytes if num_chunks > 0
                     - aiohttp.Response if num_chunks == 0 and return_json == False
-            
         '''
         url = os.path.join(self.ipfs_url, endpoint)
         return_result = None
-
         timeout = aiohttp.ClientTimeout(sock_connect=sock_connect, sock_read=sock_read)
         
         async with aiohttp.ClientSession( timeout=timeout) as session:
@@ -668,7 +659,6 @@ class GenesisTextDataset:
         Retuns:
             List of available datasets.
         '''
-
         return list(self.dataset2hash.keys())
 
     @property
@@ -696,7 +686,6 @@ class GenesisTextDataset:
     def dataset_size(self) -> int:
         '''
         The size of the dataset in bytes.
-        
         '''
         return sum(list(self.dataset_size_map.values()))
 
@@ -715,7 +704,6 @@ class GenesisTextDataset:
         Returns:
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
-
         return DataLoader(self,
                     shuffle=True,
                     batch_size=self.batch_size,

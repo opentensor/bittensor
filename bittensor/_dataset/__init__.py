@@ -136,10 +136,10 @@ class dataset:
     @classmethod
     def config(cls) -> 'bittensor.Config':
         """ 
-        Get config from the argument parser 
+        Get config from the argument parser.
             
         Return: 
-            bittensor.config
+            bittensor.Config
         """
         parser = argparse.ArgumentParser()
         dataset.add_args( parser )
