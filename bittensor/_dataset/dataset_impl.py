@@ -60,34 +60,34 @@ class GenesisTextDataset:
             loop: Optional['asyncio.loop'] = None ):
         """
         Args:
-            batch_size (int):
+            batch_size (int, required):
                 The size of the batch.
-            sequence_length (int):
+            sequence_length (int, required):
                 The length of the seqeunce (tokenwise).
-            block_size_bytes (int): 
+            block_size_bytes (int, required): 
                 The  size of the text data block which is used to create. 
                 multiple samples.
-            max_hash_size (int): 
+            max_hash_size (int, required): 
                 The maximum size of the block that represents the hash.
-            num_workers (int):
+            num_workers (int, required):
                 Number of workers for pytorch Dataset.
             datasets (Optional[Union[List[str], str]]):
                 List of dataset names to include from the pile.
-            no_tokenizer (bool):
+            no_tokenizer (bool, required):
                 Do not inlcude tokenizer.
-            data_dir (str):
+            data_dir (str, required):
                 Directory for saving assets.
-            save_dataset (bool):
+            save_dataset (bool, required):
                 Save the dataset text hashes.
-            load_dataset (bool):
+            load_dataset (bool, required):
                 Load the dataset text hashes.
-            num_batches (int):
+            num_batches (int, required):
                 Number of generated batches in epoch.
-            max_datasets (int):
+            max_datasets (int, required):
                 Max number of datasets.
-            buffer_size (int):
+            buffer_size (int, required):
                 Size of blocks to buffer while training.
-            buffer_calls_per_update (int):
+            buffer_calls_per_update (int, required):
                 Calls per block when caching.
             loop ('asyncio.loop',  optional):
                 Asyncio loop for class, defaults to default event loop.
@@ -136,15 +136,15 @@ class GenesisTextDataset:
         """ Building all of the datasets specified by getting each of their 
             text hashes from IPFS or local
         Args:
-            datasets (List[str]):
+            datasets (List[str], optional):
                 List of dataset names to include from the pile.
-            save (bool):
+            save (bool, required):
                 Save the dataset hashes locally.
-            load (bool):
+            load (bool, required):
                 Load the dataset hashes locally.
         """
-        if datasets == None:
-            datasets = self.datasets
+
+        datasets = datasets if datasets else self.datasets
 
         all_text_file_metas = []
         dataset_hash_map = {}
@@ -171,19 +171,21 @@ class GenesisTextDataset:
         for  k,file_meta_list in dataset_hash_map.items():
            
             all_text_file_metas += [fm  for fm in file_meta_list if fm['Size'] >= self.block_size_bytes]
+        
+        # Ensure the hash list is not empty.
         assert len(all_text_file_metas) > 0
         self.all_text_file_metas = all_text_file_metas
 
-    async def async_save_json(self, path:str, obj:Union[dict, list], include_root:bool=True) -> str:
+    async def async_save_json(self, path:str, obj:Union[dict, list], include_root:Optional[bool]=True) -> str:
         """ 
         Async save of json for storing text hashes
 
         Args:
-            path (List[str]):
-                path of json to save. If include_root is true, then it is suffixed with {self.data_dir}.
-            obj (bool):
+            path (str, required):
+                Path of json to save. If include_root is true, then it is suffixed with {self.data_dir}.
+            obj (bool, required):
                 The object to save locally
-            include_root (bool):
+            include_root (bool, optional):
                 Include self.data_dir as the prefix.
                     - if True, ths meants shortens the batch and 
                     specializes it to be with respect to the dataset's 
@@ -191,7 +193,7 @@ class GenesisTextDataset:
             
         Returns: 
             path (str)
-                Path of the saved JSON
+                Path of the saved JSON.
         """
         
         if include_root:
@@ -215,25 +217,29 @@ class GenesisTextDataset:
 
     save_json = sync_wrapper(async_save_json)
 
-    async def async_load_json(self, path:str,include_root:bool = True, default:Union[list, dict] = {}) -> Union[list, dict]:
+    async def async_load_json(self, path:str, include_root:Optional[bool] = True, default:Optional[Union[list, dict]] = {}) -> Union[list, dict]:
 
         """ 
         Async save of json for storing text hashes
         Args:
-            path (str):
+            path (str, required):
                 Path of the loaded json
-            include_root (bool):
+            include_root (bool, optional):
                 Include self.data_dir as the prefix.
                     - if True, ths meants shortens the batch and 
                     specializes it to be with respect to the dataset's 
                     root path which is in ./bittensor/dataset
+            default (dict, optional):
+                If there is a file not found, what is the default value.
         Returns: 
-            obj (str)
-                Object of the saved JSON.
+            obj (dict)
+                Object of the saved JSON as a dictionary.
         """
         
+        # Include the root if true (self.data_dir).
         if include_root:
-            path = os.path.join(self.data_dir, path)
+            if self.data_dir != path[:len(self.data_dir)]:
+                path = os.path.join(self.data_dir, path)
 
         # Ensure extension.
         dir_path = os.path.dirname(path)
@@ -259,24 +265,24 @@ class GenesisTextDataset:
 
     load_json = sync_wrapper(async_load_json)
 
-    async def async_build_single_dataset(self, dataset:str = None, save:bool=False, load:bool=True) -> List[dict] :
+    async def async_build_single_dataset(self, dataset:str , save:Optional[bool]=False, load:Optional[bool]=True) -> List[dict] :
         """ Building a single dataset by fetching its text file metas ({Hash:str, Name:str, Size: int})
         Args:
-            dataset (List[str]):
+            dataset (List[str], required):
                 The name of the dataset.
-            num_samples (int):
-                The number of samples the user want so get from the dataset.
-            load (bool):
+            load (bool, optional):
                 Load the dataset hashes locally
-            save (bool):
+            save (bool, optional):
                 Save the dataset hahses locally.
 
         Returns: 
             text_file_metas (List[Dict): 
                 List of text file metas with the format of {Hash:String, Size:String, Name:String}.
         """
-
+        # Hash to the meta file to avoid duplication in case we load two of the same file_meta.
         hash2file_meta = {}
+
+        # If load is true, load the hashes, otherwise, fetch them from ipfs.
         if load:
             loaded_file_metas =  self.load_json(path=f'{dataset}/file_metas', default=[])
             for file_meta in loaded_file_metas:
@@ -285,13 +291,15 @@ class GenesisTextDataset:
             text_file_metas = list(hash2file_meta.values())
                         
         else:
-                
+            # Get the folder_hashes from the dataset.
             folder_hashes = (await self.get_folder_hashes(self.dataset2hash[dataset]))[:self.max_directories]
 
+            # For each folder, get the text hashes.
             tasks = []
             for f in folder_hashes:
                 tasks.append(self.get_folder_text_hashes(f, dataset=dataset))
 
+            # Some hashes are incomplete, ensure they have Size and Hash Field.
             for folder_text_file_metas in await asyncio.gather(*tasks):
                 for file_meta in folder_text_file_metas:
                     if 'Size' in file_meta and 'Hash' in file_meta:
@@ -299,15 +307,18 @@ class GenesisTextDataset:
                     
             text_file_metas = list(hash2file_meta.values())
 
+            # If save is true, then save the hashes into the {self.data_dir}/{dataset}/file_metas.
             if save:
                 self.save_json(path=f'{dataset}/file_metas', obj=text_file_metas)
         
+        # Calculate the size.
         self.dataset_size_map[dataset]  = sum([fm['Size'] for fm in text_file_metas])
 
         return text_file_metas
 
     def set_data_size(self, batch_size:Optional[int] = None, block_size:Optional[int] = None, sequence_length:Optional[int] = None,  block_size_bytes:Optional[int]= None, buffer_size:Optional[int]=None) -> None:
-        r""" Update the size of data (batch_size, sequence_length, block_size_bytes) that we need.
+        r""" 
+        Update the size of data (batch_size, sequence_length, block_size_bytes) that we need.
 
         Args: 
             batch_size (int, optional):
@@ -324,8 +335,9 @@ class GenesisTextDataset:
         """
 
 
-        def check_valid(size):
-            r""" Check if the size is a valid positive intiget, if not, return False.
+        def check_valid(size:int):
+            r""" 
+            Check if the size is a valid positive integer, if not, return False.
             """
             if (not isinstance(size, int)) or size <= 0:
                 return False
@@ -351,19 +363,22 @@ class GenesisTextDataset:
             self.set_buffer(buffer_size= buffer_size)
 
 
-    def set_buffer(self, buffer_size:int = 10) -> None:
-        '''
+    def set_buffer(self, buffer_size:int) -> None:
+        """
         Set the buffer and ensure it is valid.
 
         Args:
-            buffer_size (int):
+            buffer_size (int, required):
                 The size of the sample buffer.
 
-        '''
+        """
+
         if not hasattr(self, 'sample_buffer'):
             self.sample_buffer = []
 
         self.buffer_size = buffer_size 
+
+        # If the buffer is smaller than the current buffer, trim it to match the new size.
         if len(self.sample_buffer) > self.buffer_size:
             self.sample_buffer = self.sample_buffer[:self.buffer_size]
             
@@ -376,23 +391,35 @@ class GenesisTextDataset:
                 The sample buffer.
         '''
 
+        # See if there is free space, if so, add jobs to fill the free space with samples.
         buffer_free_space = self.buffer_size - len(self.sample_buffer) 
         
         if buffer_free_space > 0  :
-
+            
+            # Sample the file_metas randomly.
             sample_cat_params_list = random.sample(self.all_text_file_metas, buffer_free_space)
+
+            # Build the asyncio jobs.
             self.sample_cat_tasks += [self.cat(cid=sample_cat_params['Hash'], offset=0, length=self.max_hash_size) for sample_cat_params in sample_cat_params_list]
+            
+            # This currently synchronytes on all of the self.sample_cat_tasks, completing when they all are finished.
             finished_tasks, running_tasks  = await asyncio.wait(self.sample_cat_tasks) 
             self.sample_cat_tasks = list(running_tasks)
             finished_tasks = list(finished_tasks)
 
+            # Add the finished task results into the buffer.
             for finished_task in finished_tasks:
                 sample = finished_task.result()
                 self.sample_buffer += [finished_task.result()]
-            
+
+        # Randomly sample the text file from the buffer.
         random_idx = random.randint(0,len(self.sample_buffer)-1)
         raw_chunk = self.sample_buffer[random_idx]
+
+        # Increment the counters.
         self.sample_count += 1
+        self.batch_count += self.sample_count //  self.batch_size
+
 
         if self.block_size_bytes < len(raw_chunk):
             start_idx = random.randint(0, len(raw_chunk) - self.block_size_bytes)
@@ -402,7 +429,8 @@ class GenesisTextDataset:
         end_idx = start_idx + self.block_size_bytes
         sample = raw_chunk[start_idx:end_idx]
 
-        if (self.sample_count //  self.batch_size) >= self.buffer_calls_per_update:
+        # If the batch count exceeds the calls per update, pop the first elemetn out of the buffer.
+        if (self.batch_count) >= self.buffer_calls_per_update:
             self.sample_count = 0 
             self.sample_buffer.pop(0)
         
@@ -410,11 +438,8 @@ class GenesisTextDataset:
 
     def __getitem__(self, idx: Optional[int] = None) -> Union[List[str], torch.tensor]:
         '''
-        Sample from queue or lazy loading. This involves sampling large text files that 
-        are then bufferd, generating multiple samples per text file. When a threshold 
-        number of samples are generated from the blocks, a FIFO priority is used to churn 
-        old blocks for new blocks, to avoid data staleness.
-
+        Sample from the sample_buffer via self.async_generate_sample. This fetches a random block of text
+        with a size of self.block_size_bytes in bytes.
         Args:
             idx (int):
                 Sample index of dataset.
@@ -432,10 +457,13 @@ class GenesisTextDataset:
 
         raw_text_bytes = asyncio.run(self.async_generate_sample())
 
+        # Decode the bytes into a string.
         try:
             raw_text = raw_text_bytes.decode()
         except UnicodeDecodeError as e:
             raw_text = str(raw_text_bytes[2:-1])
+
+        # If there is no tokenizer specified return text with the seqeunce length being the number of " " split elements.
 
         if self.no_tokenizer:
             raw_text =raw_text.split()
@@ -478,15 +506,21 @@ class GenesisTextDataset:
         '''
 
         links = (await self.get_links(file_meta))
+        
+        # Build the tasks to fetch the links of the folder.
         unfinished = [asyncio.create_task(self.api_post('object/get', params={'arg':link['Hash']}, return_json=True)) for link in links]
         folder_hashes = []
         just_links = []
 
+        # Gather results until all tasks are finished.
         while len(unfinished)>0:
             finished, unfinished = await asyncio.wait(unfinished, return_when=asyncio.FIRST_COMPLETED)
             for res in await asyncio.gather(*finished):
                 folder_hashes.extend(res.get('Links'))
-            
+        
+        # Sometimes, the folder_hashes are empty with some datasets.
+        # This means the root links are the folder links.
+        # TODO (for constructing text corpus): We need the root links to be 1 level for more consistancy.
         if len(folder_hashes) == 0:
             folder_hashes = links
 
@@ -513,6 +547,7 @@ class GenesisTextDataset:
         headers = {}
         response = await self.api_post('cat', params=params, headers=headers, chunk_size=10000000, num_chunks=1)
         return response
+
     async def get_folder_text_hashes(self, file_meta:dict, dataset:str, max_chunks:int = 1, chunk_size:int = 100000000) -> List[Dict[str, Union[str, int]]]:
         """
         Get text hashes from a folder
@@ -570,7 +605,7 @@ class GenesisTextDataset:
         response_links = response.get('Links', [])
         return response_links
 
-    async def api_post(self, endpoint:str, params:Dict[str, Any] = {}, headers:Dict[str, Any] = {}, return_json:bool = False,  content_type:str = None, chunk_size:int = 1024, num_chunks:int = None) -> Union[Dict, 'aiohttp.Response', bytes]:
+    async def api_post(self, endpoint:str, params:Optional[Dict[str, Any]] = {}, headers:Optional[Dict[str, Any]] = {}, return_json:Optional[bool] = False,  content_type:Optional[str] = None, chunk_size:Optional[int] = 1024, num_chunks:Optional[int] = None, sock_connect:Optional[int]=20, sock_read:Optional[int]=20) -> Union[Dict, 'aiohttp.Response', bytes]:
         
         '''
         Async api post to ipfs server.
@@ -578,18 +613,22 @@ class GenesisTextDataset:
         Args:
             endpoint (str):
                 Endpoint path with such that path is "self.ipfs_url/{endpoint}".
-            params (Dict[str, Any]):
+            params (Dict[str, Any], optional):
                 Params for api request.
             headers (Dict[str, Any], optional): 
                 Headers for api request.
-            return_json (bool): 
+            return_json (bool, optional): 
                 Return repsonse as json.
-            content_type (str):
+            content_type (str, optional):
                 Content type of request.
-            chunk_size (int):
+            chunk_size (int, optional):
                 Chunk size of streaming endpoint.
             num_chunks (int, optional):
                 Number of chunks to stream.
+            sock_connect (int, optional):
+                The timeout for connecting to a socket.
+            sock_read (int, optional):
+                The timeout for reading a socket.
         Returns:
             return_result (Union[Dict, 'aiohttp.Response', bytes]):
                 The result of the response. 
@@ -601,15 +640,17 @@ class GenesisTextDataset:
         url = os.path.join(self.ipfs_url, endpoint)
         return_result = None
 
-        # we need to  set the 
-        timeout = aiohttp.ClientTimeout(sock_connect=10, sock_read=10)
+        timeout = aiohttp.ClientTimeout(sock_connect=sock_connect, sock_read=sock_read)
+        
         async with aiohttp.ClientSession( timeout=timeout) as session:
             async with session.post(url,params=params,headers=headers) as res:
+                # Return a Json of the response.
                 if return_json: 
                     return_result = await res.json(content_type=content_type)
                 else:
                     return_result = res
 
+                # If num_chunks is not None, iterate through the chunks of chunk_size.
                 if num_chunks:
                     return_result = b''
                     async for data in res.content.iter_chunked(chunk_size):
@@ -697,6 +738,13 @@ class GenesisTextDataset:
     def set_event_loop(self, loop = None) -> 'asyncio.loop':
         '''
         Sets the event loop.
+
+        Args:
+            loop (asyncio.loop, optional):
+                The asyncio loop you want to set to self.loop
+        
+        Returns:
+            self.loop (asyncio.loop)
         '''
         if loop == None:
             loop = asyncio.get_event_loop()
