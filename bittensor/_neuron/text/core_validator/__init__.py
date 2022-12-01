@@ -667,12 +667,12 @@ class neuron:
             extra_stats = {}
             if 'loss_nxt' in _stats and 'loss_nxt' in stats:  # elif neuron not responsive then omit
                 # estimate the effective number of model parameters from EMA loss
-                _num_params = scaling_law_loss_to_params(stats['loss_nxt'])
+                _num_params = scaling_law_loss_to_params(torch.tensor(stats['loss_nxt']))
 
                 # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
                 _pow_num_params = torch.pow(_num_params, self.config.nucleus.scaling_law_power)
 
-                extra_stats.update({'est_params_nxt': _num_params, 'base_params_nxt': _pow_num_params})
+                extra_stats.update({'est_params_nxt': _num_params.item(), 'base_params_nxt': _pow_num_params.item()})
 
                 if 'synergy_nxt' in stats:
                     extra_stats['shapley_values_nxt'] = extra_stats['base_params_nxt'] + stats['synergy_nxt']
