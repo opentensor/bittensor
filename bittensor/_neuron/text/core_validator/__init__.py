@@ -182,6 +182,7 @@ class neuron:
         self.neuron_changes = {}  # neuron hotkey changes dict of dicts of dicts: [uid] -> [block] -> {'new_hotkey': , 'old_hotkey': , 'old_stats':}
         self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
 
+
         if self.config.neuron.validation_synapse == 'TextCausalLMNext':
             self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
             # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
@@ -649,6 +650,33 @@ class neuron:
         for _uid, _stats in neuron_stats.items():
             stats = self.neuron_stats.setdefault(_uid, {})
 
+            # === EMA normal update ===
+            # If synapse responsive push available values into EMA for normal update.
+            # Normal EMA values provide a view on neuron performance if fully responsive.
+            for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                if math.isnan(_stats[key]):
+                    continue
+                if key in stats:
+                    stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
+                else:
+                    stats.setdefault(key, _stats[key])
+
+            # === Extra stats computation ===
+            # Compute values on EMA stats, such as the scaling law on EMA loss.
+            # Required for values that need to be computed on longer-term stats.
+            extra_stats = {}
+            if 'loss_nxt' in _stats and 'loss_nxt' in stats:  # elif neuron not responsive then omit
+                # estimate the effective number of model parameters from EMA loss
+                _num_params = scaling_law_loss_to_params(stats['loss_nxt'])
+
+                # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
+                _pow_num_params = torch.pow(_num_params, self.config.nucleus.scaling_law_power)
+
+                extra_stats.update({'est_params_nxt': _num_params, 'base_params_nxt': _pow_num_params})
+
+                if 'synergy_nxt' in stats:
+                    extra_stats['shapley_values_nxt'] = extra_stats['base_params_nxt'] + stats['synergy_nxt']
+
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
             if 'updates!' in stats:
@@ -662,6 +690,9 @@ class neuron:
                 if key in _stats and not math.isnan(_stats[key]):
                     responsive_uids += [_uid]
                     stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
+                elif key in extra_stats and not math.isnan(extra_stats[key]):
+                    responsive_uids += [_uid]
+                    stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * extra_stats[key]
                 else:
                     stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
 
@@ -669,20 +700,20 @@ class neuron:
             # If synapse responsive push available values into EMA for normal update.
             # Normal EMA values provide a view on neuron performance if fully responsive.
             for key in self.synapse_keys:
-                if key in _stats:
+                if key in _stats or key in extra_stats:
                     updates = 'updates_' + key
                     if updates in stats:
                         stats[updates] += 1  # increment number of normal EMA updates made
                     else:
                         stats.setdefault(updates, 1)  # add updates fields for new uid entries
 
-            for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
-                if math.isnan(_stats[key]):
+            for key in extra_stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                if math.isnan(extra_stats[key]):
                     continue
                 if key in stats:
-                    stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
+                    stats[key] = (1 - self.alpha) * stats[key] + self.alpha * extra_stats[key]  # update EMA
                 else:
-                    stats.setdefault(key, _stats[key])
+                    stats.setdefault(key, extra_stats[key])
 
         return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
 
@@ -1186,14 +1217,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         _loss_val = _losses_val.mean()
         _loss = _losses.mean()
 
-        # estimate the effective number of model parameters, modified with the scaling_law_power
-        _num_params = scaling_law_loss_to_params(_loss)
-
-        # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
-        _pow_num_params = torch.pow(_num_params, scaling_law_power)
-
         _stats.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss,
-                       'est_params_nxt': _num_params, 'base_params_nxt': _pow_num_params,
                        'synergy_nxt': 0, 'synergy_loss_diff_nxt': 0})
 
     def _synergy(first, second, target, ext):
@@ -1217,9 +1241,6 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     # === Shapley value combination ===
     # Combine base values with synergy approximation to get final Shapley values.
     for s in stats.values():
-        if 'base_params_nxt' in s and 'synergy_nxt' in s:
-            s['shapley_values_nxt'] = s['base_params_nxt'] + s['synergy_nxt']
-
         if 'losses_nxt' in s:
             del s['losses_nxt']  # remove batch losses - not needed for stats anymore
 
@@ -1233,15 +1254,15 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         # === Response table ===
         # Prints the query response table: top prediction probabilities and texts for batch tasks
         batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
-        response_table(batch_predictions, stats, sort_col='shapley_values_nxt', console_width=console_width)
+        response_table(batch_predictions, stats, sort_col='loss_nxt', console_width=console_width)
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        synergy_table(stats, syn_loss_diff, 'shapley_values_nxt', console_width)
+        synergy_table(stats, syn_loss_diff, 'loss_nxt', console_width)
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        synapse_table(str(synapse), stats, 'shapley_values_nxt', console_width, shapley_start_time)
+        synapse_table(str(synapse), stats, 'loss_nxt', console_width, shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
