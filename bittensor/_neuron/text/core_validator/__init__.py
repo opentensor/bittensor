@@ -1474,7 +1474,8 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
     col_keys = [c[1] for c in columns]
 
     # === Sort rows ===
-    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s], reverse=True, key=lambda _row: _row[1])
+    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
+                  reverse='loss' not in sort_col, key=lambda _row: _row[1])
     if sort_col in col_keys:
         sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
         columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
@@ -1524,7 +1525,8 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
 def synergy_table(stats, syn_loss_diff, sort_col, console_width):
     r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
     """
-    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s], reverse=True, key=lambda _row: _row[1])
+    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
+                  reverse='loss' not in sort_col, key=lambda _row: _row[1])
     uid_col = neuron_stats_columns[0]  # [Column_name, key_name, format_string, rich_style]
     columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
     rows = [[uid_col[2].format(s[0])] +
@@ -1574,7 +1576,7 @@ def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
     if sort_col in col_keys:
         sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
         columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
-        rows = sorted(rows, reverse=True, key=lambda _row: _row[sort_idx][1])  # sort according to sortcol
+        rows = sorted(rows, reverse='loss' not in sort_col, key=lambda _row: _row[sort_idx][1])  # sort according to sortcol
 
     # === Instantiate stats table ===
     table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
