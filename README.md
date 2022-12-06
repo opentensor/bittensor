@@ -31,8 +31,9 @@ At Bittensor, we are creating an open, decentralized, peer-to-peer network that 
   - [4.7. Finding and creating the endpoints for other nodes in the network](#47-finding-and-creating-the-endpoints-for-other-nodes-in-the-network)
   - [4.8. Querying others in the network](#48-querying-others-in-the-network)
   - [4.9. Creating a Priority Thread Pool for the axon](#49-creating-a-priority-thread-pool-for-the-axon)
-- [5. License](#5-license)
-- [6. Acknowledgments](#6-acknowledgments)
+- [5. Release](#5-release)
+- [6. License](#6-license)
+- [7. Acknowledgments](#7-acknowledgments)
 
 ## 1. Documentation
 
@@ -338,7 +339,10 @@ representations, _, _ = den.forward_text (
 
 ```
 
-## 5. License
+## 5. Release
+The release manager should follow the instructions of the [RELEASE_GUIDELINES.md](./RELEASE_GUIDELINES.md) document.
+
+## 6. License
 The MIT License (MIT)
 Copyright © 2021 Yuma Rao
 
@@ -349,5 +353,5 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-## 6. Acknowledgments
+## 7. Acknowledgments
 **learning-at-home/hivemind**
