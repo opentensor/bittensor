@@ -347,9 +347,10 @@ class CLI:
                 bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
             ]
         else:
-            # Do regular stake
-            subtensor.add_stake( wallet, amount = None if self.config.get('stake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
-            return None
+            # Only self.config.wallet.hotkey is specified.
+            #  so we stake to that single hotkey.
+            assert self.config.wallet.hotkey is not None
+            wallets_to_stake_to = [ bittensor.wallet( config = self.config ) ]
            
         # Otherwise we stake to multiple wallets
 
@@ -374,7 +375,8 @@ class CLI:
             stake_amount_tao: float = self.config.get('amount')
             if self.config.get('max_stake'):
                 wallet_stake: Balance = wallet.get_stake()
-                stake_amount_tao: float =  self.config.get('max_stake') - wallet_stake.tao
+                stake_amount_tao: float = self.config.get('max_stake') - wallet_stake.tao
+
                 # If the max_stake is greater than the current wallet balance, stake the entire balance.
                 stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
                 if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
@@ -384,6 +386,11 @@ class CLI:
             final_amounts.append(stake_amount_tao)
             final_wallets.append(wallet)
 
+        if len(final_wallets) == 0:
+            # No wallets to stake to.
+            bittensor.__console__.print("Not enough balance to stake to any hotkeys or max_stake is less than current stake.")
+            return None
+
         # Ask to stake
         if not self.config.no_prompt:
             if not Confirm.ask(f"Do you want to stake to the following keys from {wallet_0.name}:\n" + \
@@ -392,6 +399,10 @@ class CLI:
                     ])
                 ):
                 return None
+        
+        if len(final_wallets) == 1:
+            # do regular stake
+            return subtensor.add_stake( wallet=final_wallets[0], amount = None if self.config.get('stake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
         subtensor.add_stake_multiple( wallets = final_wallets, amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
