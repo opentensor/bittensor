@@ -207,56 +207,6 @@ def test_dendrite_backoff():
     check_resp_shape(out, 1, 3, 3)
     del _dendrite
 
-def test_dendrite_multiple():
-    endpoint_obj = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 0,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 12345,
-        hotkey = wallet.hotkey.ss58_address,
-        coldkey = wallet.coldkey.ss58_address,
-        modality = 0
-    )
-    x = torch.tensor( [ 1,2,3 ] )
-
-    config = bittensor.dendrite.config()
-    receptor_pool = bittensor.receptor_pool( 
-        wallet = wallet,
-        max_active_receptors = config.dendrite.max_active_receptors,
-        compression = config.dendrite.compression,
-    )
-
-    authkey = wallet.hotkey.ss58_address.encode('UTF-8')
-    manager_server = bittensor.dendrite.manager_serve(config, wallet, receptor_pool, authkey = authkey)
-
-    dend1 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend2 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend3 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend4 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    
-    out, ops, times = dend1.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    out, ops, times = dend2.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    out, ops, times = dend3.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    out, ops, times = dend4.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    assert len(receptor_pool.receptors) == 1 
-    assert manager_server.connected_count == 4
-    dend4.__del__()
-    assert manager_server.connected_count == 3
-    dend3.__del__()
-    assert manager_server.connected_count == 2
-    dend2.__del__()
-    assert manager_server.connected_count == 1
-    dend1.__del__()
-
 
 def test_dendrite_to_df():
     dendrite.to_dataframe(bittensor.metagraph(_mock=True).sync())
