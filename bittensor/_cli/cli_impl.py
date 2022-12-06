@@ -347,9 +347,9 @@ class CLI:
                 bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
             ]
         else:
-            # Only self.config.hotkey is specified.
+            # Only self.config.wallet.hotkey is specified.
             #  so we stake to that single hotkey.
-            assert self.config.hotkey is not None
+            assert self.config.wallet.hotkey is not None
             wallets_to_stake_to = [ bittensor.wallet( config = self.config ) ]
            
         # Otherwise we stake to multiple wallets
