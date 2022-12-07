@@ -32,10 +32,46 @@ function help(){
     echo \ \ - Version in VERSION file is not a git tag already
     echo
 }
-###
 
-###
-# Start of release process
+generate_github_release_notes_post_data()
+{
+  cat <<EOF
+{
+  "tag_name":"$TAG_NAME",
+  "name":"$RELEASE_NAME",
+  "draft":false,
+  "prerelease":false,
+  "generate_release_notes":false
+}
+EOF
+}
+
+generate_github_release_post_data()
+{
+  cat <<EOF
+{
+  "tag_name":"$TAG_NAME",
+  "name":"$RELEASE_NAME",
+  "body":"$DESCRIPTION",
+  "draft":false,
+  "prerelease":false,
+  "generate_release_notes":false
+}
+EOF
+}
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+function echo_error {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+function echo_info {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
 ###
 
 # 0. Check requirements
@@ -109,11 +145,6 @@ if [[ $APPLY == "true" ]]; then
   echo_warning "Not a Dry run exection"
 else
   echo_warning "Dry run execution"
-fi
-
-if [[ -z $GITHUB_TOKEN ]]; then
-    echo_error "Github token required (-T, --github-token)"
-    exit 1
 fi
 
 # 2. Checking version
