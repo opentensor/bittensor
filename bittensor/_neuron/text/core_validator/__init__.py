@@ -782,9 +782,9 @@ class neuron:
 
         avail_include_uids = None
         if include_uids is not None and num_rows is not None:
-            sorted_uids = sorted(uid_weights, key=lambda tuple: tuple[1])
+            sorted_uids = sorted(uid_weights, key=lambda tup: tup[1])
             top_bottom_uids = [_uid for _uid, _ in sorted_uids[:5] + sorted_uids[-10:]]
-            _include_uids = set(include_uids) & set(top_bottom_uids)
+            _include_uids = set(include_uids) | set(top_bottom_uids)
             avail_include_uids = list(set(_neuron_stats.keys()) & _include_uids)  # exclude include_uids with no stats
             if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining sample up to num_rows
                 remaining_uids = set(_neuron_stats.keys()) - _include_uids  # find sample remaining, loses sample ordering
