@@ -538,7 +538,7 @@ class neuron:
                 # === Calculate neuron weights ===
                 sample_uids, sample_weights = self.calculate_weights()
                 self.weights_table(sample_uids, sample_weights,
-                                   include_uids=list(stats.keys()), num_rows=2 * len(stats))  # print weights table
+                                   include_uids=list(stats.keys()), num_rows=len(stats) + 25)  # print weights table
 
             # === Logs ===
             if self.config.using_wandb:
@@ -770,21 +770,26 @@ class neuron:
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights
         _neuron_stats = {}
+        uid_weights = []  # (uid, weight) tuples for sorting to find top/bottom weights
         unvalidated = []
         for uid, weight in zip(sample_uids.tolist(), sample_weights.tolist()):
             if uid in self.neuron_stats:
                 _neuron_stats[uid] = {k: v for k, v in self.neuron_stats[uid].items()}
                 _neuron_stats[uid]['weight'] = weight
+                uid_weights += [(uid, weight)]
             else:
                 unvalidated += [uid]
 
         avail_include_uids = None
         if include_uids is not None and num_rows is not None:
-            avail_include_uids = list(set(_neuron_stats.keys()) & set(include_uids))  # exclude include_uids with no stats
+            sorted_uids = sorted(uid_weights, key=lambda tuple: tuple[1])
+            top_bottom_uids = [_uid for _uid, _ in sorted_uids[:5] + sorted_uids[-10:]]
+            _include_uids = set(include_uids) + set(top_bottom_uids)
+            avail_include_uids = list(set(_neuron_stats.keys()) & _include_uids)  # exclude include_uids with no stats
             if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining sample up to num_rows
-                remaining_uids = set(_neuron_stats.keys()) - set(include_uids)  # find sample remaining, loses sample ordering
+                remaining_uids = set(_neuron_stats.keys()) - _include_uids  # find sample remaining, loses sample ordering
                 remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover sample ordering
-                limited_uids = avail_include_uids + remaining_uids[:num_rows - len(include_uids)]
+                limited_uids = avail_include_uids + remaining_uids[:num_rows - len(_include_uids)]
                 _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
