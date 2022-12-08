@@ -780,7 +780,6 @@ class neuron:
             else:
                 unvalidated += [uid]
 
-        avail_include_uids = None
         if include_uids is not None and num_rows is not None:
             sorted_uids = sorted(uid_weights, key=lambda tup: tup[1])
             top_bottom_uids = [_uid for _uid, _ in sorted_uids[:5] + sorted_uids[-10:]]
@@ -801,7 +800,7 @@ class neuron:
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
                     f'\[{max_weight_limit:.4g} allowed]',  # caption
-                    mark_uids=avail_include_uids)
+                    mark_uids=include_uids)
 
 
 class nucleus( torch.nn.Module ):
