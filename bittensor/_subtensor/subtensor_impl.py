@@ -686,7 +686,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 'version': neuron.version,
                 'ip': neuron.ip,
                 'port': neuron.port,
-                'ip_type': neuron.ip_version,
+                'ip_type': neuron.ip_type,
                 'modality': neuron.modality,
                 'coldkey': neuron.coldkey
             }
