@@ -400,6 +400,8 @@ class neuron:
         max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
 
         # === Logs Prometheus ===
         self.prometheus_gauges.labels("current_block").set( current_block )
@@ -409,6 +411,8 @@ class neuron:
         self.prometheus_gauges.labels("min_allowed_weights").set( min_allowed_weights )
         self.prometheus_gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
         self.prometheus_gauges.labels("epochs_until_reset").set( epochs_until_reset )
+        self.prometheus_gauges.labels("scaling_law_power").set( self.config.nucleus.scaling_law_power )
+        self.prometheus_gauges.labels("synergy_scaling_law_power").set( self.config.nucleus.synergy_scaling_law_power )
 
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len != self.dataset.block_size):
@@ -1121,7 +1125,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='')
 
-    logger.info(f'{str(synapse)} \t| Shapley base values <dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
+    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
+                f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
 
@@ -1147,7 +1152,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
+                f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
         # === Synergy table ===
@@ -1236,7 +1242,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='_nxt')
 
-    logger.info(f'{str(synapse)} \t| Shapley base values <dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
+    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
+                f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
 
@@ -1252,7 +1259,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    logger.info(f'{str(synapse)} \t| Shapley synergy values <dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
+    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
+                f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
         # === Response table ===
