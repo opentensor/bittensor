@@ -400,8 +400,8 @@ class neuron:
         max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
-        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
 
         # === Logs Prometheus ===
         self.prometheus_gauges.labels("current_block").set( current_block )
