@@ -669,7 +669,7 @@ class cli:
 
     @staticmethod   
     def check_config (config: 'bittensor.Config'):
-        """ Check if the essential condig exist under different command
+        """ Check if the essential config exist under different command
         """
         if config.command == "run":
             cli.check_run_config( config )
