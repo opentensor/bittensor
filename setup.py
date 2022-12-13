@@ -62,8 +62,7 @@ setup(
     license='MIT',
     python_requires='>=3.7',
     install_requires=requirements,
-    extras_requires={
-        'cubit': extra_requirements_cubit,
+    extras_require={
         'dev': extra_requirements_dev,
     },
     scripts=['bin/btcli'],
