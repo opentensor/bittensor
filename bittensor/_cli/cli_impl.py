@@ -287,30 +287,43 @@ class CLI:
             ]
         else:
             # Do regular unstake
-            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
-            return None
-
-        
+            # Only self.config.wallet.hotkey is specified.
+            #  so we stake to that single hotkey.
+            assert self.config.wallet.hotkey is not None
+            wallets_to_unstake_from = [ bittensor.wallet( config = self.config ) ]
 
         final_wallets: List['bittensor.wallet'] = [] 
         final_amounts: List[Union[float, Balance]] = []
-        for wallet in tqdm(wallets_to_unstake_from):
-            wallet: bittensor.wallet
-            if not wallet.is_registered():
-                # Skip unregistered hotkeys.
-                continue
 
-            unstake_amount_tao: float = self.config.get('amount')
-            if self.config.get('max_stake'):
-                wallet_stake: Balance = wallet.get_stake()
-                unstake_amount_tao: float = wallet_stake.tao - self.config.get('max_stake')   
-                self.config.amount = unstake_amount_tao  
-                if unstake_amount_tao < 0:
-                    # Skip if max_stake is greater than current stake.
-                    continue
-                    
-            final_wallets.append(wallet)
-            final_amounts.append(unstake_amount_tao)
+        with tqdm(wallets_to_unstake_from, desc = 'Calculating unstake amounts') as pbar:
+            for wallet in wallets_to_unstake_from:
+                wallet: bittensor.wallet
+                if not wallet.is_registered():
+                    # Skip unregistered hotkeys.
+                    if (len(wallets_to_unstake_from) == 1):
+                        # Only one hotkey, error
+                        pbar.close()
+                        bittensor.__console__.print(f"[red]Hotkey [bold]{wallet.hotkey_str}[/bold] is not registered. Aborting.[/red]")
+                        return None
+                    else:
+                        # Otherwise, print warning and skip
+                        bittensor.__console__.print(f"[yellow]Hotkey [bold]{wallet.hotkey_str}[/bold] is not registered. Skipping.[/yellow]")
+                        continue
+
+                unstake_amount_tao: float = self.config.get('amount')
+                if self.config.get('max_stake'):
+                    wallet_stake: Balance = wallet.get_stake()
+                    unstake_amount_tao: float = wallet_stake.tao - self.config.get('max_stake')   
+                    self.config.amount = unstake_amount_tao  
+                    if unstake_amount_tao < 0:
+                        # Skip if max_stake is greater than current stake.
+                        pbar.update(1)
+                        continue
+                        
+                final_wallets.append(wallet)
+                final_amounts.append(unstake_amount_tao)
+
+                pbar.update(1)
 
         # Ask to unstake
         if not self.config.no_prompt:
@@ -320,7 +333,11 @@ class CLI:
                     ])
                 ):
                 return None
-                
+        
+        if len(final_wallets) == 1:
+            # Unstake from single hotkey.
+            return subtensor.unstake( wallet=final_wallets[0], amount = None if self.config.get('unstake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not self.config.no_prompt )
+
         subtensor.unstake_multiple( wallets = final_wallets, amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
@@ -362,29 +379,42 @@ class CLI:
         wallet_balance: Balance = wallet_0.get_balance()
         final_wallets: List['bittensor.wallet'] = [] 
         final_amounts: List[Union[float, Balance]] = []
-        for wallet in tqdm(wallets_to_stake_to):
-            wallet: bittensor.wallet            
-            if not wallet.is_registered():
-                # Skip unregistered hotkeys.
-                continue
-            
-            # Assign decrypted coldkey from wallet_0
-            #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0._coldkey
 
-            stake_amount_tao: float = self.config.get('amount')
-            if self.config.get('max_stake'):
-                wallet_stake: Balance = wallet.get_stake()
-                stake_amount_tao: float = self.config.get('max_stake') - wallet_stake.tao
+        with tqdm(wallets_to_stake_to, desc="Calculating stake amounts...") as pbar:
+            for wallet in wallets_to_stake_to:
+                wallet: bittensor.wallet            
+                if not wallet.is_registered():
+                    # Skip unregistered hotkeys.
+                    if (len(wallets_to_stake_to) == 1):
+                        # Only one hotkey, error
+                        pbar.close()
+                        bittensor.__console__.print(f"[red]Hotkey [bold]{wallet.hotkey_str}[/bold] is not registered. Aborting.[/red]")
+                        return None
+                    else:
+                        # Otherwise, print warning and skip
+                        bittensor.__console__.print(f"[yellow]Hotkey [bold]{wallet.hotkey_str}[/bold] is not registered. Skipping.[/yellow]")
+                        continue
+                
+                # Assign decrypted coldkey from wallet_0
+                #  so we don't have to decrypt again
+                wallet._coldkey = wallet_0._coldkey
 
-                # If the max_stake is greater than the current wallet balance, stake the entire balance.
-                stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
-                if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
-                    # Skip hotkey if max_stake is less than current stake.
-                    continue
-                wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
-            final_amounts.append(stake_amount_tao)
-            final_wallets.append(wallet)
+                stake_amount_tao: float = self.config.get('amount')
+                if self.config.get('max_stake'):
+                    wallet_stake: Balance = wallet.get_stake()
+                    stake_amount_tao: float = self.config.get('max_stake') - wallet_stake.tao
+
+                    # If the max_stake is greater than the current wallet balance, stake the entire balance.
+                    stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
+                    if stake_amount_tao <= 0.00001: # Threshold because of fees, might create a loop otherwise
+                        # Skip hotkey if max_stake is less than current stake.
+                        pbar.update(1)
+                        continue
+                    wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
+                final_amounts.append(stake_amount_tao)
+                final_wallets.append(wallet)
+
+                pbar.update(1)
 
         if len(final_wallets) == 0:
             # No wallets to stake to.
