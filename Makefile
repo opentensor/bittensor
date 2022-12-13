@@ -9,6 +9,13 @@ clean-venv:
 	pip uninstall -r make_venv_to_uninstall.txt && \
 	rm make_venv_to_uninstall.txt
 
+clean:
+	rm -rf dist/ && \
+	rm -rf build/ && \
+	rm -rf bittensor.egg-info/ && \
+	rm -rf .pytest_cache/ && \
+	rm -rf lib/
+
 install:
 	python3 -m pip install .
 
