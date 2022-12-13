@@ -457,10 +457,10 @@ def serve(
         if current_block - last_set_block > blocks_per_set_weights:
             bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
             metagraph.sync()
+            last_set_block = current_block
             if not config.neuron.no_set_weights:
                 try: 
                     bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
-                    last_set_block = current_block
                     # Set self weights to maintain activity.
                     # --- query the chain for the most current number of peers on the network
                     chain_weights = torch.zeros(subtensor.n)
