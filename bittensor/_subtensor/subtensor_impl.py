@@ -671,24 +671,29 @@ To run a local node (See: docs/running_a_validator.md) \n
         # Decrypt hotkey
         wallet.hotkey
 
-        with bittensor.__console__.status(":satellite: Checking Axon..."):
-            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-            if not neuron.is_null and neuron.ip == net.ip_to_int(ip) and neuron.port == port:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
-                return True
-
-        ip_as_int  = net.ip_to_int(ip)
-        ip_version = net.ip_version(ip)
-
-        # TODO(const): subscribe with version too.
         params = {
             'version': bittensor.__version_as_int__,
-            'ip': ip_as_int,
-            'port': port, 
-            'ip_type': ip_version,
+            'ip': net.ip_to_int(ip),
+            'port': port,
+            'ip_type': net.ip_version(ip),
             'modality': modality,
             'coldkey': wallet.coldkeypub.ss58_address,
         }
+
+        with bittensor.__console__.status(":satellite: Checking Axon..."):
+            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+            neuron_up_to_date = not neuron.is_null and params == {
+                'version': neuron.version,
+                'ip': neuron.ip,
+                'port': neuron.port,
+                'ip_type': neuron.ip_type,
+                'modality': neuron.modality,
+                'coldkey': neuron.coldkey
+            }
+            if neuron_up_to_date:
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
+                return True
+
         if prompt:
             if not Confirm.ask("Do you want to serve axon:\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address)):
                 return False

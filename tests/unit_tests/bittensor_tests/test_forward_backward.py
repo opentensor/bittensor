@@ -223,24 +223,21 @@ def test_axon_receptor_forward_works():
     )
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     axon.start()
-    endpoints = []
-    for i in range(20):
-        wallet.create_new_hotkey( use_password=False, overwrite = True)
-        endpoint = bittensor.endpoint(
-            version = bittensor.__version_as_int__,
-            uid = 0,
-            hotkey = wallet.hotkey.ss58_address,
-            ip = '0.0.0.0', 
-            ip_type = 4, 
-            port = axon_port,
-            modality = 2, 
-            coldkey = wallet.coldkey.ss58_address
-        )
-        endpoints += [endpoint]
+    endpoint = bittensor.endpoint(
+        version = bittensor.__version_as_int__,
+        uid = 0,
+        hotkey = wallet.hotkey.ss58_address,
+        ip = '0.0.0.0',
+        ip_type = 4,
+        port = axon_port,
+        modality = 2,
+        coldkey = wallet.coldkey.ss58_address
+    )
+    endpoints = [endpoint]
     x = torch.zeros(3, 3)
     synapses = [bittensor.synapse.TextLastHiddenState()]
 
-    tensors, codes, times = dendrite.text( endpoints=endpoints, inputs=[x for i in endpoints], synapses=synapses)
+    tensors, codes, times = dendrite.text( endpoints=endpoints, inputs=[x for _ in endpoints], synapses=synapses)
     receptors_states = dendrite.receptor_pool.get_receptors_state()
     # TODO: Fails locally independent of multiprocessing.
     assert receptors_states[endpoint.hotkey] == receptors_states[endpoint.hotkey].READY

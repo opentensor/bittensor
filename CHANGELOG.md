@@ -1,5 +1,43 @@
 # Changelog
 
+## 3.5.1 / 2022-11-24
+
+## What's Changed
+* [hotfix] pin scalecodec lower by @camfairchild in https://github.com/opentensor/bittensor/pull/1013
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.5.0...v3.5.1
+
+## 3.5.0 / 2022-11-24
+
+## What's Changed
+
+- [Fix] allow synapse all (https://github.com/opentensor/bittensor/pull/988)
+  - allow set synapse All using flag
+  - add test
+  - use dot get
+  
+- [Feature] Mark registration threads as daemons (https://github.com/opentensor/bittensor/pull/998)
+  - make solver processes daemons
+
+- [Feature] Validator debug response table (https://github.com/opentensor/bittensor/pull/999)
+  - Add response table to validator debugging
+
+- [Feature] Validator weight setting improvements (https://github.com/opentensor/bittensor/pull/1000)
+  - Remove responsive prioritization from validator weight calculation
+  - Move metagraph_sync just before weight setting
+  - Add metagraph register to validator
+  - Update validator epoch conditions
+  - Log epoch while condition details
+  - Consume validator nucleus UID queue fully
+  - Increase synergy table display precision
+  - Round before casting to int in phrase_cross_entropy
+- small fix for changelog and version by @Eugene-hu in https://github.com/opentensor/bittensor/pull/993
+- release/3.5.0 by @eduardogr in https://github.com/opentensor/bittensor/pull/1006
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.4.3...v3.5.0
+
+
 ## 3.4.3 / 2022-11-15
 
 ## What's Changed
