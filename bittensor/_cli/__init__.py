@@ -661,7 +661,9 @@ class cli:
             type=str, 
             required=False
         )
-        if len(sys.argv) == 1:
+
+        # If no arguments are passed, print help text.
+        if len(args) == 0:
             parser.print_help()
             sys.exit()
 
