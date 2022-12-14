@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.6.0 / 2022-12-13
+
+## What's Changed
+* Removal of dendrite multiprocessing by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1017
+* Merging back 3.5.1 fix to nobunaga by @eduardogr in https://github.com/opentensor/bittensor/pull/1018
+* Release/3.5.0 post release by @eduardogr in https://github.com/opentensor/bittensor/pull/1010
+* Fixes issue with --neuron.no_set_weights by @camfairchild in https://github.com/opentensor/bittensor/pull/1020
+* Removing GitHub workflow push docker by @eduardogr in https://github.com/opentensor/bittensor/pull/1011
+* [Fix] fix max stake for single by @camfairchild in https://github.com/opentensor/bittensor/pull/996
+* [Feature] mention balance if not no prompt by @camfairchild in https://github.com/opentensor/bittensor/pull/995
+* Add signature v2 format by @adriansmares in https://github.com/opentensor/bittensor/pull/983
+* Improving the way we manage requirements by @eduardogr in https://github.com/opentensor/bittensor/pull/1003
+* [BIT-601] Scaling law on EMA loss by @opentaco in https://github.com/opentensor/bittensor/pull/1022
+* [BIT-602] Update scaling power from subtensor by @opentaco in https://github.com/opentensor/bittensor/pull/1027
+* Release 3.6.0 by @eduardogr in https://github.com/opentensor/bittensor/pull/1023
+
+## New Contributors
+* @adriansmares made their first contribution in https://github.com/opentensor/bittensor/pull/976
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.5.1...v3.6.0
+
+
 ## 3.5.1 / 2022-11-24
 
 ## What's Changed
