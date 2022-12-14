@@ -953,19 +953,12 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
     """
 
     batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
-    topk = topk_p1 - 1
-
+    
     topk_tokens = topk_tensor[:, :-1, 1:].round().int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
     topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
-    floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
-
-    topk_probs = torch.clamp(topk_probs, 0, 1)  # [batch_size, topk] ensure probabilities within [0, 1]
-    floor_probs = torch.clamp(floor_probs, 0, 1)  # [batch_size] ensure floor probabilities within [0, 1]
 
     # === Ensure total probability is 1 ===
-    total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
-    n_topk_probs = topk_probs / total_probs[:, None]  # [batch_size, topk] normalized topk_probs
-    n_floor_probs = floor_probs / total_probs  # [batch_size] normalized floor_probs
+    n_topk_probs = topk_probs / topk_probs.sum(dim=-1)[:, None]  # [batch_size, topk] normalized topk_probs
 
     val_probs = torch.zeros(batch_size).to(topk_probs.device)  # accumulate probabilities when first tokens match
     match_probs = torch.zeros(batch_size).to(topk_probs.device)  # accumulate probabilities when sub target matches phrase
@@ -979,8 +972,6 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
         match = (topk_tokens[b, :, 0] == target_phrase[0].item())  # bool where first tokens match (validation token)
         if match.sum() > 0:
             val_probs[b] = n_topk_probs[b, match].sum()  # accumulate all matches
-        else:  # no matches
-            val_probs[b] = n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
 
         # === Integrate sub target matches ===
         check_len = min(max_len - 1, len(target_phrase))
@@ -994,8 +985,6 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
 
             if len(match_idx):  # at least one match
                 match_probs[b] += n_topk_probs[b, match_idx].sum()  # accumulate all matches
-            else:  # no matches
-                match_probs[b] += n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
 
     val_probs = torch.clamp(val_probs, 0, 1)  # [batch_size] ensure 0 <= total probability <= 1
     loss_val = - torch.log(val_probs + 1e-40)  # [batch_size] calculate cross entropy loss
