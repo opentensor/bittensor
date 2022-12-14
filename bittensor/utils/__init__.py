@@ -66,7 +66,7 @@ def version_checking():
     latest_version_as_int = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
     if latest_version_as_int > bittensor.__version_as_int__:
-        print('\u001b[31m Current Bittensor Version: {}, Latest Bittensor Version {} \n Please update to the latest version'.format(bittensor.__version__,latest_version))
+        print('\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m'.format(bittensor.__version__,latest_version))
 
 def is_valid_ss58_address( address: str ) -> bool:
     """
