@@ -1129,8 +1129,13 @@ To run a local node (See: docs/running_a_validator.md) \n
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                     block_hash = response.block_hash
                     bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
-                    explorer_url = "https://explorer.nakamoto.opentensor.ai/#/explorer/query/{block_hash}".format( block_hash = block_hash )
-                    bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
+
+                    if self.network in bittensor.__network_explorer_map__:
+                        # Get explorer link if we are on a known network.
+                        explorer_root_url = bittensor.__network_explorer_map__[self.network]
+                        explorer_url = "{root_url}/#/explorer/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
+                        bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
+                        
                 else:
                     bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 
