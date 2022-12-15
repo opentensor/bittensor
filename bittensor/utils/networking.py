@@ -92,19 +92,19 @@ def get_external_ip() -> str:
             ExternalIPNotFound (Exception):
                 Raised if all external ip attempts fail.
     """
-    # --- Try ipconfig.
+    # --- Try AWS
     try:
-        process =  os.popen('curl -s ifconfig.me')
-        external_ip = process.readline()
-        process.close()
+        external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except Exception:
         pass
 
-    # --- Try AWS
+    # --- Try ipconfig.
     try:
-        external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
+        process =  os.popen('curl -s ifconfig.me')
+        external_ip = process.readline()
+        process.close()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except Exception:
