@@ -34,19 +34,37 @@ from concurrent.futures import ThreadPoolExecutor
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon(wallet = wallet)
 
+sender_wallet = bittensor.wallet.mock()
 
+def gen_nonce():
+    return f"{time.monotonic_ns()}"
 
-def sign(wallet):
-    nounce = str(int(time.time() * 1000))
-    receptor_uid = str(uuid.uuid1())
-    message  = "{}{}{}".format(nounce, str(wallet.hotkey.ss58_address), receptor_uid)
+def sign_v1(wallet):
+    nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
+    message  = "{}{}{}".format(nonce, str(wallet.hotkey.ss58_address), receptor_uid)
     spliter = 'bitxx'
-    signature = spliter.join([ nounce, str(wallet.hotkey.ss58_address), "0x" + wallet.hotkey.sign(message).hex(), receptor_uid])
+    signature = spliter.join([ nonce, str(wallet.hotkey.ss58_address), "0x" + wallet.hotkey.sign(message).hex(), receptor_uid])
     return signature
 
-def test_sign():
-    sign(wallet)
-    sign(axon.wallet)
+def sign_v2(sender_wallet, receiver_wallet):
+    nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
+    sender_hotkey = sender_wallet.hotkey.ss58_address
+    receiver_hotkey = receiver_wallet.hotkey.ss58_address
+    message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{receptor_uid}"
+    signature = f"0x{sender_wallet.hotkey.sign(message).hex()}"
+    return ".".join([nonce, sender_hotkey, signature, receptor_uid])
+
+def sign(sender_wallet, receiver_wallet, receiver_version):
+    if receiver_version >= bittensor.__new_signature_version__:
+        return sign_v2(sender_wallet, receiver_wallet)
+    return sign_v1(sender_wallet)
+
+def test_sign_v1():
+    sign_v1(wallet)
+    sign_v1(axon.wallet)
+
+def test_sign_v2():
+    sign_v2(sender_wallet, wallet)
 
 def test_forward_wandb():
     inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
@@ -902,7 +920,7 @@ def test_backward_response_success_text_priority():
     assert code == bittensor.proto.ReturnCode.Success
 
 
-def test_grpc_forward_works():
+def run_test_grpc_forward_works(receiver_version):
     def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
@@ -927,14 +945,14 @@ def test_grpc_forward_works():
 
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        hotkey = axon.wallet.hotkey.ss58_address,
+        hotkey = sender_wallet.hotkey.ss58_address,
         tensors = [inputs_serialized],
         synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
     response = stub.Forward(request,
                             metadata = (
                                         ('rpc-auth-header','Bittensor'),
-                                        ('bittensor-signature',sign(axon.wallet)),
+                                        ('bittensor-signature',sign(sender_wallet, wallet, receiver_version)),
                                         ('bittensor-version',str(bittensor.__version_as_int__)),
                                         ))
 
@@ -943,8 +961,11 @@ def test_grpc_forward_works():
     assert response.return_code == bittensor.proto.ReturnCode.Success
     axon.stop()
 
+def test_grpc_forward_works():
+    for receiver_version in [341, bittensor.__new_signature_version__, bittensor.__version_as_int__]:
+        run_test_grpc_forward_works(receiver_version)
 
-def test_grpc_backward_works():
+def run_test_grpc_backward_works(receiver_version):
     def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
 
@@ -969,18 +990,22 @@ def test_grpc_backward_works():
     grads_serialized = synapses[0].serialize_backward_request_gradient(inputs_raw, grads_raw)
     request = bittensor.proto.TensorMessage(
         version = bittensor.__version_as_int__,
-        hotkey = '1092310312914',
+        hotkey = sender_wallet.hotkey.ss58_address,
         tensors = [inputs_serialized, grads_serialized],
         synapses = [ syn.serialize_to_wire_proto() for syn in synapses ]
     )
     response = stub.Backward(request,
                              metadata = (
                                     ('rpc-auth-header','Bittensor'),
-                                    ('bittensor-signature',sign(axon.wallet)),
+                                    ('bittensor-signature',sign(sender_wallet, wallet, receiver_version)),
                                     ('bittensor-version',str(bittensor.__version_as_int__)),
                                     ))
     assert response.return_code == bittensor.proto.ReturnCode.Success
     axon.stop()
+
+def test_grpc_backward_works():
+    for receiver_version in [341, bittensor.__new_signature_version__, bittensor.__version_as_int__]:
+        run_test_grpc_backward_works(receiver_version)
 
 def test_grpc_forward_fails():
     def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):

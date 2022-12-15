@@ -1,5 +1,65 @@
 # Changelog
 
+## 3.6.0 / 2022-12-13
+
+## What's Changed
+* Removal of dendrite multiprocessing by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1017
+* Merging back 3.5.1 fix to nobunaga by @eduardogr in https://github.com/opentensor/bittensor/pull/1018
+* Release/3.5.0 post release by @eduardogr in https://github.com/opentensor/bittensor/pull/1010
+* Fixes issue with --neuron.no_set_weights by @camfairchild in https://github.com/opentensor/bittensor/pull/1020
+* Removing GitHub workflow push docker by @eduardogr in https://github.com/opentensor/bittensor/pull/1011
+* [Fix] fix max stake for single by @camfairchild in https://github.com/opentensor/bittensor/pull/996
+* [Feature] mention balance if not no prompt by @camfairchild in https://github.com/opentensor/bittensor/pull/995
+* Add signature v2 format by @adriansmares in https://github.com/opentensor/bittensor/pull/983
+* Improving the way we manage requirements by @eduardogr in https://github.com/opentensor/bittensor/pull/1003
+* [BIT-601] Scaling law on EMA loss by @opentaco in https://github.com/opentensor/bittensor/pull/1022
+* [BIT-602] Update scaling power from subtensor by @opentaco in https://github.com/opentensor/bittensor/pull/1027
+* Release 3.6.0 by @eduardogr in https://github.com/opentensor/bittensor/pull/1023
+
+## New Contributors
+* @adriansmares made their first contribution in https://github.com/opentensor/bittensor/pull/976
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.5.1...v3.6.0
+
+
+## 3.5.1 / 2022-11-24
+
+## What's Changed
+* [hotfix] pin scalecodec lower by @camfairchild in https://github.com/opentensor/bittensor/pull/1013
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.5.0...v3.5.1
+
+## 3.5.0 / 2022-11-24
+
+## What's Changed
+
+- [Fix] allow synapse all (https://github.com/opentensor/bittensor/pull/988)
+  - allow set synapse All using flag
+  - add test
+  - use dot get
+  
+- [Feature] Mark registration threads as daemons (https://github.com/opentensor/bittensor/pull/998)
+  - make solver processes daemons
+
+- [Feature] Validator debug response table (https://github.com/opentensor/bittensor/pull/999)
+  - Add response table to validator debugging
+
+- [Feature] Validator weight setting improvements (https://github.com/opentensor/bittensor/pull/1000)
+  - Remove responsive prioritization from validator weight calculation
+  - Move metagraph_sync just before weight setting
+  - Add metagraph register to validator
+  - Update validator epoch conditions
+  - Log epoch while condition details
+  - Consume validator nucleus UID queue fully
+  - Increase synergy table display precision
+  - Round before casting to int in phrase_cross_entropy
+- small fix for changelog and version by @Eugene-hu in https://github.com/opentensor/bittensor/pull/993
+- release/3.5.0 by @eduardogr in https://github.com/opentensor/bittensor/pull/1006
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.4.3...v3.5.0
+
+
 ## 3.4.3 / 2022-11-15
 
 ## What's Changed

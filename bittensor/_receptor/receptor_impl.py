@@ -123,20 +123,32 @@ class Receptor(nn.Module):
     def __exit__ ( self ):
         self.__del__()
 
-    def sign ( self ):
+    def sign_v1( self ):
         r""" Uses the wallet pubkey to sign a message containing the pubkey and the time
         """
-        nounce = self.nounce()
-        message  = str(nounce) + str(self.wallet.hotkey.ss58_address) + str(self.receptor_uid)
+        nonce = self.nonce()
+        message  = str(nonce) + str(self.wallet.hotkey.ss58_address) + str(self.receptor_uid)
         spliter = 'bitxx'
-        signature = spliter.join([ str(nounce), str(self.wallet.hotkey.ss58_address), "0x" + self.wallet.hotkey.sign(message).hex(), str(self.receptor_uid) ])
+        signature = spliter.join([ str(nonce), str(self.wallet.hotkey.ss58_address), "0x" + self.wallet.hotkey.sign(message).hex(), str(self.receptor_uid) ])
         return signature
-    
-    def nounce ( self ):
+
+    def sign_v2(self):
+        nonce = f"{self.nonce()}"
+        sender_hotkey = self.wallet.hotkey.ss58_address
+        receiver_hotkey = self.endpoint.hotkey
+        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.receptor_uid}"
+        signature = f"0x{self.wallet.hotkey.sign(message).hex()}"
+        return ".".join([nonce, sender_hotkey, signature, self.receptor_uid])
+
+    def sign(self):
+        if self.endpoint.version >= bittensor.__new_signature_version__:
+            return self.sign_v2()
+        return self.sign_v1()
+
+    def nonce ( self ):
         r"""creates a string representation of the time
         """
-        nounce = int(clock.time() * 1000)
-        return nounce
+        return clock.monotonic_ns()
         
     def state ( self ):
         try: 

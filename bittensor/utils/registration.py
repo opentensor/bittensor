@@ -158,7 +158,7 @@ class SolverBase(multiprocessing.Process):
     limit: int
 
     def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit):
-        multiprocessing.Process.__init__(self)
+        multiprocessing.Process.__init__(self, daemon=True)
         self.proc_num = proc_num
         self.num_proc = num_proc
         self.update_interval = update_interval

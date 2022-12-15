@@ -152,7 +152,7 @@ class cli:
         run_parser.add_argument(
             '--synapse', 
             type=str, 
-            choices= list(bittensor.synapse.__synapses_types__), 
+            choices= list(bittensor.synapse.__synapses_types__) + ['All'], 
             default='None', 
             help='''Synapses available through bittensor.synapse'''
         )
@@ -662,11 +662,16 @@ class cli:
             required=False
         )
 
+        # If no arguments are passed, print help text.
+        if len(args) == 0:
+            parser.print_help()
+            sys.exit()
+
         return bittensor.config( parser, args=args )
 
     @staticmethod   
     def check_config (config: 'bittensor.Config'):
-        """ Check if the essential condig exist under different command
+        """ Check if the essential config exist under different command
         """
         if config.command == "run":
             cli.check_run_config( config )
@@ -742,15 +747,27 @@ class cli:
                 sys.exit()
             else:
                 config.dest = str(dest)
+
+        # Get current balance and print to user.
+        if not config.no_prompt:
+            wallet = bittensor.wallet( config )
+            subtensor = bittensor.subtensor( config )
+            with bittensor.__console__.status(":satellite: Checking Balance..."):
+                account_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+                bittensor.__console__.print("Balance: [green]{}[/green]".format(account_balance))
                     
         # Get amount.
         if not config.get('amount'):
-            amount = Prompt.ask("Enter Tao amount to transfer")
-            try:
-                config.amount = float(amount)
-            except ValueError:
-                console.print(":cross_mark:[red] Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
-                sys.exit()
+            if not config.no_prompt:
+                amount = Prompt.ask("Enter TAO amount to transfer")
+                try:
+                    config.amount = float(amount)
+                except ValueError:
+                    console.print(":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(amount))
+                    sys.exit()
+            else:
+                console.print(":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(amount))
+                sys.exit(1)
 
     def check_unstake_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
@@ -993,8 +1010,8 @@ class cli:
             model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
             config.model = model
 
-        if 'server' in config.model and not config.no_prompt:
-            synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__), default = 'All')
+        if 'server' in config.model and config.get('synapse', 'None') == 'None' and not config.no_prompt:
+            synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__) + ['All'], default = 'All')
             config.synapse = synapse
 
         # Don't need to ask about registration if they don't want to reregister the wallet.
