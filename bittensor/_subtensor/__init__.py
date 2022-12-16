@@ -205,7 +205,7 @@ class subtensor:
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.dev_id', '--' + prefix_str + 'cuda.dev_id',  type=int, nargs='+', default=argparse.SUPPRESS, help='''Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
-            parser.add_argument('--' + prefix_str + 'subtensor.no_fast_sync', '--' + prefix_str + 'no_fast_sync', action='store_false', dest='subtensor.use_fast_sync', help='''Set flag to disable fast sync feature.''', default=True)
+            parser.add_argument('--' + prefix_str + 'subtensor.use_fast_sync', '--' + prefix_str + 'use_fast_sync', action='store_true', dest='subtensor.use_fast_sync', help='''Set flag to enable fast sync feature.''', default=False)
 
         except argparse.ArgumentError:
             # re-parsing arguments.
