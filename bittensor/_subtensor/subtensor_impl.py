@@ -1596,7 +1596,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         try:
             from subtensorapi import FastSync
         except ImportError:
-            raise ValueError("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
+            raise SyncException("Failed to import subtensorapi, either subtensorapi is not installed or it's not supported on your platform.")
         
         try:
             # check if fast sync is available
@@ -1606,7 +1606,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # get neurons
             neurons = fast_sync.sync_fd(block_hash)
         except Exception as e:
-            raise ValueError("Failed to fast sync neurons: {}".format(e))
+            raise SyncException("Failed to fast sync neurons: {}".format(e))
 
         return neurons
 
