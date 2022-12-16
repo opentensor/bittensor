@@ -111,40 +111,19 @@ def test_upnpc_create_port_map(mocked_upnp):
     with pytest.raises(UPNPCException):
         upnpc_create_port_map(port=port)
     
-class TestGetFormattedWSEndpointURL(unittest.TestCase):
-    def test_wss_in_front(self):
-        # should return the same string
-        url = "wss://exampleendpoint:9944"
-        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), url)
 
-    def test_ws_in_front(self):
-        # should return the same string
-        url = "ws://exampleendpoint:9944"
-        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), url)
-
-    def test_no_protocol(self):
-        # should return with ws:// by default
-        url = "exampleendpoint:9944"
-        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpoint:9944")
-
-    def test_no_port(self):
-        # should not add port if not specified
-        url = "ws://exampleendpoint"
-        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), url)
-
-    def test_no_port_no_protocol(self):
-        # should not add port if not specified
-        url = "exampleendpoint"
-        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpoint")
-
-    def test_url_containing_ws(self):
-        # should add ws to front
-        url = "exampleendpointwithws://:9944"
-        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpointwithws://:9944")
-
-        url = "exampleendpointwithwss://:9944"
-        self.assertEqual(utils.networking.get_formatted_ws_endpoint_url(url), "ws://exampleendpointwithwss://:9944")
-    
+@pytest.mark.parametrize("url, expected", [
+    ("wss://exampleendpoint:9944", "wss://exampleendpoint:9944"),
+    ("ws://exampleendpoint:9944", "ws://exampleendpoint:9944"),
+    ("exampleendpoint:9944", "ws://exampleendpoint:9944"),
+    ("ws://exampleendpoint", "ws://exampleendpoint"), # should not add port if not specified
+    ("wss://exampleendpoint", "wss://exampleendpoint"), # should not add port if not specified
+    ("exampleendpoint", "ws://exampleendpoint"), # should not add port if not specified
+    ("exampleendpointwithws://:9944", "ws://exampleendpointwithws://:9944"), # should only care about the front
+    ("exampleendpointwithwss://:9944", "ws://exampleendpointwithwss://:9944"), # should only care about the front
+])
+def test_format(url: str, expected: str):
+    assert utils.networking.get_formatted_ws_endpoint_url(url) == expected
 
 
 if __name__ == "__main__":
