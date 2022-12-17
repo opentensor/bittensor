@@ -1443,15 +1443,15 @@ def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[
         std = batch_distances.std(dim=0)  # [batch_size]
 
         logger.info(f"Logits distance: "
-                    f"avg={', '.join([f'{i}:{v:.3f}' for i, v in enumerate(avg)])}, "
-                    f"std={', '.join([f'{i}:{v:.3f}' for i, v in enumerate(std)])}")
+                    f"avg={', '.join([f'{i}:{v:.4g}' for i, v in enumerate(avg)])}, "
+                    f"std={', '.join([f'{i}:{v:.4g}' for i, v in enumerate(std)])}")
         for uid, _stats in stats.items():
             if 'logits_distances' + ext in _stats:
                 excess = torch.clamp(_stats['logits_distances' + ext] - (avg + std), 0)  # distance > avg + std
-                logger.info(f"UID{_uid} [{distances.mean()}: "
-                            f"{', '.join([f'{i}:{dist:.3f}' for i, dist in enumerate(distances)])}")
-                logger.info(f"UID{_uid} [{excess.mean()}: "
-                            f"{', '.join([f'{i}:{exc:.3f}' for i, exc in enumerate(excess)])}")
+                logger.info(f"UID{uid} [{_stats['logits_distances' + ext].mean():.4g}]: "
+                            f"{', '.join([f'{i}:{dist:.4g}' for i, dist in enumerate(_stats['logits_distances' + ext])])}")
+                logger.info(f"UID{uid} [{excess.mean():.4g}]: "
+                            f"{', '.join([f'{i}:{exc:.4g}' for i, exc in enumerate(excess)])}")
                 _stats['logits_excess' + ext] = excess.mean()  # in [0, 1]
                 del _stats['logits_distances' + ext]  # keep only scalar stats beyond this
 
