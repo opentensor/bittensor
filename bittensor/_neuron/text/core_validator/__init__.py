@@ -1442,7 +1442,9 @@ def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[
         avg = batch_distances.mean(dim=0)  # [batch_size]
         std = batch_distances.std(dim=0)  # [batch_size]
 
-        logger.info(f'Logits distance: batch_avg={avg:.3f}, batch_std={std:.3f}')
+        logger.info(f"Logits distance: "
+                    f"avg={', '.join([f'{i}:{v:.3f}' for i, v in enumerate(avg)])}, "
+                    f"std={', '.join([f'{i}:{v:.3f}' for i, v in enumerate(std)])}")
         for uid, _stats in stats.items():
             if 'logits_distances' + ext in _stats:
                 excess = torch.clamp(_stats['logits_distances' + ext] - (avg + std), 0)  # distance > avg + std
