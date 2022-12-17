@@ -81,8 +81,8 @@ neuron_stats_columns = [
     ['vBase', 'base_params_val', '{:.0f}', ''],  # square root parameter count estimate for validation task
     ['nBase', 'base_params_nxt', '{:.0f}', ''],  # square root parameter count estimate for phrase validation task [TextCausalLMNext]
     ['nParam~', 'est_params_nxt', '{:.2g}', 'magenta'],  # parameter count estimate for phrase validation task [TextCausalLMNext]
-    ['nDist', 'logits_distance_nxt', '{:.0f}', ''],  # logits distance avg compared to network prob dist [TextCausalLMNext]
-    ['nExcess', 'logits_excess_nxt', '{:.0f}', ''],  # logits distance excess avg above network avg + std [TextCausalLMNext]
+    ['nDist', 'logits_distance_nxt', '{:.2g}', ''],  # logits distance avg compared to network prob dist [TextCausalLMNext]
+    ['nExcess', 'logits_excess_nxt', '{:.2f}', ''],  # logits distance excess avg above network avg + std [TextCausalLMNext]
     ['sSyn', 'synergy', '{:.0f}', 'white'],  # Shapley pairwise synergy over sequence loss (parameter count estimate)
     ['vSyn', 'synergy_val', '{:.0f}', 'white'],  # Shapley pairwise synergy over validation loss (count estimate)
     ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate) [TextCausalLMNext]
@@ -686,7 +686,7 @@ class neuron:
 
                 if 'logits_excess_nxt' in stats:
                     # penalize by logits distance excess
-                    extra_stats['shapley_values_nxt'] *= (1 - stats['logits_excess_nxt'])
+                    extra_stats['shapley_values_nxt'] /= 1 + stats['logits_excess_nxt']
 
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
@@ -1443,16 +1443,18 @@ def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[
         std = batch_distances.std(dim=0)  # [batch_size]
 
         logger.info(f"Logits distance: "
-                    f"avg={', '.join([f'{i}:{v:.4g}' for i, v in enumerate(avg)])}, "
-                    f"std={', '.join([f'{i}:{v:.4g}' for i, v in enumerate(std)])}")
+                    f"avg={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(avg)])}")
+        logger.info(f"std={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(std)])}")
         for uid, _stats in stats.items():
             if 'logits_distances' + ext in _stats:
                 excess = torch.clamp(_stats['logits_distances' + ext] - (avg + std), 0)  # distance > avg + std
-                logger.info(f"UID{uid} [{_stats['logits_distances' + ext].mean():.4g}]: "
-                            f"{', '.join([f'{i}:{dist:.4g}' for i, dist in enumerate(_stats['logits_distances' + ext])])}")
-                logger.info(f"UID{uid} [{excess.mean():.4g}]: "
-                            f"{', '.join([f'{i}:{exc:.4g}' for i, exc in enumerate(excess)])}")
-                _stats['logits_excess' + ext] = excess.mean()  # in [0, 1]
+                excess /= std + 1e-9  # stddev multiples above 1 stddev
+                excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
+                logger.info(f"UID{uid} distances [{_stats['logits_distances' + ext].mean():.4g}]: "
+                            f"{', '.join([f'{i}:{dist:.3g}' for i, dist in enumerate(_stats['logits_distances' + ext])])}")
+                logger.info(f"UID{uid} excess [{excess.mean():.3g}]: "
+                            f"{', '.join([f'{i}:{exc:.3g}' for i, exc in enumerate(excess)])}")
+                _stats['logits_excess' + ext] = excess.mean()  # in [0, 10]
                 del _stats['logits_distances' + ext]  # keep only scalar stats beyond this
 
 
