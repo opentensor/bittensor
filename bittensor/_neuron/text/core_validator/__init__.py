@@ -1448,8 +1448,9 @@ def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[
         logger.info(f"std={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(std)])}")
         for uid, _stats in stats.items():
             if 'logits_distances' + ext in _stats:
-                excess = torch.clamp(_stats['logits_distances' + ext] - (avg + 2 * std), 0)  # distance > avg + 2std
-                excess /= std + 1e-9  # stddev multiples above 2 stddev
+                excess = torch.clamp(_stats['logits_distances' + ext] - (avg + std), 0)  # distance > avg + std
+                excess /= std + 1e-9  # stddev multiples above 1 stddev
+                excess = torch.pow(excess, 2)  # reduce < 2std, increase > 2std
                 excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
                 logger.info(f"UID{uid} distances [{_stats['logits_distances' + ext].mean():.4g}]: "
                             f"{', '.join([f'{i}:{dist:.3g}' for i, dist in enumerate(_stats['logits_distances' + ext])])}")
