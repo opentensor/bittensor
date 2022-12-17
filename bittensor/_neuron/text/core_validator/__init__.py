@@ -41,8 +41,9 @@ from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
-from bittensor.utils.tokenizer_utils import phrase_cross_entropy
+from bittensor.utils.tokenizer_utils import phrase_cross_entropy, topk_tokens_to_vocab_size
 
+from torch.nn.functional import kl_div
 from torch.nn.utils import clip_grad_norm_
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
@@ -80,6 +81,8 @@ neuron_stats_columns = [
     ['vBase', 'base_params_val', '{:.0f}', ''],  # square root parameter count estimate for validation task
     ['nBase', 'base_params_nxt', '{:.0f}', ''],  # square root parameter count estimate for phrase validation task [TextCausalLMNext]
     ['nParam~', 'est_params_nxt', '{:.2g}', 'magenta'],  # parameter count estimate for phrase validation task [TextCausalLMNext]
+    ['nDist', 'logits_distance_nxt', '{:.0f}', ''],  # logits distance avg compared to network prob dist [TextCausalLMNext]
+    ['nExcess', 'logits_excess_nxt', '{:.0f}', ''],  # logits distance excess avg above network avg + std [TextCausalLMNext]
     ['sSyn', 'synergy', '{:.0f}', 'white'],  # Shapley pairwise synergy over sequence loss (parameter count estimate)
     ['vSyn', 'synergy_val', '{:.0f}', 'white'],  # Shapley pairwise synergy over validation loss (count estimate)
     ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate) [TextCausalLMNext]
@@ -681,6 +684,10 @@ class neuron:
                 if 'synergy_nxt' in stats:
                     extra_stats['shapley_values_nxt'] = extra_stats['base_params_nxt'] + stats['synergy_nxt']
 
+                if 'logits_excess_nxt' in stats:
+                    # penalize by logits distance excess
+                    extra_stats['shapley_values_nxt'] *= (1 - stats['logits_excess_nxt'])
+
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
             if 'updates!' in stats:
@@ -1245,6 +1252,12 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
                 f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
+    distance_start_time = time.time()
+
+    logits_distance(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
+
+    logger.info(f'{str(synapse)} \t| Logits distance <dim>[{time.time() - distance_start_time:.3g}s]</dim>')
+
     synergy_start_time = time.time()
 
     syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt', scaling_law_power=synergy_scaling_law_power)
@@ -1360,6 +1373,85 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             unsuccessful += [(_uid, return_ops[index][index_s], times[index][index_s])]
 
     return neuron_loss + routing_loss, stats, unsuccessful
+
+
+def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
+                    return_ops: List[torch.LongTensor], times: List[torch.FloatTensor],
+                    index_s: int = 0, ext: str = None):
+    r"""
+    Calculate Shapley base values and neuron response validation measure statistics, given responses from a synapse.
+        Args:
+            stats (:obj:`Dict`, `required`):
+                Statistics per endpoint for this batch.
+            uids (:obj:`torch.Tensor`, `required`): [num_neurons]
+                Neuron UIDs.
+            query_responses (:obj:`List[List[torch.FloatTensor]]`, `required`):
+                List of outputs from synapses, each a list of size num_endpoints of tensors with relevant size. Non-responses are zeroes of relevant
+                synapse shape. Shape num_synapses * ( num_endpoints * ( -1, -1, -1 ) )
+            return_ops (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
+                Return code per call per synapse.
+            times (:obj:`List [torch.FloatTensor]` of shape :obj:`[num_endpoints]`, `required`):
+                Times per call per synapse.
+            index_s (:obj:`int`, `optional`):
+                Index of synapse to extract responses.
+            ext (:obj:`str`, `optional`):
+                Extension to parameter string for stats key.
+    """
+    probs_k = 0
+    probs_avg = None
+
+    # === Probs averaging ===
+    # Calculate the average token distribution for each batch task.
+    for index, _uid in enumerate(uids.tolist()):
+        if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+            try:
+                probs = topk_tokens_to_vocab_size(query_responses[index][index_s],
+                                                  bittensor.__vocab_size__)  # [batch_size, vocab_size]
+                if probs_avg is None:
+                    probs_avg = probs
+                else:
+                    probs_avg += probs
+                probs_k += 1
+
+            except Exception as e:
+                logger.warning(f'Synapse {index_s} error (logits_divergence)\t| '
+                               f'UID {_uid} <dim>[{times[index][index_s]:.2f}s]</dim>: {e}')
+
+    if probs_avg is not None:
+        probs_avg /= probs_k
+        probs_avg_sqrt = probs_avg.sqrt()
+        batch_distances = []
+
+        # === Distribution distance ===
+        # Calculate the Hellinger distance from the average probability distribution for each batch task.
+        for index, _uid in enumerate(uids.tolist()):
+            if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+                try:
+                    probs = topk_tokens_to_vocab_size(query_responses[index][index_s],
+                                                      bittensor.__vocab_size__)  # [batch_size, vocab_size]
+                    distances = 0.5 * torch.pow(probs.sqrt() - probs_avg_sqrt, 2).mean(dim=1)  # [batch_size] in [0, 1]
+                    stats[_uid]['logits_distances' + ext] = distances  # [batch_size]
+                    stats[_uid]['logits_distance' + ext] = distances.mean()  # scalar
+                    batch_distances += [distances]
+
+                except Exception as e:
+                    logger.warning(f'Synapse {index_s} error (logits_divergence)\t| '
+                                   f'UID {_uid} <dim>[{times[index][index_s]:.2f}s]</dim>: {e}')
+
+        batch_distances = torch.stack(batch_distances)  # [uids_len, batch_size]
+        avg = batch_distances.mean(dim=0)  # [batch_size]
+        std = batch_distances.std(dim=0)  # [batch_size]
+
+        logger.info(f'Logits distance: batch_avg={avg:.3f}, batch_std={std:.3f}')
+        for uid, _stats in stats.items():
+            if 'logits_distances' + ext in _stats:
+                excess = torch.clamp(_stats['logits_distances' + ext] - (avg + std), 0)  # distance > avg + std
+                logger.info(f"UID{_uid} [{distances.mean()}: "
+                            f"{', '.join([f'{i}:{dist:.3f}' for i, dist in enumerate(distances)])}")
+                logger.info(f"UID{_uid} [{excess.mean()}: "
+                            f"{', '.join([f'{i}:{exc:.3f}' for i, exc in enumerate(excess)])}")
+                _stats['logits_excess' + ext] = excess.mean()  # in [0, 1]
+                del _stats['logits_distances' + ext]  # keep only scalar stats beyond this
 
 
 def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tensor = None, scaling_law_power: float = 0.5):
