@@ -1254,7 +1254,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
     distance_start_time = time.time()
 
-    logits_distance(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
+    with torch.no_grad():
+        logits_distance(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
 
     logger.info(f'{str(synapse)} \t| Logits distance <dim>[{time.time() - distance_start_time:.3g}s]</dim>')
 
