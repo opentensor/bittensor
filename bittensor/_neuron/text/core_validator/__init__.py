@@ -1429,7 +1429,8 @@ def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[
                 try:
                     probs = topk_tokens_to_vocab_size(query_responses[index][index_s],
                                                       bittensor.__vocab_size__)  # [batch_size, vocab_size]
-                    distances = 0.5 * torch.pow(probs.sqrt() - probs_avg_sqrt, 2).mean(dim=1)  # [batch_size] in [0, 1]
+                    distances = 0.5 * torch.pow(probs.sqrt() - probs_avg_sqrt, 2).sum(dim=1)  # [batch_size] in [0, 1]
+                    distances = distances.sqrt()
                     stats[_uid]['logits_distances' + ext] = distances  # [batch_size]
                     stats[_uid]['logits_distance' + ext] = distances.mean()  # scalar
                     batch_distances += [distances]
