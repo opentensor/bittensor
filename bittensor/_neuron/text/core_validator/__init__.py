@@ -1578,7 +1578,7 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
     batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
 
     # === Column selection ===
-    columns = [c[:] for c in neuron_stats_columns if c[1] in ['uid', sort_col, 'loss_nxt', 'synergy_nxt']]
+    columns = [c[:] for c in neuron_stats_columns if c[1] in ['uid', sort_col, 'loss_nxt', 'synergy_nxt', 'logits_excess_nxt']]
     col_keys = [c[1] for c in columns]
 
     # === Sort rows ===
