@@ -81,8 +81,8 @@ neuron_stats_columns = [
     ['vBase', 'base_params_val', '{:.0f}', ''],  # square root parameter count estimate for validation task
     ['nBase', 'base_params_nxt', '{:.0f}', ''],  # square root parameter count estimate for phrase validation task [TextCausalLMNext]
     ['nParam~', 'est_params_nxt', '{:.2g}', 'magenta'],  # parameter count estimate for phrase validation task [TextCausalLMNext]
-    ['nDist', 'logits_distance_nxt', '{:.2g}', ''],  # logits distance avg compared to network prob dist [TextCausalLMNext]
-    ['nExcess', 'logits_excess_nxt', '{:.2f}', ''],  # logits distance excess avg above network avg + std [TextCausalLMNext]
+    ['nDiv', 'logits_divergence_nxt', '{:.2g}', ''],  # logits divergence avg compared to network prob dist [TextCausalLMNext]
+    ['nExcess', 'logits_excess_nxt', '{:.2f}', ''],  # logits divergence excess avg above network avg + std [TextCausalLMNext]
     ['sSyn', 'synergy', '{:.0f}', 'white'],  # Shapley pairwise synergy over sequence loss (parameter count estimate)
     ['vSyn', 'synergy_val', '{:.0f}', 'white'],  # Shapley pairwise synergy over validation loss (count estimate)
     ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate) [TextCausalLMNext]
@@ -685,7 +685,7 @@ class neuron:
                     extra_stats['shapley_values_nxt'] = extra_stats['base_params_nxt'] + stats['synergy_nxt']
 
                 if 'logits_excess_nxt' in stats:
-                    # penalize by logits distance excess
+                    # penalize by logits divergence excess
                     extra_stats['shapley_values_nxt'] /= 1 + stats['logits_excess_nxt']
 
             # === EMA zeroing update ===
@@ -1252,12 +1252,12 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
                 f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
-    distance_start_time = time.time()
+    divergence_start_time = time.time()
 
     with torch.no_grad():
-        logits_distance(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
+        logits_divergence(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
 
-    logger.info(f'{str(synapse)} \t| Logits distance <dim>[{time.time() - distance_start_time:.3g}s]</dim>')
+    logger.info(f'{str(synapse)} \t| Logits divergences <dim>[{time.time() - divergence_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
 
@@ -1376,19 +1376,21 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     return neuron_loss + routing_loss, stats, unsuccessful
 
 
-def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
-                    return_ops: List[torch.LongTensor], times: List[torch.FloatTensor],
-                    index_s: int = 0, ext: str = None):
+def logits_divergence(stats: Dict, uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
+                      return_ops: List[torch.LongTensor], times: List[torch.FloatTensor],
+                      index_s: int = 0, ext: str = None):
     r"""
-    Calculate Shapley base values and neuron response validation measure statistics, given responses from a synapse.
+    Calculate each logits divergence per neuron per task from the average logits over all neurons per task,
+    given responses from a synapse.
         Args:
             stats (:obj:`Dict`, `required`):
                 Statistics per endpoint for this batch.
             uids (:obj:`torch.Tensor`, `required`): [num_neurons]
                 Neuron UIDs.
             query_responses (:obj:`List[List[torch.FloatTensor]]`, `required`):
-                List of outputs from synapses, each a list of size num_endpoints of tensors with relevant size. Non-responses are zeroes of relevant
-                synapse shape. Shape num_synapses * ( num_endpoints * ( -1, -1, -1 ) )
+                List of outputs from synapses, each a list of size num_endpoints of tensors with relevant size.
+                Non-responses are zeroes of relevant synapse shape.
+                Shape num_synapses * ( num_endpoints * ( -1, -1, -1 ) )
             return_ops (:obj:`List[torch.LongTensor]` of shape :obj:`[num_endpoints]`, `required`):
                 Return code per call per synapse.
             times (:obj:`List [torch.FloatTensor]` of shape :obj:`[num_endpoints]`, `required`):
@@ -1421,44 +1423,44 @@ def logits_distance(stats: Dict, uids: torch.Tensor, query_responses: List[List[
     if probs_avg is not None:
         probs_avg /= probs_k
         probs_avg_sqrt = probs_avg.sqrt()
-        batch_distances = []
+        batch_divergences = []
 
-        # === Distribution distance ===
-        # Calculate the Hellinger distance from the average probability distribution for each batch task.
+        # === Distribution divergence ===
+        # Calculate the Hellinger distance (f-divergence) from the average probability distribution for each batch task.
         for index, _uid in enumerate(uids.tolist()):
             if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
                 try:
                     probs = topk_tokens_to_vocab_size(query_responses[index][index_s],
                                                       bittensor.__vocab_size__)  # [batch_size, vocab_size]
-                    distances = 0.5 * torch.pow(probs.sqrt() - probs_avg_sqrt, 2).sum(dim=1)  # [batch_size] in [0, 1]
-                    distances = distances.sqrt()
-                    stats[_uid]['logits_distances' + ext] = distances  # [batch_size]
-                    stats[_uid]['logits_distance' + ext] = distances.mean()  # scalar
-                    batch_distances += [distances]
+                    divergence = 0.5 * torch.pow(probs.sqrt() - probs_avg_sqrt, 2).sum(dim=1)  # [batch_size] in [0, 1]
+                    divergence = divergence.sqrt()
+                    stats[_uid]['logits_divergences' + ext] = divergence  # [batch_size]
+                    stats[_uid]['logits_divergence' + ext] = divergence.mean()  # scalar
+                    batch_divergences += [divergence]
 
                 except Exception as e:
                     logger.warning(f'Synapse {index_s} error (logits_divergence)\t| '
                                    f'UID {_uid} <dim>[{times[index][index_s]:.2f}s]</dim>: {e}')
 
-        batch_distances = torch.stack(batch_distances)  # [uids_len, batch_size]
-        avg = batch_distances.mean(dim=0)  # [batch_size]
-        std = batch_distances.std(dim=0)  # [batch_size]
+        batch_divergences = torch.stack(batch_divergences)  # [uids_len, batch_size]
+        avg = batch_divergences.mean(dim=0)  # [batch_size]
+        std = batch_divergences.std(dim=0)  # [batch_size]
 
-        logger.info(f"Logits distance: "
+        logger.info(f"Logits divergences: "
                     f"avg={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(avg)])}")
         logger.info(f"std={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(std)])}")
         for uid, _stats in stats.items():
-            if 'logits_distances' + ext in _stats:
-                excess = torch.clamp(_stats['logits_distances' + ext] - (avg + std), 0)  # distance > avg + std
+            if 'logits_divergences' + ext in _stats:
+                excess = torch.clamp(_stats['logits_divergences' + ext] - (avg + std), 0)  # divergence > avg + std
                 excess /= std + 1e-9  # stddev multiples above 1 stddev
                 excess = torch.pow(excess, 2)  # reduce < 2std, increase > 2std
                 excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
-                logger.info(f"UID{uid} distances [{_stats['logits_distances' + ext].mean():.4g}]: "
-                            f"{', '.join([f'{i}:{dist:.3g}' for i, dist in enumerate(_stats['logits_distances' + ext])])}")
+                logger.info(f"UID{uid} divergences [{_stats['logits_divergences' + ext].mean():.4g}]: "
+                            f"{', '.join([f'{i}:{dist:.3g}' for i, dist in enumerate(_stats['logits_divergences' + ext])])}")
                 logger.info(f"UID{uid} excess [{excess.mean():.3g}]: "
                             f"{', '.join([f'{i}:{exc:.3g}' for i, exc in enumerate(excess)])}")
                 _stats['logits_excess' + ext] = excess.mean()  # in [0, 10]
-                del _stats['logits_distances' + ext]  # keep only scalar stats beyond this
+                del _stats['logits_divergences' + ext]  # keep only scalar stats beyond this
 
 
 def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tensor = None, scaling_law_power: float = 0.5):
