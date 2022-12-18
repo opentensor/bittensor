@@ -1453,7 +1453,7 @@ def logits_divergence(stats: Dict, uids: torch.Tensor, query_responses: List[Lis
             if 'logits_divergences' + ext in _stats:
                 excess = torch.clamp(_stats['logits_divergences' + ext] - (avg + std), 0)  # divergence > avg + std
                 excess /= std + 1e-9  # stddev multiples above 1 stddev
-                excess = torch.pow(excess, 2)  # reduce < 2std, increase > 2std
+                excess = torch.pow(excess, 3)  # reduce < 2std, increase > 2std
                 excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
                 logger.info(f"UID{uid} divergences [{_stats['logits_divergences' + ext].mean():.4g}]: "
                             f"{', '.join([f'{i}:{dist:.3g}' for i, dist in enumerate(_stats['logits_divergences' + ext])])}")
