@@ -1846,20 +1846,20 @@ To run a local node (See: docs/running_a_validator.md) \n
                 raise NeuronPullException("Failed to pull neuron for uid: {} at block: {} with error: {}".format(uid, block, e))
             return neuron
 
-    def neuron_for_uid_fast( self, uid: int, block: int = None ) -> Optional[SimpleNamespace]:
+    def neuron_for_uid_fast( self, uid: int, block: Optional[Union[int, str]] = None ) -> Optional[SimpleNamespace]:
         r""" Returns a neuron from the chain, using subtensorapi
         Args:
             uid ( int ):
                 The uid of the neuron to query for.
-            block ( int ):
-                The block number to query for.
+            block ( Optional[Union[int, str]] )
+                The block number to query for, or 'latest' for the latest block.
         Returns:
             neuron Optional[SimpleNamespace]:
                 neuron object associated with uid or None if it does not exist.
         """
         neuron = None
         if block is None:
-            block: int = "latest"
+            block = "latest"
 
         endpoint_url: str = self.chain_endpoint
         endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
@@ -1877,7 +1877,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             # get historical neuron
             result = fast_sync.sync_historical_fd(block_numbers=[block], uids=[uid])
             block_requested = list(result.values())[0]
-            neuron = block_requested[uid] 
+            neuron = block_requested[str(uid)] 
         except Exception as e:
             raise SyncException("Failed to fast sync neuron: {}".format(e))
 
