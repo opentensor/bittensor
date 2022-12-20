@@ -234,6 +234,7 @@ class neuron:
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
         parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = -1 )
         parser.add_argument('--neuron.validation_len', type=int, help='Number of tokens to holdout for phrase validation beyond sequence context.', default=8)
+        parser.add_argument('--neuron.prune_len', type=int, help='Number of tokens to prune from sequence context.', default=1)
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
@@ -399,6 +400,7 @@ class neuron:
         batch_size = self.subtensor.validator_batch_size 
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
+        prune_len = self.config.neuron.prune_len  # Number of tokens to holdout for phrase validation beyond sequence context
         min_allowed_weights = self.subtensor.min_allowed_weights
         max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
@@ -418,8 +420,8 @@ class neuron:
         self.prometheus_gauges.labels("synergy_scaling_law_power").set( self.config.nucleus.synergy_scaling_law_power )
 
         # === Update dataset size ===
-        if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len != self.dataset.block_size):
-            self.dataset.set_data_size(batch_size, sequence_length + validation_len)
+        if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len + prune_len != self.dataset.block_size):
+            self.dataset.set_data_size(batch_size, sequence_length + validation_len + prune_len)
 
         # === Logs ===
         if self.config.using_wandb:
@@ -895,7 +897,25 @@ class nucleus( torch.nn.Module ):
         self.routing_encoder.apply( init_xavier )
         self.encoder.apply( init_xavier )
         torch.nn.init.xavier_uniform_( self.gates.weight )
+    
+    def prune_token(self, inputs, num_prune = 1):
+        r"""
+        Prune tokens from a sequence randomly.
+            Args:
+                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len)`, `required`): 
+                    Tensor inputs to have tokens pruned.
+                num_prune (:obj:`int`)
+            Returns:
+                pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - num_prune)`, `required`)
+        """
+        seq_len = len(inputs[0])
+        purned_inputs = []
+        for b in range(len(inputs)):
+            rand_index = torch.randperm(seq_len)[num_prune:].sort()[0]
+            purned_inputs.append(inputs[b, rand_index])
 
+        return torch.stack(purned_inputs)
+    
     def forward(
             self,
             inputs: torch.FloatTensor,
@@ -921,9 +941,10 @@ class nucleus( torch.nn.Module ):
         start_time = time.time()
 
         val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
+        prune_len = self.config.neuron.prune_len  # Number of tokens to holdout for phrase validation beyond sequence context
         inputs = inputs.to(self.device)
-        inputs_seq = inputs[..., :-val_len]  # input sequence without last validation tokens [batch_size, sequence_len]
-
+        inputs_seq = self.prune_token(inputs[..., :-val_len], prune_len)  # input sequence without last validation tokens [batch_size, sequence_len] and pruned
+        inputs = torch.cat([inputs_seq, inputs[..., -val_len:]], -1) # pruned sequence token and validation tokens 
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
         # this context can be used as input to the gates in the next step.
