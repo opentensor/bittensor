@@ -25,12 +25,14 @@ from . import constant
 
 wallet = bittensor.wallet.mock()
 dendrite = bittensor.dendrite( wallet = wallet )
+port = get_random_unused_port()
+
 neuron_obj = bittensor.endpoint(
     version = bittensor.__version_as_int__,
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
-    port = 12345,
+    port = port,
     hotkey = dendrite.wallet.hotkey.ss58_address,
     coldkey = dendrite.wallet.coldkey.ss58_address,
     modality = 0
@@ -40,7 +42,8 @@ synapses = [bittensor.synapse.TextLastHiddenState(),
             bittensor.synapse.TextCausalLM(),
             bittensor.synapse.TextCausalLMNext(),
             bittensor.synapse.TextSeq2Seq(num_to_generate=constant.synapse.num_to_generate)]
-dataset = bittensor.dataset(num_batches=20, dataset_name = ['Books3'])
+
+dataset = bittensor.dataset(num_batches=10, _mock=True)
 
 def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
@@ -188,17 +191,17 @@ def test_dendrite_forward_tensor():
 
 def test_dendrite_backoff():
     _dendrite = bittensor.dendrite( wallet = wallet )
+    port = get_random_unused_port()
     _endpoint_obj = bittensor.endpoint(
         version = bittensor.__version_as_int__,
         uid = 0,
         ip = '0.0.0.0',
         ip_type = 4,
-        port = 12345,
+        port = port,
         hotkey = _dendrite.wallet.hotkey.ss58_address,
         coldkey = _dendrite.wallet.coldkey.ss58_address,
         modality = 0
     )
-    print (_endpoint_obj)
     
     # Normal call.
     x = torch.rand(3, 3, dtype=torch.float32)
@@ -206,56 +209,6 @@ def test_dendrite_backoff():
     assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
     check_resp_shape(out, 1, 3, 3)
     del _dendrite
-
-def test_dendrite_multiple():
-    endpoint_obj = bittensor.endpoint(
-        version = bittensor.__version_as_int__,
-        uid = 0,
-        ip = '0.0.0.0',
-        ip_type = 4,
-        port = 12345,
-        hotkey = wallet.hotkey.ss58_address,
-        coldkey = wallet.coldkey.ss58_address,
-        modality = 0
-    )
-    x = torch.tensor( [ 1,2,3 ] )
-
-    config = bittensor.dendrite.config()
-    receptor_pool = bittensor.receptor_pool( 
-        wallet = wallet,
-        max_active_receptors = config.dendrite.max_active_receptors,
-        compression = config.dendrite.compression,
-    )
-
-    authkey = wallet.hotkey.ss58_address.encode('UTF-8')
-    manager_server = bittensor.dendrite.manager_serve(config, wallet, receptor_pool, authkey = authkey)
-
-    dend1 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend2 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend3 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    dend4 = bittensor.dendrite( wallet = wallet, multiprocess=True)
-    
-    out, ops, times = dend1.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    out, ops, times = dend2.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    out, ops, times = dend3.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    out, ops, times = dend4.text( endpoints = endpoint_obj, inputs = x, synapses = synapses )
-    assert list(ops[0]) == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
-    assert len(receptor_pool.receptors) == 1 
-    assert manager_server.connected_count == 4
-    dend4.__del__()
-    assert manager_server.connected_count == 3
-    dend3.__del__()
-    assert manager_server.connected_count == 2
-    dend2.__del__()
-    assert manager_server.connected_count == 1
-    dend1.__del__()
 
 
 def test_dendrite_to_df():
