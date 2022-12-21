@@ -1,6 +1,7 @@
 import math
 import time
 import torch
+from rich import print as rich_print
 from rich.table import Table
 from rich.errors import MarkupError
 from rich.style import Style
@@ -96,7 +97,7 @@ def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_
         # === Table print ===
         if (i == len(sort) - 1) or (i % task_repeat == task_repeat - 1):
             try:
-                print(table)
+                rich_print(table)
             except MarkupError as e:
                 print(e)
             else:
@@ -127,7 +128,7 @@ def synergy_table(stats, syn_loss_diff, sort_col, console_width):
         table.add_row(*row)
 
     if len(rows):
-        print(table)
+        rich_print(table)
         print()
 
 
@@ -171,7 +172,7 @@ def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
         table.add_row(*[txt for txt, val in row])
 
     # === Print table ===
-    print(table)
+    rich_print(table)
 
 
 def synapse_table(name, stats, sort_col, console_width, start_time):
