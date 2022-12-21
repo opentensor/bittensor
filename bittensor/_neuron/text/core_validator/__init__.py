@@ -234,7 +234,7 @@ class neuron:
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
         parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = -1 )
         parser.add_argument('--neuron.validation_len', type=int, help='Number of tokens to holdout for phrase validation beyond sequence context.', default=8)
-        parser.add_argument('--neuron.prune_len', type=int, help='Number of tokens to prune from sequence context.', default=1)
+        parser.add_argument('--neuron.prune_len', type=int, help='Number of tokens to prune from each validation input sequence.', default=1)
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
@@ -898,23 +898,29 @@ class nucleus( torch.nn.Module ):
         self.encoder.apply( init_xavier )
         torch.nn.init.xavier_uniform_( self.gates.weight )
     
-    def prune_token(self, inputs, num_prune = 1):
+    def prune_token(self, inputs: torch.FloatTensor, prune_len: int = 1, margin: int = 3):
         r"""
-        Prune tokens from a sequence randomly.
+        Prune tokens from a batch of sequences randomly by removing prune_len tokens from each sequence,
+        leaving the end margin intact.
             Args:
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len)`, `required`): 
                     Tensor inputs to have tokens pruned.
-                num_prune (:obj:`int`)
+                margin (:obj:`int`, `optional`):
+                    Number of tokens at the end of the sequence to leave unpruned.
+                prune_len (:obj:`int`, `optional`):
+                    Number of tokens to prune from each validation input sequence.
             Returns:
-                pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - num_prune)`, `required`)
+                pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - prune_len)`, `required`)
         """
         seq_len = len(inputs[0])
-        purned_inputs = []
+        pruned_inputs = []
         for b in range(len(inputs)):
-            rand_index = torch.randperm(seq_len)[num_prune:].sort()[0]
-            purned_inputs.append(inputs[b, rand_index])
+            rand_index = torch.randperm(seq_len - margin)[:prune_len]
+            mask = torch.ones(seq_len, dtype=torch.bool)
+            mask[rand_index] = False
+            pruned_inputs.append(inputs[b, mask])
 
-        return torch.stack(purned_inputs)
+        return torch.stack(pruned_inputs)
     
     def forward(
             self,
@@ -941,10 +947,11 @@ class nucleus( torch.nn.Module ):
         start_time = time.time()
 
         val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
-        prune_len = self.config.neuron.prune_len  # Number of tokens to holdout for phrase validation beyond sequence context
+        prune_len = self.config.neuron.prune_len  # Number of tokens to prune from each validation input sequence
         inputs = inputs.to(self.device)
-        inputs_seq = self.prune_token(inputs[..., :-val_len], prune_len)  # input sequence without last validation tokens [batch_size, sequence_len] and pruned
-        inputs = torch.cat([inputs_seq, inputs[..., -val_len:]], -1) # pruned sequence token and validation tokens 
+        inputs_seq = self.prune_token(inputs[..., :-val_len], prune_len=prune_len)  # pruned input sequence without last validation tokens [batch_size, sequence_len]
+        inputs = torch.cat([inputs_seq, inputs[..., -val_len:]], -1)  # pruned sequence token and validation tokens
+
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
         # this context can be used as input to the gates in the next step.
@@ -1266,23 +1273,20 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         return measured_loss
 
     shapley_start_time = time.time()
-
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='_nxt')
-
     logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
                 f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     divergence_start_time = time.time()
-
     with torch.no_grad():
         logits_divergence(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
-
     logger.info(f'{str(synapse)} \t| Logits divergences <dim>[{time.time() - divergence_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
-
     syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt', scaling_law_power=synergy_scaling_law_power)
+    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
+                f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     # === Shapley value combination ===
     # Combine base values with synergy approximation to get final Shapley values.
@@ -1293,9 +1297,6 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         for key in s:
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
-
-    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
-                f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
         # === Response table ===
@@ -1453,11 +1454,11 @@ def logits_divergence(stats: Dict, uids: torch.Tensor, query_responses: List[Lis
                 try:
                     probs = topk_tokens_to_vocab_size(query_responses[index][index_s],
                                                       bittensor.__vocab_size__)  # [batch_size, vocab_size]
-                    divergence = 0.5 * torch.pow(probs.sqrt() - probs_avg_sqrt, 2).sum(dim=1)  # [batch_size] in [0, 1]
-                    divergence = divergence.sqrt()
-                    stats[_uid]['logits_divergences' + ext] = divergence  # [batch_size]
-                    stats[_uid]['logits_divergence' + ext] = divergence.mean()  # scalar
-                    batch_divergences += [divergence]
+                    divergences = 0.5 * torch.pow(probs.sqrt() - probs_avg_sqrt, 2).sum(dim=1)  # [batch_size] in [0, 1]
+                    divergences = divergences.sqrt()
+                    stats[_uid]['logits_divergences' + ext] = divergences  # [batch_size]
+                    stats[_uid]['logits_divergence' + ext] = divergences.mean()  # scalar
+                    batch_divergences += [divergences]
 
                 except Exception as e:
                     logger.warning(f'Synapse {index_s} error (logits_divergence)\t| '
@@ -1467,21 +1468,33 @@ def logits_divergence(stats: Dict, uids: torch.Tensor, query_responses: List[Lis
         avg = batch_divergences.mean(dim=0)  # [batch_size]
         std = batch_divergences.std(dim=0)  # [batch_size]
 
-        logger.info(f"Logits divergences: "
-                    f"avg={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(avg)])}")
-        logger.info(f"std={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(std)])}")
-        for uid, _stats in stats.items():
+        # logger.info(f"Logits divergences: "
+        #             f"avg={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(avg)])}")
+        # logger.info(f"std={', '.join([f'{i}:{v:.3g}' for i, v in enumerate(std)])}")
+
+        # === Calculate divergence excess ===
+        # For each batch task, calculate excess deviation above a single stddev, in terms of stddev,
+        # and apply power to increase score above two stddev, and decrease between one and two stddev.
+        # This will effectively allow zero excess below one stddev, and minimal excess below two stddev,
+        # but amplify any excess above two stddev (only 2.1% of population for normal dist).
+        for _uid, _stats in stats.items():
             if 'logits_divergences' + ext in _stats:
-                excess = torch.clamp(_stats['logits_divergences' + ext] - (avg + std), 0)  # divergence > avg + std
-                excess /= std + 1e-9  # stddev multiples above 1 stddev
-                excess = torch.pow(excess, 3)  # reduce < 2std, increase > 2std
-                excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
-                logger.info(f"UID{uid} divergences [{_stats['logits_divergences' + ext].mean():.4g}]: "
-                            f"{', '.join([f'{i}:{dist:.3g}' for i, dist in enumerate(_stats['logits_divergences' + ext])])}")
-                logger.info(f"UID{uid} excess [{excess.mean():.3g}]: "
-                            f"{', '.join([f'{i}:{exc:.3g}' for i, exc in enumerate(excess)])}")
-                _stats['logits_excess' + ext] = excess.mean()  # in [0, 10]
-                del _stats['logits_divergences' + ext]  # keep only scalar stats beyond this
+                try:
+                    excess = torch.clamp(_stats['logits_divergences' + ext] - (avg + std), 0)  # divergence > avg + std
+                    excess /= std + 1e-9  # stddev multiples above 1 stddev
+                    excess = torch.pow(excess, 3)  # reduce < 2std, increase > 2std
+                    excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
+
+                    _stats['logits_excess' + ext] = excess.mean()  # in [0, 10]
+                    del _stats['logits_divergences' + ext]  # keep only scalar stats beyond this
+
+                    # logger.info(f"UID{uid} divergences [{_stats['logits_divergences' + ext].mean():.4g}]: "
+                    #             f"{', '.join([f'{i}:{dist:.3g}' for i, dist in enumerate(_stats['logits_divergences' + ext])])}")
+                    # logger.info(f"UID{uid} excess [{excess.mean():.3g}]: "
+                    #             f"{', '.join([f'{i}:{exc:.3g}' for i, exc in enumerate(excess)])}")
+
+                except Exception as e:
+                    logger.warning(f'Synapse {index_s} error (logits_divergence)\t| UID {_uid}: {e}')
 
 
 def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tensor = None, scaling_law_power: float = 0.5):
