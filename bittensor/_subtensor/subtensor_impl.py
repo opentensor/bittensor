@@ -19,6 +19,8 @@ from rich.prompt import Confirm, Prompt
 from typing import List, Dict, Union, Optional
 from multiprocessing import Process
 
+from dataclasses import dataclass
+
 import bittensor
 from tqdm import tqdm
 import bittensor.utils.networking as net
@@ -39,6 +41,35 @@ from sys import platform
 
 from loguru import logger
 logger = logger.opt(colors=True)
+
+
+@dataclass
+class NeuronMetadata:
+    r"""
+    Dataclass for neuron metadata.
+    """
+    hotkey: str
+    coldkey: str
+    uid: int
+    netuid: int
+    active: int
+    ip: str
+    ip_type: int
+    port: int
+    stake: int
+    rank: int
+    emission: int
+    incentive: int
+    consensus: int
+    trust: int
+    dividends: int
+    modality: bittensor.proto.Modality
+    last_update: int
+    version: int
+    priority: int
+    weights: List[List[int]]
+    bonds: List[List[int]]
+    is_null: bool = False
 
 class Subtensor:
     """
@@ -1594,39 +1625,41 @@ class Subtensor:
         return neurons
 
     @staticmethod
-    def _null_neuron() -> SimpleNamespace:
-        neuron = SimpleNamespace()
-        neuron.active = 0   
-        neuron.stake = 0
-        neuron.rank = 0
-        neuron.trust = 0
-        neuron.consensus = 0
-        neuron.incentive = 0
-        neuron.dividends = 0
-        neuron.emission = 0
-        neuron.weights = []
-        neuron.bonds = []
-        neuron.version = 0
-        neuron.modality = 0
-        neuron.uid = 0
-        neuron.port = 0
-        neuron.priority = 0
-        neuron.ip_type = 0
-        neuron.last_update = 0
-        neuron.ip = 0
-        neuron.is_null = True
-        neuron.coldkey = "000000000000000000000000000000000000000000000000"
-        neuron.hotkey = "000000000000000000000000000000000000000000000000"
+    def _null_neuron() -> NeuronMetadata:
+        neuron = NeuronMetadata(
+            active = 0,
+            stake = 0,
+            rank = 0,
+            trust = 0,
+            consensus = 0,
+            incentive = 0,
+            dividends = 0,
+            emission = 0,
+            weights = [],
+            bonds = [],
+            version = 0,
+            modality = 0,
+            uid = 0,
+            netuid = 0,
+            port = 0,
+            priority = 0,
+            ip_type = 0,
+            last_update = 0,
+            ip = 0,
+            is_null = True,
+            coldkey = "000000000000000000000000000000000000000000000000",
+            hotkey = "000000000000000000000000000000000000000000000000"
+        )
         return neuron
 
     @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> SimpleNamespace:
+    def _neuron_dict_to_namespace(neuron_dict) -> NeuronMetadata:
         if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return Subtensor._null_neuron()
         else:
             RAOPERTAO = 1000000000
             U64MAX = 18446744073709551615
-            neuron = SimpleNamespace( **neuron_dict )
+            neuron = NeuronMetadata( **neuron_dict )
             neuron.stake = neuron.stake / RAOPERTAO
             neuron.rank = neuron.rank / U64MAX
             neuron.trust = neuron.trust / U64MAX
@@ -1634,10 +1667,10 @@ class Subtensor:
             neuron.incentive = neuron.incentive / U64MAX
             neuron.dividends = neuron.dividends / U64MAX
             neuron.emission = neuron.emission / RAOPERTAO
-            neuron.is_null = False
+                
             return neuron
 
-    def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[SimpleNamespace]: 
+    def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronMetadata]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
@@ -1647,7 +1680,7 @@ class Subtensor:
             block ( int ):
                 The neuron at a particular block
         Returns:
-            neuron (Optional[SimpleNamespace]):
+            neuron (Optional[NeuronMetadata]):
                 neuron metadata associated with uid or None if it does not exist.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -1770,9 +1803,9 @@ class Subtensor:
             return True
         else:
             assert isinstance(uid_or_uid_map, int)
-            return uid_or_uid_map
+            return uid_or_uid_map != -1 # -1 means not registered.
 
-    def neuron_for_pubkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None ) -> Optional[Union[SimpleNamespace, List[SimpleNamespace]]]: 
+    def neuron_for_pubkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None ) -> Optional[Union[NeuronMetadata, List[NeuronMetadata]]]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             ss58_hotkey ( str ):
@@ -1784,7 +1817,7 @@ class Subtensor:
                 The block to query.
 
         Returns:
-            neuron ( Optional[SimpleNamespace] ):
+            neuron ( Optional[NeuronMetadata] ):
                 neuron metadata associated with uid or None if it does not exist.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -1848,7 +1881,7 @@ class Subtensor:
                 ).value)
         return make_substrate_call_with_retry()
 
-    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[SimpleNamespace]: 
+    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronMetadata]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             wallet ( `bittensor.Wallet` ):
@@ -1858,7 +1891,7 @@ class Subtensor:
             block (Optional[int]):
                 The block to query.
         Returns:
-            neuron (Optional[SimpleNamespace] ):
+            neuron (Optional[NeuronMetadata] ):
                 neuron metadata associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, netuid = netuid, block = block )

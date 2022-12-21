@@ -573,6 +573,12 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        unstake_parser.add_argument(
+            '--netuid',
+            type=int,
+            help='netuid for subnet to serve this neuron on',
+            default=0
+        )
 
         bittensor.wallet.add_args( unstake_parser )
         bittensor.subtensor.add_args( unstake_parser )
@@ -612,6 +618,12 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
+        stake_parser.add_argument(
+            '--netuid',
+            type=int,
+            help='netuid for subnet to serve this neuron on',
+            default=0
+        )
         
         bittensor.wallet.add_args( stake_parser )
         bittensor.subtensor.add_args( stake_parser )
@@ -641,13 +653,19 @@ class cli:
         bittensor.subtensor.add_args( transfer_parser )
 
 
-        # Fill arguments for transfer
+        # Add register args
         register_parser.add_argument(
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
+        )
+        register_parser.add_argument(
+            '--netuid',
+            type=int,
+            help='netuid for subnet to serve this neuron on',
+            default=0
         )
 
         bittensor.wallet.add_args( register_parser )
