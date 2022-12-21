@@ -189,29 +189,27 @@ class Wallet():
         else:
             return neuron.uid
 
-    def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+    def get_stake ( self, subtensor: Optional['bittensor.Subtensor'] = None ) -> 'bittensor.Balance':
         """ Returns this wallet's staking balance from passed subtensor connection.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
+        stake = subtensor.get_stake( self.hotkey.ss58_address )
+        if not stake: # Not registered.
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return bittensor.Balance(0)
-        neuron = self.get_neuron(subtensor = subtensor)
-        if neuron.is_null:
-            return bittensor.Balance(0)
-        else:
-            return bittensor.Balance.from_tao(neuron.stake)
+        
+        return stake
 
-    def get_balance( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+    def get_balance( self, subtensor: Optional['bittensor.Subtensor'] = None ) -> 'bittensor.Balance':
         """ Returns this wallet's coldkey balance from passed subtensor connection.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 balance (bittensor.utils.balance.Balance):
@@ -345,7 +343,7 @@ class Wallet():
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        subtensor: 'bittensor.Subtensor' = None,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         prompt: bool = False
     ) -> bool:
         """ Stakes tokens from this wallet's coldkey onto it's hotkey.
@@ -374,7 +372,7 @@ class Wallet():
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        subtensor: 'bittensor.Subtensor' = None,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         prompt: bool = False,
     ) -> bool:
         """ Removes stake from this wallet's hotkey and moves them onto it's coldkey balance.
@@ -405,7 +403,7 @@ class Wallet():
         amount: Union[float, bittensor.Balance] , 
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        subtensor: 'bittensor.Subtensor' = None,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         prompt: bool = False,
     ) -> bool:
         """ Transfers Tao from this wallet's coldkey to the destination address.
