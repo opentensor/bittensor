@@ -152,20 +152,22 @@ class Wallet():
         if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.is_hotkey_registered( self.hotkey.ss58_address, netuid = netuid )
 
-    def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> Union[ SimpleNamespace, None] :
+    def get_neuron ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> Optional['bittensor.Subtensor.NeuronMetadata'] :
         """ Returns this wallet's neuron information from subtensor.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                netuid (int):
+                    The network uid of the subnet to query.
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 neuron (Union[ SimpleNamespace, None ]):
                     neuron account on the chain or None if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
+        if not self.is_registered(netuid = netuid, subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return None
-        neuron = subtensor.neuron_for_wallet( self )
+        neuron = subtensor.neuron_for_wallet( self, netuid = netuid )
         return neuron
 
     def get_uid ( self, subtensor: 'bittensor.Subtensor' = None ) -> int:
