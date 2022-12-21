@@ -924,9 +924,8 @@ class nucleus( torch.nn.Module ):
 
         val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         prune_len = self.config.neuron.prune_len  # Number of tokens to prune from each validation input sequence
-        inputs = inputs.to(self.device)
-        inputs_seq = prune_tokens(inputs[..., :-val_len], prune_len=prune_len)  # prune input sequence without last validation tokens [batch_size, sequence_len]
-        inputs = torch.cat([inputs_seq, inputs[..., -val_len:]], -1)  # pruned sequence token and validation tokens
+        inputs = prune_tokens(inputs.to(self.device), prune_len=prune_len, margin=val_len+3)  # prune input sequence without last validation tokens [batch_size, sequence_len]
+        inputs_seq = inputs[..., :-val_len]  # sequence without validation tokens [batch_size, sequence_len]
 
         # === Create the local context used to select endpoints ===
         # The context tensor returns a hidden unit representation for the text inputs
