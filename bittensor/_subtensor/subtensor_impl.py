@@ -486,6 +486,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                 wallet = axon.wallet,
                 ip = external_ip,
                 port = external_port,
+                netuid = axon.netuid,
                 modality = 0,
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
@@ -640,6 +641,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             ip: str, 
             port: int, 
             modality: int, 
+            netuid: int,
             wait_for_inclusion: bool = False,
             wait_for_finalization = True,
             prompt: bool = False,
@@ -654,6 +656,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 endpoint port number i.e. 9221
             modality (int):
                 int encoded endpoint modality i.e 0 for TEXT
+            netuid (int):
+                network uid to serve on.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -677,17 +681,19 @@ To run a local node (See: docs/running_a_validator.md) \n
             'port': port,
             'ip_type': net.ip_version(ip),
             'modality': modality,
+            'netuid': netuid,
             'coldkey': wallet.coldkeypub.ss58_address,
         }
 
         with bittensor.__console__.status(":satellite: Checking Axon..."):
-            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address, netuid = netuid )
             neuron_up_to_date = not neuron.is_null and params == {
                 'version': neuron.version,
                 'ip': neuron.ip,
                 'port': neuron.port,
                 'ip_type': neuron.ip_type,
                 'modality': neuron.modality,
+                'netuid': neuron.netuid,
                 'coldkey': neuron.coldkey
             }
             if neuron_up_to_date:
@@ -698,7 +704,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             if not Confirm.ask("Do you want to serve axon:\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address)):
                 return False
         
-        with bittensor.__console__.status(":satellite: Serving axon on: [white]{}[/white] ...".format(self.network)):
+        with bittensor.__console__.status(":satellite: Serving axon on: [white]{} - {}[/white] ...".format(self.network, netuid)):
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module='SubtensorModule',
@@ -1417,6 +1423,7 @@ To run a local node (See: docs/running_a_validator.md) \n
     def set_weights(
             self, 
             wallet: 'bittensor.wallet',
+            netuid: int,
             uids: Union[torch.LongTensor, list],
             weights: Union[torch.FloatTensor, list],
             wait_for_inclusion:bool = False,
@@ -1427,6 +1434,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
+            netuid (int):
+                netuid of the subent to set weights for.
             uids (Union[torch.LongTensor, list]):
                 uint64 uids of destination neurons.
             weights ( Union[torch.FloatTensor, list]):
@@ -1464,7 +1473,11 @@ To run a local node (See: docs/running_a_validator.md) \n
                     call = substrate.compose_call(
                         call_module='SubtensorModule',
                         call_function='set_weights',
-                        call_params = {'dests': weight_uids, 'weights': weight_vals}
+                        call_params = {
+                            'dests': weight_uids,
+                            'weights': weight_vals,
+                            'netuid': netuid,
+                        }
                     )
                     extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
                     response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
@@ -1547,19 +1560,21 @@ To run a local node (See: docs/running_a_validator.md) \n
             return_dict[r[0].value] = bal
         return return_dict
 
-    def neurons(self, block: int = None ) -> List[SimpleNamespace]: 
+    def neurons(self, netuid: int, block: Optional[int] = None ) -> List[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
         Args:
-            block (int):
+            netuid ( int ):
+                The netuid of the subnet to pull neurons from.
+            block ( Optional[int] ):
                 block to sync from.
         Returns:
             neuron (List[SimpleNamespace]):
                 List of neuron objects.
         """
         neurons = []
-        for id in tqdm(range(self.get_n( block ))): 
+        for id in tqdm(range(self.get_n( netuid, block ))): 
             try:
-                neuron = self.neuron_for_uid(id, block)
+                neuron = self.neuron_for_uid(id, netuid, block)
                 neurons.append( neuron )
             except Exception as e:
                 logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
@@ -1610,16 +1625,18 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron.is_null = False
             return neuron
 
-    def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None ]: 
+    def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
                 The uid of the neuron to query for.
+            netuid ( int ):
+                The uid of the network to query for.
             block ( int ):
                 The neuron at a particular block
         Returns:
-            neuron (dict(NeuronMetadata)):
-                neuron object associated with uid or None if it does not exist.
+            neuron (Optional[SimpleNamespace]):
+                neuron metadata associated with uid or None if it does not exist.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
@@ -1627,92 +1644,178 @@ To run a local node (See: docs/running_a_validator.md) \n
                 result = dict( substrate.query( 
                     module='SubtensorModule',  
                     storage_function='Neurons', 
-                    params = [ uid ], 
+                    params = [ uid, netuid ], 
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 ).value )
             return result
         result = make_substrate_call_with_retry()
-        neuron = Subtensor._neuron_dict_to_namespace( result )
-        return neuron
+        if result.is_some:
+            neuron = Subtensor._neuron_dict_to_namespace( result.value )
+            return neuron
+        else:
+            return None
 
-    def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
-        r""" Returns true if the passed hotkey is registered on the chain.
+    def get_netuids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
+        r""" Returns a list of netuids for the subnets this hotkey is registered on.
         Args:
             ss58_hotkey ( str ):
                 The hotkey to query for a neuron.
+            block ( Optional[int] ):
+                The block to query for.
         Returns:
-            uid ( int ):
-                UID of passed hotkey or -1 if it is non-existent.
+            netuids (List[int]):
+                The list of netuids this hotkey is registered on.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query (
                     module='SubtensorModule',
-                    storage_function='Hotkeys',
+                    storage_function='Subnets',
                     params = [ ss58_hotkey ],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
+
         result = make_substrate_call_with_retry()
-        # Process the result.
-        uid = int(result.value)
-        
-        neuron = self.neuron_for_uid( uid, block )
-        if neuron.hotkey != ss58_hotkey:
-            return -1
+        if result.is_some:
+            return [r.value for r in result.value]
         else:
-            return uid
+            return []
 
 
-    def is_hotkey_registered( self, ss58_hotkey: str, block: int = None) -> bool:
+    def get_uid_for_hotkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None) -> Union[Dict[str, int], int]:
         r""" Returns true if the passed hotkey is registered on the chain.
         Args:
             ss58_hotkey ( str ):
                 The hotkey to query for a neuron.
+            netuid ( Optional[int] ):
+                The netuid of the network to query for, default is None.
+            block ( Optional[int] ):
+                The block to query for.
         Returns:
-            is_registered ( bool):
+            uid (int):
+                The uid of the neuron associated with the hotkey or -1 if it does not exist.
+            uids (Dict[str(int), int]):
+                The uids of the neurons associated with the hotkey, as a dict of netuid to uid.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(netuid: int):
+            with self.substrate as substrate:
+                return substrate.query (
+                    module='SubtensorModule',
+                    storage_function='Uids',
+                    params = [ ss58_hotkey, netuid ],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        
+        # Get netuids for hotkey.
+        netuids = self.get_netuids_for_hotkey( ss58_hotkey = ss58_hotkey, block = block)
+
+        if netuids == []:
+            return -1
+
+        if netuid:
+            if netuid not in netuids:
+                return -1
+            else:
+                result = make_substrate_call_with_retry( netuid )
+                if result.is_some:
+                    return result.value
+                else:
+                    return -1
+        
+        # No netuid passed, return all uids.
+        uids = { str(netuid): -1 for netuid in netuids }
+        # Get uids for hotkey.
+        for netuid in netuids:
+            result = make_substrate_call_with_retry()
+            if result.is_some:
+                uids[str(netuid)] = result.value
+            else:
+                # Shouldn't happen.
+                del uids[str(netuid)] 
+
+        return uids
+
+    def is_hotkey_registered( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None) -> bool:
+        r""" Returns true if the passed hotkey is registered on the chain.
+        Args:
+            ss58_hotkey ( str ):
+                The hotkey to query for a neuron.
+            netuid ( Optional[int] ):
+                The network uid to query for a neuron.
+                None will return true if the hotkey is registered on any network.
+            block (Optional[int]):
+                The block to query.
+            
+        Returns:
+            is_registered ( bool ):
                 True if the passed hotkey is registered on the chain.
         """
-        uid = self.get_uid_for_hotkey( ss58_hotkey = ss58_hotkey, block = block)
-        if uid == -1:
-            return False
-        else:
-            return True
+        uid_or_uid_map: Union[Dict[str, int], int] = self.get_uid_for_hotkey( ss58_hotkey = ss58_hotkey, netuid = netuid, block = block)
+        # will return -1 if not registered. 
+        # will return a dict of netuid to uid if registered on multiple networks.
 
-    def neuron_for_pubkey( self, ss58_hotkey: str, block: int = None ) -> SimpleNamespace: 
+        if isinstance(uid_or_uid_map, dict):
+            # registered on multiple networks.
+            return True
+        else:
+            assert isinstance(uid_or_uid_map, int)
+            return uid_or_uid_map
+
+    def neuron_for_pubkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None ) -> Optional[Union[SimpleNamespace, List[SimpleNamespace]]]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             ss58_hotkey ( str ):
                 The hotkey to query for a neuron.
+            netuid ( Optional[int] ):
+                The network uid to query for a neuron, default is None.
+                None will return the neuron for the hotkey on each subnet it is registered on.
+            block (Optional[int]):
+                The block to query.
 
         Returns:
-            neuron ( dict(NeuronMetadata) ):
-                neuron object associated with uid or None if it does not exist.
+            neuron ( Optional[SimpleNamespace] ):
+                neuron metadata associated with uid or None if it does not exist.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
+        def make_substrate_call_with_retry(netuid: int):
             with self.substrate as substrate:
                 return substrate.query (
                     module='SubtensorModule',
-                    storage_function='Hotkeys',
-                    params = [ ss58_hotkey ],
+                    storage_function='Uids',
+                    params = [ ss58_hotkey, netuid ],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
-        result = make_substrate_call_with_retry()
-        # Get response uid. This will be zero if it doesn't exist.
-        uid = int(result.value)
-        neuron = self.neuron_for_uid( uid, block )
-        if neuron.hotkey != ss58_hotkey:
-            return Subtensor._null_neuron()
-        else:
-            return neuron
 
-    def get_n( self, block: int = None ) -> int: 
+        if netuid:
+            result = make_substrate_call_with_retry( netuid )
+            if not result.is_some:
+                return Subtensor._null_neuron()
+            uid = int(result.value)
+            neuron = self.neuron_for_uid( uid, netuid = netuid, block = block )
+            return neuron
+        else:
+            # multiple networks. netuid is null
+            netuid_map_or_result = self.get_uid_for_hotkey( ss58_hotkey = ss58_hotkey, block = block )
+            if netuid_map_or_result == -1:
+                return Subtensor._null_neuron()
+            else:
+                netuid_map = netuid_map_or_result
+                neurons = []
+                for netuid_str, uid in netuid_map:
+                    neuron = self.neuron_for_uid( uid, netuid = int(netuid_str), block = block )
+                    neurons.append( neuron )
+                return neurons
+
+    def get_n( self, netuid: int, block: Optional[int] = None ) -> int: 
         r""" Returns the number of neurons on the chain at block.
         Args:
-            block ( int ):
+            netuid ( int ):
+                The network uid to query.
+            block ( Optional[int] ):
                 The block number to get the neuron count from.
-
+                Default is None, which returns the current block.
         Returns:
             n ( int ):
                 the number of neurons subscribed to the chain.
@@ -1720,16 +1823,25 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return int(substrate.query(  module='SubtensorModule', storage_function = 'N', block_hash = None if block == None else substrate.get_block_hash( block ) ).value)
+                return int(substrate.query(
+                    module='SubtensorModule',
+                    storage_function = 'N',
+                    params = [ netuid ],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                ).value)
         return make_substrate_call_with_retry()
 
-    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', block: int = None ) -> SimpleNamespace: 
+    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[SimpleNamespace]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             wallet ( `bittensor.Wallet` ):
                 Checks to ensure that the passed wallet is subscribed.
+            netuid ( int ):
+                The network uid of the subnet to query.
+            block (Optional[int]):
+                The block to query.
         Returns:
-            neuron ( dict(NeuronMetadata) ):
-                neuron object associated with uid or None if it does not exist.
+            neuron (Optional[SimpleNamespace] ):
+                neuron metadata associated with uid or None if it does not exist.
         """
-        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, block = block )
+        return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, netuid = netuid, block = block )

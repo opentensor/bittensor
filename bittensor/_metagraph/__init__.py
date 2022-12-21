@@ -20,6 +20,7 @@ which maintains chain state as a torch.nn.Module.
 
 import argparse
 import copy
+from typing import Optional
 
 import bittensor
 from . import metagraph_impl
@@ -42,6 +43,7 @@ class metagraph:
             subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
             chain_endpoint: str = None,
+            netuid: Optional[int] = None,
             _mock:bool=None
         ) -> 'bittensor.Metagraph':
         r""" Creates a new bittensor.Metagraph object from passed arguments.
@@ -59,6 +61,8 @@ class metagraph:
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
                     The subtensor endpoint flag. If set, overrides the network argument.
+                netuid (default=None, type=int)
+                    The subnet netuid. If set, overrides config.metagraph.netuid.
                 _mock (:obj:`bool`, `optional`):
                     For testing, if true the metagraph returns mocked outputs.
         """      
@@ -70,6 +74,11 @@ class metagraph:
             return metagraph_mock.MockMetagraph()
         if subtensor == None:
             subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
+        if netuid == None:
+            netuid = config.metagraph.netuid
+            if netuid == None:
+                raise ValueError('netuid not set in config.metagraph.netuid or passed as an argument.')
+        
         return metagraph_impl.Metagraph( subtensor = subtensor )
 
     @classmethod   
@@ -98,6 +107,7 @@ class metagraph:
         prefix_str = '' if prefix == None else prefix + '.'
         try:
             parser.add_argument('--' + prefix_str + 'metagraph._mock', action='store_true', help='To turn on metagraph mocking for testing purposes.', default=False)
+            parser.add_argument('--' + prefix_str + 'metagraph.netuid', type=int, help='The subnet netuid to sync.', default=None)
             bittensor.subtensor.add_args( parser )
         except argparse.ArgumentError:
             # re-parsing arguments.

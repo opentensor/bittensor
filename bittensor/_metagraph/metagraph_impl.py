@@ -19,7 +19,7 @@
 
 import os
 
-from typing import List
+from typing import List, SimpleNamespace
 from loguru import logger
 
 import ast
@@ -62,11 +62,15 @@ class Metagraph( torch.nn.Module ):
                 Tokenized endpoint information.
 
     """
-    def __init__( self, subtensor ):
+    subtensor: 'bittensor.Subtensor'
+    netuid: int
+
+    def __init__( self, subtensor: 'bittensor.Subtensor', netuid: int ):
         r""" Initializes a new Metagraph torch chain interface object.
         """
         super(Metagraph, self).__init__()
         self.subtensor = subtensor
+        self.netuid = netuid
         self.clear()
 
     def clear( self ) -> 'Metagraph':
@@ -312,7 +316,7 @@ class Metagraph( torch.nn.Module ):
         try:
             if network == None:
                 network = self.subtensor.network
-            metagraph_path = '~/.bittensor/' + str(network) + '.pt'
+            metagraph_path = f"~/.bittensor/{str(network)}_{str(self.netuid)}.pt"
             metagraph_path = os.path.expanduser(metagraph_path)
             if os.path.isfile(metagraph_path):
                 self.load_from_path( path = metagraph_path )
@@ -330,7 +334,7 @@ class Metagraph( torch.nn.Module ):
         """
         if network == None:
             network = self.subtensor.network
-        return self.save_to_path( path = '~/.bittensor/', filename = str(network) + '.pt')
+        return self.save_to_path( path = '~/.bittensor/', filename = f"{str(network)}_{str(self.netuid)}.pt")
 
     def load_from_path(self, path:str ) -> 'Metagraph':
         r""" Loads this metagraph object with state_dict under the specified path.
@@ -383,6 +387,8 @@ class Metagraph( torch.nn.Module ):
     def retrieve_cached_neurons( self, block: int = None ):
         """
             Retrieves cached metagraph syncs from IPFS. 
+
+            TODO (Cameron): implement netuid.
         """
         ipfs = bittensor.Ipfs()
         ipns_hash = ipfs.latest_neurons_ipns
@@ -424,8 +430,23 @@ class Metagraph( torch.nn.Module ):
 
         return neurons
 
+    def __get_neurons_from_chain( self, block: int = None ) -> List[SimpleNamespace]:
+        """
+            Retrieves neurons from the chain.
+        """
+        return self.subtensor.neurons( netuid = self.netuid )
+
+
     def sync ( self, block: int = None, cached: bool = True ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
+            Args:
+                block: (:obj:`int`, optional, defaults to None):
+                    block to sync with. If None, syncs with the current block.
+                cached: (:obj:`bool`, optional, defaults to True):
+                    If true, syncs with the cached metagraph. If false, syncs with the chain.
+            Returns:
+                self: (:obj:`Metagraph`, required):
+                    Returns self.
         """
         logger.success(self.subtensor)
         if block == None:
@@ -438,7 +459,7 @@ class Metagraph( torch.nn.Module ):
                         except:
                             # For some reason IPFS cache is down, fallback on regular sync
                             logger.warning("IPFS cache may be down, falling back to regular sync")
-                            neurons = self.subtensor.neurons()
+                            neurons = self.__get_neurons_from_chain( )
                         n_total = len(neurons)
                 else:
                     try:
@@ -446,10 +467,10 @@ class Metagraph( torch.nn.Module ):
                     except:
                         # For some reason IPFS cache is down, fallback on regular sync
                         logger.warning("IPFS cache may be down, falling back to regular sync")
-                        neurons = self.subtensor.neurons()
+                        neurons = self.__get_neurons_from_chain( )
                     n_total = len(neurons)
             else:
-                neurons = self.subtensor.neurons( block = block )
+                neurons = self.__get_neurons_from_chain( block = block )
                 n_total = len(neurons)
         else:
             if cached and self.subtensor.network in ("nakamoto", "local"):
@@ -460,7 +481,7 @@ class Metagraph( torch.nn.Module ):
                         except:
                             # For some reason IPFS cache is down, fallback on regular sync
                             logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                            neurons = self.subtensor.neurons( block = block )
+                            neurons = self.__get_neurons_from_chain( block = block )
                         n_total = len(neurons)
                 else:
                     try:
@@ -468,10 +489,10 @@ class Metagraph( torch.nn.Module ):
                     except:
                         # For some reason IPFS cache is down, fallback on regular sync
                         logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                        neurons = self.subtensor.neurons( block = block )
+                        neurons = self.__get_neurons_from_chain( block = block )
                     n_total = len(neurons)
             else:
-                neurons = self.subtensor.neurons( block = block )
+                neurons = self.__get_neurons_from_chain( block = block )
                 n_total = len(neurons)
 
         # Fill arrays.

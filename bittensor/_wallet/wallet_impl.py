@@ -136,10 +136,13 @@ class Wallet():
     def balance(self) -> SimpleNamespace:
         return self.get_balance()
 
-    def is_registered( self, subtensor: 'bittensor.Subtensor' = None ) -> bool:
+    def is_registered( self,  netuid: Optional[int] = None, subtensor: Optional['bittensor.Subtensor'] = None ) -> bool:
         """ Returns true if this wallet is registered.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                netuid ( Optional[int] ):
+                    The network uid to check for registration.
+                    Default is None, which checks any subnetwork.
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
                     Determines which network we check for registration.
             Return:
@@ -147,7 +150,7 @@ class Wallet():
                     Is the wallet registered on the chain.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
+        return subtensor.is_hotkey_registered( self.hotkey.ss58_address, netuid = netuid )
 
     def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> Union[ SimpleNamespace, None] :
         """ Returns this wallet's neuron information from subtensor.
