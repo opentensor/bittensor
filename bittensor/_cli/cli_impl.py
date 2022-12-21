@@ -126,6 +126,12 @@ class CLI:
         """
         wallet = bittensor.wallet(config = self.config)
         subtensor = bittensor.subtensor( config = self.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         dendrite = bittensor.dendrite( wallet = wallet )
         stats = {}
         for uid in self.config.uids:
@@ -142,6 +148,12 @@ class CLI:
         """
         wallet = bittensor.wallet(config = self.config)
         subtensor = bittensor.subtensor( config = self.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         dendrite = bittensor.dendrite( wallet = wallet )
 
         
@@ -177,6 +189,14 @@ class CLI:
 
     def run_miner ( self ):
         self.config.to_defaults()
+
+        subtensor = bittensor.subtensor( config = self.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         # Check coldkey.
         wallet = bittensor.wallet( config = self.config )
         if not wallet.coldkeypub_file.exists_on_device():
@@ -202,7 +222,7 @@ class CLI:
 
         # Check registration
         ## Will exit if --wallet.reregister is False
-        wallet.reregister()
+        wallet.reregister( netuid = self.config.netuid )
 
         # Run miner.
         if self.config.model == 'core_server':
@@ -245,8 +265,15 @@ class CLI:
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         subtensor.register(
             wallet = wallet,
+            netuid = self.config.netuid,
             prompt = not self.config.no_prompt,
             TPB = self.config.subtensor.register.cuda.get('TPB', None),
             update_interval = self.config.subtensor.register.get('update_interval', None),
@@ -272,6 +299,12 @@ class CLI:
         wallet = bittensor.wallet( config = self.config )
 
         subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         wallets_to_unstake_from: List[bittensor.wallet]
         if self.config.wallet.get('all_hotkeys'):
             # Unstake from all hotkeys.
@@ -297,7 +330,7 @@ class CLI:
         final_amounts: List[Union[float, Balance]] = []
         for wallet in tqdm(wallets_to_unstake_from):
             wallet: bittensor.wallet
-            if not wallet.is_registered():
+            if not wallet.is_registered(): # must be registered on any subnet.
                 # Skip unregistered hotkeys.
                 continue
 
@@ -333,6 +366,12 @@ class CLI:
         wallet = bittensor.wallet( config = config )
 
         subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         wallets_to_stake_to: List[bittensor.wallet]
         if self.config.wallet.get('all_hotkeys'):
             # Stake to all hotkeys.
@@ -365,7 +404,7 @@ class CLI:
         final_amounts: List[Union[float, Balance]] = []
         for wallet in tqdm(wallets_to_stake_to):
             wallet: bittensor.wallet            
-            if not wallet.is_registered():
+            if not wallet.is_registered(): # must be registered on any subnet.
                 # Skip unregistered hotkeys.
                 continue
             
@@ -413,6 +452,12 @@ class CLI:
         """
         wallet = bittensor.wallet( config = self.config )
         subtensor = bittensor.subtensor( config = self.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+        
         subtensor.set_weights( 
             wallet, 
             uids = self.config.uids,

@@ -136,15 +136,15 @@ class Wallet():
     def balance(self) -> SimpleNamespace:
         return self.get_balance()
 
-    def is_registered( self,  netuid: Optional[int] = None, subtensor: Optional['bittensor.Subtensor'] = None ) -> bool:
+    def is_registered( self, subtensor: Optional['bittensor.Subtensor'] = None, netuid: Optional[int] = None ) -> bool:
         """ Returns true if this wallet is registered.
             Args:
-                netuid ( Optional[int] ):
-                    The network uid to check for registration.
-                    Default is None, which checks any subnetwork.
                 subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
                     Determines which network we check for registration.
+                netuid ( Optional[int] ):
+                    The network uid to check for registration.
+                    Default is None, which checks any subnetwork.
             Return:
                 is_registered (bool):
                     Is the wallet registered on the chain.
@@ -220,14 +220,17 @@ class Wallet():
 
     def reregister(
         self,
-        subtensor: 'bittensor.Subtensor' = None,
+        netuid: int,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False
     ) -> Optional['bittensor.Wallet']:
         """ Re-register this wallet on the chain.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                netuid (int):
+                    The network uid of the subnet to register on.
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
                 wait_for_inclusion (bool):
                     if set, waits for the extrinsic to enter a block before returning true, 
@@ -244,13 +247,14 @@ class Wallet():
         """
         if subtensor == None:
             subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor):
+        if not self.is_registered(netuid = netuid, subtensor=subtensor):
             # Check if the wallet should reregister
             if not self.config.wallet.get('reregister'):
                 sys.exit(0)
 
             self.register(
                 subtensor = subtensor,
+                netuid = netuid,
                 prompt = prompt,
                 TPB = self.config.subtensor.register.cuda.get('TPB', None),
                 update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
@@ -267,7 +271,8 @@ class Wallet():
 
     def register ( 
             self, 
-            subtensor: 'bittensor.Subtensor' = None, 
+            netuid: int,
+            subtensor: Optional['bittensor.Subtensor'] = None, 
             wait_for_inclusion: bool = False,
             wait_for_finalization: bool = True,
             prompt: bool = False,
@@ -282,7 +287,9 @@ class Wallet():
         ) -> 'bittensor.Wallet':
         """ Registers the wallet to chain.
         Args:
-            subtensor( 'bittensor.Subtensor' ):
+            netuid (int):
+                The network uid of the subnet to register on.
+            subtensor( Optional['bittensor.Subtensor'] ):
                 Bittensor subtensor connection. Overrides with defaults if None.
             wait_for_inclusion (bool):
                 If set, waits for the extrinsic to enter a block before returning true, 
@@ -327,6 +334,7 @@ class Wallet():
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
+            netuid = netuid,
         )
         
         return self
