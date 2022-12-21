@@ -1102,8 +1102,10 @@ def prune_tokens(inputs: torch.FloatTensor, prune_len: int = 1, margin: int = 3)
             pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - prune_len)`, `required`)
     """
     seq_len = len(inputs[0])
-    if seq_len - margin <= prune_len or prune_len <= 0:
+    if prune_len <= 0:
         return inputs
+    elif seq_len - margin < prune_len:
+        prune_len = seq_len - margin
     pruned_inputs = []
     for b in range(len(inputs)):
         rand_index = torch.randperm(seq_len - margin)[:prune_len]
