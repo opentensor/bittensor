@@ -905,10 +905,10 @@ class nucleus( torch.nn.Module ):
             Args:
                 inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len)`, `required`): 
                     Tensor inputs to have tokens pruned.
-                margin (:obj:`int`, `optional`):
-                    Number of tokens at the end of the sequence to leave unpruned.
                 prune_len (:obj:`int`, `optional`):
                     Number of tokens to prune from each validation input sequence.
+                margin (:obj:`int`, `optional`):
+                    Number of tokens at the end of the sequence to leave unpruned.
             Returns:
                 pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - prune_len)`, `required`)
         """
