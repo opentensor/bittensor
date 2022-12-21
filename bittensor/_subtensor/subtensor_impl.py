@@ -829,6 +829,37 @@ class Subtensor:
                 else:
                     return True
 
+    def get_stake(
+        self,
+        ss58_address: str,
+        block: Optional[int] = None,
+    ) -> Optional['bittensor.Balance']:
+        r"""
+        Returns the stake of the specified account.
+        Args:
+            ss58_address (str):
+                ss58 address of the account to check.
+            block (Optional[int]):
+                Block to query. If None, the latest finalized block is used.
+        Returns:
+            stake (Optional[bittensor.Balance]):
+                Stake of the account or None if the account does not exist.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module='Paratensor',
+                    storage_function='Stake',
+                    params = [ss58_address],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        if result.is_some:
+            return bittensor.Balance.from_rao(result.value)
+        else:
+            return None
+    
     def add_stake(
             self, 
             wallet: 'bittensor.wallet',
@@ -913,37 +944,72 @@ class Subtensor:
                 return False
 
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module='SubtensorModule', 
-                    call_function='add_stake',
-                    call_params={
-                        'hotkey': wallet.hotkey.ss58_address,
-                        'ammount_staked': staking_balance.rao
-                    }
-                )
-                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                    return True
 
-                if response.is_success:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                else:
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+    def __do_add_stake_single(
+        self, 
+        wallet: 'bittensor.wallet',
+        amount: 'bittensor.Balance', 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        r"""
+        Executes a stake call to the chain using the wallet and amount specified.
+        Args:
+            wallet (bittensor.wallet):
+                Bittensor wallet object.
+            amount (bittensor.Balance):
+                Amount to stake as bittensor balance object.
+            wait_for_inclusion (bool):
+                If set, waits for the extrinsic to enter a block before returning true, 
+                or returns false if the extrinsic fails to enter the block within the timeout.   
+            wait_for_finalization (bool):
+                If set, waits for the extrinsic to be finalized on the chain before returning true,
+                or returns false if the extrinsic fails to be finalized within the timeout.
+            prompt (bool):
+                If true, the call waits for confirmation from the user before proceeding.
+        Returns:
+            success (bool):
+                flag is true if extrinsic was finalized or uncluded in the block. 
+                If we did not wait for finalization / inclusion, the response is true.
+        Raises:
+            StakeError:
+                If the extrinsic fails to be finalized or included in the block.
+            NotRegisteredError:
+                If the hotkey is not registered in any subnets.
 
-        if response.is_success:
-            with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(self.network)):
-                new_balance = self.get_balance( wallet.coldkey.ss58_address )
-                old_stake = bittensor.Balance.from_tao( neuron.stake )
-                new_stake = bittensor.Balance.from_tao( self.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address ).stake)
-                bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
-                bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
+        """
+        # Decrypt keys,
+        wallet.coldkey
+        wallet.hotkey
+
+        # Get current stake
+        old_stake = self.get_stake( ss58_hotkey = wallet.hotkey.ss58_address )
+
+        if old_stake is None:
+            # Hotkey is not registered in any subnets.
+            raise NotRegisteredError("Hotkey: {} is not registered.".format(wallet.hotkey_str))
+
+    
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+            call_module='Paratensor', 
+            call_function='add_stake',
+            call_params={
+                'hotkey': wallet.hotkey.ss58_address,
+                'ammount_staked': amount.rao
+                }
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
                 return True
-        
-        return False
+
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                raise StakeError(response.error_message)
 
     def add_stake_multiple (
             self, 
@@ -1665,7 +1731,7 @@ class Subtensor:
             return_dict[r[0].value] = bal
         return return_dict
 
-    def neurons(self, netuid: int, block: Optional[int] = None ) -> List[SimpleNamespace]: 
+    def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronMetadata]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             netuid ( int ):
@@ -1673,8 +1739,8 @@ class Subtensor:
             block ( Optional[int] ):
                 block to sync from.
         Returns:
-            neuron (List[SimpleNamespace]):
-                List of neuron objects.
+            neuron (List[NeuronMetadata]):
+                List of neuron metadata objects.
         """
         neurons = []
         for id in tqdm(range(self.get_n( netuid, block ))): 
