@@ -1087,6 +1087,31 @@ def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
     return to_check_vocab == target_vocab  # indexed tokenizer vocabularies should match
 
 
+def prune_tokens(inputs: torch.FloatTensor, prune_len: int = 1, margin: int = 3):
+    r"""
+    Prune tokens from a batch of sequences randomly by removing prune_len tokens from each sequence,
+    leaving the end margin intact.
+        Args:
+            inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len)`, `required`):
+                Tensor inputs to have tokens pruned.
+            prune_len (:obj:`int`, `optional`):
+                Number of tokens to prune from each validation input sequence.
+            margin (:obj:`int`, `optional`):
+                Number of tokens at the end of the sequence to leave unpruned.
+        Returns:
+            pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - prune_len)`, `required`)
+    """
+    seq_len = len(inputs[0])
+    pruned_inputs = []
+    for b in range(len(inputs)):
+        rand_index = torch.randperm(seq_len - margin)[:prune_len]
+        mask = torch.ones(seq_len, dtype=torch.bool)
+        mask[rand_index] = False
+        pruned_inputs.append(inputs[b, mask])
+
+    return torch.stack(pruned_inputs)
+
+
 def pad_offsets(offsets_batch: List[List[tuple]], source_offsets_batch: List[List[List[Any]]],
                 pad_offsets_batch: List[List[List[Any]]]) -> List[List[List[Any]]]:
     r"""

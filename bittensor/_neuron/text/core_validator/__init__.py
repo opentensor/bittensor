@@ -41,7 +41,7 @@ from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
-from bittensor.utils.tokenizer_utils import phrase_cross_entropy, topk_tokens_to_vocab_size
+from bittensor.utils.tokenizer_utils import phrase_cross_entropy, topk_tokens_to_vocab_size, prune_tokens
 
 from torch.nn.functional import kl_div
 from torch.nn.utils import clip_grad_norm_
@@ -898,30 +898,6 @@ class nucleus( torch.nn.Module ):
         self.encoder.apply( init_xavier )
         torch.nn.init.xavier_uniform_( self.gates.weight )
     
-    def prune_token(self, inputs: torch.FloatTensor, prune_len: int = 1, margin: int = 3):
-        r"""
-        Prune tokens from a batch of sequences randomly by removing prune_len tokens from each sequence,
-        leaving the end margin intact.
-            Args:
-                inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len)`, `required`): 
-                    Tensor inputs to have tokens pruned.
-                prune_len (:obj:`int`, `optional`):
-                    Number of tokens to prune from each validation input sequence.
-                margin (:obj:`int`, `optional`):
-                    Number of tokens at the end of the sequence to leave unpruned.
-            Returns:
-                pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - prune_len)`, `required`)
-        """
-        seq_len = len(inputs[0])
-        pruned_inputs = []
-        for b in range(len(inputs)):
-            rand_index = torch.randperm(seq_len - margin)[:prune_len]
-            mask = torch.ones(seq_len, dtype=torch.bool)
-            mask[rand_index] = False
-            pruned_inputs.append(inputs[b, mask])
-
-        return torch.stack(pruned_inputs)
-    
     def forward(
             self,
             inputs: torch.FloatTensor,
@@ -949,7 +925,7 @@ class nucleus( torch.nn.Module ):
         val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         prune_len = self.config.neuron.prune_len  # Number of tokens to prune from each validation input sequence
         inputs = inputs.to(self.device)
-        inputs_seq = self.prune_token(inputs[..., :-val_len], prune_len=prune_len)  # pruned input sequence without last validation tokens [batch_size, sequence_len]
+        inputs_seq = prune_tokens(inputs[..., :-val_len], prune_len=prune_len)  # prune input sequence without last validation tokens [batch_size, sequence_len]
         inputs = torch.cat([inputs_seq, inputs[..., -val_len:]], -1)  # pruned sequence token and validation tokens
 
         # === Create the local context used to select endpoints ===
