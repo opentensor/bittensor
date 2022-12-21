@@ -520,7 +520,7 @@ class Metagraph( torch.nn.Module ):
         return self
 
 
-    def sync ( self, block: int = None, cached: bool = True, fast:bool = True ) -> 'Metagraph':
+    def sync ( self, block: int = None, cached: bool = True, fast: bool = False ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
         """
         logger.success(self.subtensor)
