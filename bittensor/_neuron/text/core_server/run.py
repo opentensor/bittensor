@@ -55,14 +55,15 @@ def serve(
 
     # Load/Create our bittensor wallet.
     if wallet == None:
-        wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor) 
+        wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor, netuid = config.neuron.netuid) 
     else:
-        wallet.reregister(subtensor=subtensor)
+        wallet.reregister(subtensor=subtensor, netuid = config.neuron.netuid)
 
     # Load/Sync/Save our metagraph.
     if metagraph == None:
         metagraph = bittensor.metagraph ( 
-            subtensor = subtensor
+            subtensor = subtensor,
+            netuid = config.neuron.netuid,
         )
     
     metagraph.load().sync().save()
@@ -86,6 +87,7 @@ def serve(
     prometheus_info.info ({
         'type': "core_server",
         'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
+        'netuid': config.neuron.netuid,
         'network': config.subtensor.network,
         'coldkey': str(wallet.coldkeypub.ss58_address),
         'hotkey': str(wallet.hotkey.ss58_address),
@@ -325,6 +327,7 @@ def serve(
         axon = bittensor.axon(
             config = config,
             wallet = wallet,
+            netuid = config.neuron.netuid,
             synapse_checks=synapse_check,
             synapse_last_hidden = forward_hidden_state if model.config.neuron.lasthidden else None,
             synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
@@ -363,7 +366,7 @@ def serve(
     while True:
         iteration = 0
         local_data = {}
-        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address, netuid = config.neuron.netuid)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         current_block = subtensor.get_current_block()
         end_block = current_block + config.neuron.blocks_per_epoch
@@ -466,6 +469,7 @@ def serve(
                     chain_weights = torch.zeros(subtensor.n)
                     chain_weights [ uid ] = 1 
                     did_set = subtensor.set_weights(
+                        netuid = config.neuron.netuid,
                         uids=torch.arange(0,subtensor.n),
                         weights = chain_weights,
                         wait_for_inclusion = False,

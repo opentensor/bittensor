@@ -49,6 +49,7 @@ class axon:
 
     def __new__(
             cls,
+            netuid: int,
             config: Optional['bittensor.config'] = None,
             wallet: Optional['bittensor.Wallet'] = None,
             forward_text: Optional['Callable'] = None,
@@ -80,6 +81,8 @@ class axon:
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
+                netuid (:obj:`int`, `required`):
+                    The netuid of the subent this axon is serving on.
                 config (:obj:`Optional[bittensor.Config]`, `optional`): 
                     bittensor.axon.config()
                 wallet (:obj:`Optional[bittensor.Wallet]`, `optional`):
@@ -123,7 +126,6 @@ class axon:
                 backward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the backward requests.              
         """   
-
         if config == None: 
             config = axon.config()
         config = copy.deepcopy(config)
@@ -197,7 +199,8 @@ class axon:
             priority_threadpool = priority_threadpool,
             forward_timeout = config.axon.forward_timeout,
             backward_timeout = config.axon.backward_timeout,
-            prometheus_level = config.axon.prometheus.level
+            prometheus_level = config.axon.prometheus.level,
+            netuid = netuid,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )

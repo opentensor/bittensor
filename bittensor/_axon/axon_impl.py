@@ -71,6 +71,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         synapse_checks: 'Callable',
         synapse_timeouts: dict,
         prometheus_level: str,
+        netuid: int,
         priority:  'Callable' = None,
         priority_threadpool: 'bittensor.prioritythreadpool' = None,
         forward_timeout: int = None,
@@ -91,6 +92,8 @@ class Axon( bittensor.grpc.BittensorServicer ):
                     list of functions which is called on backward requests.
                 prometheus_level (:obj:`str`, `required`):
                     Prometheus logging level.
+                netuid (:obj:`int`, `required`):
+                    network uid for this axon.
                 priority (:obj:`callable`, `optional`):
                     function to assign priority on requests.
                 priority_threadpool (:obj:`bittensor.prioritythreadpool`, `optional`):
@@ -121,8 +124,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.priority_threadpool = priority_threadpool
         self._prometheus_uuid = uuid.uuid1()
 
+        self.netuid = netuid 
+
     def __str__(self) -> str:
-        return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
+        return "Axon({}, {}, netuid:{}, {}, {})".format( self.ip, self.port, self.netuid, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
 
     def __repr__(self) -> str:
         return self.__str__()
