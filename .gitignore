@@ -211,3 +211,6 @@ yarn-error.log*
 **/.replicate
 replicate.yaml
 **/run.sh
+
+# Notebooks
+*.ipynb
