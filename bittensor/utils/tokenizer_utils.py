@@ -1014,6 +1014,54 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
     return loss_val, loss
 
 
+def topk_tokens_to_vocab_size(topk_tensor: torch.Tensor, vocab_size_std: int, vocab_size_min: int = 50257) -> torch.Tensor:
+    r"""
+    Convert topk_tokens first token probabilities into a standard logits tensor shape [batch_size, vocab_size_std].
+        Args:
+            topk_tensor (:obj:`torch.Tensor`, `required`):
+                [batch_size, (topk + 1), max_len] tensor includes topk token probabilities (prob_k) + floor_prob
+                in first column with gradients attached, with std_tokens in remaining columns with ignore_index padding.
+                Content structure:
+                [[[prob_k=0_b=0, tok_0_k=0_b=0, tok_1_k=0_b=0, ..., ignore_index?],
+                  [prob_k=1_b=0, tok_0_k=1_b=0, tok_1_k=1_b=0, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=0, ignore_index, ..., ignore_index]],
+                 [[prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., ignore_index?],
+                  [prob_k=1_b=1, tok_0_k=1_b=1, tok_1_k=1_b=1, ..., ignore_index?],
+                  [...],
+                  [prob_floor_b=1, ignore_index, ..., ignore_index]],
+                 [...]]
+            vocab_size_std (:obj:`int`, `optional`):
+                Standard tokenizer vocab_size for forming logits.
+            vocab_size_min (:obj:`int`, `optional`):
+                Minimum server vocab_size expected, should set to nominal 50257,
+                used to prevent the floor_probs from being too large.
+        Returns:
+            logits (:obj:`torch.Tensor`, `required`):
+                [batch_size, vocab_size_std] Standard logits.
+    """
+
+    batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
+    topk = topk_p1 - 1
+
+    topk_tokens = topk_tensor[:, :-1, 1].round().to(torch.int64)  # [batch_size, topk] first tokens
+    topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+    floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
+
+    topk_probs = torch.clamp(topk_probs, 0, 1)  # [batch_size, topk] ensure probabilities within [0, 1]
+    floor_probs = torch.clamp(floor_probs, 0, 1)  # [batch_size] ensure floor probabilities within [0, 1]
+
+    # === Ensure total probability is 1 ===
+    total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
+    n_topk_probs = topk_probs / total_probs[:, None]  # [batch_size, topk] normalized topk_probs
+
+    # === Convert to logits tensor ===
+    probs = torch.zeros((batch_size, vocab_size_std))  # [batch_size, vocab_size_std]
+    probs.scatter_add_(1, topk_tokens, n_topk_probs)  # accumulate token probabilities onto logits tensor
+
+    return probs  # [batch_size, vocab_size_std]
+
+
 def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
                                 target_tokenizer: PreTrainedTokenizerBase) -> bool:
     r"""
@@ -1037,6 +1085,35 @@ def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
     target_vocab = target_tokenizer.batch_decode(range(target_tokenizer.vocab_len))
 
     return to_check_vocab == target_vocab  # indexed tokenizer vocabularies should match
+
+
+def prune_tokens(inputs: torch.FloatTensor, prune_len: int = 1, margin: int = 3):
+    r"""
+    Prune tokens from a batch of sequences randomly by removing prune_len tokens from each sequence,
+    leaving the end margin intact.
+        Args:
+            inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len)`, `required`):
+                Tensor inputs to have tokens pruned.
+            prune_len (:obj:`int`, `optional`):
+                Number of tokens to prune from each validation input sequence.
+            margin (:obj:`int`, `optional`):
+                Number of tokens at the end of the sequence to leave unpruned.
+        Returns:
+            pruned_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, seq_len - prune_len)`, `required`)
+    """
+    seq_len = len(inputs[0])
+    if prune_len <= 0:
+        return inputs
+    elif seq_len - margin < prune_len:
+        prune_len = seq_len - margin
+    pruned_inputs = []
+    for b in range(len(inputs)):
+        rand_index = torch.randperm(seq_len - margin)[:prune_len]
+        mask = torch.ones(seq_len, dtype=torch.bool)
+        mask[rand_index] = False
+        pruned_inputs.append(inputs[b, mask])
+
+    return torch.stack(pruned_inputs)
 
 
 def pad_offsets(offsets_batch: List[List[tuple]], source_offsets_batch: List[List[List[Any]]],
