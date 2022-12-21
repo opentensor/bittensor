@@ -524,9 +524,7 @@ class Metagraph( torch.nn.Module ):
         r""" Synchronizes this metagraph with the chain state.
         """
         logger.success(self.subtensor)
-        if block == None:
-            block = self.subtensor.get_current_block()
-            
+
         if cached and self.subtensor.network in ("nakamoto", "local"):
             if bittensor.__use_console__:
                 with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
@@ -551,6 +549,10 @@ class Metagraph( torch.nn.Module ):
                 neurons = self.subtensor.neurons_fast( block = block)
             else:
                 neurons = self.subtensor.neurons( block = block )
+        
+        if block == None:
+            block = self.subtensor.get_current_block()
+
         return self.from_neurons(neurons=neurons, block=block)
 
         
