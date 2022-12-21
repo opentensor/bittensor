@@ -193,9 +193,11 @@ class Subtensor:
                 return substrate.query( module='SubtensorModule', storage_function = 'Kappa' ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def difficulty (self) -> int:
+    def difficulty (self, netuid: int) -> int:
         r""" Returns registration difficulty from the chain.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             difficulty (int):
                 Registration difficulty.
@@ -203,7 +205,11 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'Difficulty' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'Difficulty',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
     @property
