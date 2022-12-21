@@ -661,6 +661,12 @@ class cli:
             type=str, 
             required=False
         )
+        run_parser.add_argument(
+            '--netuid',
+            type=int,
+            help='netuid for subnet to serve this neuron on',
+            default=0
+        )
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
@@ -713,10 +719,14 @@ class cli:
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-        
+
+        cli.__check_netuid_set( config.metagraph )
+
     def check_weights_config( config: 'bittensor.Config'):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        cli.__check_netuid_set( config )
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             if not Confirm.ask("Show all weights?"):
@@ -773,6 +783,8 @@ class cli:
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
+        cli.__check_netuid_set( config )
+
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -825,6 +837,8 @@ class cli:
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
+        cli.__check_netuid_set( config )
+
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -845,6 +859,8 @@ class cli:
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
+        cli.__check_netuid_set( config )
+
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -856,6 +872,8 @@ class cli:
     def check_stake_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        cli.__check_netuid_set( config )
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
@@ -925,6 +943,8 @@ class cli:
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
+        cli.__check_netuid_set( config )
+
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -935,6 +955,7 @@ class cli:
 
         if not config.no_prompt:
             cli._check_for_cuda_reg_config(config)
+            
 
     def check_new_coldkey_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
@@ -995,6 +1016,8 @@ class cli:
         # Check network.
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+        
+        cli.__check_netuid_set( config )
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
@@ -1017,6 +1040,15 @@ class cli:
         # Don't need to ask about registration if they don't want to reregister the wallet.
         if config.wallet.get('reregister', bittensor.defaults.wallet.reregister) and not config.no_prompt:
             cli._check_for_cuda_reg_config(config)
+
+    def __check_netuid_set( config: 'bittensor.Config' ):
+        # Make sure netuid is set.
+        if config.get('netuid') == None:
+            if not config.no_prompt:
+                netuid = Prompt.ask("Enter netuid", default = '0')
+                config.netuid = str(netuid)
+            else:
+                raise ValueError('netuid must be set')
                 
     def check_help_config( config: 'bittensor.Config'):
         if config.model == 'None':

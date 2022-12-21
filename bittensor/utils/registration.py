@@ -378,7 +378,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -386,6 +386,8 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
             Subtensor to connect to for block information and to submit.
         wallet:
             Wallet to use for registration.
+        netuid: int
+            The netuid of the subnet to register to.
         output_in_place: bool
             If true, prints the status in place. Otherwise, prints the status on a new line.
         num_processes: int
@@ -431,11 +433,8 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
                 for i in range(num_processes) ]
 
     # Get first block
-    block_number = subtensor.get_current_block()
-    difficulty = subtensor.difficulty
-    block_hash = subtensor.substrate.get_block_hash( block_number )
-    while block_hash == None:
-        block_hash = subtensor.substrate.get_block_hash( block_number )
+    block_number, difficulty, block_hash = get_block_with_retry(subtensor = subtensor, netuid = netuid)
+
     block_bytes = block_hash.encode('utf-8')[2:]
     old_block_number = block_number
     # Set to current block
@@ -475,7 +474,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     hash_rates = [0] * n_samples # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
     
-    while not wallet.is_registered(subtensor):
+    while not wallet.is_registered(netuid = netuid, subtensor = subtensor):
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -488,6 +487,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
         # check for new block
         old_block_number = check_for_newest_block_and_update(
             subtensor = subtensor,
+            netuid = netuid,
             old_block_number=old_block_number,
             curr_diff=curr_diff,
             curr_block=curr_block,
@@ -546,9 +546,29 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
                             Exception,
                             interval=1,
                             max_tries=3)
-def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, bytes]:
+def get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tuple[int, int, bytes]:
+    """
+    Gets the current block number, difficulty, and block hash from the substrate node.
+
+    Args:
+        subtensor (:obj:`bittensor.Subtensor`, `required`):
+            The subtensor object to use to get the block number, difficulty, and block hash.
+
+        netuid (:obj:`int`, `required`):
+            The netuid of the network to get the block number, difficulty, and block hash from.
+        
+    Returns:
+        block_number (:obj:`int`):
+            The current block number.
+        
+        difficulty (:obj:`int`):
+            The current difficulty of the subnet.
+
+        block_hash (:obj:`bytes`):
+            The current block hash.
+    """
     block_number = subtensor.get_current_block()
-    difficulty = subtensor.difficulty
+    difficulty = subtensor.difficulty(netuid = netuid)
     block_hash = subtensor.substrate.get_block_hash( block_number )
     if block_hash is None:
         raise Exception("Network error. Could not connect to substrate to get block hash")
@@ -574,6 +594,7 @@ class UsingSpawnStartMethod():
 
 def check_for_newest_block_and_update(
     subtensor: 'bittensor.Subtensor',
+    netuid: int,
     old_block_number: int,
     curr_diff: multiprocessing.Array,
     curr_block: multiprocessing.Array,
@@ -589,6 +610,8 @@ def check_for_newest_block_and_update(
     Args:
         subtensor (:obj:`bittensor.Subtensor`, `required`):
             The subtensor object to use for getting the current block.
+        netuid (:obj:`int`, `required`):
+            The netuid to use for retrieving the difficulty.
         old_block_number (:obj:`int`, `required`):
             The old block number to check against.
         curr_diff (:obj:`multiprocessing.Array`, `required`):
@@ -613,11 +636,8 @@ def check_for_newest_block_and_update(
     if block_number != old_block_number:
         old_block_number = block_number
         # update block information
-        block_hash = subtensor.substrate.get_block_hash( block_number)
-        while block_hash == None:
-            block_hash = subtensor.substrate.get_block_hash( block_number)
+        block_number, difficulty, block_hash = get_block_with_retry(subtensor = subtensor, netuid = netuid)
         block_bytes = block_hash.encode('utf-8')[2:]
-        difficulty = subtensor.difficulty
 
         update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
         # Set new block events for each solver
@@ -633,7 +653,7 @@ def check_for_newest_block_and_update(
     return old_block_number
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', netuid: int, output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -641,6 +661,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             The subtensor node to grab blocks
         wallet: bittensor.Wallet
             The wallet to register
+        netuid: int
+            The netuid of the subnet to register to.
         output_in_place: bool
             If true, prints the output in place, otherwise prints to new lines
         update_interval: int
@@ -692,11 +714,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
 
         # Get first block
-        block_number = subtensor.get_current_block()
-        difficulty = subtensor.difficulty
-        block_hash = subtensor.substrate.get_block_hash( block_number )
-        while block_hash == None:
-            block_hash = subtensor.substrate.get_block_hash( block_number )
+        block_number, difficulty, block_hash = get_block_with_retry(subtensor = subtensor, netuid = netuid)
+
         block_bytes = block_hash.encode('utf-8')[2:]
         old_block_number = block_number
         
@@ -735,7 +754,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
         solution = None
-        while not wallet.is_registered(subtensor):
+        while not wallet.is_registered(netuid = netuid, subtensor = subtensor):
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)
@@ -748,6 +767,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             # check for new block
             old_block_number = check_for_newest_block_and_update(
                 subtensor = subtensor,
+                netuid = netuid,
                 curr_diff=curr_diff,
                 curr_block=curr_block,
                 curr_block_num=curr_block_num,
@@ -813,6 +833,7 @@ def terminate_workers_and_wait_for_exit(workers: List[multiprocessing.Process]) 
 def create_pow(
     subtensor,
     wallet,
+    netuid: int,
     output_in_place: bool = True,
     cuda: bool = False,
     dev_id: Union[List[int], int] = 0,
@@ -822,11 +843,11 @@ def create_pow(
     log_verbose: bool = False
     ) -> Optional[Dict[str, Any]]:
     if cuda:
-        solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, output_in_place=output_in_place, \
+        solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, netuid = netuid, output_in_place=output_in_place, \
             dev_id=dev_id, TPB=tpb, update_interval=update_interval, log_verbose=log_verbose
         )
     else:
-        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, output_in_place=output_in_place, \
+        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, netuid = netuid, output_in_place=output_in_place, \
             num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose
         )
 

@@ -98,15 +98,17 @@ class Subtensor:
         attempted_endpoints = []
         while True:
             def connection_error_message():
-                print('''
-Check that your internet connection is working and the chain endpoints are available: <blue>{}</blue>
-The subtensor.network should likely be one of the following choices:
-    -- local - (your locally running node)
-    -- nobunaga - (staging)
-    -- nakamoto - (main)
-Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
-To run a local node (See: docs/running_a_validator.md) \n
-                              '''.format( attempted_endpoints) )
+                print(
+                '\n'.join((
+                    "Check that your internet connection is working and the chain endpoints are available: <blue>{}</blue>",
+                    "The subtensor.network should likely be one of the following choices:",
+                    "    -- local - (your locally running node)",
+                    "    -- nobunaga - (staging)",
+                    "    -- nakamoto - (main)",
+                    "Or you may set the endpoint manually using the --subtensor.chain_endpoint flag",
+                    "To run a local node (See: docs/running_a_validator.md)"
+                ))
+                .format( attempted_endpoints) )
 
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )
@@ -497,6 +499,7 @@ To run a local node (See: docs/running_a_validator.md) \n
     def register (
         self,
         wallet: 'bittensor.Wallet',
+        netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
@@ -513,6 +516,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
+            netuid (int):
+                The netuid of the subnet to register on.
             wait_for_inclusion (bool):
                 If set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -541,11 +546,17 @@ To run a local node (See: docs/running_a_validator.md) \n
                 If we did not wait for finalization / inclusion, the response is true.
         """
 
-        with bittensor.__console__.status(":satellite: Checking Account..."):
-             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
-             if not neuron.is_null:
-                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]:\n  uid: [bold white]{}[/bold white]\n  hotkey: [bold white]{}[/bold white]\n  coldkey: [bold white]{}[/bold white]".format(neuron.uid, neuron.hotkey, neuron.coldkey))
-                 return True
+        with bittensor.__console__.status(f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."):
+            neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address, netuid = netuid )
+            if not neuron.is_null:
+                bittensor.__console__.print(
+                ":white_heavy_check_mark: [green]Already Registered[/green]:\n" + \
+                "  uid: [bold white]{}[/bold white]\n" + \
+                "  netuid: [bold white]{}[/bold white]\n"
+                "  hotkey: [bold white]{}[/bold white]\n" + \
+                "  coldkey: [bold white]{}[/bold white]"
+                    .format(neuron.uid, neuron.netuid, neuron.hotkey, neuron.coldkey))
+                return True
 
         if prompt:
             if not Confirm.ask("Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]".format( wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address, self.network ) ):
@@ -561,15 +572,15 @@ To run a local node (See: docs/running_a_validator.md) \n
                     if prompt:
                         bittensor.__console__.error('CUDA is not available.')
                     return False
-                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
+                pow_result = bittensor.utils.create_pow( self, wallet, netuid, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
             else:
-                pow_result = bittensor.utils.create_pow( self, wallet, output_in_place, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
+                pow_result = bittensor.utils.create_pow( self, wallet, netuid, output_in_place, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
 
             # pow failed
             if not pow_result:
-                # might be registered already
-                if (wallet.is_registered( self )):
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                # might be registered already on this subnet
+                if (wallet.is_registered( subtensor = self, netuid = netuid )):
+                    bittensor.__console__.print(f":white_heavy_check_mark: [green]Already registered on netuid:{netuid}[/green]")
                     return True
                 
             # pow successful, proceed to submit pow to chain for registration
@@ -580,14 +591,15 @@ To run a local node (See: docs/running_a_validator.md) \n
                         with self.substrate as substrate:
                             # create extrinsic call
                             call = substrate.compose_call( 
-                                call_module='SubtensorModule',  
+                                call_module='Paratensor',  
                                 call_function='register', 
                                 call_params={ 
                                     'block_number': pow_result['block_number'], 
                                     'nonce': pow_result['nonce'], 
                                     'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
                                     'hotkey': wallet.hotkey.ss58_address, 
-                                    'coldkey': wallet.coldkeypub.ss58_address
+                                    'coldkey': wallet.coldkeypub.ss58_address,
+                                    'netuid': netuid,
                                 } 
                             )
                             extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
@@ -603,7 +615,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                             if not response.is_success:
                                 if 'key is already registered' in response.error_message:
                                     # Error meant that the key is already registered.
-                                    bittensor.__console__.print(":white_heavy_check_mark: [green]Already Registered[/green]")
+                                    bittensor.__console__.print(f":white_heavy_check_mark: [green]Already Registered on [bold]subnet:{netuid}[/bold][/green]")
                                     return True
 
                                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
@@ -612,7 +624,7 @@ To run a local node (See: docs/running_a_validator.md) \n
                             # Successful registration, final check for neuron and pubkey
                             else:
                                 bittensor.__console__.print(":satellite: Checking Balance...")
-                                neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address )
+                                neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address, netuid = netuid )
                                 if not neuron.is_null:
                                     bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
                                     return True
@@ -707,7 +719,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with bittensor.__console__.status(":satellite: Serving axon on: [white]{} - {}[/white] ...".format(self.network, netuid)):
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module='SubtensorModule',
+                    call_module='Paratensor',
                     call_function='serve_axon',
                     call_params=params
                 )
@@ -782,7 +794,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module='SubtensorModule', 
+                    call_module='Paratensor', 
                     call_function='add_stake',
                     call_params={
                         'hotkey': wallet.hotkey.ss58_address,
@@ -954,7 +966,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
                 with self.substrate as substrate:
                     call = substrate.compose_call(
-                    call_module='SubtensorModule', 
+                    call_module='Paratensor', 
                     call_function='add_stake',
                     call_params={
                         'hotkey': wallet.hotkey.ss58_address,
@@ -1206,7 +1218,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module='SubtensorModule', 
+                    call_module='Paratensor', 
                     call_function='remove_stake',
                     call_params={
                         'hotkey': wallet.hotkey.ss58_address,
@@ -1229,7 +1241,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module='SubtensorModule', 
+                    call_module='Paratensor', 
                     call_function='remove_stake',
                     call_params={
                         'hotkey': wallet.hotkey.ss58_address,
@@ -1362,7 +1374,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
                 with self.substrate as substrate:
                     call = substrate.compose_call(
-                        call_module='SubtensorModule', 
+                        call_module='Paratensor', 
                         call_function='remove_stake',
                         call_params={
                             'hotkey': wallet.hotkey.ss58_address,
@@ -1385,7 +1397,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
                 with self.substrate as substrate:
                     call = substrate.compose_call(
-                        call_module='SubtensorModule', 
+                        call_module='Paratensor', 
                         call_function='remove_stake',
                         call_params={
                             'hotkey': wallet.hotkey.ss58_address,
@@ -1471,7 +1483,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             try:
                 with self.substrate as substrate:
                     call = substrate.compose_call(
-                        call_module='SubtensorModule',
+                        call_module='Paratensor',
                         call_function='set_weights',
                         call_params = {
                             'dests': weight_uids,
@@ -1642,9 +1654,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 result = dict( substrate.query( 
-                    module='SubtensorModule',  
+                    module='Paratensor',  
                     storage_function='Neurons', 
-                    params = [ uid, netuid ], 
+                    params = [ netuid, uid ], 
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 ).value )
             return result
@@ -1670,17 +1682,14 @@ To run a local node (See: docs/running_a_validator.md) \n
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query (
-                    module='SubtensorModule',
+                    module='Paratensor',
                     storage_function='Subnets',
                     params = [ ss58_hotkey ],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
 
         result = make_substrate_call_with_retry()
-        if result.is_some:
-            return [r.value for r in result.value]
-        else:
-            return []
+        return result.value
 
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None) -> Union[Dict[str, int], int]:
@@ -1702,9 +1711,9 @@ To run a local node (See: docs/running_a_validator.md) \n
         def make_substrate_call_with_retry(netuid: int):
             with self.substrate as substrate:
                 return substrate.query (
-                    module='SubtensorModule',
+                    module='Paratensor',
                     storage_function='Uids',
-                    params = [ ss58_hotkey, netuid ],
+                    params = [ netuid, ss58_hotkey ],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
         
@@ -1728,8 +1737,8 @@ To run a local node (See: docs/running_a_validator.md) \n
         uids = { str(netuid): -1 for netuid in netuids }
         # Get uids for hotkey.
         for netuid in netuids:
-            result = make_substrate_call_with_retry()
-            if result.is_some:
+            result = make_substrate_call_with_retry(netuid)
+            if result != None:
                 uids[str(netuid)] = result.value
             else:
                 # Shouldn't happen.
@@ -1782,13 +1791,13 @@ To run a local node (See: docs/running_a_validator.md) \n
         def make_substrate_call_with_retry(netuid: int):
             with self.substrate as substrate:
                 return substrate.query (
-                    module='SubtensorModule',
+                    module='Paratensor',
                     storage_function='Uids',
-                    params = [ ss58_hotkey, netuid ],
+                    params = [ netuid, ss58_hotkey ],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
 
-        if netuid:
+        if False and netuid:
             result = make_substrate_call_with_retry( netuid )
             if not result.is_some:
                 return Subtensor._null_neuron()
@@ -1802,6 +1811,14 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return Subtensor._null_neuron()
             else:
                 netuid_map = netuid_map_or_result
+            # TODO (Cameron): Use is_some when chain updated
+                if netuid:
+                    if str(netuid) in netuid_map:
+                        return self.neuron_for_uid( netuid_map[str(netuid)], netuid = netuid, block = block )
+                    else:
+                        return Subtensor._null_neuron()
+            # end TODO
+
                 neurons = []
                 for netuid_str, uid in netuid_map:
                     neuron = self.neuron_for_uid( uid, netuid = int(netuid_str), block = block )
@@ -1824,7 +1841,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return int(substrate.query(
-                    module='SubtensorModule',
+                    module='Paratensor',
                     storage_function = 'N',
                     params = [ netuid ],
                     block_hash = None if block == None else substrate.get_block_hash( block )
@@ -1845,3 +1862,24 @@ To run a local node (See: docs/running_a_validator.md) \n
                 neuron metadata associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
+
+
+    def subnet_exists( self, netuid: int ) -> bool:
+        r""" Returns true if the subnet exists.
+        Args:
+            netuid ( int ):
+                The network uid of the subnet to query.
+        Returns:
+            exists ( bool ):
+                True if the subnet exists.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'NetworksAdded',
+                    params = [ netuid ],
+                    block_hash = None
+                ).value
+        return make_substrate_call_with_retry()

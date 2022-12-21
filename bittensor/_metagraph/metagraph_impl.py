@@ -19,7 +19,8 @@
 
 import os
 
-from typing import List, SimpleNamespace
+from typing import List
+from types import SimpleNamespace
 from loguru import logger
 
 import ast
