@@ -170,17 +170,19 @@ class Wallet():
         neuron = subtensor.neuron_for_wallet( self, netuid = netuid )
         return neuron
 
-    def get_uid ( self, subtensor: 'bittensor.Subtensor' = None ) -> int:
+    def get_uid ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> int:
         """ Returns this wallet's hotkey uid or -1 if the hotkey is not subscribed.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                netuid (int):
+                    The network uid of the subnet to query.
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 uid (int):
                     Network uid or -1 if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
+        if not self.is_registered(netuid = netuid, subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
         neuron = self.get_neuron(subtensor = subtensor)
