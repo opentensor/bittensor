@@ -2082,7 +2082,7 @@ class Subtensor:
             # end TODO
 
                 neurons = []
-                for netuid_str, uid in netuid_map:
+                for netuid_str, uid in netuid_map.items():
                     neuron = self.neuron_for_uid( uid, netuid = int(netuid_str), block = block )
                     neurons.append( neuron )
                 return neurons
