@@ -75,11 +75,11 @@ class metagraph:
         if subtensor == None:
             subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
         if netuid == None:
-            netuid = config.metagraph.netuid
+            netuid = config.get('netuid')
             if netuid == None:
-                raise ValueError('netuid not set in config.metagraph.netuid or passed as an argument.')
+                raise ValueError('netuid not set in config.netuid or passed as an argument.')
         
-        return metagraph_impl.Metagraph( subtensor = subtensor )
+        return metagraph_impl.Metagraph( subtensor = subtensor, netuid = netuid )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
