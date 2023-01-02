@@ -577,7 +577,7 @@ class cli:
             '--netuid',
             type=int,
             help='netuid for subnet to serve this neuron on',
-            default=0
+            default=bittensor.defaults.netuid
         )
 
         bittensor.wallet.add_args( unstake_parser )
@@ -622,7 +622,7 @@ class cli:
             '--netuid',
             type=int,
             help='netuid for subnet to serve this neuron on',
-            default=0
+            default=bittensor.defaults.netuid
         )
         
         bittensor.wallet.add_args( stake_parser )
@@ -665,7 +665,7 @@ class cli:
             '--netuid',
             type=int,
             help='netuid for subnet to serve this neuron on',
-            default=0
+            default=bittensor.defaults.netuid
         )
 
         bittensor.wallet.add_args( register_parser )
@@ -683,7 +683,7 @@ class cli:
             '--netuid',
             type=int,
             help='netuid for subnet to serve this neuron on',
-            default=0
+            default=bittensor.defaults.netuid
         )
 
         # If no arguments are passed, print help text.

@@ -656,7 +656,7 @@ class CLI:
         r""" Prints an overview for the wallet's colkey.
         """
         console = bittensor.__console__
-        subtensor = bittensor.subtensor( config = self.config )
+        subtensor: 'bittensor.Subtensor' = bittensor.subtensor( config = self.config )
 
         all_hotkeys = []
         total_balance = bittensor.Balance(0)
@@ -694,41 +694,24 @@ class CLI:
             return
 
         # Pull neuron info for all keys.            
-        neurons = []
+        neurons = {}
         block = subtensor.block
 
-        # TODO (Cameron): Get netuids from chain.
-        netuids = [1]
+        netuids = set()
+        for hotkey in all_hotkeys:
+            netuids_for_hotkey = subtensor.netuids_for_hotkey( hotkey = hotkey.hotkey.ss58_address )
+            netuids = netuids.union( netuids_for_hotkey )
 
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             for netuid in netuids:
-                try:
-                    if self.config.subtensor.get('network', bittensor.defaults.subtensor.network) not in ('local', 'nakamoto'):
-                        # We only cache neurons for local/nakamoto.
-                        raise CacheException("This network is not cached, defaulting to regular overview.")
-                
-                    if self.config.get('no_cache'):
-                        raise CacheException("Flag was set to not use cache, defaulting to regular overview.")
-
-                    metagraph: bittensor.Metagraph = bittensor.metagraph( subtensor = subtensor, netuid = 1 )
-                    try:
-                        # Grab cached neurons from IPFS
-                        all_neurons = metagraph.retrieve_cached_neurons()
-                    except Exception:
-                        raise CacheException("Failed to retrieve cached neurons, defaulting to regular overview.")
-                    # Map the hotkeys to uids
-                    hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-                    for wallet in tqdm(all_hotkeys):
-                        uid = hotkey_to_neurons.get(wallet.hotkey.ss58_address)
-                        if uid is not None:
-                            nn = all_neurons[uid]
-                            neurons.append( (nn, wallet) )
-                except CacheException:
-                    for wallet in tqdm(all_hotkeys):
-                        # Get overview without cache
-                        nn = subtensor.neuron_for_pubkey( wallet.hotkey.ss58_address, netuid = netuid )
-                        if not nn.is_null:
-                            neurons.append( (nn, wallet) )
+                all_neurons = subtensor.neurons( netuid = netuid )
+                # Map the hotkeys to uids
+                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+                for wallet in tqdm(all_hotkeys):
+                    uid = hotkey_to_neurons.get(wallet.hotkey.ss58_address)
+                    if uid is not None:
+                        nn = all_neurons[uid]
+                        neurons[str(netuid)].append( (nn, wallet) )
         
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
@@ -753,7 +736,7 @@ class CLI:
             total_dividends = 0.0
             total_emission = 0   
 
-            for nn, hotwallet in tqdm(neurons):
+            for nn, hotwallet in tqdm(neurons[str(netuid)]):
                 uid = nn.uid
                 active = nn.active
                 stake = nn.stake
