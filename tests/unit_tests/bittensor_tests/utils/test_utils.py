@@ -10,15 +10,17 @@ import time
 import unittest
 from sys import platform
 from types import SimpleNamespace
+from typing import Dict
 from unittest.mock import MagicMock, patch
 
-import bittensor
 import pytest
 import torch
 from _pytest.fixtures import fixture
-from bittensor.utils import CUDASolver
 from loguru import logger
 from substrateinterface.base import Keypair
+
+import bittensor
+from bittensor.utils import CUDASolver
 
 
 @fixture(scope="function")
@@ -529,6 +531,23 @@ class TestCUDASolverRun(unittest.TestCase):
             ## Should incerase by the number of nonces tried == TPB * update_interval
             self.assertEqual(nonce_start_after_iteration, (initial_nonce_start + update_interval * TPB) % nonce_limit,  "nonce_start was not updated by the correct amount")
 
+
+class TestExplorerURL(unittest.TestCase):
+    network_map: Dict[str, str] = {
+        "nakamoto": "https://polkadot.js.org/apps/?rpc=wss://archivelb.nakamoto.opentensor.ai:9943/explorer",
+        "example": "https://polkadot.js.org/apps/?rpc=wss://example.example.com/explorer",
+        # "bad": None # no explorer for this network
+    }
+
+    @pytest.mark.parametrize("network, expected", [
+        ("nobunaga", "https://polkadot.js.org/apps/?rpc=wss://nobunaga.bittensor.com:9943/explorer"),
+        ("example", "https://polkadot.js.org/apps/?rpc=wss://example.example.com/explorer"),
+        ("bad", None),
+        ("", None),
+        ("networknamewithoutexplorer", None)
+    ])
+    def get_explorer_root_url_by_network_from_map(self, network: str, expected: str) -> str:
+        self.assertEqual(bittensor.utils.get_explorer_root_url_by_network_from_map(network, self.network_map), expected)
 
 if __name__ == "__main__":
     unittest.main()
