@@ -699,7 +699,7 @@ class CLI:
 
         netuids = set()
         for hotkey in all_hotkeys:
-            netuids_for_hotkey = subtensor.netuids_for_hotkey( hotkey = hotkey.hotkey.ss58_address )
+            netuids_for_hotkey = subtensor.get_netuids_for_hotkey( hotkey = hotkey.hotkey.ss58_address )
             netuids = netuids.union( netuids_for_hotkey )
 
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
