@@ -1130,10 +1130,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                     block_hash = response.block_hash
                     bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
 
-                    if self.network in bittensor.__network_explorer_map__:
-                        # Get explorer link if we are on a known network.
-                        explorer_root_url = bittensor.__network_explorer_map__[self.network]
-                        explorer_url = "{root_url}/#/explorer/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
+                    explorer_url = bittensor.utils.get_explorer_url_for_network( self.network, block_hash )
+                    if explorer_url is not None:
                         bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
                         
                 else:
@@ -1146,6 +1144,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return True
         
         return False
+
+   
 
     def unstake (
             self, 

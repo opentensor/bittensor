@@ -169,3 +169,23 @@ def strtobool(val: str) -> bool:
     else:
         raise ValueError("invalid truth value %r" % (val,))
 
+def get_explorer_url_for_network(self, network: str, block_hash: str) -> Optional[str]:
+    r"""
+    Returns the explorer url for the given block hash.
+
+    Args:
+        network(str): The network to get the explorer url for.
+        block_hash(str): The block hash to get the explorer url for.
+    
+    Returns:
+        The explorer url for the given block hash.
+        Or None if the network is not known.
+    """
+
+    explorer_url: Optional[str] = None
+    if network in bittensor.__network_explorer_map__:
+        # Get explorer link if we are on a known network.
+        explorer_root_url = bittensor.__network_explorer_map__[network]
+        explorer_url = "{root_url}/#/explorer/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
+    
+    return explorer_url
