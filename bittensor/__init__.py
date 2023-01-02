@@ -171,6 +171,7 @@ from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
 
 # DEFAULTS
 defaults = Config()
+defaults.netuid = 1
 subtensor.add_defaults( defaults )
 dendrite.add_defaults( defaults )
 axon.add_defaults( defaults )
