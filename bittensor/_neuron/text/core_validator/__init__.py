@@ -202,6 +202,8 @@ class neuron:
         self.prometheus_counters = Counter('validator_counters', 'Counters for the running validator.', ['validator_counters_name'])
         self.prometheus_step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0,2*bittensor.__blocktime__,1)))
 
+        self.netuid = self.config.netuid
+
         # load last saved validator values from the file system
         if not config.neuron.restart:
             self.load()
@@ -307,7 +309,9 @@ class neuron:
 
         # === Set prometheus run info ===
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
-        self.axon.serve( subtensor = self.subtensor )
+        # TODO (Cameron) this should be it's own storage map on-chain.
+        self.axon.serve( subtensor = self.subtensor, netuid = self.netuid )
+
         self.prometheus_gauges.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
         self.prometheus_gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
         self.prometheus_info.info({
