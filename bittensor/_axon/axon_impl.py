@@ -112,9 +112,6 @@ class Axon( bittensor.grpc.BittensorServicer ):
         self.prometheus_level = prometheus_level
         self.stats = self._init_stats()
         self.started = None
-        self.optimizer_step = None
-
-        self.started = None
         
         # -- Priority 
         self.priority = priority 
@@ -685,58 +682,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         return response_tensors, response_codes, response_messages
 
     def default_backward_callback(self, inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses=[] ):
-        """
-            The default backward callback when no callback is attached: Is used to call specific synapse functions
-
-            Args:
-                inputs_x (:obj:`torch.FloatTensor`, `required`): 
-                    The inputs that will be passed to the synapse functions
-                grads_dy (:obj:`torch.FloatTensor`, `required`):
-                    The gradients that will be passed to the synapse functions
-                synapses (:obj: list of bittensor.proto.SynapseArgs, 'Optional')
-                    The proto message that contains additional args for individual synapse functions
-
-            Returns:
-                response_tensors: (:obj: list of bittensor.proto.Tensor, `required`): 
-                    serialized tensor response from the nucleus call or None.
-                response_codes: (:obj: list of bittensor.proto.ReturnCode, `required`)
-                    return code associated with forward call i.e. Success of Timeout.
-                response_messages: (:obj: list of strings, `required`)
-                    return message associated with synapse call
-        """
-        # --- initialize response variables --- 
-        response_tensors = []
-        response_codes = []
-        response_messages = []
-        
-        # --- calling attached synapses ---
-        with torch.enable_grad() and torch.autograd.set_detect_anomaly(True):
-            for index, synapse in enumerate(synapses):
-                try:
-                    if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None:
-                        message, model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse)
-                        torch.autograd.backward (
-                            tensors = [ response_tensor ],
-                            grad_tensors = [ grads_dy[index] ],
-                            retain_graph=True
-                        )                        
-                        response_tensors.append(None)
-                        response_codes.append(bittensor.proto.ReturnCode.Success)
-                        response_messages.append('Success')
-                    else:
-                        response_tensors.append(None)
-                        response_codes.append(bittensor.proto.ReturnCode.NotImplemented)
-                        response_messages.append('Not Implemented')
-                except Exception as e:
-                    # --- Exception Hit in Synapse ---
-                    response_tensors.append(None)
-                    response_codes.append(bittensor.proto.ReturnCode.UnknownException)
-                    response_messages.append(str(e))
-
-        if self.optimizer_step != None:
-            self.optimizer_step()
-        
-        return response_tensors, response_codes, response_messages
+        raise Exception('No Backward Function Attached')
 
     def attach_forward_callback(self, forward_callback: Callable[ [str, torch.Tensor, int], torch.Tensor ]):
         """ Assigns the forward_callback.

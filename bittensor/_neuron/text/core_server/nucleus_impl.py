@@ -368,7 +368,6 @@ class server(torch.nn.Module):
                                                 #attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
             pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
-
             probs_std = translate_logits_to_probs_std(pre_logits,
                                                       tokens['offset_mapping'], tokens['offset_mapping_std'],
                                                       self.tokenizer, self.std_tokenizer,
@@ -377,7 +376,6 @@ class server(torch.nn.Module):
                                                       tokens['input_ids'], token_batch)
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
-
             #removing the loss calculation for stablity testing
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
             translated_loss = self.get_loss_fct(logits_std, token_batch).item()
@@ -428,6 +426,7 @@ class server(torch.nn.Module):
         """
         transformers.set_seed(0)
         transformers.enable_full_determinism(0)
+        print('forward called checkpoint')
         
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer
@@ -442,13 +441,19 @@ class server(torch.nn.Module):
 
             # model_output.logits: [batch_size, sequence_len, server_vocab_size]
             last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
+            print('logits')
+
 
             # Select topk tokenizer logits and retokenize with std_tokenizer,
             # then compact new token phrases and probabilities into 1-D tensor
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
+            print('logits calculated')
+
             message = f'Loss: {original_loss:.2f}'
+            print('org loss')
+
 
             _model_output.loss = original_loss
             return message, _model_output, topk_tensor
