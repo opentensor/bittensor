@@ -877,7 +877,7 @@ class cli:
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
-        cli.__check_netuid_set( config )
+        cli.__check_netuid_set( config, allow_none = True )
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
@@ -1059,14 +1059,22 @@ class cli:
         if config.wallet.get('reregister', bittensor.defaults.wallet.reregister) and not config.no_prompt:
             cli._check_for_cuda_reg_config(config)
 
-    def __check_netuid_set( config: 'bittensor.Config' ):
+    def __check_netuid_set( config: 'bittensor.Config', allow_none: bool = False ):
         # Make sure netuid is set.
-        if config.get('netuid') == None:
+        if config.get('netuid', 'notset') == 'notset':
             if not config.no_prompt:
-                netuid = Prompt.ask("Enter netuid", default = '0')
-                config.netuid = str(netuid)
+                netuid = Prompt.ask("Enter netuid", default = str(bittensor.defaults.netuid) if not allow_none else 'None')
+                
             else:
                 raise ValueError('netuid must be set')
+        
+        if netuid in ['None', 'none'] and allow_none:
+            config.netuid = None
+        else:
+            try:
+                config.netuid = int(netuid)
+            except ValueError:
+                raise ValueError('netuid must be an integer or "None" (if applicable)')
                 
     def check_help_config( config: 'bittensor.Config'):
         if config.model == 'None':
