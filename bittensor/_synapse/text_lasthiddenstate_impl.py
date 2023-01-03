@@ -152,7 +152,7 @@ class TextLastHiddenState (Synapse):
         elif len( forward_response_tensor.shape ) == 2:
             mask_len = forward_request_tensor.size(1) if self.mask == [] else len(self.mask)
             if ( forward_response_tensor.size(0) != forward_request_tensor.size(0) * mask_len or
-                 forward_response_tensor.size(2) != bittensor.__network_dim__ ):
+                 forward_response_tensor.size(1) != bittensor.__network_dim__ ):
                 raise ValueError( "forward_response_tensor.shape must be in [{}, {}, {}], got: {} for synapse: {}".format( forward_request_tensor.size(0) , forward_request_tensor.size(1), bittensor.__network_dim__, list(forward_response_tensor.shape), self ) ) 
         else:
             raise ValueError( "forward_response_tensor.shape must have len 3 or 2 got: {} for synapse: {}".format( len( forward_response_tensor.shape ), self ) ) 
