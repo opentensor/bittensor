@@ -223,9 +223,11 @@ class Subtensor:
                 else:
                     return False
 
-    @property
-    def rho (self) -> int:
+    def rho (self, netuid: int) -> int:
         r""" Incentive mechanism rho parameter.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             rho (int):
                 Incentive mechanism rho parameter.
@@ -233,12 +235,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'Rho' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'Rho',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def kappa (self) -> int:
+    def kappa (self, netuid: int) -> int:
         r""" Incentive mechanism kappa parameter.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             kappa (int):
                 Incentive mechanism kappa parameter.
@@ -246,7 +254,11 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'Kappa' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'Kappa',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
     def difficulty (self, netuid: int) -> int:
@@ -278,12 +290,14 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalIssuance').value )
+                return bittensor.Balance.from_rao( substrate.query(  module='Paratensor', storage_function = 'TotalIssuance').value )
         return make_substrate_call_with_retry()
 
-    @property
-    def immunity_period (self) -> int:
+    def immunity_period (self, netuid: int) -> int:
         r""" Returns the chain registration immunity_period
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             immunity_period (int):
                 Chain registration immunity_period
@@ -291,12 +305,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'ImmunityPeriod' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ImmunityPeriod',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def validator_batch_size (self) -> int:
+    def validator_batch_size (self, netuid: int) -> int:
         r""" Returns the chain default validator batch size.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             batch_size (int):
                 Chain default validator batch size.
@@ -304,13 +324,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorBatchSize' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ValidatorBatchSize',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-
-    @property
-    def validator_sequence_length (self) -> int:
+    def validator_sequence_length (self, netuid: int) -> int:
         r""" Returns the chain default validator sequence length.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             sequence_length (int):
                 Chain default validator sequence length.
@@ -318,12 +343,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorSequenceLength' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ValidatorSequenceLength',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def validator_epochs_per_reset (self) -> int:
+    def validator_epochs_per_reset (self, netuid: int) -> int:
         r""" Epochs passed before the validator resets its weights.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             validator_epochs_per_reset (int):
                 Epochs passed before the validator resets its weights.
@@ -331,12 +362,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorEpochsPerReset' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ValidatorEpochsPerReset',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def validator_epoch_length (self) -> int:
+    def validator_epoch_length (self, netuid: int) -> int:
         r""" Default validator epoch length.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             validator_epoch_length (int):
                 Default validator epoch length. 
@@ -344,7 +381,11 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorEpochLen' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ValidatorEpochLen',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -357,12 +398,14 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return bittensor.Balance.from_rao( substrate.query(  module='SubtensorModule', storage_function = 'TotalStake' ).value )
+                return bittensor.Balance.from_rao( substrate.query(  module='Paratensor', storage_function = 'TotalStake' ).value )
         return make_substrate_call_with_retry()
 
-    @property
-    def min_allowed_weights (self) -> int:
+    def min_allowed_weights (self, netuid: int) -> int:
         r""" Returns min allowed number of weights.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             min_allowed_weights (int):
                 Min number of weights allowed to be set.
@@ -370,12 +413,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'MinAllowedWeights' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'MinAllowedWeights',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def max_weight_limit (self) -> int:
+    def max_weight_limit (self, netuid: int) -> int:
         r""" Returns MaxWeightLimit
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             max_weight (int):
                 the max value for weights after normalizaiton
@@ -384,12 +433,18 @@ class Subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 U32_MAX = 4294967295
-                return substrate.query( module='SubtensorModule', storage_function = 'MaxWeightLimit' ).value/U32_MAX
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'MaxWeightLimit',
+                    params = [netuid]
+                ).value/U32_MAX
         return make_substrate_call_with_retry()
 
-    @property
-    def scaling_law_power (self) -> int:
+    def scaling_law_power (self, netuid: int) -> int:
         r""" Returns ScalingLawPower
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             ScalingLawPower (float):
                 the power term attached to scaling law
@@ -398,12 +453,18 @@ class Subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 MAX = 100
-                return substrate.query( module='SubtensorModule', storage_function = 'ScalingLawPower' ).value/MAX
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ScalingLawPower',
+                    params = [netuid]
+                ).value/MAX
         return make_substrate_call_with_retry()
 
-    @property
-    def synergy_scaling_law_power (self) -> int:
+    def synergy_scaling_law_power (self, netuid: int) -> int:
         r""" Returns SynergyScalingLawPower
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             SynergyScalingLawPower (float):
                 the term attached to synergy calculation during shapley scores
@@ -412,12 +473,18 @@ class Subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 MAX = 100
-                return substrate.query( module='SubtensorModule', storage_function = 'SynergyScalingLawPower' ).value/MAX
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'SynergyScalingLawPower',
+                    params = [netuid]
+                ).value/MAX
         return make_substrate_call_with_retry()
 
-    @property
-    def validator_exclude_quantile (self) -> int:
+    def validator_exclude_quantile (self, netuid: int) -> int:
         r""" Returns ValidatorExcludeQuantile
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             ValidatorExcludeQuantile (float):
                 the quantile that validators should exclude when setting their weights
@@ -426,12 +493,18 @@ class Subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 MAX = 100
-                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorExcludeQuantile' ).value/MAX
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ValidatorExcludeQuantile',
+                    params = [netuid]
+                ).value/MAX
         return make_substrate_call_with_retry()
 
-    @property
-    def max_allowed_min_max_ratio(self) -> int:
+    def max_allowed_min_max_ratio(self, netuid: int) -> int:
         r""" Returns the chains max_allowed_min_max_ratio
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             max_allowed_min_max_ratio (int):
                 The max ratio allowed between the min and max.
@@ -439,12 +512,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'MaxAllowedMaxMinRatio' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'MaxAllowedMaxMinRatio',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def n (self) -> int:
-        r""" Returns total number of neurons on the chain.
+    def n (self, netuid: int) -> int:
+        r""" Returns total number of neurons on the chain for this subnetwork.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             n (int):
                 Total number of neurons on chain.
@@ -452,12 +531,18 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'N' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'N',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def max_n (self) -> int:
-        r""" Returns maximum number of neuron positions on the graph.
+    def max_n (self, netuid: int) -> int:
+        r""" Returns maximum number of neuron uids allowed in this subnetwork.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             max_n (int):
                 Maximum number of neuron positions on the graph.
@@ -465,7 +550,11 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'MaxAllowedUids' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'MaxAllowedUids',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
     @property
@@ -477,9 +566,11 @@ class Subtensor:
         """
         return self.get_current_block()
 
-    @property
-    def blocks_since_epoch (self) -> int:
+    def blocks_since_epoch (self, netuid: int) -> int:
         r""" Returns blocks since last epoch.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             blocks_since_epoch (int):
                 blocks_since_epoch 
@@ -487,12 +578,37 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'BlocksSinceLastStep' ).value
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'BlocksSinceLastStep',
+                    params = [netuid]
+                ).value
         return make_substrate_call_with_retry()
 
-    @property
-    def blocks_per_epoch (self) -> int:
+    def tempo (self, netuid: int) -> int:
+        r""" Returns the tempo for this subnetwork.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
+        Returns:
+            blocks_since_epoch (int):
+                blocks_since_epoch 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'Tempo',
+                    params = [netuid]
+                ).value
+        return make_substrate_call_with_retry()
+
+    def blocks_per_epoch (self, netuid: int) -> int:
         r""" Returns blocks per chain epoch.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
         Returns:
             blocks_per_epoch (int):
                 blocks_per_epoch 
@@ -500,22 +616,10 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'BlocksPerStep' ).value
-        return make_substrate_call_with_retry()
-
-    def get_n (self, block: int = None) -> int:
-        r""" Returns total number of neurons on the chain.
-        Returns:
-            n (int):
-                Total number of neurons on chain.
-        """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(  
-                    module='SubtensorModule', 
-                    storage_function = 'N',
-                    block_hash = None if block == None else substrate.get_block_hash( block )
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'BlocksPerStep',
+                    params = [netuid]
                 ).value
         return make_substrate_call_with_retry()
 
