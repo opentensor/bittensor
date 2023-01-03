@@ -477,7 +477,7 @@ class CLI:
                 coldkeypub_str = '?'
 
             wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str))
-            hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
+            hotkeys_path = os.path.join(self.config.wallet.path, w_name, 'hotkeys')
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
                 if len( hotkeys ) > 1:
