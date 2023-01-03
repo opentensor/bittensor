@@ -80,53 +80,38 @@ class Wallet():
     def __repr__(self):
         return self.__str__()
 
-    @property
-    def neuron(self) -> SimpleNamespace:
-        return self.get_neuron()
+    def neuron(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid)
 
-    @property
-    def trust(self) -> SimpleNamespace:
-        return self.get_neuron().trust
+    def trust(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).trust
 
-    @property
-    def rank(self) -> SimpleNamespace:
-        return self.get_neuron().rank
+    def rank(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).rank
 
-    @property
-    def incentive(self) -> SimpleNamespace:
-        return self.get_neuron().incentive
+    def incentive(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).incentive
 
-    @property
-    def dividends(self) -> SimpleNamespace:
-        return self.get_neuron().dividends
+    def dividends(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).dividends
 
-    @property
-    def consensus(self) -> SimpleNamespace:
-        return self.get_neuron().consensus
+    def consensus(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).consensus
 
-    @property
-    def inflation(self) -> SimpleNamespace:
-        return self.get_neuron().inflation
+    def ip(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).ip
 
-    @property
-    def ip(self) -> SimpleNamespace:
-        return self.get_neuron().ip
+    def last_update(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).last_update
 
-    @property
-    def last_update(self) -> SimpleNamespace:
-        return self.get_neuron().last_update
+    def weights(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).weights
 
-    @property
-    def weights(self) -> SimpleNamespace:
-        return self.get_neuron().weights
+    def bonds(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).bonds
 
-    @property
-    def bonds(self) -> SimpleNamespace:
-        return self.get_neuron().bonds
-
-    @property
-    def uid(self) -> SimpleNamespace:
-        return self.get_uid()
+    def uid(self, netuid: int) -> SimpleNamespace:
+        return self.get_uid(netuid = netuid)
 
     @property
     def stake(self) -> SimpleNamespace:
@@ -185,7 +170,7 @@ class Wallet():
         if not self.is_registered(netuid = netuid, subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
-        neuron = self.get_neuron(subtensor = subtensor)
+        neuron = self.get_neuron(netuid = netuid, subtensor = subtensor)
         if neuron.is_null:
             return -1
         else:
