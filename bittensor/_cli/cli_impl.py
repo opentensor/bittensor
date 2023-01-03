@@ -150,14 +150,13 @@ class CLI:
         wallet = bittensor.wallet(config = self.config)
         subtensor = bittensor.subtensor( config = self.config )
 
-        # Verify subnet exists
-        if not subtensor.subnet_exists( netuid = self.config.netuid ):
-            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
-            sys.exit(1)
+        if self.config.netuid != None:
+            # Verify subnet exists
+            if not subtensor.subnet_exists( netuid = self.config.netuid ):
+                bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+                sys.exit(1)
 
-        dendrite = bittensor.dendrite( wallet = wallet )
-
-        
+            
         with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             
             if self.config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) is None:
@@ -169,23 +168,87 @@ class CLI:
             else:
                 wallet.hotkey
                 wallet.coldkeypub
-                neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
-                endpoint = bittensor.endpoint.from_neuron( neuron )
-                if neuron.is_null:
-                    registered = '[bold white]No[/bold white]'
-                    stake = bittensor.Balance.from_tao( 0 )
-                    emission = bittensor.Balance.from_rao( 0 )
-                    latency = 'N/A'
-                else:
-                    registered = '[bold white]Yes[/bold white]'
-                    stake = bittensor.Balance.from_tao( neuron.stake )
-                    emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
-                    synapses = [bittensor.synapse.TextLastHiddenState()]
-                    _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)
-                    latency = "{}".format((t[0]).tolist()[0]) if (c[0]).tolist()[0] == 1 else 'N/A'
 
-                cold_balance = wallet.get_balance( subtensor = subtensor )
-                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__(), "latency:".ljust(15), latency ), highlight=True)
+                if self.config.netuid != None:
+                    # If a netuid is provided, inspect the hotkey and the neuron
+                    dendrite = bittensor.dendrite( wallet = wallet )
+
+                   
+                    neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address, netuid = self.config.netuid )
+                    endpoint = bittensor.endpoint.from_neuron( neuron )
+                    if neuron.is_null:
+                        registered = '[bold white]No[/bold white]'
+                        stake = bittensor.Balance.from_tao( 0 )
+                        emission = bittensor.Balance.from_rao( 0 )
+                        latency = 'N/A'
+                    else:
+                        registered = '[bold white]Yes[/bold white]'
+                        stake = bittensor.Balance.from_tao( neuron.stake )
+                        emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
+                        synapses = [bittensor.synapse.TextLastHiddenState()]
+                        _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)
+                        latency = "{}".format((t[0]).tolist()[0]) if (c[0]).tolist()[0] == 1 else 'N/A'
+
+                    cold_balance = wallet.get_balance( subtensor = subtensor )
+                    bittensor.__console__.print((
+                        "\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n" + \
+                        "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]"
+                    )
+                    .format(
+                        wallet,
+                        "coldkey:".ljust(15),
+                        wallet.coldkeypub.ss58_address,
+                        "hotkey:".ljust(15),
+                        wallet.hotkey.ss58_address,
+                        "registered:".ljust(15),
+                        registered,
+                        "balance:".ljust(15),
+                        cold_balance.__rich__(),
+                        "stake:".ljust(15),
+                        stake.__rich__(),
+                        "emission:".ljust(15),
+                        emission.__rich_rao__(),
+                        "latency:".ljust(15),
+                        latency 
+                    ), highlight=True)
+                else:
+                    # Otherwise, print all subnets the hotkey is registered on.
+                    # If a netuid is provided, inspect the hotkey and the neuron
+                    stake = subtensor.get_stake( ss58_address = wallet.hotkey.ss58_address )
+                    if stake == None:
+                        # Not registered on any subnets
+                        subnets = "[bold white][][/bold white]"
+                        stake = bittensor.Balance.from_tao( 0 )
+                    else:
+                        # Registered on subnets
+                        subnets_registered = subtensor.get_netuids_for_hotkey( ss58_hotkey = wallet.hotkey.ss58_address )
+                        subnets = f'[bold white]{subnets_registered}[/bold white]'
+                        
+                        emission = bittensor.Balance.from_rao( 0 )
+                        for netuid in subnets_registered:
+                            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address, netuid = netuid )
+                            emission += bittensor.Balance.from_rao( neuron.emission * 1000000000 )
+
+                    cold_balance = wallet.get_balance( subtensor = subtensor )
+                    bittensor.__console__.print((
+                        "\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n" + \
+                        "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]"
+                    )
+                    .format(
+                        wallet,
+                        "coldkey:".ljust(15),
+                        wallet.coldkeypub.ss58_address,
+                        "hotkey:".ljust(15),
+                        wallet.hotkey.ss58_address,
+                        "subnets:".ljust(15),
+                        subnets,
+                        "balance:".ljust(15),
+                        cold_balance.__rich__(),
+                        "stake:".ljust(15),
+                        stake.__rich__(),
+                        "emission:".ljust(15),
+                        emission.__rich_rao__(),
+                    ), highlight=True)
 
 
     def run_miner ( self ):
