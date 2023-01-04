@@ -653,7 +653,7 @@ class cli:
             '--netuid',
             type=int,
             help='netuid for subnet to serve this neuron on',
-            default=bittensor.defaults.netuid
+            default=argparse.SUPPRESS,
         )
 
         bittensor.wallet.add_args( register_parser )
@@ -671,7 +671,7 @@ class cli:
             '--netuid',
             type=int,
             help='netuid for subnet to serve this neuron on',
-            default=bittensor.defaults.netuid
+            default=argparse.SUPPRESS,
         )
 
         # If no arguments are passed, print help text.
@@ -1050,9 +1050,11 @@ class cli:
                 netuid = Prompt.ask("Enter netuid", default = str(bittensor.defaults.netuid) if not allow_none else 'None')
                 
             else:
-                raise ValueError('netuid must be set')
+                netuid = str(bittensor.defaults.netuid) if not allow_none else 'None'
+        else:
+            netuid = config.netuid
         
-        if netuid.lower() in ['none'] and allow_none:
+        if isinstance(netuid, str) and netuid.lower() in ['none'] and allow_none:
             config.netuid = None
         else:
             try:
