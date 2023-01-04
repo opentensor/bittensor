@@ -1270,12 +1270,12 @@ class TestCli(unittest.TestCase):
             cli.run()
             
     def test_stake( self ):
-        wallet = TestCli.generate_wallet()
         config = self.config
         config.no_prompt = True
         config.command = "stake"
         config.amount = 0.5
         config.stake_all = False
+        config.wallet._mock = True
         config.no_password = True
         config.no_version_checking = False
 
