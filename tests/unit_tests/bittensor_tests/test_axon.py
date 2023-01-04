@@ -704,9 +704,10 @@ def test_backward_grads_shape_error():
 
 
 def test_backward_response_success_hidden():
-    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        return None, dict(), torch.zeros( [1, 1, bittensor.__network_dim__], requires_grad=True)
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
+
+    axon.attach_backward_callback(backward)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__network_dim__)
     synapses = [bittensor.synapse.TextLastHiddenState()]
@@ -723,10 +724,10 @@ def test_backward_response_success_hidden():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm():
-    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        return None, dict(), torch.zeros( [1, 1, bittensor.__vocab_size__], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
+    axon.attach_backward_callback( backward)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__vocab_size__)
     synapses = [bittensor.synapse.TextCausalLM()]
@@ -743,10 +744,10 @@ def test_backward_response_success_causal_lm():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm_next():
-    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):  # [batch_size, (topk + 1), max_len]
-        return None, dict(), torch.zeros([1, (synapses[0].topk + 1), 1 + 1], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
-    axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+    axon.attach_backward_callback( backward)
     synapses = [bittensor.synapse.TextCausalLMNext()]
 
     inputs_raw = torch.ones(1, 1)
@@ -966,15 +967,15 @@ def test_grpc_forward_works():
         run_test_grpc_forward_works(receiver_version)
 
 def run_test_grpc_backward_works(receiver_version):
-    def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
-        return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
     axon = bittensor.axon (
         port = 7086,
         ip = '127.0.0.1',
         wallet = wallet,
     )
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    axon.attach_backward_callback( backward)
     axon.start()
 
     channel = grpc.insecure_channel(
@@ -1276,5 +1277,5 @@ if __name__ == "__main__":
     # test_forward_joint_success()
     # test_forward_joint_missing_synapse()
     # test_forward_priority_timeout()
-    test_forward_priority_2nd_request_timeout()
+    test_backward_response_success_hidden()
     # test_forward_joint_faulty_synapse()
