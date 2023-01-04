@@ -107,7 +107,7 @@ class TestCli(unittest.TestCase):
 
     @staticmethod
     def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-        wallet = bittensor.wallet(_mock=True)   
+        wallet = bittensor.wallet(_mock=True).create()
 
         if not coldkey:
             coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -1538,7 +1538,7 @@ class TestCli(unittest.TestCase):
                 "--no_prompt",
                 "--cuda.dev_id", "0",
             ]
-
+            bittensor.subtensor.check_config = MagicMock(return_value = True)  
             with patch('torch.cuda.is_available', return_value=True):
                 with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
                     # Should be able to set true without argument
