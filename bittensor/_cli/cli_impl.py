@@ -91,6 +91,32 @@ class CLI:
             self.help()
         elif self.config.command == 'update':
             self.update()
+        elif self.config.command == 'become_delegate':
+            self.become_delegate()
+
+    def become_delegate( self ):
+        r""" Become a delegate.
+        """
+        wallet = bittensor.wallet(config = self.config)
+        subtensor = bittensor.subtensor( config = self.config )
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        result: bool = subtensor.become_delegate( wallet )
+
+        if not result:
+            bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
+        else:
+            # Check if we are a delegate.
+            is_delegate: bool = subtensor.is_hotkey_delegate( wallet.hotkey.ss58_address )
+            if not is_delegate:
+                bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
+                return
+
+            bittensor.__console__.print("Successfully became a delegate on [white]{}[/white]".format(subtensor.network))
+
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.
