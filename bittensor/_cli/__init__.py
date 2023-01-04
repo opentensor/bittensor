@@ -573,12 +573,6 @@ class cli:
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
-        unstake_parser.add_argument(
-            '--netuid',
-            type=int,
-            help='netuid for subnet to serve this neuron on',
-            default=bittensor.defaults.netuid
-        )
 
         bittensor.wallet.add_args( unstake_parser )
         bittensor.subtensor.add_args( unstake_parser )
@@ -617,12 +611,6 @@ class cli:
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
-        )
-        stake_parser.add_argument(
-            '--netuid',
-            type=int,
-            help='netuid for subnet to serve this neuron on',
-            default=bittensor.defaults.netuid
         )
         
         bittensor.wallet.add_args( stake_parser )
@@ -800,9 +788,7 @@ class cli:
     def check_unstake_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
-        cli.__check_netuid_set( config )
-
+        
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -890,8 +876,6 @@ class cli:
     def check_stake_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
-        cli.__check_netuid_set( config )
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
