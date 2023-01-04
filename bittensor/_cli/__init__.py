@@ -674,6 +674,21 @@ class cli:
             default=argparse.SUPPRESS,
         )
 
+        become_delegate_parser = cmd_parsers.add_parser(
+            'become_delegate', 
+            help='''Become a delegate on the network'''
+        )
+        become_delegate_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( become_delegate_parser )
+        bittensor.subtensor.add_args( become_delegate_parser )
+        
+
         # If no arguments are passed, print help text.
         if len(args) == 0:
             parser.print_help()
@@ -721,6 +736,21 @@ class cli:
             cli.check_help_config(config)
         elif config.command == "update":
             cli.check_update_config(config)
+        elif config.command == "become_delegate":
+            cli.check_become_delegate_config(config)
+
+    def check_become_delegate_config( config: 'bittensor.Config'):
+        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+            wallet_hotkey = Prompt.ask("Enter wallet hotkey", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(wallet_hotkey)
+
+        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_coldkey = Prompt.ask("Enter wallet coldkey", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_coldkey)
+    
 
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:

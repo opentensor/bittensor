@@ -2160,6 +2160,96 @@ class Subtensor:
         else:
             return None
 
+    def get_delegate_take( self, hotkey_ss58: str ) -> Optional[float]:
+        r""" Returns the take for a delegate.
+        Args:
+            hotkey_ss58 ( str ):
+                The hotkey to check.
+        Returns:
+            take (Optional[float]):
+                The take for the delegate or None if the hotkey is not a delegate.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='Delegates',
+                    params = [ hotkey_ss58 ]
+                ).value
+
+        result = make_substrate_call_with_retry()
+        if result:
+            return result.value / U16_MAX
+        else:
+            return None
+
+    def is_hotkey_delegate( self, hotkey_ss58: str ) -> bool:
+        r""" Returns true if the hotkey is a delegate.
+        Args:
+            hotkey_ss58 ( str ):
+                The hotkey to check.
+        Returns:
+            is_delegate (bool):
+                True if the hotkey is a delegate.
+        """
+        return self.get_delegate_take( hotkey_ss58 ) is not None
+
+    def become_delegate( self, wallet: 'bittensor.Wallet', wait_for_finalization: bool = False, wait_for_inclusion: bool = True ) -> bool:
+        r""" Becomes a delegate for the hotkey.
+        Args:
+            wallet ( bittensor.Wallet ):
+                The wallet to become a delegate for.
+        Returns:
+            success (bool):
+                True if the transaction was successful.
+        """
+        # Unlock the coldkey.
+        wallet.coldkey
+        wallet.hotkey
+
+        # Check if the hotkey is already a delegate.
+        if self.is_hotkey_delegate( wallet.hotkey.ss58_address ):
+            logger.error('Hotkey {} is already a delegate.'.format(wallet.hotkey.ss58_address))
+            return False
+
+        with bittensor.__console__.status(":satellite: Sending become delegate call on [white]{}[/white] ...".format(self.network)):
+            try:
+                with self.substrate as substrate:
+                    call = substrate.compose_call(
+                        call_module='Paratensor',
+                        call_function='become_delegate',
+                        call_params = {
+                            'hotkey': wallet.hotkey.ss58_address,
+                            'take': int(0.5 * U16_MAX), # TODO: remove take from become delegate.
+                        }
+                    )
+                    extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey ) # sign with coldkey
+                    response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+                    # We only wait here if we expect finalization.
+                    if not wait_for_finalization and not wait_for_inclusion:
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                        return True
+
+                    response.process_events()
+                    if response.is_success:
+                        bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                        bittensor.logging.success(  prefix = 'Become Delegate', sufix = '<green>Finalized: </green>' + str(response.is_success) )
+                    else:
+                        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                        bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
+
+            except Exception as e:
+                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
+                bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(e) )
+                return False
+
+        if response.is_success:
+            return True
+        
+        return False
+        
+
     def get_netuids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
         r""" Returns a list of netuids for the subnets this hotkey is registered on.
         Args:
