@@ -555,7 +555,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
         parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
         parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
-        parser.add_argument('--neuron.autocast',  type=bool, help='(experimental) autocasts the model to float16. Must require cuda', default=False)
+        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
         parser.add_argument('--neuron.local_train', action='store_true', help='''If true, allow local training''', default=False)
         parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
         parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
