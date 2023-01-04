@@ -42,6 +42,7 @@ from sys import platform
 from loguru import logger
 logger = logger.opt(colors=True)
 
+U16_MAX = 65535
 
 @dataclass
 class NeuronMetadata:
@@ -933,7 +934,7 @@ class Subtensor:
                 else:
                     return True
 
-    def get_stake(
+    def get_total_stake_for_hotkey(
         self,
         ss58_address: str,
         block: Optional[int] = None,
@@ -954,13 +955,124 @@ class Subtensor:
             with self.substrate as substrate:
                 return substrate.query(
                     module='Paratensor',
-                    storage_function='Stake',
+                    storage_function='TotalHotkeyStake',
                     params = [ss58_address],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
         result = make_substrate_call_with_retry()
         if result != None:
             return bittensor.Balance.from_rao(result.value)
+        else:
+            return None
+
+    def get_total_stake_for_coldkey(
+        self,
+        ss58_address: str,
+        block: Optional[int] = None,
+    ) -> Optional['bittensor.Balance']:
+        r"""
+        Returns the stake of the specified account.
+        Args:
+            ss58_address (str):
+                ss58 address of the coldkey account to check.
+            block (Optional[int]):
+                Block to query. If None, the latest finalized block is used.
+        Returns:
+            stake (Optional[bittensor.Balance]):
+                Stake of the account or None if the account does not exist.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='TotalColdkeyStake',
+                    params = [ss58_address],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        if result != None:
+            return bittensor.Balance.from_rao(result.value)
+        else:
+            return None
+
+    def get_stake_for_coldkey_and_hotkey(
+        self,
+        hotkey_ss58: str,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> Optional['bittensor.Balance']:
+        r"""
+        Returns the stake of the specified account.
+        Args:
+            hotkey_ss58 (str):
+                ss58 address of the hotkey account to check.
+            coldkey_ss58 (str):
+                ss58 address of the hotkey account to check.
+            block (Optional[int]):
+                Block to query. If None, the latest finalized block is used.
+        Returns:
+            stake (Optional[bittensor.Balance]):
+                Stake of the account or None if the account does not exist.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='Stake',
+                    params = [hotkey_ss58, coldkey_ss58],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        if result != None:
+            return bittensor.Balance.from_rao(result.value)
+        else:
+            return None
+
+    def get_owner_for_hotkey(
+        self,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> str:
+        """
+        Returns the owner of the specified hotkey. (coldkey)
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='Owner',
+                    params = [hotkey_ss58],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        if result != None:
+            return result
+        else:
+            return None
+
+    def get_delegate_take(
+        self,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> List[List[str]]:
+        """
+        Returns the delegate take of the specified hotkey.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='Delegates',
+                    params = [hotkey_ss58],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        result = make_substrate_call_with_retry()
+        if result != None:
+            return result.value / U16_MAX
         else:
             return None
     
