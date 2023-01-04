@@ -24,6 +24,7 @@ from unittest.mock import ANY, MagicMock, call, patch
 import pytest
 
 import bittensor
+import substrateinterface
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface.base import Keypair
@@ -33,7 +34,13 @@ from tests.helpers import CLOSE_IN_VALUE
 class TestCli(unittest.TestCase):
 
     def setUp(self):
-        mock_subtensor.kill_global_mock_process()
+        class success():
+            def __init__(self):
+                self.is_success = True
+                self.value = 1
+            def process_events(self):
+                return True
+
         self.config = TestCli.construct_config()
         # Mocked objects
         self.mock_neuron = TestCli._neuron_dict_to_namespace(
@@ -61,6 +68,13 @@ class TestCli(unittest.TestCase):
                 "is_null":False
             })
         )
+        bittensor.Subtensor.register = MagicMock(return_value = True) 
+        bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
+        bittensor.Subtensor.neuron_for_uid = MagicMock(return_value=self.mock_neuron)
+        substrateinterface.SubstrateInterface.submit_extrinsic = MagicMock(return_value = success()) 
+        substrateinterface.SubstrateInterface.query = MagicMock(return_value=success())
+        substrateinterface.SubstrateInterface.get_block_hash = MagicMock(return_value='0x')
+        bittensor.Subtensor.get_balance = MagicMock(return_value = Balance.from_tao(0))
 
     @staticmethod
     def construct_config():
@@ -93,7 +107,7 @@ class TestCli(unittest.TestCase):
 
     @staticmethod
     def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-        wallet = bittensor.wallet(_mock=True)   
+        wallet = bittensor.wallet(_mock=True).create()
 
         if not coldkey:
             coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -142,8 +156,6 @@ class TestCli(unittest.TestCase):
             config.wallet.name = 'mock_wallet'
             config.command = "overview"
             config.no_cache = True  # Don't use neuron cache
-            config.subtensor._mock = True
-            config.subtensor.network = "mock"
             config.no_prompt = True
             config.all = False
             config.no_version_checking = False
@@ -171,8 +183,6 @@ class TestCli(unittest.TestCase):
             
             config = self.config
             config.command = "overview"
-            config.subtensor._mock = True
-            config.subtensor.network = "mock"
             config.no_prompt = True
             config.all = False
             config.no_version_checking = False
@@ -181,13 +191,9 @@ class TestCli(unittest.TestCase):
             cli.run()
 
     def test_overview_with_cache( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
         config = self.config
         config.command = "overview"
         config.no_cache = False # Use neuron cache
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -196,13 +202,9 @@ class TestCli(unittest.TestCase):
         cli.run()
 
     def test_overview_with_cache_cache_fails( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
         config = self.config
         config.command = "overview"
         config.no_cache = False # Use neuron cache
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -215,14 +217,10 @@ class TestCli(unittest.TestCase):
             cli = bittensor.cli(config)
             cli.run()
 
-    def test_overview_without_no_cache_confg( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_without_no_cache_confg( self ):        
         config = self.config
         config.command = "overview"
         # Don't specify no_cache in config
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -230,13 +228,9 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_hotkeys_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_with_hotkeys_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.wallet.hotkeys = ['some_hotkey']
         config.all = False
@@ -245,13 +239,9 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_hotkeys_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_without_hotkeys_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -259,13 +249,9 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_by_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_with_sort_by_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.wallet.sort_by = "rank"
         config.all = False
@@ -274,13 +260,9 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_by_bad_column_name( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_with_sort_by_bad_column_name( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.wallet.sort_by = "totallynotmatchingcolumnname"
         config.all = False
@@ -289,13 +271,9 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_sort_by_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_without_sort_by_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -303,14 +281,10 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_order_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_with_sort_order_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
         config.wallet.sort_order = "desc" # Set descending sort order
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -318,14 +292,10 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_order_config_bad_sort_type( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_with_sort_order_config_bad_sort_type( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
         config.wallet.sort_order = "nowaythisshouldmatchanyorderingchoice" 
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -333,14 +303,10 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_sort_order_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_without_sort_order_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
         # Don't specify sort_order in config
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -348,14 +314,10 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_width_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_with_width_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
         config.width = 100
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -363,14 +325,10 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_width_config( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
+    def test_overview_without_width_config( self ):        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
         # Don't specify width in config
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.all = False
         config.no_version_checking = False
@@ -379,12 +337,8 @@ class TestCli(unittest.TestCase):
         cli.run()
 
     def test_overview_all( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)  
-        
         config = self.config
         config.command = "overview"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.no_version_checking = False
 
@@ -392,13 +346,9 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_unstake_with_specific_hotkeys( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_unstake_with_specific_hotkeys( self ):        
         config = self.config
         config.command = "unstake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -474,12 +424,8 @@ class TestCli(unittest.TestCase):
                 )
 
     def test_unstake_with_all_hotkeys( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
         config = self.config
         config.command = "unstake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -528,12 +474,8 @@ class TestCli(unittest.TestCase):
                 )
 
     def test_unstake_with_exclude_hotkeys_from_all( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
         config = self.config
         config.command = "unstake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -581,13 +523,9 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
 
-    def test_unstake_with_multiple_hotkeys_max_stake( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_unstake_with_multiple_hotkeys_max_stake( self ):        
         config = self.config
         config.command = "unstake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         # Notie amount is not specified
         config.max_stake = 5.0 # The keys should have at most 5.0 tao staked after
@@ -660,13 +598,9 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
 
-    def test_unstake_with_multiple_hotkeys_max_stake_not_enough_stake( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_unstake_with_multiple_hotkeys_max_stake_not_enough_stake( self ):        
         config = self.config
         config.command = "unstake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         # Notie amount is not specified
         config.max_stake = 5.0 # The keys should have at most 5.0 tao staked after
@@ -747,13 +681,9 @@ class TestCli(unittest.TestCase):
                 # We shouldn't unstake from hk1 as it has less than max_stake staked
                 assert all(mock_wallet.hotkey_str != 'hk1' for mock_wallet in mock_wallets_)
 
-    def test_stake_with_specific_hotkeys( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_stake_with_specific_hotkeys( self ):        
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -818,13 +748,9 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
 
-    def test_stake_with_all_hotkeys( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_stake_with_all_hotkeys( self ):        
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -870,13 +796,9 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
 
-    def test_stake_with_exclude_hotkeys_from_all( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_stake_with_exclude_hotkeys_from_all( self ):        
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -924,13 +846,9 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
 
-    def test_stake_with_multiple_hotkeys_max_stake( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_stake_with_multiple_hotkeys_max_stake( self ):        
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
@@ -1008,13 +926,9 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
 
-    def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance( self ):        
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
@@ -1099,13 +1013,9 @@ class TestCli(unittest.TestCase):
                 # We should not try to stake more than the mock_balance
                 self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
 
-    def test_stake_with_single_hotkey_max_stake( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_stake_with_single_hotkey_max_stake( self ):        
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
@@ -1181,13 +1091,9 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
 
-    def test_stake_with_single_hotkey_max_stake_not_enough_balance( self ):
-        bittensor.subtensor.register = MagicMock(return_value = True)
-        
+    def test_stake_with_single_hotkey_max_stake_not_enough_balance( self ):        
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
@@ -1276,8 +1182,6 @@ class TestCli(unittest.TestCase):
         
         config = self.config
         config.command = "stake"
-        config.subtensor._mock = True
-        config.subtensor.network = "mock"
         config.no_prompt = True 
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
@@ -1354,13 +1258,10 @@ class TestCli(unittest.TestCase):
                 
 
     def test_register( self ):
-
         config = self.config
-        config.subtensor._mock = True
         config.command = "register"
         config.subtensor.register.num_processes = 1
         config.subtensor.register.update_interval = 50_000
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.no_version_checking = False
 
@@ -1369,16 +1270,12 @@ class TestCli(unittest.TestCase):
             cli.run()
             
     def test_stake( self ):
-        wallet = TestCli.generate_wallet()
-        bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         config = self.config
-        config.subtensor.network = "mock"
-        config.wallet._mock = True
         config.no_prompt = True
-        config.subtensor._mock = True
         config.command = "stake"
         config.amount = 0.5
         config.stake_all = False
+        config.wallet._mock = True
         config.no_password = True
         config.no_version_checking = False
 
@@ -1395,7 +1292,6 @@ class TestCli(unittest.TestCase):
         config.command = "new_coldkey"
         config.amount = 1
         config.dest = "no_prompt"
-        config.subtensor._mock = True
         config.model = "core_server"
         config.n_words = 12
         config.use_password = False
@@ -1413,9 +1309,7 @@ class TestCli(unittest.TestCase):
         config.wallet.name = "new_hotkey_testwallet"
         config.command = "new_hotkey"
         config.amount = 1
-        config.subtensor.network = "mock"
         config.dest = "no_prompt"
-        config.subtensor._mock = True
         config.model = "core_server"
         config.n_words = 12
         config.use_password = False
@@ -1431,9 +1325,7 @@ class TestCli(unittest.TestCase):
         config.wallet.name = "regen_coldkey_testwallet"
         config.command = "regen_coldkey"
         config.amount = 1
-        config.subtensor.network = "mock"
         config.dest = "no_prompt"
-        config.subtensor._mock = True
         config.model = "core_server"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
         config.seed = None
@@ -1450,8 +1342,6 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.wallet.name = "regen_coldkeypub_testwallet"
         config.command = "regen_coldkeypub"
-        config.subtensor.network = "mock"
-        config.subtensor._mock = True
         config.ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
         config.public_key = None
         config.use_password = False
@@ -1467,8 +1357,6 @@ class TestCli(unittest.TestCase):
         config.wallet.name = "regen_hotkey_testwallet"
         config.command = "regen_hotkey"
         config.amount = 1
-        config.subtensor.network = "mock"
-        config.subtensor._mock = True
         config.model = "core_server"
         config.mnemonic = "faculty decade seven jelly gospel axis next radio grain radio remain gentle"
         config.seed = None
@@ -1485,9 +1373,7 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.wallet.name = "metagraph_testwallet"
         config.command = "metagraph"
-        config.subtensor.network = "mock"
         config.no_prompt = True
-        config.subtensor._mock = True
         config.no_version_checking = False
 
         cli = bittensor.cli(config)
@@ -1497,11 +1383,9 @@ class TestCli(unittest.TestCase):
 
         config = self.config
         config.wallet.name = "set_weights_testwallet"
-        config.subtensor.network = "mock"
         config.no_prompt = True
         config.uids = [1, 2, 3, 4]
         config.weights = [0.25, 0.25, 0.25, 0.25]
-        config.subtensor._mock = True
         config.n_words = 12
         config.use_password = False
         config.no_version_checking = False
@@ -1522,9 +1406,7 @@ class TestCli(unittest.TestCase):
     def test_inspect( self ):
         config = self.config
         config.wallet.name = "inspect_testwallet"
-        config.subtensor.network = "mock"
         config.no_prompt = True
-        config.subtensor._mock = True
         config.n_words = 12
         config.use_password = False
         config.overwrite_coldkey = True
@@ -1585,9 +1467,7 @@ class TestCli(unittest.TestCase):
             config = self.config
             config.wallet.path = 'tmp/walletpath'
             config.wallet.name = 'mock_wallet'
-            config.subtensor.network = "mock"
             config.no_prompt = True
-            config.subtensor._mock = True
             config.command = "list"
             config.no_version_checking = False
 
@@ -1609,9 +1489,7 @@ class TestCli(unittest.TestCase):
         )):
             config = self.config
             config.wallet.path = '/tmp/test_cli_test_list_no_wallet'
-            config.subtensor.network = "mock"
             config.no_prompt = True
-            config.subtensor._mock = True
             config.command = "list"
             config.no_version_checking = False
 
@@ -1654,15 +1532,13 @@ class TestCli(unittest.TestCase):
 
             base_args = [
                 "register",
-                "--subtensor._mock",
-                "--subtensor.network", "mock",
                 "--wallet.path", "tmp/walletpath",
                 "--wallet.name", "mock",
                 "--wallet.hotkey", "hk0",
                 "--no_prompt",
                 "--cuda.dev_id", "0",
             ]
-
+            bittensor.subtensor.check_config = MagicMock(return_value = True)  
             with patch('torch.cuda.is_available', return_value=True):
                 with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
                     # Should be able to set true without argument
@@ -1703,8 +1579,6 @@ class TestCLIUsingArgs(unittest.TestCase):
                         '--wallet.name', 'mock',
                         '--wallet.hotkey', 'mock_hotkey',
                         '--wallet._mock', 'True',
-                        '--subtensor.network', 'mock',
-                        '--subtensor._mock', 'True',
                         '--no_prompt',
                         '--wallet.reregister', 'False' # Don't reregister
                     ])
@@ -1731,8 +1605,6 @@ class TestCLIUsingArgs(unittest.TestCase):
                         '--wallet.name', 'mock',
                         '--wallet.hotkey', 'mock_hotkey',
                         '--wallet._mock', 'True',
-                        '--subtensor.network', 'mock',
-                        '--subtensor._mock', 'True',
                         '--cuda.no_cuda',
                         '--no_prompt',
                         '--model', 'core_server',
