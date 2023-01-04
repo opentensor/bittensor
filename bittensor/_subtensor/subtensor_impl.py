@@ -127,6 +127,11 @@ class NotRegisteredError(ChainTransactionError):
     pass
 
 
+class NotDelegateError(StakeError):
+    r""" Error raised when a hotkey you are trying to stake to is not a delegate.
+    """
+    pass
+
 
 class Subtensor:
     """
@@ -1079,6 +1084,7 @@ class Subtensor:
     def add_stake(
             self, 
             wallet: 'bittensor.wallet',
+            hotkey_ss58: Optional[str] = None,
             amount: Union[Balance, float] = None, 
             wait_for_inclusion: bool = True,
             wait_for_finalization: bool = False,
@@ -1088,6 +1094,9 @@ class Subtensor:
         Args:
             wallet (bittensor.wallet):
                 Bittensor wallet object.
+            hotkey_ss58 (Optional[str]):
+                ss58 address of the hotkey account to stake to
+                defaults to the wallet's hotkey.
             amount (Union[Balance, float]):
                 Amount to stake as bittensor balance, or float interpreted as Tao.
             wait_for_inclusion (bool):
@@ -1106,26 +1115,37 @@ class Subtensor:
         Raises:
             NotRegisteredError:
                 If the wallet is not registered on the chain.
+            NotDelegateError:
+                If the hotkey is not a delegate on the chain.
         """
         # Decrypt keys,
         wallet.coldkey
-        wallet.hotkey
+
+        own_hotkey: bool = False # Flag to indicate if we are using the wallet's own hotkey.
+        if hotkey_ss58 is None:
+            hotkey_ss58 = wallet.hotkey.ss58_address # Default to wallet's own hotkey.
+            own_hotkey = True
 
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
 
-            if not wallet.is_registered():
-                raise NotRegisteredError("Wallet: {} is not registered.".format(wallet.name))
+            if not self.is_hotkey_registered( hotkey_ss58 ): # Hotkey is not registered on the chain.
+                raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
+
+            if not own_hotkey:
+                # This is not the wallet's own hotkey so we are delegating.
+                if not self.is_hotkey_delegate( hotkey_ss58 ):
+                    raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
                 
+                # Get hotkey take
+                hotkey_take = self.get_hotkey_take( hotkey_ss58 )
+                # Get hotkey owner
+                hotkey_owner = self.get_owner_for_hotkey( hotkey_ss58 )
+            
             # Get current stake
-            old_stake = self.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58= wallet.hotkey.ss58_address )
+            old_stake = self.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58 )
 
-        if old_stake is None:
-            # Hotkey is not registered in any subnets.
-            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
-            return False
-
-        # Covert to bittensor.Balance
+        # Convert to bittensor.Balance
         if amount == None:
             # Stake it all.
             staking_balance = bittensor.Balance.from_tao( old_balance.tao )
@@ -1148,7 +1168,7 @@ class Subtensor:
                     call_module='Paratensor', 
                     call_function='add_stake',
                     call_params={
-                        'hotkey': wallet.hotkey.ss58_address,
+                        'hotkey': hotkey_ss58,
                         'amount_staked': staking_balance.rao
                     }
                 )
@@ -1160,20 +1180,26 @@ class Subtensor:
                     staking_fee = bittensor.Balance.from_tao( 0.2 )
                     bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
 
-        # Check enough to unstake.
+        # Check enough to stake.
         if staking_balance > old_balance + staking_fee:
             bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, staking_fee, wallet.name))
             return False
                 
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}\n  fee: {}[/bold white]".format( staking_balance, wallet.hotkey_str, staking_fee) ):
-                return False
+            if not own_hotkey:
+                # We are delegating.
+                if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  fee: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, wallet.hotkey_str, staking_fee, hotkey_take, hotkey_owner) ):
+                    return False
+            else:
+                if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}\n  fee: {}[/bold white]".format( staking_balance, wallet.hotkey_str, staking_fee) ):
+                    return False
 
         try:
             with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(self.network)):
                 staking_response: bool = self.__do_add_stake_single(
                     wallet = wallet,
+                    hotkey_ss58 = hotkey_ss58,
                     amount = staking_balance,
                     wait_for_inclusion = wait_for_inclusion,
                     wait_for_finalization = wait_for_finalization,
@@ -1188,9 +1214,11 @@ class Subtensor:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(self.network)):
                     new_balance = self.get_balance( address = wallet.coldkey.ss58_address )
+                    block = self.get_current_block()
                     new_stake = self.get_stake_for_coldkey_and_hotkey(
                         coldkey_ss58=wallet.coldkeypub.ss58_address,
-                        hotkey_ss58= wallet.hotkey.ss58_address
+                        hotkey_ss58= wallet.hotkey.ss58_address,
+                        block=block
                     ) # Get current stake
 
                     bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
@@ -1210,6 +1238,7 @@ class Subtensor:
     def __do_add_stake_single(
         self, 
         wallet: 'bittensor.wallet',
+        hotkey_ss58: str,
         amount: 'bittensor.Balance', 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -1219,6 +1248,8 @@ class Subtensor:
         Args:
             wallet (bittensor.wallet):
                 Bittensor wallet object.
+            hotkey_ss58 (str):
+                Hotkey to stake to.
             amount (bittensor.Balance):
                 Amount to stake as bittensor balance object.
             wait_for_inclusion (bool):
@@ -1236,6 +1267,8 @@ class Subtensor:
         Raises:
             StakeError:
                 If the extrinsic fails to be finalized or included in the block.
+            NotDelegateError:
+                If the hotkey is not a delegate.
             NotRegisteredError:
                 If the hotkey is not registered in any subnets.
 
@@ -1244,23 +1277,21 @@ class Subtensor:
         wallet.coldkey
         wallet.hotkey
 
-        if not wallet.is_registered():
-            raise NotRegisteredError("Wallet: {} is not registered.".format(wallet.name))
+        if not self.is_registered( hotkey_ss58 = hotkey_ss58 ):
+            raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
 
-        # Get current stake
-        old_stake = self.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58= wallet.hotkey.ss58_address )
-
-        if old_stake is None:
-            # Hotkey is not registered in any subnets.
-            raise NotRegisteredError("Hotkey: {} is not registered.".format(wallet.hotkey_str))
-
+        if not wallet.hotkey.ss58_address == hotkey_ss58:
+            # We are delegating.
+            # Verify that the hotkey is a delegate.
+            if not self.is_delegate( hotkey_ss58 = hotkey_ss58 ):
+                raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
     
         with self.substrate as substrate:
             call = substrate.compose_call(
             call_module='Paratensor', 
             call_function='add_stake',
             call_params={
-                'hotkey': wallet.hotkey.ss58_address,
+                'hotkey': hotkey_ss58,
                 'amount_staked': amount.rao
                 }
             )
@@ -1278,16 +1309,19 @@ class Subtensor:
 
     def add_stake_multiple (
             self, 
-            wallets: List['bittensor.wallet'],
+            wallet: 'bittensor.wallet',
+            hotkey_ss58s: List[str],
             amounts: List[Union[Balance, float]] = None, 
             wait_for_inclusion: bool = True,
             wait_for_finalization: bool = False,
             prompt: bool = False,
         ) -> bool:
-        r""" Adds stake to each wallet hotkey in the list, using each amount, from the common coldkey.
+        r""" Adds stake to each hotkey_ss58 in the list, using each amount, from a common coldkey.
         Args:
-            wallets (List[bittensor.wallet]):
-                List of wallets to stake.
+            wallet (bittensor.wallet):
+                Bittensor wallet object for the coldkey.
+            hotkey_ss58s (List[str]):
+                List of hotkeys to stake to.
             amounts (List[Union[Balance, float]]):
                 List of amounts to stake. If None, stake all to the first hotkey.
             wait_for_inclusion (bool):
@@ -1304,21 +1338,20 @@ class Subtensor:
                 flag is true if any wallet was staked.
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        if not isinstance(wallets, list):
-            raise TypeError("wallets must be a list of bittensor.wallet")
+        if not isinstance(hotkey_ss58s, list):
+            raise TypeError("hotkey_ss58s must be a list of str")
         
-        if len(wallets) == 0:
+        if len(hotkey_ss58s) == 0:
             return True
-            
 
-        if amounts is not None and len(amounts) != len(wallets):
-            raise ValueError("amounts must be a list of the same length as wallets")
+        if amounts is not None and len(amounts) != len(hotkey_ss58s):
+            raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
 
         if amounts is not None and not all(isinstance(amount, (Balance, float)) for amount in amounts):
             raise TypeError("amounts must be a [list of bittensor.Balance or float] or None")
 
         if amounts is None:
-            amounts = [None] * len(wallets)
+            amounts = [None] * len(hotkey_ss58s)
         else:
             # Convert to Balance
             amounts = [bittensor.Balance.from_tao(amount) if isinstance(amount, float) else amount for amount in amounts ]
@@ -1327,17 +1360,16 @@ class Subtensor:
                 # Staking 0 tao
                 return True
 
-        wallet_0: 'bittensor.wallet' = wallets[0]
-        # Decrypt coldkey for all wallet(s) to use
-        wallet_0.coldkey
+        # Decrypt coldkey.
+        wallet.coldkey
 
         old_stakes = []
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
-            old_balance = self.get_balance( wallet_0.coldkey.ss58_address )
+            old_balance = self.get_balance( wallet.coldkey.ss58_address )
 
-            for wallet in wallets:
-                old_stake = self.get_stake( ss58_address = wallet.hotkey.ss58_address )
-                old_stakes.append(old_stake) # None if not registered.
+            # Get the old stakes.
+            for hotkey_ss58 in hotkey_ss58s:
+                old_stakes.append( self.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 ) )
 
         # Remove existential balance to keep key alive.
         ## Keys must maintain a balance of at least 1000 rao to stay alive.
@@ -1357,18 +1389,7 @@ class Subtensor:
             amounts = [Balance.from_tao(amount.tao * percent_reduction) for amount in amounts]
         
         successful_stakes = 0
-        for wallet, amount, old_stake in zip(wallets, amounts, old_stakes):
-            if old_stake is None: # Not registered
-                bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered. Skipping ...[/red]".format( wallet.hotkey_str ))
-                continue
-
-            if wallet.coldkeypub.ss58_address != wallet_0.coldkeypub.ss58_address:
-                bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not under the same coldkey. Skipping ...[/red]".format( wallet.hotkey_str ))
-                continue
-
-            # Assign decrypted coldkey from wallet_0
-            #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0.coldkey
+        for hotkey_ss58, amount, old_stake in zip(hotkey_ss58s, amounts, old_stakes):
             staking_all = False
             # Convert to bittensor.Balance
             if amount == None:
@@ -1388,8 +1409,8 @@ class Subtensor:
                     call_module='Paratensor', 
                     call_function='add_stake',
                     call_params={
-                        'hotkey': wallet.hotkey.ss58_address,
-                        'ammount_staked': staking_balance.rao
+                        'hotkey': hotkey_ss58,
+                        'amount_staked': staking_balance.rao
                         }
                     )
                     payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
@@ -1417,6 +1438,7 @@ class Subtensor:
             try:
                 staking_response: bool = self.__do_add_stake_single(
                     wallet = wallet,
+                    hotkey_ss58 = hotkey_ss58,
                     amount = staking_balance,
                     wait_for_inclusion = wait_for_inclusion,
                     wait_for_finalization = wait_for_finalization,
@@ -1437,8 +1459,8 @@ class Subtensor:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
 
                     block = self.get_current_block()
-                    new_stake = self.get_stake( wallet.hotkey.ss58_address, block = block )
-                    new_balance = self.get_balance( wallet.coldkey.ss58_address, block = block )
+                    new_stake = self.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58, block = block )
+                    new_balance = self.get_balance( wallet.coldkeypub.ss58_address, block = block )
                     bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, old_stake, new_stake ))
                     old_balance = new_balance
                     successful_stakes += 1
@@ -1460,7 +1482,7 @@ class Subtensor:
         
         if successful_stakes != 0:
             with bittensor.__console__.status(":satellite: Checking Balance on: ([white]{}[/white] ...".format(self.network)):
-                new_balance = self.get_balance( wallet.coldkey.ss58_address )
+                new_balance = self.get_balance( wallet.coldkeypub.ss58_address )
             bittensor.__console__.print("Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
             return True
 
@@ -1586,6 +1608,7 @@ class Subtensor:
     def __do_remove_stake_single(
         self, 
         wallet: 'bittensor.wallet',
+        hotkey_ss58: str,
         amount: 'bittensor.Balance', 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -1595,6 +1618,8 @@ class Subtensor:
         Args:
             wallet (bittensor.wallet):
                 Bittensor wallet object.
+            hotkey_ss58 (str):
+                Hotkey address to unstake from.
             amount (bittensor.Balance):
                 Amount to unstake as bittensor balance object.
             wait_for_inclusion (bool):
@@ -1618,14 +1643,10 @@ class Subtensor:
         """
         # Decrypt keys,
         wallet.coldkey
-        wallet.hotkey
 
-        # Get current stake
-        old_stake = self.get_stake( ss58_address = wallet.hotkey.ss58_address )
-
-        if old_stake is None:
+        if not self.is_hotkey_registered( hotkey_ss58 ):
             # Hotkey is not registered in any subnets.
-            raise NotRegisteredError("Hotkey: {} is not registered.".format(wallet.hotkey_str))
+            raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
 
     
         with self.substrate as substrate:
@@ -1633,8 +1654,8 @@ class Subtensor:
             call_module='Paratensor', 
             call_function='remove_stake',
             call_params={
-                'hotkey': wallet.hotkey.ss58_address,
-                'ammount_unstaked': amount.rao
+                'hotkey': hotkey_ss58,
+                'amount_unstaked': amount.rao
                 }
             )
             extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
@@ -1652,6 +1673,7 @@ class Subtensor:
     def unstake (
             self, 
             wallet: 'bittensor.wallet',
+            hotkey_ss58: Optional[str] = None,
             amount: Union[Balance, float] = None, 
             wait_for_inclusion:bool = True, 
             wait_for_finalization:bool = False,
@@ -1661,6 +1683,9 @@ class Subtensor:
         Args:
             wallet (bittensor.wallet):
                 bittensor wallet object.
+            hotkey_ss58 (Optional[str]):
+                ss58 address of the hotkey to unstake from.
+                by default, the wallet hotkey is used.
             amount (Union[Balance, float]):
                 Amount to stake as bittensor balance, or float interpreted as tao.
             wait_for_inclusion (bool):
@@ -1678,17 +1703,20 @@ class Subtensor:
         """
         # Decrypt keys,
         wallet.coldkey
-        wallet.hotkey
+
+        own_hotkey: bool = False # Flag to indicate if we are using the wallet's own hotkey.
+        if hotkey_ss58 is None:
+            hotkey_ss58 = wallet.hotkey.ss58_address # Default to wallet's own hotkey.
+            own_hotkey = True
 
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
-            old_stake = self.get_stake( wallet.hotkey.ss58_address )
-        
-        if old_stake == None:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format( wallet.hotkey_str ))
-            return False
+            if not self.is_hotkey_registered( hotkey_ss58 ): # Hotkey is not registered on the chain.
+                raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
+            
+            old_stake = self.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 )
 
-        # Covert to bittensor.Balance
+        # Convert to bittensor.Balance
         if amount == None:
             # Unstake it all.
             unstaking_balance = old_stake
@@ -1711,8 +1739,8 @@ class Subtensor:
                     call_module='Paratensor', 
                     call_function='remove_stake',
                     call_params={
-                        'hotkey': wallet.hotkey.ss58_address,
-                        'ammount_unstaked': unstaking_balance.rao
+                        'hotkey': hotkey_ss58,
+                        'amount_unstaked': unstaking_balance.rao
                     }
                 )
                 payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
@@ -1733,6 +1761,7 @@ class Subtensor:
             with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
                 staking_response: bool = self.__do_remove_stake_single(
                     wallet = wallet,
+                    hotkey_ss58 = hotkey_ss58,
                     amount = unstaking_balance,
                     wait_for_inclusion = wait_for_inclusion,
                     wait_for_finalization = wait_for_finalization,
@@ -1747,7 +1776,7 @@ class Subtensor:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(self.network)):
                     new_balance = self.get_balance( address = wallet.coldkey.ss58_address )
-                    new_stake = self.get_stake( ss58_address = wallet.hotkey.ss58_address ) # Get current stake
+                    new_stake = self.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 ) # Get stake on hotkey.
                     bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                     bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                     return True
@@ -1765,16 +1794,19 @@ class Subtensor:
 
     def unstake_multiple (
             self, 
-            wallets: List['bittensor.wallet'],
+            wallet: 'bittensor.wallet',
+            hotkey_ss58s: List[str],
             amounts: List[Union[Balance, float]] = None, 
             wait_for_inclusion: bool = True, 
             wait_for_finalization: bool = False,
             prompt: bool = False,
         ) -> bool:
-        r""" Removes stake from each wallet hotkey in the list, using each amount, to their common coldkey.
+        r""" Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey.
         Args:
-            wallets (List[bittensor.wallet]):
-                List of wallets to unstake.
+            wallet (bittensor.wallet):
+                The wallet with the coldkey to unstake to.
+            hotkey_ss58s (List[str]):
+                List of hotkeys to unstake from.
             amounts (List[Union[Balance, float]]):
                 List of amounts to unstake. If None, unstake all.
             wait_for_inclusion (bool):
@@ -1791,20 +1823,20 @@ class Subtensor:
                 flag is true if any wallet was unstaked.
                 If we did not wait for finalization / inclusion, the response is true.
         """
-        if not isinstance(wallets, list):
-            raise TypeError("wallets must be a list of bittensor.wallet")
+        if not isinstance(hotkey_ss58s, list):
+            raise TypeError("hotkey_ss58s must be a list of str")
         
-        if len(wallets) == 0:
+        if len(hotkey_ss58s) == 0:
             return True
 
-        if amounts is not None and len(amounts) != len(wallets):
-            raise ValueError("amounts must be a list of the same length as wallets")
+        if amounts is not None and len(amounts) != len(hotkey_ss58s):
+            raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
 
         if amounts is not None and not all(isinstance(amount, (Balance, float)) for amount in amounts):
             raise TypeError("amounts must be a [list of bittensor.Balance or float] or None")
 
         if amounts is None:
-            amounts = [None] * len(wallets)
+            amounts = [None] * len(hotkey_ss58s)
         else:
             # Convert to Balance
             amounts = [bittensor.Balance.from_tao(amount) if isinstance(amount, float) else amount for amount in amounts ]
@@ -1813,33 +1845,19 @@ class Subtensor:
                 # Staking 0 tao
                 return True
 
-
-        wallet_0: 'bittensor.wallet' = wallets[0]
-        # Decrypt coldkey for all wallet(s) to use
-        wallet_0.coldkey
+        # Unlock coldkey.
+        wallet.coldkey
 
         old_stakes = []
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
-            old_balance = self.get_balance( wallet_0.coldkey.ss58_address )
+            old_balance = self.get_balance( wallet.coldkey.ss58_address )
 
-            for wallet in wallets:
-                old_stake = self.get_stake( ss58_address = wallet.hotkey.ss58_address )
+            for hotkey_ss58 in hotkey_ss58s:
+                old_stake = self.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 ) # Get stake on hotkey.
                 old_stakes.append(old_stake) # None if not registered.
 
         successful_unstakes = 0
-        for wallet, amount, old_stake in zip(wallets, amounts, old_stakes):
-            if old_stake is None:
-                bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered. Skipping ...[/red]".format( wallet.hotkey_str ))
-                continue
-
-            if wallet.coldkeypub.ss58_address != wallet_0.coldkeypub.ss58_address:
-                bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not under the same coldkey. Skipping ...[/red]".format( wallet.hotkey_str ))
-                continue
-
-            # Assign decrypted coldkey from wallet_0
-            #  so we don't have to decrypt again
-            wallet._coldkey = wallet_0._coldkey
-
+        for hotkey_ss58, amount, old_stake in zip(hotkey_ss58s, amounts, old_stakes):
             # Covert to bittensor.Balance
             if amount == None:
                 # Unstake it all.
@@ -1863,8 +1881,8 @@ class Subtensor:
                         call_module='Paratensor', 
                         call_function='remove_stake',
                         call_params={
-                            'hotkey': wallet.hotkey.ss58_address,
-                            'ammount_unstaked': unstaking_balance.rao
+                            'hotkey': hotkey_ss58,
+                            'amount_unstaked': unstaking_balance.rao
                         }
                     )
                     payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
@@ -1880,11 +1898,11 @@ class Subtensor:
                 if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}\n  fee: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str, unstake_fee) ):
                     continue
             
-
             try:
                 with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(self.network)):
                     staking_response: bool = self.__do_remove_stake_single(
                         wallet = wallet,
+                        hotkey_ss58 = hotkey_ss58,
                         amount = unstaking_balance,
                         wait_for_inclusion = wait_for_inclusion,
                         wait_for_finalization = wait_for_finalization,
@@ -1900,7 +1918,7 @@ class Subtensor:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                     with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(self.network)):
                         block = self.get_current_block()
-                        new_stake = self.get_stake( wallet.hotkey.ss58_address, block = block )
+                        new_stake = self.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
                         bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, stake_on_uid, new_stake ))
                         successful_unstakes += 1
                 else:
@@ -2301,18 +2319,20 @@ class Subtensor:
                 )
         
         # Get netuids for hotkey.
-        netuids = self.get_netuids_for_hotkey( ss58_hotkey = ss58_hotkey, block = block)
+        netuids = []
+        #netuids = self.get_netuids_for_hotkey( ss58_hotkey = ss58_hotkey, block = block)
 
-        if netuids == []:
+        if False and netuids == []:
             return -1
 
         if netuid:
-            if netuid not in netuids:
+            if False and netuid not in netuids:
                 return -1
             else:
                 result = make_substrate_call_with_retry( netuid )
-                if result.is_some:
-                    return result.value
+                val = result.value
+                if val:
+                    return val
                 else:
                     return -1
         
