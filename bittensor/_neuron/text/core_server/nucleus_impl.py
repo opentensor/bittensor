@@ -462,7 +462,7 @@ class server(torch.nn.Module):
         with torch.no_grad():
             return _forward()  # no gradients
 
-    def model_output_check(model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
+    def model_output_check(self, model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
         """
             Verify the model has been ran correctly with valid output.
 
