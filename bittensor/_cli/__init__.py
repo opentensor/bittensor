@@ -1068,7 +1068,7 @@ class cli:
             else:
                 raise ValueError('netuid must be set')
         
-        if netuid in ['None', 'none'] and allow_none:
+        if netuid.lower() in ['none'] and allow_none:
             config.netuid = None
         else:
             try:
