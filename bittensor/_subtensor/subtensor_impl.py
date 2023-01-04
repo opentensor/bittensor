@@ -64,13 +64,39 @@ class NeuronMetadata:
     consensus: int
     trust: int
     dividends: int
-    modality: bittensor.proto.Modality
     last_update: int
     version: int
     priority: int
     weights: List[List[int]]
     bonds: List[List[int]]
     is_null: bool = False
+
+    @staticmethod
+    def from_json(json: Dict) -> 'NeuronMetadata':
+        r""" Returns a NeuronMetadata object from a json dictionary.
+        """
+        return NeuronMetadata(
+            hotkey = scalecodec.base58.b58decode(json['hotkey']['id']),
+            coldkey = scalecodec.base58.b58decode(json['coldkey']['id']),
+            uid = json['uid'],
+            netuid = json['netuid'],
+            active = int(json['active']),
+            ip = bittensor.utils.networking.int_to_ip(int(json['axon_metadata']['ip'])),
+            ip_type = json['axon_metadata']['ip_type'],
+            port = json['axon_metadata']['port'],
+            stake = json['stake'],
+            rank = json['rank'],
+            emission = json['emission'],
+            incentive = json['incentive'],
+            consensus = json['consensus'],
+            trust = json['trust'],
+            dividends = json['dividends'],
+            last_update = json['last_update'],
+            version = json['axon_metadata']['version'],
+            priority = json['priority'],
+            weights = json['weights'],
+            bonds = json['bonds'],
+        )
 
 
 @dataclass
@@ -2103,15 +2129,20 @@ class Subtensor:
             neuron (List[NeuronMetadata]):
                 List of neuron metadata objects.
         """
-        neurons = []
-        for id in tqdm(range(self.get_n( netuid, block ))): 
-            try:
-                neuron = self.neuron_for_uid(id, netuid, block)
-                neurons.append( neuron )
-            except Exception as e:
-                logger.error('Exception encountered when pulling neuron {}: {}'.format(id, e))
-                break
-        return neurons
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.rpc_request(
+                    method="neuronInfo_getNeurons", # custom rpc method
+                    params=[netuid],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body.result
+        
+        return [ NeuronMetadata.from_json( neuron ) for neuron in result ]
+
 
     @staticmethod
     def _null_neuron() -> NeuronMetadata:
