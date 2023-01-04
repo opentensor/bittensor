@@ -431,9 +431,9 @@ class CLI:
 
         subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
 
-        # Verify subnet exists
-        if not subtensor.subnet_exists( netuid = self.config.netuid ):
-            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+        # Verify wallet is registered on the network (any subnet).
+        if not wallet.is_registered():
+            bittensor.__console__.print(f"[red]Wallet {wallet.hotkey_str} is not registered on {self.config.network}[/red]")
             sys.exit(1)
 
         wallets_to_stake_to: List[bittensor.wallet]

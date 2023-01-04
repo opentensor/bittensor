@@ -1102,6 +1102,10 @@ class Subtensor:
             success (bool):
                 flag is true if extrinsic was finalized or uncluded in the block. 
                 If we did not wait for finalization / inclusion, the response is true.
+
+        Raises:
+            NotRegisteredError:
+                If the wallet is not registered on the chain.
         """
         # Decrypt keys,
         wallet.coldkey
@@ -1109,8 +1113,12 @@ class Subtensor:
 
         with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.network)):
             old_balance = self.get_balance( wallet.coldkey.ss58_address )
+
+            if not wallet.is_registered():
+                raise NotRegisteredError("Wallet: {} is not registered.".format(wallet.name))
+                
             # Get current stake
-            old_stake = self.get_stake( ss58_address = wallet.hotkey.ss58_address )
+            old_stake = self.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58= wallet.hotkey.ss58_address )
 
         if old_stake is None:
             # Hotkey is not registered in any subnets.
@@ -1141,7 +1149,7 @@ class Subtensor:
                     call_function='add_stake',
                     call_params={
                         'hotkey': wallet.hotkey.ss58_address,
-                        'ammount_staked': staking_balance.rao
+                        'amount_staked': staking_balance.rao
                     }
                 )
                 payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
@@ -1180,7 +1188,11 @@ class Subtensor:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(self.network)):
                     new_balance = self.get_balance( address = wallet.coldkey.ss58_address )
-                    new_stake = self.get_stake( ss58_address = wallet.hotkey.ss58_address ) # Get current stake
+                    new_stake = self.get_stake_for_coldkey_and_hotkey(
+                        coldkey_ss58=wallet.coldkeypub.ss58_address,
+                        hotkey_ss58= wallet.hotkey.ss58_address
+                    ) # Get current stake
+
                     bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                     bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                     return True
@@ -1232,8 +1244,11 @@ class Subtensor:
         wallet.coldkey
         wallet.hotkey
 
+        if not wallet.is_registered():
+            raise NotRegisteredError("Wallet: {} is not registered.".format(wallet.name))
+
         # Get current stake
-        old_stake = self.get_stake( ss58_address = wallet.hotkey.ss58_address )
+        old_stake = self.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58= wallet.hotkey.ss58_address )
 
         if old_stake is None:
             # Hotkey is not registered in any subnets.
@@ -1246,7 +1261,7 @@ class Subtensor:
             call_function='add_stake',
             call_params={
                 'hotkey': wallet.hotkey.ss58_address,
-                'ammount_staked': amount.rao
+                'amount_staked': amount.rao
                 }
             )
             extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
