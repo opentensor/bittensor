@@ -476,7 +476,7 @@ class server(torch.nn.Module):
         """
         if hasattr(model_output, 'hidden_states') and model_output.hidden_states[-1].isnan().sum() > 0:
             raise ValueError("Got nan value from model last hidden state. If you are using cuda, try setting --neuron.autocast to False.")
-        
+
         if model_output.logits.isnan().sum() > 0:
             raise ValueError("Got nan value from model logit. If you are using cuda, try setting --neuron.autocast to False.")
 
