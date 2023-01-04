@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 from rich.prompt import Confirm, Prompt
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Tuple
 from multiprocessing import Process
 
 from dataclasses import dataclass
@@ -72,6 +72,17 @@ class NeuronMetadata:
     bonds: List[List[int]]
     is_null: bool = False
 
+
+@dataclass
+class DelegateInfo:
+    r"""
+    Dataclass for delegate info.
+    """
+    hotkey_ss58: str # Hotkey of delegate
+    total_stake: Balance # Total stake of the delegate
+    nominators: List[Tuple[str, Balance]] # List of nominators of the delegate and their stake
+    owner_ss58: str # Coldkey of owner
+    take: float # Take of the delegate as a percentage
 
 class ChainError(BaseException):
     r""" Base error for any chain related errors.
@@ -2201,6 +2212,73 @@ class Subtensor:
             return result.value / U16_MAX
         else:
             return None
+
+    def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
+        r""" Returns a list of all delegates on the network.
+        Args:
+            block ( Optional[int] ):
+                block to sync at.
+        Returns:
+            delegates (List[DelegateInfo]):
+                List of delegate info objects.
+                
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module='Paratensor',
+                    storage_function='Delegates',
+                    block_hash=None if block == None else substrate.get_block_hash( block )
+                )
+
+        delegates = []
+        result = make_substrate_call_with_retry()
+        if result:
+            for delegate_ss58, take in result.value:
+                total_stake = self.get_total_stake_for_hotkey( delegate_ss58, block )
+                nominators = self.get_nominators_for_hotkey( delegate_ss58, block )
+                owner = self.get_owner_for_hotkey( delegate_ss58, block )
+                info = DelegateInfo(
+                    hotkey_ss58=delegate_ss58,
+                    take = take / U16_MAX,
+                    total_stake=total_stake,
+                    nominators=len(nominators),
+                    owner_ss58=owner
+                )
+                delegates.append( info )
+            return delegates
+        else:
+            return []
+
+    def get_nominators_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str, Balance]]:
+        r""" Returns the nominators for a delegate hotkey.
+        Args:
+            hotkey_ss58 ( str ):
+                The hotkey to check.
+            block ( Optional[int] ):
+                block to sync at.
+        Returns:
+            nominators (List[Tuple[str, Balance]]):
+                List of nominator ss58 and stake.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module='Paratensor',
+                    storage_function='Stake',
+                    params = [ hotkey_ss58 ],
+                    block_hash=None if block == None else substrate.get_block_hash( block )
+                )
+
+        result = make_substrate_call_with_retry()
+        if result:
+            nominators = [(nominator_ss58, stake) for nominator_ss58, stake in result.value]
+            return nominators
+
+        else:
+            return 0
 
     def is_hotkey_delegate( self, hotkey_ss58: str ) -> bool:
         r""" Returns true if the hotkey is a delegate.
