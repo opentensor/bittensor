@@ -462,7 +462,7 @@ class server(torch.nn.Module):
         with torch.no_grad():
             return _forward()  # no gradients
 
-    def model_output_check(model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
+    def model_output_check(self, model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
         """
             Verify the model has been ran correctly with valid output.
 
@@ -476,7 +476,7 @@ class server(torch.nn.Module):
         """
         if hasattr(model_output, 'hidden_states') and model_output.hidden_states[-1].isnan().sum() > 0:
             raise ValueError("Got nan value from model last hidden state. If you are using cuda, try setting --neuron.autocast to False.")
-        
+
         if model_output.logits.isnan().sum() > 0:
             raise ValueError("Got nan value from model logits. If you are using cuda, try setting --neuron.autocast to False.")
 
