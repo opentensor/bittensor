@@ -105,6 +105,34 @@ class NeuronMetadata:
             weights = json['weights'],
             bonds = json['bonds'],
             prometheus_info = PrometheusInfo.from_json(json['prometheus_info']),
+
+@dataclass
+class AxonInfo:
+    r"""
+    Dataclass for axon info.
+    """
+    block: int
+    version: int
+    ip: str
+    port: int
+    ip_type: int
+    protocol: int
+    placeholder1: int # placeholder for future use
+    placeholder2: int
+
+    @classmethod
+    def from_json(cls, json: Dict) -> 'AxonInfo':
+        r""" Returns a AxonInfo object from a json dictionary.
+        """
+        return AxonInfo(
+            block = json['block'],
+            version = json['version'],
+            ip = bittensor.utils.networking.int_to_ip(int(json['ip'])),
+            port = json['port'],
+            ip_type = json['ip_type'],
+            protocol = json['protocol'],
+            placeholder1 = json['placeholder1'],
+            placeholder2 = json['placeholder2'],
         )
 
 @dataclass
@@ -1160,6 +1188,46 @@ class Subtensor:
         result = make_substrate_call_with_retry()
         if result != None:
             return result
+        else:
+            return None
+
+    def get_axon_info( self, netuid: int, uid: int, block: Optional[int] = None ) -> Optional[AxonInfo]:
+        r"""
+        Returns the axon info for the neuron at specified netuid and uid.
+        Args:
+            netuid (int):
+                netuid of the subent.
+            uid (int):
+                uid of the neuron in the subent.
+            block (Optional[int]):
+                Block to query. If None, the latest finalized block is used.
+
+        Returns:
+            axon_info (Optional[AxonInfo]):
+                Axon info for the neuron.
+
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='Axons',
+                    params = [netuid, uid],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        
+        result = make_substrate_call_with_retry()
+        if result != None:
+            return AxonInfo(
+                ip = bittensor.utils.networking.ip_from_int( result.value.ip ),
+                ip_type = result.value.ip_type,
+                port = result.value.port,
+                protocol = result.value.protocol,
+                version = result.value.version,
+                placeholder1 = result.value.placeholder1,
+                placeholder2 = result.value.placeholder2,
+            )
         else:
             return None
 
