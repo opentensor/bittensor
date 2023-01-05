@@ -28,6 +28,7 @@ from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
+import json
 
 # Mocking imports
 import os
@@ -774,14 +775,14 @@ class Subtensor:
                 raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
         else:
             external_ip = axon.external_ip
-            
+        
         # ---- Subscribe to chain ----
         serve_success = self.serve(
                 wallet = axon.wallet,
                 ip = external_ip,
                 port = external_port,
                 netuid = axon.netuid,
-                modality = 0,
+                protocol = axon.protocol,
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
                 prompt = prompt
@@ -944,8 +945,10 @@ class Subtensor:
             wallet: 'bittensor.wallet',
             ip: str, 
             port: int, 
-            modality: int, 
+            protocol: int, 
             netuid: int,
+            placeholder1: int = 0,
+            placeholder2: int = 0,
             wait_for_inclusion: bool = False,
             wait_for_finalization = True,
             prompt: bool = False,
@@ -958,10 +961,14 @@ class Subtensor:
                 endpoint host port i.e. 192.122.31.4
             port (int):
                 endpoint port number i.e. 9221
-            modality (int):
-                int encoded endpoint modality i.e 0 for TEXT
+            protocol (int):
+                int representation of the protocol 
             netuid (int):
                 network uid to serve on.
+            placeholder1 (int):
+                placeholder for future use.
+            placeholder2 (int):
+                placeholder for future use.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true, 
                 or returns false if the extrinsic fails to enter the block within the timeout.   
@@ -984,7 +991,9 @@ class Subtensor:
             'ip': net.ip_to_int(ip),
             'port': port,
             'ip_type': net.ip_version(ip),
-            'modality': modality,
+            'protocol': protocol,
+            'placeholder1': placeholder1,
+            'placeholder2': placeholder2,
             'netuid': netuid,
             'coldkey': wallet.coldkeypub.ss58_address,
         }
@@ -996,19 +1005,26 @@ class Subtensor:
                 'ip': neuron.ip,
                 'port': neuron.port,
                 'ip_type': neuron.ip_type,
-                'modality': neuron.modality,
                 'netuid': neuron.netuid,
-                'coldkey': neuron.coldkey
+                'coldkey': neuron.coldkey,
+                'protocol': neuron.protocol,
+                'placeholder1': neuron.placeholder1,
+                'placeholder2': neuron.placeholder2,
             }
             if neuron_up_to_date:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
                 return True
 
         if prompt:
-            if not Confirm.ask("Do you want to serve axon:\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address)):
+            output = params.copy()
+            output['coldkey'] = wallet.coldkeypub.ss58_address
+            output['hotkey'] = wallet.hotkey.ss58_address
+            if not Confirm.ask("Do you want to serve axon:\n  [bold white]{}[/bold white]".format(
+                json.dumps(output, indent=4, sort_keys=True)
+            )):
                 return False
         
-        with bittensor.__console__.status(":satellite: Serving axon on: [white]{} - {}[/white] ...".format(self.network, netuid)):
+        with bittensor.__console__.status(":satellite: Serving axon on: [white]{}:{}[/white] ...".format(self.network, netuid)):
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module='Paratensor',
@@ -1020,10 +1036,10 @@ class Subtensor:
                 if wait_for_inclusion or wait_for_finalization:
                     response.process_events()
                     if response.is_success:
-                        bittensor.__console__.print(':white_heavy_check_mark: [green]Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]'.format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address ))
+                        bittensor.__console__.print(':white_heavy_check_mark: [green]Served[/green]\n  [bold white]{}[/bold white]'.format(json.dumps(params, indent=4, sort_keys=True) ))
                         return True
                     else:
-                        bittensor.__console__.print(':cross_mark: [green]Failed to Subscribe[/green] error: {}'.format(response.error_message))
+                        bittensor.__console__.print(':cross_mark: [green]Failed to Serve axon[/green] error: {}'.format(response.error_message))
                         return False
                 else:
                     return True
