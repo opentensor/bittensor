@@ -30,7 +30,7 @@ SS58_LENGTH = 48
 MAXPORT = 65535
 MAXUID = 4294967295
 ACCEPTABLE_IPTYPES = [4,6,0]
-ACCEPTABLE_MODALITIES = [0,1,2]
+ACCEPTABLE_PROTOCOLS = [0] # TODO
 ENDPOINT_BUFFER_SIZE = 250
 
 class endpoint:
@@ -45,8 +45,9 @@ class endpoint:
         ip:str, 
         ip_type:int, 
         port:int, 
-        modality:int, 
-        coldkey:str 
+        protocol:int, 
+        coldkey:str,
+        modality: int = 0 # TODO: remove modality
     ) -> 'bittensor.Endpoint':
         endpoint.assert_format(
             version=version,
@@ -56,33 +57,33 @@ class endpoint:
             port = port,
             coldkey = coldkey,
             hotkey = hotkey,
-            modality=modality
+            protocol=protocol
         )
-        return endpoint_impl.Endpoint( version, uid, hotkey, ip, ip_type, port, modality, coldkey )
+        return endpoint_impl.Endpoint( version, uid, hotkey, ip, ip_type, port, protocol, coldkey, modality )
 
 
     @staticmethod
-    def from_neuron( neuron: SimpleNamespace ) -> 'bittensor.Endpoint':
+    def from_neuron( neuron: 'bittensor.NeuronInfo' ) -> 'bittensor.Endpoint':
         """
         endpoint.assert_format(
             version = neuron.version,
             uid = neuron.uid, 
             hotkey = neuron.hotkey, 
-            port = neuron.port,
-            ip = neuron.ip, 
-            ip_type = neuron.ip_type, 
-            modality = neuron.modality, 
+            port = neuron.axon_info.port,
+            ip = neuron.axon_info.ip, 
+            ip_type = neuron.axon_info.ip_type, 
+            protocol = neuron.axon_info.protocol, 
             coldkey = neuron.coldkey
         )
         """
         return endpoint_impl.Endpoint(
-            version = neuron.version,
+            version = neuron.axon_info.version,
             uid = neuron.uid, 
             hotkey = neuron.hotkey, 
-            port = neuron.port,
-            ip = neuron.ip, 
-            ip_type = neuron.ip_type, 
-            modality = neuron.modality, 
+            port = neuron.axon_info.port,
+            ip = neuron.axon_info.ip, 
+            ip_type = neuron.axon_info.ip_type, 
+            protocol = neuron.axon_info.protocol,
             coldkey = neuron.coldkey
         )
 
@@ -97,7 +98,7 @@ class endpoint:
             port = endpoint_dict['port'],
             ip = endpoint_dict['ip'], 
             ip_type = endpoint_dict['ip_type'], 
-            modality = endpoint_dict['modality'], 
+            protocol = endpoint_dict['protocol'], 
             coldkey = endpoint_dict['coldkey']
         )
         return endpoint_impl.Endpoint(
@@ -107,7 +108,7 @@ class endpoint:
             port = endpoint_dict['port'],
             ip = endpoint_dict['ip'], 
             ip_type = endpoint_dict['ip_type'], 
-            modality = endpoint_dict['modality'], 
+            protocol = endpoint_dict['protocol'], 
             coldkey = endpoint_dict['coldkey']
         )
     
@@ -139,7 +140,7 @@ class endpoint:
 
     @staticmethod
     def dummy():
-        return endpoint_impl.Endpoint(uid=0, version=0, hotkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", ip_type = 4, ip = '0.0.0.0', port = 0, modality= 0, coldkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        return endpoint_impl.Endpoint(uid=0, version=0, hotkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", ip_type = 4, ip = '0.0.0.0', port = 0, protocol= 0, coldkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
     @staticmethod
     def assert_format(
@@ -149,7 +150,7 @@ class endpoint:
             ip:str, 
             ip_type:int, 
             port:int, 
-            modality:int, 
+            protocol:int, 
             coldkey:str 
         ) -> bool:
         """ Asserts that the endpoint has a valid format
@@ -164,6 +165,7 @@ class endpoint:
         assert port >= 0 and port < MAXPORT , 'port must be positive and less than 65535 - got {}'.format(port)
         assert len(coldkey) == SS58_LENGTH, 'coldkey string must be length 48 - got {}'.format(coldkey)
         assert len(hotkey) == SS58_LENGTH, 'hotkey string must be length 48 - got {}'.format(hotkey)
-        assert modality in ACCEPTABLE_MODALITIES, 'modality must be 0 (for now) - got {}'.format(modality)
+        # TODO
+        assert protocol in ACCEPTABLE_PROTOCOLS, 'protocol must be 0 (for now) - got {}'.format(protocol)
 
 

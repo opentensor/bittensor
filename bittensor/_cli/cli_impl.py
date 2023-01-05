@@ -816,7 +816,7 @@ class CLI:
             return
 
         # Pull neuron info for all keys.            
-        neurons = {}
+        neurons: Dict[str, Tuple[bittensor.NeuronInfo, bittensor.Wallet]] = {}
         block = subtensor.block
 
         netuids = set()
@@ -859,6 +859,7 @@ class CLI:
             total_emission = 0   
 
             for nn, hotwallet in tqdm(neurons[str(netuid)]):
+                nn: bittensor.NeuronInfo
                 uid = nn.uid
                 active = nn.active
                 stake = nn.stake
@@ -882,7 +883,7 @@ class CLI:
                     '{:.5f}'.format(dividends),
                     '{}'.format(emission),
                     str(last_update),
-                    bittensor.utils.networking.int_to_ip( nn.ip) + ':' + str(nn.port) if nn.port != 0 else '[yellow]none[/yellow]', 
+                    bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
                     nn.hotkey
                 ]
                 total_stake += stake
@@ -1028,7 +1029,7 @@ class CLI:
                 '{:.5f}'.format(dividends),
                 '{}'.format(emission),
                 str(last_update),
-                bittensor.utils.networking.int_to_ip( nn.ip) + ':' + str(nn.port) if nn.port != 0 else '[yellow]none[/yellow]', 
+                bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
                 nn.hotkey
             ]
             total_stake += stake
