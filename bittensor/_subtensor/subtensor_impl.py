@@ -2224,7 +2224,7 @@ class Subtensor:
                 ).value
 
         result = make_substrate_call_with_retry()
-        if result:
+        if result.value:
             return result.value / U16_MAX
         else:
             return None
@@ -2250,7 +2250,7 @@ class Subtensor:
 
         delegates = []
         result = make_substrate_call_with_retry()
-        if result:
+        if result.value:
             for delegate_ss58, take in result.value:
                 total_stake = self.get_total_stake_for_hotkey( delegate_ss58, block )
                 nominators = self.get_nominators_for_hotkey( delegate_ss58, block )
@@ -2289,7 +2289,7 @@ class Subtensor:
                 )
 
         result = make_substrate_call_with_retry()
-        if result:
+        if result.value:
             nominators = [(nominator_ss58, stake) for nominator_ss58, stake in result.value]
             return nominators
 
@@ -2383,7 +2383,111 @@ class Subtensor:
                 )
 
         result = make_substrate_call_with_retry()
-        if result:
+        if result.value:
+            return result.value
+        else:
+            return False
+
+    @property
+    def total_networks( self ) -> int:
+        r"""
+        Returns the total number of subnets in the network.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='TotalNetworks',
+                    block_hash=None
+                )
+
+        result = make_substrate_call_with_retry()
+        if result.value:
+            return result.value
+        else:
+            return 0
+
+    def get_network_modality( self, netuid: int ) -> Optional[int]:
+        r"""
+        Returns the modality of the subnet.
+        Args:
+            netuid ( int ):
+                The netuid to check.
+        Returns:
+            modality ( Optional[int] ):
+                The modality of the subnet.
+                None if the subnet does not exist.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='NetworkModality',
+                    params = [ netuid ],
+                    block_hash=None
+                )
+
+        result = make_substrate_call_with_retry()
+        if result.value:
+            return result.value
+        else:
+            return None
+
+    def get_network_connection_requirement( self, netuid_0: int, netuid_1: int ) -> Optional[int]:
+        r"""
+        Returns the connection requirement of the two subnets.
+        Args:
+            netuid_0 ( int ):
+                The netuid to check.
+            netuid_1 ( int ):
+                The netuid to check.
+        Returns:
+            connection_requirement ( Optional[int] ):
+                The connection requirement of the subnet.
+                   a u16 representation of the connection requirement.
+                None if the subnet does not exist.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='NetworkConnect',
+                    params = [ netuid_0, netuid_1 ],
+                    block_hash=None
+                )
+
+        result = make_substrate_call_with_retry()
+        if result.value:
+            return result.value
+        else:
+            return None
+
+    def get_hotkey_membership_in_netuid( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None ) -> bool:
+        r"""
+        Returns true if the hotkey is a network member of the netuid.
+        Args:
+            hotkey_ss58 ( str ):
+                The hotkey to check.
+            netuid ( int ):
+                The netuid to check.
+            block ( Optional[int] ):
+                block to sync at.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='IsNetworkMember',
+                    params = [ hotkey_ss58, netuid ],
+                    block_hash=None if block == None else substrate.get_block_hash( block )
+                )
+        
+        result = make_substrate_call_with_retry()
+        if result.value:
             return result.value
         else:
             return False
@@ -2417,6 +2521,34 @@ class Subtensor:
         
         return result.value
 
+    def get_emission_value_by_netuid( self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
+        r"""
+        Returns the emission value of the subnet.
+        Args:
+            netuid ( int ):
+                The netuid to check.
+            block ( Optional[int] ):
+                block to sync at.
+        Returns:
+            emission_value ( Optional[float] ):
+                The emission value of the subnet.
+                None if the subnet does not exist.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='EmissionValues',
+                    params = [ netuid ],
+                    block_hash=None if block == None else substrate.get_block_hash( block )
+                )
+
+        result = make_substrate_call_with_retry()
+        if result.value:
+            return result.value / RAOPERTAO # as percent of the total emission
+        else:
+            return None
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None) -> Union[Dict[str, int], int]:
         r""" Returns true if the passed hotkey is registered on the chain.
