@@ -194,7 +194,7 @@ class CLI:
         dendrite = bittensor.dendrite( wallet = wallet )
         stats = {}
         for uid in self.config.uids:
-            neuron = subtensor.neuron_for_uid( uid )
+            neuron = subtensor.neuron_for_uid( uid = uid, netuid = self.config.netuid )
             endpoint = bittensor.endpoint.from_neuron( neuron )
             _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
             latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
@@ -420,11 +420,6 @@ class CLI:
 
         subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
 
-        # Verify subnet exists
-        if not subtensor.subnet_exists( netuid = self.config.netuid ):
-            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
-            sys.exit(1)
-
         wallets_to_unstake_from: List[bittensor.wallet]
         if self.config.wallet.get('all_hotkeys'):
             # Unstake from all hotkeys.
@@ -486,11 +481,6 @@ class CLI:
         wallet = bittensor.wallet( config = config )
 
         subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
-
-        # Verify wallet is registered on the network (any subnet).
-        if not wallet.is_registered():
-            bittensor.__console__.print(f"[red]Wallet {wallet.hotkey_str} is not registered on {self.config.network}[/red]")
-            sys.exit(1)
 
         wallets_to_stake_to: List[bittensor.wallet]
         if self.config.wallet.get('all_hotkeys'):
@@ -584,6 +574,7 @@ class CLI:
         subtensor.set_weights( 
             wallet, 
             uids = self.config.uids,
+            netuid = self.config.netuid,
             weights = self.config.weights,
             version_key = version_key,
             wait_for_inclusion = True, 
@@ -715,7 +706,7 @@ class CLI:
         total_neurons = len(metagraph.uids)                
         table = Table(show_footer=False)
         table.title = (
-            "[white]Metagraph: name: {}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), issuance, difficulty )
+            "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.netuid, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), issuance, difficulty )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
@@ -744,11 +735,9 @@ class CLI:
         """
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
-        metagraph = bittensor.metagraph( subtensor = subtensor )
         wallet = bittensor.wallet( config = self.config )
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            metagraph.load()
-            metagraph.sync()
+            metagraph = subtensor.metagraph( netuid = self.config('netuid') )
             metagraph.save()
 
         table = Table()
@@ -966,6 +955,7 @@ class CLI:
     def full(self):
         r""" Prints an overview for the wallet's colkey.
         """
+        # TODO: Add netuids here
         all_wallets = CLI._get_all_wallets_for_path( self.config.wallet.path )
         if len(all_wallets) == 0:
             console.print("[red]No wallets found.[/red]")
