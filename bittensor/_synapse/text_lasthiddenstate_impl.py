@@ -18,7 +18,7 @@
 import types
 import bittensor
 import torch
-from typing import Union, List, Tuple, Optional
+from typing import List, Optional
 
 from .synapse_impl import Synapse
 
@@ -49,7 +49,7 @@ class TextLastHiddenState (Synapse):
 
     def __init__( 
         self,
-        mask: List[int] = [],
+        mask: Optional[List[int]] = None,
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -77,6 +77,8 @@ class TextLastHiddenState (Synapse):
             backward_request_serializer_type,
             backward_response_serializer_type
         )
+        if mask is None:
+            mask = []
         self.mask = mask
         self.synapse_type = TextLastHiddenState.synapse_type
 
