@@ -27,7 +27,7 @@ from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 import json
-from .chain_data import NeuronInfo, AxonInfo, DelegateInfo
+from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo
 from .errors import *
 
 # Mocking imports
@@ -231,12 +231,10 @@ class Subtensor:
                 ).value
         return make_substrate_call_with_retry()
 
-    def serving_rate_limit ( self, netuid: int ) -> int:
+    @property
+    def serving_rate_limit ( self ) -> int:
         r"""
         Returns the subnet serving rate limit.
-        Args:
-            netuid (int):
-                The netuid of the subnet to query.
         Returns:
             serving_rate_limit (int):
                 Subnet serving rate limit.
@@ -247,7 +245,7 @@ class Subtensor:
                 return substrate.query(
                     module='Paratensor',
                     storage_function = 'ServingRateLimit',
-                    params = [netuid]
+                    params = []
                 ).value
         
         return make_substrate_call_with_retry()
