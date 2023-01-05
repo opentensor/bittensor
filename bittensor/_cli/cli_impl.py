@@ -1063,6 +1063,45 @@ class CLI:
         List all subnet netuids in the network.
         """
         subtensor = bittensor.subtensor( config = self.config )
-        subnets: List[int] = subtensor.get_subnets()
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_subnets_info()
 
-        bittensor.__console__.print( "[bold white]Subnets ({}): {} [bold green]".format( len(subnets), str(subnets) ) )
+        rows = []
+        total_neurons = 0
+        
+        for subnet in subnets:
+            total_neurons += subnet.n
+            rows.append((
+                str(subnet.netuid),
+                str(subnet.n),
+                str(subnet.max_n),
+                str(bittensor.utils.registration.millify(subnet.difficulty)),
+                str(subnet.immunity_period),
+                str(subnet.validator_batch_size),
+                str(subnet.validator_sequence_length),
+                str(subnet.tempo),
+                str(subnet.modality),
+                str(list(subnet.connection_requirements.keys())),
+                str(subnet.emission_value),
+            ))
+
+        table = Table(show_footer=True, width=self.config.get('width', None), pad_edge=False, box=None)
+        table.title = (
+            "[white]Subnets - {}".format(subtensor.network)
+        )
+        table.add_column("[overline white]NETUID",  str(len(subnets)), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]N", str(total_neurons), footer_style = "overline white", style='white')
+        table.add_column("[overline white]MAX_N", style='white')
+        table.add_column("[overline white]DIFFICULTY", style='white')
+        table.add_column("[overline white]IMMUNITY", style='white')
+        table.add_column("[overline white]BATCH SIZE", style='white')
+        table.add_column("[overline white]SEQ_LEN", style='white')
+        table.add_column("[overline white]TEMPO", style='white')
+        table.add_column("[overline white]MODALITY", style='white')
+        table.add_column("[overline white]CON_REQ", style='white')
+        table.add_column("[overline white]EMISSION", "1.0", style='white', footer_style="overline white") # sums to 1.0
+        
+        for row in rows:
+            table.add_row(*row)
+
+        bittensor.__console__.print(table)
+        

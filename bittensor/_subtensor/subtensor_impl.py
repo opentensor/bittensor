@@ -27,7 +27,7 @@ from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 import json
-from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo
+from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
 from .errors import *
 
 # Mocking imports
@@ -479,6 +479,28 @@ class Subtensor:
                     storage_function = 'MaxAllowedUids',
                     params = [netuid]
                 ).value
+        return make_substrate_call_with_retry()
+
+    def max_allowed_validators(self, netuid: int) -> int:
+        r"""
+        Returns maximum number of validators allowed in this subnetwork.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
+        Returns:
+            max_validators (int):
+                Maximum number of validators allowed in this subnetwork.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'MaxAllowedValidators',
+                    params = [netuid]
+                ).value
+
         return make_substrate_call_with_retry()
 
     @property
@@ -2273,6 +2295,48 @@ class Subtensor:
         else:
             return []
     
+    def get_subnets_info( self, block: Optional[int] = None ) -> List[SubnetInfo]:
+        r""" Returns a list of all subnets on the network and their info.
+        Args:
+            block ( Optional[int] ):
+                block to sync at.
+        Returns:
+            subnets (List[SubnetInfo]):
+                List of subnet info objects.
+                
+        """
+        netuids = self.get_subnets( block )
+        subnets = []
+        if netuids:
+            for netuid in netuids:
+                info = SubnetInfo(
+                    netuid=netuid,
+                    rho = self.rho( netuid, block ),
+                    kappa = self.kappa( netuid, block ),
+                    difficulty = self.difficulty( netuid, block ),
+                    immunity_period = self.immunity_period( netuid, block ),
+                    validator_batch_size = self.validator_batch_size( netuid, block ),
+                    validator_sequence_length = self.validator_sequence_length( netuid, block ),
+                    validator_epochs_per_reset = self.validator_epochs_per_reset( netuid, block ),
+                    validator_epoch_length = self.validator_epoch_length( netuid, block ),
+                    min_allowed_weights = self.min_allowed_weights( netuid, block ),
+                    max_weight_limit = self.max_weight_limit( netuid, block ),
+                    scaling_law_power = self.scaling_law_power( netuid, block ),
+                    synergy_scaling_law_power = self.synergy_scaling_law_power( netuid, block ),
+                    subnetwork_n = self.subnetwork_n( netuid, block ),
+                    max_n = self.max_n( netuid, block ),
+                    blocks_since_epoch = self.blocks_since_epoch( netuid, block ),
+                    max_allowed_validators = self.max_allowed_validators( netuid, block ),
+                    emissionValue= self.get_emission_value_by_netuid( netuid, block ),
+                    tempo= self.tempo( netuid, block ),
+                    modality= self.get_network_modality( netuid, block ),
+                    connection_requirements= self.get_network_connection_requirements( netuid, block ),
+                )
+                subnets.append( info )
+            return subnets
+        else:
+            return []
+
     def get_nominators_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str, Balance]]:
         r""" Returns the nominators for a delegate hotkey.
         Args:
@@ -2469,6 +2533,37 @@ class Subtensor:
             return result.value
         else:
             return None
+
+    def get_network_connection_requirements( self, netuid: int) -> Dict[str, int]:
+        r"""
+        Returns the connection requirements for the subnet.
+        Args:
+            netuid ( int ):
+                The netuid to check.
+        Returns:
+            connection_requirement ( Dict[str(int), int] ):
+                The connection requirements of the subnet.
+                Maps from str(netuid) to connection requirement.
+                   a u16 representation of the connection requirement.
+                None if the subnet does not exist.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module='Paratensor',
+                    storage_function='NetworkConnect',
+                    params = [ netuid ],
+                    block_hash=None
+                )
+
+        result = make_substrate_call_with_retry()
+        if result.value:
+            requirements = {}
+            for netuid, connection_req in result.value:
+                requirements[str(netuid)] = connection_req
+        else:
+            return {}
 
     def get_hotkey_membership_in_netuid( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None ) -> bool:
         r"""

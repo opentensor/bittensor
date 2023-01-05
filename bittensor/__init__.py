@@ -163,6 +163,7 @@ from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
+from bittensor._subtensor.chain_data import SubnetInfo as SubnetInfo
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
