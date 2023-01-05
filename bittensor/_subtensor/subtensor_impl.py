@@ -2616,3 +2616,28 @@ class Subtensor:
                     block_hash = None
                 ).value
         return make_substrate_call_with_retry()
+
+    def metagraph( self, netuid: int, block: Optional[int] = None ) -> 'bittensor.Metagraph':
+        r""" Returns the metagraph for the subnet.
+        Args:
+            netuid ( int ):
+                The network uid of the subnet to query.
+            block (Optional[int]):
+                The block to create the metagraph for.
+                Defaults to latest.
+        Returns:
+            metagraph ( `bittensor.Metagraph` ):
+                The metagraph for the subnet at the block.
+        """
+        if block == None:
+            block = self.subtensor.get_current_block()
+        if bittensor.__use_console__:
+            with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
+                neurons = self.neurons( netuid = netuid, block = block )
+        else:
+            neurons = self.neurons( netuid = netuid, block = block )
+      
+        # Create metagraph.
+        metagraph = bittensor.Metagraph.from_neurons( neurons = neurons, netuid = netuid, block = block )
+
+        return metagraph
