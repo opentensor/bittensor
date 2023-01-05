@@ -15,9 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import torch
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm
 from typing import List, Dict, Union, Optional, Tuple
-from multiprocessing import Process
 
 from dataclasses import dataclass
 
@@ -29,7 +28,6 @@ from retry import retry
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
-from types import SimpleNamespace
 
 # Mocking imports
 import os
@@ -2252,7 +2250,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         if json_body['result'] == None:
             return None
-            
+
         result = json_body['result']
         return NeuronMetadata.from_json( result ) 
 
