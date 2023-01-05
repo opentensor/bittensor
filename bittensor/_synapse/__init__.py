@@ -16,18 +16,16 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-from multiprocessing.sharedctypes import Value
-from yaml import serialize_all
-import bittensor
-import torch
-from typing import Union, List, Tuple, Optional
+from typing import List, Optional
 
-from bittensor._serializer import serializer
-from .synapse_impl import Synapse, NullSynapse
+import bittensor
+
+from .synapse_impl import NullSynapse, Synapse
 from .text_causallm_impl import TextCausalLM
 from .text_causallmnext_impl import TextCausalLMNext
 from .text_lasthiddenstate_impl import TextLastHiddenState
 from .text_seq2seq_impl import TextSeq2Seq
+
 
 class synapse:
     """
@@ -44,7 +42,7 @@ class synapse:
 
     @staticmethod
     def TextLastHiddenState (
-        mask: List[int] = [],
+        mask: Optional[List[int]] = None,
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
