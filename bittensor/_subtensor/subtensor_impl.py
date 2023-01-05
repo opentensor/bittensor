@@ -2240,19 +2240,21 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                result = dict( substrate.query( 
-                    module='Paratensor',  
-                    storage_function='Neurons', 
-                    params = [ netuid, uid ], 
-                    block_hash = None if block == None else substrate.get_block_hash( block )
-                ).value )
-            return result
-        result = make_substrate_call_with_retry()
-        if result.is_some:
-            neuron = Subtensor._neuron_dict_to_namespace( result.value )
-            return neuron
-        else:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid, uid]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="neuronInfo_getNeuron", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        if json_body['result'] == None:
             return None
+            
+        result = json_body['result']
+        return NeuronMetadata.from_json( result ) 
 
     def get_delegate_take( self, hotkey_ss58: str ) -> Optional[float]:
         r""" Returns the take for a delegate.
