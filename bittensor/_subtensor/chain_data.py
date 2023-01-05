@@ -130,3 +130,33 @@ class DelegateInfo:
     nominators: List[Tuple[str, Balance]] # List of nominators of the delegate and their stake
     owner_ss58: str # Coldkey of owner
     take: float # Take of the delegate as a percentage
+
+
+@dataclass
+class SubnetInfo:
+    r"""
+    Dataclass for subnet info.
+    """
+    netuid: int
+    rho: int
+    kappa: int
+    difficulty: int
+    immunity_period: int
+    validator_batch_size: int
+    validator_sequence_length: int
+    validator_epochs_per_reset: int
+    validator_epoch_length: int
+    max_allowed_validators: int
+    min_allowed_weights: int
+    max_weight_limit: float
+    scaling_law_power: float
+    synergy_scaling_law_power: float
+    subnetwork_n: int
+    max_n: int
+    blocks_since_epoch: int
+    tempo: int
+    blocks_per_epoch: int
+    modality: int
+    connection_requirements: Dict[str, int] # netuid -> connection requirements
+    emission_value: float
+    
