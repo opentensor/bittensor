@@ -600,6 +600,7 @@ class neuron:
             uids=sample_uids.detach().to('cpu'),
             weights=sample_weights.detach().to('cpu'),
             wallet=self.wallet,
+            version_key=bittensor.__version_as_int__, # TODO: correct?
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 

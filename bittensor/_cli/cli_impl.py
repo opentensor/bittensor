@@ -17,7 +17,7 @@
 
 import os
 import sys
-from typing import List, Union, Optional, Dict
+from typing import List, Union, Optional, Dict, Tuple
 
 from cachetools import Cache
 
@@ -198,8 +198,6 @@ class CLI:
                 if self.config.netuid != None:
                     # If a netuid is provided, inspect the hotkey and the neuron
                     dendrite = bittensor.dendrite( wallet = wallet )
-
-                   
                     neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address, netuid = self.config.netuid )
                     endpoint = bittensor.endpoint.from_neuron( neuron )
                     if neuron.is_null:
@@ -547,11 +545,15 @@ class CLI:
         if not subtensor.subnet_exists( netuid = self.config.netuid ):
             bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
             sys.exit(1)
+
+        # Get version key TODO
+        version_key: int = bittensor.__version_as_int__
         
         subtensor.set_weights( 
             wallet, 
             uids = self.config.uids,
             weights = self.config.weights,
+            version_key = version_key,
             wait_for_inclusion = True, 
             prompt = not self.config.no_prompt 
         )
