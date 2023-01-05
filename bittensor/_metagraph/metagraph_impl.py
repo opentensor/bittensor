@@ -20,7 +20,7 @@
 import os
 
 from typing import List, Optional
-from bittensor._subtensor.subtensor_impl import NeuronMetadata  
+from bittensor._subtensor.subtensor_impl import NeuronInfo  
 from loguru import logger
 
 import pandas
@@ -259,18 +259,18 @@ class Metagraph( torch.nn.Module ):
         """
         if self.n.item() == 0:
             return []
-        return [ neuron.modality if neuron != bittensor.endpoint.dummy() else '' for neuron in self.endpoint_objs ]
+        return [ endpoint.modality if endpoint != bittensor.endpoint.dummy() else '' for endpoint in self.endpoint_objs ]
 
     @property
     def addresses( self ) -> List[str]:
-        r""" Returns ip addresses for each neuron.
+        r""" Returns ip addresses for each endpoint.
             Returns:
                 coldkeys (:obj:`List[str] of shape :obj:`(metagraph.n)`):
                     Neuron address.
         """
         if self.n.item() == 0:
             return []
-        return [ net.ip__str__( neuron.ip_type, neuron.ip, neuron.port ) if neuron != bittensor.endpoint.dummy() else '' for neuron in self.endpoint_objs ]
+        return [ net.ip__str__( endpoint.ip_type, endpoint.ip, endpoint.port ) if endpoint != bittensor.endpoint.dummy() else '' for endpoint in self.endpoint_objs ]
 
     @property
     def endpoint_objs( self ) -> List['bittensor.Endpoint']:
@@ -391,14 +391,14 @@ class Metagraph( torch.nn.Module ):
         return self
 
     @staticmethod
-    def from_neurons( network: str, netuid: int, neurons: List[NeuronMetadata], block: int ) -> 'Metagraph':
+    def from_neurons( network: str, netuid: int, neurons: List[NeuronInfo], block: int ) -> 'Metagraph':
         r""" Creates a metagraph from a list of neurons.
             Args: 
                 network: (:obj:`str`, required):
                     Name of the network for the metagraph.
                 netuid: (:obj:`int`, required):
                     netuid of the subnet for the metagraph.
-                neurons: (:obj:`List[NeuronMetadata]`, required):
+                neurons: (:obj:`List[NeuronInfo]`, required):
                     List of neurons to create metagraph from.
                 block: (:obj:`int`, required):
                     Block number at time of the metagraph.

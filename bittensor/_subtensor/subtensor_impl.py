@@ -844,14 +844,14 @@ class Subtensor:
             neuron = self.neuron_for_pubkey( wallet.hotkey.ss58_address, netuid = netuid )
             neuron_up_to_date = not neuron.is_null and params == {
                 'version': neuron.version,
-                'ip': neuron.ip,
-                'port': neuron.port,
-                'ip_type': neuron.ip_type,
+                'ip': neuron.axon_info.ip,
+                'port': neuron.axon_info.port,
+                'ip_type': neuron.axon_info.ip_type,
                 'netuid': neuron.netuid,
                 'coldkey': neuron.coldkey,
-                'protocol': neuron.protocol,
-                'placeholder1': neuron.placeholder1,
-                'placeholder2': neuron.placeholder2,
+                'protocol': neuron.axon_info.protocol,
+                'placeholder1': neuron.axon_info.placeholder1,
+                'placeholder2': neuron.axon_info.placeholder2,
             }
             if neuron_up_to_date:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
@@ -2106,7 +2106,7 @@ class Subtensor:
             return_dict[r[0].value] = bal
         return return_dict
 
-    def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronMetadata]: 
+    def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             netuid ( int ):
@@ -2114,7 +2114,7 @@ class Subtensor:
             block ( Optional[int] ):
                 block to sync from.
         Returns:
-            neuron (List[NeuronMetadata]):
+            neuron (List[NeuronInfo]):
                 List of neuron metadata objects.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -2132,12 +2132,12 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
         
-        return [ NeuronMetadata.from_json( neuron ) for neuron in result ]
+        return [ NeuronInfo.from_json( neuron ) for neuron in result ]
 
 
     @staticmethod
-    def _null_neuron() -> NeuronMetadata:
-        neuron = NeuronMetadata(
+    def _null_neuron() -> NeuronInfo:
+        neuron = NeuronInfo(
             active = 0,
             stake = 0,
             rank = 0,
@@ -2164,11 +2164,11 @@ class Subtensor:
         return neuron
 
     @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> NeuronMetadata:
+    def _neuron_dict_to_namespace(neuron_dict) -> NeuronInfo:
         if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return Subtensor._null_neuron()
         else:
-            neuron = NeuronMetadata( **neuron_dict )
+            neuron = NeuronInfo( **neuron_dict )
             neuron.stake = neuron.stake / RAOPERTAO
             neuron.rank = neuron.rank / U64_MAX
             neuron.trust = neuron.trust / U64_MAX
@@ -2179,7 +2179,7 @@ class Subtensor:
                 
             return neuron
 
-    def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronMetadata]: 
+    def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
@@ -2189,7 +2189,7 @@ class Subtensor:
             block ( int ):
                 The neuron at a particular block
         Returns:
-            neuron (Optional[NeuronMetadata]):
+            neuron (Optional[NeuronInfo]):
                 neuron metadata associated with uid or None if it does not exist.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -2209,7 +2209,7 @@ class Subtensor:
             return None
 
         result = json_body['result']
-        return NeuronMetadata.from_json( result ) 
+        return NeuronInfo.from_json( result ) 
 
     def get_delegate_take( self, hotkey_ss58: str ) -> Optional[float]:
         r""" Returns the take for a delegate.
@@ -2505,7 +2505,7 @@ class Subtensor:
             assert isinstance(uid_or_uid_map, int)
             return uid_or_uid_map != -1 # -1 means not registered.
 
-    def neuron_for_pubkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None ) -> Optional[Union[NeuronMetadata, List[NeuronMetadata]]]: 
+    def neuron_for_pubkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None ) -> Optional[Union[NeuronInfo, List[NeuronInfo]]]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             ss58_hotkey ( str ):
@@ -2517,7 +2517,7 @@ class Subtensor:
                 The block to query.
 
         Returns:
-            neuron ( Optional[NeuronMetadata] ):
+            neuron ( Optional[NeuronInfo] ):
                 neuron metadata associated with uid or None if it does not exist.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -2581,7 +2581,7 @@ class Subtensor:
                 ).value)
         return make_substrate_call_with_retry()
 
-    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronMetadata]: 
+    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             wallet ( `bittensor.Wallet` ):
@@ -2591,7 +2591,7 @@ class Subtensor:
             block (Optional[int]):
                 The block to query.
         Returns:
-            neuron (Optional[NeuronMetadata] ):
+            neuron (Optional[NeuronInfo] ):
                 neuron metadata associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
