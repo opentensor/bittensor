@@ -226,7 +226,5 @@ class synapse:
             return TextCausalLMNext.deserialize_from_wire_proto(synapse_wire_proto)
         elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             return TextSeq2Seq.deserialize_from_wire_proto( synapse_wire_proto )
-        elif synapse_wire_proto.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_MASKED_LAST_HIDDEN_STATE:
-            return TextMaskedLastHiddenState.deserialize_from_wire_proto( synapse_wire_proto )
         else:
             return NullSynapse()
