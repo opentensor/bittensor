@@ -834,9 +834,16 @@ class Subtensor:
                 'placeholder1': neuron.axon_info.placeholder1,
                 'placeholder2': neuron.axon_info.placeholder2,
             }
-            if neuron_up_to_date:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]ip: {}\n  port: {}\n  modality: {}\n  hotkey: {}\n  coldkey: {}[/bold white]".format(ip, port, modality, wallet.hotkey.ss58_address, wallet.coldkeypub.ss58_address))
-                return True
+        
+        output = params.copy()
+        output['coldkey'] = wallet.coldkeypub.ss58_address
+        output['hotkey'] = wallet.hotkey.ss58_address
+
+        if neuron_up_to_date:
+            bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]{}[/bold white]".format(
+                json.dumps(output, indent=4, sort_keys=True)
+            ))
+            return True
 
         if prompt:
             output = params.copy()
@@ -859,7 +866,9 @@ class Subtensor:
                 if wait_for_inclusion or wait_for_finalization:
                     response.process_events()
                     if response.is_success:
-                        bittensor.__console__.print(':white_heavy_check_mark: [green]Served[/green]\n  [bold white]{}[/bold white]'.format(json.dumps(params, indent=4, sort_keys=True) ))
+                        bittensor.__console__.print(':white_heavy_check_mark: [green]Served[/green]\n  [bold white]{}[/bold white]'.format(
+                            json.dumps(params, indent=4, sort_keys=True)
+                        ))
                         return True
                     else:
                         bittensor.__console__.print(':cross_mark: [green]Failed to Serve axon[/green] error: {}'.format(response.error_message))
