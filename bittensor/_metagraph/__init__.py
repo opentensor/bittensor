@@ -34,15 +34,13 @@ class metagraph:
 
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> metagraph = bittensor.metagraph(subtensor=subtensor)
-            >>> metagraph.sync()
+            >>> metagraph = bittensor.metagraph()
+            >>> metagraph.sync(subtensor=subtensor, netuid=0)
     """
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
-            subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
-            chain_endpoint: str = None,
             netuid: Optional[int] = None,
             _mock:bool=None
         ) -> 'bittensor.Metagraph':
@@ -50,19 +48,16 @@ class metagraph:
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.metagraph.config()
-                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
-                    bittensor subtensor chain connection.
-                network (default='local', type=str)
+                network (default=None, type=str, optional)
                     The subtensor network flag. The likely choices are:
                             -- nobunaga (staging network)
                             -- nakamoto (main network)
                             -- local (local running network)
-                    If this option is set it overloads subtensor.chain_endpoint with 
-                    an entry point node from that network.
-                chain_endpoint (default=None, type=str)
-                    The subtensor endpoint flag. If set, overrides the network argument.
+                    This option allows you to load a metagraph from a local file.
+                    If set, overrides config.subtensor.network
                 netuid (default=None, type=int)
-                    The subnet netuid. If set, overrides config.metagraph.netuid.
+                    The subnet netuid. If set, overrides config.netuid.
+                    This option allows you to load a metagraph from a local file.
                 _mock (:obj:`bool`, `optional`):
                     For testing, if true the metagraph returns mocked outputs.
         """      
@@ -72,14 +67,12 @@ class metagraph:
         config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
         if config.metagraph._mock:
             return metagraph_mock.MockMetagraph()
-        if subtensor == None:
-            subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
         if netuid == None:
-            netuid = config.get('netuid')
-            if netuid == None:
-                raise ValueError('netuid not set in config.netuid or passed as an argument.')
+            netuid = config.get('netuid', None)
+        if network == None:
+            network = config.get('subtensor.network', None)
         
-        return metagraph_impl.Metagraph( subtensor = subtensor, netuid = netuid )
+        return metagraph_impl.Metagraph( network = network, netuid = netuid )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
@@ -107,7 +100,6 @@ class metagraph:
         prefix_str = '' if prefix == None else prefix + '.'
         try:
             parser.add_argument('--' + prefix_str + 'metagraph._mock', action='store_true', help='To turn on metagraph mocking for testing purposes.', default=False)
-            parser.add_argument('--' + prefix_str + 'metagraph.netuid', type=int, help='The subnet netuid to sync.', default=None)
             bittensor.subtensor.add_args( parser )
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -119,4 +111,4 @@ class metagraph:
         """ Check config,
         which is identical to subtensor
         """
-        assert config.subtensor
+        pass

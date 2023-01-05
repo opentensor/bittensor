@@ -60,14 +60,14 @@ class Metagraph( torch.nn.Module ):
                 Tokenized endpoint information.
 
     """
-    subtensor: 'bittensor.Subtensor'
+    network: str
     netuid: int
 
-    def __init__( self, subtensor: 'bittensor.Subtensor', netuid: int ):
+    def __init__( self, network: str, netuid: int ):
         r""" Initializes a new Metagraph torch chain interface object.
         """
         super(Metagraph, self).__init__()
-        self.subtensor = subtensor
+        self.network = network
         self.netuid = netuid
         self.clear()
 
@@ -305,15 +305,19 @@ class Metagraph( torch.nn.Module ):
         else:
             return -1
 
-    def load( self, network:str = None  ) -> 'Metagraph':
+    def load( self, network: Optional[str] = None, netuid: Optional[int] = None  ) -> 'Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 
-                network: (:obj:`str`, required):
-                    Name of state_dict to load, defaults to kusanagi
+                network (:obj:`str`, `optional`, defaults to None):
+                    Network of state_dict to load, defaults to the network of the metagraph object.
+                netuid (:obj:`int`, `optional`, defaults to None):
+                    netuid of the subnet of state_dict to load, defaults to the netuid of the metagraph object.
         """
         try:
             if network == None:
-                network = self.subtensor.network
+                network = self.network
+            if netuid == None:
+                netuid = self.netuid
             metagraph_path = f"~/.bittensor/{str(network)}_{str(self.netuid)}.pt"
             metagraph_path = os.path.expanduser(metagraph_path)
             if os.path.isfile(metagraph_path):
@@ -324,14 +328,18 @@ class Metagraph( torch.nn.Module ):
             logger.exception(e)
         return self
 
-    def save( self, network:str = None ) -> 'Metagraph':
+    def save( self, network: Optional[str] = None, netuid: Optional[int] = None ) -> 'Metagraph':
         r""" Saves this metagraph object's state_dict under bittensor root dir.
             Args: 
-                network: (:obj:`str`, required):
-                    Name of state_dict, defaults to kusanagi
+                network (:obj:`str`, `optional`, defaults to None):
+                    Network of state_dict to save, defaults to the network of the metagraph object.
+                netuid (:obj:`int`, `optional`, defaults to None):
+                    netuid of the subnet of state_dict to save, defaults to the netuid of the metagraph object.
         """
         if network == None:
-            network = self.subtensor.network
+            network = self.network
+        if netuid == None:
+            netuid = self.netuid
         return self.save_to_path( path = '~/.bittensor/', filename = f"{str(network)}_{str(self.netuid)}.pt")
 
     def load_from_path(self, path:str ) -> 'Metagraph':
@@ -382,40 +390,21 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    def __get_neurons_from_chain( self, block: int ) -> List[NeuronMetadata]:
-        """
-            Retrieves neurons from the chain.
-            Args:
-                block: (:obj:`int`, required):
-                    block to retrieve neurons from.
-            Returns:
+    @staticmethod
+    def from_neurons( network: str, netuid: int, neurons: List[NeuronMetadata], block: int ) -> 'Metagraph':
+        r""" Creates a metagraph from a list of neurons.
+            Args: 
+                network: (:obj:`str`, required):
+                    Name of the network for the metagraph.
+                netuid: (:obj:`int`, required):
+                    netuid of the subnet for the metagraph.
                 neurons: (:obj:`List[NeuronMetadata]`, required):
-                    List of neurons from the chain.
+                    List of neurons to create metagraph from.
+                block: (:obj:`int`, required):
+                    Block number at time of the metagraph.
         """
-        return self.subtensor.neurons( netuid = self.netuid, block = block )
-
-
-    def sync ( self, block: Optional[int] = None, cached: bool = True ) -> 'Metagraph':
-        r""" Synchronizes this metagraph with the chain state.
-            Args:
-                block: (:obj:`int`, optional, defaults to None):
-                    block to sync with. If None, syncs with the current block.
-                cached: (:obj:`bool`, optional, defaults to True):
-                    If true, syncs with the cached metagraph. If false, syncs with the chain.
-            Returns:
-                self: (:obj:`Metagraph`, required):
-                    Returns self.
-        """
-        logger.success(self.subtensor)
-        if block == None:
-            block = self.subtensor.get_current_block()
-        if bittensor.__use_console__:
-            with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                neurons = self.__get_neurons_from_chain( block = block )
-        else:
-            neurons = self.__get_neurons_from_chain( )
+        metagraph = Metagraph( network = network, netuid = netuid )
         n_total = len(neurons)
-      
 
         # Fill arrays.
         uids = [ i for i in range(n_total) ]
@@ -431,10 +420,10 @@ class Metagraph( torch.nn.Module ):
         endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
         weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
         bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
-        self._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
-        self.neurons = [None for _ in range(n_total)]
+        metagraph._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
+        metagraph.neurons = [None for _ in range(n_total)]
         for n in neurons:
-            self.neurons[n.uid] = n
+            metagraph.neurons[n.uid] = n
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
             stake[n.uid] = n.stake 
@@ -445,17 +434,8 @@ class Metagraph( torch.nn.Module ):
             dividends[n.uid] = n.dividends
             emission[n.uid] = n.emission
             last_updates[n.uid] = n.last_update
-            endpoint =  bittensor.endpoint(
-                version = int(n.version),
-                uid = int(n.uid), 
-                hotkey = str(n.hotkey), 
-                ip_type = int(n.ip_type), 
-                ip = str(n.ip), 
-                port = int(n.port), 
-                modality = int(n.modality), 
-                coldkey = str(n.coldkey) 
-            )
-            self._endpoint_objs[n.uid] = endpoint 
+            endpoint =  bittensor.endpoint.from_neuron(n)
+            metagraph._endpoint_objs[n.uid] = endpoint 
             endpoints[n.uid] = endpoint.to_tensor().tolist()
             if len(n.weights) > 0:
                 w_uids, w_weights = zip(*n.weights)
@@ -489,23 +469,43 @@ class Metagraph( torch.nn.Module ):
         tbonds = torch.nn.functional.normalize( tbonds.float(), p=1, dim=0, eps=1e-12 ) * 0.5 + torch.eye( tn ) * 0.5
 
         # Set params.
-        self.n = torch.nn.Parameter( tn, requires_grad=False )
-        self.block = torch.nn.Parameter( tblock, requires_grad=False )
-        self.uids = torch.nn.Parameter( tuids, requires_grad=False )
-        self.stake = torch.nn.Parameter( tstake, requires_grad=False )
-        self.ranks = torch.nn.Parameter( tranks, requires_grad=False )
-        self.trust = torch.nn.Parameter( ttrust, requires_grad=False )
-        self.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
-        self.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
-        self.emission = torch.nn.Parameter( temission, requires_grad=False )
-        self.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
-        self.active = torch.nn.Parameter( tactive, requires_grad=False )
-        self.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
-        self.weights = torch.nn.Parameter( tweights, requires_grad=False )
-        self.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
-        self.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
-            
-        # For contructor.
+        metagraph.n = torch.nn.Parameter( tn, requires_grad=False )
+        metagraph.block = torch.nn.Parameter( tblock, requires_grad=False )
+        metagraph.uids = torch.nn.Parameter( tuids, requires_grad=False )
+        metagraph.stake = torch.nn.Parameter( tstake, requires_grad=False )
+        metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
+        metagraph.trust = torch.nn.Parameter( ttrust, requires_grad=False )
+        metagraph.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
+        metagraph.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
+        metagraph.emission = torch.nn.Parameter( temission, requires_grad=False )
+        metagraph.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
+        metagraph.active = torch.nn.Parameter( tactive, requires_grad=False )
+        metagraph.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
+        metagraph.weights = torch.nn.Parameter( tweights, requires_grad=False )
+        metagraph.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
+        metagraph.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
+
+        return metagraph
+
+    def sync ( self, subtensor: 'bittensor.Subtensor', netuid: int, block: Optional[int] = None ) -> 'Metagraph':
+        r""" Synchronizes this metagraph with the chain state.
+            Args:
+                subtensor: (:obj:`bittensor.Subtensor`, required):
+                    Subtensor to sync with.
+                netuid: (:obj:`int`, required):
+                    netuid of subnet to create metagraph for.
+                block: (:obj:`int`, optional, defaults to None):
+                    block to sync with. If None, syncs with the current block.
+            Returns:
+                self: (:obj:`Metagraph`, required):
+                    Returns self.
+        """
+        # Pull metagraph from chain using subtensor.
+        metagraph = subtensor.metagraph( netuid = netuid, block = block )
+        
+        # Update self with new values.
+        self.__dict__.update(metagraph.__dict__)
+
         return self
 
     def to_dataframe(self):
