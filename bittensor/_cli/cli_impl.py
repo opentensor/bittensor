@@ -93,8 +93,40 @@ class CLI:
             self.update()
         elif self.config.command == 'become_delegate':
             self.become_delegate()
+        elif self.config.command == 'list_delegates':
+            self.list_delegates()
 
-    def become_delegate( self ):
+
+    def list_delegates( self ) -> None:
+        r"""
+        List all delegates on the network.
+            hotkey_ss58: str # Hotkey of delegate
+            total_stake: Balance # Total stake of the delegate
+            nominators: List[Tuple[str, Balance]] # List of nominators of the delegate and their stake
+            owner_ss58: str # Coldkey of owner
+            take: float # Take of the delegate as a percentage
+        """
+        subtensor = bittensor.subtensor( config = self.config )
+        delegates: bittensor.DelegateInfo = subtensor.get_delegates()
+
+        table = Table(show_footer=True, width=self.config.get('width', None), pad_edge=False, box=None)
+        table.add_column("[overline white]DELEGATE",  str(len(delegates)), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]TAKE", style='white')
+        table.add_column("[overline white]OWNER", style='yellow')
+        table.add_column("[overline white]NOMINATORS", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]TOTAL STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
+
+        for delegate in delegates:
+            table.add_row(
+                str(delegate.hotkey_ss58),
+                str(delegate.take),
+                str(delegate.owner_ss58),
+                str(len(delegate.nominators)),
+                str(delegate.total_stake),
+            )
+        bittensor.__console__.print(table)
+
+    def become_delegate( self ) -> None:
         r""" Become a delegate.
         """
         wallet = bittensor.wallet(config = self.config)
