@@ -466,11 +466,11 @@ def serve(
                     bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
                     # Set self weights to maintain activity.
                     # --- query the chain for the most current number of peers on the network
-                    chain_weights = torch.zeros(subtensor.n)
+                    chain_weights = torch.zeros(subtensor.subnetwork_n( netuid = config.netuid ))
                     chain_weights [ uid ] = 1 
                     did_set = subtensor.set_weights(
                         netuid = config.netuid,
-                        uids=torch.arange(0,subtensor.n),
+                        uids=torch.arange(0,subtensor.subnetwork_n( netuid = config.netuid )),
                         weights = chain_weights,
                         wait_for_inclusion = False,
                         wallet = wallet,
