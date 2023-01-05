@@ -209,8 +209,13 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return bittensor.Balance.from_rao( substrate.query(  module='Paratensor', storage_function = 'TotalIssuance').value )
-        return make_substrate_call_with_retry()
+                return substrate.query( 
+                    module='Paratensor',
+                    storage_function = 'TotalIssuance'
+                )
+        result = make_substrate_call_with_retry()
+
+        return bittensor.Balance.from_rao( result.value )
 
     def immunity_period (self, netuid: int) -> int:
         r""" Returns the chain registration immunity_period
@@ -244,8 +249,7 @@ class Subtensor:
             with self.substrate as substrate:
                 return substrate.query(
                     module='Paratensor',
-                    storage_function = 'ServingRateLimit',
-                    params = []
+                    storage_function = 'ServingRateLimit'
                 ).value
         
         return make_substrate_call_with_retry()
