@@ -95,16 +95,13 @@ class CLI:
             self.become_delegate()
         elif self.config.command == 'list_delegates':
             self.list_delegates()
+        elif self.config.command == 'list_subnets':
+            self.list_subnets()
 
 
     def list_delegates( self ) -> None:
         r"""
         List all delegates on the network.
-            hotkey_ss58: str # Hotkey of delegate
-            total_stake: Balance # Total stake of the delegate
-            nominators: List[Tuple[str, Balance]] # List of nominators of the delegate and their stake
-            owner_ss58: str # Coldkey of owner
-            take: float # Take of the delegate as a percentage
         """
         subtensor = bittensor.subtensor( config = self.config )
         delegates: bittensor.DelegateInfo = subtensor.get_delegates()
@@ -1060,7 +1057,12 @@ class CLI:
         table.width = None
         console.print(table)
 
-class CacheException(Exception):
-    """
-    Exception raised when the cache has an issue or should not be used.
-    """
+
+    def list_subnets( self ) -> None:
+        r"""
+        List all subnet netuids in the network.
+        """
+        subtensor = bittensor.subtensor( config = self.config )
+        subnets: List[int] = subtensor.get_subnets()
+
+        bittensor.__console__.print( "[bold white]Subnets ({}): {} [bold green]".format( len(subnets), str(subnets) ) )

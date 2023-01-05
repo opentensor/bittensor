@@ -2245,6 +2245,34 @@ class Subtensor:
         else:
             return []
 
+    def get_subnets( self, block: Optional[int] = None ) -> List[int]:
+        r"""Returns a list of netuids of all subnets on the network
+        Args:
+            block ( Optional[int] ):
+                block to sync at.
+        Returns:
+            netuids (List[int]):
+                List of netuids.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module='Paratensor',
+                    storage_function='NetworksAdded',
+                    block_hash=None if block == None else substrate.get_block_hash( block )
+                )
+
+        subnets = []
+        result = make_substrate_call_with_retry()
+        if result.value:
+            for netuid, is_added in result.value:
+                if is_added:
+                    subnets.append( netuid )
+            return subnets
+        else:
+            return []
+    
     def get_nominators_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str, Balance]]:
         r""" Returns the nominators for a delegate hotkey.
         Args:
