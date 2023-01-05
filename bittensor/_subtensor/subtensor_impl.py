@@ -2418,8 +2418,7 @@ class Subtensor:
                         call_module='Paratensor',
                         call_function='become_delegate',
                         call_params = {
-                            'hotkey': wallet.hotkey.ss58_address,
-                            'take': int(0.5 * U16_MAX), # TODO: remove take from become delegate.
+                            'hotkey': wallet.hotkey.ss58_address
                         }
                     )
                     extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey ) # sign with coldkey
