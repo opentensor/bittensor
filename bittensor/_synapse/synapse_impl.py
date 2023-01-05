@@ -125,7 +125,7 @@ class Synapse:
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: return forward_request_tensor
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
-    def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
+    def decode_forward_response_tensor   ( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> torch.Tensor: return forward_response_tensor
     def encode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
     def decode_backward_request_gradient ( self, backward_request_gradient: torch.Tensor ) -> torch.Tensor: return backward_request_gradient
     def encode_backward_response_gradient ( self, backward_response_gradient: torch.Tensor ) -> torch.Tensor: return backward_response_gradient
@@ -157,7 +157,7 @@ class Synapse:
         tensor_deserialzier = bittensor.serializer( serializer_type = self.forward_response_serializer_type )
         forward_response_tensor = tensor_deserialzier.deserialize( tensor_pb2 = forward_response_proto, to_type = bittensor.proto.TensorType.TORCH )
         self.check_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
-        forward_response_tensor = self.decode_forward_response_tensor ( forward_response_tensor )
+        forward_response_tensor = self.decode_forward_response_tensor ( forward_request_tensor, forward_response_tensor )
         forward_response_tensor = torch.nan_to_num( forward_response_tensor, nan=0)
         return forward_response_tensor
 
