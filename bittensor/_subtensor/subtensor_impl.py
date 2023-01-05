@@ -18,8 +18,6 @@ import torch
 from rich.prompt import Confirm
 from typing import List, Dict, Union, Optional, Tuple
 
-from dataclasses import dataclass
-
 import bittensor
 from tqdm import tqdm
 import bittensor.utils.networking as net
@@ -29,6 +27,8 @@ from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 import json
+from .chain_data import NeuronInfo, AxonInfo, DelegateInfo
+from .errors import *
 
 # Mocking imports
 import os
@@ -42,193 +42,9 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 
-RAOPERTAO = 1000000000
+RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
-
-@dataclass
-class NeuronMetadata:
-    r"""
-    Dataclass for neuron metadata.
-    """
-    hotkey: str
-    coldkey: str
-    uid: int
-    netuid: int
-    active: int
-    ip: str
-    ip_type: int
-    port: int
-    stake: List[Tuple[str, Balance]]
-    rank: float
-    emission: float
-    incentive: float
-    consensus: float
-    trust: float
-    dividends: float
-    last_update: int
-    version: int
-    weights: List[List[int]]
-    bonds: List[List[int]]
-    prometheus_info: 'PrometheusInfo'
-    is_null: bool = False
-
-    @staticmethod
-    def __u8_key_to_ss58(u8_key: Dict) -> str:
-        r""" Converts a u8 key to ss58.
-        """
-        # First byte is length, then 32 bytes of key.
-        return scalecodec.ss58_encode( bytes(u8_key['id'][1:33]).hex(), bittensor.__ss58_format__)
-        
-    @classmethod
-    def from_json(cls, json: Dict) -> 'NeuronMetadata':
-        r""" Returns a NeuronMetadata object from a json dictionary.
-        """
-        return NeuronMetadata(
-            hotkey = cls.__u8_key_to_ss58(json['hotkey']),
-            coldkey = cls.__u8_key_to_ss58(json['coldkey']),
-            uid = json['uid'],
-            netuid = json['netuid'],
-            active = int(json['active']), # 0 or 1
-            ip = bittensor.utils.networking.int_to_ip(int(json['axon_info']['ip'])),
-            ip_type = json['axon_info']['ip_type'],
-            port = json['axon_info']['port'],
-            stake = [(cls.__u8_key_to_ss58(coldkey), Balance.from_rao(stake) ) for coldkey, stake in json['stake']],
-            rank = json['rank'] / U64_MAX,
-            emission = json['emission'] / RAOPERTAO,
-            incentive = json['incentive'] / U64_MAX,
-            consensus = json['consensus'] / U64_MAX,
-            trust = json['trust'] / U64_MAX,
-            dividends = json['dividends'] / U64_MAX,
-            last_update = json['last_update'],
-            version = json['axon_info']['version'],
-            weights = json['weights'],
-            bonds = json['bonds'],
-            prometheus_info = PrometheusInfo.from_json(json['prometheus_info']),
-
-@dataclass
-class AxonInfo:
-    r"""
-    Dataclass for axon info.
-    """
-    block: int
-    version: int
-    ip: str
-    port: int
-    ip_type: int
-    protocol: int
-    placeholder1: int # placeholder for future use
-    placeholder2: int
-
-    @classmethod
-    def from_json(cls, json: Dict) -> 'AxonInfo':
-        r""" Returns a AxonInfo object from a json dictionary.
-        """
-        return AxonInfo(
-            block = json['block'],
-            version = json['version'],
-            ip = bittensor.utils.networking.int_to_ip(int(json['ip'])),
-            port = json['port'],
-            ip_type = json['ip_type'],
-            protocol = json['protocol'],
-            placeholder1 = json['placeholder1'],
-            placeholder2 = json['placeholder2'],
-        )
-
-@dataclass
-class PrometheusInfo:
-    r"""
-    Dataclass for prometheus info.
-    """
-    block: int
-    version: int
-    ip: str
-    port: int
-    ip_type: int
-
-    @classmethod
-    def from_json(cls, json: Dict) -> 'PrometheusInfo':
-        r""" Returns a PrometheusInfo object from a json dictionary.
-        """
-        return PrometheusInfo(
-            block = json['block'],
-            version = json['version'],
-            ip = bittensor.utils.networking.int_to_ip(int(json['ip'])),
-            port = json['port'],
-            ip_type = json['ip_type'],
-        )
-
-
-@dataclass
-class DelegateInfo:
-    r"""
-    Dataclass for delegate info.
-    """
-    hotkey_ss58: str # Hotkey of delegate
-    total_stake: Balance # Total stake of the delegate
-    nominators: List[Tuple[str, Balance]] # List of nominators of the delegate and their stake
-    owner_ss58: str # Coldkey of owner
-    take: float # Take of the delegate as a percentage
-
-class ChainError(BaseException):
-    r""" Base error for any chain related errors.
-    """
-    pass
-
-
-class ChainConnectionError(ChainError):
-    r""" Error for any chain connection related errors.
-    """
-    pass
-
-
-class ChainTransactionError(ChainError):
-    r""" Error for any chain transaction related errors.
-    """
-    pass
-
-
-class ChainQueryError(ChainError):
-    r""" Error for any chain query related errors.
-    """
-    pass
-
-
-class StakeError(ChainTransactionError):
-    r""" Error raised when a stake transaction fails.
-    """
-    pass
-
-
-class UnstakeError(ChainTransactionError):
-    r""" Error raised when an unstake transaction fails.
-    """
-    pass
-
-
-class TransferError(ChainTransactionError):
-    r""" Error raised when a transfer transaction fails.
-    """
-    pass
-
-
-class RegistrationError(ChainTransactionError):
-    r""" Error raised when a neuron registration transaction fails.
-    """
-    pass
-
-
-class NotRegisteredError(ChainTransactionError):
-    r""" Error raised when a neuron is not registered, and the transaction requires it to be.
-    """
-    pass
-
-
-class NotDelegateError(StakeError):
-    r""" Error raised when a hotkey you are trying to stake to is not a delegate.
-    """
-    pass
-
 
 class Subtensor:
     """

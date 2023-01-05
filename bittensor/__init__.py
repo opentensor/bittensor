@@ -150,6 +150,7 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
+from bittensor._subtensor.chain_data import AxonInfo as AxonInfo
 from bittensor._config.config_impl import Config as Config
 from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
@@ -157,6 +158,8 @@ from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
+from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
+from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._dataset.dataset_impl import Dataset as Dataset
