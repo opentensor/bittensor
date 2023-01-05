@@ -71,6 +71,7 @@ class NeuronMetadata:
     version: int
     weights: List[List[int]]
     bonds: List[List[int]]
+    prometheus_info: 'PrometheusInfo'
     is_null: bool = False
 
     @staticmethod
@@ -104,6 +105,30 @@ class NeuronMetadata:
             version = json['axon_info']['version'],
             weights = json['weights'],
             bonds = json['bonds'],
+            prometheus_info = PrometheusInfo.from_json(json['prometheus_info']),
+        )
+
+@dataclass
+class PrometheusInfo:
+    r"""
+    Dataclass for prometheus info.
+    """
+    block: int
+    version: int
+    ip: str
+    port: int
+    ip_type: int
+
+    @classmethod
+    def from_json(cls, json: Dict) -> 'PrometheusInfo':
+        r""" Returns a PrometheusInfo object from a json dictionary.
+        """
+        return PrometheusInfo(
+            block = json['block'],
+            version = json['version'],
+            ip = bittensor.utils.networking.int_to_ip(int(json['ip'])),
+            port = json['port'],
+            ip_type = json['ip_type'],
         )
 
 
