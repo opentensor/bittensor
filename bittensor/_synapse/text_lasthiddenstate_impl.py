@@ -32,6 +32,8 @@ class TextLastHiddenState (Synapse):
         # Expands mask based on batch size and sequence length.
         # Translate mask to explicit postion -1 --> sequence_length etc.
         translated_mask = []
+        if len(mask) > sequence_length:
+            raise ValueError("Trying to use a mask greater than the sequence length.")
         for mask_i in mask:
             if mask_i < -sequence_length or mask_i > sequence_length:
                 raise ValueError("Mask element {} cannot be interpreted for sequence_length {}".format(mask_i, sequence_length) )
@@ -46,6 +48,14 @@ class TextLastHiddenState (Synapse):
 
         return shifted_mask
 
+    @staticmethod
+    def check_mask_is_valid(mask: List[int]) -> None:
+        """
+        Checks if a mask is valid, otherwise raises a value error.
+        """
+
+        if len(mask) != len(set(mask)):
+            raise ValueError("There are duplicate elements in the mask")
 
     def __init__( 
         self,
@@ -79,6 +89,7 @@ class TextLastHiddenState (Synapse):
         )
         if mask is None:
             mask = []
+        self.check_mask_is_valid(mask)
         self.mask = mask
         self.synapse_type = TextLastHiddenState.synapse_type
 
@@ -144,7 +155,7 @@ class TextLastHiddenState (Synapse):
     def check_forward_response_tensor    ( self, forward_request_tensor, forward_response_tensor ):
         if forward_response_tensor == None:
             raise ValueError('Empty Response')
-            
+
         if len( forward_response_tensor.shape ) == 3:
             if ( forward_response_tensor.size(0) != forward_request_tensor.size(0) or
                  forward_response_tensor.size(1) != forward_request_tensor.size(1) or
