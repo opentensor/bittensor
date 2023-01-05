@@ -2120,6 +2120,7 @@ class Subtensor:
             netuid: int,
             uids: Union[torch.LongTensor, list],
             weights: Union[torch.FloatTensor, list],
+            version_key: int = 0,
             wait_for_inclusion:bool = False,
             wait_for_finalization:bool = False,
             prompt:bool = False
@@ -2134,6 +2135,8 @@ class Subtensor:
                 uint64 uids of destination neurons.
             weights ( Union[torch.FloatTensor, list]):
                 weights to set which must floats and correspond to the passed uids.
+            version_key (int):
+                version key of the validator.
             wait_for_inclusion (bool):
                 if set, waits for the extrinsic to enter a block before returning true,
                 or returns false if the extrinsic fails to enter the block within the timeout.
@@ -2171,6 +2174,7 @@ class Subtensor:
                             'dests': weight_uids,
                             'weights': weight_vals,
                             'netuid': netuid,
+                            'version_key': version_key,
                         }
                     )
                     extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
