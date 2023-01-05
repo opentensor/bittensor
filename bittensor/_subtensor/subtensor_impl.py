@@ -362,7 +362,7 @@ class Subtensor:
                 ).value
         return make_substrate_call_with_retry()
 
-    def max_weight_limit (self, netuid: int) -> int:
+    def max_weight_limit (self, netuid: int) -> float:
         r""" Returns MaxWeightLimit
         Args:
             netuid (int):
@@ -382,7 +382,7 @@ class Subtensor:
                 ).value/U32_MAX
         return make_substrate_call_with_retry()
 
-    def scaling_law_power (self, netuid: int) -> int:
+    def scaling_law_power (self, netuid: int) -> float:
         r""" Returns ScalingLawPower
         Args:
             netuid (int):
@@ -402,7 +402,7 @@ class Subtensor:
                 ).value/MAX
         return make_substrate_call_with_retry()
 
-    def synergy_scaling_law_power (self, netuid: int) -> int:
+    def synergy_scaling_law_power (self, netuid: int) -> float:
         r""" Returns SynergyScalingLawPower
         Args:
             netuid (int):
@@ -420,6 +420,7 @@ class Subtensor:
                     storage_function = 'SynergyScalingLawPower',
                     params = [netuid]
                 ).value/MAX
+                
         return make_substrate_call_with_retry()
 
     def validator_exclude_quantile (self, netuid: int) -> int:
@@ -1070,29 +1071,6 @@ class Subtensor:
                 version = result.value.version,
                 block = result.value.block,
             )
-        else:
-            return None
-
-    def get_delegate_take(
-        self,
-        hotkey_ss58: str,
-        block: Optional[int] = None,
-    ) -> List[List[str]]:
-        """
-        Returns the delegate take of the specified hotkey.
-        """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(
-                    module='Paratensor',
-                    storage_function='Delegates',
-                    params = [hotkey_ss58],
-                    block_hash = None if block == None else substrate.get_block_hash( block )
-                )
-        result = make_substrate_call_with_retry()
-        if result != None:
-            return result.value / U16_MAX
         else:
             return None
     
@@ -2360,7 +2338,6 @@ class Subtensor:
         
         return False
         
-
     def is_network_member_for_hotkey ( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None ) -> bool:
         r"""
         Returns true if the hotkey is a network member of the netuid.
@@ -2684,29 +2661,6 @@ class Subtensor:
                     neurons.append( neuron )
                 return neurons
 
-    def get_n( self, netuid: int, block: Optional[int] = None ) -> int: 
-        r""" Returns the number of neurons on the chain at block.
-        Args:
-            netuid ( int ):
-                The network uid to query.
-            block ( Optional[int] ):
-                The block number to get the neuron count from.
-                Default is None, which returns the current block.
-        Returns:
-            n ( int ):
-                the number of neurons subscribed to the chain.
-        """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return int(substrate.query(
-                    module='Paratensor',
-                    storage_function = 'N',
-                    params = [ netuid ],
-                    block_hash = None if block == None else substrate.get_block_hash( block )
-                ).value)
-        return make_substrate_call_with_retry()
-
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 
         Args:
@@ -2721,7 +2675,6 @@ class Subtensor:
                 neuron metadata associated with uid or None if it does not exist.
         """
         return self.neuron_for_pubkey ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
-
 
     def subnet_exists( self, netuid: int ) -> bool:
         r""" Returns true if the subnet exists.
