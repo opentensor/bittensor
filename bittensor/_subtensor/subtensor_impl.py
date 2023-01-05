@@ -2447,6 +2447,33 @@ class Subtensor:
         return False
         
 
+    def is_network_member_for_hotkey ( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None ) -> bool:
+        r"""
+        Returns true if the hotkey is a network member of the netuid.
+        Args:
+            hotkey_ss58 ( str ):
+                The hotkey to check.
+            netuid ( int ):
+                The netuid to check.
+            block ( Optional[int] ):
+                block to sync at.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='IsNetworkMember',
+                    params = [ hotkey_ss58, netuid ],
+                    block_hash=None if block == None else substrate.get_block_hash( block )
+                )
+
+        result = make_substrate_call_with_retry()
+        if result:
+            return result.value
+        else:
+            return False
+
     def get_netuids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
         r""" Returns a list of netuids for the subnets this hotkey is registered on.
         Args:
@@ -2461,14 +2488,19 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query (
+                return substrate.query_map (
                     module='Paratensor',
-                    storage_function='Subnets',
+                    storage_function='IsNetworkMember',
                     params = [ ss58_hotkey ],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
 
         result = make_substrate_call_with_retry()
+        netuids = []
+        for netuid, is_member in result.value.items():
+            if is_member:
+                netuids.append( netuid )
+        
         return result.value
 
 
@@ -2498,14 +2530,13 @@ class Subtensor:
                 )
         
         # Get netuids for hotkey.
-        netuids = []
-        #netuids = self.get_netuids_for_hotkey( ss58_hotkey = ss58_hotkey, block = block)
+        netuids = self.get_netuids_for_hotkey( ss58_hotkey = ss58_hotkey, block = block)
 
-        if False and netuids == []:
+        if netuids == []:
             return -1
 
         if netuid:
-            if False and netuid not in netuids:
+            if netuid not in netuids:
                 return -1
             else:
                 result = make_substrate_call_with_retry( netuid )
@@ -2579,7 +2610,7 @@ class Subtensor:
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
 
-        if False and netuid:
+        if netuid:
             result = make_substrate_call_with_retry( netuid )
             if not result.is_some:
                 return Subtensor._null_neuron()
