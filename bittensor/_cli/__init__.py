@@ -693,6 +693,12 @@ class cli:
             help='''List all delegates on the network'''
         )
         bittensor.subtensor.add_args( list_delegates_parser )
+
+        list_subnets_parser = cmd_parsers.add_parser(
+            'list_subnets', 
+            help='''List all subnets on the network'''
+        )
+        bittensor.subtensor.add_args( list_subnets_parser )
         
         # If no arguments are passed, print help text.
         if len(args) == 0:
@@ -745,6 +751,13 @@ class cli:
             cli.check_become_delegate_config(config)
         elif config.command == "list_delegates":
             cli.check_list_delegates_config(config)
+        elif config.command == "list_subnets":
+            cli.check_list_subnets_config(config)
+
+
+    def check_list_subnets_config( config: 'bittensor.Config'):
+        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
     def check_list_delegates_config( config: 'bittensor.Config'):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
