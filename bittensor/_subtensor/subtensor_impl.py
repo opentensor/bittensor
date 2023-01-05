@@ -457,7 +457,7 @@ class Subtensor:
                 ).value
         return make_substrate_call_with_retry()
 
-    def n (self, netuid: int) -> int:
+    def subnetwork_n (self, netuid: int) -> int:
         r""" Returns total number of neurons on the chain for this subnetwork.
         Args:
             netuid (int):
@@ -471,7 +471,7 @@ class Subtensor:
             with self.substrate as substrate:
                 return substrate.query(
                     module='Paratensor',
-                    storage_function = 'N',
+                    storage_function = 'SubnetworkN',
                     params = [netuid]
                 ).value
         return make_substrate_call_with_retry()
