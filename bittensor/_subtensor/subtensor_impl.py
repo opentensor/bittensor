@@ -386,14 +386,35 @@ class Subtensor:
                 ).value
         return make_substrate_call_with_retry()
 
+    def serving_rate_limit ( self, netuid: int ) -> int:
+        r"""
+        Returns the subnet serving rate limit.
+        Args:
+            netuid (int):
+                The netuid of the subnet to query.
+        Returns:
+            serving_rate_limit (int):
+                Subnet serving rate limit.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function = 'ServingRateLimit',
+                    params = [netuid]
+                ).value
+        
+        return make_substrate_call_with_retry()
+
     def validator_batch_size (self, netuid: int) -> int:
-        r""" Returns the chain default validator batch size.
+        r""" Returns the subnet default validator batch size.
         Args:
             netuid (int):
                 The netuid of the subnet to query.
         Returns:
             batch_size (int):
-                Chain default validator batch size.
+                subnet default validator batch size.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
@@ -406,13 +427,13 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     def validator_sequence_length (self, netuid: int) -> int:
-        r""" Returns the chain default validator sequence length.
+        r""" Returns the subnet default validator sequence length.
         Args:
             netuid (int):
                 The netuid of the subnet to query.
         Returns:
             sequence_length (int):
-                Chain default validator sequence length.
+                subnet default validator sequence length.
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
@@ -444,7 +465,7 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     def validator_epoch_length (self, netuid: int) -> int:
-        r""" Default validator epoch length.
+        r""" Default subnet validator epoch length.
         Args:
             netuid (int):
                 The netuid of the subnet to query.
