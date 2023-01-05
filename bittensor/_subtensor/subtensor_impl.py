@@ -438,25 +438,6 @@ class Subtensor:
                 ).value/MAX
         return make_substrate_call_with_retry()
 
-    def max_allowed_min_max_ratio(self, netuid: int) -> int:
-        r""" Returns the chains max_allowed_min_max_ratio
-        Args:
-            netuid (int):
-                The netuid of the subnet to query.
-        Returns:
-            max_allowed_min_max_ratio (int):
-                The max ratio allowed between the min and max.
-        """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(
-                    module='Paratensor',
-                    storage_function = 'MaxAllowedMaxMinRatio',
-                    params = [netuid]
-                ).value
-        return make_substrate_call_with_retry()
-
     def subnetwork_n (self, netuid: int) -> int:
         r""" Returns total number of neurons on the chain for this subnetwork.
         Args:
