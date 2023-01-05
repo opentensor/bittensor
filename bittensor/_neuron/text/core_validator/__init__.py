@@ -38,8 +38,8 @@ from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
+from ..log_utilities import response_table, synergy_table, stats_table, synapse_table, weights_table
 from bittensor.utils.tokenizer_utils import phrase_cross_entropy
-from bittensor.utils.log_utils import response_table, synergy_table, stats_table, synapse_table, weights_table
 
 from torch.nn.utils import clip_grad_norm_
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
