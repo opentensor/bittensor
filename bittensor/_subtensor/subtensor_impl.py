@@ -1007,14 +1007,12 @@ class Subtensor:
         else:
             return None
 
-    def get_axon_info( self, netuid: int, uid: int, block: Optional[int] = None ) -> Optional[AxonInfo]:
+    def get_axon_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
         r"""
-        Returns the axon info for the neuron at specified netuid and uid.
+        Returns the axon info for the hotkey.
         Args:
-            netuid (int):
-                netuid of the subent.
-            uid (int):
-                uid of the neuron in the subent.
+            hotkey_ss58 (str):
+                ss58 address of the hotkey account to check.
             block (Optional[int]):
                 Block to query. If None, the latest finalized block is used.
 
@@ -1029,7 +1027,7 @@ class Subtensor:
                 return substrate.query(
                     module='Paratensor',
                     storage_function='Axons',
-                    params = [netuid, uid],
+                    params = [hotkey_ss58],
                     block_hash = None if block == None else substrate.get_block_hash( block )
                 )
         
@@ -1043,6 +1041,42 @@ class Subtensor:
                 version = result.value.version,
                 placeholder1 = result.value.placeholder1,
                 placeholder2 = result.value.placeholder2,
+            )
+        else:
+            return None
+
+    def get_prometheus_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[PrometheusInfo]:
+        r"""
+        Returns the prometheus info for the hotkey.
+        Args:
+            hotkey_ss58 (str):
+                ss58 address of the hotkey account to check.
+            block (Optional[int]):
+                Block to query. If None, the latest finalized block is used.
+
+        Returns:
+            prometheus_info (Optional[PrometheusInfo]):
+                Prometheus info for the neuron.
+
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module='Paratensor',
+                    storage_function='Prometheus',
+                    params = [hotkey_ss58],
+                    block_hash = None if block == None else substrate.get_block_hash( block )
+                )
+        
+        result = make_substrate_call_with_retry()
+        if result != None:
+            return PrometheusInfo (
+                ip = bittensor.utils.networking.ip_from_int( result.value.ip ),
+                ip_type = result.value.ip_type,
+                port = result.value.port,
+                version = result.value.version,
+                block = result.value.block,
             )
         else:
             return None
