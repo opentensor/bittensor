@@ -81,6 +81,7 @@ class neuron:
         wallet: 'bittensor.wallet' = None,
         axon: 'bittensor.axon' = None,
         metagraph: 'bittensor.metagraph' = None,
+        model: 'bittensor.neurons.text.core_server.server' = None, 
         lasthidden = None,
         causallm = None,
         causallmnext = None,
@@ -116,10 +117,13 @@ class neuron:
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
 
         self.check_config( config )
+        self.config = config
+
         bittensor.logging (
             config = config,
             logging_dir = config.neuron.full_path,
         )
+
         # Init prometheus.
         # By default we pick the prometheus port to be axon.port - 1000 so that we can match port to server.
         bittensor.prometheus ( 
@@ -132,16 +136,14 @@ class neuron:
         self.prometheus_counters = Counter('neuron_counters', 'Counter sumamries for the running server-miner.', ['neuron_counters_name'], registry=registry)
         self.prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['neuron_guages_name'], registry=registry)
         self.prometheus_info = Info('neuron_info', "Info sumamries for the running server-miner.", registry=registry)
-
-        self.mutex = Lock()
-        self.model = server(config = config).to(config.neuron.device)
-        self.config = config
         self.config.to_prometheus()
 
+        self.mutex = Lock()
+        self.model = server(config = config).to(config.neuron.device) if model == None else model
         self.subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
         self.wallet = bittensor.wallet( config = config ) if wallet == None else wallet
         self.metagraph = bittensor.metagraph ( config = config, subtensor = subtensor) if metagraph == None else metagraph
-
+        self.timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
         if axon == None:
             axon = bittensor.axon(
                 config = config,
@@ -155,7 +157,6 @@ class neuron:
                 priority = self.priority if not self.model.config.neuron.disable_priority else None,
             )
         self.axon = axon
-
 
     @classmethod
     def config(cls):
@@ -205,8 +206,6 @@ class neuron:
             'coldkey': str(self.wallet.coldkeypub.ss58_address),
             'hotkey': str(self.wallet.hotkey.ss58_address),
         })
-
-        self.timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
 
         # Create our axon server and subscribe it to the network.
         self.axon.start().serve(subtensor=self.subtensor)
@@ -517,7 +516,6 @@ class neuron:
                                                                                         model_output=model_output)
         # topk_token_phrases: [sum_b(sum_k(len(phrase_k) + 1)_b)] contains topk token phrases and probabilities
         #   Compacted 1-D tensor >= batch_size * (2 * topk + 1)
-        print('Returned')
         return message, model_output, topk_token_phrases
 
 
