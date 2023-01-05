@@ -19,16 +19,13 @@
 
 import os
 
-from typing import List
-from types import SimpleNamespace
+from typing import List, Optional
+from bittensor._subtensor.subtensor_impl import NeuronMetadata  
 from loguru import logger
 
-import ast
 import pandas
 import torch.nn.functional as f
 import torch
-import pickle
-import json
 
 import bittensor
 import bittensor.utils.networking as net
@@ -385,60 +382,20 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    def retrieve_cached_neurons( self, block: int = None ):
-        """
-            Retrieves cached metagraph syncs from IPFS. 
-
-            TODO (Cameron): implement netuid.
-        """
-        ipfs = bittensor.Ipfs()
-        ipns_hash = ipfs.latest_neurons_ipns
-        ipfs_hash = ipfs.cat
-        
-        if block != None:
-            ipns_hash = ipfs.historical_neurons_ipns
-            ipfs_hash = ipfs.node_get
-        
-        try:
-            # Ping IPNS for latest IPFS hash
-            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
-
-            # Extract IPFS hash from IPNS response
-            ipfs_path = ast.literal_eval(ipns_resolve.text)
-        except Exception as e:
-            logger.error("Error detected in metagraph sync: {} with sample text {}".format(e,ipns_resolve.text))
-
-            # Try Again
-            # Ping IPNS for latest IPFS hash
-            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
-
-            # Extract IPFS hash from IPNS response
-            ipfs_path = ast.literal_eval(ipns_resolve.text)
-
-        ipfs_resolved_hash = ipfs_path['Path'].split("ipfs/")[1]
-        ipfs_response = ipfs.retrieve_directory(ipfs_hash, (('arg', ipfs_resolved_hash),))
-
-        # Extract all neuron sync hashes
-        if block != None:
-            historical_neurons = json.loads(ipfs_response.content)['Links']
-            # Find the one that corresponds to our block
-            sync_data = next(item for item in historical_neurons if item["Name"] == "nakamoto-{}.pkl".format(block))
-            # Retrieve Neuron contents
-            ipfs_response = ipfs.retrieve_directory(ipfs.cat, (('arg', sync_data['Hash']),))
-
-        # Unpickle the response
-        neurons = pickle.loads(ipfs_response.content)
-
-        return neurons
-
-    def __get_neurons_from_chain( self, block: int = None ) -> List[SimpleNamespace]:
+    def __get_neurons_from_chain( self, block: int ) -> List[NeuronMetadata]:
         """
             Retrieves neurons from the chain.
+            Args:
+                block: (:obj:`int`, required):
+                    block to retrieve neurons from.
+            Returns:
+                neurons: (:obj:`List[NeuronMetadata]`, required):
+                    List of neurons from the chain.
         """
-        return self.subtensor.neurons( netuid = self.netuid )
+        return self.subtensor.neurons( netuid = self.netuid, block = block )
 
 
-    def sync ( self, block: int = None, cached: bool = True ) -> 'Metagraph':
+    def sync ( self, block: Optional[int] = None, cached: bool = True ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
             Args:
                 block: (:obj:`int`, optional, defaults to None):
@@ -452,49 +409,13 @@ class Metagraph( torch.nn.Module ):
         logger.success(self.subtensor)
         if block == None:
             block = self.subtensor.get_current_block()
-            if cached and self.subtensor.network in ("nakamoto", "local"):
-                if bittensor.__use_console__:
-                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        try:
-                            neurons = self.retrieve_cached_neurons( )
-                        except:
-                            # For some reason IPFS cache is down, fallback on regular sync
-                            logger.warning("IPFS cache may be down, falling back to regular sync")
-                            neurons = self.__get_neurons_from_chain( )
-                        n_total = len(neurons)
-                else:
-                    try:
-                        neurons = self.retrieve_cached_neurons( )
-                    except:
-                        # For some reason IPFS cache is down, fallback on regular sync
-                        logger.warning("IPFS cache may be down, falling back to regular sync")
-                        neurons = self.__get_neurons_from_chain( )
-                    n_total = len(neurons)
-            else:
+        if bittensor.__use_console__:
+            with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
                 neurons = self.__get_neurons_from_chain( block = block )
-                n_total = len(neurons)
         else:
-            if cached and self.subtensor.network in ("nakamoto", "local"):
-                if bittensor.__use_console__:
-                    with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                        try:
-                            neurons = self.retrieve_cached_neurons( block = block )
-                        except:
-                            # For some reason IPFS cache is down, fallback on regular sync
-                            logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                            neurons = self.__get_neurons_from_chain( block = block )
-                        n_total = len(neurons)
-                else:
-                    try:
-                        neurons = self.retrieve_cached_neurons( block = block )
-                    except:
-                        # For some reason IPFS cache is down, fallback on regular sync
-                        logger.warning("IPFS cache may be down, falling back to regular sync to get block {}".format(block))
-                        neurons = self.__get_neurons_from_chain( block = block )
-                    n_total = len(neurons)
-            else:
-                neurons = self.__get_neurons_from_chain( block = block )
-                n_total = len(neurons)
+            neurons = self.__get_neurons_from_chain( )
+        n_total = len(neurons)
+      
 
         # Fill arrays.
         uids = [ i for i in range(n_total) ]
