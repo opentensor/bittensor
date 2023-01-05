@@ -90,9 +90,9 @@ class NeuronMetadata:
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            ip = bittensor.utils.networking.int_to_ip(int(json['axon_metadata']['ip'])),
-            ip_type = json['axon_metadata']['ip_type'],
-            port = json['axon_metadata']['port'],
+            ip = bittensor.utils.networking.int_to_ip(int(json['axon_info']['ip'])),
+            ip_type = json['axon_info']['ip_type'],
+            port = json['axon_info']['port'],
             stake = [(cls.__u8_key_to_ss58(coldkey), Balance.from_rao(stake) ) for coldkey, stake in json['stake']],
             rank = json['rank'] / U64_MAX,
             emission = json['emission'] / RAOPERTAO,
@@ -101,7 +101,7 @@ class NeuronMetadata:
             trust = json['trust'] / U64_MAX,
             dividends = json['dividends'] / U64_MAX,
             last_update = json['last_update'],
-            version = json['axon_metadata']['version'],
+            version = json['axon_info']['version'],
             weights = json['weights'],
             bonds = json['bonds'],
         )
