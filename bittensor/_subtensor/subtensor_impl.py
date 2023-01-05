@@ -42,7 +42,10 @@ from sys import platform
 from loguru import logger
 logger = logger.opt(colors=True)
 
+
+RAOPERTAO = 1000000000
 U16_MAX = 65535
+U64_MAX = 18446744073709551615
 
 @dataclass
 class NeuronMetadata:
@@ -57,43 +60,48 @@ class NeuronMetadata:
     ip: str
     ip_type: int
     port: int
-    stake: int
-    rank: int
-    emission: int
-    incentive: int
-    consensus: int
-    trust: int
-    dividends: int
+    stake: List[Tuple[str, Balance]]
+    rank: float
+    emission: float
+    incentive: float
+    consensus: float
+    trust: float
+    dividends: float
     last_update: int
     version: int
-    priority: int
     weights: List[List[int]]
     bonds: List[List[int]]
     is_null: bool = False
 
     @staticmethod
-    def from_json(json: Dict) -> 'NeuronMetadata':
+    def __u8_key_to_ss58(u8_key: Dict) -> str:
+        r""" Converts a u8 key to ss58.
+        """
+        # First byte is length, then 32 bytes of key.
+        return scalecodec.ss58_encode( bytes(u8_key['id'][1:33]).hex(), bittensor.__ss58_format__)
+        
+    @classmethod
+    def from_json(cls, json: Dict) -> 'NeuronMetadata':
         r""" Returns a NeuronMetadata object from a json dictionary.
         """
         return NeuronMetadata(
-            hotkey = scalecodec.base58.b58decode(json['hotkey']['id']),
-            coldkey = scalecodec.base58.b58decode(json['coldkey']['id']),
+            hotkey = cls.__u8_key_to_ss58(json['hotkey']),
+            coldkey = cls.__u8_key_to_ss58(json['coldkey']),
             uid = json['uid'],
             netuid = json['netuid'],
-            active = int(json['active']),
+            active = int(json['active']), # 0 or 1
             ip = bittensor.utils.networking.int_to_ip(int(json['axon_metadata']['ip'])),
             ip_type = json['axon_metadata']['ip_type'],
             port = json['axon_metadata']['port'],
-            stake = json['stake'],
-            rank = json['rank'],
-            emission = json['emission'],
-            incentive = json['incentive'],
-            consensus = json['consensus'],
-            trust = json['trust'],
-            dividends = json['dividends'],
+            stake = [(cls.__u8_key_to_ss58(coldkey), Balance.from_rao(stake) ) for coldkey, stake in json['stake']],
+            rank = json['rank'] / U64_MAX,
+            emission = json['emission'] / RAOPERTAO,
+            incentive = json['incentive'] / U64_MAX,
+            consensus = json['consensus'] / U64_MAX,
+            trust = json['trust'] / U64_MAX,
+            dividends = json['dividends'] / U64_MAX,
             last_update = json['last_update'],
             version = json['axon_metadata']['version'],
-            priority = json['priority'],
             weights = json['weights'],
             bonds = json['bonds'],
         )
@@ -2132,14 +2140,17 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid]
+                if block_hash:
+                    params = [block_hash] + params
                 return substrate.rpc_request(
                     method="neuronInfo_getNeurons", # custom rpc method
-                    params=[netuid],
-                    block_hash = None if block == None else substrate.get_block_hash( block )
+                    params=params
                 )
         
         json_body = make_substrate_call_with_retry()
-        result = json_body.result
+        result = json_body['result']
         
         return [ NeuronMetadata.from_json( neuron ) for neuron in result ]
 
@@ -2177,15 +2188,13 @@ class Subtensor:
         if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return Subtensor._null_neuron()
         else:
-            RAOPERTAO = 1000000000
-            U64MAX = 18446744073709551615
             neuron = NeuronMetadata( **neuron_dict )
             neuron.stake = neuron.stake / RAOPERTAO
-            neuron.rank = neuron.rank / U64MAX
-            neuron.trust = neuron.trust / U64MAX
-            neuron.consensus = neuron.consensus / U64MAX
-            neuron.incentive = neuron.incentive / U64MAX
-            neuron.dividends = neuron.dividends / U64MAX
+            neuron.rank = neuron.rank / U64_MAX
+            neuron.trust = neuron.trust / U64_MAX
+            neuron.consensus = neuron.consensus / U64_MAX
+            neuron.incentive = neuron.incentive / U64_MAX
+            neuron.dividends = neuron.dividends / U64_MAX
             neuron.emission = neuron.emission / RAOPERTAO
                 
             return neuron
