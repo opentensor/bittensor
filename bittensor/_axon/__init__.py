@@ -71,6 +71,7 @@ class axon:
             ip: Optional[str] = None,
             external_ip: Optional[str] = None,
             external_port: Optional[int] = None,
+            protocol: Optional[int] = None,
             max_workers: Optional[int] = None, 
             maximum_concurrent_rpcs: Optional[int] = None,
             blacklist: Optional['Callable'] = None,
@@ -113,6 +114,8 @@ class axon:
                     The external ip of the server to broadcast to the network.
                 external_port (:type:`Optional[int]`, `optional`):
                     The external port of the server to broadcast to the network.
+                protocol (:type:`Optional[int]`, `optional`):
+                    The protocol of the server to broadcast to the network.
                 max_workers (:type:`Optional[int]`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
@@ -133,6 +136,7 @@ class axon:
         config.axon.ip = ip if ip != None else config.axon.ip
         config.axon.external_ip = external_ip if external_ip != None else config.axon.external_ip
         config.axon.external_port = external_port if external_port != None else config.axon.external_port
+        config.axon.protocol = protocol if protocol != None else config.axon.protocol
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
@@ -190,6 +194,7 @@ class axon:
             port = config.axon.port,
             external_ip=config.axon.external_ip, # don't use internal ip if it is None, we will try to find it later
             external_port=config.axon.external_port or config.axon.port, # default to internal port if external port is not set
+            protocol = config.axon.protocol,
             forward = forward_text,
             backward = backward_text,
             synapses = synapses,
