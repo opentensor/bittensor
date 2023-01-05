@@ -136,11 +136,9 @@ class subtensor:
         # make sure it's wss:// or ws://
         # If it's bellagene (parachain testnet) then it has to be wss
         endpoint_url: str = config.subtensor.chain_endpoint
-        if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
-            if config.subtensor.network == "bellagene":
-                endpoint_url = "wss://{}".format(endpoint_url)
-            else:
-                endpoint_url = "ws://{}".format(endpoint_url)
+        
+        # make sure formatting is good
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
         
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
