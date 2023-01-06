@@ -458,39 +458,25 @@ class neuron:
             
             if epoch_steps % 25 == 1:
                 # validator identifier status console message (every 25 validation steps)
-                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                      f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
-                      f"UID [cyan]{self.uid}[/cyan] "
-                      f"[dim white not bold][{self.dendrite.receptor_pool.external_ip}][/dim white not bold] "
-                      f"[white not bold]cold:[bold]{self.wallet.name}[/bold]:"
-                      f"[bright_white not bold]{self.wallet.coldkeypub.ss58_address}[/bright_white not bold] "
-                      f"[dim white]/[/dim white] "
-                      f"hot:[bold]{self.config.wallet.hotkey}[/bold]:"
-                      f"[bright_white not bold]{self.wallet.hotkey.ss58_address}[/bright_white not bold][/white not bold]")
-
+                self.vlogger.print_console_validator_identifier(self.uid, self.wallet, self.dendrite.receptor_pool.external_ip)
                 # validator update status console message
-                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                      f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
-                      f'Updated [yellow]{current_block - self.metagraph.last_update[self.uid]}[/yellow] [dim]blocks ago[/dim] | '
-                      f'Dividends [green not bold]{self.metagraph.dividends[self.uid]:.5f}[/green not bold] | '
-                      f'Stake \u03C4[magenta not bold]{self.metagraph.stake[self.uid]:.5f}[/magenta not bold] '
-                      f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
-
+                self.vlogger.print_console_metagraph_status(self.uid, self.metagraph, current_block, start_block, self.subtensor.network)
                 # save neuron_stats to filesystem
                 self.save()
 
             # step update console message (every validation step)
-            print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
-                  f'[green not bold]{current_block - start_block}[/green not bold]/'
-                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim]blocks/epoch[/dim] | '
-                  f'[white not bold]Step {epoch_steps}[white not bold] '
-                  f'[dim] Epoch {self.epoch}[/dim] | '
-                  f'[bright_green not bold]{len(responsive_uids)}[/bright_green not bold]/'
-                  f'[white]{len(queried_uids)}[/white] '
-                  f'[[yellow]{step_time:.3g}[/yellow]s] '
-                  f'[dim white not bold][green]{len(epoch_responsive_uids)}[/green]/'
-                  f'{len(epoch_queried_uids)}[/dim white not bold]')
+            self.vlogger.print_console_query_summary(
+                current_block = current_block, 
+                start_block = start_block,
+                blocks_per_epoch = blocks_per_epoch, 
+                epoch_steps = epoch_steps, 
+                epoch = self.epoch, 
+                responsive_uids = responsive_uids, 
+                queried_uids = queried_uids, 
+                step_time = step_time, 
+                epoch_responsive_uids = epoch_responsive_uids, 
+                epoch_queried_uids = epoch_queried_uids
+            )
 
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
@@ -557,17 +543,13 @@ class neuron:
                 )  # print weights table
 
         # set weights console message (every epoch)
-        print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-              f"{f'[bright_white]Set weights[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
-              f'[bright_green not bold]{len(sample_weights)}[/bright_green not bold] [dim]weights set[/dim] | '
-              f'[bright_green not bold]{len(epoch_responsive_uids)}[/bright_green not bold]/'
-              f'[white]{len(epoch_queried_uids)}[/white] '
-              f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
-              f'[[yellow]{time.time() - epoch_start_time:.0f}[/yellow]s] | '
-              f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
-              f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
-              f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-              f'\[{max_weight_limit:.4g} allowed]')
+        self.print_console_weight_set(
+            sample_weights = sample_weights, 
+            epoch_responsive_uids = epoch_responsive_uids, 
+            epoch_queried_uids = epoch_queried_uids, 
+            max_weight_limit = max_weight_limit, 
+            epoch_start_time = epoch_start_time
+        )
 
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),

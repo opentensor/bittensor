@@ -6,6 +6,7 @@ from rich.table import Table
 from rich.errors import MarkupError
 from rich.style import Style
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
+import datetime
 
 class ValidatorLogger:
     def __init__(self, config = None):
@@ -263,3 +264,65 @@ class ValidatorLogger:
                     f'\[{max_weight_limit:.4g} allowed]',  # caption
                     mark_uids=include_uids)
 
+    def print_console_validator_identifier(self, uid, wallet, external_ip):
+        rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+        f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
+        f"UID [cyan]{uid}[/cyan] "
+        f"[dim white not bold][{external_ip}][/dim white not bold] "
+        f"[white not bold]cold:[bold]{wallet.name}[/bold]:"
+        f"[bright_white not bold]{wallet.coldkeypub.ss58_address}[/bright_white not bold] "
+        f"[dim white]/[/dim white] "
+        f"hot:[bold]{wallet.hotkey_str}[/bold]:"
+        f"[bright_white not bold]{wallet.hotkey.ss58_address}[/bright_white not bold][/white not bold]")
+
+    def print_console_metagraph_status(self, uid, metagraph, current_block, start_block, network):
+        rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+        f"{f'UID [bright_cyan]{uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
+        f'Updated [yellow]{current_block - metagraph.last_update[uid]}[/yellow] [dim]blocks ago[/dim] | '
+        f'Dividends [green not bold]{metagraph.dividends[uid]:.5f}[/green not bold] | '
+        f'Stake \u03C4[magenta not bold]{metagraph.stake[uid]:.5f}[/magenta not bold] '
+        f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {network})[/dim]')
+
+    def print_console_query_summary(self, 
+        current_block, 
+        start_block,
+        blocks_per_epoch, 
+        epoch_steps, 
+        epoch,
+        responsive_uids, 
+        queried_uids, 
+        step_time, 
+        epoch_responsive_uids, 
+        epoch_queried_uids
+    ):
+        rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+        f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
+        f'[green not bold]{current_block - start_block}[/green not bold]/'
+        f'[white not bold]{blocks_per_epoch}[/white not bold] [dim]blocks/epoch[/dim] | '
+        f'[white not bold]Step {epoch_steps}[white not bold] '
+        f'[dim] Epoch {epoch}[/dim] | '
+        f'[bright_green not bold]{len(responsive_uids)}[/bright_green not bold]/'
+        f'[white]{len(queried_uids)}[/white] '
+        f'[[yellow]{step_time:.3g}[/yellow]s] '
+        f'[dim white not bold][green]{len(epoch_responsive_uids)}[/green]/'
+        f'{len(epoch_queried_uids)}[/dim white not bold]')
+
+    def print_console_weight_set(
+        self,
+        sample_weights, 
+        epoch_responsive_uids, 
+        epoch_queried_uids, 
+        max_weight_limit, 
+        epoch_start_time
+    ):
+        rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+        f"{f'[bright_white]Set weights[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
+        f'[bright_green not bold]{len(sample_weights)}[/bright_green not bold] [dim]weights set[/dim] | '
+        f'[bright_green not bold]{len(epoch_responsive_uids)}[/bright_green not bold]/'
+        f'[white]{len(epoch_queried_uids)}[/white] '
+        f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
+        f'[[yellow]{time.time() - epoch_start_time:.0f}[/yellow]s] | '
+        f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
+        f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
+        f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
+        f'\[{max_weight_limit:.4g} allowed]')
