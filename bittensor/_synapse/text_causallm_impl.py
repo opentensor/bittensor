@@ -129,7 +129,7 @@ class TextCausalLM (Synapse):
         encoded_probs = torch.cat((topk_values, topk_indices), dim=-1)  # [batch_size, sequence_len, topk + topk]
         return encoded_probs  # [batch_size, sequence_len, topk + topk]
 
-    def decode_forward_response_tensor( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor:
+    def decode_forward_response_tensor( self, forward_request_tensor: torch.Tensor, forward_response_tensor: torch.Tensor ) -> torch.Tensor:
         """ Returns full logits by decoding topk-encoding input. """
         batch_size, sequence_len, _ = forward_response_tensor.shape
         encoded_probs = forward_response_tensor  # encoded probabilities: [batch_size, sequence_len, topk + topk]

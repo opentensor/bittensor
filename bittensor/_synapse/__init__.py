@@ -16,19 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-from multiprocessing.sharedctypes import Value
-from yaml import serialize_all
-import bittensor
-import torch
-from typing import Union, List, Tuple, Optional
+from typing import List, Optional
 
-from bittensor._serializer import serializer
-from .synapse_impl import Synapse, NullSynapse
+import bittensor
+
+from .synapse_impl import NullSynapse, Synapse
 from .text_causallm_impl import TextCausalLM
 from .text_causallmnext_impl import TextCausalLMNext
 from .text_lasthiddenstate_impl import TextLastHiddenState
 from .text_seq2seq_impl import TextSeq2Seq
-
 
 
 class synapse:
@@ -46,6 +42,7 @@ class synapse:
 
     @staticmethod
     def TextLastHiddenState (
+        mask: Optional[List[int]] = None,
         forward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
@@ -53,6 +50,8 @@ class synapse:
     ) -> TextLastHiddenState:
         """ Factory function which returns a TextLastHiddenState synapse adapter given arguments.
             Args:
+                mask (:obj:`List[int]` of shape :obj:`(n)`, `optional`, :default: `[]`):
+                    An optional response mask over the returned embeddings.               
                 forward_request_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
                     Serializer used to pack torch tensors on forward request.
                 forward_response_serializer_type (:obj:`bittensor.proto.Serializer.Type` of shape :obj:`(1)`, `optional`, :default: `bittensor.proto.Serializer.MSGPACK`):
@@ -66,6 +65,7 @@ class synapse:
                     TextLastHiddenState instance adapter class.
         """
         return TextLastHiddenState (
+            mask = mask,
             forward_request_serializer_type = forward_request_serializer_type,
             forward_response_serializer_type = forward_response_serializer_type,
             backward_request_serializer_type = backward_request_serializer_type,
