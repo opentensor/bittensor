@@ -66,19 +66,6 @@ def test_sign_v1():
 def test_sign_v2():
     sign_v2(sender_wallet, wallet)
 
-def test_forward_wandb():
-    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    request = bittensor.proto.TensorMessage(
-        version = bittensor.__version_as_int__,
-        tensors=[inputs_serialized]
-    )
-    response, code, synapses = axon._forward( request )
-    #axon.update_stats_for_request( request, response, call_time, code )
-    print( axon.to_wandb() )
-
-
 def test_forward_not_implemented():
     inputs_raw = torch.rand(3, 3)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
