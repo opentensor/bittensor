@@ -79,7 +79,8 @@ def is_valid_ss58_address( address: str ) -> bool:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
     """
     try:
-        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ )
+        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ ) or \
+                ss58.is_valid_ss58_address( address, valid_ss58_format=42 ) # Default substrate ss58 format (legacy)
     except (IndexError):
         return False
 
