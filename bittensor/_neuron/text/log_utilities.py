@@ -8,7 +8,7 @@ from rich.style import Style
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 class ValidatorLogger:
-    def __init__(self, config):
+    def __init__(self, config = None):
         # Neuron stats recorded by validator neuron/nucleus
         #   [Column_name, key_name, format_string, rich_style]  # description
         self.config = config
