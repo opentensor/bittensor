@@ -2258,25 +2258,21 @@ class Subtensor:
     @staticmethod
     def _null_neuron() -> NeuronInfo:
         neuron = NeuronInfo(
-            active = 0,
-            stake = 0,
-            rank = 0,
-            trust = 0,
-            consensus = 0,
-            incentive = 0,
-            dividends = 0,
-            emission = 0,
-            weights = [],
-            bonds = [],
-            version = 0,
-            modality = 0,
             uid = 0,
             netuid = 0,
-            port = 0,
-            priority = 0,
-            ip_type = 0,
+            active =  0,
+            stake = '0',
+            rank = 0,
+            emission = 0,
+            incentive = 0,
+            consensus = 0,
+            trust = 0,
+            dividends = 0,
             last_update = 0,
-            ip = 0,
+            weights = [],
+            bonds = [],
+            prometheus_info = None,
+            axon_info = None,
             is_null = True,
             coldkey = "000000000000000000000000000000000000000000000000",
             hotkey = "000000000000000000000000000000000000000000000000"
@@ -2886,7 +2882,7 @@ class Subtensor:
 
         if netuid:
             result = make_substrate_call_with_retry( netuid )
-            if not result.is_some:
+            if result.value == None:
                 return Subtensor._null_neuron()
             uid = int(result.value)
             neuron = self.neuron_for_uid( uid, netuid = netuid, block = block )
