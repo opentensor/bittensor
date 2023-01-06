@@ -36,7 +36,7 @@ endpoint = bittensor.endpoint(
     port = 8060,
     hotkey = wallet.hotkey.ss58_address,
     coldkey = wallet.coldkey.ss58_address,
-    modality = 0
+    protocol = 0
 )
 receptor = bittensor.receptor ( 
     endpoint = endpoint, 
@@ -462,7 +462,7 @@ def test_receptor_signature_output():
             port=65000,
             hotkey="5CSbZ7wG456oty4WoiX6a1J88VUbrCXLhrKVJ9q95BsYH4TZ",
             coldkey="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm",
-            modality=2,
+            protocol=0,
         )
 
         receptor = bittensor.receptor(
@@ -559,7 +559,7 @@ def test_axon_receptor_connection_forward_unauthenticated():
         port = 8081,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
-        modality = 2
+        protocol = 0
     )
 
     receptor = bittensor.receptor ( 
@@ -609,7 +609,7 @@ def test_axon_receptor_connection_forward_unauthenticated():
 #         port = 8082,
 #         hotkey = wallet.hotkey.ss58_address,
 #         coldkey = wallet.coldkey.ss58_address,
-#         modality = 2
+#         protocol = 0
 #     )
 
 #     receptor = bittensor.receptor ( 
@@ -658,7 +658,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
         port = 8090,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
-        modality = 2
+        protocol = 0
     )
 
     receptor = bittensor.receptor ( 
@@ -697,7 +697,7 @@ def test_axon_receptor_connection_forward_unimplemented():
         port = port,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
-        modality = 2
+        protocol = 0
     )
 
     receptor = bittensor.receptor ( 
@@ -749,7 +749,7 @@ def test_axon_receptor_connection_forward_timeout():
         port = 8085,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
-        modality = 2
+        protocol = 0
     )
 
     receptor = bittensor.receptor ( 
@@ -798,7 +798,7 @@ def test_axon_receptor_connection_backward_timeout():
         port = 8088,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
-        modality = 2
+        protocol = 0
     )
 
     receptor = bittensor.receptor ( 
