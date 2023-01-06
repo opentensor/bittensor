@@ -39,7 +39,7 @@ endpoint = bittensor.endpoint(
     ip = '0.0.0.0', 
     ip_type = 4, 
     port = 8080, 
-    modality = 0, 
+    protocol = 0, 
     coldkey = wallet.coldkey.ss58_address
 )
 
