@@ -490,7 +490,7 @@ class GenesisTextDataset( Dataset ):
                                 data_corpus.extend(text_list)
                                 total_dataset_len += len(text_list)
                         
-                        logger.success(f"Loaded from IPFS { round(total_dataset_len / min_data_len * 100) }%".ljust(20) + "<blue>{}</blue>".format([file_meta['Name'] for file_meta in directories[:n_workers]]))
+                        logger.success("Loaded from IPFS".ljust(20) + f"<yellow>{ round(total_dataset_len / min_data_len * 100) }%</yellow>  " + "<blue>{}</blue>".format([file_meta['Name'] for file_meta in directories[:n_workers]]))
                         directories = directories[n_workers:]
 
             else:
