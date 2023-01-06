@@ -483,7 +483,7 @@ class neuron:
                 # Prints exponential moving average statistics of valid neurons from latest validator forward
                 self.vlogger.print_stats_table({uid: self.neuron_stats[uid]
                              for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
-                            self.weight_key, self.config.get('width', None),
+                            self.weight_key,
                             f'[white] Stats update [/white] | ' + str(self),  # title
                             f'#{current_block}: '
                             f'[bold]{current_block - start_block}[/bold]/{blocks_per_epoch} (blocks/epoch) | '
