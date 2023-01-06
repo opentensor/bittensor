@@ -635,7 +635,7 @@ class CLI:
                 coldkeypub_str = '?'
 
             wallet_tree = root.add("\n[bold white]{} ({})".format(w_name, coldkeypub_str))
-            hotkeys_path = self.config.wallet.path + w_name + '/hotkeys'
+            hotkeys_path = os.path.join(self.config.wallet.path, w_name, 'hotkeys')
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
                 if len( hotkeys ) > 1:
@@ -968,10 +968,10 @@ class CLI:
         total_neurons = 0
         
         for subnet in subnets:
-            total_neurons += subnet.n
+            total_neurons += subnet.max_n
             rows.append((
                 str(subnet.netuid),
-                str(subnet.n),
+                str(subnet.max_n),
                 str(subnet.max_n),
                 str(bittensor.utils.registration.millify(subnet.difficulty)),
                 str(subnet.immunity_period),

@@ -166,7 +166,7 @@ class Subtensor:
                 )
 
         result = make_substrate_call_with_retry()
-        return result.value if result.is_success else None
+        return result.value
 
     def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         r""" Incentive mechanism kappa parameter.
@@ -463,7 +463,7 @@ class Subtensor:
             with self.substrate as substrate:
                 return substrate.query(
                     module='Paratensor',
-                    storage_function = 'MaxWeightLimit',
+                    storage_function = 'MaxWeightsLimit',
                     params = [netuid],
                     block_hash= None if block == None else substrate.get_block_hash(block)
                 )
@@ -2413,10 +2413,9 @@ class Subtensor:
 
         subnets = []
         result = make_substrate_call_with_retry()
-        if result.value:
-            for netuid, is_added in result.value:
-                if is_added:
-                    subnets.append( netuid )
+        if result.records:
+            for network in result.records:
+                subnets.append( network[0].value )
             return subnets
         else:
             return []
@@ -2437,6 +2436,7 @@ class Subtensor:
             for netuid in netuids:
                 info = SubnetInfo(
                     netuid=netuid,
+                    blocks_per_epoch = 0,
                     rho = self.rho( netuid, block ),
                     kappa = self.kappa( netuid, block ),
                     difficulty = self.difficulty( netuid, block ),
@@ -2453,7 +2453,7 @@ class Subtensor:
                     max_n = self.max_n( netuid, block ),
                     blocks_since_epoch = self.blocks_since_epoch( netuid, block ),
                     max_allowed_validators = self.max_allowed_validators( netuid, block ),
-                    emissionValue= self.get_emission_value_by_netuid( netuid, block ),
+                    emission_value = self.get_emission_value_by_netuid( netuid, block ),
                     tempo= self.tempo( netuid, block ),
                     modality= self.get_network_modality( netuid, block ),
                     connection_requirements= self.get_network_connection_requirements( netuid, block ),
@@ -2603,12 +2603,14 @@ class Subtensor:
         else:
             return 0
 
-    def get_network_modality( self, netuid: int ) -> Optional[int]:
+    def get_network_modality( self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         r"""
         Returns the modality of the subnet.
         Args:
             netuid ( int ):
                 The netuid to check.
+            block ( Optional[int] ):
+                block to sync at.
         Returns:
             modality ( Optional[int] ):
                 The modality of the subnet.
@@ -2621,7 +2623,7 @@ class Subtensor:
                     module='Paratensor',
                     storage_function='NetworkModality',
                     params = [ netuid ],
-                    block_hash=None
+                    block_hash=None if block == None else substrate.get_block_hash( block )
                 )
 
         result = make_substrate_call_with_retry()
@@ -2630,7 +2632,7 @@ class Subtensor:
         else:
             return None
 
-    def get_network_connection_requirement( self, netuid_0: int, netuid_1: int ) -> Optional[int]:
+    def get_network_connection_requirement( self, netuid_0: int, netuid_1: int, block: Optional[int] = None) -> Optional[int]:
         r"""
         Returns the connection requirement of the two subnets.
         Args:
@@ -2651,7 +2653,7 @@ class Subtensor:
                     module='Paratensor',
                     storage_function='NetworkConnect',
                     params = [ netuid_0, netuid_1 ],
-                    block_hash=None
+                    block_hash=None if block == None else substrate.get_block_hash( block )
                 )
 
         result = make_substrate_call_with_retry()
@@ -2660,7 +2662,7 @@ class Subtensor:
         else:
             return None
 
-    def get_network_connection_requirements( self, netuid: int) -> Dict[str, int]:
+    def get_network_connection_requirements( self, netuid: int, block: Optional[int] = None) -> Dict[str, int]:
         r"""
         Returns the connection requirements for the subnet.
         Args:
@@ -2680,14 +2682,14 @@ class Subtensor:
                     module='Paratensor',
                     storage_function='NetworkConnect',
                     params = [ netuid ],
-                    block_hash=None
+                    block_hash=None if block == None else substrate.get_block_hash( block )
                 )
 
         result = make_substrate_call_with_retry()
-        if result.value:
+        if result.records:
             requirements = {}
-            for netuid, connection_req in result.value:
-                requirements[str(netuid)] = connection_req
+            for tuple in result.records:
+                requirements[str(tuple[0].value)] = tuple[1].value
         else:
             return {}
 

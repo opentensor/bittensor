@@ -73,7 +73,7 @@ __nakamoto_entrypoint__ = "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com
 
 __nobunaga_entrypoint__ = "staging.nobunaga.opentensor.ai:9944"
 
-__finney_entrypoint__ = "staging.finney.opentensor.ai:9944"
+__finney_entrypoint__ = "collator1.parachain.opentensor.ai:443"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
