@@ -149,7 +149,6 @@ class ValidatorLogger:
             rich_print(table)
             print()
 
-
     def stats_table(
         self, 
         stats, 
@@ -199,7 +198,6 @@ class ValidatorLogger:
         # === Print table ===
         rich_print(table)
 
-
     def synapse_table(
         self, 
         name, 
@@ -216,15 +214,13 @@ class ValidatorLogger:
                     f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
                     )
 
-
     def weights_table(
             self,
             min_allowed_weights,
             max_weight_limit,
             neuron_stats,
-            width,
             title,
-            n, 
+            metagraph_n, 
             sample_uids, 
             sample_weights, 
             include_uids=None, 

@@ -507,14 +507,13 @@ class neuron:
                 # === Calculate neuron weights ===
                 sample_uids, sample_weights = self.calculate_weights()
                 self.vlogger.weights_table(
-                    self.subtensor.min_allowed_weights,
-                    self.subtensor.max_weight_limit,
-                    self.neuron_stats,
-                    self.config.get('width', None),
-                    str(self),
-                    self.metagraph.n, 
-                    sample_uids, 
-                    sample_weights,
+                    min_allowed_weight = self.subtensor.min_allowed_weights,
+                    max_weight_limit = self.subtensor.max_weight_limit,
+                    neuron_stats = self.neuron_stats,
+                    title = str(self),
+                    metagraph_n = self.metagraph.n, 
+                    sample_uids = sample_uids, 
+                    sample_weights = sample_weights,
                     include_uids=list(stats.keys()), 
                     num_rows=len(stats) + 25
                 )  # print weights table
@@ -547,7 +546,15 @@ class neuron:
         sample_uids, sample_weights = self.calculate_weights()
 
         if self.config.logging.debug or self.config.logging.trace:
-            self.vlogger.weights_table(sample_uids, sample_weights)  # print weights table
+                self.vlogger.weights_table(
+                    min_allowed_weight = self.subtensor.min_allowed_weights,
+                    max_weight_limit = self.subtensor.max_weight_limit,
+                    neuron_stats = self.neuron_stats,
+                    title = str(self),
+                    metagraph_n = self.metagraph.n, 
+                    sample_uids = sample_uids, 
+                    sample_weights = sample_weights,
+                )  # print weights table
 
         # set weights console message (every epoch)
         print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
