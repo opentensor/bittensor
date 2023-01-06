@@ -253,7 +253,7 @@ class ValidatorLogger:
                 _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
-        self.print_stats_table(_neuron_stats, 'weight', self.console_width,
+        self.print_stats_table(_neuron_stats, 'weight',
                     f'[white] Neuron weights [/white] | ' + title,  # title
                     f'Validated {min_allowed_weights}/'
                     f'[bold]{len(neuron_stats)}[/bold]/{metagraph_n} (min/[bold]valid[/bold]/total) | '

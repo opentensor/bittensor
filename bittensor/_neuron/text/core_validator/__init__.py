@@ -507,7 +507,7 @@ class neuron:
                 # === Calculate neuron weights ===
                 sample_uids, sample_weights = self.calculate_weights()
                 self.vlogger.print_weights_table(
-                    min_allowed_weight = self.subtensor.min_allowed_weights,
+                    min_allowed_weights = self.subtensor.min_allowed_weights,
                     max_weight_limit = self.subtensor.max_weight_limit,
                     neuron_stats = self.neuron_stats,
                     title = str(self),
