@@ -426,7 +426,6 @@ class server(torch.nn.Module):
         """
         transformers.set_seed(0)
         transformers.enable_full_determinism(0)
-        print('forward called checkpoint')
         
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer

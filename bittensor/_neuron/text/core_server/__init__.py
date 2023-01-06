@@ -41,6 +41,10 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torch.nn.utils import clip_grad_norm_
 
+from rich import print
+from rich.console import Console
+from rich.style import Style
+
 class neuron:
     r"""
     Creates a bittensor neuron that specializes in the serving. The template server miner
@@ -157,6 +161,7 @@ class neuron:
                 priority = self.priority if not self.model.config.neuron.disable_priority else None,
             )
         self.axon = axon
+        self.query_data = {}
 
     @classmethod
     def config(cls):
@@ -234,15 +239,19 @@ class neuron:
         last_set_block = self.subtensor.get_current_block()
         blocks_per_epoch = self.subtensor.blocks_per_epoch if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         blocks_per_set_weights = self.subtensor.blocks_per_epoch if self.config.neuron.blocks_per_set_weights == -1 else self.config.neuron.blocks_per_set_weights
-
+        epoch_starting_successes = self.axon.stats.total_successes
+        epoch_starting_requests = self.axon.stats.total_requests
         # --- Run Forever.
         while True:
             iteration = 0
             local_data = {}
+            self.query_data = {}
+            
             nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
             uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
             current_block = self.subtensor.get_current_block()
             end_block = current_block + self.config.neuron.blocks_per_epoch
+
             if self.config.neuron.local_train:
                 # --- Training step.
                 while end_block >= current_block:
@@ -264,7 +273,7 @@ class neuron:
                     (losses/iteration).backward()
             
             else:
-                while end_block >= current_block:
+                while end_block > current_block:
                     time.sleep(12)
                     current_block = self.subtensor.get_current_block()
 
@@ -302,7 +311,7 @@ class neuron:
 
                 self.model.backward_gradients_count = 0
                 
-            wandb_data = {            
+            data = {            
                 'stake': nn.stake,
                 'rank': nn.rank,
                 'trust': nn.trust,
@@ -319,7 +328,7 @@ class neuron:
                 ], axis = 1)
                 df['uid'] = df.index
                 wandb_info_axon = self.axon.to_wandb()                
-                wandb.log( { **wandb_data, **wandb_info_axon, **local_data }, step = current_block )
+                wandb.log( { **data, **wandb_info_axon, **local_data }, step = current_block )
                 wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
             # === Prometheus logging.
@@ -330,13 +339,30 @@ class neuron:
             self.prometheus_guages.labels("incentive").set( nn.incentive )
             self.prometheus_guages.labels("emission").set( nn.emission )
 
+            print(f"[white not bold]{datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
+                f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
+                f'[green not bold]{current_block - last_set_block}[/green not bold]/'
+                f'[white not bold]{blocks_per_set_weights}[/white not bold] [dim]blocks/epoch[/dim] | '
+                f'[bright_green not bold]{self.axon.stats.total_successes - epoch_starting_successes}[/bright_green not bold]'
+                f'[white]/{self.axon.stats.total_requests - epoch_starting_requests}[/white] '
+                f'[dim]Epoch Success Requests [/dim]|'
+                f'[dim][green] {self.axon.stats.total_successes}[/green]'
+                f'[white]/{self.axon.stats.total_requests}[/white]'
+                f' Total Success Requests [/dim]|'
+                f'[dim] [green]{nn.stake}[/green] Stake [/dim]'
+                f'[dim white not bold]| [yellow]{nn.trust}[/yellow] Trust [/dim white not bold]'
+                f'[dim white not bold]| [green]{nn.incentive}[/green] Incentive [/dim white not bold]')
+
             if current_block - last_set_block > blocks_per_set_weights:
-                bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
+
+                bittensor.__console__.print('[green]Current Status:[/green]', {**data, **local_data})
                 self.metagraph.sync()
                 last_set_block = current_block
+                epoch_starting_successes = self.axon.stats.total_successes
+                epoch_starting_requests = self.axon.stats.total_requests
+
                 if not self.config.neuron.no_set_weights:
                     try: 
-                        bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
                         # Set self weights to maintain activity.
                         # --- query the chain for the most current number of peers on the network
                         chain_weights = torch.zeros(self.subtensor.n)
