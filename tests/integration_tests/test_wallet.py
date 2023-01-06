@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+import unittest
 from unittest.mock import MagicMock
 import os
 import time
@@ -203,3 +204,7 @@ def test_wallet_mock_from_func():
     assert wallet.hotkey
     assert wallet.coldkey
     assert wallet.coldkeypub
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -244,6 +244,8 @@ class axon:
                     help='''The public port this axon broadcasts to the network. i.e. 8091''', default = bittensor.defaults.axon.external_port)
             parser.add_argument('--' + prefix_str + 'axon.external_ip', type=str, required=False,
                 help='''The external ip this axon broadcasts to the network to. ie. [::]''', default = bittensor.defaults.axon.external_ip)
+            parser.add_argument('--' + prefix_str + 'axon.protocol', type=int, required=False,
+                    help='''The protocol this axon broadcasts to the network. i.e. 0''', default = bittensor.defaults.axon.protocol)
             parser.add_argument('--' + prefix_str + 'axon.max_workers', type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
@@ -286,6 +288,7 @@ class axon:
         defaults.axon = bittensor.Config()
         defaults.axon.port = os.getenv('BT_AXON_PORT') if os.getenv('BT_AXON_PORT') != None else 8091
         defaults.axon.ip = os.getenv('BT_AXON_IP') if os.getenv('BT_AXON_IP') != None else '[::]'
+        defaults.axon.protocol = os.getenv('BT_AXON_PROTOCOL') if os.getenv('BT_AXON_PROTOCOL') != None else 0
         defaults.axon.external_port = os.getenv('BT_AXON_EXTERNAL_PORT') if os.getenv('BT_AXON_EXTERNAL_PORT') != None else None
         defaults.axon.external_ip = os.getenv('BT_AXON_EXTERNAL_IP') if os.getenv('BT_AXON_EXTERNAL_IP') != None else None
         defaults.axon.max_workers = os.getenv('BT_AXON_MAX_WORERS') if os.getenv('BT_AXON_MAX_WORERS') != None else 10
