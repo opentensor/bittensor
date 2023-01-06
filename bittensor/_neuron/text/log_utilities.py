@@ -307,7 +307,7 @@ class ValidatorLogger:
         f'[dim white not bold][green]{len(epoch_responsive_uids)}[/green]/'
         f'{len(epoch_queried_uids)}[/dim white not bold]')
 
-    def print_console_weight_set(
+    def print_console_subtensor_weight(
         self,
         sample_weights, 
         epoch_responsive_uids, 

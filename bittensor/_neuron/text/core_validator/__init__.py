@@ -543,7 +543,7 @@ class neuron:
                 )  # print weights table
 
         # set weights console message (every epoch)
-        self.print_console_weight_set(
+        self.print_console_subtensor_weight(
             sample_weights = sample_weights, 
             epoch_responsive_uids = epoch_responsive_uids, 
             epoch_queried_uids = epoch_queried_uids, 
@@ -1456,7 +1456,6 @@ def shapley_synergy(stats: Dict, synergy: Callable, ext: str, target: torch.Tens
                 second['synergy' + ext] += synergy_share
 
     return syn_loss_diff
-
 
 def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
                        return_ops: List[torch.LongTensor], inputs: torch.FloatTensor,
