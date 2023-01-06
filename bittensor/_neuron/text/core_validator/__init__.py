@@ -38,7 +38,7 @@ from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
-from ..log_utilities import response_table, synergy_table, stats_table, synapse_table, weights_table
+from ..log_utilities import ValidatorLogger
 from bittensor.utils.tokenizer_utils import phrase_cross_entropy
 
 from torch.nn.utils import clip_grad_norm_
@@ -133,7 +133,7 @@ class neuron:
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
         )
-
+        self.vlogger = ValidatorLogger()
         # === Create thread queue ===
         self.loss = None
         self.loss_agg_mutex = Lock()
@@ -492,7 +492,7 @@ class neuron:
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
                 # Prints exponential moving average statistics of valid neurons from latest validator forward
-                stats_table({uid: self.neuron_stats[uid]
+                self.vlogger.stats_table({uid: self.neuron_stats[uid]
                              for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
                             self.weight_key, self.config.get('width', None),
                             f'[white] Stats update [/white] | ' + str(self),  # title
@@ -503,7 +503,7 @@ class neuron:
 
                 # === Calculate neuron weights ===
                 sample_uids, sample_weights = self.calculate_weights()
-                weights_table(
+                self.vlogger.weights_table(
                     self.subtensor.min_allowed_weights,
                     self.subtensor.max_weight_limit,
                     self.neuron_stats,
@@ -544,7 +544,7 @@ class neuron:
         sample_uids, sample_weights = self.calculate_weights()
 
         if self.config.logging.debug or self.config.logging.trace:
-            self.weights_table(sample_uids, sample_weights)  # print weights table
+            self.vlogger.weights_table(sample_uids, sample_weights)  # print weights table
 
         # set weights console message (every epoch)
         print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
@@ -740,10 +740,10 @@ class neuron:
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
     """
-    def __init__( self, config, device, subtensor ):
+    def __init__( self, config, device, subtensor, vlogger ):
         super(nucleus, self).__init__()
         self.config = config
-
+        self.vlogger = vlogger
         self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
 
@@ -965,7 +965,6 @@ class nucleus( torch.nn.Module ):
 
         return loss, neuron_stats
 
-
 def scaling_law_loss_to_params(loss):
     r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
     """
@@ -1019,7 +1018,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             stats (:obj:`Dict`, `required`):
                 Statistics per endpoint for this batch.
     """
-
+    vlogger = ValidatorLogger()
     inputs_seq = inputs[..., :-validation_len]  # input sequence without last token [batch_size, sequence_len]
     inputs_val = inputs[..., -validation_len]  # input validation with next token [batch_size]
 
@@ -1088,11 +1087,11 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     if logging:
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
+        vlogger.synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        synapse_table(str(synapse), stats, 'shapley_values_min', console_width, shapley_start_time)
+        vlogger.synapse_table(str(synapse), stats, 'shapley_values_min', console_width, shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
@@ -1146,7 +1145,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
             stats (:obj:`Dict`, `required`):
                 Statistics per endpoint for this batch.
     """
-
+    vlogger = ValidatorLogger()
     inputs_nxt = inputs[..., -validation_len:]  # input validation with next token target phrase [batch_size, val_len]
 
     def _base_params(_stats, query_response):
@@ -1196,15 +1195,15 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         # === Response table ===
         # Prints the query response table: top prediction probabilities and texts for batch tasks
         batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
-        response_table(batch_predictions, stats, sort_col='loss_nxt', console_width=console_width)
+        vlogger.response_table(batch_predictions, stats, sort_col='loss_nxt', console_width=console_width)
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        synergy_table(stats, syn_loss_diff, 'loss_nxt', console_width)
+        vlogger.synergy_table(stats, syn_loss_diff, 'loss_nxt', console_width)
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        synapse_table(str(synapse), stats, 'loss_nxt', console_width, shapley_start_time)
+        vlogger.synapse_table(str(synapse), stats, 'loss_nxt', console_width, shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
@@ -1399,7 +1398,6 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
         batch_predictions += [(task, predictions)]
 
     return batch_predictions
-
 
 
 def unsuccess(_name, _unsuccessful):
