@@ -253,7 +253,7 @@ class ValidatorLogger:
                 _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
-        self.stats_table(_neuron_stats, 'weight', width,
+        self.stats_table(_neuron_stats, 'weight', self.console_width,
                     f'[white] Neuron weights [/white] | ' + title,  # title
                     f'Validated {min_allowed_weights}/'
                     f'[bold]{len(neuron_stats)}[/bold]/{n} (min/[bold]valid[/bold]/total) | '
@@ -262,3 +262,4 @@ class ValidatorLogger:
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
                     f'\[{max_weight_limit:.4g} allowed]',  # caption
                     mark_uids=include_uids)
+
