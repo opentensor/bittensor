@@ -260,6 +260,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
 
         self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
             subtensor,
+            -1, # netuid
             MagicMock(),
             MagicMock(),
             MagicMock(),
@@ -285,7 +286,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         )
         subtensor = MagicMock(
             substrate=mock_substrate,
-            difficulty=current_diff + 1, # new diff
+            difficulty=MagicMock(return_value=current_diff + 1), # new diff
         )
         subtensor.get_current_block = MagicMock( return_value=current_block_num + 1 ) # new block
 
@@ -311,6 +312,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
 
         self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
             subtensor,
+            -1, # netuid
             MagicMock(),
             MagicMock(),
             MagicMock(),
@@ -337,7 +339,7 @@ class TestGetBlockWithRetry(unittest.TestCase):
     def test_get_block_with_retry_network_error_exit(self):
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=1),
-            difficulty=1,
+            difficulty=MagicMock(return_value=1),
             substrate=MagicMock(
                 get_block_hash=MagicMock(side_effect=Exception('network error'))
             )
@@ -349,14 +351,14 @@ class TestGetBlockWithRetry(unittest.TestCase):
     def test_get_block_with_retry_network_error_no_error(self):
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=1),
-            difficulty=1,
+            difficulty=MagicMock(return_value=1),
             substrate=MagicMock(
                 get_block_hash=MagicMock(return_value=b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279')
             )
         )
 
         # this should not raise an exception because there is no error
-        bittensor.utils.get_block_with_retry(mock_subtensor)
+        bittensor.utils.get_block_with_retry(mock_subtensor, -1)
 
     def test_get_block_with_retry_network_error_none_twice(self):
         # Should retry twice then succeed on the third try
@@ -372,14 +374,14 @@ class TestGetBlockWithRetry(unittest.TestCase):
         
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=1),
-            difficulty=1,
+            difficulty=MagicMock(return_value=1),
             substrate=MagicMock(
                 get_block_hash=MagicMock(side_effect=block_none_twice(b'ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'))
             )
         )
         
         # this should not raise an exception because there is no error on the third try
-        bittensor.utils.get_block_with_retry(mock_subtensor)
+        bittensor.utils.get_block_with_retry(mock_subtensor, -1)
 class TestPOWNotStale(unittest.TestCase):
     def test_pow_not_stale_same_block_number(self):
         mock_subtensor = MagicMock(
@@ -465,7 +467,7 @@ def test_pow_called_for_cuda():
                 
                     # Should exit early
                     with pytest.raises(MockException):
-                        mock_subtensor.register(mock_wallet, cuda=True, prompt=False)
+                        mock_subtensor.register(mock_wallet, netuid=-1, cuda=True, prompt=False)
 
                     mock_pow_not_stale.assert_called_once()
                     mock_create_pow.assert_called_once()
