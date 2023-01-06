@@ -944,19 +944,19 @@ class nucleus( torch.nn.Module ):
                     f'<dim>[{time.time() - request_start_time:.3g}s]</dim>')
 
         # === Prepare validation parameter set ===
-        validation_params = (
-            random_uids, 
-            query_responses, 
-            return_ops, 
-            times, 
-            routing_score,
-            inputs, 
-            val_len, 
-            self.loss_fct,
-            self.config.nucleus.scaling_law_power, 
-            self.config.nucleus.synergy_scaling_law_power,
-            self.config.logging.debug or self.config.logging.trace
-        )
+        validation_params = {
+            'uids': random_uids, 
+            'query_responses': query_responses, 
+            'return_ops': return_ops, 
+            'times': times, 
+            'routing_score': routing_score,
+            'inputs': inputs, 
+            'validation_len': val_len, 
+            'loss_fct': self.loss_fct,
+            'scaling_law_power': self.config.nucleus.scaling_law_power, 
+            'synergy_scaling_law_power': self.config.nucleus.synergy_scaling_law_power,
+            'logging': self.config.logging.debug or self.config.logging.trace
+        }
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -964,7 +964,7 @@ class nucleus( torch.nn.Module ):
         # === Validate synapse responses ===
         # Iterate over all queried synapses and validate responses
         for i, (synapse, validate_func) in enumerate(synapses):
-            _loss, stats = validate_func(*validation_params, synapse=synapse, index_s=i)  # validate individual synapse
+            _loss, stats = validate_func(**validation_params, synapse=synapse, index_s=i)  # validate individual synapse
             loss += _loss  # add neuron_loss and routing_loss
 
             for _uid, _stats in stats.items():
