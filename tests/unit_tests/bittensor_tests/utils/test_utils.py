@@ -219,6 +219,17 @@ def test_is_valid_ss58_address():
     assert bittensor.utils.is_valid_ss58_address(good_address)
     assert not bittensor.utils.is_valid_ss58_address(bad_address)
 
+def test_is_valid_ss58_address_legacy():
+    keypair = bittensor.Keypair.create_from_mnemonic(
+        bittensor.Keypair.generate_mnemonic(
+            words=12
+        ), ss58_format=42 # should be fine for legacy ss58
+    )
+    good_address = keypair.ss58_address
+    bad_address = good_address[:-1] + 'a'
+    assert bittensor.utils.is_valid_ss58_address(good_address)
+    assert not bittensor.utils.is_valid_ss58_address(bad_address)
+
 def test_is_valid_ed25519_pubkey():
     keypair = bittensor.Keypair.create_from_mnemonic(
         bittensor.Keypair.generate_mnemonic(
