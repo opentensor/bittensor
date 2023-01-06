@@ -786,7 +786,10 @@ class Axon( bittensor.grpc.BittensorServicer ):
             # Total requests.
             total_requests = 0,
             # Total Codes.
-            total_codes = {},
+            total_codes = {
+                bittensor.proto.ReturnCode.Name(1):0,
+                bittensor.proto.ReturnCode.Name(2):0,
+            },
             # Total Successes.
             total_successes = 0,
             # Requests per pubkey.

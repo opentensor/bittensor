@@ -345,17 +345,21 @@ class neuron:
                 f'[white not bold]{blocks_per_set_weights}[/white not bold] [dim]blocks/epoch[/dim] | '
                 f'[bright_green not bold]{self.axon.stats.total_successes - epoch_starting_successes}[/bright_green not bold]'
                 f'[white]/{self.axon.stats.total_requests - epoch_starting_requests}[/white] '
-                f'[dim]Epoch Success Requests [/dim]|'
+                f'[dim]Epoch Success [/dim]|'
                 f'[dim][green] {self.axon.stats.total_successes}[/green]'
                 f'[white]/{self.axon.stats.total_requests}[/white]'
-                f' Total Success Requests [/dim]|'
-                f'[dim] [green]{nn.stake}[/green] Stake [/dim]'
-                f'[dim white not bold]| [yellow]{nn.trust}[/yellow] Trust [/dim white not bold]'
-                f'[dim white not bold]| [green]{nn.incentive}[/green] Incentive [/dim white not bold]')
+                f' Total Success [/dim]|'
+                f'[dim white not bold][yellow] {self.axon.stats.total_codes[bittensor.proto.ReturnCode.Name(2)]}[/yellow]'
+                f'[white]/{self.axon.stats.total_requests}[/white]'
+                f' Timeout [/dim white not bold]|'
+                f'[dim white not bold][red] {self.axon.stats.total_requests - self.axon.stats.total_successes - self.axon.stats.total_codes[bittensor.proto.ReturnCode.Name(2)]}[/red]'
+                f'[white]/{self.axon.stats.total_requests}[/white]'
+                f' Error [/dim white not bold]|'
+                f'[dim white not bold] [green]{nn.stake:.4}[/green] Stake [/dim white not bold]'
+                f'[dim white not bold]| [yellow]{nn.trust:.3}[/yellow] Trust [/dim white not bold]'
+                f'[dim white not bold]| [green]{nn.incentive:.3}[/green] Incentive [/dim white not bold]')
 
             if current_block - last_set_block > blocks_per_set_weights:
-
-                bittensor.__console__.print('[green]Current Status:[/green]', {**data, **local_data})
                 self.metagraph.sync()
                 last_set_block = current_block
                 epoch_starting_successes = self.axon.stats.total_successes
