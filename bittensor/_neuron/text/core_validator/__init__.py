@@ -944,11 +944,19 @@ class nucleus( torch.nn.Module ):
                     f'<dim>[{time.time() - request_start_time:.3g}s]</dim>')
 
         # === Prepare validation parameter set ===
-        console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
-        validation_params = (random_uids, query_responses, return_ops, times, routing_score,
-                             inputs, val_len, self.loss_fct,
-                             self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
-                             console_width, self.config.logging.debug or self.config.logging.trace)
+        validation_params = (
+            random_uids, 
+            query_responses, 
+            return_ops, 
+            times, 
+            routing_score,
+            inputs, 
+            val_len, 
+            self.loss_fct,
+            self.config.nucleus.scaling_law_power, 
+            self.config.nucleus.synergy_scaling_law_power,
+            self.config.logging.debug or self.config.logging.trace
+        )
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -977,7 +985,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
                  scaling_law_power: float, synergy_scaling_law_power: float,
-                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
+                 logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLM synapse responses.
@@ -1003,8 +1011,6 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
-            console_width (:obj:`int`, `required`):
-                Config console width for table print.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLM`, `optional`):
@@ -1087,11 +1093,11 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     if logging:
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        vlogger.synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
+        vlogger.synergy_table(stats, syn_loss_diff, 'shapley_values_min')
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        vlogger.synapse_table(str(synapse), stats, 'shapley_values_min', console_width, shapley_start_time)
+        vlogger.synapse_table(str(synapse), stats, 'shapley_values_min', shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
@@ -1104,7 +1110,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
                      scaling_law_power: float, synergy_scaling_law_power: float,
-                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
+                     logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -1130,8 +1136,6 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
-            console_width (:obj:`int`, `required`):
-                Config console width for table print.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLMNext`, `optional`):
@@ -1195,15 +1199,15 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         # === Response table ===
         # Prints the query response table: top prediction probabilities and texts for batch tasks
         batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
-        vlogger.response_table(batch_predictions, stats, sort_col='loss_nxt', console_width=console_width)
+        vlogger.response_table(batch_predictions, stats, sort_col='loss_nxt')
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        vlogger.synergy_table(stats, syn_loss_diff, 'loss_nxt', console_width)
+        vlogger.synergy_table(stats, syn_loss_diff, 'loss_nxt')
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        vlogger.synapse_table(str(synapse), stats, 'loss_nxt', console_width, shapley_start_time)
+        vlogger.synapse_table(str(synapse), stats, 'loss_nxt', shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses

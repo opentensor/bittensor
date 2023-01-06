@@ -8,9 +8,10 @@ from rich.style import Style
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 class ValidatorLogger:
-    def __init__(self):
+    def __init__(self, config):
         # Neuron stats recorded by validator neuron/nucleus
         #   [Column_name, key_name, format_string, rich_style]  # description
+        self.config = config
         self.neuron_stats_columns = [
             ['UID', 'uid', '{:.0f}', 'cyan'],  # neuron UID
             ['Upd!', 'updates!', '{}', 'bright_yellow'],  # number of exponential moving average updates with zeroing on
@@ -43,9 +44,18 @@ class ValidatorLogger:
             ['vSynD', 'synergy_loss_diff_val', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over validation loss (loss difference)
             ['nSynD', 'synergy_loss_diff_nxt', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over phrase validation loss (loss difference) [TextCausalLMNext]
         ]
+        # console_width (:obj:`int`, `required`):
+        #     Config console width for table print.
+        self.console_width = self.config.get('width', None)
 
-    def response_table(self, batch_predictions: List, stats: Dict, sort_col: str, console_width: int,
-                    task_repeat: int = 4, tasks_per_server: int = 3):
+    def response_table(
+        self, 
+        batch_predictions: List, 
+        stats: Dict, 
+        sort_col: str, 
+        task_repeat: int = 4, 
+        tasks_per_server: int = 3
+    ):
         r""" Prints the query response table: top prediction probabilities and texts for batch tasks.
         """
         # === Batch permutation ===
@@ -68,7 +78,7 @@ class ValidatorLogger:
         for i, (uid, val) in enumerate(sort):
             # === New table section ===
             if i % task_repeat == 0:
-                table = Table(width=console_width, box=None)
+                table = Table(width=self.console_width, box=None)
                 if i == 0:
                     table.title = f"[white bold] Query responses [/white bold] | " \
                                 f"[white]context[/white][bold]continuation[/bold] | .prob: 'prediction'"
@@ -107,7 +117,12 @@ class ValidatorLogger:
                         print()
 
 
-    def synergy_table(self, stats, syn_loss_diff, sort_col, console_width):
+    def synergy_table(
+        self, 
+        stats, 
+        syn_loss_diff, 
+        sort_col, 
+    ):
         r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
         """
         sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
@@ -120,7 +135,7 @@ class ValidatorLogger:
                 '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]).replace('0.', '.') for t in sort] for s in sort]
 
         # === Synergy table ===
-        table = Table(width=console_width, box=None)
+        table = Table(width=self.console_width, box=None)
         table.title = f'[white] Synergy table [/white] | Pairwise synergy'
         table.caption = f'loss decrease'
 
@@ -134,7 +149,14 @@ class ValidatorLogger:
             print()
 
 
-    def stats_table(self, stats, sort_col, console_width, title, caption, mark_uids=None):
+    def stats_table(
+        self, 
+        stats, 
+        sort_col, 
+        title, 
+        caption, 
+        mark_uids=None
+    ):
         r""" Gathers data and constructs neuron statistics table and prints it
         """
         # === Gather columns and rows ===
@@ -164,7 +186,7 @@ class ValidatorLogger:
             rows = sorted(rows, reverse='loss' not in sort_col, key=lambda _row: _row[sort_idx][1])  # sort according to sortcol
 
         # === Instantiate stats table ===
-        table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
+        table = Table(width=self.console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
         table.title = title
         table.caption = caption
 
@@ -177,10 +199,16 @@ class ValidatorLogger:
         rich_print(table)
 
 
-    def synapse_table(self, name, stats, sort_col, console_width, start_time):
+    def synapse_table(
+        self, 
+        name, 
+        stats, 
+        sort_col, 
+        start_time
+    ):
         r""" Prints the evaluation of the neuron responses to the validator request
         """
-        self.stats_table(stats, sort_col, console_width,
+        self.stats_table(stats, sort_col, self.console_width,
                     f'[white] \[{name}] responses [/white] | Validator forward',  # title
                     f'[bold]{len([s for s in stats.values() if len(s) and sort_col in s])}[/bold]/'
                     f'{len(stats)} (respond/topk) | '
