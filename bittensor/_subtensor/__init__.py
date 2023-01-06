@@ -176,7 +176,7 @@ class subtensor:
         try:
             parser.add_argument('--' + prefix_str + 'subtensor.network', default = bittensor.defaults.subtensor.network, type=str,
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- nobunaga (staging network)
+                                        -- finney (staging network)
                                         -- nakamoto (master network)
                                         -- local (local running network)
                                         -- mock (creates a mock connection (for testing))
@@ -209,7 +209,7 @@ class subtensor:
         """ Adds parser defaults to object from enviroment variables.
         """
         defaults.subtensor = bittensor.Config()
-        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
+        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'finney'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
@@ -248,6 +248,9 @@ class subtensor:
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoint__
+        elif network == "kiru": 
+            # Kiru Finney stagin network.
+            return bittensor.__kiru_entrypoint__
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoint__
