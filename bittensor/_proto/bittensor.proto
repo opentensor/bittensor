@@ -138,6 +138,9 @@ message Synapse {
 
 		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
 		bool requires_grad = 6;
+
+		// Mask
+		repeated int32 mask = 7;
 	}
 
 	message TextCausalLM {
