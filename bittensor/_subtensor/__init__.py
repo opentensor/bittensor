@@ -29,38 +29,6 @@ from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
 
-__type_registery__ = {
-    "runtime_id": 2,
-    "types": {
-        "Balance": "u64",
-        "NeuronMetadataOf": {
-            "type": "struct",
-            "type_mapping": [
-                ["version", "u32"],
-                ["ip", "u128"], 
-                ["port", "u16"], 
-                ["ip_type", "u8"], 
-                ["uid", "u32"], 
-                ["modality", "u8"], 
-                ["hotkey", "AccountId"], 
-                ["coldkey", "AccountId"], 
-                ["active", "u32"],
-                ["last_update", "u64"],
-                ["priority", "u64"],
-                ["stake", "u64"],
-                ["rank", "u64"],
-                ["trust", "u64"],
-                ["consensus", "u64"],
-                ["incentive", "u64"],
-                ["dividends", "u64"],
-                ["emission", "u64"],
-                ["bonds", "Vec<(u32, u64)>"],
-                ["weights", "Vec<(u32, u32)>"]
-            ]
-        }
-    }
-}
-
 GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
 
 class subtensor:
@@ -143,7 +111,6 @@ class subtensor:
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
             type_registry_preset='substrate-node-template',
-            type_registry = __type_registery__,
             url = endpoint_url,
             use_remote_preset=True
         )
@@ -248,9 +215,9 @@ class subtensor:
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoint__
-        elif network == "kiru": 
+        elif network == "finney": 
             # Kiru Finney stagin network.
-            return bittensor.__kiru_entrypoint__
+            return bittensor.__finney_entrypoint__
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoint__

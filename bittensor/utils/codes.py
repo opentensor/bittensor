@@ -71,6 +71,10 @@ def code_to_string( code: 'bittensor.proto.ReturnCode' ) -> str:
         return 'SenderUnknown'
     elif code == 22:
         return 'UnknownException'
+    elif code == 23:
+        return 'Unauthenticated'
+    elif code == 24:
+        return 'BadEndpoint'
     else:
         return 'UnknownCode'
 
