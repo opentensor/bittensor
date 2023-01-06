@@ -37,6 +37,8 @@ class ValidatorLogger:
             ['vBase', 'base_params_val', '{:.0f}', ''],  # square root parameter count estimate for validation task
             ['nBase', 'base_params_nxt', '{:.0f}', ''],  # square root parameter count estimate for phrase validation task [TextCausalLMNext]
             ['nParam~', 'est_params_nxt', '{:.2g}', 'magenta'],  # parameter count estimate for phrase validation task [TextCausalLMNext]
+            ['nDiv', 'logits_divergence_nxt', '{:.2g}', ''],  # logits divergence avg compared to network prob dist [TextCausalLMNext]
+            ['nExc', 'logits_excess_nxt', '{:.2f}', ''],  # logits divergence excess avg above network avg + std [TextCausalLMNext]
             ['sSyn', 'synergy', '{:.0f}', 'white'],  # Shapley pairwise synergy over sequence loss (parameter count estimate)
             ['vSyn', 'synergy_val', '{:.0f}', 'white'],  # Shapley pairwise synergy over validation loss (count estimate)
             ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate) [TextCausalLMNext]
@@ -65,7 +67,7 @@ class ValidatorLogger:
         batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
 
         # === Column selection ===
-        columns = [c[:] for c in self.neuron_stats_columns if c[1] in ['uid', sort_col, 'loss_nxt', 'synergy_nxt']]
+        columns = [c[:] for c in self.neuron_stats_columns if c[1] in ['uid', sort_col, 'loss_nxt', 'synergy_nxt', 'logits_excess_nxt']]
         col_keys = [c[1] for c in columns]
 
         # === Sort rows ===
@@ -115,7 +117,6 @@ class ValidatorLogger:
                 else:
                     if i == len(sort) - 1:
                         print()
-
 
     def synergy_table(
         self, 
