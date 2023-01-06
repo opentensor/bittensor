@@ -495,7 +495,7 @@ class neuron:
             if self.config.logging.debug or self.config.logging.trace:
                 # === Print stats update (table) ===
                 # Prints exponential moving average statistics of valid neurons from latest validator forward
-                self.vlogger.stats_table({uid: self.neuron_stats[uid]
+                self.vlogger.print_stats_table({uid: self.neuron_stats[uid]
                              for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
                             self.weight_key, self.config.get('width', None),
                             f'[white] Stats update [/white] | ' + str(self),  # title
@@ -506,7 +506,7 @@ class neuron:
 
                 # === Calculate neuron weights ===
                 sample_uids, sample_weights = self.calculate_weights()
-                self.vlogger.weights_table(
+                self.vlogger.print_weights_table(
                     min_allowed_weight = self.subtensor.min_allowed_weights,
                     max_weight_limit = self.subtensor.max_weight_limit,
                     neuron_stats = self.neuron_stats,
@@ -546,7 +546,7 @@ class neuron:
         sample_uids, sample_weights = self.calculate_weights()
 
         if self.config.logging.debug or self.config.logging.trace:
-                self.vlogger.weights_table(
+                self.vlogger.print_weights_table(
                     min_allowed_weight = self.subtensor.min_allowed_weights,
                     max_weight_limit = self.subtensor.max_weight_limit,
                     neuron_stats = self.neuron_stats,
@@ -1108,11 +1108,11 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     if logging:
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        vlogger.synergy_table(stats, syn_loss_diff, 'shapley_values_min')
+        vlogger.print_synergy_table(stats, syn_loss_diff, 'shapley_values_min')
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        vlogger.synapse_table(str(synapse), stats, 'shapley_values_min', shapley_start_time)
+        vlogger.print_synapse_table(str(synapse), stats, 'shapley_values_min', shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
@@ -1215,15 +1215,15 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         # === Response table ===
         # Prints the query response table: top prediction probabilities and texts for batch tasks
         batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
-        vlogger.response_table(batch_predictions, stats, sort_col='loss_nxt')
+        vlogger.print_response_table(batch_predictions, stats, sort_col='loss_nxt')
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        vlogger.synergy_table(stats, syn_loss_diff, 'loss_nxt')
+        vlogger.print_synergy_table(stats, syn_loss_diff, 'loss_nxt')
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        vlogger.synapse_table(str(synapse), stats, 'loss_nxt', shapley_start_time)
+        vlogger.print_synapse_table(str(synapse), stats, 'loss_nxt', shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses

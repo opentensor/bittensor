@@ -48,9 +48,9 @@ class ValidatorLogger:
         ]
         # console_width (:obj:`int`, `required`):
         #     Config console width for table print.
-        self.console_width = self.config.get('width', None)
+        self.console_width = self.config.get('width', None) if self.config else None
 
-    def response_table(
+    def print_response_table(
         self, 
         batch_predictions: List, 
         stats: Dict, 
@@ -118,7 +118,7 @@ class ValidatorLogger:
                     if i == len(sort) - 1:
                         print()
 
-    def synergy_table(
+    def print_synergy_table(
         self, 
         stats, 
         syn_loss_diff, 
@@ -149,7 +149,7 @@ class ValidatorLogger:
             rich_print(table)
             print()
 
-    def stats_table(
+    def print_stats_table(
         self, 
         stats, 
         sort_col, 
@@ -198,7 +198,7 @@ class ValidatorLogger:
         # === Print table ===
         rich_print(table)
 
-    def synapse_table(
+    def print_synapse_table(
         self, 
         name, 
         stats, 
@@ -207,14 +207,14 @@ class ValidatorLogger:
     ):
         r""" Prints the evaluation of the neuron responses to the validator request
         """
-        self.stats_table(stats, sort_col, self.console_width,
+        self.print_stats_table(stats, sort_col,
                     f'[white] \[{name}] responses [/white] | Validator forward',  # title
                     f'[bold]{len([s for s in stats.values() if len(s) and sort_col in s])}[/bold]/'
                     f'{len(stats)} (respond/topk) | '
                     f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
                     )
 
-    def weights_table(
+    def print_weights_table(
             self,
             min_allowed_weights,
             max_weight_limit,
@@ -253,10 +253,10 @@ class ValidatorLogger:
                 _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
-        self.stats_table(_neuron_stats, 'weight', self.console_width,
+        self.print_stats_table(_neuron_stats, 'weight', self.console_width,
                     f'[white] Neuron weights [/white] | ' + title,  # title
                     f'Validated {min_allowed_weights}/'
-                    f'[bold]{len(neuron_stats)}[/bold]/{n} (min/[bold]valid[/bold]/total) | '
+                    f'[bold]{len(neuron_stats)}[/bold]/{metagraph_n} (min/[bold]valid[/bold]/total) | '
                     f'sum:{sample_weights.sum().item():.2g} '
                     f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
                     f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
