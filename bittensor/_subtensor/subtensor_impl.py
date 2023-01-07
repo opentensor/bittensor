@@ -167,10 +167,10 @@ class Subtensor:
         return self.get_network_parameter_or_none( netuid, "Rho", block )
 
     def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        return U16_NORMALIZED_FLOAT( self.get_network_parameter_or_none( netuid, "Kappa", block ) )
+        return self.get_network_parameter_or_none( netuid, "Kappa", block )
 
     def difficulty (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        return self.get_network_parameter_or_none( netuid, "Kappa", block )
+        return self.get_network_parameter_or_none( netuid, "Difficulty", block )
 
     def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         return self.get_network_parameter_or_none( netuid, "ImmunityPeriod", block )
@@ -192,10 +192,7 @@ class Subtensor:
 
     def max_allowed_validators(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         return self.get_network_parameter_or_none( netuid, 'MaxAllowedValidators', block )
-
-    def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        return self.get_network_parameter_or_none( netuid, "ImmunityPeriod", block )
-
+        
     def min_allowed_weights (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         return self.get_network_parameter_or_none( netuid, "MinAllowedWeights", block )
 
