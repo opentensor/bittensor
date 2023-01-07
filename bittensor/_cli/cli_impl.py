@@ -267,7 +267,7 @@ class CLI:
                 else:
                     # Otherwise, print all subnets the hotkey is registered on.
                     # If a netuid is provided, inspect the hotkey and the neuron
-                    stake = subtensor.get_stake( ss58_address = wallet.hotkey.ss58_address )
+                    stake = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = wallet.hotkey.ss58_address, coldkey_ss58 = wallet.coldkeypub.ss58_address )
                     if stake == None:
                         # Not registered on any subnets
                         subnets = "[bold white][][/bold white]"
