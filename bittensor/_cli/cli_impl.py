@@ -411,71 +411,100 @@ class CLI:
     def unstake( self ):
         r""" Unstake token of amount from hotkey(s).
         """        
-        # TODO: allow delegate unstake
         config = self.config.copy()
-        config.hotkey = None
-        wallet = bittensor.wallet( config = self.config )
+        wallet = bittensor.wallet( config = config )
 
-        subtensor: bittensor.subtensor = bittensor.subtensor( config = self.config )
-
-        wallets_to_unstake_from: List[bittensor.wallet]
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = self.config )
+        
+        # Get the hotkey_names (if any) and the hotkey_ss58s.
+        hotkeys_to_unstake_from: List[Tuple[Optional[str], str]] = []
         if self.config.wallet.get('all_hotkeys'):
-            # Unstake from all hotkeys.
+            # Stake to all hotkeys.
             all_hotkeys: List[bittensor.wallet] = self._get_hotkey_wallets_for_wallet( wallet = wallet )
             # Exclude hotkeys that are specified.
-            wallets_to_unstake_from = [
-                wallet for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys', [])
-            ]
+            hotkeys_to_unstake_from = [
+                (wallet.hotkey_str, wallet.hotkey.ss58_address) for wallet in all_hotkeys if wallet.hotkey_str not in self.config.wallet.get('hotkeys', [])
+            ] # definitely wallets
 
         elif self.config.wallet.get('hotkeys'):
-            # Unstake from specific hotkeys.
-            wallets_to_unstake_from = [
-                bittensor.wallet( config = self.config, hotkey = hotkey ) for hotkey in self.config.wallet.get('hotkeys')
-            ]
+            # Stake to specific hotkeys.
+            for hotkey_ss58_or_hotkey_name in self.config.wallet.get('hotkeys'):
+                if bittensor.utils.is_valid_ss58_address( hotkey_ss58_or_hotkey_name ):
+                    # If the hotkey is a valid ss58 address, we add it to the list.
+                    hotkeys_to_unstake_from.append( (None, hotkey_ss58_or_hotkey_name ) )
+                else:
+                    # If the hotkey is not a valid ss58 address, we assume it is a hotkey name.
+                    #  We then get the hotkey from the wallet and add it to the list.
+                    wallet_ = bittensor.wallet( config = self.config, hotkey = hotkey_ss58_or_hotkey_name )
+                    hotkeys_to_unstake_from.append( (wallet_.hotkey_str, wallet_.hotkey.ss58_address ) )
+        elif self.config.wallet.get('hotkey'):
+            # Only self.config.wallet.hotkey is specified.
+            #  so we stake to that single hotkey.
+            hotkey_ss58_or_name = self.config.wallet.get('hotkey')
+            if bittensor.utils.is_valid_ss58_address( hotkey_ss58_or_name ):
+                hotkeys_to_unstake_from = [ (None, hotkey_ss58_or_name) ]
+            else:
+                # Hotkey is not a valid ss58 address, so we assume it is a hotkey name.
+                wallet_ = bittensor.wallet( config = self.config, hotkey = hotkey_ss58_or_name )
+                hotkeys_to_unstake_from = [ (wallet_.hotkey_str, wallet_.hotkey.ss58_address ) ]
         else:
-            # Do regular unstake
-            subtensor.unstake( wallet, amount = None if self.config.get('unstake_all') else self.config.get('amount'), wait_for_inclusion = True, prompt = not self.config.no_prompt )
-            return None
-
+            # Only self.config.wallet.hotkey is specified.
+            #  so we stake to that single hotkey.
+            assert self.config.wallet.hotkey is not None
+            hotkeys_to_unstake_from = [ (None, bittensor.wallet( config = self.config ).hotkey.ss58_address) ]
         
-
-        final_wallets: List['bittensor.wallet'] = [] 
+        final_hotkeys: List[Tuple[str, str]] = [] 
         final_amounts: List[Union[float, Balance]] = []
-        for wallet in tqdm(wallets_to_unstake_from):
-            wallet: bittensor.wallet
-            if not wallet.is_registered(): # must be registered on any subnet.
+        for hotkey in tqdm(hotkeys_to_unstake_from):
+            hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
+            if not subtensor.is_hotkey_registered(hotkey[1]) : # must be registered on any subnet.
                 # Skip unregistered hotkeys.
                 continue
 
             unstake_amount_tao: float = self.config.get('amount')
+            hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = hotkey[1], coldkey_ss58 = wallet.coldkey.ss58_address )
             if self.config.get('max_stake'):
-                wallet_stake: Balance = wallet.get_stake()
-                unstake_amount_tao: float = wallet_stake.tao - self.config.get('max_stake')   
+                # Get the current stake of the hotkey from this coldkey.
+                unstake_amount_tao: float = hotkey_stake.tao - self.config.get('max_stake')   
                 self.config.amount = unstake_amount_tao  
                 if unstake_amount_tao < 0:
                     # Skip if max_stake is greater than current stake.
                     continue
-                    
-            final_wallets.append(wallet)
+            else:
+                if unstake_amount_tao is not None:
+                    # There is a specified amount to unstake.
+                    if unstake_amount_tao > hotkey_stake.tao:
+                        # Skip if the specified amount is greater than the current stake.
+                        continue
+                
             final_amounts.append(unstake_amount_tao)
+            final_hotkeys.append(hotkey) # add both the name and the ss58 address.
+
+        if len(final_hotkeys) == 0:
+            # No hotkeys to unstake from.
+            bittensor.__console__.print("Not enough stake to unstake from any hotkeys or max_stake is more than current stake.")
+            return None
 
         # Ask to unstake
         if not self.config.no_prompt:
-            if not Confirm.ask("Do you want to unstake from the following keys:\n" + \
+            if not Confirm.ask(f"Do you want to unstake from the following keys to {wallet.name}:\n" + \
                     "".join([
-                        f"    [bold white]- {wallet.hotkey_str}: {amount}𝜏[/bold white]\n" for wallet, amount in zip(final_wallets, final_amounts)
+                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {amount}𝜏[/bold white]\n" for hotkey, amount in zip(final_hotkeys, final_amounts)
                     ])
                 ):
                 return None
-                
-        subtensor.unstake_multiple( wallet = final_wallets[0], hotkey_ss58s=[wallet.hotkey.ss58_address for wallet in final_wallets], amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+        
+        if len(final_hotkeys) == 1:
+            # do regular unstake
+            return subtensor.unstake( wallet=wallet, hotkey_ss58 = final_hotkeys[0], amount = None if self.config.get('unstake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
+        subtensor.unstake_multiple( wallet = wallet, hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys], amounts =  None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+    
 
     def stake( self ):
         r""" Stake token of amount to hotkey(s).
         """
         config = self.config.copy()
-        config.hotkey = None
         wallet = bittensor.wallet( config = config )
 
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = self.config )
@@ -539,6 +568,11 @@ class CLI:
                     # Skip hotkey if max_stake is less than current stake.
                     continue
                 wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
+            
+                if wallet_balance.tao < 0:
+                    # No more balance to stake.
+                    break
+
             final_amounts.append(stake_amount_tao)
             final_hotkeys.append(hotkey) # add both the name and the ss58 address.
 
