@@ -187,7 +187,7 @@ class Wallet():
                     Stake account balance.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        stake = subtensor.get_stake( self.hotkey.ss58_address )
+        stake = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = self.hotkey.ss58_address, coldkey_ss58 = self.coldkeypub.ss58_address )
         if not stake: # Not registered.
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return bittensor.Balance(0)

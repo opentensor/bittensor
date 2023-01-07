@@ -267,7 +267,7 @@ class CLI:
                 else:
                     # Otherwise, print all subnets the hotkey is registered on.
                     # If a netuid is provided, inspect the hotkey and the neuron
-                    stake = subtensor.get_stake( ss58_address = wallet.hotkey.ss58_address )
+                    stake = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = wallet.hotkey.ss58_address, coldkey_ss58 = wallet.coldkeypub.ss58_address )
                     if stake == None:
                         # Not registered on any subnets
                         subnets = "[bold white][][/bold white]"
@@ -411,6 +411,7 @@ class CLI:
     def unstake( self ):
         r""" Unstake token of amount from hotkey(s).
         """        
+        # TODO: allow delegate unstake
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = self.config )
@@ -467,12 +468,13 @@ class CLI:
                 ):
                 return None
                 
-        subtensor.unstake_multiple( wallets = final_wallets, amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+        subtensor.unstake_multiple( wallet = final_wallets[0], hotkey_ss58s=[wallet.hotkey.ss58_address for wallet in final_wallets], amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def stake( self ):
         r""" Stake token of amount to hotkey(s).
         """
+        # TODO: allow delegate stake
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = config )
@@ -551,7 +553,7 @@ class CLI:
             # do regular stake
             return subtensor.add_stake( wallet=final_wallets[0], amount = None if self.config.get('stake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
-        subtensor.add_stake_multiple( wallets = final_wallets, amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+        subtensor.add_stake_multiple( wallet = final_wallets[0], hotkey_ss58s=[wallet.hotkey.ss58_address for wallet in final_wallets], amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def set_weights( self ):
