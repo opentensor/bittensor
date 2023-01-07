@@ -18,9 +18,9 @@ import bittensor
 
 import torch
 from rich.prompt import Confirm
-from typing import List, Dict, Union
+from typing import Union
 import bittensor.utils.weight_utils as weight_utils
-from .errors import *
+from ..errors import *
 
 from loguru import logger
 logger = logger.opt(colors=True)

@@ -17,8 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 import bittensor
-from typing import List, Dict
-from .errors import *
+from ..errors import *
 
 from loguru import logger
 logger = logger.opt(colors=True)

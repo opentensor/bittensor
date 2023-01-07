@@ -18,9 +18,9 @@
 import bittensor
 
 from rich.prompt import Confirm
-from typing import List, Dict, Union, Optional, Tuple
+from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
-from .errors import *
+from ..errors import *
 
 def add_stake(
         subtensor: 'bittensor.Subtensor', 

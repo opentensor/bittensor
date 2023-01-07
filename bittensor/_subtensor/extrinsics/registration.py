@@ -20,9 +20,9 @@ import bittensor
 import torch
 import time
 from rich.prompt import Confirm
-from typing import List, Dict, Union, Optional, Tuple
+from typing import List, Dict, Union, Optional
 import bittensor.utils.networking as net
-from .errors import *
+from ..errors import *
 
 def register (
     subtensor: 'bittensor.Subtensor',

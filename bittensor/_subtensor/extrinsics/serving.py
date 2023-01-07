@@ -18,9 +18,8 @@ import bittensor
 
 import json
 from rich.prompt import Confirm
-from typing import List, Dict
 import bittensor.utils.networking as net
-from .errors import *
+from ..errors import *
 
 def serve (
     subtensor: 'bittensor.Subtensor',

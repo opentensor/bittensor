@@ -17,9 +17,9 @@
 import bittensor
 
 from rich.prompt import Confirm
-from typing import List, Dict, Union, Optional, Tuple
+from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
-from .errors import * 
+from ..errors import * 
 
 def __do_remove_stake_single(
     subtensor: 'bittensor.Subtensor',
