@@ -27,13 +27,13 @@ from bittensor.utils.balance import Balance
 # Local imports.
 from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
 from .errors import *
-from .staking import *
-from .unstaking import *
-from .serving import *
-from .registration import *
-from .transfer import *
-from .set_weights import *
-from .delegation import *
+from .extrinsics.staking import *
+from .extrinsics.unstaking import *
+from .extrinsics.serving import *
+from .extrinsics.registration import *
+from .extrinsics.transfer import *
+from .extrinsics.set_weights import *
+from .extrinsics.delegation import *
 
 # Logging
 from loguru import logger
