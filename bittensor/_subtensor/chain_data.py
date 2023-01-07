@@ -67,6 +67,46 @@ class NeuronInfo:
             axon_info = AxonInfo.from_json(json['axon_info']),
         )
 
+    @staticmethod
+    def _null_neuron() -> 'NeuronInfo':
+        neuron = NeuronInfo(
+            uid = 0,
+            netuid = 0,
+            active =  0,
+            stake = '0',
+            rank = 0,
+            emission = 0,
+            incentive = 0,
+            consensus = 0,
+            trust = 0,
+            dividends = 0,
+            last_update = 0,
+            weights = [],
+            bonds = [],
+            prometheus_info = None,
+            axon_info = None,
+            is_null = True,
+            coldkey = "000000000000000000000000000000000000000000000000",
+            hotkey = "000000000000000000000000000000000000000000000000"
+        )
+        return neuron
+
+    @staticmethod
+    def _neuron_dict_to_namespace(neuron_dict) -> 'NeuronInfo':
+        if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
+            return NeuronInfo._null_neuron()
+        else:
+            neuron = NeuronInfo( **neuron_dict )
+            neuron.stake = neuron.stake / RAOPERTAO
+            neuron.rank = neuron.rank / U64_MAX
+            neuron.trust = neuron.trust / U64_MAX
+            neuron.consensus = neuron.consensus / U64_MAX
+            neuron.incentive = neuron.incentive / U64_MAX
+            neuron.dividends = neuron.dividends / U64_MAX
+            neuron.emission = neuron.emission / RAOPERTAO
+                
+            return neuron
+
 @dataclass
 class AxonInfo:
     r"""
