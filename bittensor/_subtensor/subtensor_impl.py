@@ -146,10 +146,10 @@ class Subtensor:
             bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
             return_dict[r[0].value] = bal
         return return_dict
-  
-    #####################################
-    #### Network Specific Parameters ####
-    #####################################
+
+    ########################
+    #### Standard Calls ####
+    ########################
 
     def query_paratensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -174,6 +174,10 @@ class Subtensor:
                     block_hash = None if block == None else substrate.get_block_hash(block)
                 )
         return make_substrate_call_with_retry()
+      
+    #####################################
+    #### Hyper parameter calls. ####
+    #####################################
 
     def rho (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         return self.query_paratensor( "Rho", block, [netuid] ).value
@@ -228,6 +232,64 @@ class Subtensor:
 
     def tempo (self, netuid: int, block: Optional[int] = None) -> int:
         return self.query_paratensor('Tempo', block, [netuid] ).value
+
+    #############################
+    #### Consensus parameters ###
+    #############################
+
+    #[pallet::storage] /// --- DMAP ( netuid, uid ) --> rank
+	# pub(super) type Rank<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, u16, ValueQuery, DefaultRank<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, hotkey ) --> uid
+	# pub(super) type Uids<T:Config> = StorageDoubleMap<_, Identity, u16, Blake2_128Concat, T::AccountId, u16, OptionQuery>;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> trust
+	# pub(super) type Trust<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, u16, ValueQuery, DefaultTrust<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> active
+	# pub(super) type Active<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, bool, ValueQuery, DefaultActive<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> hotkey
+	# pub(super) type Keys<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, T::AccountId, ValueQuery, DefaultKey<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> emission 
+	# pub(super) type Emission<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, u64, ValueQuery, DefaultEmission<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> incentive
+	# pub(super) type Incentive<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, u16, ValueQuery, DefaultIncentive<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> consensus
+	# pub(super) type Consensus<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, u16, ValueQuery, DefaultConsensus<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> dividends
+	# pub(super) type Dividends<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, u16, ValueQuery, DefaultDividends<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> last_update
+	# pub(super) type LastUpdate<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, u64 , ValueQuery, DefaultLastUpdate<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> bonds
+    # pub(super) type Bonds<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultBonds<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> validator_permit
+    # pub(super) type ValidatorPermit<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, bool, ValueQuery, DefaultValidatorPermit<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> weights
+    # pub(super) type Weights<T:Config> = StorageDoubleMap<_, Identity, u16, Identity, u16, Vec<(u16, u16)>, ValueQuery, DefaultWeights<T> >;
+	# #[pallet::storage] /// --- DMAP ( netuid, uid ) --> pruning_score.
+	# pub(super) type PruningScores<T:Config> = StorageDoubleMap< _, Identity, u16, Identity, u16, u16, ValueQuery, DefaultPruningScore<T> >;
+	
+
+    def rank ( self, netuid: int, uid: int, block: Optional[int] = None ) -> float:
+        return self.query_paratensor('Rank', block, [netuid, uid] ).value
+
+    # def trust (self, netuid: int, block: Optional[int] = None) -> int:
+    #     return self.query_paratensor('Tempo', block, [netuid] ).value
+
+    # def consensus (self, netuid: int, block: Optional[int] = None) -> int:
+    #     return self.query_paratensor('Tempo', block, [netuid] ).value
+
+    # def incentive (self, netuid: int, block: Optional[int] = None) -> int:
+    #     return self.query_paratensor('Tempo', block, [netuid] ).value
+
+    # def emission (self, netuid: int, block: Optional[int] = None) -> int:
+    #     return self.query_paratensor('Tempo', block, [netuid] ).value
+
+    # def dividends (self, netuid: int, block: Optional[int] = None) -> int:
+    #     return self.query_paratensor('Tempo', block, [netuid] ).value
+
+    # def weights (self, netuid: int, block: Optional[int] = None) -> int:
+    #     return self.query_paratensor('Tempo', block, [netuid] ).value
+
+    # def bonds (self, netuid: int, block: Optional[int] = None) -> int:
+    #     return self.query_paratensor('Tempo', block, [netuid] ).value
 
     ##########################
     #### Account fucntions ###
@@ -474,8 +536,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         if json_body['result'] == None:
             return NeuronInfo._null_neuron()
-        result = json_body['result']
-        return NeuronInfo.from_json( result ) 
+        return NeuronInfo.from_json( json_body['result'] ) 
 
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 

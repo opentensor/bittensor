@@ -804,13 +804,15 @@ class CLI:
             return
 
         # Pull neuron info for all keys.            
-        neurons: Dict[str, Tuple[bittensor.NeuronInfo, bittensor.Wallet]] = {}
+        neurons: Dict[str, List[bittensor.NeuronInfo, bittensor.Wallet]] = {}
         block = subtensor.block
 
         netuids = set()
         for hotkey in all_hotkeys:
-            netuids_for_hotkey = subtensor.get_netuids_for_hotkey( hotkey = hotkey.hotkey.ss58_address )
+            netuids_for_hotkey = subtensor.get_netuids_for_hotkey( ss58_hotkey = hotkey.hotkey.ss58_address )
             netuids = netuids.union( netuids_for_hotkey )
+        for netuid in netuids:
+            neurons[str(netuid)] = []
 
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             for netuid in netuids:
@@ -822,7 +824,7 @@ class CLI:
                     if uid is not None:
                         nn = all_neurons[uid]
                         neurons[str(netuid)].append( (nn, wallet) )
-        
+
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
 
@@ -850,7 +852,7 @@ class CLI:
                 nn: bittensor.NeuronInfo
                 uid = nn.uid
                 active = nn.active
-                stake = nn.stake
+                stake = sum([el[1] for el in nn.stake]).tao
                 rank = nn.rank
                 trust = nn.trust
                 consensus = nn.consensus
