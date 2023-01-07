@@ -25,6 +25,7 @@ from typing import Optional, Union
 import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 from substrateinterface import Keypair
+from substrateinterface.base import is_valid_ss58_address
 from termcolor import colored
 
 
@@ -667,7 +668,11 @@ class Wallet():
         if not is_valid_bittensor_address_or_public_key( ss58_address if ss58_address is not None else public_key ):
             raise ValueError(f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}") 
 
-        keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=bittensor.__ss58_format__)
+        if ss58_address is not None:
+            ss58_format = bittensor.utils.get_ss58_format( ss58_address )
+            keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=ss58_format)
+        else:
+            keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=bittensor.__ss58_format__)
 
         # No need to encrypt the public key
         self.set_coldkeypub( keypair, overwrite = overwrite)
