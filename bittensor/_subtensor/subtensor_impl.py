@@ -2293,11 +2293,11 @@ class Subtensor:
 
         result = make_substrate_call_with_retry()
         netuids = []
-        for netuid, is_member in result.value.items():
+        for netuid, is_member in result:
             if is_member:
                 netuids.append( netuid )
         
-        return result.value
+        return netuids
 
     def get_emission_value_by_netuid( self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         r"""
