@@ -574,7 +574,6 @@ class CLI:
             bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
             sys.exit(1)
 
-        # Get version key TODO
         version_key: int = bittensor.__version_as_int__
         
         subtensor.set_weights( 
