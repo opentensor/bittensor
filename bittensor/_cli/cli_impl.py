@@ -411,6 +411,7 @@ class CLI:
     def unstake( self ):
         r""" Unstake token of amount from hotkey(s).
         """        
+        # TODO: allow delegate unstake
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = self.config )
@@ -473,6 +474,7 @@ class CLI:
     def stake( self ):
         r""" Stake token of amount to hotkey(s).
         """
+        # TODO: allow delegate stake
         config = self.config.copy()
         config.hotkey = None
         wallet = bittensor.wallet( config = config )
