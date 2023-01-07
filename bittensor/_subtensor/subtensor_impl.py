@@ -205,6 +205,9 @@ class Subtensor:
     def scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         return U16_NORMALIZED_FLOAT( self.get_network_parameter_or_none( netuid, 'ScalingLawPower', block ) )
 
+    def synergy_scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
+        return U16_NORMALIZED_FLOAT( self.get_network_parameter_or_none( netuid, 'SynergyScalingLawPower', block ) )
+
     def subnetwork_n (self, netuid: int, block: Optional[int] = None ) -> int:
         return self.get_network_parameter_or_none( netuid, 'SubnetworkN', block )
 
