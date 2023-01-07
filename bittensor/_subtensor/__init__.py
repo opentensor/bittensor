@@ -110,7 +110,7 @@ class subtensor:
         
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
-            type_registry_preset='substrate-node-template',
+            type_registry_preset='kusama',
             url = endpoint_url,
             use_remote_preset=True
         )
