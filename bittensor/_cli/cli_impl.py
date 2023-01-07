@@ -467,7 +467,7 @@ class CLI:
                 ):
                 return None
                 
-        subtensor.unstake_multiple( wallets = final_wallets, amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+        subtensor.unstake_multiple( wallet = final_wallets[0], hotkey_ss58s=[wallet.hotkey.ss58_address for wallet in final_wallets], amounts = None if self.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def stake( self ):
@@ -551,7 +551,7 @@ class CLI:
             # do regular stake
             return subtensor.add_stake( wallet=final_wallets[0], amount = None if self.config.get('stake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not self.config.no_prompt )
 
-        subtensor.add_stake_multiple( wallets = final_wallets, amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+        subtensor.add_stake_multiple( wallet = final_wallets[0], hotkey_ss58s=[wallet.hotkey.ss58_address for wallet in final_wallets], amounts =  None if self.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
     def set_weights( self ):
