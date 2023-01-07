@@ -41,7 +41,7 @@ class NeuronInfo:
         r""" Converts a u8 key to ss58.
         """
         # First byte is length, then 32 bytes of key.
-        return scalecodec.ss58_encode( bytes(u8_key['id'][1:33]).hex(), bittensor.__ss58_format__)
+        return scalecodec.ss58_encode( bytes(u8_key['id']).hex(), bittensor.__ss58_format__)
         
     @classmethod
     def from_json(cls, json: Dict) -> 'NeuronInfo':

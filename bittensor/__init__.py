@@ -60,7 +60,7 @@ __blocktime__ = 12
 __pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
 
 # Substrate ss58_format
-__ss58_format__ = 13116
+__ss58_format__ = 42
 
 # Wallet ss58 address length
 __ss58_address_length__ = 48
