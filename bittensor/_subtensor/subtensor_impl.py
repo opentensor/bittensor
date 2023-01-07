@@ -2775,7 +2775,8 @@ class Subtensor:
             return None
 
     def get_uid_for_hotkey( self, ss58_hotkey: str, netuid: Optional[int] = None, block: Optional[int] = None) -> Union[Dict[str, int], int]:
-        r""" Returns true if the passed hotkey is registered on the chain.
+        r""" Returns a map of the netuid to the uid of the neuron associated with the hotkey, 
+        or the uid of the neuron associated with the hotkey if netuid is specified.
         Args:
             ss58_hotkey ( str ):
                 The hotkey to query for a neuron.
