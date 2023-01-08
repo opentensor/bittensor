@@ -33,6 +33,8 @@ from tqdm import tqdm
 
 from .commands.stake import StakeCommand
 from .commands.unstake import UnStakeCommand
+from .commands.list_delegates import ListDelegatesCommand
+from .commands.become_delegate import BecomeDelegateCommand
 
 class CLI:
     """
@@ -94,59 +96,11 @@ class CLI:
         elif self.config.command == 'update':
             self.update()
         elif self.config.command == 'become_delegate':
-            self.become_delegate()
+            BecomeDelegateCommand.run( self )
         elif self.config.command == 'list_delegates':
-            self.list_delegates()
+            ListDelegatesCommand.run( self )
         elif self.config.command == 'list_subnets':
             self.list_subnets()
-
-    def list_delegates( self ) -> None:
-        r"""
-        List all delegates on the network.
-        """
-        subtensor = bittensor.subtensor( config = self.config )
-        delegates: bittensor.DelegateInfo = subtensor.get_delegates()
-
-        table = Table(show_footer=True, width=self.config.get('width', None), pad_edge=False, box=None)
-        table.add_column("[overline white]DELEGATE",  str(len(delegates)), footer_style = "overline white", style='bold white')
-        table.add_column("[overline white]TAKE", style='white')
-        table.add_column("[overline white]OWNER", style='yellow')
-        table.add_column("[overline white]NOMINATORS", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]TOTAL STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
-
-        for delegate in delegates:
-            table.add_row(
-                str(delegate.hotkey_ss58),
-                str(delegate.take),
-                str(delegate.owner_ss58),
-                str(len(delegate.nominators)),
-                str(delegate.total_stake),
-            )
-        bittensor.__console__.print(table)
-
-    def become_delegate( self ) -> None:
-        r""" Become a delegate.
-        """
-        wallet = bittensor.wallet(config = self.config)
-        subtensor = bittensor.subtensor( config = self.config )
-
-        # Unlock the wallet.
-        wallet.hotkey
-        wallet.coldkey
-
-        result: bool = subtensor.become_delegate( wallet )
-
-        if not result:
-            bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
-        else:
-            # Check if we are a delegate.
-            is_delegate: bool = subtensor.is_hotkey_delegate( wallet.hotkey.ss58_address )
-            if not is_delegate:
-                bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
-                return
-
-            bittensor.__console__.print("Successfully became a delegate on [white]{}[/white]".format(subtensor.network))
-
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.

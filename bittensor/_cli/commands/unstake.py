@@ -15,14 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from typing import List, Union, Optional, Dict, Tuple
-from rich.prompt import Confirm, Prompt
-
 import sys
 import bittensor
-from bittensor.utils.balance import Balance
-from rich.prompt import Confirm
 from tqdm import tqdm
+from rich.prompt import Confirm, Prompt
+from bittensor.utils.balance import Balance
+from typing import List, Union, Optional, Dict, Tuple
 console = bittensor.__console__
 
 class UnStakeCommand:

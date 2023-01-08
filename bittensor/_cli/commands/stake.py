@@ -15,91 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from typing import List, Union, Optional, Dict, Tuple
-from rich.prompt import Confirm, Prompt
-
 import sys
 import argparse
 import bittensor
-from bittensor.utils.balance import Balance
-from rich.prompt import Confirm
 from tqdm import tqdm
+from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
+from bittensor.utils.balance import Balance
+from typing import List, Union, Optional, Dict, Tuple
 console = bittensor.__console__
 
 class StakeCommand:
-
-    @classmethod   
-    def check_config( cls, config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
-        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
-                    
-        # Get amount.
-        if not config.get('amount') and not config.get('stake_all') and not config.get('max_stake'):
-            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
-                amount = Prompt.ask("Enter Tao amount to stake")
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
-                    sys.exit()
-            else:
-                config.stake_all = True
-
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        stake_parser = parser.add_parser(
-            'stake', 
-            help='''Stake to your hotkey accounts.'''
-        )
-        stake_parser.add_argument( 
-            '--no_version_checking', 
-            action='store_true', 
-            help='''Set false to stop cli version checking''', 
-            default = False 
-        )
-        stake_parser.add_argument(
-            '--all', 
-            dest="stake_all", 
-            action='store_true'
-        )
-        stake_parser.add_argument(
-            '--uid', 
-            dest="uid", 
-            type=int, 
-            required=False
-        )
-        stake_parser.add_argument(
-            '--amount', 
-            dest="amount", 
-            type=float, 
-            required=False
-        )        
-        stake_parser.add_argument(
-            '--max_stake', 
-            dest="max_stake",
-            type=float,
-            required=False,
-            action='store',
-            default=None,
-            help='''Specify the maximum amount of Tao to have staked in each hotkey.'''
-        )
-        stake_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
-            help='''Set true to avoid prompting the user.''',
-            default=False,
-        )
-        bittensor.wallet.add_args( stake_parser )
-        bittensor.subtensor.add_args( stake_parser )
 
     @staticmethod
     def run( cli ):
@@ -191,3 +117,77 @@ class StakeCommand:
             return subtensor.add_stake( wallet=wallet, hotkey_ss58 = final_hotkeys[0][1], amount = None if cli.config.get('stake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not cli.config.no_prompt )
 
         subtensor.add_stake_multiple( wallet = wallet, hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys], amounts =  None if cli.config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+
+
+    @classmethod   
+    def check_config( cls, config: 'bittensor.Config' ):
+        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+                    
+        # Get amount.
+        if not config.get('amount') and not config.get('stake_all') and not config.get('max_stake'):
+            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
+                amount = Prompt.ask("Enter Tao amount to stake")
+                try:
+                    config.amount = float(amount)
+                except ValueError:
+                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    sys.exit()
+            else:
+                config.stake_all = True
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        stake_parser = parser.add_parser(
+            'stake', 
+            help='''Stake to your hotkey accounts.'''
+        )
+        stake_parser.add_argument( 
+            '--no_version_checking', 
+            action='store_true', 
+            help='''Set false to stop cli version checking''', 
+            default = False 
+        )
+        stake_parser.add_argument(
+            '--all', 
+            dest="stake_all", 
+            action='store_true'
+        )
+        stake_parser.add_argument(
+            '--uid', 
+            dest="uid", 
+            type=int, 
+            required=False
+        )
+        stake_parser.add_argument(
+            '--amount', 
+            dest="amount", 
+            type=float, 
+            required=False
+        )        
+        stake_parser.add_argument(
+            '--max_stake', 
+            dest="max_stake",
+            type=float,
+            required=False,
+            action='store',
+            default=None,
+            help='''Specify the maximum amount of Tao to have staked in each hotkey.'''
+        )
+        stake_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( stake_parser )
+        bittensor.subtensor.add_args( stake_parser )
