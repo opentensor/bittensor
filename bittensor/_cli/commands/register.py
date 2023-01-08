@@ -18,65 +18,83 @@
 import argparse
 import bittensor
 from rich.prompt import Prompt
+from .utils import check_netuid_set, check_for_cuda_reg_config
+
 console = bittensor.__console__
 
-class BecomeDelegateCommand:
+class RegisterCommand:
 
     @staticmethod
     def run( cli ):
-        r""" Become a delegate.
-        """
-        wallet = bittensor.wallet(config = cli.config)
-        subtensor = bittensor.subtensor( config = cli.config )
+        r""" Register neuron. """
+        wallet = bittensor.wallet( config = self.config )
+        subtensor = bittensor.subtensor( config = self.config )
 
-        # Unlock the wallet.
-        wallet.hotkey
-        wallet.coldkey
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
 
-        # Check if the hotkey is already a delegate.
-        if subtensor.is_hotkey_delegate( wallet.hotkey.ss58_address ):
-            bittensor.__console__.print('Aborting: Hotkey {} is already a delegate.'.format(wallet.hotkey.ss58_address))
-            return
+        subtensor.register(
+            wallet = wallet,
+            netuid = self.config.netuid,
+            prompt = not self.config.no_prompt,
+            TPB = self.config.subtensor.register.cuda.get('TPB', None),
+            update_interval = self.config.subtensor.register.get('update_interval', None),
+            num_processes = self.config.subtensor.register.get('num_processes', None),
+            cuda = self.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
+            dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
+            output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
+            log_verbose = self.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
+        )
 
-        result: bool = subtensor.become_delegate( wallet )
-        if not result:
-            bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
-        else:
-            # Check if we are a delegate.
-            is_delegate: bool = subtensor.is_hotkey_delegate( wallet.hotkey.ss58_address )
-            if not is_delegate:
-                bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
-                return
-            bittensor.__console__.print("Successfully became a delegate on [white]{}[/white]".format(subtensor.network))
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
-        become_delegate_parser = parser.add_parser(
-            'become_delegate', 
-            help='''Become a delegate on the network'''
+        register_parser = parser.add_parser(
+            'register', 
+            help='''Register a wallet to a network.'''
         )
-        become_delegate_parser.add_argument(
+        register_parser.add_argument( 
+            '--no_version_checking', 
+            action='store_true', 
+            help='''Set false to stop cli version checking''', 
+            default = False 
+        )
+        register_parser.add_argument(
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
-        bittensor.wallet.add_args( become_delegate_parser )
-        bittensor.subtensor.add_args( become_delegate_parser )
+        register_parser.add_argument(
+            '--netuid',
+            type=int,
+            help='netuid for subnet to serve this neuron on',
+            default=argparse.SUPPRESS,
+        )
+
+        bittensor.wallet.add_args( register_parser )
+        bittensor.subtensor.add_args( register_parser )
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
+        check_netuid_set( config )
+
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
+        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
+        if not config.no_prompt:
+            check_for_cuda_reg_config(config)
 
 
 
