@@ -62,10 +62,12 @@ def add_stake(
     # Decrypt keys,
     wallet.coldkey
 
-    own_hotkey: bool = False # Flag to indicate if we are using the wallet's own hotkey.
+    # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
-        hotkey_ss58 = wallet.hotkey.ss58_address # Default to wallet's own hotkey.
-        own_hotkey = True
+        hotkey_ss58 = wallet.hotkey.ss58_address 
+
+    # Flag to indicate if we are using the wallet's own hotkey.
+    own_hotkey: bool = (wallet.hotkey.ss58_address == hotkey_ss58)
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
         old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
@@ -101,7 +103,6 @@ def add_stake(
     staking_fee = None # To be filled.
     with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
         with subtensor.substrate as substrate:
-            print (hotkey_ss58, staking_balance.rao)
             call = substrate.compose_call(
                 call_module='Paratensor', 
                 call_function='add_stake',
