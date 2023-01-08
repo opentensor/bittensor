@@ -231,7 +231,15 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         """ Adds the specified amount of stake to passed hotkey uid. """
-        return add_stake( self, wallet, hotkey_ss58, amount, wait_for_inclusion, wait_for_finalization, prompt)
+        return add_stake( 
+            subtensor = self, 
+            wallet = wallet,
+            hotkey_ss58 = hotkey_ss58, 
+            amount = amount, 
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization, 
+            prompt = prompt
+        )
 
     def add_stake_multiple (
         self, 
@@ -500,7 +508,6 @@ class Subtensor:
     ####################
     #### Nomination ####
     ####################
-
     def is_hotkey_delegate( self, hotkey_ss58: str ) -> bool:
         return self.get_delegate_take( hotkey_ss58 ) is not None
 
