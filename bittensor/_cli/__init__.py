@@ -29,7 +29,8 @@ import torch
 from rich.prompt import Confirm, Prompt, PromptBase
 
 from . import cli_impl
-from .commands.stake import add_stake_params
+from .commands.stake import StakeCommand
+from .commands.unstake import UnStakeCommand
 
 # Turn off rich console locals trace.
 from rich.traceback import install
@@ -73,7 +74,8 @@ class cli:
             add_help=True)
 
         cmd_parsers = parser.add_subparsers(dest='command')
-        add_stake_params( cmd_parsers )
+        StakeCommand.add_args( cmd_parsers )
+        UnStakeCommand.add_args( cmd_parsers )
 
         overview_parser = cmd_parsers.add_parser(
             'overview', 
@@ -308,14 +310,6 @@ class cli:
         )
         register_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
 
-
-        unstake_parser = cmd_parsers.add_parser(
-            'unstake', 
-            help='''Unstake from hotkey accounts.'''
-        )
-        unstake_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
-
-
         regen_coldkey_parser = cmd_parsers.add_parser(
             'regen_coldkey',
             help='''Regenerates a coldkey from a passed value'''
@@ -542,38 +536,6 @@ class cli:
         bittensor.wallet.add_args( new_hotkey_parser )
 
 
-        # Fill arguments for unstake command. 
-        unstake_parser.add_argument(
-            '--all', 
-            dest="unstake_all", 
-            action='store_true',
-            default=False,
-        )
-        unstake_parser.add_argument(
-            '--amount', 
-            dest="amount", 
-            type=float, 
-            required=False
-        )
-        unstake_parser.add_argument(
-            '--max_stake', 
-            dest="max_stake",
-            type=float,
-            required=False,
-            action='store',
-            default=None,
-            help='''Specify the maximum amount of Tao to have staked in each hotkey.'''
-        )
-        unstake_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
-            help='''Set true to avoid prompting the user.''',
-            default=False,
-        )
-
-        bittensor.wallet.add_args( unstake_parser )
-        bittensor.subtensor.add_args( unstake_parser )
 
         # Fill arguments for transfer
         transfer_parser.add_argument(
@@ -690,9 +652,9 @@ class cli:
         elif config.command == "register":
             cli.check_register_config( config )
         elif config.command == "unstake":
-            cli.check_unstake_config( config )
+            UnStakeCommand.check_config( config )
         elif config.command == "stake":
-            cli.check_stake_config( config )
+            StakeCommand.check_config( config )
         elif config.command == "overview":
             cli.check_overview_config( config )
         elif config.command == "new_coldkey":
@@ -811,37 +773,6 @@ class cli:
                 console.print(":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(amount))
                 sys.exit(1)
 
-    def check_unstake_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-        
-        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
-                    
-        # Get amount.
-        if not config.get('amount') and not config.get('unstake_all') and not config.get('max_stake'):
-            hotkeys: str = ''
-            if config.wallet.get('all_hotkeys'):
-                hotkeys = "all hotkeys"
-            elif config.wallet.get('hotkeys'):
-                hotkeys = str(config.wallet.hotkeys).replace('[', '').replace(']', '')
-            else:
-                hotkeys = str(config.wallet.hotkey)
-            if not Confirm.ask("Unstake all Tao from: [bold]'{}'[/bold]?".format(hotkeys)):
-                amount = Prompt.ask("Enter Tao amount to unstake")
-                config.unstake_all = False
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(":cross_mark:[red] Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
-                    sys.exit()
-            else:
-                config.unstake_all = True
 
     def check_query_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:

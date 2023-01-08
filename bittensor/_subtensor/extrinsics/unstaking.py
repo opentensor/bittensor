@@ -60,11 +60,7 @@ def __do_remove_stake_single(
     # Decrypt keys,
     wallet.coldkey
 
-    if not subtensor.is_hotkey_registered( hotkey_ss58 ):
-        # Hotkey is not registered in any subnets.
-        raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
-
-
+    print ('hotkey_ss58', hotkey_ss58, 'amount.rao', amount.rao)
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
         call_module='Paratensor', 
@@ -126,11 +122,8 @@ def unstake (
         own_hotkey = True
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
-        old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
-        if not subtensor.is_hotkey_registered( hotkey_ss58 ): # Hotkey is not registered on the chain.
-            raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
-        
-        old_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 )
+        old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )        
+        old_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 )
 
     # Convert to bittensor.Balance
     if amount == None:
@@ -193,7 +186,7 @@ def unstake (
             bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
             with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(subtensor.network)):
                 new_balance = subtensor.get_balance( address = wallet.coldkey.ss58_address )
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 ) # Get stake on hotkey.
+                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 ) # Get stake on hotkey.
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                 return True
