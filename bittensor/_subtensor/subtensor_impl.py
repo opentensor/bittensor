@@ -671,17 +671,14 @@ class Subtensor:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
         """
-        if block == None:
-            block = self.subtensor.get_current_block()
         if bittensor.__use_console__:
             with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
                 neurons = self.neurons( netuid = netuid, block = block )
         else:
             neurons = self.neurons( netuid = netuid, block = block )
-      
         # Create metagraph.
-        metagraph = bittensor.Metagraph.from_neurons( neurons = neurons, netuid = netuid, block = block )
-
+        block_number = self.block
+        metagraph = bittensor.metagraph.from_neurons( network = self.network, neurons = neurons, netuid = netuid, block = block_number )
         return metagraph
 
 

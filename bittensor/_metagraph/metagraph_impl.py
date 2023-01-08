@@ -20,7 +20,6 @@
 import os
 
 from typing import List, Optional
-from bittensor._subtensor.subtensor_impl import NeuronInfo  
 from loguru import logger
 
 import pandas
@@ -29,7 +28,6 @@ import torch
 
 import bittensor
 import bittensor.utils.networking as net
-import bittensor.utils.weight_utils as weight_utils
 
 RAOPERTAO = 1000000000
 U64MAX = 18446744073709551615
@@ -390,103 +388,6 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    @staticmethod
-    def from_neurons( network: str, netuid: int, neurons: List[NeuronInfo], block: int ) -> 'Metagraph':
-        r""" Creates a metagraph from a list of neurons.
-            Args: 
-                network: (:obj:`str`, required):
-                    Name of the network for the metagraph.
-                netuid: (:obj:`int`, required):
-                    netuid of the subnet for the metagraph.
-                neurons: (:obj:`List[NeuronInfo]`, required):
-                    List of neurons to create metagraph from.
-                block: (:obj:`int`, required):
-                    Block number at time of the metagraph.
-        """
-        metagraph = Metagraph( network = network, netuid = netuid )
-        n_total = len(neurons)
-
-        # Fill arrays.
-        uids = [ i for i in range(n_total) ]
-        active = [ 0 for _ in range(n_total) ]
-        stake = [ 0 for _ in range(n_total) ]
-        ranks = [ 0 for _ in range(n_total) ]
-        trust = [ 0 for _ in range(n_total) ]
-        consensus = [ 0 for _ in range(n_total) ]
-        incentive = [ 0 for _ in range(n_total) ]
-        emission = [ 0 for _ in range(n_total) ]
-        dividends = [ 0 for _ in range(n_total) ]
-        last_updates = [ -1 for _ in range(n_total) ]
-        endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
-        weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
-        bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
-        metagraph._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
-        metagraph.neurons = [None for _ in range(n_total)]
-        for n in neurons:
-            metagraph.neurons[n.uid] = n
-            uids[n.uid] = n.uid 
-            active[n.uid] = n.active
-            stake[n.uid] = n.stake 
-            ranks[n.uid] = n.rank
-            trust[n.uid] = n.trust
-            consensus[n.uid] = n.consensus
-            incentive[n.uid] = n.incentive
-            dividends[n.uid] = n.dividends
-            emission[n.uid] = n.emission
-            last_updates[n.uid] = n.last_update
-            endpoint =  bittensor.endpoint.from_neuron(n)
-            metagraph._endpoint_objs[n.uid] = endpoint 
-            endpoints[n.uid] = endpoint.to_tensor().tolist()
-            if len(n.weights) > 0:
-                w_uids, w_weights = zip(*n.weights)
-                weights[n.uid] = weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
-            else:
-                weights[n.uid] = [0] * n_total
-            if len(n.bonds) > 0:
-                b_uids, b_bonds = zip(*n.bonds)
-                bonds[n.uid] = weight_utils.convert_bond_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
-            else:
-                bonds[n.uid] = [0] * n_total
-
-        # Set tensors.
-        tn = torch.tensor( n_total, dtype=torch.int64 )
-        tblock = torch.tensor( block, dtype=torch.int64 )
-        tuids = torch.tensor( uids, dtype=torch.int64 )
-        tactive = torch.tensor( active, dtype=torch.int64 )
-        tstake = torch.tensor( stake, dtype=torch.float32 )
-        tranks = torch.tensor( ranks, dtype=torch.float32 )
-        ttrust = torch.tensor( trust, dtype=torch.float32 )
-        tconsensus = torch.tensor( consensus, dtype=torch.float32 )
-        tincentive = torch.tensor( incentive, dtype=torch.float32 )
-        temission = torch.tensor( emission, dtype=torch.float32 )
-        tdividends = torch.tensor( dividends, dtype=torch.float32 )
-        tlast_update = torch.tensor( last_updates, dtype=torch.int64 )
-        tbonds = torch.tensor( bonds, dtype=torch.int64 )
-        tweights = torch.tensor( weights, dtype=torch.float32 )
-        tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
-
-        # Normalize bond ownership.
-        tbonds = torch.nn.functional.normalize( tbonds.float(), p=1, dim=0, eps=1e-12 ) * 0.5 + torch.eye( tn ) * 0.5
-
-        # Set params.
-        metagraph.n = torch.nn.Parameter( tn, requires_grad=False )
-        metagraph.block = torch.nn.Parameter( tblock, requires_grad=False )
-        metagraph.uids = torch.nn.Parameter( tuids, requires_grad=False )
-        metagraph.stake = torch.nn.Parameter( tstake, requires_grad=False )
-        metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
-        metagraph.trust = torch.nn.Parameter( ttrust, requires_grad=False )
-        metagraph.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
-        metagraph.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
-        metagraph.emission = torch.nn.Parameter( temission, requires_grad=False )
-        metagraph.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
-        metagraph.active = torch.nn.Parameter( tactive, requires_grad=False )
-        metagraph.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
-        metagraph.weights = torch.nn.Parameter( tweights, requires_grad=False )
-        metagraph.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
-        metagraph.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
-
-        return metagraph
-
     def sync ( self, subtensor: 'bittensor.Subtensor', netuid: int, block: Optional[int] = None ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
             Args:
@@ -541,7 +442,7 @@ class Metagraph( torch.nn.Module ):
         return wandb_info
             
     def __str__(self):
-        return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.subtensor.network)
+        return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.network)
         
     def __repr__(self):
         return self.__str__()
