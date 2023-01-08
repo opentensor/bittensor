@@ -90,18 +90,38 @@ class Subtensor:
     #####################
     #### Delegation #####
     #####################
-    def become_delegate( 
+    def nominate( 
         self,
         wallet: 'bittensor.Wallet', 
         wait_for_finalization: bool = False, 
         wait_for_inclusion: bool = True 
     ) -> bool:
         """ Becomes a delegate for the hotkey."""
-        return become_delegate( 
+        return nominate( 
             subtensor = self, 
             wallet = wallet, 
             wait_for_finalization = wait_for_finalization,
             wait_for_inclusion = wait_for_inclusion
+        )
+
+    def delegate(
+        self, 
+        wallet: 'bittensor.wallet',
+        delegate_ss58: Optional[str] = None,
+        amount: Union[Balance, float] = None, 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """ Adds the specified amount of stake to passed hotkey uid. """
+        return delegate( 
+            subtensor = self, 
+            wallet = wallet,
+            delegate_ss58 = delegate_ss58, 
+            amount = amount, 
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization, 
+            prompt = prompt
         )
 
     #####################

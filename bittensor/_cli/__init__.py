@@ -75,6 +75,7 @@ class cli:
         OverviewCommand.add_args( cmd_parsers )
         RegisterCommand.add_args( cmd_parsers )
         TransferCommand.add_args( cmd_parsers )
+        NominateCommand.add_args( cmd_parsers )
         NewHotkeyCommand.add_args( cmd_parsers )
         MetagraphCommand.add_args( cmd_parsers )
         SetWeightsCommand.add_args( cmd_parsers )
@@ -83,8 +84,8 @@ class cli:
         ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
         RegenColdkeyCommand.add_args( cmd_parsers )
+        DelegateStakeCommand.add_args( cmd_parsers )
         ListDelegatesCommand.add_args( cmd_parsers )
-        BecomeDelegateCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
 
         # If no arguments are passed, print help text.
@@ -136,10 +137,16 @@ class cli:
             HelpCommand.check_config( config )
         elif config.command == "update":
             UpdateCommand.check_config( config )
-        elif config.command == "become_delegate":
-            BecomeDelegateCommand.check_config( config )
+        elif config.command == "nominate":
+            NominateCommand.check_config( config )
         elif config.command == "list_delegates":
             ListDelegatesCommand.check_config( config )
         elif config.command == "list_subnets":
             ListSubnetsCommand.check_config( config )
+        elif config.command == "delegate":
+            DelegateStakeCommand.check_config( config )
+        else:
+            console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.comman))
+            sys.exit()
+
                 
