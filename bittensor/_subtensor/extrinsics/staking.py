@@ -69,19 +69,15 @@ def add_stake(
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
         old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
-
-        if not subtensor.is_hotkey_registered( hotkey_ss58 ): # Hotkey is not registered on the chain.
-            raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
-
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate( hotkey_ss58 ):
                 raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
             
             # Get hotkey take
-            hotkey_take = subtensor.get_hotkey_take( hotkey_ss58 )
+            hotkey_take = subtensor.get_delegate_take( hotkey_ss58 )
             # Get hotkey owner
-            hotkey_owner = subtensor.get_owner_for_hotkey( hotkey_ss58 )
+            hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
         
         # Get current stake
         old_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58 )
@@ -105,6 +101,7 @@ def add_stake(
     staking_fee = None # To be filled.
     with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
         with subtensor.substrate as substrate:
+            print (hotkey_ss58, staking_balance.rao)
             call = substrate.compose_call(
                 call_module='Paratensor', 
                 call_function='add_stake',
@@ -402,13 +399,10 @@ def __do_add_stake_single(
     wallet.coldkey
     wallet.hotkey
 
-    if not subtensor.is_registered( hotkey_ss58 = hotkey_ss58 ):
-        raise NotRegisteredError("Hotkey: {} is not registered.".format(hotkey_ss58))
-
     if not wallet.hotkey.ss58_address == hotkey_ss58:
         # We are delegating.
         # Verify that the hotkey is a delegate.
-        if not subtensor.is_delegate( hotkey_ss58 = hotkey_ss58 ):
+        if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):
             raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
     with subtensor.substrate as substrate:
