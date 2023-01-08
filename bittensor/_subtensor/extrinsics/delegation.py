@@ -45,7 +45,7 @@ def become_delegate(
         logger.error('Hotkey {} is already a delegate.'.format(wallet.hotkey.ss58_address))
         return False
 
-    with bittensor.__console__.status(":satellite: Sending become delegate call on [white]{}[/white] ...".format(subtensor.network)):
+    with bittensor.__console__.status(":satellite: Sending become_delegate call on [white]{}[/white] ...".format(subtensor.network)):
         try:
             with subtensor.substrate as substrate:
                 call = substrate.compose_call(
