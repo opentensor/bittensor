@@ -32,8 +32,9 @@ class MetagraphCommand:
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
         metagraph = subtensor.metagraph( netuid = cli.config.netuid )
         metagraph.save()
-        issuance = subtensor.total_issuance
-        difficulty = subtensor.difficulty
+        difficulty = subtensor.difficulty( cli.config.netuid )
+        subnet_emission = bittensor.Balance.from_tao(subtensor.get_emission_value_by_subnet(cli.config.netuid))
+        total_issuance = bittensor.Balance.from_tao(subtensor.total_issuance())
 
         TABLE_DATA = [] 
         total_stake = 0.0
@@ -71,7 +72,7 @@ class MetagraphCommand:
         total_neurons = len(metagraph.uids)                
         table = Table(show_footer=False)
         table.title = (
-            "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.netuid, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), issuance, difficulty )
+            "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.netuid, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), total_issuance, difficulty )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
@@ -99,9 +100,7 @@ class MetagraphCommand:
     def check_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
-        check_netuid_set( config.metagraph )
-
+        check_netuid_set( config )
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
