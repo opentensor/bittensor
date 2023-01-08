@@ -226,14 +226,14 @@ def delegate(
             with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(subtensor.network)):
                 new_balance = subtensor.get_balance( address = wallet.coldkey.ss58_address )
                 block = subtensor.get_current_block()
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-                    coldkey_ss58=wallet.coldkeypub.ss58_address,
-                    hotkey_ss58= wallet.hotkey.ss58_address,
+                new_delegate_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                    coldkey_ss58 = wallet.coldkeypub.ss58_address,
+                    hotkey_ss58 = delegate_ss58,
                     block=block
                 ) # Get current stake
 
                 bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( my_prev_coldkey_balance, new_balance ))
-                bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( my_prev_delegated_stake, new_stake ))
+                bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( my_prev_delegated_stake, new_delegate_stake ))
                 return True
         else:
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")

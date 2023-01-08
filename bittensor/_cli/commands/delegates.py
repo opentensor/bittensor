@@ -109,8 +109,10 @@ class DelegateStakeCommand:
             config.wallet.name = str(wallet_name)
 
         # Check for delegates.
-        subtensor = bittensor.subtensor( config = config )
-        delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+        with bittensor.__console__.status(":satellite: Loading delegates..."):
+            subtensor = bittensor.subtensor( config = config )
+            delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+
         if len(delegates) == 0:
             console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
             sys.exit()
@@ -140,7 +142,8 @@ class ListDelegatesCommand:
         List all delegates on the network.
         """
         subtensor = bittensor.subtensor( config = cli.config )
-        delegates: bittensor.DelegateInfo = subtensor.get_delegates()
+        with bittensor.__console__.status(":satellite: Loading delegates..."):
+            delegates: bittensor.DelegateInfo = subtensor.get_delegates()
         show_delegates( delegates, width = cli.config.get('width', None) )
 
     @staticmethod
