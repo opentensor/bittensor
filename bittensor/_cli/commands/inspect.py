@@ -52,7 +52,7 @@ class InspectCommand:
                 if cli.config.netuid != None:
                     # If a netuid is provided, inspect the hotkey and the neuron
                     dendrite = bittensor.dendrite( wallet = wallet )
-                    neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address, netuid = cli.config.netuid )
+                    neuron = subtensor.get_neuron_for_pubkey_and_subnet( ss58_hotkey = wallet.hotkey.ss58_address, netuid = cli.config.netuid )
                     endpoint = bittensor.endpoint.from_neuron( neuron )
                     if neuron.is_null:
                         registered = '[bold white]No[/bold white]'
@@ -61,7 +61,7 @@ class InspectCommand:
                         latency = 'N/A'
                     else:
                         registered = '[bold white]Yes[/bold white]'
-                        stake = bittensor.Balance.from_tao( neuron.stake )
+                        stake = bittensor.Balance.from_tao( neuron.total_stake )
                         emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
                         synapses = [bittensor.synapse.TextLastHiddenState()]
                         _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)

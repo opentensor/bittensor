@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import sys
 import argparse
 import bittensor
 from rich.prompt import Prompt
@@ -27,25 +28,25 @@ class RegisterCommand:
     @staticmethod
     def run( cli ):
         r""" Register neuron. """
-        wallet = bittensor.wallet( config = self.config )
-        subtensor = bittensor.subtensor( config = self.config )
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor = bittensor.subtensor( config = cli.config )
 
         # Verify subnet exists
-        if not subtensor.subnet_exists( netuid = self.config.netuid ):
-            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+        if not subtensor.subnet_exists( netuid = cli.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist[/red]")
             sys.exit(1)
 
         subtensor.register(
             wallet = wallet,
-            netuid = self.config.netuid,
-            prompt = not self.config.no_prompt,
-            TPB = self.config.subtensor.register.cuda.get('TPB', None),
-            update_interval = self.config.subtensor.register.get('update_interval', None),
-            num_processes = self.config.subtensor.register.get('num_processes', None),
-            cuda = self.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
-            dev_id = self.config.subtensor.register.cuda.get('dev_id', None),
-            output_in_place = self.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
-            log_verbose = self.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
+            netuid = cli.config.netuid,
+            prompt = not cli.config.no_prompt,
+            TPB = cli.config.subtensor.register.cuda.get('TPB', None),
+            update_interval = cli.config.subtensor.register.get('update_interval', None),
+            num_processes = cli.config.subtensor.register.get('num_processes', None),
+            cuda = cli.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
+            dev_id = cli.config.subtensor.register.cuda.get('dev_id', None),
+            output_in_place = cli.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
+            log_verbose = cli.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
         )
 
 
