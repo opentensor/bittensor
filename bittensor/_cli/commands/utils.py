@@ -35,12 +35,17 @@ class IntListPrompt(PromptBase):
             all( val.strip() in self.choices for val in value.replace(',', ' ').split( ))
 
 
-def check_netuid_set( config: 'bittensor.Config', allow_none: bool = False ):
+def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtensor', allow_none: bool = False ):
+
+    all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
+    if len(all_netuids) == 0:
+        console.print(":cross_mark:[red]There are no open networks.[/red]")
+        sys.exit()
+
     # Make sure netuid is set.
     if config.get('netuid', 'notset') == 'notset':
         if not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid", default = str(bittensor.defaults.netuid) if not allow_none else 'None')
-            
+            netuid = IntListPrompt.ask("Enter netuid", choices=all_netuids, default=str(all_netuids[0]))
         else:
             netuid = str(bittensor.defaults.netuid) if not allow_none else 'None'
     else:

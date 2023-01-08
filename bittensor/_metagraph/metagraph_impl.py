@@ -388,7 +388,7 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    def sync ( self, subtensor: 'bittensor.Subtensor', netuid: int, block: Optional[int] = None ) -> 'Metagraph':
+    def sync ( self, netuid: int, subtensor: 'bittensor.Subtensor' = None, block: Optional[int] = None ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
             Args:
                 subtensor: (:obj:`bittensor.Subtensor`, required):
@@ -401,12 +401,13 @@ class Metagraph( torch.nn.Module ):
                 self: (:obj:`Metagraph`, required):
                     Returns self.
         """
+        # Take default subtensor if not set.
+        if subtensor == None:
+            subtensor = bittensor.subtensor()
         # Pull metagraph from chain using subtensor.
         metagraph = subtensor.metagraph( netuid = netuid, block = block )
-        
         # Update self with new values.
         self.__dict__.update(metagraph.__dict__)
-
         return self
 
     def to_dataframe(self):

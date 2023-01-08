@@ -15,11 +15,122 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import sys
 import argparse
 import bittensor
+from typing import List, Optional, Dict
 from rich.table import Table
 from rich.prompt import Prompt
+from rich.prompt import Confirm
 console = bittensor.__console__
+
+# Uses rich console to pretty print a table of delegates.
+def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[int] = None):
+    delegates.sort(key=lambda delegate: delegate.total_stake, reverse=False)
+    table = Table(show_footer=True, width=width, pad_edge=False, box=None)
+    table.add_column("[overline white]DELEGATE",  str(len(delegates)), footer_style = "overline white", style='bold white')
+    table.add_column("[overline white]TAKE", style='white')
+    table.add_column("[overline white]OWNER", style='yellow')
+    table.add_column("[overline white]NOMINATORS", justify='right', style='green', no_wrap=True)
+    table.add_column("[overline white]TOTAL STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
+    for delegate in delegates:
+        table.add_row(
+            str(delegate.hotkey_ss58),
+            str(delegate.take),
+            str(delegate.owner_ss58),
+            str(delegate.nominators),
+            str(delegate.total_stake),
+        )
+    bittensor.__console__.print(table)
+
+class DelegateStakeCommand:
+
+    @staticmethod
+    def run( cli ):
+        '''Delegates stake to a chain delegate.'''
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor.delegate( 
+            wallet = wallet, 
+            delegate_ss58 = config.get('delegate_ss58key'), 
+            amount = config.get('amount'), 
+            wait_for_inclusion = True, 
+            prompt = not config.no_prompt 
+        )
+
+    @staticmethod
+    def add_args( parser: argparse.ArgumentParser ):
+        delegate_stake_parser = parser.add_parser(
+            'delegate', 
+            help='''Delegate Stake to an account.'''
+        )
+        delegate_stake_parser.add_argument( 
+            '--no_version_checking', 
+            action='store_true', 
+            help='''Set false to stop cli version checking''', 
+            default = False 
+        )
+        delegate_stake_parser.add_argument(
+            '--delegate_ss58key', 
+            dest = "delegate_ss58key",
+            type = float,  
+            required = False,
+            help='''The ss58 address of the choosen delegate''', 
+        )
+        delegate_stake_parser.add_argument(
+            '--all', 
+            dest="stake_all", 
+            action='store_true'
+        )
+        delegate_stake_parser.add_argument(
+            '--amount', 
+            dest="amount", 
+            type=float, 
+            required=False
+        )        
+        delegate_stake_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( delegate_stake_parser )
+        bittensor.subtensor.add_args( delegate_stake_parser )
+
+    @staticmethod   
+    def check_config( config: 'bittensor.Config' ):
+        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        # Check for delegates.
+        subtensor = bittensor.subtensor( config = config )
+        delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+        if len(delegates) == 0:
+            console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+            sys.exit()
+
+        if not config.get('delegate_ss58key'):
+            show_delegates( delegates )
+            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
+            config.delegate_ss58key = str(delegate_ss58key)
+            
+        # Get amount.
+        if not config.get('amount') and not config.get('stake_all'):
+            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
+                amount = Prompt.ask("Enter Tao amount to stake")
+                try:
+                    config.amount = float(amount)
+                except ValueError:
+                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    sys.exit()
+            else:
+                config.stake_all = True
 
 class ListDelegatesCommand:
 
@@ -30,23 +141,7 @@ class ListDelegatesCommand:
         """
         subtensor = bittensor.subtensor( config = cli.config )
         delegates: bittensor.DelegateInfo = subtensor.get_delegates()
-
-        table = Table(show_footer=True, width=cli.config.get('width', None), pad_edge=False, box=None)
-        table.add_column("[overline white]DELEGATE",  str(len(delegates)), footer_style = "overline white", style='bold white')
-        table.add_column("[overline white]TAKE", style='white')
-        table.add_column("[overline white]OWNER", style='yellow')
-        table.add_column("[overline white]NOMINATORS", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]TOTAL STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
-
-        for delegate in delegates:
-            table.add_row(
-                str(delegate.hotkey_ss58),
-                str(delegate.take),
-                str(delegate.owner_ss58),
-                str(delegate.nominators),
-                str(delegate.total_stake),
-            )
-        bittensor.__console__.print(table)
+        show_delegates( delegates, width = cli.config.get('width', None) )
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
@@ -70,11 +165,11 @@ class ListDelegatesCommand:
 
 
 
-class BecomeDelegateCommand:
+class NominateCommand:
 
     @staticmethod
     def run( cli ):
-        r""" Become a delegate.
+        r""" Nominate wallet.
         """
         wallet = bittensor.wallet(config = cli.config)
         subtensor = bittensor.subtensor( config = cli.config )
@@ -88,7 +183,7 @@ class BecomeDelegateCommand:
             bittensor.__console__.print('Aborting: Hotkey {} is already a delegate.'.format(wallet.hotkey.ss58_address))
             return
 
-        result: bool = subtensor.become_delegate( wallet )
+        result: bool = subtensor.nominate( wallet )
         if not result:
             bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
         else:
@@ -101,19 +196,19 @@ class BecomeDelegateCommand:
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
-        become_delegate_parser = parser.add_parser(
-            'become_delegate', 
+        nominate_parser = parser.add_parser(
+            'nominate', 
             help='''Become a delegate on the network'''
         )
-        become_delegate_parser.add_argument(
+        nominate_parser.add_argument(
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
-        bittensor.wallet.add_args( become_delegate_parser )
-        bittensor.subtensor.add_args( become_delegate_parser )
+        bittensor.wallet.add_args( nominate_parser )
+        bittensor.subtensor.add_args( nominate_parser )
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):

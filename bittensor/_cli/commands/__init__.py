@@ -3,7 +3,7 @@ from .stake import StakeCommand
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
 from .register import RegisterCommand
-from .delegates import BecomeDelegateCommand, ListDelegatesCommand
+from .delegates import NominateCommand, ListDelegatesCommand, DelegateStakeCommand
 from .wallets import NewColdkeyCommand, NewHotkeyCommand, RegenColdkeyCommand, RegenColdkeypubCommand, RegenHotkeyCommand
 from .transfer import TransferCommand
 from .inspect import InspectCommand

@@ -21,6 +21,7 @@ from tqdm import tqdm
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
 from typing import List, Union, Optional, Dict, Tuple
+from .utils import get_hotkey_wallets_for_wallet
 console = bittensor.__console__
 
 class UnStakeCommand:
@@ -113,7 +114,7 @@ class UnStakeCommand:
         hotkeys_to_unstake_from: List[Tuple[Optional[str], str]] = []
         if cli.config.wallet.get('all_hotkeys'):
             # Stake to all hotkeys.
-            all_hotkeys: List[bittensor.wallet] = cli._get_hotkey_wallets_for_wallet( wallet = wallet )
+            all_hotkeys: List[bittensor.wallet] = get_hotkey_wallets_for_wallet( wallet = wallet )
             # Exclude hotkeys that are specified.
             hotkeys_to_unstake_from = [
                 (wallet.hotkey_str, wallet.hotkey.ss58_address) for wallet in all_hotkeys if wallet.hotkey_str not in cli.config.wallet.get('hotkeys', [])
@@ -177,7 +178,6 @@ class UnStakeCommand:
             return None
 
         # Ask to unstake
-        print (list(zip(final_hotkeys, final_amounts)))
         if not cli.config.no_prompt:
             if not Confirm.ask(f"Do you want to unstake from the following keys to {wallet.name}:\n" + \
                     "".join([

@@ -23,6 +23,7 @@ from rich.prompt import Confirm
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
 from typing import List, Union, Optional, Dict, Tuple
+from .utils import get_hotkey_wallets_for_wallet
 console = bittensor.__console__
 
 class StakeCommand:
@@ -39,7 +40,7 @@ class StakeCommand:
         hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
         if config.wallet.get('all_hotkeys'):
             # Stake to all hotkeys.
-            all_hotkeys: List[bittensor.wallet] = cli._get_hotkey_wallets_for_wallet( wallet = wallet )
+            all_hotkeys: List[bittensor.wallet] = get_hotkey_wallets_for_wallet( wallet = wallet )
             # Exclude hotkeys that are specified.
             hotkeys_to_stake_to = [
                 (wallet.hotkey_str, wallet.hotkey.ss58_address) for wallet in all_hotkeys if wallet.hotkey_str not in config.wallet.get('hotkeys', [])

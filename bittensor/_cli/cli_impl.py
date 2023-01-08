@@ -78,8 +78,10 @@ class CLI:
             HelpCommand.run( self )
         elif self.config.command == 'update':
             UpdateCommand.run( self )
-        elif self.config.command == 'become_delegate':
-            BecomeDelegateCommand.run( self )
+        elif self.config.command == 'nominate':
+            NominateCommand.run( self )
+        elif self.config.command == 'delegate':
+            DelegateStakeCommand.run( self )
         elif self.config.command == 'list_delegates':
             ListDelegatesCommand.run( self )
         elif self.config.command == 'list_subnets':
