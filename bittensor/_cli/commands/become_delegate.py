@@ -33,6 +33,11 @@ class BecomeDelegateCommand:
         wallet.hotkey
         wallet.coldkey
 
+        # Check if the hotkey is already a delegate.
+        if subtensor.is_hotkey_delegate( wallet.hotkey.ss58_address ):
+            bittensor.__console__.print('Aborting: Hotkey {} is already a delegate.'.format(wallet.hotkey.ss58_address))
+            return
+
         result: bool = subtensor.become_delegate( wallet )
         if not result:
             bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
