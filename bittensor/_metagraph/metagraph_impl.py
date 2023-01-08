@@ -29,9 +29,6 @@ import torch
 import bittensor
 import bittensor.utils.networking as net
 
-RAOPERTAO = 1000000000
-U64MAX = 18446744073709551615
-
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
@@ -92,85 +89,6 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         self.neurons = None
         return self
-
-    def forward (
-        self, 
-        uid: int, 
-        row_weight: torch.FloatTensor 
-    ) -> torch.FloatTensor:
-        """
-        Returns a dividend vector for a change in weights by computing the full incenvite function.
-            Args:
-                uid (int):
-                    uid to set weights.
-                row_weights: (torch.FloatTensor, shape =(n)):
-                    normalized row to replace at uid.
-            Returns:
-                dividends (torch.FloatTensor):
-                    Dividends for the entire network.
-        """
-
-        # Return if there are no neurons.
-        if self.n.item() == 0:
-            return torch.tensor([], dtype=torch.float32)
-
-        # Raise if the passed weights are badly shaped.
-        if torch.numel( row_weight ) != self.n.item():
-            raise ValueError('Passed weight update must have the dimension of a row in W. Got {}, expected {}', row_weight.size(), self.n.item())
-
-        # Reshape to fit weights.
-        row_weight = row_weight.view( self.n )
-
-        # Normalize row.
-        if torch.abs( torch.sum( row_weight ) - 1 ) > 0.0001:
-            row_weight = f.normalize(row_weight, p=1, dim=0)
-        
-        # Raise if the passed weights are badly shaped.
-        if uid >= self.n.item():
-            raise ValueError('Passed uid does not exist in the graph. Got {} > {}', uid, self.n.item())
-
-        weight = self.W.detach().clone()
-        weight[uid,:] = row_weight
-        
-        # Compute ranks.
-        S = self.S.view(self.n, 1)
-        Wt = torch.transpose(weight, 0, 1)
-        R = torch.matmul(Wt, S).view(self.n)
-
-        # Compute trust.
-        T  = torch.matmul((Wt != 0).float(), S).view(self.n)
-
-        # Compute consensus.
-        rho = 10
-        kappa = 0.5
-        # Return if there is no stake.
-        if torch.sum( self.S )  == 0:
-            C = torch.sigmoid( rho * (T - kappa) ).view(self.n)
-        else:
-            C = torch.sigmoid( rho * (T / torch.sum(S) - kappa) ).view(self.n)
-
-        # Compute incentive.
-        Incentive = (R * C).view(self.n)
-        print (Incentive)
-
-        # Compute emission.
-        if torch.sum(Incentive) == 0:
-            Inflation = torch.zeros( (self.n.item()), dtype=torch.float32 ).view(self.n)
-        else:
-            Inflation = (self.tau * Incentive).view(self.n)
-        print (Inflation)
-
-        # Compute bonds.
-        B = self.B.detach().clone().float()
-        B_norm = f.normalize(B, p=1, dim=1)
-        print (B_norm)
-
-        # Dividends
-        D = torch.matmul( B_norm.view(self.n, self.n), Inflation.view(self.n, 1) ).view(self.n) + 0.5 * Inflation.view(self.n)
-        print (D)
-
-        # Return dividends.
-        return D.view(self.n)
 
     @property
     def S(self) -> torch.FloatTensor:

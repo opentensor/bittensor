@@ -35,9 +35,8 @@ class WeightsCommand:
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = cli.config )
         wallet = bittensor.wallet( config = cli.config )
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            metagraph = subtensor.metagraph( netuid = cli.config('netuid') )
-            metagraph.save()
+        metagraph = subtensor.metagraph( netuid = cli.config.get('netuid') )
+        metagraph.save()
 
         table = Table()
         rows = []
