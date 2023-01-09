@@ -372,6 +372,7 @@ class neuron:
         epoch_start_time = time.time()
 
         # === All logging for epoch start (including wandb, prometheus) === 
+        # prometheus (every epoch start)
         self.vlogger.prometheus.log_epoch_start(
             current_block = current_block, 
             batch_size = batch_size, 
@@ -382,6 +383,7 @@ class neuron:
             epochs_until_reset = epochs_until_reset
         )
         
+        # wandb (every epoch start)
         if self.config.using_wandb:
             wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
                        'era/validation_len': validation_len,
@@ -504,7 +506,7 @@ class neuron:
                 loss = loss.item()
             )
 
-            # wandb - step & loss
+            # wandb - step & loss (every validation step)
             if self.config.using_wandb:
                 for uid, vals in self.neuron_stats.items():
                     for key in vals:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
@@ -527,7 +529,7 @@ class neuron:
 
         # === ALL end of epoch logging (including console message, console table, prometheus, wandb)===
         if self.config.logging.debug or self.config.logging.trace:
-                # console table - weight table (every of epoch)
+                # console table - weight table (every end of epoch)
                 self.vlogger.print_weights_table(
                     min_allowed_weight = self.subtensor.min_allowed_weights,
                     max_weight_limit = self.subtensor.max_weight_limit,
@@ -547,7 +549,7 @@ class neuron:
             epoch_start_time = epoch_start_time
         )
 
-        # wandb - weights and metagraph stats
+        # wandb - weights and metagraph stats (every end of epoch)
         if self.config.using_wandb:
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = sample_uids, values = torch.zeros( self.metagraph.n ).scatter( dim = 0, src = sample_weights, index = sample_uids ) ),
@@ -559,7 +561,7 @@ class neuron:
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block, commit=False)
             wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
 
-        # prometheus - metagraph
+        # prometheus - metagraph (every end of epoch)
         self.vlogger.prometheus.log_epoch_end(uid = self.uid, metagraph = self.metagraph)
         
         # === Iterate epochs ===
