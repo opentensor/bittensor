@@ -344,7 +344,7 @@ class ValidatorLogger:
     def print_console_validator_identifier(
         self, 
         uid: int, 
-        wallet: bittensor.Wallet, 
+        wallet: 'bittensor.Wallet', 
         external_ip: str,
     ):  
         r""" Console print for validator identifier.
@@ -364,7 +364,7 @@ class ValidatorLogger:
     def print_console_metagraph_status(
         self, 
         uid: int, 
-        metagraph: bittensor.Metagraph, 
+        metagraph: 'bittensor.Metagraph', 
         current_block: int, 
         start_block: int, 
         network: str
@@ -412,7 +412,7 @@ class ValidatorLogger:
         epoch_responsive_uids: Set, 
         epoch_queried_uids: Set, 
         max_weight_limit: float, 
-        epoch_start_time: time.time
+        epoch_start_time: time.time,
     ):
         r""" Console print for weight setting to subtensor.
         """
@@ -448,7 +448,7 @@ class ValidatorPrometheus:
         parameters: torch.nn.parameter.Parameter, 
         uid: int, 
         network: str, 
-        wallet: bittensor.Wallet
+        wallet: 'bittensor.Wallet'
     ):
         r""" Set up prometheus running info. 
         """
@@ -506,7 +506,7 @@ class ValidatorPrometheus:
     def log_epoch_end(
         self,
         uid: int,
-        metagraph: bittensor.Metagraph
+        metagraph: 'bittensor.Metagraph'
     ):
         r""" All prometheus logging at the end of epoch. 
         """
