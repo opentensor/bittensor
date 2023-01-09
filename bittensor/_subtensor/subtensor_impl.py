@@ -411,17 +411,21 @@ class Subtensor:
     #### Account fucntions ###
     ##########################
 
+    """ Returns the total stake held on a hotkey including delegative """
     def get_total_stake_for_hotkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
         return bittensor.Balance.from_rao( self.query_paratensor( 'TotalHotkeyStake', block, [ss58_address] ).value )
 
+    """ Returns the total stake held on a coldkey across all hotkeys including delegates"""
     def get_total_stake_for_coldkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
         return bittensor.Balance.from_rao( self.query_paratensor( 'TotalColdkeyStake', block, [ss58_address] ).value )
 
+    """ Returns the stake under a coldkey - hotkey pairing """
     def get_stake_for_coldkey_and_hotkey( self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
         return bittensor.Balance.from_rao( self.query_paratensor( 'Stake', block, [hotkey_ss58, coldkey_ss58] ).value )
 
-    def get_stake( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
-        return self.query_paratensor( 'Stake', block, [hotkey_ss58] ).value
+    """ Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner"""
+    def get_stake( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str,'bittensor.Balance']]:
+        return [ (r[0].value, bittensor.Balance.from_rao( r[1].value ))  for r in self.query_map_paratensor( 'Stake', block, [hotkey_ss58] ) ]
 
     def get_hotkey_owner( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[str]:
         return self.query_paratensor( 'Owner', block, [hotkey_ss58 ] ).value
