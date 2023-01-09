@@ -169,7 +169,7 @@ class neuron:
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
         self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.neuron.netuid),
-                                          block_size=self.subtensor.validator_sequence_length(self.config.neuron.netuid) + self.config.neuron.validation_len + prune_len)
+                                          block_size=self.subtensor.validator_sequence_length(self.config.neuron.netuid) + self.config.neuron.validation_len + self.config.neuron.prune_len)
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
