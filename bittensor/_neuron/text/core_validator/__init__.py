@@ -165,11 +165,11 @@ class neuron:
         self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.
-        self.axon = bittensor.axon ( netuid=self.config.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
+        self.axon = bittensor.axon ( netuid=self.config.neuron.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
-        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
-                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len)
+        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.neuron.netuid),
+                                          block_size=self.subtensor.validator_sequence_length(self.config.neuron.netuid) + self.config.neuron.validation_len + prune_len)
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
@@ -202,7 +202,7 @@ class neuron:
         self.prometheus_counters = Counter('validator_counters', 'Counters for the running validator.', ['validator_counters_name'])
         self.prometheus_step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0,2*bittensor.__blocktime__,1)))
 
-        self.netuid = self.config.netuid
+        self.netuid = self.config.neuron.netuid
 
         # load last saved validator values from the file system
         if not config.neuron.restart:
@@ -247,6 +247,7 @@ class neuron:
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
         parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
         parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting. (default value: -1, pulling from subtensor directly)', default=-1)
+        parser.add_argument('--neuron.netuid', type=int , help='Subnet uid on finney', default=0)
 
     @classmethod
     def config ( cls ):
@@ -289,13 +290,13 @@ class neuron:
         # Connects wallet to network. 
         self.wallet.create()
         # NOTE: This registration step should likely be solved offline first.
-        self.wallet.reregister( subtensor = self.subtensor )
+        self.wallet.reregister( subtensor = self.subtensor, netuid=self.config.neuron.netuid )
 
 
         # === UID ===
         # Get our uid from the chain. 
         # At this point we should have a uid because we are already registered.
-        self.uid = self.wallet.get_uid( subtensor = self.subtensor )    
+        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid=self.config.neuron.netuid )    
 
         # === Monitoring ===
         # Optionally set up wandb logging.
@@ -310,7 +311,7 @@ class neuron:
         # === Set prometheus run info ===
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
         # TODO (Cameron) this should be it's own storage map on-chain.
-        self.axon.serve( subtensor = self.subtensor, netuid = self.netuid )
+        self.axon.serve( subtensor = self.subtensor )
 
         self.prometheus_gauges.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
         self.prometheus_gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
@@ -401,16 +402,16 @@ class neuron:
         # === Get params for epoch ===
         # Pulling the latest chain parameters.
         current_block = self.subtensor.block
-        batch_size = self.subtensor.validator_batch_size 
-        sequence_length = self.subtensor.validator_sequence_length
+        batch_size = self.subtensor.validator_batch_size(netuid=self.config.neuron.netuid)
+        sequence_length = self.subtensor.validator_sequence_length(netuid=self.config.neuron.netuid)
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         prune_len = self.config.neuron.prune_len  # Number of tokens to holdout for phrase validation beyond sequence context
-        min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
-        blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
-        epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
-        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.neuron.netuid)
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.neuron.netuid)
+        blocks_per_epoch = self.subtensor.validator_epoch_length(netuid=self.config.neuron.netuid) if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+        epochs_until_reset = self.subtensor.validator_epochs_per_reset(netuid=self.config.neuron.netuid) if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power(netuid=self.config.neuron.netuid)
+        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power(netuid=self.config.neuron.netuid)
 
         # === Logs Prometheus ===
         self.prometheus_gauges.labels("current_block").set( current_block )
@@ -635,7 +636,7 @@ class neuron:
         r""" Syncing metagraph together with other metagraph-size related objects
         """
         old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
-        self.metagraph.sync()
+        self.metagraph.sync(netuid=self.config.neuron.netuid)
         self.neuron_hotkeys = self.metagraph.hotkeys
 
         changed_hotkeys = []
@@ -742,8 +743,8 @@ class neuron:
 
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
 
-        min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.neuron.netuid)
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.neuron.netuid)
 
         # === Populate neuron weights ===
         neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs for min_allowed_weights
@@ -761,7 +762,7 @@ class neuron:
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
-        quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
+        quantile = self.subtensor.validator_exclude_quantile(netuid=self.config.neuron.netuid) if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
         if 0 < max_exclude:
             exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
             lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
@@ -782,8 +783,11 @@ class neuron:
     def weights_table(self, sample_uids, sample_weights, include_uids=None, num_rows: int = None):
         r""" Prints weights table given sample_uids and sample_weights.
         """
-        min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.neuron.netuid)
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.neuron.netuid)
+
+        if len(sample_weights) == 0 or len(sample_uids) == 0:
+            return
 
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights
@@ -828,11 +832,11 @@ class nucleus( torch.nn.Module ):
         super(nucleus, self).__init__()
         self.config = config
 
-        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(0) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(0) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
 
         self.device = device
-        self.max_n = subtensor.max_n
+        self.max_n = subtensor.max_n(0)
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
 
         tokenizer = bittensor.tokenizer()
