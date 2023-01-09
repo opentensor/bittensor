@@ -81,7 +81,6 @@ class cli:
         SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
-        ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
         RegenColdkeyCommand.add_args( cmd_parsers )
         DelegateStakeCommand.add_args( cmd_parsers )
