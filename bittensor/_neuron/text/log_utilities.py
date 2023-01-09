@@ -7,6 +7,8 @@ from rich.errors import MarkupError
 from rich.style import Style
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 import datetime
+from prometheus_client import Counter, Gauge, Histogram, Summary, Info
+import bittensor
 
 class ValidatorLogger:
     def __init__(self, config = None):
@@ -50,6 +52,7 @@ class ValidatorLogger:
         # console_width (:obj:`int`, `required`):
         #     Config console width for table print.
         self.console_width = self.config.get('width', None) if self.config else None
+        self.prometheus = ValidatorPrometheus(config)
 
     def print_response_table(
         self, 
@@ -265,6 +268,7 @@ class ValidatorLogger:
                     mark_uids=include_uids)
 
     def print_console_validator_identifier(self, uid, wallet, external_ip):
+        # validator identifier status console message (every 25 validation steps)
         rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
         f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
         f"UID [cyan]{uid}[/cyan] "
@@ -276,6 +280,7 @@ class ValidatorLogger:
         f"[bright_white not bold]{wallet.hotkey.ss58_address}[/bright_white not bold][/white not bold]")
 
     def print_console_metagraph_status(self, uid, metagraph, current_block, start_block, network):
+        # validator update status console message
         rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
         f"{f'UID [bright_cyan]{uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
         f'Updated [yellow]{current_block - metagraph.last_update[uid]}[/yellow] [dim]blocks ago[/dim] | '
@@ -326,3 +331,75 @@ class ValidatorLogger:
         f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
         f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
         f'\[{max_weight_limit:.4g} allowed]')
+
+class ValidatorPrometheus:
+    def __init__(self, config):
+        # === Prometheus stats ===
+        # Turn this off by passing the --prometheus.off flag
+        self.config = config
+        self.info = Info("neuron_info", "Info sumamries for the running server-miner.")
+        self.gauges = Gauge('validator_gauges', 'Gauges for the running validator.', ['validator_gauges_name'])
+        self.counters = Counter('validator_counters', 'Counters for the running validator.', ['validator_counters_name'])
+        self.step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0, 2 * bittensor.__blocktime__, 1)))
+
+    def log_run_info(self, parameters, uid, network, wallet):
+        self.gauges.labels( "model_size_params" ).set( sum(p.numel() for p in parameters) )
+        self.gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in parameters) )
+        self.info.info({
+            'type': "core_validator",
+            'uid': str(uid),
+            'network': network,
+            'coldkey': str(wallet.coldkeypub.ss58_address),
+            'hotkey': str(wallet.hotkey.ss58_address),
+        })
+
+    def log_epoch_start(
+        self, 
+        current_block, 
+        batch_size, 
+        sequence_length, 
+        validation_len, 
+        min_allowed_weights, 
+        blocks_per_epoch, 
+        epochs_until_reset
+    ):
+        self.gauges.labels("current_block").set( current_block )
+        self.gauges.labels("batch_size").set( batch_size )
+        self.gauges.labels("sequence_length").set( sequence_length )
+        self.gauges.labels("validation_len").set( validation_len )
+        self.gauges.labels("min_allowed_weights").set( min_allowed_weights )
+        self.gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
+        self.gauges.labels("epochs_until_reset").set( epochs_until_reset )
+        self.gauges.labels("scaling_law_power").set( self.config.nucleus.scaling_law_power )
+        self.gauges.labels("synergy_scaling_law_power").set( self.config.nucleus.synergy_scaling_law_power )
+        self.gauges.labels("epoch_steps").set(0)
+    
+    def log_step(
+        self,
+        current_block,
+        last_update,
+        step_time,
+        loss
+    ):
+        self.gauges.labels("global_step").inc()
+        self.gauges.labels("epoch_steps").inc()
+        self.gauges.labels("current_block").set(current_block)
+        self.gauges.labels("last_updated").set( current_block - last_update )
+        self.step_time.observe( step_time )
+        self.gauges.labels('step_time').set( step_time )
+        self.gauges.labels("loss").set( loss )
+
+    def log_epoch_end(
+        self,
+        uid,
+        metagraph
+    ):
+        self.gauges.labels("epoch").inc()
+        self.gauges.labels("set_weights").inc()
+        self.gauges.labels("stake").set( metagraph.stake[uid] )
+        self.gauges.labels("rank").set( metagraph.ranks[uid] )
+        self.gauges.labels("trust").set( metagraph.trust[uid] )
+        self.gauges.labels("incentive").set( metagraph.incentive[uid] )
+        self.gauges.labels("dividends").set( metagraph.dividends[uid] )
+        self.gauges.labels("emission").set( metagraph.emission[uid] )
+

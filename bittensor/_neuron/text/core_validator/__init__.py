@@ -114,7 +114,7 @@ class neuron:
             config = self.config, 
             logging_dir = self.config.neuron.full_path 
         )
-        bittensor.prometheus ( 
+        bittensor.prometheus( 
             config = self.config, 
             port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
         )
@@ -154,13 +154,6 @@ class neuron:
             self.weight_key = 'shapley_values_min'  # stat key + ! to calculate neuron weights with
             # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
             self.synapse_keys = ['shapley_values_min']
-
-        # === Prometheus stats ===
-        # Turn this off by passing the --prometheus.off flag
-        self.prometheus_info = Info("neuron_info", "Info sumamries for the running server-miner.")
-        self.prometheus_gauges = Gauge('validator_gauges', 'Gauges for the running validator.', ['validator_gauges_name'])
-        self.prometheus_counters = Counter('validator_counters', 'Counters for the running validator.', ['validator_counters_name'])
-        self.prometheus_step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0,2*bittensor.__blocktime__,1)))
 
         # load last saved validator values from the file system
         if not config.neuron.restart:
@@ -268,15 +261,12 @@ class neuron:
         # === Set prometheus run info ===
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
         self.axon.serve( subtensor = self.subtensor )
-        self.prometheus_gauges.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
-        self.prometheus_gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
-        self.prometheus_info.info({
-            'type': "core_validator",
-            'uid': str(self.uid),
-            'network': self.config.subtensor.network,
-            'coldkey': str(self.wallet.coldkeypub.ss58_address),
-            'hotkey': str(self.wallet.hotkey.ss58_address),
-        })
+        self.vlogger.prometheus.log_run_info(
+            parameters = self.nucleus.parameters(),
+            uid = self.uid,
+            network = self.config.subtensor.network,
+            wallet = self.wallet
+        )
 
     def save(self, path=None):
         r""" Save validated hotkeys and neuron_stats to filesystem. """
@@ -342,7 +332,7 @@ class neuron:
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
-                    self.prometheus_counters.labels('failures').inc()
+                    self.vlogger.prometheus.counters.labels('failures').inc()
                     console.print_exception(show_locals=False)
                     print( traceback.format_exc() )
                     print( 'Unknown exception: {}', e )
@@ -368,17 +358,6 @@ class neuron:
         self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
 
-        # === Logs Prometheus ===
-        self.prometheus_gauges.labels("current_block").set( current_block )
-        self.prometheus_gauges.labels("batch_size").set( batch_size )
-        self.prometheus_gauges.labels("sequence_length").set( sequence_length )
-        self.prometheus_gauges.labels("validation_len").set( validation_len )
-        self.prometheus_gauges.labels("min_allowed_weights").set( min_allowed_weights )
-        self.prometheus_gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
-        self.prometheus_gauges.labels("epochs_until_reset").set( epochs_until_reset )
-        self.prometheus_gauges.labels("scaling_law_power").set( self.config.nucleus.scaling_law_power )
-        self.prometheus_gauges.labels("synergy_scaling_law_power").set( self.config.nucleus.synergy_scaling_law_power )
-
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len + prune_len != self.dataset.block_size):
             self.dataset.set_data_size(batch_size, sequence_length + validation_len + prune_len)
@@ -390,7 +369,6 @@ class neuron:
                        'era/min_allowed_weights': min_allowed_weights, 'era/max_weight_limit': max_weight_limit,
                        'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
                       step=current_block)
-
         # === Run Epoch ===
         # Each block length lasts blocks_per_epoch blocks.
         # This gives us a consistent network wide timer.
@@ -401,7 +379,16 @@ class neuron:
         epoch_queried_uids = set()
         epoch_start_time = time.time()
 
-        self.prometheus_gauges.labels("epoch_steps").set(0)
+        # === All epoch start logging (including wandb, prometheus) === 
+        self.vlogger.prometheus.log_epoch_start(
+            current_block = current_block, 
+            batch_size = batch_size, 
+            sequence_length = sequence_length, 
+            validation_len = validation_len, 
+            min_allowed_weights = min_allowed_weights, 
+            blocks_per_epoch = blocks_per_epoch, 
+            epochs_until_reset = epochs_until_reset
+        )
 
         # normal epoch duration is blocks_per_epoch if all UIDs have been queried
         # try to query each UID at least once - assumes nucleus samples without replacement
@@ -422,7 +409,6 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
-            self.prometheus_gauges.labels("loss").set( loss.item() )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
@@ -443,19 +429,14 @@ class neuron:
             # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
-            self.prometheus_gauges.labels("global_step").inc()
-            self.prometheus_gauges.labels("epoch_steps").inc()
 
             # === Block state ===
             current_block = self.subtensor.block
-            self.prometheus_gauges.labels("current_block").set(current_block)
-            self.prometheus_gauges.labels("last_updated").set( current_block - self.metagraph.last_update[self.uid] )
 
             # === Step time ===
             step_time = time.time() - start_time
-            self.prometheus_step_time.observe( step_time )
-            self.prometheus_gauges.labels('step_time').set( step_time )
-            
+
+            # === All step logging (including console, prometheus) ===
             if epoch_steps % 25 == 1:
                 # validator identifier status console message (every 25 validation steps)
                 self.vlogger.print_console_validator_identifier(self.uid, self.wallet, self.dendrite.receptor_pool.external_ip)
@@ -476,6 +457,13 @@ class neuron:
                 step_time = step_time, 
                 epoch_responsive_uids = epoch_responsive_uids, 
                 epoch_queried_uids = epoch_queried_uids
+            )
+
+            self.vlogger.prometheus.log_step(
+                current_block = current_block, 
+                last_update = self.metagraph.last_update[self.uid], 
+                step_time = step_time,
+                loss = loss.item()
             )
 
             if self.config.logging.debug or self.config.logging.trace:
@@ -504,7 +492,6 @@ class neuron:
                     num_rows=len(stats) + 25
                 )  # print weights table
 
-            # === Logs ===
             if self.config.using_wandb:
                 for uid, vals in self.neuron_stats.items():
                     for key in vals:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
@@ -516,7 +503,7 @@ class neuron:
 
             # Do the backward request after the a queue of forward requests got finished.  
             if epoch_steps % self.config.neuron.forward_num == 1:
-                start_time = time.time()
+                opt_start_time = time.time()
                 logger.info('Model update \t| Optimizer step')
 
                 # === Apply gradients ===
@@ -524,7 +511,7 @@ class neuron:
                 clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
+                logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - opt_start_time:.3g}s]</dim>')
 
         self.metagraph_sync()  # Reset metagraph.
 
@@ -573,15 +560,7 @@ class neuron:
             wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
 
         # === Epoch Prometheus ===
-        self.prometheus_gauges.labels("epoch").inc()
-        self.prometheus_gauges.labels("set_weights").inc()
-        self.prometheus_gauges.labels("stake").set( self.metagraph.stake[self.uid] )
-        self.prometheus_gauges.labels("rank").set( self.metagraph.ranks[self.uid] )
-        self.prometheus_gauges.labels("trust").set( self.metagraph.trust[self.uid] )
-        self.prometheus_gauges.labels("incentive").set( self.metagraph.incentive[self.uid] )
-        self.prometheus_gauges.labels("dividends").set( self.metagraph.dividends[self.uid] )
-        self.prometheus_gauges.labels("emission").set( self.metagraph.emission[self.uid] )
-
+        self.vlogger.log_epoch_end(uid = self.uid, metagraph = self.metagraph)
         # Iterate epochs.
         self.epoch += 1
 
@@ -952,6 +931,7 @@ class nucleus( torch.nn.Module ):
             'loss_fct': self.loss_fct,
             'scaling_law_power': self.config.nucleus.scaling_law_power, 
             'synergy_scaling_law_power': self.config.nucleus.synergy_scaling_law_power,
+            'vlogger': self.vlogger,
             'logging': self.config.logging.debug or self.config.logging.trace
         }
 
@@ -981,7 +961,7 @@ def scaling_law_loss_to_params(loss):
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                 scaling_law_power: float, synergy_scaling_law_power: float,
+                 scaling_law_power: float, synergy_scaling_law_power: float, vlogger: ValidatorLogger,
                  logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
@@ -1008,6 +988,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            vlogger (:obj:`ValidatorLogger`, `required`):
+                Logger for validator.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLM`, `optional`):
@@ -1021,7 +1003,6 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             stats (:obj:`Dict`, `required`):
                 Statistics per endpoint for this batch.
     """
-    vlogger = ValidatorLogger()
     inputs_seq = inputs[..., :-validation_len]  # input sequence without last token [batch_size, sequence_len]
     inputs_val = inputs[..., -validation_len]  # input validation with next token [batch_size]
 
@@ -1106,7 +1087,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                     scaling_law_power: float, synergy_scaling_law_power: float,
+                     scaling_law_power: float, synergy_scaling_law_power: float, vlogger:ValidatorLogger,
                      logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
@@ -1133,6 +1114,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            vlogger (:obj:`ValidatorLogger`, `required`):
+                Logger for validator.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLMNext`, `optional`):
@@ -1146,7 +1129,6 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
             stats (:obj:`Dict`, `required`):
                 Statistics per endpoint for this batch.
     """
-    vlogger = ValidatorLogger()
     inputs_nxt = inputs[..., -validation_len:]  # input validation with next token target phrase [batch_size, val_len]
 
     def _base_params(_stats, query_response):
