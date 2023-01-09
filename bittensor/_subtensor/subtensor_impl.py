@@ -427,9 +427,18 @@ class Subtensor:
     def get_stake( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str,'bittensor.Balance']]:
         return [ (r[0].value, bittensor.Balance.from_rao( r[1].value ))  for r in self.query_map_paratensor( 'Stake', block, [hotkey_ss58] ) ]
 
-    def get_hotkey_owner( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[str]:
-        return self.query_paratensor( 'Owner', block, [hotkey_ss58 ] ).value
+    """ Returns true if the hotkey is known by the chain and there are accounts. """
+    def does_hotkey_exist( self, hotkey_ss58: str, block: Optional[int] = None ) -> bool:
+        return (self.query_paratensor( 'Owner', block, [hotkey_ss58 ] ).value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM")
 
+    """ Returns the coldkey owner of the passed hotkey """
+    def get_hotkey_owner( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[str]:
+        if self.does_hotkey_exist( hotkey_ss58, block ):
+            return self.query_paratensor( 'Owner', block, [hotkey_ss58 ] ).value
+        else:
+            return None
+
+    """ Returns the axon information for this hotkey account """
     def get_axon_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
         result = self.query_paratensor( 'Axons', block, [hotkey_ss58 ] )        
         if result != None:
