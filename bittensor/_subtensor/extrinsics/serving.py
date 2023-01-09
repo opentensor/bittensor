@@ -71,18 +71,18 @@ def serve (
         'ip': net.ip_to_int(ip),
         'port': port,
         'ip_type': net.ip_version(ip),
+        'netuid': netuid,
+        'coldkey': wallet.coldkeypub.ss58_address,
         'protocol': protocol,
         'placeholder1': placeholder1,
         'placeholder2': placeholder2,
-        'netuid': netuid,
-        'coldkey': wallet.coldkeypub.ss58_address,
     }
 
     with bittensor.__console__.status(":satellite: Checking Axon..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
         neuron_up_to_date = not neuron.is_null and params == {
-            'version': neuron.version,
-            'ip': neuron.axon_info.ip,
+            'version': neuron.axon_info.version,
+            'ip': net.ip_to_int(neuron.axon_info.ip),
             'port': neuron.axon_info.port,
             'ip_type': neuron.axon_info.ip_type,
             'netuid': neuron.netuid,
