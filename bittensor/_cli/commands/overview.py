@@ -76,10 +76,7 @@ class OverviewCommand:
         neurons: Dict[str, List[bittensor.NeuronInfo, bittensor.Wallet]] = {}
         block = subtensor.block
 
-        netuids = set()
-        for hotkey in all_hotkeys:
-            netuids_for_hotkey = subtensor.get_netuids_for_hotkey( ss58_hotkey = hotkey.hotkey.ss58_address )
-            netuids = netuids.union( netuids_for_hotkey )
+        netuids = subtensor.get_all_subnet_netuids()
         for netuid in netuids:
             neurons[str(netuid)] = []
 
@@ -93,6 +90,10 @@ class OverviewCommand:
                     if uid is not None:
                         nn = all_neurons[uid]
                         neurons[str(netuid)].append( (nn, hot_wallet) )
+
+                if len(neurons[str(netuid)]) == 0:
+                    # Remove netuid from overview if no neurons are found.
+                    netuids.remove(netuid)
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)

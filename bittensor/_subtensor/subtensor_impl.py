@@ -481,7 +481,17 @@ class Subtensor:
     #####################################
 
     def subnet_exists( self, netuid: int, block: Optional[int] = None ) -> bool:
-        return self.query_paratensor( 'NetworksAdded', block, [netuid] ).value      
+        return self.query_paratensor( 'NetworksAdded', block, [netuid] ).value  
+
+    def get_all_subnet_netuids( self, block: Optional[int] = None ) -> List[int]:
+        subnet_netuids = []
+        result = self.query_map_paratensor( 'NetworksAdded', block )
+        if result.records:
+            for netuid, exists in result:  
+                if exists:
+                    subnet_netuids.append( netuid.value )
+            
+        return subnet_netuids
 
     def get_total_subnets( self, block: Optional[int] = None ) -> int:
         return self.query_paratensor( 'TotalNetworks', block ).value      
