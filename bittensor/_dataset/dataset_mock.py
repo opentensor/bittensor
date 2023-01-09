@@ -39,7 +39,6 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         max_datasets,
         no_tokenizer,
         num_batches,
-        max_directories
     ):
         super().__init__()
         self.block_size = block_size
@@ -53,7 +52,6 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         self.max_datasets = max_datasets
         self.__infinite_dataset_iterator = None
         self.no_tokenizer = no_tokenizer
-        self.max_directories = max_directories
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
