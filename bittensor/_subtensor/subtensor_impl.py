@@ -337,74 +337,92 @@ class Subtensor:
 
     """ Returns network Rho hyper parameter """
     def rho (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor( "Rho", block, [netuid] ).value
 
     """ Returns network Kappa hyper parameter """
     def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_paratensor( "Kappa", block, [netuid] ).value )
 
     """ Returns network Difficulty hyper parameter """
     def difficulty (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor( "Difficulty", block, [netuid] ).value
 
     """ Returns network ImmunityPeriod hyper parameter """
     def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor("ImmunityPeriod", block, [netuid] ).value
 
     """ Returns network ValidatorBatchSize hyper parameter """
     def validator_batch_size (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor("ValidatorBatchSize", block, [netuid] ).value
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor("ValidatorSequenceLength", block, [netuid] ).value
 
     """ Returns network ValidatorEpochsPerReset hyper parameter """
     def validator_epochs_per_reset (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor("ValidatorEpochsPerReset", block, [netuid] ).value
 
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_epoch_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor("ValidatorEpochLen", block, [netuid] ).value
 
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_exclude_quantile (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
+        if self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_paratensor("ValidatorEpochLen", block, [netuid] ).value )
 
     """ Returns network MaxAllowedValidators hyper parameter """
     def max_allowed_validators(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor( 'MaxAllowedValidators', block, [netuid] ).value
         
     """ Returns network MinAllowedWeights hyper parameter """
     def min_allowed_weights (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor("MinAllowedWeights", block, [netuid] ).value
 
     """ Returns network MaxWeightsLimit hyper parameter """
     def max_weight_limit (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
+        if self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_paratensor('MaxWeightsLimit', block, [netuid] ).value )
 
     """ Returns network ScalingLawPower hyper parameter """
     def scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
+        if self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_paratensor('ScalingLawPower', block, [netuid] ).value)
 
     """ Returns network SynergyScalingLawPower hyper parameter """
     def synergy_scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
+        if self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_paratensor('SynergyScalingLawPower', block, [netuid] ).value )
 
     """ Returns network SubnetworkN hyper parameter """
     def subnetwork_n (self, netuid: int, block: Optional[int] = None ) -> int:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor('SubnetworkN', block, [netuid] ).value
 
     """ Returns network MaxAllowedUids hyper parameter """
     def max_n (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor('MaxAllowedUids', block, [netuid] ).value
 
     """ Returns network BlocksSinceLastStep hyper parameter """
     def blocks_since_epoch (self, netuid: int, block: Optional[int] = None) -> int:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor('BlocksSinceLastStep', block, [netuid] ).value
 
     """ Returns network Tempo hyper parameter """
     def tempo (self, netuid: int, block: Optional[int] = None) -> int:
+        if self.subnet_exists( netuid ): return None
         return self.query_paratensor('Tempo', block, [netuid] ).value
 
     ##########################
@@ -454,6 +472,7 @@ class Subtensor:
         else:
             return None
 
+    """ Returns the prometheus information for this hotkey account """
     def get_prometheus_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
         result = self.query_paratensor( 'Prometheus', block, [hotkey_ss58 ] )        
         if result != None:
