@@ -78,12 +78,12 @@ def register (
         neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
         if not neuron.is_null:
             bittensor.__console__.print(
-            ":white_heavy_check_mark: [green]Already Registered[/green]:\n" + \
-            "  uid: [bold white]{}[/bold white]\n" + \
-            "  netuid: [bold white]{}[/bold white]\n"
-            "  hotkey: [bold white]{}[/bold white]\n" + \
-            "  coldkey: [bold white]{}[/bold white]"
-                .format(neuron.uid, neuron.netuid, neuron.hotkey, neuron.coldkey))
+            ':white_heavy_check_mark: [green]Already Registered[/green]:\n'\
+            'uid: [bold white]{}[/bold white]\n' \
+            'netuid: [bold white]{}[/bold white]\n' \
+            'hotkey: [bold white]{}[/bold white]\n' \
+            'coldkey: [bold white]{}[/bold white]' 
+            .format(neuron.uid, neuron.netuid, neuron.hotkey, neuron.coldkey))
             return True
 
     if prompt:
