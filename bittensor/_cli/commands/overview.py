@@ -158,7 +158,7 @@ class OverviewCommand:
             total_neurons = len(neurons)
 
             # Add subnet header
-            grid.add_row(f"Subnet: [bold white]{1}[/bold white]")
+            grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
 
             table = Table(show_footer=False, width=cli.config.get('width', None), pad_edge=False, box=None)
             table.add_column("[overline white]COLDKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
