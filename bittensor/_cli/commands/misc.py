@@ -19,6 +19,7 @@ import os
 import sys
 import argparse
 import bittensor
+from typing import List
 from rich.prompt import Prompt
 from rich.table import Table
 console = bittensor.__console__
@@ -91,7 +92,7 @@ class ListSubnetsCommand:
     def run (cli):
         r"""List all subnet netuids in the network. """
         subtensor = bittensor.subtensor( config = cli.config )
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_subnets_info()
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         rows = []
         total_neurons = 0
@@ -100,9 +101,9 @@ class ListSubnetsCommand:
             total_neurons += subnet.max_n
             rows.append((
                 str(subnet.netuid),
+                str(subnet.subnetwork_n),
                 str(subnet.max_n),
-                str(subnet.max_n),
-                str(bittensor.utils.registration.millify(subnet.difficulty)),
+                str(bittensor.utils.registration.millify(subnet.difficulty)) + "M",
                 str(subnet.immunity_period),
                 str(subnet.validator_batch_size),
                 str(subnet.validator_sequence_length),
