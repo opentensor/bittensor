@@ -531,7 +531,7 @@ class neuron:
         if self.config.logging.debug or self.config.logging.trace:
                 # console table - weight table (every end of epoch)
                 self.vlogger.print_weights_table(
-                    min_allowed_weight = self.subtensor.min_allowed_weights,
+                    min_allowed_weights = self.subtensor.min_allowed_weights,
                     max_weight_limit = self.subtensor.max_weight_limit,
                     neuron_stats = self.neuron_stats,
                     title = str(self),
@@ -541,7 +541,7 @@ class neuron:
                 )  
 
         # console message - subtensor weight (every end of epoch)
-        self.print_console_subtensor_weight(
+        self.vlogger.print_console_subtensor_weight(
             sample_weights = sample_weights, 
             epoch_responsive_uids = epoch_responsive_uids, 
             epoch_queried_uids = epoch_queried_uids, 
