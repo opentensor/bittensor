@@ -832,11 +832,11 @@ class nucleus( torch.nn.Module ):
         super(nucleus, self).__init__()
         self.config = config
 
-        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(0) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(0) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(netuid=self.config.neuron.netuid) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(netuid=self.config.neuron.netuid) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
 
         self.device = device
-        self.max_n = subtensor.max_n(0)
+        self.max_n = subtensor.max_n(netuid=self.config.neuron.netuid)
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
 
         tokenizer = bittensor.tokenizer()
