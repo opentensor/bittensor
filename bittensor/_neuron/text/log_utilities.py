@@ -11,6 +11,14 @@ from prometheus_client import Counter, Gauge, Histogram, Summary, Info
 import bittensor
 
 class ValidatorLogger:
+    r"""
+    Logger object for handling all logging function specific to validator.
+    Including console log styling, console table print and prometheus. 
+    
+    Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+    """
     def __init__(self, config = None):
         # Neuron stats recorded by validator neuron/nucleus
         #   [Column_name, key_name, format_string, rich_style]  # description
@@ -52,7 +60,7 @@ class ValidatorLogger:
         # console_width (:obj:`int`, `required`):
         #     Config console width for table print.
         self.console_width = self.config.get('width', None) if self.config else None
-        self.prometheus = Prometheus(config)
+        self.prometheus = ValidatorPrometheus(config)
 
     def print_response_table(
         self, 
@@ -62,7 +70,20 @@ class ValidatorLogger:
         task_repeat: int = 4, 
         tasks_per_server: int = 3
     ):
-        r""" Prints the query response table: top prediction probabilities and texts for batch tasks.
+        r""" 
+        Prints the query response table: top prediction probabilities and texts for batch tasks.
+        
+            Args:
+                batch_predictions (:obj:`List[Union[str, Dict{torch.Tensor, str}]]`, `required`):
+                    Predictions in string per task per uid. In the format of [(task, {uid, "prob: phrase" })] of length batch size.
+                stats (:obj:`Dict{Dict}`, `required`):
+                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
+                sort_col (:type:`str`, `required`):
+                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1].
+                task_repeat (:type:`int`, `required`):
+                    The number of servers to compare against under the same set of task.
+                tasks_per_server (:type:`int`, `required`):
+                    How many tasks to show for each server.
         """
         # === Batch permutation ===
         batch_size = len(batch_predictions)
@@ -124,11 +145,20 @@ class ValidatorLogger:
 
     def print_synergy_table(
         self, 
-        stats, 
-        syn_loss_diff, 
-        sort_col, 
+        stats: Dict, 
+        syn_loss_diff: Dict ,
+        sort_col: str, 
     ):
-        r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
+        r""" 
+        Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal).
+            
+            Args:
+                stats (:obj:`Dict{Dict}`, `required`):
+                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
+                syn_loss_diff (:obj:`Dict`, `required`):
+                    Dictionary table of pairwise synergies as loss reductions, with direct loss on diagonal.
+                sort_col (:type:`str`, `required`):
+                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1]. 
         """
         sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
                     reverse='loss' not in sort_col, key=lambda _row: _row[1])
@@ -155,13 +185,24 @@ class ValidatorLogger:
 
     def print_stats_table(
         self, 
-        stats, 
-        sort_col, 
-        title, 
-        caption, 
+        stats: Dict, 
+        sort_col: str, 
+        title: str, 
+        caption: str, 
         mark_uids=None
     ):
-        r""" Gathers data and constructs neuron statistics table and prints it
+        r""" 
+        Gathers data and constructs neuron statistics table and prints it.
+
+            Args: 
+                stats (:obj:`Dict{Dict}`, `required`):
+                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
+                sort_col (:type:`str`, `required`):
+                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1].
+                title (:type:`str`, `required`):
+                    Title of the table.
+                caption (:type:`str`, `required`):
+                    Caption shown at the end of table.
         """
         # === Gather columns and rows ===
         if mark_uids is None:
@@ -204,12 +245,24 @@ class ValidatorLogger:
 
     def print_synapse_table(
         self, 
-        name, 
-        stats, 
-        sort_col, 
-        start_time
+        name: str, 
+        stats: Dict, 
+        sort_col: str, 
+        start_time: time.time
     ):
-        r""" Prints the evaluation of the neuron responses to the validator request
+        r""" 
+        Prints the evaluation of the neuron responses to the validator request
+            
+            Args: 
+                stats (:obj:`Dict{Dict}`, `required`):
+                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
+                sort_col (:type:`str`, `required`):
+                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1].
+                name (:obj:`str`, `required`):
+                    Name of synapse for the title of the table.
+                start_time (:obj:`time.time`, `required`):
+                    Starting time for shapley calculation.
+
         """
         self.print_stats_table(stats, sort_col,
                     f'[white] \[{name}] responses [/white] | Validator forward',  # title
@@ -220,17 +273,38 @@ class ValidatorLogger:
 
     def print_weights_table(
             self,
-            min_allowed_weights,
-            max_weight_limit,
-            neuron_stats,
-            title,
-            metagraph_n, 
-            sample_uids, 
-            sample_weights, 
-            include_uids=None, 
+            min_allowed_weights: int,
+            max_weight_limit: int,
+            neuron_stats: Dict,
+            title: str,
+            metagraph_n: int, 
+            sample_uids: torch.Tensor, 
+            sample_weights: torch.Tensor, 
+            include_uids: List = None, 
             num_rows: int = None
         ):
-        r""" Prints weights table given sample_uids and sample_weights.
+        r""" 
+        Prints weights table given sample_uids and sample_weights.
+        
+            Args:
+                min_allowed_weights (:type:`int`, `required`):
+                    subtensor minimum allowed weight to set.
+                max_weight_limit (:type:`int`, `required`):
+                    subtensor maximum allowed weight to set.
+                neuron_stats (:obj:`Dict{Dict}`, `required`):
+                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
+                title (:type:`str`, `required`):
+                    Title of the table.
+                metagraph_n (:type:`int`, `required`):
+                    Total number of uids in the metagraph.
+                sample_uids (:obj:`torch.Tensor`, `required`):
+                    Uids to set weight for. 
+                sample_weights (:obj:`torch.Tensor`, `required`):
+                    Weights to set uids for. 
+                include_uids (:type:`list`, `optional`): 
+                    Set of uids to inculde in the table.
+                num_rows (:type:`int`, `optional`): 
+                    Total number of uids to print in total.
         """
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights
@@ -267,7 +341,15 @@ class ValidatorLogger:
                     f'\[{max_weight_limit:.4g} allowed]',  # caption
                     mark_uids=include_uids)
 
-    def print_console_validator_identifier(self, uid, wallet, external_ip):
+    def print_console_validator_identifier(
+        self, 
+        uid: int, 
+        wallet: bittensor.Wallet, 
+        external_ip: str,
+    ):  
+        r""" Console print for validator identifier.
+        """
+
         # validator identifier status console message (every 25 validation steps)
         rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
         f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
@@ -279,7 +361,16 @@ class ValidatorLogger:
         f"hot:[bold]{wallet.hotkey_str}[/bold]:"
         f"[bright_white not bold]{wallet.hotkey.ss58_address}[/bright_white not bold][/white not bold]")
 
-    def print_console_metagraph_status(self, uid, metagraph, current_block, start_block, network):
+    def print_console_metagraph_status(
+        self, 
+        uid: int, 
+        metagraph: bittensor.Metagraph, 
+        current_block: int, 
+        start_block: int, 
+        network: str
+    ):
+        r""" Console print for current validator's metagraph status. 
+        """
         # validator update status console message
         rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
         f"{f'UID [bright_cyan]{uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
@@ -288,18 +379,21 @@ class ValidatorLogger:
         f'Stake \u03C4[magenta not bold]{metagraph.stake[uid]:.5f}[/magenta not bold] '
         f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {network})[/dim]')
 
-    def print_console_query_summary(self, 
-        current_block, 
-        start_block,
-        blocks_per_epoch, 
-        epoch_steps, 
-        epoch,
-        responsive_uids, 
-        queried_uids, 
-        step_time, 
-        epoch_responsive_uids, 
-        epoch_queried_uids
+    def print_console_query_summary(
+        self, 
+        current_block: int, 
+        start_block: int,
+        blocks_per_epoch: int, 
+        epoch_steps: int, 
+        epoch: int,
+        responsive_uids: List, 
+        queried_uids: List, 
+        step_time: float, 
+        epoch_responsive_uids: Set, 
+        epoch_queried_uids: Set
     ):
+        r""" Console print for query summary.
+        """
         rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
         f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
         f'[green not bold]{current_block - start_block}[/green not bold]/'
@@ -314,12 +408,15 @@ class ValidatorLogger:
 
     def print_console_subtensor_weight(
         self,
-        sample_weights, 
-        epoch_responsive_uids, 
-        epoch_queried_uids, 
-        max_weight_limit, 
-        epoch_start_time
+        sample_weights: torch.Tensor,
+        epoch_responsive_uids: Set, 
+        epoch_queried_uids: Set, 
+        max_weight_limit: float, 
+        epoch_start_time: time.time
     ):
+        r""" Console print for weight setting to subtensor.
+        """
+
         rich_print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
         f"{f'[bright_white]Set weights[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
         f'[bright_green not bold]{len(sample_weights)}[/bright_green not bold] [dim]weights set[/dim] | '
@@ -332,17 +429,30 @@ class ValidatorLogger:
         f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
         f'\[{max_weight_limit:.4g} allowed]')
 
-class Prometheus:
+class ValidatorPrometheus:
+    r"""
+    Prometheis logging object for validator.
+        Args: 
+            config (:obj:`bittensor.Config`, `optional`): 
+                bittensor.server.config()
+    """ 
     def __init__(self, config):
-        # === Prometheus stats ===
-        # Turn this off by passing the --prometheus.off flag
         self.config = config
         self.info = Info("neuron_info", "Info sumamries for the running server-miner.")
         self.gauges = Gauge('validator_gauges', 'Gauges for the running validator.', ['validator_gauges_name'])
         self.counters = Counter('validator_counters', 'Counters for the running validator.', ['validator_counters_name'])
         self.step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0, 2 * bittensor.__blocktime__, 1)))
 
-    def log_run_info(self, parameters, uid, network, wallet):
+    def log_run_info(
+        self, 
+        parameters: torch.nn.parameter.Parameter, 
+        uid: int, 
+        network: str, 
+        wallet: bittensor.Wallet
+    ):
+        r""" Set up prometheus running info. 
+        """
+
         self.gauges.labels( "model_size_params" ).set( sum(p.numel() for p in parameters) )
         self.gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in parameters) )
         self.info.info({
@@ -355,14 +465,16 @@ class Prometheus:
 
     def log_epoch_start(
         self, 
-        current_block, 
-        batch_size, 
-        sequence_length, 
-        validation_len, 
-        min_allowed_weights, 
-        blocks_per_epoch, 
-        epochs_until_reset
+        current_block: int, 
+        batch_size: int, 
+        sequence_length: int, 
+        validation_len: int, 
+        min_allowed_weights: int, 
+        blocks_per_epoch: int, 
+        epochs_until_reset: int
     ):
+        r""" All prometheus logging at the start of epoch. 
+        """
         self.gauges.labels("current_block").set( current_block )
         self.gauges.labels("batch_size").set( batch_size )
         self.gauges.labels("sequence_length").set( sequence_length )
@@ -376,11 +488,13 @@ class Prometheus:
     
     def log_step(
         self,
-        current_block,
-        last_update,
-        step_time,
-        loss
+        current_block: int,
+        last_update: int,
+        step_time: int,
+        loss: int
     ):
+        r""" All prometheus logging at the each validation step. 
+        """
         self.gauges.labels("global_step").inc()
         self.gauges.labels("epoch_steps").inc()
         self.gauges.labels("current_block").set(current_block)
@@ -391,9 +505,11 @@ class Prometheus:
 
     def log_epoch_end(
         self,
-        uid,
-        metagraph
+        uid: int,
+        metagraph: bittensor.Metagraph
     ):
+        r""" All prometheus logging at the end of epoch. 
+        """
         self.gauges.labels("epoch").inc()
         self.gauges.labels("set_weights").inc()
         self.gauges.labels("stake").set( metagraph.stake[uid] )
