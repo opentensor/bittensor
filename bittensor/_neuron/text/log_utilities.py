@@ -52,7 +52,7 @@ class ValidatorLogger:
         # console_width (:obj:`int`, `required`):
         #     Config console width for table print.
         self.console_width = self.config.get('width', None) if self.config else None
-        self.prometheus = ValidatorPrometheus(config)
+        self.prometheus = Prometheus(config)
 
     def print_response_table(
         self, 
@@ -332,7 +332,7 @@ class ValidatorLogger:
         f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
         f'\[{max_weight_limit:.4g} allowed]')
 
-class ValidatorPrometheus:
+class Prometheus:
     def __init__(self, config):
         # === Prometheus stats ===
         # Turn this off by passing the --prometheus.off flag
