@@ -73,6 +73,7 @@ class neuron:
         causallmnext = None,
         seq2seq = None,
         synapse_list = None,
+        netuid = None
     ):
         if config == None: config = server.config()
         config = config; 
@@ -99,6 +100,7 @@ class neuron:
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
+        config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
 
         self.check_config( config )
         bittensor.logging (

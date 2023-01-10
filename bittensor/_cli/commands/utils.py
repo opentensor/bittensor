@@ -50,7 +50,7 @@ def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtenso
             netuid = str(bittensor.defaults.netuid) if not allow_none else 'None'
     else:
         netuid = config.netuid
-    
+        
     if isinstance(netuid, str) and netuid.lower() in ['none'] and allow_none:
         config.netuid = None
     else:
