@@ -29,6 +29,7 @@ import torch
 import bittensor
 import bittensor.utils.networking as net
 
+# TODO: Implement stake mapping for metagraph
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
