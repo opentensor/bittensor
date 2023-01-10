@@ -130,7 +130,8 @@ class neuron:
         metagraph: 'bittensor.Metagraph' = None,
         dendrite: 'bittensor.Dendrite' = None,
         dataset: 'bittensor.dataset' = None,
-        axon: 'bittensor.axon' = None
+        axon: 'bittensor.axon' = None,
+        netuid: int = None
     ):
 
         # === Set up Config ===
@@ -146,6 +147,7 @@ class neuron:
             self.config.metagraph._mock = True
             self.config.subtensor._mock = True
             self.config.axon._mock = True
+        config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
         print ( self.config )
 
         # ===  Logging + prometheus ===
