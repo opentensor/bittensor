@@ -584,7 +584,7 @@ class Subtensor:
             emission_value = self.get_emission_value_by_subnet( netuid, block ),
             tempo= self.tempo( netuid, block ),
             modality= self.get_subnet_modality( netuid, block ),
-            connection_requirements= self.get_subnet_connection_requirements( netuid, block ),
+            connection_requirements = {},
         )
         
     ####################
