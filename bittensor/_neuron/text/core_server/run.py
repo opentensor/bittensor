@@ -447,7 +447,7 @@ def serve(
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
         # === Prometheus logging.
-        prometheus_guages.labels("stake").set( nn.stake )
+        prometheus_guages.labels("stake").set( nn.total_stake )
         prometheus_guages.labels("rank").set( nn.rank )
         prometheus_guages.labels("trust").set( nn.trust )
         prometheus_guages.labels("consensus").set( nn.consensus )
