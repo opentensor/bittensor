@@ -457,7 +457,7 @@ def serve(
 
         if current_block - last_set_block > blocks_per_set_weights:
             bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
-            metagraph.sync()
+            metagraph.sync(netuid=config.neuron.netuid)
             last_set_block = current_block
             if not config.neuron.no_set_weights:
                 try: 
