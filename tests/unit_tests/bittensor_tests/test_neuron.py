@@ -64,6 +64,23 @@ def test_set_fine_tuning_params():
     core_server.config.neuron.finetune.layer_name = None
     assert core_server.set_fine_tuning_params() == (False, None) 
 
+def test_model_output_check():
+    core_server = bittensor._neuron.text.core_server.server(pretrained=False)
+
+    class model_output():
+        def __init__(self, faulty = True):
+            if faulty: 
+                self.hidden_states = [torch.tensor([torch.nan, 2, 3])]
+                self.logits = torch.tensor([torch.nan, 2, 3])
+            else:
+                self.hidden_states = [torch.tensor([1, 2, 3])]
+                self.logits = torch.tensor([1, 2, 3])
+
+    with pytest.raises(ValueError):
+        core_server.model_output_check(model_output())
+
+    assert core_server.model_output_check(model_output(faulty = False))
+
 def test_coreserver_reregister_flag_false_exit():
     config = bittensor.Config()
     config.wallet = bittensor.Config()
