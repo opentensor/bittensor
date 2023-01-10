@@ -652,7 +652,7 @@ class Subtensor:
                 netuids.append( netuid.value )
         return netuids
 
-    def get_neuron_for_pubkey_and_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
+    def get_neuron_for_pubkey_and_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
         return self.neuron_for_uid( self.get_uid_for_hotkey_on_subnet(ss58_hotkey, netuid, block=block), netuid, block = block)
 
     def get_all_neurons_for_pubkey( self, ss58_hotkey: str, block: Optional[int] = None ) -> List[NeuronInfo]:
