@@ -114,14 +114,18 @@ class neuron:
             port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
         )
 
-        self.model = server(config = config)
         self.config = config
         self.config.to_prometheus()
-
         self.subtensor = subtensor
         self.wallet = wallet
         self.axon = axon
         self.metagraph = metagraph
+
+        if self.config.neuron.netuid == None:
+            subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
+            self.config.neuron.netuid = subtensor.get_subnets()[0]
+        
+        self.model = server(config = self.config)
 
     def run(self):
         serve(
