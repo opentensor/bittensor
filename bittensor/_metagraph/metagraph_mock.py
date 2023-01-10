@@ -39,7 +39,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
     def __init__( self ):
         r""" Initializes a new Metagraph torch chain interface object.
         """
-        super(MockMetagraph, self).__init__(subtensor=None)
+        super(MockMetagraph, self).__init__(network="mock", netuid=-1)
         tn = torch.tensor( 2000, dtype=torch.int64 )
         tblock = torch.tensor( 0, dtype=torch.int64 )
         tuids = torch.tensor( list( range( 2000 )), dtype=torch.int64 )
