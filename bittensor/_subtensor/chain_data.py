@@ -206,12 +206,4 @@ class SubnetInfo:
     modality: int
     connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
-
-    @classmethod
-    def from_json(cls, json: Dict) -> 'SubnetInfo':
-        r""" Returns a SubnetInfo object from a json dictionary.
-        """
-        return SubnetInfo(
-            block = json['block'],
-        )
     
