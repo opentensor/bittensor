@@ -151,6 +151,7 @@ class metagraph:
             metagraph.neurons[n.uid] = n
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
+            # We use total stake because we don't need the mapping per coldkey
             stake[n.uid] = n.total_stake.tao 
             ranks[n.uid] = n.rank
             trust[n.uid] = n.trust

@@ -427,7 +427,7 @@ def serve(
             model.backward_gradients_count = 0
             
         wandb_data = {            
-            'stake': nn.stake,
+            'stake': nn.total_stake,
             'rank': nn.rank,
             'trust': nn.trust,
             'consensus': nn.consensus,
