@@ -95,7 +95,7 @@ class TestCli(unittest.TestCase):
                 RAOPERTAO = 1000000000
                 U64MAX = 18446744073709551615
                 neuron = SimpleNamespace( **neuron_dict )
-                neuron.stake = neuron.stake / RAOPERTAO
+                neuron.total_stake = Balance.from_rao(neuron.stake)
                 neuron.rank = neuron.rank / U64MAX
                 neuron.trust = neuron.trust / U64MAX
                 neuron.consensus = neuron.consensus / U64MAX
