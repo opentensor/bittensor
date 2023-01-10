@@ -136,9 +136,19 @@ class neuron:
 
         # === Set up Config ===
         if config == None: config = neuron.config()
+        
+        # === Set up subtensor and netuid === 
+        config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
+        subtensor = bittensor.subtensor ( config = config ) if subtensor == None else subtensor
+        if config.neuron.netuid == None:
+            config.neuron.netuid = subtensor.get_subnets()[0]
+
+        # === Config check === 
         self.config = config
         neuron.check_config( self.config )
         self.config.to_defaults()
+
+        # === Mock options ===
         if self.config.neuron._mock == True:
             self.config.subtensor._mock = True
             self.config.wallet._mock = True
@@ -147,7 +157,6 @@ class neuron:
             self.config.metagraph._mock = True
             self.config.subtensor._mock = True
             self.config.axon._mock = True
-        config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
         print ( self.config )
 
         # ===  Logging + prometheus ===
@@ -249,7 +258,7 @@ class neuron:
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
         parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
         parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting. (default value: -1, pulling from subtensor directly)', default=-1)
-        parser.add_argument('--neuron.netuid', type=int , help='Subnet uid on finney', default=0)
+        parser.add_argument('--neuron.netuid', type=int , help='Subnet uid on finney', default=None)
 
     @classmethod
     def config ( cls ):
