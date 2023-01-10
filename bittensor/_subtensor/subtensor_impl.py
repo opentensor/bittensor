@@ -815,6 +815,7 @@ class Subtensor:
             trust = 0,
             dividends = 0,
             last_update = 0,
+            validator_permit = False,
             weights = [],
             bonds = [],
             prometheus_info = None,

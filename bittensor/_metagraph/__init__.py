@@ -141,6 +141,7 @@ class metagraph:
         emission = [ 0 for _ in range(n_total) ]
         dividends = [ 0 for _ in range(n_total) ]
         last_updates = [ -1 for _ in range(n_total) ]
+        validator_permit = [ False for _ in range(n_total) ]
         endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
         weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
         bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
@@ -158,6 +159,7 @@ class metagraph:
             dividends[n.uid] = n.dividends
             emission[n.uid] = n.emission
             last_updates[n.uid] = n.last_update
+            validator_permit[n.uid] = n.validator_permit
             endpoint =  bittensor.endpoint.from_neuron(n)
             metagraph._endpoint_objs[n.uid] = endpoint 
             endpoints[n.uid] = endpoint.to_tensor().tolist()
@@ -185,6 +187,7 @@ class metagraph:
         temission = torch.tensor( emission, dtype=torch.float32 )
         tdividends = torch.tensor( dividends, dtype=torch.float32 )
         tlast_update = torch.tensor( last_updates, dtype=torch.int64 )
+        tvalidator_permit = torch.tensor( validator_permit, dtype=torch.bool )
         tbonds = torch.tensor( bonds, dtype=torch.int64 )
         tweights = torch.tensor( weights, dtype=torch.float32 )
         tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
@@ -205,6 +208,7 @@ class metagraph:
         metagraph.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
         metagraph.active = torch.nn.Parameter( tactive, requires_grad=False )
         metagraph.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
+        metagraph.validator_permit = torch.nn.Parameter( tvalidator_permit, requires_grad=False )
         metagraph.weights = torch.nn.Parameter( tweights, requires_grad=False )
         metagraph.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
         metagraph.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
