@@ -45,7 +45,10 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         tblock = torch.tensor( 0, dtype=torch.int64 )
         tuids = torch.tensor( list( range( 2000 )), dtype=torch.int64 )
         tactive = torch.tensor( [ 1 for _ in range (2000)], dtype=torch.int64 )
-        tstake = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
+
+        #tstake = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
+        ttotal_stake = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
+
         tranks = torch.tensor(  [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
         ttrust = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
         tconsensus = torch.tensor( [1.0 for _ in range (2000) ], dtype=torch.float32 )
@@ -61,7 +64,10 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         self.n = torch.nn.Parameter( tn, requires_grad=False )
         self.block = torch.nn.Parameter( tblock, requires_grad=False )
         self.uids = torch.nn.Parameter( tuids, requires_grad=False )
-        self.stake = torch.nn.Parameter( tstake, requires_grad=False )
+
+        #self.stake = torch.nn.Parameter( tstake, requires_grad=False )
+        self.total_stake = torch.nn.Parameter( ttotal_stake, requires_grad=False )
+
         self.ranks = torch.nn.Parameter( tranks, requires_grad=False )
         self.trust = torch.nn.Parameter( ttrust, requires_grad=False )
         self.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
@@ -84,7 +90,10 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
         self.tau = torch.nn.Parameter( torch.tensor( [1], dtype=torch.float32), requires_grad = False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
-        self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
+        #self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.total_stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
         self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )

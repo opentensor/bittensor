@@ -184,7 +184,8 @@ class metagraph:
         tuids = torch.tensor( uids, dtype=torch.int64 )
         tactive = torch.tensor( active, dtype=torch.int64 )
         
-        tstake = torch.tensor( total_stake, dtype=torch.float32 )
+        #tstake = torch.tensor( total_stake, dtype=torch.float32 )
+        ttotal_stake = torch.tensor( total_stake, dtype=torch.float32 )
 
         tranks = torch.tensor( ranks, dtype=torch.float32 )
         ttrust = torch.tensor( trust, dtype=torch.float32 )
@@ -206,7 +207,8 @@ class metagraph:
         metagraph.block = torch.nn.Parameter( tblock, requires_grad=False )
         metagraph.uids = torch.nn.Parameter( tuids, requires_grad=False )
 
-        metagraph.stake = torch.nn.Parameter( tstake, requires_grad=False )
+        #metagraph.stake = torch.nn.Parameter( tstake, requires_grad=False )
+        metagraph.total_stake = torch.nn.Parameter( ttotal_stake, requires_grad=False )
         
         metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
         metagraph.trust = torch.nn.Parameter( ttrust, requires_grad=False )

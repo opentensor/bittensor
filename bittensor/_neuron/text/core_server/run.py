@@ -107,7 +107,7 @@ def serve(
         """
         try:        
             uid = metagraph.hotkeys.index(pubkey)
-            priority = metagraph.S[uid].item()
+            priority = metagraph.total_stake[uid].item()
         
         except:
             # zero priority for those who are not registered.
@@ -185,7 +185,7 @@ def serve(
         def stake_check() -> bool:
             # Check stake.
             uid = metagraph.hotkeys.index(pubkey)
-            if metagraph.S[uid].item() < config.neuron.blacklist.stake:
+            if metagraph.total_stake[uid].item() < config.neuron.blacklist.stake:
                 prometheus_counters.labels("blacklisted.stake").inc()
 
                 raise Exception('Stake blacklist')
@@ -237,22 +237,22 @@ def serve(
         incoming_uid = metagraph.hotkeys.index(hotkey)
         if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
             
-            if metagraph.S[incoming_uid] < config.neuron.lasthidden_stake:
+            if metagraph.total_stake[incoming_uid] < config.neuron.lasthidden_stake:
                 return False
             
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
 
-            if metagraph.S[incoming_uid] < config.neuron.causallm_stake:
+            if metagraph.total_stake[incoming_uid] < config.neuron.causallm_stake:
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
 
-            if metagraph.S[incoming_uid] < config.neuron.causallmnext_stake:
+            if metagraph.total_stake[incoming_uid] < config.neuron.causallmnext_stake:
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
 
-            if (metagraph.S[incoming_uid] < config.neuron.seq2seq_stake) and (metagraph.S[incoming_uid,  uid]):
+            if (metagraph.total_stake[incoming_uid] < config.neuron.seq2seq_stake) and (metagraph.total_stake[incoming_uid,  uid]):
                 return False     
         else:
             return False
