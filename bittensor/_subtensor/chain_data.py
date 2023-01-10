@@ -22,7 +22,7 @@ class NeuronInfo:
     uid: int
     netuid: int
     active: int
-    stake: List[Tuple[str, Balance]]
+    stake: Balance
     total_stake: Balance
     rank: float
     emission: float
@@ -54,7 +54,7 @@ class NeuronInfo:
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            stake = [(cls.__u8_key_to_ss58(coldkey), Balance.from_rao(stake) ) for coldkey, stake in json['stake']],
+            stake = Balance.from_rao(json['stake'][0][1]),
             total_stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
             rank = json['rank'] / U16_MAX,
             emission = json['emission'] / RAOPERTAO,
