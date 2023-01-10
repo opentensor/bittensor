@@ -52,6 +52,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         temission = torch.tensor( [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
         tdividends = torch.tensor( [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
         tlast_update = torch.tensor( [0 for _ in range (2000) ], dtype=torch.int64 )
+        tvalidator_permit = torch.tensor( [False for _ in range (2000) ], dtype=torch.bool )
         tbonds = torch.tensor( [ [1 for _ in range (2000) ] for _ in range (2000) ], dtype=torch.int64 )
         tweights = torch.tensor( [ [1.0/2000 for _ in range (2000) ] for _ in range (2000) ], dtype=torch.float32 )
         self._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range (2000) ]
@@ -68,6 +69,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         self.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
         self.active = torch.nn.Parameter( tactive, requires_grad=False )
         self.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
+        self.validator_permit = torch.nn.Parameter( tvalidator_permit, requires_grad=False )
         self.weights = torch.nn.Parameter( tweights, requires_grad=False )
         self.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
         self.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
@@ -90,6 +92,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         self.dividends = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.active = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.last_update = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.validator_permit = torch.nn.Parameter(  torch.tensor( [], dtype=torch.bool), requires_grad=False )
         self.weights = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.endpoints = torch.nn.Parameter( torch.tensor( [], dtype=torch.int64), requires_grad=False )

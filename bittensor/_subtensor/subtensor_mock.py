@@ -26,6 +26,7 @@ __type_registery__ = {
                 ["coldkey", "AccountId"], 
                 ["active", "u32"],
                 ["last_update", "u64"],
+                ["validator_permit", "bool"],
                 ["priority", "u64"],
                 ["stake", "u64"],
                 ["rank", "u64"],
