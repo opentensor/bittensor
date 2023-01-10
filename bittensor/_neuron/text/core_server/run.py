@@ -170,7 +170,6 @@ def serve(
                     the request type ('FORWARD' or 'BACKWARD').
         """
         # Check for registrations
-        print(pubkey, request_type)
         def registration_check():
             # If we allow non-registered requests return False = not blacklisted.
             is_registered = pubkey in metagraph.hotkeys

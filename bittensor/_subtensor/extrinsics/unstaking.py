@@ -81,7 +81,7 @@ def __do_remove_stake_single(
         else:
             raise StakeError(response.error_message)
 
-def unstake (
+def unstake_extrinsic (
         subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58: Optional[str] = None,
@@ -200,7 +200,7 @@ def unstake (
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
         
-def unstake_multiple (
+def unstake_multiple_extrinsic (
         subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58s: List[str],

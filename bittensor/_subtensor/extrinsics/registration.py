@@ -24,7 +24,7 @@ from typing import List, Dict, Union, Optional
 import bittensor.utils.networking as net
 from ..errors import *
 
-def register (
+def register_extrinsic (
     subtensor: 'bittensor.Subtensor',
     wallet: 'bittensor.Wallet',
     netuid: int,

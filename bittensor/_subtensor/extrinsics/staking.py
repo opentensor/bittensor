@@ -22,7 +22,7 @@ from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
 from ..errors import *
 
-def add_stake(
+def add_stake_extrinsic(
         subtensor: 'bittensor.Subtensor', 
         wallet: 'bittensor.wallet',
         hotkey_ss58: Optional[str] = None,
@@ -176,7 +176,7 @@ def add_stake(
         return False
 
 
-def add_stake_multiple (
+def add_stake_multiple_extrinsic (
         subtensor: 'bittensor.Subtensor', 
         wallet: 'bittensor.wallet',
         hotkey_ss58s: List[str],
