@@ -27,6 +27,7 @@ from . import metagraph_mock
 from typing import Optional, List
 import bittensor.utils.weight_utils as weight_utils
 
+# TODO: Implement stake mapping for metagraph
 class metagraph:
     """ Factory class for the bittensor.Metagraph class or the MockMetagraph
     The Metagraph object serves as the main storage unit for the chain state. 
@@ -133,7 +134,8 @@ class metagraph:
         # Fill arrays.
         uids = [ i for i in range(n_total) ]
         active = [ 0 for _ in range(n_total) ]
-        stake = [ 0 for _ in range(n_total) ]
+        stake = [ {} for _ in range(n_total) ]
+        total_stake = [ 0 for _ in range(n_total) ]
         ranks = [ 0 for _ in range(n_total) ]
         trust = [ 0 for _ in range(n_total) ]
         consensus = [ 0 for _ in range(n_total) ]
@@ -152,7 +154,8 @@ class metagraph:
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
             # We use total stake because we don't need the mapping per coldkey
-            stake[n.uid] = n.total_stake.tao 
+            stake[n.uid] = n.stake
+            total_stake[n.uid] = n.total_stake.tao 
             ranks[n.uid] = n.rank
             trust[n.uid] = n.trust
             consensus[n.uid] = n.consensus
@@ -180,7 +183,9 @@ class metagraph:
         tblock = torch.tensor( block, dtype=torch.int64 )
         tuids = torch.tensor( uids, dtype=torch.int64 )
         tactive = torch.tensor( active, dtype=torch.int64 )
-        tstake = torch.tensor( stake, dtype=torch.float32 )
+        
+        tstake = torch.tensor( total_stake, dtype=torch.float32 )
+
         tranks = torch.tensor( ranks, dtype=torch.float32 )
         ttrust = torch.tensor( trust, dtype=torch.float32 )
         tconsensus = torch.tensor( consensus, dtype=torch.float32 )
@@ -200,7 +205,9 @@ class metagraph:
         metagraph.n = torch.nn.Parameter( tn, requires_grad=False )
         metagraph.block = torch.nn.Parameter( tblock, requires_grad=False )
         metagraph.uids = torch.nn.Parameter( tuids, requires_grad=False )
+
         metagraph.stake = torch.nn.Parameter( tstake, requires_grad=False )
+        
         metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
         metagraph.trust = torch.nn.Parameter( ttrust, requires_grad=False )
         metagraph.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )

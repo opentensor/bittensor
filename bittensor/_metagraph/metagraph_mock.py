@@ -32,6 +32,7 @@ import bittensor.utils.networking as net
 RAOPERTAO = 1000000000
 U64MAX = 18446744073709551615
 
+# TODO: Implement stake mapping for metagraph
 class MockMetagraph( metagraph_impl.Metagraph ):
     r""" MOCKED VERSION OF THE METAGRAPH
 
