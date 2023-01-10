@@ -78,8 +78,8 @@ class NeuronInfo:
             uid = 0,
             netuid = 0,
             active =  0,
-            stake = 0,
-            total_stake = 0,
+            stake = {},
+            total_stake = Balance.from_rao(0),
             rank = 0,
             emission = 0,
             incentive = 0,
@@ -100,11 +100,12 @@ class NeuronInfo:
 
     @staticmethod
     def _neuron_dict_to_namespace(neuron_dict) -> 'NeuronInfo':
+        # TODO: Legacy: remove?
         if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return NeuronInfo._null_neuron()
         else:
             neuron = NeuronInfo( **neuron_dict )
-            neuron.stake = neuron.stake / RAOPERTAO
+            neuron.total_stake = Balance.from_rao(neuron.total_stake)
             neuron.rank = neuron.rank / U64_MAX
             neuron.trust = neuron.trust / U64_MAX
             neuron.consensus = neuron.consensus / U64_MAX
