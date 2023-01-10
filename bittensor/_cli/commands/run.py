@@ -61,20 +61,19 @@ class RunCommand:
 
         # Run miner.
         if cli.config.model == 'core_server':
-            
             if cli.config.synapse == 'TextLastHiddenState':
-                bittensor.neurons.core_server.neuron(lasthidden=True, causallm=False, seq2seq = False).run()
+                bittensor.neurons.core_server.neuron(lasthidden=True, causallm=False, seq2seq = False, netuid = cli.config.netuid).run()
             elif cli.config.synapse == 'TextCausalLM':
-                bittensor.neurons.core_server.neuron(lasthidden=False, causallm=True, seq2seq = False).run()
+                bittensor.neurons.core_server.neuron(lasthidden=False, causallm=True, seq2seq = False, netuid = cli.config.netuid).run()
             elif cli.config.synapse == 'TextSeq2Seq':
-                bittensor.neurons.core_server.neuron(lasthidden=False, causallm=False, seq2seq = True).run()
+                bittensor.neurons.core_server.neuron(lasthidden=False, causallm=False, seq2seq = True, netuid = cli.config.netuid).run()
             else:
-                bittensor.neurons.core_server.neuron().run()
+                bittensor.neurons.core_server.neuron(netuid = cli.config.netuid).run()
 
         elif cli.config.model == 'core_validator':
-            bittensor.neurons.core_validator.neuron().run()
+            bittensor.neurons.core_validator.neuron(netuid = cli.config.netuid).run()
         elif cli.config.model == 'multitron_server':
-            bittensor.neurons.multitron_server.neuron().run()
+            bittensor.neurons.multitron_server.neuron(netuid = cli.config.netuid).run()
    
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
