@@ -27,13 +27,13 @@ from bittensor.utils.balance import Balance
 # Local imports.
 from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
 from .errors import *
-from .extrinsics.staking import *
-from .extrinsics.unstaking import *
-from .extrinsics.serving import *
-from .extrinsics.registration import *
-from .extrinsics.transfer import *
-from .extrinsics.set_weights import *
-from .extrinsics.delegation import *
+from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
+from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
+from .extrinsics.registration import register_extrinsic
+from .extrinsics.transfer import transfer_extrinsic
+from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic
 
 # Logging
 from loguru import logger
@@ -97,7 +97,7 @@ class Subtensor:
         wait_for_inclusion: bool = True 
     ) -> bool:
         """ Becomes a delegate for the hotkey."""
-        return nominate( 
+        return nominate_extrinsic( 
             subtensor = self, 
             wallet = wallet, 
             wait_for_finalization = wait_for_finalization,
@@ -114,7 +114,7 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         """ Adds the specified amount of stake to passed hotkey uid. """
-        return delegate( 
+        return delegate_extrinsic( 
             subtensor = self, 
             wallet = wallet,
             delegate_ss58 = delegate_ss58, 
@@ -138,7 +138,7 @@ class Subtensor:
         wait_for_finalization:bool = False,
         prompt:bool = False
     ) -> bool:
-        return set_weights( 
+        return set_weights_extrinsic( 
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -170,7 +170,7 @@ class Subtensor:
         log_verbose: bool = False,
     ) -> bool:
         """ Registers the wallet to chain."""
-        return register( 
+        return register_extrinsic( 
             subtensor = self, 
             wallet = wallet, 
             netuid = netuid, 
@@ -200,7 +200,7 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         """ Transfers funds from this wallet to the destination public key address"""
-        return transfer(
+        return transfer_extrinsic(
             subtensor = self,
             wallet = wallet,
             dest = dest,
@@ -226,7 +226,7 @@ class Subtensor:
         wait_for_finalization = True,
         prompt: bool = False,
     ) -> bool:
-        return serve( self, wallet, ip, port, protocol, netuid , placeholder1, placeholder2, wait_for_inclusion, wait_for_finalization)
+        return serve_extrinsic( self, wallet, ip, port, protocol, netuid , placeholder1, placeholder2, wait_for_inclusion, wait_for_finalization)
 
     def serve_axon (
         self,
@@ -236,7 +236,7 @@ class Subtensor:
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
-        return serve_axon( self, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
+        return serve_axon_extrinsic( self, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
 
     #################
     #### Staking ####
@@ -251,7 +251,7 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         """ Adds the specified amount of stake to passed hotkey uid. """
-        return add_stake( 
+        return add_stake_extrinsic( 
             subtensor = self, 
             wallet = wallet,
             hotkey_ss58 = hotkey_ss58, 
@@ -271,7 +271,7 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         """ Adds stake to each hotkey_ss58 in the list, using each amount, from a common coldkey."""
-        return add_stake_multiple( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
+        return add_stake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
 
     ###################
     #### Unstaking ####
@@ -286,7 +286,7 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         """ Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey. """
-        return unstake_multiple( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
+        return unstake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
 
     def unstake (
         self,
@@ -298,7 +298,7 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         """ Removes stake into the wallet coldkey from the specified hotkey uid."""
-        return unstake( self, wallet, hotkey_ss58, amount, wait_for_inclusion, wait_for_finalization, prompt )
+        return unstake_extrinsic( self, wallet, hotkey_ss58, amount, wait_for_inclusion, wait_for_finalization, prompt )
 
 
     ########################
@@ -824,19 +824,3 @@ class Subtensor:
             hotkey = "000000000000000000000000000000000000000000000000"
         )
         return neuron
-
-    @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> NeuronInfo:
-        if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
-            return Subtensor._null_neuron()
-        else:
-            neuron = NeuronInfo( **neuron_dict )
-            neuron.stake = neuron.stake / RAOPERTAO
-            neuron.rank = neuron.rank / U64_MAX
-            neuron.trust = neuron.trust / U64_MAX
-            neuron.consensus = neuron.consensus / U64_MAX
-            neuron.incentive = neuron.incentive / U64_MAX
-            neuron.dividends = neuron.dividends / U64_MAX
-            neuron.emission = neuron.emission / RAOPERTAO
-                
-            return neuron

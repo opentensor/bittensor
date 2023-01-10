@@ -26,7 +26,7 @@ from .staking import __do_add_stake_single
 from loguru import logger
 logger = logger.opt(colors=True)
 
-def nominate( 
+def nominate_extrinsic( 
     subtensor: 'bittensor.Subtensor',
     wallet: 'bittensor.Wallet', 
     wait_for_finalization: bool = False, 
@@ -113,7 +113,7 @@ def do_delegation(
             raise StakeError(response.error_message)
 
 
-def delegate(
+def delegate_extrinsic(
         subtensor: 'bittensor.Subtensor', 
         wallet: 'bittensor.wallet',
         delegate_ss58: Optional[str] = None,

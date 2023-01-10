@@ -21,7 +21,7 @@ from rich.prompt import Confirm
 import bittensor.utils.networking as net
 from ..errors import *
 
-def serve (
+def serve_extrinsic (
     subtensor: 'bittensor.Subtensor',
     wallet: 'bittensor.wallet',
     ip: str, 
@@ -133,7 +133,7 @@ def serve (
             else:
                 return True
 
-def serve_axon (
+def serve_axon_extrinsic (
     subtensor: 'bittensor.Subtensor',
     axon: 'bittensor.Axon',
     use_upnpc: bool = False,

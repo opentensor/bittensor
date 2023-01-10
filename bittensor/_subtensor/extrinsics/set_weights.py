@@ -25,7 +25,7 @@ from ..errors import *
 from loguru import logger
 logger = logger.opt(colors=True)
 
-def set_weights(
+def set_weights_extrinsic(
         subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         netuid: int,
