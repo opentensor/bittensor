@@ -601,6 +601,7 @@ class neuron:
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
             weights=sample_weights.detach().to('cpu'),
+            netuid = self.config.neuron.netuid,
             wallet=self.wallet,
             version_key=bittensor.__version_as_int__, # TODO: correct?
             wait_for_finalization=self.config.neuron.wait_for_finalization,
