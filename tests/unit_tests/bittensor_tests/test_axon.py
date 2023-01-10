@@ -925,6 +925,7 @@ def run_test_grpc_forward_works(receiver_version):
     def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
+        netuid = -1,
         port = 7084,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -971,6 +972,7 @@ def run_test_grpc_backward_works(receiver_version):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
 
     axon = bittensor.axon (
+        netuid = -1,
         port = 7086,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1012,6 +1014,7 @@ def test_grpc_forward_fails():
     def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
+        netuid = -1,
         port = 7084,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1050,6 +1053,7 @@ def test_grpc_backward_fails():
         return torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
 
     axon = bittensor.axon (
+        netuid = -1,
         port = 7086,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1095,7 +1099,7 @@ def is_port_in_use(port):
 def test_axon_is_destroyed():
     port = get_random_unused_port()
     assert is_port_in_use( port ) == False
-    axon = bittensor.axon ( port = port )
+    axon = bittensor.axon ( netuid = -1, port = port )
     assert is_port_in_use( port ) == True
     axon.start()
     assert is_port_in_use( port ) == True
@@ -1106,7 +1110,7 @@ def test_axon_is_destroyed():
 
     port = get_random_unused_port()
     assert is_port_in_use( port ) == False
-    axon2 = bittensor.axon ( port = port )
+    axon2 = bittensor.axon ( netuid = -1, port = port )
     assert is_port_in_use( port ) == True
     axon2.start()
     assert is_port_in_use( port ) == True
@@ -1115,9 +1119,9 @@ def test_axon_is_destroyed():
 
     port_3 = get_random_unused_port()
     assert is_port_in_use( port_3 ) == False
-    axonA = bittensor.axon ( port = port_3 )
+    axonA = bittensor.axon ( netuid = -1, port = port_3 )
     assert is_port_in_use( port_3 ) == True
-    axonB = bittensor.axon ( port = port_3 )
+    axonB = bittensor.axon ( netuid = -1, port = port_3 )
     assert axonA.server != axonB.server
     assert is_port_in_use( port_3 ) == True
     axonA.start()
@@ -1150,7 +1154,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
 
-        axon = bittensor.axon ( ip = 'fake_ip', server=mock_server, config=mock_config )
+        axon = bittensor.axon ( netuid = -1, ip = 'fake_ip', server=mock_server, config=mock_config )
         assert axon.external_ip != axon.ip # should be different
         assert axon.external_ip is None # should be None
 
@@ -1158,7 +1162,7 @@ class TestExternalAxon(unittest.TestCase):
         # Verify that not setting the external port arg will default to the internal axon port
         mock_config = bittensor.axon.config()
 
-        axon = bittensor.axon ( port = 1234, config=mock_config )
+        axon = bittensor.axon ( netuid = -1, port = 1234, config=mock_config )
         assert axon.external_port == axon.port
 
     def test_external_port_set_full_address_internal(self):

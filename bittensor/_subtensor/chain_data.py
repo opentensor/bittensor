@@ -31,6 +31,7 @@ class NeuronInfo:
     trust: float
     dividends: float
     last_update: int
+    validator_permit: bool
     weights: List[List[int]]
     bonds: List[List[int]]
     prometheus_info: 'PrometheusInfo'
@@ -63,6 +64,7 @@ class NeuronInfo:
             trust = json['trust'] / U16_MAX,
             dividends = json['dividends'] / U16_MAX,
             last_update = json['last_update'],
+            validator_permit = json['validator_permit'],
             weights = json['weights'],
             bonds = json['bonds'],
             prometheus_info = PrometheusInfo.from_json(json['prometheus_info']),
@@ -84,6 +86,7 @@ class NeuronInfo:
             trust = 0,
             dividends = 0,
             last_update = 0,
+            validator_permit = False,
             weights = [],
             bonds = [],
             prometheus_info = None,

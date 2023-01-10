@@ -105,6 +105,9 @@ class Wallet():
     def last_update(self, netuid: int) -> SimpleNamespace:
         return self.get_neuron(netuid = netuid).last_update
 
+    def validator_permit(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).validator_permit
+
     def weights(self, netuid: int) -> SimpleNamespace:
         return self.get_neuron(netuid = netuid).weights
 
