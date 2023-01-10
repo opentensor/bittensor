@@ -21,6 +21,7 @@ import argparse
 import bittensor
 from rich.prompt import Prompt, Confirm
 from .utils import check_netuid_set, check_for_cuda_reg_config
+console = bittensor.__console__
 
 class RunCommand:
     def run ( cli ):
@@ -57,6 +58,11 @@ class RunCommand:
 
         # Check registration
         ## Will exit if --wallet.reregister is False
+        if cli.config.wallet.get('reregister', bittensor.defaults.wallet.reregister) and not cli.config.no_prompt and not wallet.is_registered(netuid = cli.config.netuid):
+            console.print("Wallet not registered.")
+            check_for_cuda_reg_config(cli.config)
+            print(cli.config)
+            
         wallet.reregister( netuid = cli.config.netuid )
 
         # Run miner.
@@ -101,9 +107,6 @@ class RunCommand:
             synapse =  Prompt.ask('Enter synapse', choices = list(bittensor.synapse.__synapses_types__) + ['All'], default = 'All')
             config.synapse = synapse
 
-        # Don't need to ask about registration if they don't want to reregister the wallet.
-        if config.wallet.get('reregister', bittensor.defaults.wallet.reregister) and not config.no_prompt:
-            check_for_cuda_reg_config(config)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
