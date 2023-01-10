@@ -130,6 +130,7 @@ class OverviewCommand:
                 dividends = nn.dividends
                 emission = int(nn.emission * 1000000000)
                 last_update = int(block -  nn.last_update)
+                validator_permit = nn.validator_permit
                 row = [
                     hotwallet.name,
                     hotwallet.hotkey_str,
@@ -143,6 +144,7 @@ class OverviewCommand:
                     '{:.5f}'.format(dividends),
                     '{}'.format(emission),
                     str(last_update),
+                    '*' if validator_permit else '',
                     bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
                     nn.hotkey
                 ]
@@ -173,6 +175,7 @@ class OverviewCommand:
             table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
+            table.add_column("[overline white]VAL", justify='right', no_wrap=True)
             table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
             table.add_column("[overline white]HOTKEY_SS58", style='dim blue', no_wrap=False)
             table.show_footer = True

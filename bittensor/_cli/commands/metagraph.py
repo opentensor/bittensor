@@ -56,7 +56,8 @@ class MetagraphCommand:
                 '{:.5f}'.format( metagraph.dividends[uid]),
                 '{}'.format( int(metagraph.emission[uid] * 1000000000)),
                 str((metagraph.block.item() - metagraph.last_update[uid].item())),
-                str( metagraph.active[uid].item() ), 
+                str( metagraph.active[uid].item() ),
+                '*' if metagraph.validator_permit[uid] else '',
                 ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
                 ep.hotkey[:10],
                 ep.coldkey[:10]
@@ -84,6 +85,7 @@ class MetagraphCommand:
         table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]VAL", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
         table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
         table.add_column("[overline white]COLDKEY", style='dim purple', no_wrap=False)
