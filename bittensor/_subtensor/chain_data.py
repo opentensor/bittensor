@@ -55,7 +55,7 @@ class NeuronInfo:
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            stake = Balance.from_rao(json['stake'][0][1]),
+            stake = Balance.from_rao(0 if len(json['stake']) == 0 else json['stake'][0][1]),
             total_stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
             rank = json['rank'] / U16_MAX,
             emission = json['emission'] / RAOPERTAO,
@@ -205,4 +205,12 @@ class SubnetInfo:
     modality: int
     connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
+
+    @classmethod
+    def from_json(cls, json: Dict) -> 'SubnetInfo':
+        r""" Returns a SubnetInfo object from a json dictionary.
+        """
+        return SubnetInfo(
+            block = json['block'],
+        )
     
