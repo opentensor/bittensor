@@ -494,6 +494,7 @@ def run_test_axon_receptor_connection_forward_works(receiver_version):
         port = port,
         ip = '127.0.0.1',
         wallet = wallet,
+        netuid = -1,
     )
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
     axon.attach_synapse_callback( forward_generate,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
@@ -509,7 +510,8 @@ def run_test_axon_receptor_connection_forward_works(receiver_version):
         port = port,
         hotkey = wallet.hotkey.ss58_address,
         coldkey = wallet.coldkey.ss58_address,
-        modality = 2
+        modality = 2,
+        protocol = 0,
     )
 
     receptor = bittensor.receptor ( 
@@ -544,6 +546,7 @@ def test_axon_receptor_connection_forward_unauthenticated():
         port = 8081,
         ip = '127.0.0.1',
         wallet = wallet,
+        netuid = -1,
     )
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
     axon.attach_synapse_callback( forward_generate,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
@@ -643,6 +646,7 @@ def test_axon_receptor_connection_backward_unauthenticated():
         port = 8090,
         ip = '127.0.0.1',
         wallet = wallet,
+        netuid = -1,
     )
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
     axon.attach_synapse_callback( forward_generate,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
@@ -686,6 +690,7 @@ def test_axon_receptor_connection_forward_unimplemented():
         port = port,
         ip = '127.0.0.1',
         wallet = wallet,
+        netuid = -1,
     )
     axon.start()
     
@@ -734,6 +739,7 @@ def test_axon_receptor_connection_forward_timeout():
         port = 8085,
         ip = '127.0.0.1',
         wallet = wallet,
+        netuid = -1,
     )
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
     axon.attach_synapse_callback( forward_generate,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
@@ -783,6 +789,7 @@ def test_axon_receptor_connection_backward_timeout():
         port = 8088,
         ip = '127.0.0.1',
         wallet = wallet,
+        netuid = -1,
     )
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
     axon.attach_synapse_callback( forward_generate,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ )
