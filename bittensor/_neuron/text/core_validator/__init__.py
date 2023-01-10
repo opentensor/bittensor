@@ -529,7 +529,7 @@ class neuron:
                       f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
                       f'Updated [yellow]{current_block - self.metagraph.last_update[self.uid]}[/yellow] [dim]blocks ago[/dim] | '
                       f'Dividends [green not bold]{self.metagraph.dividends[self.uid]:.5f}[/green not bold] | '
-                      f'Stake \u03C4[magenta not bold]{self.metagraph.stake[self.uid]:.5f}[/magenta not bold] '
+                      f'(Total) Stake \u03C4[magenta not bold]{self.metagraph.total_stake[self.uid]:.5f}[/magenta not bold] '
                       f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
 
                 # save neuron_stats to filesystem
@@ -628,14 +628,14 @@ class neuron:
             ], axis = 1); df['uid'] = df.index
             wandb_data_dend = self.dendrite.to_wandb()
             wandb_weight = {f'stats/weight_{uid}': weight for uid, weight in zip (sample_uids, sample_weights)}
-            wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
+            wandb_data = { 'total_stake': self.metagraph.total_stake[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block, commit=False)
             wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
 
         # === Epoch Prometheus ===
         self.prometheus_gauges.labels("epoch").inc()
         self.prometheus_gauges.labels("set_weights").inc()
-        self.prometheus_gauges.labels("stake").set( self.metagraph.stake[self.uid] )
+        self.prometheus_gauges.labels("total_stake").set( self.metagraph.total_stake[self.uid] )
         self.prometheus_gauges.labels("rank").set( self.metagraph.ranks[self.uid] )
         self.prometheus_gauges.labels("trust").set( self.metagraph.trust[self.uid] )
         self.prometheus_gauges.labels("incentive").set( self.metagraph.incentive[self.uid] )
@@ -760,7 +760,7 @@ class neuron:
         max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.neuron.netuid)
 
         # === Populate neuron weights ===
-        neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs for min_allowed_weights
+        neuron_weights = torch.zeros_like(self.metagraph.total_stake)  # allow unevaluated UIDs for min_allowed_weights
         for uid in self.neuron_stats:
             if weight_key in self.neuron_stats[uid]:
                 neuron_weights[uid] = torch.tensor([self.neuron_stats[uid][weight_key]])

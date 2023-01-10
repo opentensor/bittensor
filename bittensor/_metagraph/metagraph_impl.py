@@ -74,7 +74,10 @@ class Metagraph( torch.nn.Module ):
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
         self.tau = torch.nn.Parameter( torch.tensor( [1], dtype=torch.float32), requires_grad = False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
-        self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
+        #self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.total_stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
         self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
@@ -293,7 +296,10 @@ class Metagraph( torch.nn.Module ):
         self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
         self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
         self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
-        self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+
+        #self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+        self.total_stake = torch.nn.Parameter( state_dict['total_stake'], requires_grad=False )
+
         self.ranks = torch.nn.Parameter( state_dict['ranks'], requires_grad=False )
         self.trust = torch.nn.Parameter( state_dict['trust'], requires_grad=False )
         self.consensus = torch.nn.Parameter( state_dict['consensus'], requires_grad=False )
@@ -339,8 +345,11 @@ class Metagraph( torch.nn.Module ):
             for uid in self.uids.tolist():
                 v = {
                     'uid': self.uids[uid].item(),
-                    'active': self.active[uid].item(),             
-                    'stake': self.stake[uid].item(),             
+                    'active': self.active[uid].item(),         
+
+                    #'stake': self.stake[uid].item(),  
+                    'total_stake': self.total_stake[uid].item(),  
+
                     'rank': self.ranks[uid].item(),            
                     'trust': self.trust[uid].item(),             
                     'consensus': self.consensus[uid].item(),             

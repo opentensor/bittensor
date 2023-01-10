@@ -105,7 +105,8 @@ class NeuronInfo:
             return NeuronInfo._null_neuron()
         else:
             neuron = NeuronInfo( **neuron_dict )
-            neuron.total_stake = Balance.from_rao(neuron.total_stake)
+            # Fix?
+            neuron.total_stake = Balance.from_rao(neuron.stake)
             neuron.rank = neuron.rank / U64_MAX
             neuron.trust = neuron.trust / U64_MAX
             neuron.consensus = neuron.consensus / U64_MAX
