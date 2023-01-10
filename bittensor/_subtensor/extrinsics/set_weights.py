@@ -69,7 +69,6 @@ def set_weights(
 
     # Reformat and normalize.
     weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
-    print (weight_uids, weight_vals)
 
     # Ask before moving on.
     if prompt:

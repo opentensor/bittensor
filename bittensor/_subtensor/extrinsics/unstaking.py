@@ -60,7 +60,6 @@ def __do_remove_stake_single(
     # Decrypt keys,
     wallet.coldkey
 
-    print ('hotkey_ss58', hotkey_ss58, 'amount.rao', amount.rao)
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
         call_module='Paratensor', 
