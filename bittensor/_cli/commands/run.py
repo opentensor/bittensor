@@ -60,8 +60,8 @@ class RunCommand:
         ## Will exit if --wallet.reregister is False
         if cli.config.wallet.get('reregister', bittensor.defaults.wallet.reregister) and not cli.config.no_prompt and not wallet.is_registered(netuid = cli.config.netuid):
             console.print("Wallet not registered.")
-            check_for_cuda_reg_config(cli.config)
-            print(cli.config)
+            check_for_cuda_reg_config(wallet.config)
+            print(wallet.config)
             
         wallet.reregister( netuid = cli.config.netuid )
 
