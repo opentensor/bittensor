@@ -127,7 +127,9 @@ def test_wallet_coldkeypub_create():
     assert the_wallet.coldkeypub.ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
 
 def test_wallet_add_stake():
-    subtensor = bittensor.subtensor(network = 'nobunaga')
+    subtensor = bittensor.subtensor( _mock=True )
+    subtensor.add_stake = MagicMock(return_value = True)
+
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.add_stake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -138,7 +140,9 @@ def test_wallet_add_stake():
     the_wallet.add_stake(subtensor = subtensor)
 
 def test_wallet_remove_stake():
-    subtensor = bittensor.subtensor(network = 'nobunaga')
+    subtensor = bittensor.subtensor( _mock=True )
+    subtensor.unstake = MagicMock(return_value = True)
+
     the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
     subtensor.unstake = MagicMock(return_value = True)
     the_wallet.is_registered = MagicMock(return_value = True)
@@ -149,11 +153,12 @@ def test_wallet_remove_stake():
     the_wallet.remove_stake(subtensor = subtensor)
 
 def test_wallet_transfer():
-    subtensor = bittensor.subtensor(network = 'nobunaga')
-    
-    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
+    subtensor = bittensor.subtensor( _mock=True )
     subtensor.transfer = MagicMock(return_value = True)
-    
+    subtensor.unstake = MagicMock(return_value = True)
+
+    the_wallet = init_wallet().create(coldkey_use_password = False, hotkey_use_password = False)
+
     # when registered
     the_wallet.is_registered = MagicMock(return_value = True)
     the_wallet.get_balance = MagicMock(return_value = Balance(20))
