@@ -1276,7 +1276,7 @@ class TestCli(unittest.TestCase):
         config.amount = 0.5
         config.stake_all = False
         config.wallet._mock = True
-        config.no_password = True
+        config.use_password = False
         config.no_version_checking = False
 
         config.model = "core_server"
