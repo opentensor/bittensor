@@ -34,13 +34,11 @@ import pandas
 import traceback
 from rich import print
 from rich.console import Console
-from rich.style import Style
-from rich.table import Table
-from rich.errors import MarkupError
 from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 from ..neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
+from ..log_utilities import ValidatorLogger
 from bittensor.utils.tokenizer_utils import phrase_cross_entropy, topk_tokens_to_vocab_size, prune_tokens
 
 from torch.nn.functional import kl_div
@@ -53,44 +51,6 @@ from prometheus_client import Counter, Gauge, Histogram, Summary, Info
 logger = logger.opt( colors=True )
 console = Console()
 install(show_locals=True)
-
-# Neuron stats recorded by validator neuron/nucleus
-#   [Column_name, key_name, format_string, rich_style]  # description
-neuron_stats_columns = [
-    ['UID', 'uid', '{:.0f}', 'cyan'],  # neuron UID
-    ['Upd!', 'updates!', '{}', 'bright_yellow'],  # number of exponential moving average updates with zeroing on
-    ['nUpd', 'updates_shapley_values_nxt', '{}', 'bright_yellow'],  # number of exponential moving average updates to nShap
-    ['mUpd', 'updates_shapley_values_min', '{}', 'bright_yellow'],  # number of exponential moving average updates to mShap
-    ['nTime', 'response_time_nxt', '{:.2f}', 'yellow'],  # response time to TextCausalLMNext forward requests [TextCausalLMNext]
-    ['sTime', 'response_time', '{:.2f}', 'yellow'],  # response time to TextCausalLM forward requests
-    ['Route', 'routing_score', '{:.3f}', 'grey30'],  # validator routing score (higher preferred)
-    ['Weight', 'weight', '{:.5f}', 'green'],  # weight set on substrate (each epoch)
-    ['nShap!', 'shapley_values_nxt!', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation (zeroing) [TextCausalLMNext]
-    ['nShap', 'shapley_values_nxt', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for phrase validation [TextCausalLMNext]
-    ['mShap!', 'shapley_values_min!', '{:.0f}', 'bright_magenta'],  # min(Shap, vShap) of sequence and validation Shapley (zeroing)
-    ['mShap', 'shapley_values_min', '{:.0f}', 'bright_magenta'],  # min(Shap, vShap) of sequence and validation Shapley
-    ['sLoss', 'loss', '{:.2f}', 'bright_cyan'],  # next token prediction loss average over sequence
-    ['vLoss', 'loss_val', '{:.2f}', 'bright_cyan'],  # next token prediction loss for validation task
-    ['nvLoss', 'loss_val_nxt', '{:.2f}', 'bright_cyan'],  # next token prediction loss for validation task [TextCausalLMNext]
-    ['nLoss', 'loss_nxt', '{:.2f}', 'bright_cyan'],  # next token phrase prediction loss for phrase validation task [TextCausalLMNext]
-    ['RLoss', 'routing_loss', '{:.3f}', 'grey30'],  # MSE between routing_score and conditioned loss
-    ['nRLoss', 'routing_loss_nxt', '{:.3f}', 'grey30'],  # MSE between routing_score_nxt and conditioned loss [TextCausalLMNext]
-    ['sShap', 'shapley_values', '{:.0f}', 'magenta'],  # Shapley value (=Base+Syn) over sequence
-    ['vShap', 'shapley_values_val', '{:.0f}', 'magenta'],  # Shapley value (=vBase+vSyn) for validation
-    ['sBase', 'base_params', '{:.0f}', ''],  # parameter count estimate via adjusted scaling law
-    ['vBase', 'base_params_val', '{:.0f}', ''],  # square root parameter count estimate for validation task
-    ['nBase', 'base_params_nxt', '{:.0f}', ''],  # square root parameter count estimate for phrase validation task [TextCausalLMNext]
-    ['nParam~', 'est_params_nxt', '{:.2g}', 'magenta'],  # parameter count estimate for phrase validation task [TextCausalLMNext]
-    ['nDiv', 'logits_divergence_nxt', '{:.2g}', ''],  # logits divergence avg compared to network prob dist [TextCausalLMNext]
-    ['nExc', 'logits_excess_nxt', '{:.2f}', ''],  # logits divergence excess avg above network avg + std [TextCausalLMNext]
-    ['sSyn', 'synergy', '{:.0f}', 'white'],  # Shapley pairwise synergy over sequence loss (parameter count estimate)
-    ['vSyn', 'synergy_val', '{:.0f}', 'white'],  # Shapley pairwise synergy over validation loss (count estimate)
-    ['nSyn', 'synergy_nxt', '{:.0f}', 'white'],  # Shapley pairwise synergy over phrase validation loss (count estimate) [TextCausalLMNext]
-    ['sSynD', 'synergy_loss_diff', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over sequence loss (loss difference)
-    ['vSynD', 'synergy_loss_diff_val', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over validation loss (loss difference)
-    ['nSynD', 'synergy_loss_diff_nxt', '{:.2f}', 'bright_blue'],  # Shapley pairwise synergy over phrase validation loss (loss difference) [TextCausalLMNext]
-]
-
 
 class neuron:
     r"""
@@ -170,27 +130,27 @@ class neuron:
             config = self.config, 
             logging_dir = self.config.neuron.full_path 
         )
-        bittensor.prometheus ( 
+        bittensor.prometheus( 
             config = self.config, 
             port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
         )
 
         # === Create Bittensor objects ===
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
+        self.vlogger = ValidatorLogger( config = self.config )
         self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
         self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.
         self.axon = bittensor.axon ( netuid=self.config.neuron.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
         self.device = torch.device ( device = self.config.neuron.device )    
-        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
+        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
         self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.neuron.netuid),
                                           block_size=self.subtensor.validator_sequence_length(self.config.neuron.netuid) + self.config.neuron.validation_len + self.config.neuron.prune_len)
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
         )
-
         # === Create thread queue ===
         self.loss = None
         self.loss_agg_mutex = Lock()
@@ -210,15 +170,6 @@ class neuron:
             self.weight_key = 'shapley_values_min'  # stat key + ! to calculate neuron weights with
             # stat keys to duplicate (['key']->['key!']) and push zero to its EMA if neuron non-responsive
             self.synapse_keys = ['shapley_values_min']
-
-        # === Prometheus stats ===
-        # Turn this off by passing the --prometheus.off flag
-        self.prometheus_info = Info("neuron_info", "Info sumamries for the running server-miner.")
-        self.prometheus_gauges = Gauge('validator_gauges', 'Gauges for the running validator.', ['validator_gauges_name'])
-        self.prometheus_counters = Counter('validator_counters', 'Counters for the running validator.', ['validator_counters_name'])
-        self.prometheus_step_time = Histogram('validator_step_time', 'Validator step time histogram.', buckets=list(range(0,2*bittensor.__blocktime__,1)))
-
-        self.netuid = self.config.neuron.netuid
 
         # load last saved validator values from the file system
         if not config.neuron.restart:
@@ -308,7 +259,6 @@ class neuron:
         # NOTE: This registration step should likely be solved offline first.
         self.wallet.reregister( subtensor = self.subtensor, netuid=self.config.neuron.netuid )
 
-
         # === UID ===
         # Get our uid from the chain. 
         # At this point we should have a uid because we are already registered.
@@ -328,16 +278,12 @@ class neuron:
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
         # TODO (Cameron) this should be it's own storage map on-chain.
         self.axon.serve( subtensor = self.subtensor )
-
-        self.prometheus_gauges.labels( "model_size_params" ).set( sum(p.numel() for p in self.nucleus.parameters()) )
-        self.prometheus_gauges.labels( "model_size_bytes" ).set( sum(p.element_size() * p.nelement() for p in self.nucleus.parameters()) )
-        self.prometheus_info.info({
-            'type': "core_validator",
-            'uid': str(self.uid),
-            'network': self.config.subtensor.network,
-            'coldkey': str(self.wallet.coldkeypub.ss58_address),
-            'hotkey': str(self.wallet.hotkey.ss58_address),
-        })
+        self.vlogger.prometheus.log_run_info(
+            parameters = self.nucleus.parameters(),
+            uid = self.uid,
+            network = self.config.subtensor.network,
+            wallet = self.wallet
+        )
 
     def save(self, path=None):
         r""" Save validated hotkeys and neuron_stats to filesystem. """
@@ -403,7 +349,7 @@ class neuron:
                 except KeyboardInterrupt:
                     break
                 except Exception as e:
-                    self.prometheus_counters.labels('failures').inc()
+                    self.vlogger.prometheus.counters.labels('failures').inc()
                     console.print_exception(show_locals=False)
                     print( traceback.format_exc() )
                     print( 'Unknown exception: {}', e )
@@ -429,28 +375,9 @@ class neuron:
         self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power(netuid=self.config.neuron.netuid)
         self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power(netuid=self.config.neuron.netuid)
 
-        # === Logs Prometheus ===
-        self.prometheus_gauges.labels("current_block").set( current_block )
-        self.prometheus_gauges.labels("batch_size").set( batch_size )
-        self.prometheus_gauges.labels("sequence_length").set( sequence_length )
-        self.prometheus_gauges.labels("validation_len").set( validation_len )
-        self.prometheus_gauges.labels("min_allowed_weights").set( min_allowed_weights )
-        self.prometheus_gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
-        self.prometheus_gauges.labels("epochs_until_reset").set( epochs_until_reset )
-        self.prometheus_gauges.labels("scaling_law_power").set( self.config.nucleus.scaling_law_power )
-        self.prometheus_gauges.labels("synergy_scaling_law_power").set( self.config.nucleus.synergy_scaling_law_power )
-
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len + prune_len != self.dataset.block_size):
             self.dataset.set_data_size(batch_size, sequence_length + validation_len + prune_len)
-
-        # === Logs ===
-        if self.config.using_wandb:
-            wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
-                       'era/validation_len': validation_len,
-                       'era/min_allowed_weights': min_allowed_weights, 'era/max_weight_limit': max_weight_limit,
-                       'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
-                      step=current_block)
 
         # === Run Epoch ===
         # Each block length lasts blocks_per_epoch blocks.
@@ -462,7 +389,25 @@ class neuron:
         epoch_queried_uids = set()
         epoch_start_time = time.time()
 
-        self.prometheus_gauges.labels("epoch_steps").set(0)
+        # === All logging for epoch start (including wandb, prometheus) === 
+        # prometheus (every epoch start)
+        self.vlogger.prometheus.log_epoch_start(
+            current_block = current_block, 
+            batch_size = batch_size, 
+            sequence_length = sequence_length, 
+            validation_len = validation_len, 
+            min_allowed_weights = min_allowed_weights, 
+            blocks_per_epoch = blocks_per_epoch, 
+            epochs_until_reset = epochs_until_reset
+        )
+        
+        # wandb (every epoch start)
+        if self.config.using_wandb:
+            wandb.log({'era/batch_size': batch_size, 'era/sequence_length': sequence_length,
+                       'era/validation_len': validation_len,
+                       'era/min_allowed_weights': min_allowed_weights, 'era/max_weight_limit': max_weight_limit,
+                       'era/blocks_per_epoch': blocks_per_epoch, 'era/epochs_until_reset': epochs_until_reset},
+                      step=current_block)
 
         # normal epoch duration is blocks_per_epoch if all UIDs have been queried
         # try to query each UID at least once - assumes nucleus samples without replacement
@@ -483,7 +428,6 @@ class neuron:
             # Forwards inputs through the network and returns the loss
             # and endpoint scores using shapely approximation of salience.
             loss, stats = self.nucleus( next(self.dataset) , self.metagraph, self.dendrite )
-            self.prometheus_gauges.labels("loss").set( loss.item() )
 
             # === Backward ===
             # Backwards gradients through model to train gating and remote endpoints.
@@ -504,73 +448,83 @@ class neuron:
             # Prints step logs to screen.
             epoch_steps += 1
             self.global_step += 1
-            self.prometheus_gauges.labels("global_step").inc()
-            self.prometheus_gauges.labels("epoch_steps").inc()
 
             # === Block state ===
             current_block = self.subtensor.block
-            self.prometheus_gauges.labels("current_block").set(current_block)
-            self.prometheus_gauges.labels("last_updated").set( current_block - self.metagraph.last_update[self.uid] )
 
             # === Step time ===
             step_time = time.time() - start_time
-            self.prometheus_step_time.observe( step_time )
-            self.prometheus_gauges.labels('step_time').set( step_time )
-            
+
+            # === Optimization step ===
+            # Do the backward request after the a queue of forward requests got finished.  
+            if epoch_steps % self.config.neuron.forward_num == 1:
+                opt_start_time = time.time()
+                logger.info('Model update \t| Optimizer step')
+                
+                # Applies local gradients to parameters.
+                clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - opt_start_time:.3g}s]</dim>')
+
+            # === ALL logging for validation step (including console message, console tables, prometheus, wandb) ===
             if epoch_steps % 25 == 1:
-                # validator identifier status console message (every 25 validation steps)
-                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                      f"{f'[bright_white]core_validator[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
-                      f"UID [cyan]{self.uid}[/cyan] "
-                      f"[dim white not bold][{self.dendrite.receptor_pool.external_ip}][/dim white not bold] "
-                      f"[white not bold]cold:[bold]{self.wallet.name}[/bold]:"
-                      f"[bright_white not bold]{self.wallet.coldkeypub.ss58_address}[/bright_white not bold] "
-                      f"[dim white]/[/dim white] "
-                      f"hot:[bold]{self.config.wallet.hotkey}[/bold]:"
-                      f"[bright_white not bold]{self.wallet.hotkey.ss58_address}[/bright_white not bold][/white not bold]")
-
-                # validator update status console message
-                print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                      f"{f'UID [bright_cyan]{self.uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
-                      f'Updated [yellow]{current_block - self.metagraph.last_update[self.uid]}[/yellow] [dim]blocks ago[/dim] | '
-                      f'Dividends [green not bold]{self.metagraph.dividends[self.uid]:.5f}[/green not bold] | '
-                      f'Stake \u03C4[magenta not bold]{self.metagraph.stake[self.uid]:.5f}[/magenta not bold] '
-                      f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {self.subtensor.network})[/dim]')
-
+                # console message - validator identifier status (every 25 validation steps)
+                self.vlogger.print_console_validator_identifier(self.uid, self.wallet, self.dendrite.receptor_pool.external_ip)
+                # console message - validator update status (every 25 validation steps)
+                self.vlogger.print_console_metagraph_status(self.uid, self.metagraph, current_block, start_block, self.subtensor.network)
                 # save neuron_stats to filesystem
                 self.save()
 
-            # step update console message (every validation step)
-            print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                  f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
-                  f'[green not bold]{current_block - start_block}[/green not bold]/'
-                  f'[white not bold]{blocks_per_epoch}[/white not bold] [dim]blocks/epoch[/dim] | '
-                  f'[white not bold]Step {epoch_steps}[white not bold] '
-                  f'[dim] Epoch {self.epoch}[/dim] | '
-                  f'[bright_green not bold]{len(responsive_uids)}[/bright_green not bold]/'
-                  f'[white]{len(queried_uids)}[/white] '
-                  f'[[yellow]{step_time:.3g}[/yellow]s] '
-                  f'[dim white not bold][green]{len(epoch_responsive_uids)}[/green]/'
-                  f'{len(epoch_queried_uids)}[/dim white not bold]')
+            # console message - query summary (every validation step)
+            self.vlogger.print_console_query_summary(
+                current_block = current_block, 
+                start_block = start_block,
+                blocks_per_epoch = blocks_per_epoch, 
+                epoch_steps = epoch_steps, 
+                epoch = self.epoch, 
+                responsive_uids = responsive_uids, 
+                queried_uids = queried_uids, 
+                step_time = step_time, 
+                epoch_responsive_uids = epoch_responsive_uids, 
+                epoch_queried_uids = epoch_queried_uids
+            )
 
             if self.config.logging.debug or self.config.logging.trace:
-                # === Print stats update (table) ===
-                # Prints exponential moving average statistics of valid neurons from latest validator forward
-                stats_table({uid: self.neuron_stats[uid]
+                # console table - stats table (every validation step)
+                # Prints exponential moving average statistics of valid neurons from latest validator forward 
+                self.vlogger.print_stats_table({uid: self.neuron_stats[uid]
                              for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
-                            self.weight_key, self.config.get('width', None),
+                            self.weight_key,
                             f'[white] Stats update [/white] | ' + str(self),  # title
                             f'#{current_block}: '
                             f'[bold]{current_block - start_block}[/bold]/{blocks_per_epoch} (blocks/epoch) | '
                             f'Epoch {self.epoch} | '
                             f'[white] Step {epoch_steps} ({self.global_step} global) \[{step_time:.3g}s] [/white]')  # caption
 
-                # === Calculate neuron weights ===
+                # console table - weight table (every validation step)
                 sample_uids, sample_weights = self.calculate_weights()
-                self.weights_table(sample_uids, sample_weights,
-                                   include_uids=list(stats.keys()), num_rows=len(stats) + 25)  # print weights table
+                self.vlogger.print_weights_table(
+                    min_allowed_weights = self.subtensor.min_allowed_weights,
+                    max_weight_limit = self.subtensor.max_weight_limit,
+                    neuron_stats = self.neuron_stats,
+                    title = str(self),
+                    metagraph_n = self.metagraph.n, 
+                    sample_uids = sample_uids, 
+                    sample_weights = sample_weights,
+                    include_uids=list(stats.keys()), 
+                    num_rows=len(stats) + 25
+                )  
+ 
+            # prometheus - step & loss (every validation step)
+            self.vlogger.prometheus.log_step(
+                current_block = current_block, 
+                last_update = self.metagraph.last_update[self.uid], 
+                step_time = step_time,
+                loss = loss.item()
+            )
 
-            # === Logs ===
+            # wandb - step & loss (every validation step)
             if self.config.using_wandb:
                 for uid, vals in self.neuron_stats.items():
                     for key in vals:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
@@ -580,40 +534,10 @@ class neuron:
                            'epoch/global_steps': self.global_step, 'epoch/loss': loss.item(),
                            'epoch/time': step_time}, step=current_block, commit=True)
 
-            # Do the backward request after the a queue of forward requests got finished.  
-            if epoch_steps % self.config.neuron.forward_num == 1:
-                start_time = time.time()
-                logger.info('Model update \t| Optimizer step')
-
-                # === Apply gradients ===
-                # Applies local gradients to parameters.
-                clip_grad_norm_(self.nucleus.parameters(), self.config.neuron.clip_gradients)
-                self.optimizer.step()
-                self.optimizer.zero_grad()
-                logger.info(f'Model update \t| Optimizer step <dim>[{time.time() - start_time:.3g}s]</dim>')
-
         self.metagraph_sync()  # Reset metagraph.
 
         # === Calculate neuron weights ===
         sample_uids, sample_weights = self.calculate_weights()
-
-        if self.config.logging.debug or self.config.logging.trace:
-            self.weights_table(sample_uids, sample_weights)  # print weights table
-
-        # set weights console message (every epoch)
-        if len(sample_weights) == 0 or len(sample_uids) == 0:
-            print(f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
-                f"{f'[bright_white]Set weights[/bright_white]'.center(16 + len('[bright_white][/bright_white]'))} | "
-                f'[bright_green not bold]{len(sample_weights)}[/bright_green not bold] [dim]weights set[/dim] | '
-                f'[bright_green not bold]{len(epoch_responsive_uids)}[/bright_green not bold]/'
-                f'[white]{len(epoch_queried_uids)}[/white] '
-                f'[dim white not bold][green]responsive[/green]/queried[/dim white not bold] '
-                f'[[yellow]{time.time() - epoch_start_time:.0f}[/yellow]s] | '
-                f'[dim]weights[/dim] sum:{sample_weights.sum().item():.2g} '
-                f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
-                f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                f'\[{max_weight_limit:.4g} allowed]')
-
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
             weights=sample_weights.detach().to('cpu'),
@@ -623,10 +547,30 @@ class neuron:
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
-        # === Wandb Logs ===
-        # Optionally send validator logs to wandb.
+        # === ALL end of epoch logging (including console message, console table, prometheus, wandb)===
+        if self.config.logging.debug or self.config.logging.trace:
+                # console table - weight table (every end of epoch)
+                self.vlogger.print_weights_table(
+                    min_allowed_weights = self.subtensor.min_allowed_weights,
+                    max_weight_limit = self.subtensor.max_weight_limit,
+                    neuron_stats = self.neuron_stats,
+                    title = str(self),
+                    metagraph_n = self.metagraph.n, 
+                    sample_uids = sample_uids, 
+                    sample_weights = sample_weights,
+                )  
+
+        # console message - subtensor weight (every end of epoch)
+        self.vlogger.print_console_subtensor_weight(
+            sample_weights = sample_weights, 
+            epoch_responsive_uids = epoch_responsive_uids, 
+            epoch_queried_uids = epoch_queried_uids, 
+            max_weight_limit = max_weight_limit, 
+            epoch_start_time = epoch_start_time
+        )
+
+        # wandb - weights and metagraph stats (every end of epoch)
         if self.config.using_wandb:
-            # Logging history to wandb.
             df = pandas.concat( [
                 bittensor.utils.indexed_values_to_dataframe( prefix = 'weights', index = sample_uids, values = torch.zeros( self.metagraph.n ).scatter( dim = 0, src = sample_weights, index = sample_uids ) ),
                 self.dendrite.to_dataframe( metagraph = self.metagraph )
@@ -637,17 +581,10 @@ class neuron:
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block, commit=False)
             wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
 
-        # === Epoch Prometheus ===
-        self.prometheus_gauges.labels("epoch").inc()
-        self.prometheus_gauges.labels("set_weights").inc()
-        self.prometheus_gauges.labels("stake").set( self.metagraph.stake[self.uid] )
-        self.prometheus_gauges.labels("rank").set( self.metagraph.ranks[self.uid] )
-        self.prometheus_gauges.labels("trust").set( self.metagraph.trust[self.uid] )
-        self.prometheus_gauges.labels("incentive").set( self.metagraph.incentive[self.uid] )
-        self.prometheus_gauges.labels("dividends").set( self.metagraph.dividends[self.uid] )
-        self.prometheus_gauges.labels("emission").set( self.metagraph.emission[self.uid] )
-
-        # Iterate epochs.
+        # prometheus - metagraph (every end of epoch)
+        self.vlogger.prometheus.log_epoch_end(uid = self.uid, metagraph = self.metagraph)
+        
+        # === Iterate epochs ===
         self.epoch += 1
 
     def metagraph_sync(self):
@@ -798,58 +735,13 @@ class neuron:
 
         return sample_uids, sample_weights
 
-    def weights_table(self, sample_uids, sample_weights, include_uids=None, num_rows: int = None):
-        r""" Prints weights table given sample_uids and sample_weights.
-        """
-        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.neuron.netuid)
-        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.neuron.netuid)
-
-        if len(sample_weights) == 0 or len(sample_uids) == 0:
-            return
-
-        # === Weight table ===
-        # Prints exponential moving average statistics of valid neurons and latest weights
-        _neuron_stats = {}
-        uid_weights = []  # (uid, weight) tuples for sorting to find top/bottom weights
-        unvalidated = []
-        for uid, weight in zip(sample_uids.tolist(), sample_weights.tolist()):
-            if uid in self.neuron_stats:
-                _neuron_stats[uid] = {k: v for k, v in self.neuron_stats[uid].items()}
-                _neuron_stats[uid]['weight'] = weight
-                uid_weights += [(uid, weight)]
-            else:
-                unvalidated += [uid]
-
-        if include_uids is not None and num_rows is not None:
-            sorted_uids = sorted(uid_weights, key=lambda tup: tup[1])
-            top_bottom_uids = [_uid for _uid, _ in sorted_uids[:5] + sorted_uids[-10:]]
-            _include_uids = set(include_uids) | set(top_bottom_uids)
-            avail_include_uids = list(set(_neuron_stats.keys()) & _include_uids)  # exclude include_uids with no stats
-            if len(_neuron_stats) > num_rows:  # limit table to included_uids and remaining sample up to num_rows
-                remaining_uids = set(_neuron_stats.keys()) - _include_uids  # find sample remaining, loses sample ordering
-                remaining_uids = [uid for uid in _neuron_stats if uid in remaining_uids]  # recover sample ordering
-                limited_uids = avail_include_uids + remaining_uids[:num_rows - len(_include_uids)]
-                _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
-
-        print()
-        stats_table(_neuron_stats, 'weight', self.config.get('width', None),
-                    f'[white] Neuron weights [/white] | ' + str(self),  # title
-                    f'Validated {min_allowed_weights}/'
-                    f'[bold]{len(self.neuron_stats)}[/bold]/{self.metagraph.n} (min/[bold]valid[/bold]/total) | '
-                    f'sum:{sample_weights.sum().item():.2g} '
-                    f'[white] max:[bold]{sample_weights.max().item():.4g}[/bold] / '
-                    f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
-                    f'\[{max_weight_limit:.4g} allowed]',  # caption
-                    mark_uids=include_uids)
-
-
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
     """
-    def __init__( self, config, device, subtensor ):
+    def __init__( self, config, device, subtensor, vlogger ):
         super(nucleus, self).__init__()
         self.config = config
-
+        self.vlogger = vlogger
         self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(netuid=self.config.neuron.netuid) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(netuid=self.config.neuron.netuid) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
 
@@ -1051,11 +943,20 @@ class nucleus( torch.nn.Module ):
                     f'<dim>[{time.time() - request_start_time:.3g}s]</dim>')
 
         # === Prepare validation parameter set ===
-        console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
-        validation_params = (random_uids, query_responses, return_ops, times, routing_score,
-                             inputs, val_len, self.loss_fct,
-                             self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
-                             console_width, self.config.logging.debug or self.config.logging.trace)
+        validation_params = {
+            'uids': random_uids, 
+            'query_responses': query_responses, 
+            'return_ops': return_ops, 
+            'times': times, 
+            'routing_score': routing_score,
+            'inputs': inputs, 
+            'validation_len': val_len, 
+            'loss_fct': self.loss_fct,
+            'scaling_law_power': self.config.nucleus.scaling_law_power, 
+            'synergy_scaling_law_power': self.config.nucleus.synergy_scaling_law_power,
+            'vlogger': self.vlogger,
+            'logging': self.config.logging.debug or self.config.logging.trace
+        }
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -1063,7 +964,7 @@ class nucleus( torch.nn.Module ):
         # === Validate synapse responses ===
         # Iterate over all queried synapses and validate responses
         for i, (synapse, validate_func) in enumerate(synapses):
-            _loss, stats = validate_func(*validation_params, synapse=synapse, index_s=i)  # validate individual synapse
+            _loss, stats = validate_func(**validation_params, synapse=synapse, index_s=i)  # validate individual synapse
             loss += _loss  # add neuron_loss and routing_loss
 
             for _uid, _stats in stats.items():
@@ -1071,7 +972,6 @@ class nucleus( torch.nn.Module ):
                 neuron_stats[_uid].update(_stats)  # gather neuron synapse validation measures and statistics
 
         return loss, neuron_stats
-
 
 def scaling_law_loss_to_params(loss):
     r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
@@ -1084,8 +984,8 @@ def scaling_law_loss_to_params(loss):
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                 scaling_law_power: float, synergy_scaling_law_power: float,
-                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
+                 scaling_law_power: float, synergy_scaling_law_power: float, vlogger: ValidatorLogger,
+                 logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLM synapse responses.
@@ -1111,8 +1011,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
-            console_width (:obj:`int`, `required`):
-                Config console width for table print.
+            vlogger (:obj:`ValidatorLogger`, `required`):
+                Logger for validator.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLM`, `optional`):
@@ -1126,7 +1026,6 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             stats (:obj:`Dict`, `required`):
                 Statistics per endpoint for this batch.
     """
-
     inputs_seq = inputs[..., :-validation_len]  # input sequence without last token [batch_size, sequence_len]
     inputs_val = inputs[..., -validation_len]  # input validation with next token [batch_size]
 
@@ -1195,11 +1094,11 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     if logging:
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        synergy_table(stats, syn_loss_diff, 'shapley_values_min', console_width=console_width)
+        vlogger.print_synergy_table(stats, syn_loss_diff, 'shapley_values_min')
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        synapse_table(str(synapse), stats, 'shapley_values_min', console_width, shapley_start_time)
+        vlogger.print_synapse_table(str(synapse), stats, 'shapley_values_min', shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
@@ -1211,8 +1110,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                     scaling_law_power: float, synergy_scaling_law_power: float,
-                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
+                     scaling_law_power: float, synergy_scaling_law_power: float, vlogger:ValidatorLogger,
+                     logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -1238,8 +1137,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
-            console_width (:obj:`int`, `required`):
-                Config console width for table print.
+            vlogger (:obj:`ValidatorLogger`, `required`):
+                Logger for validator.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLMNext`, `optional`):
@@ -1253,7 +1152,6 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
             stats (:obj:`Dict`, `required`):
                 Statistics per endpoint for this batch.
     """
-
     inputs_nxt = inputs[..., -validation_len:]  # input validation with next token target phrase [batch_size, val_len]
 
     def _base_params(_stats, query_response):
@@ -1304,15 +1202,15 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
         # === Response table ===
         # Prints the query response table: top prediction probabilities and texts for batch tasks
         batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
-        response_table(batch_predictions, stats, sort_col='loss_nxt', console_width=console_width)
+        vlogger.print_response_table(batch_predictions, stats, sort_col='loss_nxt')
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        synergy_table(stats, syn_loss_diff, 'loss_nxt', console_width)
+        vlogger.print_synergy_table(stats, syn_loss_diff, 'loss_nxt')
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        synapse_table(str(synapse), stats, 'loss_nxt', console_width, shapley_start_time)
+        vlogger.print_synapse_table(str(synapse), stats, 'loss_nxt', shapley_start_time)
 
     # === Unsuccessful responses ===
     # Prints the return codes and response times of unsuccessful responses
@@ -1606,150 +1504,6 @@ def format_predictions(uids: torch.Tensor, query_responses: List[List[torch.Floa
         batch_predictions += [(task, predictions)]
 
     return batch_predictions
-
-
-def response_table(batch_predictions: List, stats: Dict, sort_col: str, console_width: int,
-                   task_repeat: int = 4, tasks_per_server: int = 3):
-    r""" Prints the query response table: top prediction probabilities and texts for batch tasks.
-    """
-    # === Batch permutation ===
-    batch_size = len(batch_predictions)
-    if batch_size == 0:
-        return
-    batch_perm = torch.randperm(batch_size)  # avoid restricting observation to predictable subsets
-
-    # === Column selection ===
-    columns = [c[:] for c in neuron_stats_columns if c[1] in ['uid', sort_col, 'loss_nxt', 'synergy_nxt', 'logits_excess_nxt']]
-    col_keys = [c[1] for c in columns]
-
-    # === Sort rows ===
-    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
-                  reverse='loss' not in sort_col, key=lambda _row: _row[1])
-    if sort_col in col_keys:
-        sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
-        columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
-
-    for i, (uid, val) in enumerate(sort):
-        # === New table section ===
-        if i % task_repeat == 0:
-            table = Table(width=console_width, box=None)
-            if i == 0:
-                table.title = f"[white bold] Query responses [/white bold] | " \
-                              f"[white]context[/white][bold]continuation[/bold] | .prob: 'prediction'"
-
-            for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
-                table.add_column(col, style=stl, justify='right')
-
-        # === Last table section ===
-        if i == len(sort) - 1:
-            table.caption = f'[bold]{len(sort)}[/bold]/{len(stats)} (respond/topk) | ' \
-                            f'[bold]{tasks_per_server}[/bold] tasks per server | ' \
-                            f'repeat tasks over [bold]{task_repeat}[/bold] servers ' \
-                            f'[white]\[{math.ceil(1. * len(sort) / task_repeat) * tasks_per_server}/' \
-                            f'{batch_size} batch tasks][/white]'
-
-        # === Row addition ===
-        row = [txt.format(stats[uid][key]) for _, key, txt, _ in columns]
-        for j in range(tasks_per_server):
-            batch_item = ((i // task_repeat) * tasks_per_server + j) % batch_size  # repeat task over servers, do not exceed batch_size
-            task, predictions = batch_predictions[batch_perm[batch_item]]
-            row += [predictions[uid]]
-
-            if i % task_repeat == 0:
-                table.add_column(task, header_style='not bold', style='', justify='left')
-
-        table.add_row(*row)
-
-        # === Table print ===
-        if (i == len(sort) - 1) or (i % task_repeat == task_repeat - 1):
-            try:
-                print(table)
-            except MarkupError as e:
-                print(e)
-            else:
-                if i == len(sort) - 1:
-                    print()
-
-
-def synergy_table(stats, syn_loss_diff, sort_col, console_width):
-    r""" Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-    """
-    sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
-                  reverse='loss' not in sort_col, key=lambda _row: _row[1])
-    uid_col = neuron_stats_columns[0]  # [Column_name, key_name, format_string, rich_style]
-    columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
-    rows = [[uid_col[2].format(s[0])] +
-            [('[bright_cyan]{:.2f}[/bright_cyan]' if t == s else
-              '[magenta]{:.3f}[/magenta]' if syn_loss_diff[s[0]][t[0]] > 0 else
-              '[dim]{:.0f}[/dim]').format(syn_loss_diff[s[0]][t[0]]).replace('0.', '.') for t in sort] for s in sort]
-
-    # === Synergy table ===
-    table = Table(width=console_width, box=None)
-    table.title = f'[white] Synergy table [/white] | Pairwise synergy'
-    table.caption = f'loss decrease'
-
-    for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
-        table.add_column(col, style=stl, justify='right')
-    for row in rows:
-        table.add_row(*row)
-
-    if len(rows):
-        print(table)
-        print()
-
-
-def stats_table(stats, sort_col, console_width, title, caption, mark_uids=None):
-    r""" Gathers data and constructs neuron statistics table and prints it
-    """
-    # === Gather columns and rows ===
-    if mark_uids is None:
-        mark_uids = list()
-    stats_keys = [set(k for k in stat)
-                  for stat in stats.values() if sort_col in stat]  # all available stats keys with sort_col
-
-    if len(stats_keys) == 0:
-        return  # nothing to print
-
-    stats_keys = set.union(*stats_keys)
-    columns = [c[:] for c in neuron_stats_columns if c[1] in stats_keys]  # available columns intersecting with stats_keys
-    rows = [[('', 0) if key not in stat
-             else (('* ' if key == 'uid' and mark_uids and uid in mark_uids else '') + txt.format(stat[key]), stat[key])
-             for _, key, txt, _ in columns]
-            for uid, stat in stats.items() if sort_col in stat]  # only keep rows with at least one non-empty cell
-
-    if len(columns) == 0 or len(rows) == 0:
-        return  # nothing to print
-
-    # === Sort rows ===
-    col_keys = [c[1] for c in columns]
-    if sort_col in col_keys:
-        sort_idx = col_keys.index(sort_col)  # sort column with key of sort_col
-        columns[sort_idx][0] += '\u2193'  # ↓ downwards arrow (sort)
-        rows = sorted(rows, reverse='loss' not in sort_col, key=lambda _row: _row[sort_idx][1])  # sort according to sortcol
-
-    # === Instantiate stats table ===
-    table = Table(width=console_width, box=None, row_styles=[Style(bgcolor='grey15'), ""])
-    table.title = title
-    table.caption = caption
-
-    for col, _, _, stl in columns:  # [Column_name, key_name, format_string, rich_style]
-        table.add_column(col, style=stl, justify='right')
-    for row in rows:
-        table.add_row(*[txt for txt, val in row])
-
-    # === Print table ===
-    print(table)
-
-
-def synapse_table(name, stats, sort_col, console_width, start_time):
-    r""" Prints the evaluation of the neuron responses to the validator request
-    """
-    stats_table(stats, sort_col, console_width,
-                f'[white] \[{name}] responses [/white] | Validator forward',  # title
-                f'[bold]{len([s for s in stats.values() if len(s) and sort_col in s])}[/bold]/'
-                f'{len(stats)} (respond/topk) | '
-                f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
-                )
 
 
 def unsuccess(_name, _unsuccessful):
