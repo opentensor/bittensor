@@ -23,11 +23,10 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '3.6.0'
+__version__ = '4.0.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
-
-__new_signature_version__ = 360
+__new_signature_version__ = 400
 
 # Turn off rich console locals trace.
 from rich.traceback import install
@@ -44,7 +43,6 @@ def turn_console_off():
     from io import StringIO
     __use_console__ = False
     __console__ = Console(file=StringIO(), stderr=False)
-
 
 
 # Vocabulary dimension.
@@ -67,18 +65,18 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = [ 'local', 'bellagene', 'nobunaga', 'nakamoto']
+__networks__ = [ 'local', 'nakamoto', 'finney']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
 __nakamoto_entrypoint__ = "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 
-
 __nobunaga_entrypoint__ = "staging.nobunaga.opentensor.ai:9944"
+
+__finney_entrypoint__ = "wss://staging.parachain.opentensor.ai:443"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
-
 
 __local_entrypoint__ = "127.0.0.1:9944"
 
@@ -150,15 +148,20 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
 from bittensor._axon.axon_impl import Axon as Axon
+from bittensor._subtensor.chain_data import AxonInfo as AxonInfo
 from bittensor._config.config_impl import Config as Config
+from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
 from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
 from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
+from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
+from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
+from bittensor._subtensor.chain_data import SubnetInfo as SubnetInfo
 from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
@@ -171,6 +174,7 @@ from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
 
 # DEFAULTS
 defaults = Config()
+defaults.netuid = 1
 subtensor.add_defaults( defaults )
 dendrite.add_defaults( defaults )
 axon.add_defaults( defaults )

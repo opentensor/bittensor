@@ -66,7 +66,7 @@ def version_checking():
     latest_version_as_int = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
     if latest_version_as_int > bittensor.__version_as_int__:
-        print('\u001b[31m Current Bittensor Version: {}, Latest Bittensor Version {} \n Please update to the latest version'.format(bittensor.__version__,latest_version))
+        print('\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m'.format(bittensor.__version__,latest_version))
 
 def is_valid_ss58_address( address: str ) -> bool:
     """
@@ -79,7 +79,8 @@ def is_valid_ss58_address( address: str ) -> bool:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
     """
     try:
-        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ )
+        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ ) or \
+                ss58.is_valid_ss58_address( address, valid_ss58_format=42 ) # Default substrate ss58 format (legacy)
     except (IndexError):
         return False
 
@@ -138,6 +139,25 @@ def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bo
     else:
         # Invalid address type
         return False
+
+def get_ss58_format( ss58_address: str ) -> int:
+    """Returns the ss58 format of the given ss58 address."""
+    ss58_format: int
+
+    # Decode the address
+    decoded_addr: bytes = ss58.base58.b58decode(ss58_address)
+
+    # bitwise and to check address type
+    # see: https://docs.substrate.io/reference/address-formats/#address-type
+    if 0b0100_0000 & decoded_addr[0]:
+        # Matches second address type, so bitwise-or with 0b0011_1111 to get the ss58 format
+        ss58_format = ((decoded_addr[0] & 0b0011_1111) << 2) | (decoded_addr[1] >> 6) | \
+                      ((decoded_addr[1] & 0b0011_1111) << 8)
+    else:
+        # First address type, so just use the first byte
+        ss58_format = decoded_addr[0]
+
+    return ss58_format
 
 def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
     """

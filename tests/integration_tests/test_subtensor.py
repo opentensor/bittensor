@@ -91,29 +91,29 @@ class TestSubtensor(unittest.TestCase):
 
     def test_neurons( self ):
         assert len(self.neurons) > 0
-        assert type(self.neurons[0].ip) == int
-        assert type(self.neurons[0].port) == int
-        assert type(self.neurons[0].ip_type) == int
+        assert type(self.neurons[0].axon_info.ip) == int
+        assert type(self.neurons[0].axon_info.port) == int
+        assert type(self.neurons[0].axon_info.ip_type) == int
         assert type(self.neurons[0].uid) == int
-        assert type(self.neurons[0].modality) == int
+        assert type(self.neurons[0].axon_info.protocol) == int
         assert type(self.neurons[0].hotkey) == str
         assert type(self.neurons[0].coldkey) == str
 
         neuron = self.subtensor.neuron_for_uid( 1 )
-        assert type(neuron.ip) == int
-        assert type(neuron.port) == int
-        assert type(neuron.ip_type) == int
+        assert type(neuron.axon_info.ip) == int
+        assert type(neuron.axon_info.port) == int
+        assert type(neuron.axon_info.ip_type) == int
         assert type(neuron.uid) == int
-        assert type(neuron.modality) == int
+        assert type(neuron.axon_info.protocol) == int
         assert type(neuron.hotkey) == str
         assert type(neuron.coldkey) == str
 
         neuron = self.subtensor.neuron_for_pubkey(neuron.hotkey)
-        assert type(neuron.ip) == int
-        assert type(neuron.port) == int
-        assert type(neuron.ip_type) == int
+        assert type(neuron.axon_info.ip) == int
+        assert type(neuron.axon_info.port) == int
+        assert type(neuron.axon_info.ip_type) == int
         assert type(neuron.uid) == int
-        assert type(neuron.modality) == int
+        assert type(neuron.axon_info.protocol) == int
         assert type(neuron.hotkey) == str
         assert type(neuron.coldkey) == str
 
