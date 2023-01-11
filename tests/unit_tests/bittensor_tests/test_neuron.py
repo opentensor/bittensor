@@ -66,6 +66,7 @@ def test_set_fine_tuning_params():
 
 def test_coreserver_reregister_flag_false_exit():
     config = bittensor.Config()
+    config.neuron = bittensor.neurons.core_server.neuron.config()
 
     config.netuid = -1
 
@@ -118,6 +119,7 @@ def test_coreserver_reregister_flag_false_exit():
 
 def test_coreserver_reregister_flag_true():
     config = bittensor.Config()
+    config.neuron = bittensor.neurons.core_server.neuron.config()
     
     config.netuid = -1
 
@@ -167,6 +169,7 @@ def test_coreserver_reregister_flag_true():
 
 def test_corevalidator_reregister_flag_false_exit():
     config = bittensor.Config()
+    config.neuron = bittensor.neurons.core_server.neuron.config()
     
     config.netuid = -1
 
@@ -216,6 +219,7 @@ def test_corevalidator_reregister_flag_false_exit():
 
 def test_corevalidator_reregister_flag_true():
     config = bittensor.Config()
+    config.neuron = bittensor.neurons.core_server.neuron.config()
     
     config.netuid = -1
 
@@ -315,7 +319,7 @@ class TestBlacklist(unittest.TestCase):
                 mock_hotkey,
                 mock_hotkey_1,
             ],
-            S=[
+            total_stake=[
                 torch.tensor(100), # stake for mock_hotkey, uid 0
                 torch.tensor(1001), # stake for mock_hotkey_1, uid 1
             ]
