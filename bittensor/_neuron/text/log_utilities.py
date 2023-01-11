@@ -311,6 +311,10 @@ class ValidatorLogger:
         _neuron_stats = {}
         uid_weights = []  # (uid, weight) tuples for sorting to find top/bottom weights
         unvalidated = []
+
+        if len(sample_weights) == 0:
+            return 
+
         for uid, weight in zip(sample_uids.tolist(), sample_weights.tolist()):
             if uid in neuron_stats:
                 _neuron_stats[uid] = {k: v for k, v in neuron_stats[uid].items()}
@@ -331,6 +335,8 @@ class ValidatorLogger:
                 _neuron_stats = {uid: stats for uid, stats in _neuron_stats.items() if uid in limited_uids}
 
         print()
+        import pdb
+        pdb.set_trace()
         self.print_stats_table(_neuron_stats, 'weight',
                     f'[white] Neuron weights [/white] | ' + title,  # title
                     f'Validated {min_allowed_weights}/'
