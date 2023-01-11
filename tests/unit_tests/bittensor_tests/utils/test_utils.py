@@ -155,13 +155,13 @@ def test_solve_for_difficulty_fast():
     wallet.is_registered = MagicMock( return_value=False )
     num_proc: int = 1
 
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )   
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )   
     seal = solution.seal
 
     assert bittensor.utils.seal_meets_difficulty(seal, 1)
     
     subtensor.difficulty = 10
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
     seal = solution.seal
     assert bittensor.utils.seal_meets_difficulty(seal, 10)
     
@@ -182,7 +182,7 @@ def test_solve_for_difficulty_fast_registered_already():
         wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
         # all arugments should return None to indicate an early return
-        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes = 1, update_interval = 1000)
+        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes = 1, update_interval = 1000)
 
         assert solution is None
         # called every time until True
@@ -199,12 +199,12 @@ def test_solve_for_difficulty_fast_missing_hash():
     wallet.is_registered = MagicMock( return_value=False )
     num_proc: int = 1
 
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
     seal = solution.seal
     assert bittensor.utils.seal_meets_difficulty(seal, 1)
     
     subtensor.difficulty = 10
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
+    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
     seal = solution.seal
     assert bittensor.utils.seal_meets_difficulty(seal, 10)
 
