@@ -98,169 +98,172 @@ def test_unbiased_topk():
     assert torch.all(torch.eq(topk[0], torch.Tensor([10., 9.])))
     assert torch.all(torch.eq(topk[1], torch.Tensor([9, 8])))
 
-def test_hex_bytes_to_u8_list():
-    nonce = 1
-    nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-    hex_bytes_list = bittensor.utils.hex_bytes_to_u8_list(nonce_bytes)
+class TestRegistrationHelpers(unittest.TestCase):
+    def test_hex_bytes_to_u8_list(self):
+        nonce = 1
+        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
+        hex_bytes_list = bittensor.utils.hex_bytes_to_u8_list(nonce_bytes)
 
-    assert len(hex_bytes_list) == 8
-    assert hex_bytes_list[0] == 1
-    assert hex_bytes_list[-1] == 0
+        assert len(hex_bytes_list) == 8
+        assert hex_bytes_list[0] == 1
+        assert hex_bytes_list[-1] == 0
 
-def test_u8_list_to_hex():
-    hex_bytes_list = [1, 0, 0, 0, 0, 0, 0, 0]
-    assert bittensor.utils.u8_list_to_hex(hex_bytes_list) == 1
+    def test_u8_list_to_hex(self):
+        hex_bytes_list = [1, 0, 0, 0, 0, 0, 0, 0]
+        assert bittensor.utils.u8_list_to_hex(hex_bytes_list) == 1
 
-def test_create_seal_hash():
-   block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
-   nonce = 10
-   seal_hash = bittensor.utils.create_seal_hash(block_hash, nonce)
-   assert seal_hash == b'\xc5\x01B6"\xa8\xa5FDPK\xe49\xad\xdat\xbb:\x87d\x13/\x86\xc6:I8\x9b\x88\xf0\xc20'
+    def test_create_seal_hash(self):
+        block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        nonce = 10
+        seal_hash = bittensor.utils.create_seal_hash(block_hash, nonce)
+        assert seal_hash == b'\xc5\x01B6"\xa8\xa5FDPK\xe49\xad\xdat\xbb:\x87d\x13/\x86\xc6:I8\x9b\x88\xf0\xc20'
 
-def test_seal_meets_difficulty():
-    block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
-    nonce = 10
-    nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-    block_bytes = block_hash.encode('utf-8')[2:]
-    pre_seal = nonce_bytes + block_bytes
-    seal = hashlib.sha256( bytearray(bittensor.utils.hex_bytes_to_u8_list(pre_seal)) ).digest()
+    def test_seal_meets_difficulty(self):
+        block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        nonce = 10
+        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
+        block_bytes = block_hash.encode('utf-8')[2:]
+        pre_seal = nonce_bytes + block_bytes
+        seal = hashlib.sha256( bytearray(bittensor.utils.hex_bytes_to_u8_list(pre_seal)) ).digest()
 
-    difficulty = 1
-    meets = bittensor.utils.seal_meets_difficulty( seal, difficulty )
-    assert meets == True
+        difficulty = 1
+        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty )
+        assert meets == True
 
-    difficulty = 10
-    meets = bittensor.utils.seal_meets_difficulty( seal, difficulty )
-    assert meets == False
+        difficulty = 10
+        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty )
+        assert meets == False
 
-def test_solve_for_difficulty():
-    block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
-    nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 1)
+    def test_solve_for_difficulty(self):
+        block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 1)
 
-    assert nonce == 0
-    assert seal == b'\xe2d\xbc\x10Tu|\xd0nQ\x1f\x15wTd\xb0\x18\x8f\xc7\xe7:\x12\xc6>\\\xbe\xac\xc5/v\xa7\xce'
+        assert nonce == 0
+        assert seal == b'\xe2d\xbc\x10Tu|\xd0nQ\x1f\x15wTd\xb0\x18\x8f\xc7\xe7:\x12\xc6>\\\xbe\xac\xc5/v\xa7\xce'
 
-    nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 10)
-    assert nonce == 2
-    assert seal == b'\x19\xf2H1mB3\xa3y\xda\xe7)\xc7P\x93t\xe5o\xbc$\x14sQ\x10\xc3M\xc6\x90M8vq'
+        nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 10)
+        assert nonce == 2
+        assert seal == b'\x19\xf2H1mB3\xa3y\xda\xe7)\xc7P\x93t\xe5o\xbc$\x14sQ\x10\xc3M\xc6\x90M8vq'
 
-def test_solve_for_difficulty_fast():
-    block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
-    subtensor = MagicMock()
-    subtensor.get_current_block = MagicMock( return_value=1 )
-    subtensor.difficulty = 1
-    subtensor.substrate = MagicMock()
-    subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
-    wallet = MagicMock()
-    wallet.is_registered = MagicMock( return_value=False )
-    num_proc: int = 1
-
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )   
-    seal = solution.seal
-
-    assert bittensor.utils.seal_meets_difficulty(seal, 1)
-    
-    subtensor.difficulty = 10
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
-    seal = solution.seal
-    assert bittensor.utils.seal_meets_difficulty(seal, 10)
-    
-def test_solve_for_difficulty_fast_registered_already():
-    # tests if the registration stops after the first block of nonces
-    for _ in range(10):
-        workblocks_before_is_registered = random.randint(1, 4)
-        # return False each work block but return True after a random number of blocks
-        is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [False, False]
-
+    def test_solve_for_difficulty_fast(self):
         block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
         subtensor = MagicMock()
         subtensor.get_current_block = MagicMock( return_value=1 )
-        subtensor.difficulty = 100000000000# set high to make solving take a long time
+        subtensor.difficulty = MagicMock( return_value=1 )
         subtensor.substrate = MagicMock()
         subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
         wallet = MagicMock()
-        wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+        wallet.is_registered = MagicMock( return_value=False )
+        num_proc: int = 1
 
-        # all arugments should return None to indicate an early return
-        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes = 1, update_interval = 1000)
+        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )   
+        seal = solution.seal
 
-        assert solution is None
-        # called every time until True
-        assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
-
-def test_solve_for_difficulty_fast_missing_hash():
-    block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
-    subtensor = MagicMock()
-    subtensor.get_current_block = MagicMock( return_value=1 )
-    subtensor.difficulty = 1
-    subtensor.substrate = MagicMock()
-    subtensor.substrate.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
-    wallet = MagicMock()
-    wallet.is_registered = MagicMock( return_value=False )
-    num_proc: int = 1
-
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
-    seal = solution.seal
-    assert bittensor.utils.seal_meets_difficulty(seal, 1)
+        assert bittensor.utils.seal_meets_difficulty(seal, 1)
+        
+        subtensor.difficulty = MagicMock( return_value=10 )
+        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
+        seal = solution.seal
+        assert bittensor.utils.seal_meets_difficulty(seal, 10)
     
-    subtensor.difficulty = 10
-    solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, num_processes=num_proc )
-    seal = solution.seal
-    assert bittensor.utils.seal_meets_difficulty(seal, 10)
+    def test_solve_for_difficulty_fast_registered_already(self):
+        # tests if the registration stops after the first block of nonces
+        for _ in range(10):
+            workblocks_before_is_registered = random.randint(1, 4)
+            # return False each work block but return True after a random number of blocks
+            is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [False, False]
 
-def test_is_valid_ss58_address():
-    keypair = bittensor.Keypair.create_from_mnemonic(
-        bittensor.Keypair.generate_mnemonic(
-            words=12
-        ), ss58_format=bittensor.__ss58_format__
-    )
-    good_address = keypair.ss58_address
-    bad_address = good_address[:-1] + 'a'
-    assert bittensor.utils.is_valid_ss58_address(good_address)
-    assert not bittensor.utils.is_valid_ss58_address(bad_address)
+            block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+            subtensor = MagicMock()
+            subtensor.get_current_block = MagicMock( return_value=1 )
+            subtensor.difficulty = MagicMock( return_value=int(1e10)) # set high to make solving take a long time
+            subtensor.substrate = MagicMock()
+            subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
+            wallet = MagicMock()
+            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
-def test_is_valid_ss58_address_legacy():
-    keypair = bittensor.Keypair.create_from_mnemonic(
-        bittensor.Keypair.generate_mnemonic(
-            words=12
-        ), ss58_format=42 # should be fine for legacy ss58
-    )
-    good_address = keypair.ss58_address
-    bad_address = good_address[:-1] + 'a'
-    assert bittensor.utils.is_valid_ss58_address(good_address)
-    assert not bittensor.utils.is_valid_ss58_address(bad_address)
+            # all arugments should return None to indicate an early return
+            solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes = 1, update_interval = 1000)
 
-def test_is_valid_ed25519_pubkey():
-    keypair = bittensor.Keypair.create_from_mnemonic(
-        bittensor.Keypair.generate_mnemonic(
-            words=12
-        ), ss58_format=bittensor.__ss58_format__
-    )
-    good_pubkey = keypair.public_key.hex()
-    bad_pubkey = good_pubkey[:-1] # needs to be 64 chars
-    assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
-    assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+            assert solution is None
+            # called every time until True
+            assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
 
-    # Test with bytes
-    good_pubkey = keypair.public_key
-    bad_pubkey = good_pubkey[:-1] # needs to be 32 bytes
-    assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
-    assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+    def test_solve_for_difficulty_fast_missing_hash(self):
+        block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        subtensor = MagicMock()
+        subtensor.get_current_block = MagicMock( return_value=1 )
+        subtensor.difficulty = MagicMock( return_value=1 )
+        subtensor.substrate = MagicMock()
+        subtensor.substrate.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
+        wallet = MagicMock()
+        wallet.is_registered = MagicMock( return_value=False )
+        num_proc: int = 1
 
-def test_registration_diff_pack_unpack_under_32_bits():
-    fake_diff = pow(2, 31)# this is under 32 bits
-    
-    mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
-    
-    bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
-    assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
+        seal = solution.seal
+        assert bittensor.utils.seal_meets_difficulty(seal, 1)
+        
+        subtensor.difficulty = MagicMock( return_value=10 )
+        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
+        seal = solution.seal
+        assert bittensor.utils.seal_meets_difficulty(seal, 10)
 
-def test_registration_diff_pack_unpack_over_32_bits():
-    mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
-    fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
-    
-    bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
-    assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+    def test_registration_diff_pack_unpack_under_32_bits(self):
+        fake_diff = pow(2, 31)# this is under 32 bits
+        
+        mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+        
+        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+
+    def test_registration_diff_pack_unpack_over_32_bits(self):
+        mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+        fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
+        
+        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+
+class TestSS58Utils(unittest.TestCase):
+    def test_is_valid_ss58_address():
+        keypair = bittensor.Keypair.create_from_mnemonic(
+            bittensor.Keypair.generate_mnemonic(
+                words=12
+            ), ss58_format=bittensor.__ss58_format__
+        )
+        good_address = keypair.ss58_address
+        bad_address = good_address[:-1] + 'a'
+        assert bittensor.utils.is_valid_ss58_address(good_address)
+        assert not bittensor.utils.is_valid_ss58_address(bad_address)
+
+    def test_is_valid_ss58_address_legacy():
+        keypair = bittensor.Keypair.create_from_mnemonic(
+            bittensor.Keypair.generate_mnemonic(
+                words=12
+            ), ss58_format=42 # should be fine for legacy ss58
+        )
+        good_address = keypair.ss58_address
+        bad_address = good_address[:-1] + 'a'
+        assert bittensor.utils.is_valid_ss58_address(good_address)
+        assert not bittensor.utils.is_valid_ss58_address(bad_address)
+
+    def test_is_valid_ed25519_pubkey():
+        keypair = bittensor.Keypair.create_from_mnemonic(
+            bittensor.Keypair.generate_mnemonic(
+                words=12
+            ), ss58_format=bittensor.__ss58_format__
+        )
+        good_pubkey = keypair.public_key.hex()
+        bad_pubkey = good_pubkey[:-1] # needs to be 64 chars
+        assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
+        assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+
+        # Test with bytes
+        good_pubkey = keypair.public_key
+        bad_pubkey = good_pubkey[:-1] # needs to be 32 bytes
+        assert bittensor.utils.is_valid_ed25519_pubkey(good_pubkey)
+        assert not bittensor.utils.is_valid_ed25519_pubkey(bad_pubkey)
+
 
 class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
     def test_check_for_newest_block_and_update_same_block(self):
@@ -442,57 +445,58 @@ class TestPOWNotStale(unittest.TestCase):
 
         assert not bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
     
-def test_pow_called_for_cuda():
-    class MockException(Exception):
-        pass
-    mock_compose_call = MagicMock(side_effect=MockException)
+class TestPOWCalled(unittest.TestCase):
+    def test_pow_called_for_cuda(self):
+        class MockException(Exception):
+            pass
+        mock_compose_call = MagicMock(side_effect=MockException)
 
-    mock_subtensor = bittensor.subtensor(_mock=True)
-    mock_subtensor.neuron_for_pubkey=MagicMock(is_null=True)
-    mock_subtensor.substrate = MagicMock(
-        __enter__= MagicMock(return_value=MagicMock(
-            compose_call=mock_compose_call
-        )),
-        __exit__ = MagicMock(return_value=None),
-    )
-
-    mock_wallet = SimpleNamespace(
-        hotkey=SimpleNamespace(
-            ss58_address=''
-        ),
-        coldkeypub=SimpleNamespace(
-            ss58_address=''
+        mock_subtensor = bittensor.subtensor(_mock=True)
+        mock_subtensor.get_neuron_for_pubkey_and_subnet=MagicMock(is_null=True)
+        mock_subtensor.substrate = MagicMock(
+            __enter__= MagicMock(return_value=MagicMock(
+                compose_call=mock_compose_call
+            )),
+            __exit__ = MagicMock(return_value=None),
         )
-    )
 
-    mock_result = {
-        "block_number": 1,
-        'nonce': random.randint(0, pow(2, 32)),
-        'work': b'\x00' * 64,
-    }
-    
-    with patch('bittensor.utils.POWNotStale', return_value=True) as mock_pow_not_stale:
-        with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
-            with patch('bittensor.utils.create_pow', return_value=mock_result) as mock_create_pow:
-                with patch('bittensor.utils.hex_bytes_to_u8_list', return_value=b''):
-                
-                    # Should exit early
-                    with pytest.raises(MockException):
-                        mock_subtensor.register(mock_wallet, netuid=-1, cuda=True, prompt=False)
+        mock_wallet = SimpleNamespace(
+            hotkey=SimpleNamespace(
+                ss58_address=''
+            ),
+            coldkeypub=SimpleNamespace(
+                ss58_address=''
+            )
+        )
 
-                    mock_pow_not_stale.assert_called_once()
-                    mock_create_pow.assert_called_once()
-                    mock_cuda_available.assert_called_once()
+        mock_result = {
+            "block_number": 1,
+            'nonce': random.randint(0, pow(2, 32)),
+            'work': b'\x00' * 64,
+        }
+        
+        with patch('bittensor.utils.POWNotStale', return_value=True) as mock_pow_not_stale:
+            with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
+                with patch('bittensor.utils.create_pow', return_value=mock_result) as mock_create_pow:
+                    with patch('bittensor.utils.hex_bytes_to_u8_list', return_value=b''):
+                    
+                        # Should exit early
+                        with pytest.raises(MockException):
+                            mock_subtensor.register(mock_wallet, netuid=-1, cuda=True, prompt=False)
 
-                    call0 = mock_pow_not_stale.call_args
-                    assert call0[0][0] == mock_subtensor
-                    assert call0[0][1] == mock_result
+                        mock_pow_not_stale.assert_called_once()
+                        mock_create_pow.assert_called_once()
+                        mock_cuda_available.assert_called_once()
 
-                    mock_compose_call.assert_called_once()
-                    call1 = mock_compose_call.call_args
-                    assert call1[1]['call_function'] == 'register'
-                    call_params = call1[1]['call_params']
-                    assert call_params['nonce'] == mock_result['nonce']
+                        call0 = mock_pow_not_stale.call_args
+                        assert call0[0][0] == mock_subtensor
+                        assert call0[0][1] == mock_result
+
+                        mock_compose_call.assert_called_once()
+                        call1 = mock_compose_call.call_args
+                        assert call1[1]['call_function'] == 'register'
+                        call_params = call1[1]['call_params']
+                        assert call_params['nonce'] == mock_result['nonce']
 
 class TestCUDASolverRun(unittest.TestCase):      
     def test_multi_cuda_run_updates_nonce_start(self):
