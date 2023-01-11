@@ -66,6 +66,9 @@ def test_set_fine_tuning_params():
 
 def test_coreserver_reregister_flag_false_exit():
     config = bittensor.Config()
+
+    config.netuid = -1
+
     config.wallet = bittensor.Config()
     config.wallet.reregister = False # don't reregister the wallet
 
@@ -115,6 +118,9 @@ def test_coreserver_reregister_flag_false_exit():
 
 def test_coreserver_reregister_flag_true():
     config = bittensor.Config()
+    
+    config.netuid = -1
+
     config.wallet = bittensor.Config()
     config.wallet.reregister = True # try to reregister the wallet
 
@@ -161,6 +167,9 @@ def test_coreserver_reregister_flag_true():
 
 def test_corevalidator_reregister_flag_false_exit():
     config = bittensor.Config()
+    
+    config.netuid = -1
+
     config.wallet = bittensor.Config()
     config.wallet.reregister = False # don't reregister the wallet
 
@@ -207,6 +216,9 @@ def test_corevalidator_reregister_flag_false_exit():
 
 def test_corevalidator_reregister_flag_true():
     config = bittensor.Config()
+    
+    config.netuid = -1
+
     config.wallet = bittensor.Config()
     config.wallet.reregister = True # try to reregister the wallet
 
@@ -271,6 +283,8 @@ class TestBlacklist(unittest.TestCase):
         defaults.neuron.learning_rate = 0.0001
         defaults.neuron.momentum = 0.9
         defaults.prometheus.level = "OFF"
+
+        defaults.netuid = -1
 
         return defaults
     
