@@ -157,7 +157,7 @@ class TestStakeMultiple(unittest.TestCase):
             spec=bittensor.Subtensor,
             network="mock",
             get_balance=MagicMock(return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)), # enough balance to stake
-            neuron_for_pubkey=MagicMock(return_value=mock_neuron),
+            get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
             substrate=MagicMock(
                 __enter__=MagicMock(
                     return_value=MagicMock(
