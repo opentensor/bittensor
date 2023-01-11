@@ -278,6 +278,7 @@ class server(torch.nn.Module):
                                                     attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
+            self.model_output_check(model_output)
         return None, model_output, model_output.logits
     
     def encode_forward(self,inputs,tokenizer=None, model_output = None):
@@ -316,6 +317,7 @@ class server(torch.nn.Module):
                                                     attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
+        self.model_output_check(model_output)
         pre_hidden = model_output.hidden_states[-1]
 
         if self.interpolate and sen_len[1] != pre_hidden.size()[1]:
@@ -367,6 +369,7 @@ class server(torch.nn.Module):
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 #attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
+                self.model_output_check(_model_output)
             pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
 
             probs_std = translate_logits_to_probs_std(pre_logits,
@@ -439,7 +442,7 @@ class server(torch.nn.Module):
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
-
+                self.model_output_check(_model_output)
             # model_output.logits: [batch_size, sequence_len, server_vocab_size]
             last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
 
@@ -458,6 +461,26 @@ class server(torch.nn.Module):
 
         with torch.no_grad():
             return _forward()  # no gradients
+
+    def model_output_check(self, model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
+        """
+            Verify the model has been ran correctly with valid output.
+
+            Args:
+                model_output (:obj:`transformers.modeling_outputs.CausalLMOutputWithPast`, required):
+                    The output of transformers AutoModel.
+
+            Returns:
+                check_status (:type: `bool`):
+                    True if the model_output is valid.
+        """
+        if hasattr(model_output, 'hidden_states') and model_output.hidden_states[-1].isnan().sum() > 0:
+            raise ValueError("Got nan value from model last hidden state. If you are using cuda with autocast, try remove setting --neuron.autocast.")
+
+        if model_output.logits.isnan().sum() > 0:
+            raise ValueError("Got nan value from model logits. If you are using cuda with autocast, try remove setting --neuron.autocast.")
+
+        return True
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
         """
