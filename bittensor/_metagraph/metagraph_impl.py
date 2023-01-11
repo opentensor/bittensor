@@ -19,7 +19,7 @@
 
 import os
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 from loguru import logger
 
 import pandas
@@ -28,6 +28,7 @@ import torch
 
 import bittensor
 import bittensor.utils.networking as net
+from bittensor import Balance
 
 # TODO: Implement stake mapping for metagraph
 class Metagraph( torch.nn.Module ):
@@ -96,7 +97,7 @@ class Metagraph( torch.nn.Module ):
         return self
 
     @property
-    def S(self) -> torch.FloatTensor:
+    def S(self) -> Dict[str, Balance]:
         """ Stake
         """
         return self.stake
