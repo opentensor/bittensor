@@ -199,7 +199,7 @@ class RegenHotkeyCommand:
         )
         regen_hotkey_parser.add_argument(
             '--no_password', 
-            dest='no_password', 
+            dest='use_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -257,7 +257,7 @@ class NewHotkeyCommand:
         )
         new_hotkey_parser.add_argument(
             '--no_password', 
-            dest='no_password', 
+            dest='use_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
@@ -312,7 +312,7 @@ class NewColdkeyCommand:
         )
         new_coldkey_parser.add_argument(
             '--no_password', 
-            dest='no_password', 
+            dest='use_password', 
             action='store_false', 
             help='''Set off protects the generated bittensor key with a password.'''
         )
