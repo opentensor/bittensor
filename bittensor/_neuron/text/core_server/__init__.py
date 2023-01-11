@@ -101,6 +101,10 @@ class neuron:
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
         config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
+        # Try config.netuid as well
+        if config.neuron.netuid == None:
+            if config.get('netuid') != None:
+                config.neuron.netuid = config.get('netuid')
 
         self.check_config( config )
         bittensor.logging (

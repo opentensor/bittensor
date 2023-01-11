@@ -139,6 +139,11 @@ class neuron:
         
         # === Set up subtensor and netuid === 
         config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
+        # Try config.netuid as well
+        if config.neuron.netuid == None:
+            if config.get('netuid') != None:
+                config.neuron.netuid = config.get('netuid')
+
         subtensor = bittensor.subtensor ( config = config ) if subtensor == None else subtensor
         if config.neuron.netuid == None:
             config.neuron.netuid = subtensor.get_subnets()[0]
