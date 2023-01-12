@@ -2,6 +2,7 @@ from substrateinterface import SubstrateInterface
 import psutil
 import subprocess
 from sys import platform   
+from typing import List, Optional
 import bittensor
 import time
 import os
@@ -168,3 +169,9 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 print(f"failed to kill owned mock instance: {e}")
                 # Occasionally 
                 pass
+
+    def get_subnets( self, block: Optional[int] = None ) -> List[int]:
+        r""" Returns the list of subnets.
+        Note: Only mock subnet is -1
+        """
+        return [-1] 
