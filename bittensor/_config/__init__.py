@@ -22,11 +22,12 @@ Create and init the config class, which manages the config of different bittenso
 import os
 import sys
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import bittensor
 import yaml
 from loguru import logger
+import pandas as pd
 
 from . import config_impl
 
@@ -115,7 +116,45 @@ class config:
             if len(keys) == 1:
                 head[keys[0]] = arg_val
 
+        # Get defaults for this config
+        is_set_map = cls.__fill_is_set_list__(_config, bittensor.defaults)
+
+        _config['__is_set'] = is_set_map
+
+        _config.__fill_with_defaults__(is_set_map, bittensor.defaults)
+
         return _config
+
+    @staticmethod
+    def __fill_is_set_list__(_config: 'bittensor.Config', defaults: 'bittensor.Config') -> Dict[str, bool]:
+        """Creates an is_set map
+        Args:
+            _config (bittensor.Config):
+                Config to generate is_set mapping.
+            defaults (bittensor.Config):
+                The bittensor defaults
+        Returns:
+            is_set_map (Dict[str, bool]):
+                A map from flattened param name to whether this param was set in a flag.
+        """
+        is_set_map = {}
+        config_d = _config.__dict__
+        # Only defaults we are concerned with
+        defaults_filtered = {}
+        for key in config_d.keys():
+            if key in defaults.keys():
+                defaults_filtered[key] = getattr(defaults, key)
+
+        flat_config = pd.json_normalize(config_d, sep='.').to_dict('records')[0]
+        flat_defaults = pd.json_normalize(defaults_filtered, sep='.').to_dict('records')[0]
+        for key, _ in flat_defaults.items():
+            if key in flat_config:
+                is_set_map[key] = True
+            else:
+                is_set_map[key] = False
+        
+        return is_set_map
+
 
     @staticmethod
     def __parse_args__( args: List[str], parser: ArgumentParser = None, strict: bool = False) -> Namespace:
@@ -150,4 +189,3 @@ class config:
         bittensor.dataset.add_args( parser )
         bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
-
