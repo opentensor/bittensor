@@ -45,7 +45,7 @@ def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtenso
             sys.exit()
 
         # Make sure netuid is set.
-        if config.get('netuid', 'notset') == 'notset':
+        if not config.is_set('netuid'):
             if not config.no_prompt:
                 netuid = IntListPrompt.ask("Enter netuid", choices=all_netuids, default=str(all_netuids[0]))
             else:
