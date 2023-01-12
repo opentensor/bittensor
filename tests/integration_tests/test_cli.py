@@ -25,6 +25,7 @@ import pytest
 
 import bittensor
 import substrateinterface
+from scalecodec import ss58_encode
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface.base import Keypair
@@ -368,10 +369,17 @@ class TestCli(unittest.TestCase):
             'hk2': bittensor.Balance.from_float(12.2),
         }
 
+        mock_hotkey_keypairs = {
+            'hk0': bittensor.Keypair(ss58_encode(int.to_bytes(0, 32, 'big', signed=False), bittensor.__ss58_format__)),
+            'hk1': bittensor.Keypair(ss58_encode(int.to_bytes(0, 32, 'big', signed=False), bittensor.__ss58_format__)),
+            'hk2': bittensor.Keypair(ss58_encode(int.to_bytes(0, 32, 'big', signed=False), bittensor.__ss58_format__)),
+        }
+
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.wallet.hotkeys[0],
+                hotkey = mock_hotkey_keypairs[config.wallet.hotkeys[0]],
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.wallet.hotkeys[0]]
                 ),
@@ -388,6 +396,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey_keypairs[hk],
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -408,20 +417,29 @@ class TestCli(unittest.TestCase):
 
         )
 
+        def mock_get_stake(_, hotkey_ss58, coldkey_ss58):
+            for hotkey_str, kp in mock_hotkey_keypairs.items():
+                if kp.ss58_address == hotkey_ss58:
+                    return mock_stakes[hotkey_str]
+
+            else:
+                assert False, "Mock hotkey not found"
+
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
-                cli.run()
-                mock_create_wallet.assert_has_calls(
-                    [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
-                    ],
-                    any_order=True
-                )
-                mock_unstake.assert_has_calls(
-                    [call(wallets=mock_wallets[1:], amounts=[5.0]*len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
-                    any_order = True
-                )
+            with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', mock_get_stake):
+                with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
+                    cli.run()
+                    mock_create_wallet.assert_has_calls(
+                        [
+                            call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        ],
+                        any_order=True
+                    )
+                    mock_unstake.assert_has_calls(
+                        [call(wallet=mock_wallets[0], hotkey_ss58s=[hotkey.ss58_address for hotkey in mock_hotkey_keypairs.values()], amounts=[5.0]*len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
+                        any_order = True
+                    )
 
     def test_unstake_with_all_hotkeys( self ):
         config = self.config
@@ -1615,7 +1633,8 @@ class TestCLIUsingArgs(unittest.TestCase):
                 assert mock_neuron.call_count == 1
                 args, kwargs = mock_neuron.call_args
 
-                assert len(args) == 0 and len(kwargs) == 0 # should not have any args; indicates that "All" synapses are being used
+                assert len(args) == 0 and len(kwargs) == 1 # should not have any synapse args; indicates that "All" synapses are being used
+                assert 'netuid' in kwargs # this is the only kwarg that should be passed to neuron
 
 
 if __name__ == '__main__':
