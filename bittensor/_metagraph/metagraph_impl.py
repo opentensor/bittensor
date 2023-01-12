@@ -30,7 +30,6 @@ import bittensor
 import bittensor.utils.networking as net
 from bittensor import Balance
 
-# TODO: Implement stake mapping for metagraph
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
 
@@ -76,7 +75,7 @@ class Metagraph( torch.nn.Module ):
         self.tau = torch.nn.Parameter( torch.tensor( [1], dtype=torch.float32), requires_grad = False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
 
-        #self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.stake: List[Dict[str, Balance]] = []
         self.total_stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
 
         self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
@@ -97,10 +96,11 @@ class Metagraph( torch.nn.Module ):
         return self
 
     @property
-    def S(self) -> Dict[str, Balance]:
+    def S(self) -> torch.FloatTensor:
         """ Stake
         """
-        return self.stake
+        # We return total_stake because we don't need to know the delegators
+        return self.total_stake
 
     @property
     def R(self) -> torch.FloatTensor:
@@ -286,7 +286,7 @@ class Metagraph( torch.nn.Module ):
         torch.save(metastate, full_path + '/' + filename)
         return self
 
-    def load_from_state_dict(self, state_dict:dict ) -> 'Metagraph':
+    def load_from_state_dict(self, state_dict: dict ) -> 'Metagraph':
         r""" Loads this metagraph object from passed state_dict.
             Args: 
                 state_dict: (:obj:`dict`, required):
@@ -298,7 +298,8 @@ class Metagraph( torch.nn.Module ):
         self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
         self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
 
-        #self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+        # We don't save stake in the state_dict
+        self.stake = None
         self.total_stake = torch.nn.Parameter( state_dict['total_stake'], requires_grad=False )
 
         self.ranks = torch.nn.Parameter( state_dict['ranks'], requires_grad=False )
@@ -341,14 +342,14 @@ class Metagraph( torch.nn.Module ):
     def to_dataframe(self):
         try:
             index = self.uids.tolist()
-            columns = [ 'uid', 'active', 'stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
+            columns = [ 'uid', 'active', 'stake', 'total_stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
             dataframe = pandas.DataFrame(columns = columns, index = index)
             for uid in self.uids.tolist():
                 v = {
                     'uid': self.uids[uid].item(),
                     'active': self.active[uid].item(),         
 
-                    #'stake': self.stake[uid].item(),  
+                    'stake': self.stake[uid],  
                     'total_stake': self.total_stake[uid].item(),  
 
                     'rank': self.ranks[uid].item(),            

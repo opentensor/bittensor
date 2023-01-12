@@ -27,7 +27,6 @@ from . import metagraph_mock
 from typing import Optional, List
 import bittensor.utils.weight_utils as weight_utils
 
-# TODO: Implement stake mapping for metagraph
 class metagraph:
     """ Factory class for the bittensor.Metagraph class or the MockMetagraph
     The Metagraph object serves as the main storage unit for the chain state. 
@@ -153,8 +152,7 @@ class metagraph:
             metagraph.neurons[n.uid] = n
             uids[n.uid] = n.uid 
             active[n.uid] = n.active
-            # We use total stake because we don't need the mapping per coldkey
-            stake[n.uid] = n.stake
+            stake[n.uid] = n.stake # stake is a Dict[str, Balance]
             total_stake[n.uid] = n.total_stake.tao 
             ranks[n.uid] = n.rank
             trust[n.uid] = n.trust
@@ -183,8 +181,7 @@ class metagraph:
         tblock = torch.tensor( block, dtype=torch.int64 )
         tuids = torch.tensor( uids, dtype=torch.int64 )
         tactive = torch.tensor( active, dtype=torch.int64 )
-        
-        #tstake = torch.tensor( total_stake, dtype=torch.float32 )
+       
         ttotal_stake = torch.tensor( total_stake, dtype=torch.float32 )
 
         tranks = torch.tensor( ranks, dtype=torch.float32 )
@@ -207,7 +204,7 @@ class metagraph:
         metagraph.block = torch.nn.Parameter( tblock, requires_grad=False )
         metagraph.uids = torch.nn.Parameter( tuids, requires_grad=False )
 
-        #metagraph.stake = torch.nn.Parameter( tstake, requires_grad=False )
+        metagraph.stake = stake
         metagraph.total_stake = torch.nn.Parameter( ttotal_stake, requires_grad=False )
         
         metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
