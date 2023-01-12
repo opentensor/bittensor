@@ -145,7 +145,7 @@ class cli:
         elif config.command == "delegate":
             DelegateStakeCommand.check_config( config )
         else:
-            console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.comman))
+            console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()
 
                 
