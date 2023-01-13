@@ -596,8 +596,6 @@ class TestCli(unittest.TestCase):
                 args = [
                     '--help'
                 ]
-        ]   
-                ]
                 bittensor.cli(args=args).run()
 
         # Should try to print help
@@ -1060,8 +1058,6 @@ class TestStakeUnstake(unittest.TestCase):
                     mock_unstake.assert_called()
 
                     # Python 3.7 
-                # Python 3.7 
-                    # Python 3.7 
                     ## https://docs.python.org/3.7/library/unittest.mock.html#call
                     ## Uses the 1st index as args list
                     ## call.args only works in Python 3.8+
@@ -1085,61 +1081,33 @@ class TestStakeUnstake(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
-        config.no_version_checking = False
-
-        mock_coldkey = "" # Not None
 
         # enough to stake 5.0 to all 3 hotkeys
         mock_balance: Balance = bittensor.Balance.from_float(5.0 * 3)
-
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
-                is_registered = MagicMock(
-                    return_value = True
-                ),
-
-                _coldkey = mock_coldkey,
-                coldkey =  MagicMock(
-                            return_value=mock_coldkey
-                        )
-            ) 
-        ] + [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in config.wallet.hotkeys
-        ]
-
-        # The 0th wallet is created twice during unstake
-        mock_wallets[1]._coldkey = mock_coldkey
-        mock_wallets[1].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[1].get_balance = MagicMock(
-                                    return_value=mock_balance
-                                )
         
         cli = bittensor.cli(config)
 
         with patch('bittensor.wallet') as mock_create_wallet:
-            mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_create_wallet.assert_has_calls(
-                    [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
-                    ],
-                    any_order=True
-                )
-                mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets[1:], amounts=[5.0] * len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
-                    any_order = True
-                )
+            mock_create_wallet.side_effect = self._mock_get_wallet
+            with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
+                    cli.run()
+                    mock_create_wallet.assert_has_calls(
+                        [
+                            call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        ],
+                        any_order=True
+                    )
+                    mock_add_stake.assert_has_calls(
+                        [call(
+                            wallet=self.mock_coldkey_wallet, # doesn't matter, just the coldkey wallet
+                            hotkey_ss58s=[hotkey.ss58_address for hotkey in self.mock_hotkey_keypairs.values()],
+                            amounts=[5.0]*len(self.mock_hotkey_keypairs),
+                            wait_for_inclusion=True,
+                            prompt=False)
+                        ],
+                        any_order = True
+                    )
 
     def test_stake_with_all_hotkeys( self ):        
         config = self.config
@@ -1150,44 +1118,30 @@ class TestStakeUnstake(unittest.TestCase):
         # Notice wallet.hotkeys is not specified
         config.wallet.all_hotkeys = True
         # Notice no max_stake specified
-        config.no_version_checking = False
-
-        mock_hotkeys = ['hk0', 'hk1', 'hk2']
-
-        mock_coldkey = "" # Not None
 
         # enough to stake 5.0 to all 3 hotkeys
         mock_balance: Balance = bittensor.Balance.from_float(5.0 * 3)
-
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in mock_hotkeys
-        ]
-
-        mock_wallets[0]._coldkey = mock_coldkey
-        mock_wallets[0].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[0].get_balance = MagicMock(
-                                    return_value=mock_balance
-                                )
         
         cli = bittensor.cli(config)
 
-        with patch.object(cli, '_get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.return_value = mock_wallets
-            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_get_all_wallets.assert_called_once()
-                mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets, amounts=[5.0] * len(mock_wallets), wait_for_inclusion=True, prompt=False)],
-                    any_order = True
-                )
+        with patch('bittensor._cli.commands.stake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
+            mock_get_all_wallets.return_value = self.mock_wallets
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = self._mock_get_wallet
+                with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                    with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
+                        cli.run()
+                        mock_get_all_wallets.assert_called_once()
+                        mock_add_stake.assert_has_calls(
+                            [call(
+                                wallet=self.mock_coldkey_wallet, # doesn't matter, just the coldkey wallet
+                                hotkey_ss58s=[hotkey.ss58_address for hotkey in self.mock_hotkey_keypairs.values()],
+                                amounts=[5.0]*len(self.mock_hotkey_keypairs),
+                                wait_for_inclusion=True,
+                                prompt=False)
+                            ],
+                            any_order = True
+                        )
 
     def test_stake_with_exclude_hotkeys_from_all( self ):        
         config = self.config
@@ -1197,47 +1151,33 @@ class TestStakeUnstake(unittest.TestCase):
         config.wallet.name = "fake_wallet"
         config.wallet.hotkeys = ['hk1'] # exclude hk1
         config.wallet.all_hotkeys = True
-        config.no_version_checking = False
+        config.no_version_checking = True
 
         # Notice no max_stake specified
 
-        mock_hotkeys = ['hk0', 'hk1', 'hk2']
-
-        mock_coldkey = "" # Not None
-
         # enough to stake 5.0 to all 3 hotkeys
         mock_balance: Balance = bittensor.Balance.from_float(5.0 * 3)
-
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in mock_hotkeys
-        ]
-
-        # The 0th wallet is created twice during unstake
-        mock_wallets[0]._coldkey = mock_coldkey
-        mock_wallets[0].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[0].get_balance = MagicMock(
-                                    return_value=mock_balance
-                                )
         
         cli = bittensor.cli(config)
 
-        with patch.object(cli, '_get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.return_value = mock_wallets
-            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_get_all_wallets.assert_called_once()
-                mock_add_stake.assert_has_calls(
-                    [call(wallets=[mock_wallets[0], mock_wallets[2]], amounts=[5.0, 5.0], wait_for_inclusion=True, prompt=False)],
-                    any_order = True
-                )
+        with patch('bittensor._cli.commands.stake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
+            mock_get_all_wallets.return_value = self.mock_wallets
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = self._mock_get_wallet
+                with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                    with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
+                        cli.run()
+                        mock_get_all_wallets.assert_called_once()
+                        mock_add_stake.assert_has_calls(
+                            [call(
+                                wallet=self.mock_coldkey_wallet, # doesn't matter, just the coldkey wallet
+                                hotkey_ss58s=[self.mock_hotkey_keypairs[hk].ss58_address for hk in ['hk0', 'hk2']],
+                                amounts=[5.0, 5.0],
+                                wait_for_inclusion=True,
+                                prompt=False)
+                            ],
+                            any_order = True
+                        )
 
     def test_stake_with_multiple_hotkeys_max_stake( self ):        
         config = self.config
@@ -1251,11 +1191,8 @@ class TestStakeUnstake(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
-        config.no_version_checking = False
 
         mock_balance = bittensor.Balance(15.0 * 3) # Enough to stake 15.0 on each hotkey
-
-        mock_coldkey = "" # Not None
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -1263,61 +1200,39 @@ class TestStakeUnstake(unittest.TestCase):
             'hk1': bittensor.Balance.from_float(11.1),
             'hk2': bittensor.Balance.from_float(12.2),
         }
-
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
-                get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                ),
-
-                _coldkey = mock_coldkey,
-                coldkey =  MagicMock(
-                            return_value=mock_coldkey
-                        )
-            ) 
-        ] + [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                get_stake = MagicMock(
-                    return_value = mock_stakes[hk]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in config.wallet.hotkeys
-        ]
-
-        # The 0th wallet is created twice during unstake
-        mock_wallets[1]._coldkey = mock_coldkey
-        mock_wallets[1].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[1].get_balance = MagicMock(
-            return_value = mock_balance
-        )
         
         cli = bittensor.cli(config)
+        def mock_get_stake(_, hotkey_ss58, coldkey_ss58):
+            for hotkey_str, kp in self.mock_hotkey_keypairs.items():
+                if kp.ss58_address == hotkey_ss58:
+                    return mock_stakes[hotkey_str]
 
-        with patch('bittensor.wallet') as mock_create_wallet:
-            mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_create_wallet.assert_has_calls(
-                    [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
-                    ],
-                    any_order=True
-                )
-                mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
-                    any_order = True
-                )
+            else:
+                assert False, "Mock hotkey not found"
+
+        with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', mock_get_stake):
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = self._mock_get_wallet
+                with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                    with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
+                        cli.run()
+                        mock_create_wallet.assert_has_calls(
+                            [
+                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            ],
+                            any_order=True
+                        )
+                        mock_add_stake.assert_has_calls(
+
+                            [call(
+                                wallet=self.mock_coldkey_wallet,
+                                hotkey_ss58s=[self.mock_hotkey_keypairs[hk].ss58_address for hk in config.wallet.hotkeys],
+                                amounts=[CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001) for mock_wallet in self.mock_wallets],
+                                wait_for_inclusion=True,
+                                prompt=False)
+                            ],
+                            any_order = True
+                        )
 
     def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance( self ):        
         config = self.config
@@ -1330,13 +1245,10 @@ class TestStakeUnstake(unittest.TestCase):
             'hk0', 'hk1', 'hk2'
         ]   
         config.wallet.all_hotkeys = False
-        config.no_version_checking = False
 
         # Notice no max_stake specified
 
         mock_balance = bittensor.Balance(1.0) # Not enough to stake 15.0 on each hotkey
-
-        mock_coldkey = "" # Not None
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -1345,66 +1257,38 @@ class TestStakeUnstake(unittest.TestCase):
             'hk2': bittensor.Balance.from_float(7.2),
         }
 
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
-                get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                ),
-
-                _coldkey = mock_coldkey,
-                coldkey =  MagicMock(
-                            return_value=mock_coldkey
-                        )
-            ) 
-        ] + [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                get_stake = MagicMock(
-                    return_value = mock_stakes[hk]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in config.wallet.hotkeys
-        ]
-
-        # The 0th wallet is created twice during unstake
-        mock_wallets[1]._coldkey = mock_coldkey
-        mock_wallets[1].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[1].get_balance = MagicMock(
-            return_value = mock_balance
-        )
-        
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
-            mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_create_wallet.assert_has_calls(
-                    [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
-                    ],
-                    any_order=True
-                )
-                # We should stake what we have in the balance
-                mock_add_stake.assert_called_once()
-                
-                total_staked = 0.0
+        def mock_get_stake(_, hotkey_ss58, coldkey_ss58):
+            for hotkey_str, kp in self.mock_hotkey_keypairs.items():
+                if kp.ss58_address == hotkey_ss58:
+                    return mock_stakes[hotkey_str]
 
-                args, kwargs = mock_add_stake.call_args
-                total_staked = kwargs['amount']
-                
-                # We should not try to stake more than the mock_balance
-                self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
+            else:
+                assert False, "Mock hotkey not found"
+
+        with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', mock_get_stake):
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = self._mock_get_wallet
+                with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                    with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+                        cli.run()
+                        mock_create_wallet.assert_has_calls(
+                            [
+                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            ],
+                            any_order=True
+                        )
+                        # We should stake what we have in the balance
+                        mock_add_stake.assert_called_once()
+                        
+                        total_staked = 0.0
+
+                        args, kwargs = mock_add_stake.call_args
+                        total_staked = kwargs['amount']
+                        
+                        # We should not try to stake more than the mock_balance
+                        self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
 
     def test_stake_with_single_hotkey_max_stake( self ):        
         config = self.config
@@ -1418,71 +1302,43 @@ class TestStakeUnstake(unittest.TestCase):
         ]   
         config.wallet.all_hotkeys = False
         # Notice no max_stake specified
-        config.no_version_checking = False
 
         mock_balance = bittensor.Balance(15.0) # Enough to stake 15.0 on one hotkey
-
-        mock_coldkey = "" # Not None
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
             'hk0': bittensor.Balance.from_float(10.0),
         }
-
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
-                get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                ),
-
-                _coldkey = mock_coldkey,
-                coldkey =  MagicMock(
-                            return_value=mock_coldkey
-                        )
-            ) 
-        ] + [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                get_stake = MagicMock(
-                    return_value = mock_stakes[hk]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in config.wallet.hotkeys
-        ]
-
-        # The 0th wallet is created twice during unstake
-        mock_wallets[1]._coldkey = mock_coldkey
-        mock_wallets[1].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[1].get_balance = MagicMock(
-            return_value = mock_balance
-        )
         
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
-            mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_create_wallet.assert_has_calls(
-                    [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
-                    ],
-                    any_order=True
-                )
-                mock_add_stake.assert_has_calls(
-                    [call(wallet=mock_wallets[1], amount=CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallets[1].hotkey_str].tao), 0.001), wait_for_inclusion=True, prompt=False)],
-                    any_order = True
-                )
+        def mock_get_stake(_, hotkey_ss58, coldkey_ss58):
+            for hotkey_str, kp in self.mock_hotkey_keypairs.items():
+                if kp.ss58_address == hotkey_ss58:
+                    return mock_stakes[hotkey_str]
+
+            else:
+                assert False, "Mock hotkey not found"
+
+        with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', mock_get_stake):
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = self._mock_get_wallet
+                with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                    with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+                        cli.run()
+                        mock_create_wallet.assert_has_calls(
+                            [
+                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            ],
+                            any_order=True
+                        )
+                        mock_add_stake.assert_has_calls(
+                            [call(
+                                wallet=self.mock_coldkey_wallet,
+                                hotkey_ss58=self.mock_hotkey_keypairs['hk0'].ss58_address,
+                                amount=CLOSE_IN_VALUE((config.max_stake - mock_stakes['hk0'].tao), 0.001), wait_for_inclusion=True, prompt=False)],
+                            any_order = True
+                        )
 
     def test_stake_with_single_hotkey_max_stake_not_enough_balance( self ):        
         config = self.config
@@ -1495,79 +1351,48 @@ class TestStakeUnstake(unittest.TestCase):
             'hk0'
         ]   
         config.wallet.all_hotkeys = False
-        config.no_version_checking = False
 
         # Notice no max_stake specified
 
         mock_balance = bittensor.Balance(1.0) # Not enough to stake 15.0 on the hotkey
-
-        mock_coldkey = "" # Not None
 
         mock_stakes: Dict[str, float] = {
             # has 5.0 stake
             'hk0': bittensor.Balance.from_float(5.0)
         }
 
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
-                get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                ),
-
-                _coldkey = mock_coldkey,
-                coldkey =  MagicMock(
-                            return_value=mock_coldkey
-                        )
-            ) 
-        ] + [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                get_stake = MagicMock(
-                    return_value = mock_stakes[hk]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in config.wallet.hotkeys
-        ]
-
-        # The 0th wallet is created twice during unstake
-        mock_wallets[1]._coldkey = mock_coldkey
-        mock_wallets[1].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[1].get_balance = MagicMock(
-            return_value = mock_balance
-        )
         
         cli = bittensor.cli(config)
+        def mock_get_stake(_, hotkey_ss58, coldkey_ss58):
+            for hotkey_str, kp in self.mock_hotkey_keypairs.items():
+                if kp.ss58_address == hotkey_ss58:
+                    return mock_stakes[hotkey_str]
 
-        with patch('bittensor.wallet') as mock_create_wallet:
-            mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_create_wallet.assert_has_calls(
-                    [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
-                    ],
-                    any_order=True
-                )
-                # We should stake what we have in the balance
-                mock_add_stake.assert_called_once()
-                
-                total_staked = 0.0
+            else:
+                assert False, "Mock hotkey not found"
 
-                args, kwargs = mock_add_stake.call_args
-                total_staked = kwargs['amount']
-                
-                # We should not try to stake more than the mock_balance
-                self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
+        with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', mock_get_stake):
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = self._mock_get_wallet
+                with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                    with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+                        cli.run()
+                        mock_create_wallet.assert_has_calls(
+                            [
+                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            ],
+                            any_order=True
+                        )
+                        # We should stake what we have in the balance
+                        mock_add_stake.assert_called_once()
+                        
+                        total_staked = 0.0
+
+                        args, kwargs = mock_add_stake.call_args
+                        total_staked = kwargs['amount']
+                        
+                        # We should not try to stake more than the mock_balance
+                        self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
 
     def test_stake_with_single_hotkey_max_stake_enough_stake( self ):
         # tests max stake when stake >= max_stake already
@@ -1583,71 +1408,40 @@ class TestStakeUnstake(unittest.TestCase):
             'hk0'
         ]   
         config.wallet.all_hotkeys = False
-        config.no_version_checking = False
 
         # Notice no max_stake specified
 
         mock_balance = bittensor.Balance(30.0) # enough to stake 15.0 on the hotkey
-
-        mock_coldkey = "" # Not None
 
         mock_stakes: Dict[str, float] = {
             # already has 15.0 stake
             'hk0': bittensor.Balance.from_float(15.0)
         }
 
-        mock_wallets = [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
-                get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                ),
-
-                _coldkey = mock_coldkey,
-                coldkey =  MagicMock(
-                            return_value=mock_coldkey
-                        )
-            ) 
-        ] + [
-            SimpleNamespace(
-                name = config.wallet.name,
-                hotkey_str = hk,
-                get_stake = MagicMock(
-                    return_value = mock_stakes[hk]
-                ),
-                is_registered = MagicMock(
-                    return_value = True
-                )
-            ) for hk in config.wallet.hotkeys
-        ]
-
-        # The 0th wallet is created twice during unstake
-        mock_wallets[1]._coldkey = mock_coldkey
-        mock_wallets[1].coldkey = MagicMock(
-                                    return_value=mock_coldkey
-                                )
-        mock_wallets[1].get_balance = MagicMock(
-            return_value = mock_balance
-        )
-        
         cli = bittensor.cli(config)
 
-        with patch('bittensor.wallet') as mock_create_wallet:
-            mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
-                cli.run()
-                mock_create_wallet.assert_has_calls(
-                    [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
-                    ],
-                    any_order=True
-                )
-                # We should stake what we have in the balance
-                mock_add_stake.assert_not_called()
+        def mock_get_stake(_, hotkey_ss58, coldkey_ss58):
+            for hotkey_str, kp in self.mock_hotkey_keypairs.items():
+                if kp.ss58_address == hotkey_ss58:
+                    return mock_stakes[hotkey_str]
+
+            else:
+                assert False, "Mock hotkey not found"
+
+        with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', mock_get_stake):
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = self._mock_get_wallet
+                with patch('bittensor.Subtensor.get_balance', return_value=mock_balance):
+                    with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+                        cli.run()
+                        mock_create_wallet.assert_has_calls(
+                            [
+                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            ],
+                            any_order=True
+                        )
+                        # We should stake what we have in the balance
+                        mock_add_stake.assert_not_called()
 
 
 class TestCLIUsingArgs(unittest.TestCase):
