@@ -67,7 +67,7 @@ class mock_subtensor():
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
             url = "ws://{}".format('localhost:{}'.format(port)),
-            use_remote_preset=True
+            use_remote_preset=False
         )
         subtensor = Mock_Subtensor( 
             substrate = substrate,
