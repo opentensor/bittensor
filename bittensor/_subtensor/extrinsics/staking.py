@@ -70,7 +70,7 @@ def add_stake_extrinsic(
     own_hotkey: bool = (wallet.hotkey.ss58_address == hotkey_ss58)
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
-        old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate( hotkey_ss58 ):
@@ -153,7 +153,7 @@ def add_stake_extrinsic(
 
             bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
             with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(subtensor.network)):
-                new_balance = subtensor.get_balance( address = wallet.coldkey.ss58_address )
+                new_balance = subtensor.get_balance( address = wallet.coldkeypub.ss58_address )
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
@@ -234,11 +234,11 @@ def add_stake_multiple_extrinsic (
 
     old_stakes = []
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
-        old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         # Get the old stakes.
         for hotkey_ss58 in hotkey_ss58s:
-            old_stakes.append( subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 ) )
+            old_stakes.append( subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58 ) )
 
     # Remove existential balance to keep key alive.
     ## Keys must maintain a balance of at least 1000 rao to stay alive.
@@ -329,7 +329,7 @@ def add_stake_multiple_extrinsic (
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
 
                 block = subtensor.get_current_block()
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58, block = block )
+                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkeypub.ss58_address, hotkey_ss58, block = block )
                 new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address, block = block )
                 bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, old_stake, new_stake ))
                 old_balance = new_balance
