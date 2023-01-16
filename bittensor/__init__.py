@@ -78,7 +78,7 @@ __finney_entrypoint__ = "collator1.parachain.opentensor.ai:443"
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "127.0.0.1:9944"
+__local_entrypoint__ = "ws://127.0.0.1:9945"
 
 
 # Avoid collisions with other processes
