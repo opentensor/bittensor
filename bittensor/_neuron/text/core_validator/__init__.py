@@ -243,7 +243,8 @@ class neuron:
         if getattr(self, 'dataset', None) is not None:
             self.dataset.close()
         
-        self.dendrite.__del__()
+        if getattr(self, 'dendrite', None) is not None:
+            self.dendrite.__del__()
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
