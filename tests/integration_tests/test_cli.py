@@ -29,7 +29,7 @@ from scalecodec import ss58_encode
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface.base import Keypair
-from tests.helpers import CLOSE_IN_VALUE
+from tests.helpers import CLOSE_IN_VALUE, get_mock_neuron
 
 
 class TestCli(unittest.TestCase):
@@ -44,47 +44,7 @@ class TestCli(unittest.TestCase):
 
         self.config = TestCli.construct_config()
         # Mocked objects
-        self.mock_neuron = bittensor.NeuronInfo._neuron_dict_to_namespace(
-            dict({
-                "netuid": -1, # mock netuid
-                "axon_info": bittensor.AxonInfo(
-                    block = 0,
-                    version = 1,
-                    ip = 0,
-                    port = 0,
-                    ip_type = 0,
-                    protocol = 0,
-                    placeholder1 = 0,
-                    placeholder2 = 0
-                ),
-                "prometheus_info": bittensor.PrometheusInfo(
-                    block = 0,
-                    version = 1,
-                    ip = 0,
-                    port = 0,
-                    ip_type = 0
-                ),
-                "validator_permit": True,
-                "uid":1,
-                "hotkey":'some_hotkey',
-                "coldkey":'some_coldkey',
-                "active":0,
-                "last_update":0,
-                "stake": {
-                    "some_hotkey": 1e12
-                },
-                "total_stake":1e12,
-                "rank":0.0,
-                "trust":0.0,
-                "consensus":0.0,
-                "incentive":0.0,
-                "dividends":0.0,
-                "emission":0.0,
-                "bonds":[],
-                "weights":[],
-                "is_null":False
-            })
-        )
+        self.mock_neuron = get_mock_neuron( )
         bittensor.Subtensor.register = MagicMock(return_value = True) 
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         bittensor.Subtensor.neuron_for_uid = MagicMock(return_value=self.mock_neuron)
