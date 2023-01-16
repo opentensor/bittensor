@@ -14,3 +14,34 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
+import unittest
+import bittensor
+from tests.helpers import get_mock_neuron, get_mock_hotkey, get_mock_coldkey
+
+class TestMetagraph(unittest.TestCase):
+    """
+    Tests metagraph class methods.
+    """
+    
+    def test_from_neurons(self):
+        metagraph = bittensor.metagraph.from_neurons(
+            network = "mock",
+            netuid = -1, 
+            block = 0,
+            neurons = [
+                get_mock_neuron(
+                    uid = i,
+                    hotkey = get_mock_hotkey(i + 1), # +1 to avoid 0 as this gives null neuron
+                    coldkey = get_mock_coldkey(i + 1),
+                )
+            for i in range(2000)]
+        )
+
+        # Test each property.
+        self.assertEqual(metagraph.network, "mock")
+        self.assertEqual(metagraph.netuid, -1)
+        self.assertEqual(metagraph.n, 2000)
+        self.assertEqual(len(metagraph.hotkeys), 2000)
+        self.assertEqual(len(metagraph.coldkeys), 2000)
+        self.assertEqual(len(metagraph.uids), 2000)
