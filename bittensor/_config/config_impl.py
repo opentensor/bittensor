@@ -71,7 +71,8 @@ class Config ( Munch ):
             prometheus_info = Info('config', 'Config Values')
             # Make copy, remove __is_set map
             config_copy = copy.deepcopy(self)
-            del config_copy.__is_set
+
+            del config_copy['__is_set']
 
             config_info = json_normalize(json.loads(json.dumps(config_copy)), sep='.').to_dict(orient='records')[0]
             formatted_info = {}
