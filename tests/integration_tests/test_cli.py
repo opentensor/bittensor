@@ -44,20 +44,36 @@ class TestCli(unittest.TestCase):
 
         self.config = TestCli.construct_config()
         # Mocked objects
-        self.mock_neuron = TestCli._neuron_dict_to_namespace(
+        self.mock_neuron = bittensor.NeuronInfo._neuron_dict_to_namespace(
             dict({
-                "version":1,
-                "ip":0,
-                "port":0,
-                "ip_type":0,
+                "netuid": -1, # mock netuid
+                "axon_info": bittensor.AxonInfo(
+                    block = 0,
+                    version = 1,
+                    ip = 0,
+                    port = 0,
+                    ip_type = 0,
+                    protocol = 0,
+                    placeholder1 = 0,
+                    placeholder2 = 0
+                ),
+                "prometheus_info": bittensor.PrometheusInfo(
+                    block = 0,
+                    version = 1,
+                    ip = 0,
+                    port = 0,
+                    ip_type = 0
+                ),
+                "validator_permit": True,
                 "uid":1,
-                "modality":0,
                 "hotkey":'some_hotkey',
                 "coldkey":'some_coldkey',
                 "active":0,
                 "last_update":0,
-                "priority":0,
-                "stake":1000000000000.0,
+                "stake": {
+                    "some_hotkey": 1e12
+                },
+                "total_stake":1e12,
                 "rank":0.0,
                 "trust":0.0,
                 "consensus":0.0,
@@ -463,6 +479,8 @@ class TestCli(unittest.TestCase):
         config.overwrite_coldkey = True
         config.overwrite_hotkey = True
         config.no_version_checking = True
+
+        config.netuid = -1
 
         # First create a new coldkey
         config.command = "new_coldkey"
