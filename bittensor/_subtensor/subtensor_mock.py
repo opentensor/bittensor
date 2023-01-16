@@ -1,4 +1,5 @@
 from substrateinterface import SubstrateInterface
+from scalecodec import ss58_encode
 import psutil
 import subprocess
 from sys import platform   
@@ -175,3 +176,63 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         Note: Only mock subnet is -1
         """
         return [-1] 
+
+    def neurons(self, netuid: int = -1, block: Optional[int] = None ) -> List['bittensor.NeuronInfo']: 
+        r"""Mock Function: Returns the list of neurons in the chain.
+        """
+        if block is None:
+            block = 0
+        
+        mock_neurons = []
+        for uid in range(0, 2000):
+            # have to add 1 to uid because hotkey from 0 is a legacy for null neuron`
+            ck = bittensor.Keypair(ss58_encode(int.to_bytes(uid + 1, 32, 'big', signed=False), bittensor.__ss58_format__))
+            hk = bittensor.Keypair(ss58_encode(int.to_bytes(uid + 1, 32, 'big', signed=False), bittensor.__ss58_format__))
+
+            mock_neuron_d = dict({
+                "netuid": netuid, # mock netuid
+                "axon_info": bittensor.AxonInfo(
+                    block = block,
+                    version = 1,
+                    ip = 0,
+                    port = 0,
+                    ip_type = 0,
+                    protocol = 0,
+                    placeholder1 = 0,
+                    placeholder2 = 0
+                ),
+                "prometheus_info": bittensor.PrometheusInfo(
+                    block = block,
+                    version = 1,
+                    ip = 0,
+                    port = 0,
+                    ip_type = 0
+                ),
+                "validator_permit": True,
+                "uid":uid,
+                "hotkey": hk.ss58_address,
+                "coldkey": ck.ss58_address,
+                "active":0,
+                "last_update":0,
+                "stake": {
+                    ck.ss58_address: 1e12
+                },
+                "total_stake":1e12,
+                "rank":0.0,
+                "trust":0.0,
+                "consensus":0.0,
+                "incentive":0.0,
+                "dividends":0.0,
+                "emission":0.0,
+                "bonds":[],
+                "weights":[],
+                "is_null":False
+            })
+
+            mock_neuron = bittensor.NeuronInfo._neuron_dict_to_namespace(
+                mock_neuron_d
+            )
+
+            mock_neurons.append(mock_neuron)
+        
+        return mock_neurons
