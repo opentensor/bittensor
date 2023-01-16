@@ -214,13 +214,16 @@ class neuron:
         parser.add_argument('--neuron.forward_num', type=int, help='''How much forward request before a backward call.''', default=3)
         parser.add_argument('--neuron.validation_synapse', type=str, help='''Synapse used for validation.''', default='TextCausalLMNext', choices = ['TextCausalLMNext', 'TextCausalLM'])
         parser.add_argument('--neuron.exclude_quantile', type=float, help='Exclude the lowest quantile from weight setting. (default value: -1, pulling from subtensor directly)', default=-1)
-        parser.add_argument('--neuron.netuid', type=int , help='Subnet uid on finney', default=None)
 
     @classmethod
     def config ( cls ):
         parser = argparse.ArgumentParser()    
         cls.add_args( parser )
-        nucleus.add_args( parser )        
+        nucleus.add_args( parser )    
+        
+        # Netuid Arg
+        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=0)
+            
         bittensor.wallet.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.subtensor.add_args( parser )
