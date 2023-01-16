@@ -244,7 +244,9 @@ class neuron:
                 f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])')
 
     def __del__(self):
-        self.dataset.close()
+        if getattr(self, 'dataset', None) is not None:
+            self.dataset.close()
+        
         self.dendrite.__del__()
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
