@@ -247,13 +247,6 @@ class OverviewCommand:
             default=False,
         )
         overview_parser.add_argument(
-            '--no_cache', 
-            dest='no_cache', 
-            action='store_true', 
-            help='''Set true to avoid using the cached overview from IPFS.''',
-            default=False,
-        )
-        overview_parser.add_argument(
             '--width', 
             dest='width', 
             action='store',
