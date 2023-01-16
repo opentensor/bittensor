@@ -457,6 +457,7 @@ class TestCli(unittest.TestCase):
         config.use_password = False
         config.no_version_checking = True
 
+        config.netuid = -1
 
         config.overwrite_hotkey = True
 
