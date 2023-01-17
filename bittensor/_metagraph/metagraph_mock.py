@@ -68,7 +68,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
 
         self.stake = [{ 
             scalecodec.ss58_encode( 
-                random.randint(0, U64MAX).to_bytes(64, 'big', signed=False), bittensor.__ss58_format__
+                random.randint(0, U64MAX).to_bytes(32, 'big', signed=False), bittensor.__ss58_format__
             ): bittensor.Balance.from_rao(1.0) for _ in range(random.randint(0, 10)) # random addresses to Balance(1.0)
         } for _ in range(2000) ] # 1 dict of addresses -> Balance per uid
         self.total_stake = torch.nn.Parameter( ttotal_stake, requires_grad=False )
