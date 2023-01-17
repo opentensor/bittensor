@@ -169,7 +169,7 @@ class neuron:
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
         self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
-                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len)
+                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len + self.subtensor.prune_len)
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
@@ -690,7 +690,7 @@ class neuron:
 
                 if 'logits_excess_nxt' in stats:
                     # penalize by logits divergence excess
-                    extra_stats['shapley_values_nxt'] /= 1 + self.config.neuron.logits_divergence * stats['logits_excess_nxt']
+                    extra_stats['shapley_values_nxt'] /= 1 + self.config.nucleus.logits_divergence * stats['logits_excess_nxt']
 
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
