@@ -408,7 +408,7 @@ class neuron:
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
         self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
-        self.config.nucleus.logit_divergence = self.subtensor.logit_divergence
+        self.config.nucleus.logits_divergence = self.subtensor.logits_divergence
 
         # === Logs Prometheus ===
         self.prometheus_gauges.labels("current_block").set( current_block )
@@ -690,7 +690,7 @@ class neuron:
 
                 if 'logits_excess_nxt' in stats:
                     # penalize by logits divergence excess
-                    extra_stats['shapley_values_nxt'] /= 1 + self.config.neuron.logits_divergence_penalty * stats['logits_excess_nxt']
+                    extra_stats['shapley_values_nxt'] /= 1 + self.config.neuron.logits_divergence * stats['logits_excess_nxt']
 
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
@@ -827,7 +827,7 @@ class nucleus( torch.nn.Module ):
 
         self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
-        self.config.nucleus.logit_divergence = subtensor.logit_divergence if self.config.nucleus.logit_divergence == -1 else self.config.nucleus.logit_divergence
+        self.config.nucleus.logits_divergence = subtensor.logits_divergence if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
 
         self.device = device
         self.max_n = subtensor.max_n
@@ -875,7 +875,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.no_dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
         parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
-        parser.add_argument('--nucleus.logit_divergence', type=float, help=' the divergence value for logit anomaly detection (default value: -1, pulling from subtensor directly)', default=-1)
+        parser.add_argument('--nucleus.logits_divergence', type=float, help=' the divergence value for logit anomaly detection (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
     def config ( cls ):

@@ -438,10 +438,10 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
-    def logit_divergence (self) -> int:
-        r""" Returns Logit_Divergence
+    def logits_divergence (self) -> int:
+        r""" Returns logits_divergence
         Returns:
-            logit_divergence (int):
+            logits_divergence (int):
                 the divergence value for logit distances, a measure for anomaly detection 
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
