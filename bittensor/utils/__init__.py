@@ -227,6 +227,6 @@ def get_explorer_url_for_network(network: str, block_hash: str) -> Optional[str]
 
     if explorer_root_url is not None:
         # We are on a known network.
-        explorer_url = "{root_url}/#/explorer/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
+        explorer_url = "{root_url}/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
     
     return explorer_url

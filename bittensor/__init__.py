@@ -84,10 +84,10 @@ __local_entrypoint__ = "ws://127.0.0.1:9945"
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
-    'local': "https://explorer.nakamoto.opentensor.ai",
-    'nakamoto': "https://explorer.nakamoto.opentensor.ai",
-    'endpoint': "https://explorer.nakamoto.opentensor.ai",
-    'nobunaga': "https://staging.opentensor.ai",
+    'local': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
+    'nobunaga': "https://staging.opentensor.ai/#/explorer",
 }
 
 # Avoid collisions with other processes
