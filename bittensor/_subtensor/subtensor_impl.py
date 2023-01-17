@@ -434,21 +434,21 @@ To run a local node (See: docs/running_a_validator.md) \n
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                return substrate.query( module='SubtensorModule', storage_function = 'PruneLen' ).value
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorPruneLen' ).value
         return make_substrate_call_with_retry()
 
     @property
-    def nexc_intensity (self) -> int:
-        r""" Returns nExcIntensity
+    def logit_divergence (self) -> int:
+        r""" Returns Logit_Divergence
         Returns:
-            nexc_intensity (int):
-                the intensity value for nExc, a measure for anomaly detection 
+            logit_divergence (int):
+                the divergence value for logit distances, a measure for anomaly detection 
         """
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                U32_MAX = 4294967295
-                return substrate.query( module='SubtensorModule', storage_function = 'nExcIntensity' ).value/U32_MAX
+                U64MAX = 18446744073709551615
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorLogitsDivergence' ).value/U64MAX
         return make_substrate_call_with_retry()
 
     def serve_axon (
