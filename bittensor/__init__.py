@@ -88,6 +88,7 @@ __network_explorer_map__ = {
     'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
     'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
     'nobunaga': "https://staging.opentensor.ai/#/explorer",
+    'finney': "https://polkadot.js.org/apps/?rpc=wss://staging.parachain.opentensor.ai#/explorer"
 }
 
 # Avoid collisions with other processes
