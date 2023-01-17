@@ -1029,19 +1029,10 @@ class nucleus( torch.nn.Module ):
 
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
-        validation_params = {
-            'uids': random_uids, 
-            'query_responses': query_responses, 
-            'return_ops': return_ops, 
-            'times': times, 
-            'routing_score': routing_score,
-            'inputs': inputs, 
-            'validation_len': val_len, 
-            'loss_fct': self.loss_fct,
-            'scaling_law_power': self.config.nucleus.scaling_law_power, 
-            'synergy_scaling_law_power': self.config.nucleus.synergy_scaling_law_power,
-            'logging': self.config.logging.debug or self.config.logging.trace
-        }
+        validation_params = (random_uids, query_responses, return_ops, times, routing_score,
+                             inputs, val_len, self.loss_fct,
+                             self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
+                             console_width, self.config.logging.debug or self.config.logging.trace)
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -1198,7 +1189,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
                      scaling_law_power: float, synergy_scaling_law_power: float,
-                     logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
+                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -1470,7 +1461,7 @@ def logits_divergence(stats: Dict, uids: torch.Tensor, query_responses: List[Lis
                 try:
                     excess = torch.clamp(_stats['logits_divergences' + ext] - (avg + std), 0)  # divergence > avg + std
                     excess /= std + 1e-9  # stddev multiples above 1 stddev
-                    excess = torch.pow(excess)  # reduce < 2std, increase > 2std
+                    excess = torch.pow(excess, 3)  # reduce < 2std, increase > 2std
                     excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
 
                     _stats['logits_excess' + ext] = excess.mean()  # in [0, 10]
