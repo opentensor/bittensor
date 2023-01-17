@@ -100,11 +100,7 @@ class neuron:
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
-        config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
-        # Try config.netuid as well
-        if config.neuron.netuid == None:
-            if config.get('netuid') != None:
-                config.neuron.netuid = config.get('netuid')
+        config.netuid = netuid if netuid != None else config.netuid
 
         self.check_config( config )
         bittensor.logging (
@@ -125,9 +121,9 @@ class neuron:
         self.axon = axon
         self.metagraph = metagraph
 
-        if self.config.neuron.netuid == None:
+        if self.config.netuid == None:
             subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
-            self.config.neuron.netuid = subtensor.get_subnets()[0]
+            self.config.netuid = subtensor.get_subnets()[0]
         
         self.model = server(config = self.config)
 
