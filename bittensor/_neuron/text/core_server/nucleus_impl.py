@@ -576,7 +576,6 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
         parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
         parser.add_argument('--neuron.num_remote_loss', type=int, help='Number of past remote loss to keep in stat.', default=20)
-        parser.add_argument('--neuron.netuid', type=int , help='Subnet uid on finney', default=None)
 
         # Synapse Arguements
         parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
@@ -588,6 +587,8 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
 
+        # Netuid Arg
+        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=0)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
