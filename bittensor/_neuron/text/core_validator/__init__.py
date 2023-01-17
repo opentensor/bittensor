@@ -234,7 +234,7 @@ class neuron:
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
         parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = -1 )
         parser.add_argument('--neuron.validation_len', type=int, help='Number of tokens to holdout for phrase validation beyond sequence context.', default=8)
-        parser.add_argument('--neuron.prune_len', type=int, help='Number of tokens to prune from each validation input sequence.', default=1)
+        parser.add_argument('--neuron.prune_len', type=int, help='Number of tokens to prune from each validation input sequence.  (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
@@ -400,13 +400,16 @@ class neuron:
         batch_size = self.subtensor.validator_batch_size 
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
-        prune_len = self.config.neuron.prune_len  # Number of tokens to holdout for phrase validation beyond sequence context
+        # Number of tokens to prune for phrase validation beyond sequence context
+        prune_len = self.subtensor.prune_len if self.config.neuron.prune_len == -1 else self.config.neuron.prune_len
+        nexc_intensity = self.subtensor.nexc_intensity
         min_allowed_weights = self.subtensor.min_allowed_weights
         max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
         self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
+        self.config.nucleus.nexc_intensity = self.subtensor.nexc_intensity
 
         # === Logs Prometheus ===
         self.prometheus_gauges.labels("current_block").set( current_block )
@@ -825,6 +828,7 @@ class nucleus( torch.nn.Module ):
 
         self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+        self.config.nucleus.nexc_intensity = subtensor.nexc_intensity if self.config.nucleus.nexc_intensity == -1 else self.config.nucleus.nexc_intensity
 
         self.device = device
         self.max_n = subtensor.max_n
@@ -872,6 +876,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.no_dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
         parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
+        parser.add_argument('--nucleus.nexc_intensity', type=float, help=' the intensity value for nExc anomaly detection (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
     def config ( cls ):
@@ -1025,10 +1030,20 @@ class nucleus( torch.nn.Module ):
 
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
-        validation_params = (random_uids, query_responses, return_ops, times, routing_score,
-                             inputs, val_len, self.loss_fct,
-                             self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
-                             console_width, self.config.logging.debug or self.config.logging.trace)
+        validation_params = {
+            'uids': random_uids, 
+            'query_responses': query_responses, 
+            'return_ops': return_ops, 
+            'times': times, 
+            'routing_score': routing_score,
+            'inputs': inputs, 
+            'validation_len': val_len, 
+            'loss_fct': self.loss_fct,
+            'scaling_law_power': self.config.nucleus.scaling_law_power, 
+            'synergy_scaling_law_power': self.config.nucleus.synergy_scaling_law_power,
+            'nexc_intensity': self.config.nucleus.nexc_intensity,
+            'logging': self.config.logging.debug or self.config.logging.trace
+        }
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -1185,8 +1200,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
                      scaling_law_power: float, synergy_scaling_law_power: float,
-                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
-                     ) -> Tuple[torch.FloatTensor, Dict]:
+                     logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
+                     nexc_intensity: float = 3.0) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
         Args:
@@ -1219,6 +1234,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 TextCausalLMNext Synapse object.
             index_s (:obj:`int`, `optional`):
                 Index of synapse to extract responses.
+            nexc_intensity (:obj:`float`, `optional`)
+                Intensity for the nexc anomaly detection 
 
         Returns:
             loss (:obj:`torch.FloatTensor`):
@@ -1255,7 +1272,7 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
 
     divergence_start_time = time.time()
     with torch.no_grad():
-        logits_divergence(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
+        logits_divergence(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt', nexc_intensity=nexc_intensity)
     logger.info(f'{str(synapse)} \t| Logits divergences <dim>[{time.time() - divergence_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
@@ -1375,7 +1392,7 @@ def shapley_base(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
 def logits_divergence(stats: Dict, uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]],
                       return_ops: List[torch.LongTensor], times: List[torch.FloatTensor],
-                      index_s: int = 0, ext: str = None):
+                      index_s: int = 0, ext: str = None, nexc_intensity:float = 3):
     r"""
     Calculate each logits divergence per neuron per task from the average logits over all neurons per task,
     given responses from a synapse.
@@ -1457,7 +1474,7 @@ def logits_divergence(stats: Dict, uids: torch.Tensor, query_responses: List[Lis
                 try:
                     excess = torch.clamp(_stats['logits_divergences' + ext] - (avg + std), 0)  # divergence > avg + std
                     excess /= std + 1e-9  # stddev multiples above 1 stddev
-                    excess = torch.pow(excess, 3)  # reduce < 2std, increase > 2std
+                    excess = torch.pow(excess, nexc_intensity)  # reduce < 2std, increase > 2std
                     excess = torch.clamp(excess, 0, 10)  # maximum excess ratio of 10
 
                     _stats['logits_excess' + ext] = excess.mean()  # in [0, 10]

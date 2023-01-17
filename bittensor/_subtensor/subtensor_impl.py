@@ -424,6 +424,32 @@ To run a local node (See: docs/running_a_validator.md) \n
                 ).value
         return make_substrate_call_with_retry()
 
+    @property
+    def prune_len (self) -> int:
+        r""" Returns PruneLen 
+        Returns:
+            prune_len (int):
+                the number of pruned tokens from each requests 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query( module='SubtensorModule', storage_function = 'PruneLen' ).value
+        return make_substrate_call_with_retry()
+
+    @property
+    def nexc_intensity (self) -> int:
+        r""" Returns nExcIntensity
+        Returns:
+            nexc_intensity (int):
+                the intensity value for nExc, a measure for anomaly detection 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                U32_MAX = 4294967295
+                return substrate.query( module='SubtensorModule', storage_function = 'nExcIntensity' ).value/U32_MAX
+        return make_substrate_call_with_retry()
 
     def serve_axon (
         self,
