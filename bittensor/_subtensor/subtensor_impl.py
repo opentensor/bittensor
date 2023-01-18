@@ -598,7 +598,7 @@ class Subtensor:
 
     def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[DelegateInfo]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry(encoded_hotkey: bytes):
+        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
             with self.substrate as substrate:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [encoded_hotkey]
@@ -609,7 +609,8 @@ class Subtensor:
                     params=params
                 )
 
-        encoded_hotkey: bytes = bittensor.utils.ss58_address_to_bytes( hotkey_ss58 )
+        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( hotkey_ss58 )
+        encoded_hotkey: List[int] = [ int( byte ) for byte in hotkey_bytes ]
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         if json_body['result'] == None:
             return None
