@@ -101,9 +101,11 @@ def set_weights_extrinsic(
                 if response.is_success:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                     bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.is_success) )
+                    return True
                 else:
                     bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
                     bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
+                    return False
 
         except Exception as e:
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
