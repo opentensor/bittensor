@@ -987,7 +987,7 @@ class nucleus( torch.nn.Module ):
         num_endpoints = len(random_endpoints)  # in case len(self.permute_uids) < num_endpoints during random_uids select
 
         logger.info(f'Forward \t| Routing forward <dim>[{time.time() - start_time:.3g}s]</dim>')
-        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} (prune_len={prune_len})')
         request_start_time = time.time()
 
         # === Define which synapse we want to use ===
@@ -1032,6 +1032,7 @@ class nucleus( torch.nn.Module ):
         validation_params = (random_uids, query_responses, return_ops, times, routing_score,
                              inputs, val_len, self.loss_fct,
                              self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
+                             self.config.nucleus.logits_divergence,
                              console_width, self.config.logging.debug or self.config.logging.trace)
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
@@ -1061,7 +1062,7 @@ def scaling_law_loss_to_params(loss):
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                 scaling_law_power: float, synergy_scaling_law_power: float,
+                 scaling_law_power: float, synergy_scaling_law_power: float, logits_divergence_penalty: float,
                  console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
@@ -1088,6 +1089,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            logits_divergence_penalty (:obj:`float`, `required`):
+                Penalty scaling for logits divergence.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -1139,7 +1142,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='')
 
-    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
@@ -1166,7 +1169,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
@@ -1188,7 +1191,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                     scaling_law_power: float, synergy_scaling_law_power: float,
+                     scaling_law_power: float, synergy_scaling_law_power: float, logits_divergence_penalty: float,
                      console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
@@ -1215,6 +1218,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            logits_divergence_penalty (:obj:`float`, `required`):
+                Penalty scaling for logits divergence.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -1254,17 +1259,18 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     shapley_start_time = time.time()
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='_nxt')
-    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     divergence_start_time = time.time()
     with torch.no_grad():
         logits_divergence(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
-    logger.info(f'{str(synapse)} \t| Logits divergences <dim>[{time.time() - divergence_start_time:.3g}s]</dim>')
+    logger.info(f'{str(synapse)} \t| Logits divergences (penalty={logits_divergence_penalty}) '
+                f'<dim>[{time.time() - divergence_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
     syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt', scaling_law_power=synergy_scaling_law_power)
-    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     # === Shapley value combination ===
