@@ -401,7 +401,7 @@ class neuron:
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         # Number of tokens to prune for phrase validation beyond sequence context
-        prune_len = self.subtensor.prune_len if self.config.neuron.prune_len == -1 else self.config.neuron.prune_len
+        prune_len = self.config.neuron.prune_len = self.subtensor.prune_len
         min_allowed_weights = self.subtensor.min_allowed_weights
         max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
