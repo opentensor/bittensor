@@ -9,6 +9,9 @@ from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 from .registration import *
 
+RAOPERTAO = 1e9
+U16_MAX = 65535
+U64_MAX = 18446744073709551615
 
 def indexed_values_to_dataframe ( 
         prefix: Union[str, int],
@@ -189,3 +192,12 @@ def strtobool(val: str) -> bool:
     else:
         raise ValueError("invalid truth value %r" % (val,))
 
+def ss58_address_to_bytes(ss58_address: str) -> bytes:
+    """Converts a ss58 address to a bytes object."""
+    return ss58.base58.b58encode(ss58.base58.b58decode(ss58_address))
+
+def U16_NORMALIZED_FLOAT( x: int ) -> float:
+    return float( x ) / float( U16_MAX ) 
+    
+def U64_NORMALIZED_FLOAT( x: int ) -> float:
+    return float( x ) / float( U64_MAX )

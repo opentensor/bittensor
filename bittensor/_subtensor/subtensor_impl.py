@@ -24,6 +24,7 @@ from retry import retry
 from typing import List, Dict, Union, Optional, Tuple
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
+from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
 from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
@@ -39,15 +40,6 @@ from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic
 # Logging
 from loguru import logger
 logger = logger.opt(colors=True)
-
-# Helpers
-RAOPERTAO = 1e9
-U16_MAX = 65535
-U64_MAX = 18446744073709551615
-def U16_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U16_MAX ) 
-def U64_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U64_MAX )
 
 class Subtensor:
     """
