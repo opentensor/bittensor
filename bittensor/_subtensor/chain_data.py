@@ -193,6 +193,27 @@ class DelegateInfo:
     owner_ss58: str # Coldkey of owner
     take: float # Take of the delegate as a percentage
 
+    @classmethod
+    def from_json(cls, json: Dict) -> 'DelegateInfo':
+        r""" Returns a DelegateInfo object from a json dictionary.
+        """
+        delegate_ss58 = cls.__u8_key_to_ss58(json['delegate_ss58'])
+        owner = cls.__u8_key_to_ss58(json['owner_ss58'])
+        take = bittensor.utils.U16_NORMALIZED_FLOAT(json['take'])
+        nominators = [
+            (cls.__u8_key_to_ss58(nom[0]), Balance.from_rao(nom[1]))
+            for nom in json['nominators']
+        ]
+        total_stake = sum([nom[1] for nom in nominators])
+
+        return DelegateInfo(
+            hotkey_ss58=delegate_ss58,
+            take = take,
+            total_stake=total_stake,
+            nominators=nominators,
+            owner_ss58=owner
+        )
+
 
 @dataclass
 class SubnetInfo:
