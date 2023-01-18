@@ -195,7 +195,8 @@ def strtobool(val: str) -> bool:
 
 def ss58_address_to_bytes(ss58_address: str) -> bytes:
     """Converts a ss58 address to a bytes object."""
-    return ss58.base58.b58encode(ss58.base58.b58decode(ss58_address))
+    account_id_hex: str = scalecodec.ss58_decode(ss58_address, bittensor.__ss58_format__)
+    return bytes.fromhex(account_id_hex)
 
 def U16_NORMALIZED_FLOAT( x: int ) -> float:
     return float( x ) / float( U16_MAX ) 
