@@ -5,6 +5,7 @@ import bittensor
 import pandas
 import requests
 import torch
+import scalecodec
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 from .registration import *
@@ -198,6 +199,17 @@ def ss58_address_to_bytes(ss58_address: str) -> bytes:
 
 def U16_NORMALIZED_FLOAT( x: int ) -> float:
     return float( x ) / float( U16_MAX ) 
-    
+
 def U64_NORMALIZED_FLOAT( x: int ) -> float:
     return float( x ) / float( U64_MAX )
+
+def u8_key_to_ss58(u8_key: List[int]) -> str:
+    r"""
+    Converts a u8-encoded account key to an ss58 address.
+
+    Args:
+        u8_key (List[int]): The u8-encoded account key.
+    """
+    # First byte is length, then 32 bytes of key.
+    return scalecodec.ss58_encode( bytes(u8_key).hex(), bittensor.__ss58_format__)
+    

@@ -54,20 +54,13 @@ class NeuronInfo:
     axon_info: 'AxonInfo'
     is_null: bool = False
 
-    @staticmethod
-    def __u8_key_to_ss58(u8_key: Dict) -> str:
-        r""" Converts a u8 key to ss58.
-        """
-        # First byte is length, then 32 bytes of key.
-        return scalecodec.ss58_encode( bytes(u8_key['id']).hex(), bittensor.__ss58_format__)
-        
     @classmethod
     def from_json(cls, json: Dict) -> 'NeuronInfo':
         r""" Returns a NeuronInfo object from a json dictionary.
         """
         return NeuronInfo(
-            hotkey = cls.__u8_key_to_ss58(json['hotkey']),
-            coldkey = cls.__u8_key_to_ss58(json['coldkey']),
+            hotkey = bittensor.utils.u8_key_to_ss58(json['hotkey']['id']),
+            coldkey = bittensor.utils.u8_key_to_ss58(json['coldkey']['id']),
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
@@ -197,11 +190,11 @@ class DelegateInfo:
     def from_json(cls, json: Dict) -> 'DelegateInfo':
         r""" Returns a DelegateInfo object from a json dictionary.
         """
-        delegate_ss58 = cls.__u8_key_to_ss58(json['delegate_ss58'])
-        owner = cls.__u8_key_to_ss58(json['owner_ss58'])
+        delegate_ss58 = bittensor.utils.u8_key_to_ss58(json['delegate_ss58']['id'])
+        owner = bittensor.utils.u8_key_to_ss58(json['owner_ss58']['id'])
         take = bittensor.utils.U16_NORMALIZED_FLOAT(json['take'])
         nominators = [
-            (cls.__u8_key_to_ss58(nom[0]), Balance.from_rao(nom[1]))
+            (bittensor.utils.u8_key_to_ss58(nom[0]['id']), Balance.from_rao(nom[1]))
             for nom in json['nominators']
         ]
         total_stake = sum([nom[1] for nom in nominators])
