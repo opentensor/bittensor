@@ -38,7 +38,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
             str(delegate.hotkey_ss58),
             str(delegate.take),
             str(delegate.owner_ss58),
-            str(delegate.nominators),
+            str(len(delegate.nominators)),
             str(delegate.total_stake),
         )
     bittensor.__console__.print(table)

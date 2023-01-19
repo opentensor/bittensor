@@ -24,6 +24,7 @@ from retry import retry
 from typing import List, Dict, Union, Optional, Tuple
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
+from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
 from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
@@ -39,15 +40,6 @@ from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic
 # Logging
 from loguru import logger
 logger = logger.opt(colors=True)
-
-# Helpers
-RAOPERTAO = 1e9
-U16_MAX = 65535
-U64_MAX = 18446744073709551615
-def U16_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U16_MAX ) 
-def U64_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U64_MAX )
 
 class Subtensor:
     """
@@ -615,26 +607,44 @@ class Subtensor:
         else:
             return 0
 
-    def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
-        delegates = []
-        query_results = self.query_map_paratensor( 'Delegates', block )
-        if query_results.records:
-            for record in query_results.records:
-                delegate_ss58 = record[0].value; take = record[1].value
-                total_stake = self.get_total_stake_for_hotkey( delegate_ss58, block )
-                nominators = self.get_nominators_for_hotkey( delegate_ss58, block )
-                owner = self.get_hotkey_owner( delegate_ss58, block )
-                info = DelegateInfo(
-                    hotkey_ss58=delegate_ss58,
-                    take = U16_NORMALIZED_FLOAT( take ),
-                    total_stake=total_stake,
-                    nominators=len(nominators),
-                    owner_ss58=owner
+    def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[DelegateInfo]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [encoded_hotkey]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegate", # custom rpc method
+                    params=params
                 )
-                delegates.append( info )
-            return delegates
-        else:
+
+        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( hotkey_ss58 )
+        encoded_hotkey: List[int] = [ int( byte ) for byte in hotkey_bytes ]
+        json_body = make_substrate_call_with_retry(encoded_hotkey)
+        if json_body['result'] == None:
+            return None
+            
+        return DelegateInfo.from_json( json_body['result'] )
+
+    def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = []
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegates", # custom rpc method
+                    params=params
+                )
+        json_body = make_substrate_call_with_retry()
+        if json_body['result'] == None:
             return []
+
+        return [DelegateInfo.from_json( delegate ) for delegate in json_body['result']]
 
 
     ########################################
