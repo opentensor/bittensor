@@ -123,6 +123,17 @@ jobs:
             [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep bittensor/__init__.py | wc -l) == 1 ]] && echo "bittensor/__init__.py has changed"
             [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep VERSION | wc -l) == 1 ]] && echo "VERSION has changed"
 
+  check-changelog-updated:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: File CHANGELOG.md is updated
+          command: |
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep CHANGELOG.md | wc -l) == 1 ]] && echo "CHANGELOG.md has changed"
+  
+
 workflows:
   pre-pr:
     jobs:
@@ -137,9 +148,14 @@ workflows:
           #requires:
             #- build-and-test
 
-  check-version-updated:
+  check-release-files-needed:
     jobs:
       - check-version-updated:
+          filters:
+            branches:
+              only:
+                - /^(release|hotfix)/.*/
+      - check-changelog-updated:
           filters:
             branches:
               only:
