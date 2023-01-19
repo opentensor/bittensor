@@ -169,7 +169,7 @@ class neuron:
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
         self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
-                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len)
+                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len + self.subtensor.prune_len)
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
@@ -234,7 +234,7 @@ class neuron:
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch, -1 value means we use the chain value.', default = -1 )
         parser.add_argument('--neuron.epochs_until_reset', type=int, help='Number of epochs before weights are reset.', default = -1 )
         parser.add_argument('--neuron.validation_len', type=int, help='Number of tokens to holdout for phrase validation beyond sequence context.', default=8)
-        parser.add_argument('--neuron.prune_len', type=int, help='Number of tokens to prune from each validation input sequence.', default=1)
+        parser.add_argument('--neuron.prune_len', type=int, help='Number of tokens to prune from each validation input sequence.  (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
         parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0 )
         parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
@@ -400,13 +400,15 @@ class neuron:
         batch_size = self.subtensor.validator_batch_size 
         sequence_length = self.subtensor.validator_sequence_length
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
-        prune_len = self.config.neuron.prune_len  # Number of tokens to holdout for phrase validation beyond sequence context
+        # Number of tokens to prune for phrase validation beyond sequence context
+        prune_len = self.config.neuron.prune_len = self.subtensor.prune_len
         min_allowed_weights = self.subtensor.min_allowed_weights
         max_weight_limit = self.subtensor.max_weight_limit
         blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
         epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
         self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
+        self.config.nucleus.logits_divergence = self.subtensor.logits_divergence
 
         # === Logs Prometheus ===
         self.prometheus_gauges.labels("current_block").set( current_block )
@@ -688,7 +690,7 @@ class neuron:
 
                 if 'logits_excess_nxt' in stats:
                     # penalize by logits divergence excess
-                    extra_stats['shapley_values_nxt'] /= 1 + stats['logits_excess_nxt']
+                    extra_stats['shapley_values_nxt'] /= 1 + self.config.nucleus.logits_divergence * stats['logits_excess_nxt']
 
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
@@ -825,6 +827,7 @@ class nucleus( torch.nn.Module ):
 
         self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
         self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+        self.config.nucleus.logits_divergence = subtensor.logits_divergence if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
 
         self.device = device
         self.max_n = subtensor.max_n
@@ -872,6 +875,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.no_dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
         parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
+        parser.add_argument('--nucleus.logits_divergence', type=float, help=' the divergence value for logit anomaly detection (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
     def config ( cls ):
@@ -983,7 +987,7 @@ class nucleus( torch.nn.Module ):
         num_endpoints = len(random_endpoints)  # in case len(self.permute_uids) < num_endpoints during random_uids select
 
         logger.info(f'Forward \t| Routing forward <dim>[{time.time() - start_time:.3g}s]</dim>')
-        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)}')
+        logger.info(f'Dendrite \t| Request {num_endpoints} x {list(inputs_seq.shape)} (prune_len={prune_len})')
         request_start_time = time.time()
 
         # === Define which synapse we want to use ===
@@ -1028,6 +1032,7 @@ class nucleus( torch.nn.Module ):
         validation_params = (random_uids, query_responses, return_ops, times, routing_score,
                              inputs, val_len, self.loss_fct,
                              self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
+                             self.config.nucleus.logits_divergence,
                              console_width, self.config.logging.debug or self.config.logging.trace)
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
@@ -1057,7 +1062,7 @@ def scaling_law_loss_to_params(loss):
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                  inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                 scaling_law_power: float, synergy_scaling_law_power: float,
+                 scaling_law_power: float, synergy_scaling_law_power: float, logits_divergence_penalty: float,
                  console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
@@ -1084,6 +1089,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            logits_divergence_penalty (:obj:`float`, `required`):
+                Penalty scaling for logits divergence.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -1135,7 +1142,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='')
 
-    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
@@ -1162,7 +1169,7 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
             if hasattr(s[key], 'item'):
                 s[key] = s[key].item()
 
-    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     if logging:
@@ -1184,8 +1191,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
                      inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
-                     scaling_law_power: float, synergy_scaling_law_power: float,
-                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
+                     scaling_law_power: float, synergy_scaling_law_power: float, logits_divergence_penalty: float,
+                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -1211,6 +1218,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             synergy_scaling_law_power (:obj:`float`, `required`):
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
+            logits_divergence_penalty (:obj:`float`, `required`):
+                Penalty scaling for logits divergence.
             console_width (:obj:`int`, `required`):
                 Config console width for table print.
             logging (:obj:`bool`, `required`):
@@ -1250,17 +1259,18 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
     shapley_start_time = time.time()
     loss, stats, unsuccessful = shapley_base(uids, query_responses, return_ops, times, routing_score,
                                              _base_params, index_s, ext='_nxt')
-    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley base values (power={scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - shapley_start_time:.3g}s]</dim>')
 
     divergence_start_time = time.time()
     with torch.no_grad():
         logits_divergence(stats, uids, query_responses, return_ops, times, index_s, ext='_nxt')
-    logger.info(f'{str(synapse)} \t| Logits divergences <dim>[{time.time() - divergence_start_time:.3g}s]</dim>')
+    logger.info(f'{str(synapse)} \t| Logits divergences (penalty={logits_divergence_penalty}) '
+                f'<dim>[{time.time() - divergence_start_time:.3g}s]</dim>')
 
     synergy_start_time = time.time()
     syn_loss_diff = shapley_synergy(stats, _synergy, '_nxt', scaling_law_power=synergy_scaling_law_power)
-    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f})'
+    logger.info(f'{str(synapse)} \t| Shapley synergy values (power={synergy_scaling_law_power:.1f}) '
                 f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
 
     # === Shapley value combination ===
