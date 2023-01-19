@@ -65,7 +65,7 @@ class NeuronInfo:
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            stake = { cls.__u8_key_to_ss58(stake[0]): Balance.from_rao(stake[1]) for stake in json['stake']},
+            stake = { bittensor.utils.u8_key_to_ss58(stake[0]): Balance.from_rao(stake[1]) for stake in json['stake']},
             total_stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
             rank = json['rank'] / U16_MAX,
             emission = json['emission'] / RAOPERTAO,
