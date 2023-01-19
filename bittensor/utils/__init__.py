@@ -5,10 +5,14 @@ import bittensor
 import pandas
 import requests
 import torch
+import scalecodec
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 from .registration import *
 
+RAOPERTAO = 1e9
+U16_MAX = 65535
+U64_MAX = 18446744073709551615
 
 def indexed_values_to_dataframe ( 
         prefix: Union[str, int],
@@ -230,3 +234,24 @@ def get_explorer_url_for_network(network: str, block_hash: str) -> Optional[str]
         explorer_url = "{root_url}/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
     
     return explorer_url
+
+def ss58_address_to_bytes(ss58_address: str) -> bytes:
+    """Converts a ss58 address to a bytes object."""
+    account_id_hex: str = scalecodec.ss58_decode(ss58_address, bittensor.__ss58_format__)
+    return bytes.fromhex(account_id_hex)
+
+def U16_NORMALIZED_FLOAT( x: int ) -> float:
+    return float( x ) / float( U16_MAX ) 
+
+def U64_NORMALIZED_FLOAT( x: int ) -> float:
+    return float( x ) / float( U64_MAX )
+
+def u8_key_to_ss58(u8_key: List[int]) -> str:
+    r"""
+    Converts a u8-encoded account key to an ss58 address.
+
+    Args:
+        u8_key (List[int]): The u8-encoded account key.
+    """
+    # First byte is length, then 32 bytes of key.
+    return scalecodec.ss58_encode( bytes(u8_key).hex(), bittensor.__ss58_format__)
