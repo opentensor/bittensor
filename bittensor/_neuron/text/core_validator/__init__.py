@@ -146,9 +146,9 @@ class neuron:
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.
         self.axon = bittensor.axon ( netuid=self.config.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
         self.device = torch.device ( device = self.config.neuron.device )    
-        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
-        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.netuid),
-                                          block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
+        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor ).to( self.device )
+        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
+                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len + self.subtensor.prune_len)
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
@@ -376,14 +376,25 @@ class neuron:
         sequence_length = self.subtensor.validator_sequence_length(netuid=self.config.netuid)
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         # Number of tokens to prune for phrase validation beyond sequence context
-        prune_len = self.config.neuron.prune_len = self.subtensor.validator_prune_len(netuid=self.config.netuid)
-        self.config.nucleus.logits_divergence = self.subtensor.validator_logits_divergence(netuid=self.config.netuid)
-        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)
-        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
-        blocks_per_epoch = self.subtensor.validator_epoch_length(netuid=self.config.netuid) if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
-        epochs_until_reset = self.subtensor.validator_epochs_per_reset(netuid=self.config.netuid) if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
-        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power(netuid=self.config.netuid)
-        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power(netuid=self.config.netuid)
+        prune_len = self.config.neuron.prune_len = self.subtensor.prune_len
+        min_allowed_weights = self.subtensor.min_allowed_weights
+        max_weight_limit = self.subtensor.max_weight_limit
+        blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+        epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
+        self.config.nucleus.logits_divergence = self.subtensor.logits_divergence
+
+        # === Logs Prometheus ===
+        self.prometheus_gauges.labels("current_block").set( current_block )
+        self.prometheus_gauges.labels("batch_size").set( batch_size )
+        self.prometheus_gauges.labels("sequence_length").set( sequence_length )
+        self.prometheus_gauges.labels("validation_len").set( validation_len )
+        self.prometheus_gauges.labels("min_allowed_weights").set( min_allowed_weights )
+        self.prometheus_gauges.labels("blocks_per_epoch").set( blocks_per_epoch )
+        self.prometheus_gauges.labels("epochs_until_reset").set( epochs_until_reset )
+        self.prometheus_gauges.labels("scaling_law_power").set( self.config.nucleus.scaling_law_power )
+        self.prometheus_gauges.labels("synergy_scaling_law_power").set( self.config.nucleus.synergy_scaling_law_power )
 
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len + prune_len != self.dataset.block_size):
@@ -751,10 +762,10 @@ class nucleus( torch.nn.Module ):
     def __init__( self, config, device, subtensor, vlogger ):
         super(nucleus, self).__init__()
         self.config = config
-        self.vlogger = vlogger
-        self.config.nucleus.logits_divergence = subtensor.validator_logits_divergence(netuid=self.config.netuid) if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
-        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+
+        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+        self.config.nucleus.logits_divergence = subtensor.logits_divergence if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
 
         self.device = device
         self.max_n = subtensor.max_n(netuid=self.config.netuid)
@@ -956,21 +967,11 @@ class nucleus( torch.nn.Module ):
 
         # === Prepare validation parameter set ===
         console_width = self.config.get('width', None)  # console width for rich table displays of synapse measures
-        validation_params = {
-            'uids': random_uids, 
-            'query_responses': query_responses, 
-            'return_ops': return_ops, 
-            'times': times, 
-            'routing_score': routing_score,
-            'inputs': inputs, 
-            'validation_len': val_len, 
-            'loss_fct': self.loss_fct,
-            'logits_divergence_penalty':self.config.nucleus.logits_divergence,
-            'scaling_law_power': self.config.nucleus.scaling_law_power, 
-            'synergy_scaling_law_power': self.config.nucleus.synergy_scaling_law_power,
-            'vlogger': self.vlogger,
-            'logging': self.config.logging.debug or self.config.logging.trace
-        }
+        validation_params = (random_uids, query_responses, return_ops, times, routing_score,
+                             inputs, val_len, self.loss_fct,
+                             self.config.nucleus.scaling_law_power, self.config.nucleus.synergy_scaling_law_power,
+                             self.config.nucleus.logits_divergence,
+                             console_width, self.config.logging.debug or self.config.logging.trace)
 
         loss = torch.tensor(0.).to(self.device)  # to accumulate neuron_loss and routing_loss over synapses
         neuron_stats = {}  # to gather neuron synapse validation measures and statistics
@@ -997,9 +998,9 @@ def scaling_law_loss_to_params(loss):
 
 def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                  times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
-                 inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,                 
-                 scaling_law_power: float, synergy_scaling_law_power: float, vlogger: ValidatorLogger,
-                 logits_divergence_penalty: float,logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
+                 inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
+                 scaling_law_power: float, synergy_scaling_law_power: float, logits_divergence_penalty: float,
+                 console_width: int, logging, synapse: 'bittensor.TextCausalLM' = None, index_s: int = 0
                  ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLM synapse responses.
@@ -1027,8 +1028,8 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             logits_divergence_penalty (:obj:`float`, `required`):
                 Penalty scaling for logits divergence.
-            vlogger (:obj:`ValidatorLogger`, `required`):
-                Logger for validator.
+            console_width (:obj:`int`, `required`):
+                Config console width for table print.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLM`, `optional`):
@@ -1125,9 +1126,9 @@ def textcausallm(uids: torch.Tensor, query_responses: List[List[torch.FloatTenso
 
 def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatTensor]], return_ops: List[torch.LongTensor],
                      times: List[torch.FloatTensor], routing_score: torch.FloatTensor,
-                     inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,                     
-                     scaling_law_power: float, synergy_scaling_law_power: float, vlogger:ValidatorLogger,
-                     logits_divergence_penalty: float,logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0
+                     inputs: torch.FloatTensor, validation_len: int, loss_fct: Callable,
+                     scaling_law_power: float, synergy_scaling_law_power: float, logits_divergence_penalty: float,
+                     console_width: int, logging, synapse: 'bittensor.TextCausalLMNext' = None, index_s: int = 0,
                      ) -> Tuple[torch.FloatTensor, Dict]:
     r"""
     Calculate Shapley values and neuron response validation measure statistics, given TextCausalLMNext synapse responses.
@@ -1155,8 +1156,8 @@ def textcausallmnext(uids: torch.Tensor, query_responses: List[List[torch.FloatT
                 Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5.
             logits_divergence_penalty (:obj:`float`, `required`):
                 Penalty scaling for logits divergence.
-            vlogger (:obj:`ValidatorLogger`, `required`):
-                Logger for validator.
+            console_width (:obj:`int`, `required`):
+                Config console width for table print.
             logging (:obj:`bool`, `required`):
                 Log tables to console.
             synapse (:obj:`bittensor.TextCausalLMNext`, `optional`):
