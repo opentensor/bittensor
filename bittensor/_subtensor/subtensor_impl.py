@@ -281,6 +281,8 @@ class Subtensor:
         """ Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey. """
         return unstake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
 
+   
+
     def unstake (
         self,
         wallet: 'bittensor.wallet',
