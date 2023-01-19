@@ -24,6 +24,7 @@ from retry import retry
 from typing import List, Dict, Union, Optional, Tuple
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
+from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
 from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
@@ -39,15 +40,6 @@ from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic
 # Logging
 from loguru import logger
 logger = logger.opt(colors=True)
-
-# Helpers
-RAOPERTAO = 1e9
-U16_MAX = 65535
-U64_MAX = 18446744073709551615
-def U16_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U16_MAX ) 
-def U64_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U64_MAX )
 
 class Subtensor:
     """
@@ -558,35 +550,46 @@ class Subtensor:
             return []
 
     def get_all_subnets_info( self, block: Optional[int] = None ) -> List[SubnetInfo]:
-        all_subnets = self.get_subnets( block )
-        return [ self.get_subnet_info( netuid ) for netuid in all_subnets]
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = []
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="subnetInfo_getSubnetsInfo", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result == None:
+            return []
+        
+        return [ SubnetInfo.from_json(subnet_info) for subnet_info in result ]
 
     def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
-        if not self.subnet_exists( netuid ): return None
-        return SubnetInfo(
-            netuid=netuid,
-            blocks_per_epoch = 0,
-            rho = self.rho( netuid, block ),
-            kappa = self.kappa( netuid, block ),
-            difficulty = self.difficulty( netuid, block ),
-            immunity_period = self.immunity_period( netuid, block ),
-            validator_batch_size = self.validator_batch_size( netuid, block ),
-            validator_sequence_length = self.validator_sequence_length( netuid, block ),
-            validator_epochs_per_reset = self.validator_epochs_per_reset( netuid, block ),
-            validator_epoch_length = self.validator_epoch_length( netuid, block ),
-            min_allowed_weights = self.min_allowed_weights( netuid, block ),
-            max_weight_limit = self.max_weight_limit( netuid, block ),
-            scaling_law_power = self.scaling_law_power( netuid, block ),
-            synergy_scaling_law_power = self.synergy_scaling_law_power( netuid, block ),
-            subnetwork_n = self.subnetwork_n( netuid, block ),
-            max_n = self.max_n( netuid, block ),
-            blocks_since_epoch = self.blocks_since_epoch( netuid, block ),
-            max_allowed_validators = self.max_allowed_validators( netuid, block ),
-            emission_value = self.get_emission_value_by_subnet( netuid, block ),
-            tempo= self.tempo( netuid, block ),
-            modality= self.get_subnet_modality( netuid, block ),
-            connection_requirements = {},
-        )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="subnetInfo_getSubnetInfo", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result == None:
+            return None
+        
+        return SubnetInfo.from_json(result)
         
     ####################
     #### Nomination ####
@@ -604,26 +607,44 @@ class Subtensor:
         else:
             return 0
 
-    def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
-        delegates = []
-        query_results = self.query_map_paratensor( 'Delegates', block )
-        if query_results.records:
-            for record in query_results.records:
-                delegate_ss58 = record[0].value; take = record[1].value
-                total_stake = self.get_total_stake_for_hotkey( delegate_ss58, block )
-                nominators = self.get_nominators_for_hotkey( delegate_ss58, block )
-                owner = self.get_hotkey_owner( delegate_ss58, block )
-                info = DelegateInfo(
-                    hotkey_ss58=delegate_ss58,
-                    take = U16_NORMALIZED_FLOAT( take ),
-                    total_stake=total_stake,
-                    nominators=len(nominators),
-                    owner_ss58=owner
+    def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[DelegateInfo]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [encoded_hotkey]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegate", # custom rpc method
+                    params=params
                 )
-                delegates.append( info )
-            return delegates
-        else:
+
+        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( hotkey_ss58 )
+        encoded_hotkey: List[int] = [ int( byte ) for byte in hotkey_bytes ]
+        json_body = make_substrate_call_with_retry(encoded_hotkey)
+        if json_body['result'] == None:
+            return None
+            
+        return DelegateInfo.from_json( json_body['result'] )
+
+    def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = []
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegates", # custom rpc method
+                    params=params
+                )
+        json_body = make_substrate_call_with_retry()
+        if json_body['result'] == None:
             return []
+
+        return [DelegateInfo.from_json( delegate ) for delegate in json_body['result']]
 
 
     ########################################

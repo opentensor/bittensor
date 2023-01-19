@@ -55,20 +55,13 @@ class NeuronInfo:
     axon_info: 'AxonInfo'
     is_null: bool = False
 
-    @staticmethod
-    def __u8_key_to_ss58(u8_key: Dict) -> str:
-        r""" Converts a u8 key to ss58.
-        """
-        # First byte is length, then 32 bytes of key.
-        return scalecodec.ss58_encode( bytes(u8_key['id']).hex(), bittensor.__ss58_format__)
-        
     @classmethod
     def from_json(cls, json: Dict) -> 'NeuronInfo':
         r""" Returns a NeuronInfo object from a json dictionary.
         """
         return NeuronInfo(
-            hotkey = cls.__u8_key_to_ss58(json['hotkey']),
-            coldkey = cls.__u8_key_to_ss58(json['coldkey']),
+            hotkey = bittensor.utils.u8_key_to_ss58(json['hotkey']['id']),
+            coldkey = bittensor.utils.u8_key_to_ss58(json['coldkey']['id']),
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
@@ -197,6 +190,27 @@ class DelegateInfo:
     owner_ss58: str # Coldkey of owner
     take: float # Take of the delegate as a percentage
 
+    @classmethod
+    def from_json(cls, json: Dict) -> 'DelegateInfo':
+        r""" Returns a DelegateInfo object from a json dictionary.
+        """
+        delegate_ss58 = bittensor.utils.u8_key_to_ss58(json['delegate_ss58']['id'])
+        owner = bittensor.utils.u8_key_to_ss58(json['owner_ss58']['id'])
+        take = bittensor.utils.U16_NORMALIZED_FLOAT(json['take'])
+        nominators = [
+            (bittensor.utils.u8_key_to_ss58(nom[0]['id']), Balance.from_rao(nom[1]))
+            for nom in json['nominators']
+        ]
+        total_stake = sum([nom[1] for nom in nominators])
+
+        return DelegateInfo(
+            hotkey_ss58=delegate_ss58,
+            take = take,
+            total_stake=total_stake,
+            nominators=nominators,
+            owner_ss58=owner
+        )
+
 
 @dataclass
 class SubnetInfo:
@@ -221,8 +235,35 @@ class SubnetInfo:
     max_n: int
     blocks_since_epoch: int
     tempo: int
-    blocks_per_epoch: int
     modality: int
     connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
+
+    @classmethod
+    def from_json(cls, json: Dict) -> 'SubnetInfo':
+        r""" Returns a SubnetInfo object from a json dictionary.
+        """
+        return SubnetInfo(
+            netuid = json['netuid'],
+            rho = json['rho'],
+            kappa = json['kappa'],
+            difficulty = json['difficulty'],
+            immunity_period = json['immunity_period'],
+            validator_batch_size = json['validator_batch_size'],
+            validator_sequence_length = json['validator_sequence_length'],
+            validator_epochs_per_reset = json['validator_epochs_per_reset'],
+            validator_epoch_length = json['validator_epoch_length'],
+            max_allowed_validators = json['max_allowed_validators'],
+            min_allowed_weights = json['min_allowed_weights'],
+            max_weight_limit = json['max_weights_limit'],
+            scaling_law_power = json['scaling_law_power'],
+            synergy_scaling_law_power= json['synergy_scaling_law_power'],
+            subnetwork_n = json['subnetwork_n'],
+            max_n = json['max_allowed_uids'],
+            blocks_since_epoch = json['blocks_since_last_step'],
+            tempo = json['tempo'],
+            modality = json['network_modality'],
+            connection_requirements= json['network_connect'],
+            emission_value= json['emission_values'],
+        )
     
