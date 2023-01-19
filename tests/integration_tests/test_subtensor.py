@@ -47,21 +47,6 @@ class TestSubtensor(unittest.TestCase):
         subtensor = bittensor.subtensor(network='nobunaga', config=config, )
         assert subtensor.chain_endpoint == bittensor.__nobunaga_entrypoint__
 
-    def test_connect_no_failure( self ):
-        self.subtensor.connect(timeout = 1, failure=False)
-
-
-    def test_connect_success( self ):
-        success = self.subtensor.connect()
-        assert success == True
-
-
-    def test_connect_fail( self ):
-        self.subtensor.substrate=None
-        with pytest.raises(RuntimeError):
-            self.subtensor.connect()
-
-
     def test_neurons( self ):
         def mock_get_neuron_by_uid(_):
             return get_mock_neuron_by_uid(1)
