@@ -613,22 +613,19 @@ def test_two_subtensor_ownership():
 
 def test_subtensor_mock_functions():
     sub = bittensor.subtensor(_mock=True)
-    sub.n
     sub.total_issuance
     sub.total_stake
-    sub.immunity_period
-    sub.rho
-    sub.kappa
-    sub.blocks_per_epoch
-    sub.blocks_since_epoch
-    sub.max_n
-    sub.max_allowed_min_max_ratio
-    sub.min_allowed_weights
-    sub.validator_epoch_length
-    sub.validator_epochs_per_reset
-    sub.validator_sequence_length
-    sub.validator_batch_size
-    sub.difficulty
+    sub.immunity_period(netuid = -1)
+    sub.rho(netuid = -1)
+    sub.kappa(netuid = -1)
+    sub.blocks_since_epoch(netuid = -1)
+    sub.max_n(netuid = -1)
+    sub.min_allowed_weights(netuid = -1)
+    sub.validator_epoch_length(netuid = -1)
+    sub.validator_epochs_per_reset(netuid = -1)
+    sub.validator_sequence_length(netuid = -1)
+    sub.validator_batch_size(netuid = -1)
+    sub.difficulty(netuid = -1)
 
 if __name__ == "__main__":
     unittest.main()
