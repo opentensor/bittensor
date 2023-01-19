@@ -558,35 +558,46 @@ class Subtensor:
             return []
 
     def get_all_subnets_info( self, block: Optional[int] = None ) -> List[SubnetInfo]:
-        all_subnets = self.get_subnets( block )
-        return [ self.get_subnet_info( netuid ) for netuid in all_subnets]
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = []
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="subnetInfo_getSubnetsInfo", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result == None:
+            return []
+        
+        return [ SubnetInfo.from_json(subnet_info) for subnet_info in result ]
 
     def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
-        if not self.subnet_exists( netuid ): return None
-        return SubnetInfo(
-            netuid=netuid,
-            blocks_per_epoch = 0,
-            rho = self.rho( netuid, block ),
-            kappa = self.kappa( netuid, block ),
-            difficulty = self.difficulty( netuid, block ),
-            immunity_period = self.immunity_period( netuid, block ),
-            validator_batch_size = self.validator_batch_size( netuid, block ),
-            validator_sequence_length = self.validator_sequence_length( netuid, block ),
-            validator_epochs_per_reset = self.validator_epochs_per_reset( netuid, block ),
-            validator_epoch_length = self.validator_epoch_length( netuid, block ),
-            min_allowed_weights = self.min_allowed_weights( netuid, block ),
-            max_weight_limit = self.max_weight_limit( netuid, block ),
-            scaling_law_power = self.scaling_law_power( netuid, block ),
-            synergy_scaling_law_power = self.synergy_scaling_law_power( netuid, block ),
-            subnetwork_n = self.subnetwork_n( netuid, block ),
-            max_n = self.max_n( netuid, block ),
-            blocks_since_epoch = self.blocks_since_epoch( netuid, block ),
-            max_allowed_validators = self.max_allowed_validators( netuid, block ),
-            emission_value = self.get_emission_value_by_subnet( netuid, block ),
-            tempo= self.tempo( netuid, block ),
-            modality= self.get_subnet_modality( netuid, block ),
-            connection_requirements = {},
-        )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="subnetInfo_getSubnetInfo", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result == None:
+            return None
+        
+        return SubnetInfo.from_json(result)
         
     ####################
     #### Nomination ####
