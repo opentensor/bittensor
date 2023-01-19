@@ -1,0 +1,105 @@
+#!/bin/bash
+
+####
+# Utils
+####
+source ${BASH_SOURCE%/*}/utils.sh
+source ${BASH_SOURCE%/*}/github_utils.sh
+###
+
+# 1. Get options
+
+## Defaults
+APPLY="false"
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -A|--apply)
+      APPLY="true"
+      shift # past argument
+      ;;
+    -P|--previous-version-tag)
+      PREV_TAG_VERSION="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -V|--version)
+      VERSION="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -T|--github-token)
+      GITHUB_TOKEN="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+if [[ -z $GITHUB_TOKEN && apply == "true" ]]; then
+  echo_error "Github token required (-T, --github-token)"
+  exit 1
+fi
+
+if [[ -z $PREV_TAG_VERSION ]]; then
+  echo_error "Previous version tag required (-P, --previous-version-tag)"
+  exit 1
+fi
+
+if [[ -z $VERSION ]]; then
+  echo_error "Version to release required (-V, --version)"
+  exit 1
+fi
+
+# 2. Github
+DATE=$(date +"%Y-%m-%d")
+RELEASE_NAME="$VERSION / $DATE"
+PREV_TAG_NAME=$PREV_TAG_VERSION
+TAG_NAME=v$VERSION
+
+# 2.1 Create Git tag for the repository
+if [[ $APPLY == "true" ]]; then
+  echo_info "Tagging repository"
+  tag_repository $TAG_NAME
+else
+  echo_warning "Dry run execution. Not tagging Github repo"
+fi
+
+# 2.2. Generate release notes
+if [[ $APPLY == "true" ]]; then
+  echo_info "Generating Github release notes"
+  RESPONSE=$(generate_github_release_notes $GITHUB_TOKEN)
+  DESCRIPTION=$(echo $RESPONSE | jq '.body' | tail -1 | sed "s/\"//g")
+
+  if [ $(echo $RESPONSE | jq '.body' | wc -l) -eq 1 ]; then
+    if [ $(echo $RESPONSE | jq '.' | grep 'documentation_url' | wc -l) -gt 0 ]; then
+      echo_error "Something went wrong generating Github release notes"
+      echo $RESPONSE | jq --slurp '.[0]'
+      exit 1
+    fi
+  
+    if [ $(echo $RESPONSE | jq '.type' | grep 'error' | wc -l) -gt 0 ]; then
+      echo_error "Something went wrong generating Github release notes"
+      echo $RESPONSE | jq --slurp '.[1]'
+      exit 1
+    fi
+  fi
+else
+    echo_warning "Dry run execution. Not generating Github release notes"
+fi
+
+# 2.3 Create Github release
+if [[ $APPLY == "true" ]]; then
+    echo_info "Generating Github release"
+    create_github_release $GITHUB_TOKEN
+else
+    echo_warning "Dry run execution. Not creating Github release"
+fi
