@@ -57,6 +57,7 @@ class TestCli(unittest.TestCase):
     def construct_config():
         defaults = bittensor.Config()
         bittensor.subtensor.add_defaults( defaults )
+        defaults.subtensor.network = 'mock'
         bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
         bittensor.wallet.add_defaults( defaults )
@@ -1399,6 +1400,8 @@ class TestCLIUsingArgs(unittest.TestCase):
                 with pytest.raises(SystemExit):
                     cli = bittensor.cli(args=[
                         'run',
+                        '--netuid', '-1',
+                        '--subtensor.network', 'mock',
                         '--wallet.name', 'mock',
                         '--wallet.hotkey', 'mock_hotkey',
                         '--wallet._mock', 'True',
@@ -1425,6 +1428,8 @@ class TestCLIUsingArgs(unittest.TestCase):
                 with pytest.raises(MockException):
                     cli = bittensor.cli(args=[
                         'run',
+                        '--netuid', '-1',
+                        '--subtensor.network', 'mock',
                         '--wallet.name', 'mock',
                         '--wallet.hotkey', 'mock_hotkey',
                         '--wallet._mock', 'True',
