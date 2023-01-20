@@ -19,20 +19,21 @@
 
 import unittest
 from types import SimpleNamespace
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from unittest.mock import ANY, MagicMock, call, patch
 import pytest
 
 import bittensor
 import substrateinterface
 from scalecodec import ss58_encode
-from bittensor._subtensor.subtensor_mock import mock_subtensor
+from bittensor._subtensor.subtensor_mock import mock_subtensor, Mock_Subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface.base import Keypair
 from tests.helpers import CLOSE_IN_VALUE, get_mock_neuron
 
 
 class TestCli(unittest.TestCase):
+    _patches: List['unittest.mock._patcher']
 
     def setUp(self):
         class success():
@@ -45,13 +46,24 @@ class TestCli(unittest.TestCase):
         self.config = TestCli.construct_config()
         # Mocked objects
         self.mock_neuron = get_mock_neuron( )
+        self._patches = []
+        self._patches.append(patch('substrateinterface.SubstrateInterface.submit_extrinsic', return_value=success()))
+        self._patches.append(patch('substrateinterface.SubstrateInterface.compose_call', return_value=MagicMock()))
+        self._patches.append(patch('substrateinterface.SubstrateInterface.create_signed_extrinsic'))
+        self._patches.append(patch('substrateinterface.SubstrateInterface.query', return_value=success()))
+        self._patches.append(patch('substrateinterface.SubstrateInterface.get_block_hash', return_value='0x'))
+
+        for _patch in self._patches:
+            _patch.start()
+
         bittensor.Subtensor.register = MagicMock(return_value = True) 
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         bittensor.Subtensor.neuron_for_uid = MagicMock(return_value=self.mock_neuron)
-        substrateinterface.SubstrateInterface.submit_extrinsic = MagicMock(return_value = success()) 
-        substrateinterface.SubstrateInterface.query = MagicMock(return_value=success())
-        substrateinterface.SubstrateInterface.get_block_hash = MagicMock(return_value='0x')
         bittensor.Subtensor.get_balance = MagicMock(return_value = Balance.from_tao(0))
+
+    def tearDown(self) -> None:
+        for _patch in self._patches:
+            _patch.stopall()
 
     @staticmethod
     def construct_config():
