@@ -194,6 +194,16 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         """
         return [-1] 
 
+    def subnet_exists( self, netuid: int, block: Optional[int] = None ) -> bool:
+        r""" Returns true if the subnet exists.
+        """
+        return netuid == -1
+
+    def get_all_subnet_netuids( self, block: Optional[int] = None ) -> List[int]:
+        r""" Returns the list of netuids in the chain.
+        """
+        return [-1]
+
     def neurons(self, netuid: int = -1, block: Optional[int] = None ) -> List['bittensor.NeuronInfo']: 
         r"""Mock Function: Returns the list of neurons in the chain.
         """
