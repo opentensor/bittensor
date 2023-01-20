@@ -548,6 +548,23 @@ class TestSubtensor(unittest.TestCase):
                     assert mock_not_stale.call_count == 2
                     assert mock_substrate_enter.call_count == 1 # only tries to submit once, then exits
 
+    def test_subtensor_mock_functions(self):
+        with patch('substrateinterface.SubstrateInterface.query'):
+            sub = bittensor.subtensor(_mock=True)
+            sub.total_issuance
+            sub.total_stake
+            sub.immunity_period(netuid = -1)
+            sub.rho(netuid = -1)
+            sub.kappa(netuid = -1)
+            sub.blocks_since_epoch(netuid = -1)
+            sub.max_n(netuid = -1)
+            sub.min_allowed_weights(netuid = -1)
+            sub.validator_epoch_length(netuid = -1)
+            sub.validator_epochs_per_reset(netuid = -1)
+            sub.validator_sequence_length(netuid = -1)
+            sub.validator_batch_size(netuid = -1)
+            sub.difficulty(netuid = -1)
+
 
 def test_subtensor_mock():
     mock_subtensor.kill_global_mock_process()
@@ -610,22 +627,6 @@ def test_two_subtensor_ownership():
     del ( sub1 )
     time.sleep(2)
     assert not mock_subtensor.global_mock_process_is_running()
-
-def test_subtensor_mock_functions():
-    sub = bittensor.subtensor(_mock=True)
-    sub.total_issuance
-    sub.total_stake
-    sub.immunity_period(netuid = -1)
-    sub.rho(netuid = -1)
-    sub.kappa(netuid = -1)
-    sub.blocks_since_epoch(netuid = -1)
-    sub.max_n(netuid = -1)
-    sub.min_allowed_weights(netuid = -1)
-    sub.validator_epoch_length(netuid = -1)
-    sub.validator_epochs_per_reset(netuid = -1)
-    sub.validator_sequence_length(netuid = -1)
-    sub.validator_batch_size(netuid = -1)
-    sub.difficulty(netuid = -1)
 
 if __name__ == "__main__":
     unittest.main()
