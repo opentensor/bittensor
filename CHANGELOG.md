@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.6.3 / 2023-01-21
+
+## What's Changed
+* [hotfix][3.6.3] Fixing no version checking by @eduardogr in https://github.com/opentensor/bittensor/pull/1063
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.6.2...v3.6.3
+
+
 ## 3.6.2 / 2023-01-19
 
 ## What's Changed
