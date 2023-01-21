@@ -48,7 +48,9 @@ class TestCli(unittest.TestCase):
         self.mock_neuron = get_mock_neuron( )
         self._patches = []
         self._patches.append(patch('substrateinterface.SubstrateInterface.submit_extrinsic', return_value=success()))
-        self._patches.append(patch('substrateinterface.SubstrateInterface.get_payment_info', return_value=True))
+        self._patches.append(patch('substrateinterface.SubstrateInterface.get_payment_info', return_value={
+            'partialFee': 1,
+        }))
         self._patches.append(patch('substrateinterface.SubstrateInterface.compose_call', return_value=MagicMock()))
         self._patches.append(patch('substrateinterface.SubstrateInterface.create_signed_extrinsic'))
         self._patches.append(patch('substrateinterface.SubstrateInterface.query', return_value=success()))
@@ -64,7 +66,8 @@ class TestCli(unittest.TestCase):
 
     def tearDown(self) -> None:
         for _patch in self._patches:
-            _patch.stopall()
+            if getattr(_patch, 'stopall', None):
+                _patch.stopall()
 
     @staticmethod
     def construct_config():
