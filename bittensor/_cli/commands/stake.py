@@ -79,6 +79,18 @@ class StakeCommand:
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
             hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
+            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey ):
+                # Hotkey is not registered.
+                if (len(hotkeys_to_stake_to) == 1):
+                    # Only one hotkey, error
+                    bittensor.__console__.print(f"[red]Hotkey [bold]{hotkey}[/bold] is not registered. Aborting.[/red]")
+                    return None
+                else:
+                    # Otherwise, print warning and skip
+                    bittensor.__console__.print(f"[yellow]Hotkey [bold]{hotkey}[/bold] is not registered. Skipping.[/yellow]")
+                    continue
+
+
             stake_amount_tao: float = config.get('amount')
             if config.get('max_stake'):
                 # Get the current stake of the hotkey from this coldkey.
