@@ -72,9 +72,10 @@ Querying the network for generations.
 
 ```python
 import bittensor
+subtensor = bittensor.subtensor( network = 'nakamoto' )
 wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
-print ( bittensor.dendrite( wallet = wallet ).generate
+print ( bittensor.dendrite( subtensor = subtensor, wallet = wallet ).generate
         ( 
             endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
             prompt = "The quick brown fox jumped over the lazy dog", 
@@ -87,9 +88,10 @@ Querying the network for representations.
 
 ```python
 import bittensor
+subtensor = bittensor.subtensor( network = 'nakamoto' )
 wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
-print ( bittensor.dendrite( wallet = wallet ).text_last_hidden_state
+print ( bittensor.dendrite( subtensor = subtensor, wallet = wallet ).text_last_hidden_state
         (
             endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
             inputs = "The quick brown fox jumped over the lazy dog"
@@ -125,13 +127,16 @@ def backward_text( pubkey, inputs_x, grads_dy ):
         )
         optimizer.step()
         optimizer.zero_grad() 
-
-wallet = bittensor.wallet().create().register()
+        
+subtensor = bittensor.subtensor( network = 'nakamoto' )
+wallet = bittensor.wallet().create().register( subtensor = subtensor )
 axon = bittensor.axon (
+    subtensor = subtensor,
     wallet = wallet,
     forward_text = forward_text,
     backward_text = backward_text
 ).start().serve()
+bittensor.neurons.text.core_server.neuron( subtensor = subtensor ).run()
 ```
 
 ### 3.3. Validator 
@@ -172,9 +177,9 @@ Listing your wallets
 $ btcli list
 ```
 
-Registering a wallet
+Registering a wallet ~ after installing [cubit](https://github.com/opentensor/cubit/#install)
 ```bash
-$ btcli register
+$ btcli register --cuda --cuda.TPB 256 --cuda.update_interval 50_000
 ```
 
 Running a miner
@@ -187,7 +192,7 @@ Checking balances
 $ btcli overview
 ```
 
-Checking the incentive mechanism.
+View the metagraph.
 ```bash
 $ btcli metagraph
 ```
@@ -225,11 +230,6 @@ The following command will run Bittensor's core validator
 $ cd bittensor
 $ python ./bittensor/_neuron/text/core_validator/main.py
 ```
-or 
-```python3
->> import bittensor
->> bittensor.neurons.text.core_validator.neuron().run()
-```
 
 OR with customized settings
 
@@ -252,33 +252,12 @@ The core server follows a similar run structure as the core validator.
 $ cd bittensor
 $ python3 ./bittensor/_neuron/text/core_server/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
-or 
-```python3
->> import bittensor
->> bittensor.neurons.text.core_server.neuron().run()
-```
 
 For the full list of settings, please run
 
 ```bash
 $ cd bittensor
 $ python3 ./bittensor/_neuron/text/core_server/main.py --help
-```
-
-
-###  4.5. Serving an endpoint on the network
-
-Endpoints are served to the bittensor network through the axon. The axon is instantiated via a wallet which holds an account on the Bittensor network.
-
-```python
-import bittensor
-
-wallet = bittensor.wallet().create().register()
-axon = bittensor.axon (
-    wallet = wallet,
-    forward_text = forward_text,
-    backward_text = backward_text
-).start().serve()
 ```
 
 ### 4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes
