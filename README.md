@@ -220,10 +220,20 @@ There are two open Bittensor networks: staging (Nobunaga) and main (Nakamoto, Lo
 $ export NETWORK=local 
 $ python (..) --subtensor.network $NETWORK
 or
->> btcli run --subtensor.network $NETWORK
+$ btcli run (..) --subtensor.network $NETWORK
 ```
 
-### 4.3. Running a core validator
+### 4.3. Selecting ports to use
+Each instance of your core server will need to run on a different port
+```bash
+$ export BT_AXON_PORT=<>
+python (..) --axon.port <>
+or 
+>>
+btcli run (..) --axon.port <>
+```
+
+### 4.4. Running a core validator
 
 The following command will run Bittensor's core validator
 
@@ -245,7 +255,7 @@ For the full list of settings, please run
 $ python3 ~/.bittensor/bittensor/bittensor/_neuron/neurons/text/core_validator/main.py --help
 ```
 
-### 4.4. Running a core server
+### 4.5. Running a core server
 
 The core server follows a similar run structure as the core validator. 
 
