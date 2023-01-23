@@ -21,6 +21,7 @@ from typing import Tuple, List
 import torch
 
 U32_MAX = 4294967295
+U16_MAX = 65535
 
 def normalize_max_weight(  x: torch.FloatTensor, limit:float = 0.1 ) -> 'torch.FloatTensor':
     r""" Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
@@ -79,7 +80,7 @@ def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: Li
     """
     row_weights = torch.zeros( [ n ], dtype=torch.float32 )
     for uid_j, wij in list(zip( uids, weights )):
-        row_weights[ uid_j ] = float( wij ) / float(U32_MAX)
+        row_weights[ uid_j ] = float( wij ) / float(U16_MAX)
     return row_weights
 
 def convert_bond_uids_and_vals_to_tensor( n: int, uids: List[int], bonds: List[int] ) -> 'torch.LongTensor':
@@ -127,11 +128,11 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
     else:
         weights = [ float(value) / sum(weights) for value in weights] # Initial normalization.
 
-    remainder = 4294967295 
+    remainder = U16_MAX 
     weight_vals = []
     weight_uids = []
     for i, (weight_i, uid_i) in enumerate(list(zip(weights, uids))):
-        uint32_val = int(float(weight_i) * int(4294967295)) # convert to int representation.
+        uint32_val = int(float(weight_i) * int(U16_MAX)) # convert to int representation.
         remainder -= uint32_val
         
         # Fix overflow

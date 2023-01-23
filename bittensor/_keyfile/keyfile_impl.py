@@ -25,6 +25,7 @@ from typing import Optional
 from pathlib import Path
 
 from ansible_vault import Vault
+from ansible.parsing.vault import AnsibleVaultError
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
@@ -225,7 +226,10 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
             # Ansible decrypt.
             if keyfile_data_is_encrypted_ansible( keyfile_data ):
                 vault = Vault( password )
-                decrypted_keyfile_data = vault.load( keyfile_data )
+                try:
+                    decrypted_keyfile_data = vault.load( keyfile_data )
+                except AnsibleVaultError:
+                    raise KeyFileError('Invalid password')
             # Legacy decrypt.
             elif keyfile_data_is_encrypted_legacy( keyfile_data ):
                 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"

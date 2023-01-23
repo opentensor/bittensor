@@ -73,6 +73,7 @@ class neuron:
         causallmnext = None,
         seq2seq = None,
         synapse_list = None,
+        netuid = None
     ):
         if config == None: config = server.config()
         config = config; 
@@ -99,6 +100,7 @@ class neuron:
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
+        config.netuid = netuid if netuid != None else config.netuid
 
         self.check_config( config )
         bittensor.logging (
@@ -112,14 +114,18 @@ class neuron:
             port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
         )
 
-        self.model = server(config = config)
         self.config = config
         self.config.to_prometheus()
-
         self.subtensor = subtensor
         self.wallet = wallet
         self.axon = axon
         self.metagraph = metagraph
+
+        if self.config.netuid == None:
+            subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
+            self.config.netuid = subtensor.get_subnets()[0]
+        
+        self.model = server(config = self.config)
 
     def run(self):
         serve(

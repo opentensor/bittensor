@@ -25,6 +25,7 @@ from typing import Optional, Union
 import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 from substrateinterface import Keypair
+from substrateinterface.base import is_valid_ss58_address
 from termcolor import colored
 
 
@@ -80,53 +81,41 @@ class Wallet():
     def __repr__(self):
         return self.__str__()
 
-    @property
-    def neuron(self) -> SimpleNamespace:
-        return self.get_neuron()
+    def neuron(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid)
 
-    @property
-    def trust(self) -> SimpleNamespace:
-        return self.get_neuron().trust
+    def trust(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).trust
 
-    @property
-    def rank(self) -> SimpleNamespace:
-        return self.get_neuron().rank
+    def rank(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).rank
 
-    @property
-    def incentive(self) -> SimpleNamespace:
-        return self.get_neuron().incentive
+    def incentive(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).incentive
 
-    @property
-    def dividends(self) -> SimpleNamespace:
-        return self.get_neuron().dividends
+    def dividends(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).dividends
 
-    @property
-    def consensus(self) -> SimpleNamespace:
-        return self.get_neuron().consensus
+    def consensus(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).consensus
 
-    @property
-    def inflation(self) -> SimpleNamespace:
-        return self.get_neuron().inflation
+    def ip(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).ip
 
-    @property
-    def ip(self) -> SimpleNamespace:
-        return self.get_neuron().ip
+    def last_update(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).last_update
 
-    @property
-    def last_update(self) -> SimpleNamespace:
-        return self.get_neuron().last_update
+    def validator_permit(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).validator_permit
 
-    @property
-    def weights(self) -> SimpleNamespace:
-        return self.get_neuron().weights
+    def weights(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).weights
 
-    @property
-    def bonds(self) -> SimpleNamespace:
-        return self.get_neuron().bonds
+    def bonds(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).bonds
 
-    @property
-    def uid(self) -> SimpleNamespace:
-        return self.get_uid()
+    def uid(self, netuid: int) -> SimpleNamespace:
+        return self.get_uid(netuid = netuid)
 
     @property
     def stake(self) -> SimpleNamespace:
@@ -136,77 +125,82 @@ class Wallet():
     def balance(self) -> SimpleNamespace:
         return self.get_balance()
 
-    def is_registered( self, subtensor: 'bittensor.Subtensor' = None ) -> bool:
+    def is_registered( self, subtensor: Optional['bittensor.Subtensor'] = None, netuid: Optional[int] = None ) -> bool:
         """ Returns true if this wallet is registered.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
                     Determines which network we check for registration.
+                netuid ( Optional[int] ):
+                    The network uid to check for registration.
+                    Default is None, which checks any subnetwork.
             Return:
                 is_registered (bool):
                     Is the wallet registered on the chain.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        return subtensor.is_hotkey_registered( self.hotkey.ss58_address )
+        return subtensor.is_hotkey_registered( self.hotkey.ss58_address, netuid = netuid )
 
-    def get_neuron ( self, subtensor: 'bittensor.Subtensor' = None ) -> Union[ SimpleNamespace, None] :
+    def get_neuron ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> Optional['bittensor.NeuronInfo'] :
         """ Returns this wallet's neuron information from subtensor.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                netuid (int):
+                    The network uid of the subnet to query.
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
-                neuron (Union[ SimpleNamespace, None ]):
+                neuron (Union[ NeuronInfo, None ]):
                     neuron account on the chain or None if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
+        if not self.is_registered(netuid = netuid, subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return None
-        neuron = subtensor.neuron_for_wallet( self )
+        neuron = subtensor.neuron_for_wallet( self, netuid = netuid )
         return neuron
 
-    def get_uid ( self, subtensor: 'bittensor.Subtensor' = None ) -> int:
+    def get_uid ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> int:
         """ Returns this wallet's hotkey uid or -1 if the hotkey is not subscribed.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                netuid (int):
+                    The network uid of the subnet to query.
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 uid (int):
                     Network uid or -1 if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
+        if not self.is_registered(netuid = netuid, subtensor=subtensor): 
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
-        neuron = self.get_neuron(subtensor = subtensor)
+        neuron = self.get_neuron(netuid = netuid, subtensor = subtensor)
         if neuron.is_null:
             return -1
         else:
             return neuron.uid
 
-    def get_stake ( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+    def get_stake ( self, subtensor: Optional['bittensor.Subtensor'] = None ) -> 'bittensor.Balance':
         """ Returns this wallet's staking balance from passed subtensor connection.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 balance (bittensor.utils.balance.Balance):
                     Stake account balance.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor): 
+        stake = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = self.hotkey.ss58_address, coldkey_ss58 = self.coldkeypub.ss58_address )
+        if not stake: # Not registered.
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return bittensor.Balance(0)
-        neuron = self.get_neuron(subtensor = subtensor)
-        if neuron.is_null:
-            return bittensor.Balance(0)
-        else:
-            return bittensor.Balance.from_tao(neuron.stake)
+        
+        return stake
 
-    def get_balance( self, subtensor: 'bittensor.Subtensor' = None ) -> 'bittensor.Balance':
+    def get_balance( self, subtensor: Optional['bittensor.Subtensor'] = None ) -> 'bittensor.Balance':
         """ Returns this wallet's coldkey balance from passed subtensor connection.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
             Return:
                 balance (bittensor.utils.balance.Balance):
@@ -217,14 +211,17 @@ class Wallet():
 
     def reregister(
         self,
-        subtensor: 'bittensor.Subtensor' = None,
+        netuid: int,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False
     ) -> Optional['bittensor.Wallet']:
         """ Re-register this wallet on the chain.
             Args:
-                subtensor( 'bittensor.Subtensor' ):
+                netuid (int):
+                    The network uid of the subnet to register on.
+                subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
                 wait_for_inclusion (bool):
                     if set, waits for the extrinsic to enter a block before returning true, 
@@ -241,13 +238,14 @@ class Wallet():
         """
         if subtensor == None:
             subtensor = bittensor.subtensor()
-        if not self.is_registered(subtensor=subtensor):
+        if not self.is_registered(netuid = netuid, subtensor=subtensor):
             # Check if the wallet should reregister
             if not self.config.wallet.get('reregister'):
                 sys.exit(0)
 
             self.register(
                 subtensor = subtensor,
+                netuid = netuid,
                 prompt = prompt,
                 TPB = self.config.subtensor.register.cuda.get('TPB', None),
                 update_interval = self.config.subtensor.register.cuda.get('update_interval', None),
@@ -264,7 +262,8 @@ class Wallet():
 
     def register ( 
             self, 
-            subtensor: 'bittensor.Subtensor' = None, 
+            netuid: int,
+            subtensor: Optional['bittensor.Subtensor'] = None, 
             wait_for_inclusion: bool = False,
             wait_for_finalization: bool = True,
             prompt: bool = False,
@@ -279,7 +278,9 @@ class Wallet():
         ) -> 'bittensor.Wallet':
         """ Registers the wallet to chain.
         Args:
-            subtensor( 'bittensor.Subtensor' ):
+            netuid (int):
+                The network uid of the subnet to register on.
+            subtensor( Optional['bittensor.Subtensor'] ):
                 Bittensor subtensor connection. Overrides with defaults if None.
             wait_for_inclusion (bool):
                 If set, waits for the extrinsic to enter a block before returning true, 
@@ -324,6 +325,7 @@ class Wallet():
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
+            netuid = netuid,
         )
         
         return self
@@ -332,7 +334,7 @@ class Wallet():
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        subtensor: 'bittensor.Subtensor' = None,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         prompt: bool = False
     ) -> bool:
         """ Stakes tokens from this wallet's coldkey onto it's hotkey.
@@ -361,7 +363,7 @@ class Wallet():
         amount: Union[float, bittensor.Balance] = None, 
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        subtensor: 'bittensor.Subtensor' = None,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         prompt: bool = False,
     ) -> bool:
         """ Removes stake from this wallet's hotkey and moves them onto it's coldkey balance.
@@ -392,7 +394,7 @@ class Wallet():
         amount: Union[float, bittensor.Balance] , 
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        subtensor: 'bittensor.Subtensor' = None,
+        subtensor: Optional['bittensor.Subtensor'] = None,
         prompt: bool = False,
     ) -> bool:
         """ Transfers Tao from this wallet's coldkey to the destination address.
@@ -669,7 +671,11 @@ class Wallet():
         if not is_valid_bittensor_address_or_public_key( ss58_address if ss58_address is not None else public_key ):
             raise ValueError(f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}") 
 
-        keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=bittensor.__ss58_format__)
+        if ss58_address is not None:
+            ss58_format = bittensor.utils.get_ss58_format( ss58_address )
+            keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=ss58_format)
+        else:
+            keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=bittensor.__ss58_format__)
 
         # No need to encrypt the public key
         self.set_coldkeypub( keypair, overwrite = overwrite)

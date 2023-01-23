@@ -25,22 +25,26 @@ from . import constant
 
 wallet = bittensor.wallet.mock()
 dendrite = bittensor.dendrite( wallet = wallet )
+port = get_random_unused_port()
+
 neuron_obj = bittensor.endpoint(
     version = bittensor.__version_as_int__,
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
-    port = 12345,
+    port = port,
     hotkey = dendrite.wallet.hotkey.ss58_address,
     coldkey = dendrite.wallet.coldkey.ss58_address,
-    modality = 0
+    modality = 0,
+    protocol = 0,
 )
 
 synapses = [bittensor.synapse.TextLastHiddenState(),
             bittensor.synapse.TextCausalLM(),
             bittensor.synapse.TextCausalLMNext(),
             bittensor.synapse.TextSeq2Seq(num_to_generate=constant.synapse.num_to_generate)]
-dataset = bittensor.dataset(num_batches=20, dataset_name = ['Books3'])
+
+dataset = bittensor.dataset(num_batches=10, _mock=True)
 
 def check_resp_shape(resp, num_resp, block_size, seq_len):
     assert len(resp) == num_resp
@@ -188,17 +192,18 @@ def test_dendrite_forward_tensor():
 
 def test_dendrite_backoff():
     _dendrite = bittensor.dendrite( wallet = wallet )
+    port = get_random_unused_port()
     _endpoint_obj = bittensor.endpoint(
         version = bittensor.__version_as_int__,
         uid = 0,
         ip = '0.0.0.0',
         ip_type = 4,
-        port = 12345,
+        port = port,
         hotkey = _dendrite.wallet.hotkey.ss58_address,
         coldkey = _dendrite.wallet.coldkey.ss58_address,
-        modality = 0
+        modality = 0,
+        protocol = 0,
     )
-    print (_endpoint_obj)
     
     # Normal call.
     x = torch.rand(3, 3, dtype=torch.float32)
@@ -230,6 +235,7 @@ def test_successful_synapse():
         port = port,
         ip = '0.0.0.0',
         wallet = wallet,
+        netuid = -1,
     )
 
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
@@ -246,7 +252,8 @@ def test_successful_synapse():
         ip_type = 4, 
         port = port, 
         modality = 0, 
-        coldkey = wallet.coldkeypub.ss58_address
+        coldkey = wallet.coldkeypub.ss58_address,
+        protocol = 0,
     )
 
     dendrite = bittensor.dendrite()
@@ -279,6 +286,7 @@ def test_failing_synapse():
         port = port,
         ip = '0.0.0.0',
         wallet = wallet,
+        netuid = -1,
     )
 
     axon.attach_synapse_callback( forward_hidden_state,  synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE )
@@ -295,7 +303,8 @@ def test_failing_synapse():
         ip_type = 4, 
         port = port, 
         modality = 0, 
-        coldkey = wallet.coldkeypub.ss58_address
+        coldkey = wallet.coldkeypub.ss58_address,
+        protocol = 0,
     )
 
     dendrite = bittensor.dendrite()
@@ -339,6 +348,7 @@ def test_missing_synapse():
         port = port,
         ip = '0.0.0.0',
         wallet = wallet,
+        netuid = -1,
     )
 
     axon.start()
@@ -351,7 +361,8 @@ def test_missing_synapse():
         ip_type = 4, 
         port = port, 
         modality = 0, 
-        coldkey = wallet.coldkeypub.ss58_address
+        coldkey = wallet.coldkeypub.ss58_address,
+        protocol = 0,
     )
 
     dendrite = bittensor.dendrite()
@@ -398,6 +409,7 @@ def test_dendrite_timeout():
         port = port,
         ip = '0.0.0.0',
         wallet = wallet,
+        netuid = -1,
     )
 
     axon.start()
@@ -410,7 +422,8 @@ def test_dendrite_timeout():
         ip_type = 4, 
         port = port, 
         modality = 0, 
-        coldkey = wallet.coldkeypub.ss58_address
+        coldkey = wallet.coldkeypub.ss58_address,
+        protocol = 0,
     )
 
     dendrite = bittensor.dendrite()
