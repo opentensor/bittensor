@@ -76,7 +76,7 @@ wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
 print ( bittensor.dendrite( wallet = wallet ).generate
         ( 
-            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
             prompt = "The quick brown fox jumped over the lazy dog", 
             num_to_generate = 20
         )
@@ -91,14 +91,14 @@ wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
 print ( bittensor.dendrite( wallet = wallet ).text_last_hidden_state
         (
-            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
             inputs = "The quick brown fox jumped over the lazy dog"
         )
 )
 ...
-// Apply model. 
+# Apply model. 
 ...
-loss.backward() // Accumulate gradients on endpoints.
+loss.backward() # Accumulate gradients on endpoints.
 ```
 
 ### 3.2. Server
@@ -148,7 +148,7 @@ chain_weights = torch.ones( [graph.n.item()], dtype = torch.float32 )
 
 for batch in dataset.dataloader( 10 ):
     ...
-    // Train chain_weights.
+    # Train chain_weights.
     ...
 bittensor.subtensor().set_weights (
     weights = chain_weights,
@@ -217,36 +217,36 @@ or
 >> btcli run --subtensor.network $NETWORK
 ```
 
-### 4.3. Running a template miner
+### 4.3. Running a core validator
 
-The following command will run Bittensor's template miner
+The following command will run Bittensor's core validator
 
 ```bash
 $ cd bittensor
-$ python ./bittensor/_neuron/text/template_miner/main.py
+$ python ./bittensor/_neuron/text/core_validator/main.py
 ```
 or 
 ```python3
 >> import bittensor
->> bittensor.neurons.text.template_miner.neuron().run()
+>> bittensor.neurons.text.core_validator.neuron().run()
 ```
 
 OR with customized settings
 
 ```bash
 $ cd bittensor
-$ python3 ./bittensor/_neuron/text/template_miner/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
+$ python3 ./bittensor/_neuron/text/core_validator/main.py --wallet.name <WALLET NAME> --wallet.hotkey <HOTKEY NAME>
 ```
 
 For the full list of settings, please run
 
 ```bash
-$ python3 ~/.bittensor/bittensor/bittensor/_neuron/neurons/text/template_miner/main.py --help
+$ python3 ~/.bittensor/bittensor/bittensor/_neuron/neurons/text/core_validator/main.py --help
 ```
 
-### 4.4. Running a template server
+### 4.4. Running a core server
 
-The template server follows a similar structure as the template miner. 
+The core server follows a similar run structure as the core validator. 
 
 ```bash
 $ cd bittensor
