@@ -230,8 +230,7 @@ Each instance of your core server will need to run on a different port
 $ export BT_AXON_PORT=<>
 python (..) --axon.port <>
 or 
->>
-btcli run (..) --axon.port <>
+$ btcli run (..) --axon.port <>
 ```
 
 ### 4.4. Running a core validator
