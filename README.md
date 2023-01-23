@@ -74,7 +74,7 @@ Querying the network for generations.
 import bittensor
 subtensor = bittensor.subtensor( network = 'nakamoto' )
 wallet = bittensor.wallet().create_if_non_existent()
-graph = bittensor.metagraph().sync()
+graph = bittensor.metagraph( subtensor = subtensor ).sync()
 print ( bittensor.dendrite( subtensor = subtensor, wallet = wallet ).generate
         ( 
             endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
@@ -90,7 +90,7 @@ Querying the network for representations.
 import bittensor
 subtensor = bittensor.subtensor( network = 'nakamoto' )
 wallet = bittensor.wallet().create_if_non_existent()
-graph = bittensor.metagraph().sync()
+graph = bittensor.metagraph( subtensor = subtensor ).sync()
 print ( bittensor.dendrite( subtensor = subtensor, wallet = wallet ).text_last_hidden_state
         (
             endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
@@ -138,6 +138,7 @@ axon = bittensor.axon (
 ).start().serve()
 bittensor.neurons.text.core_server.neuron( subtensor = subtensor ).run()
 ```
+A Server will default to port '8091.' You can change this by modifying the config to the port of your choosing.
 
 ### 3.3. Validator 
 
@@ -259,6 +260,7 @@ For the full list of settings, please run
 $ cd bittensor
 $ python3 ./bittensor/_neuron/text/core_server/main.py --help
 ```
+* ~ note that you will need to set the port, model, and device as CPU or GPU. 
 
 ### 4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes
 
@@ -293,7 +295,8 @@ print(meta.S)
 ```python
 import bittensor
 
-meta = bittensor.metagraph()
+subtensor = bittensor.subtensor( network = 'nakamoto' )
+meta = bittensor.metagraph( subtensor = subtensor )
 meta.sync()
 
 ### Address for the node uid 0
@@ -306,14 +309,15 @@ endpoint_as_object = meta.endpoint_objs[0]
 ```python
 import bittensor
 
-meta = bittensor.metagraph()
+subtensor = bittensor.subtensor( network = 'nakamoto' )
+meta = bittensor.metagraph( subtensor = subtensor )
 meta.sync()
 
 ### Address for the node uid 0
 endpoint_0 = meta.endpoints[0]
 
 ### Creating the wallet, and dendrite
-wallet = bittensor.wallet().create().register()
+wallet = bittensor.wallet().create().register( subtensor = subtensor )
 den = bittensor.dendrite(wallet = wallet)
 representations, _, _ = den.forward_text (
     endpoints = endpoint_0,
