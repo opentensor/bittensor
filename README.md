@@ -270,7 +270,7 @@ For the full list of settings, please run
 $ cd bittensor
 $ python3 ./bittensor/_neuron/text/core_server/main.py --help
 ```
-*~note that you will need to set the port, model, and device as CPU or GPU.
+~note that you will need to set the port, model, and device as CPU or GPU.
 
 ### 4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes
 
@@ -297,7 +297,6 @@ print(meta.R)
 
 # --- stake ---
 print(meta.S)
-
 ```
 
 ### 4.7. Finding and creating the endpoints for other nodes in the network
@@ -333,7 +332,6 @@ representations, _, _ = den.forward_text (
     endpoints = endpoint_0,
     inputs = "Hello World"
 )
-
 ```
 
 ## 5. Release
