@@ -583,32 +583,35 @@ class TestCli(unittest.TestCase):
                 "--wallet.path", "tmp/walletpath",
                 "--wallet.name", "mock",
                 "--wallet.hotkey", "hk0",
+                "--subtensor.network", "mock",
+                "--netuid", "-1",
                 "--no_prompt",
                 "--cuda.dev_id", "0",
             ]
-            bittensor.subtensor.check_config = MagicMock(return_value = True)  
-            with patch('torch.cuda.is_available', return_value=True):
-                with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
-                    # Should be able to set true without argument
-                    args = base_args + [
-                        "--subtensor.register.cuda.use_cuda", # should be True without any arugment
-                    ]
-                    with pytest.raises(ExitEarlyException):
-                        cli = bittensor.cli(args=args)
-                        cli.run()
 
-                    assert cli.config.subtensor.register.cuda.get('use_cuda') == True # should be None
+            with patch('bittensor.subtensor.check_config', return_value = True):
+                with patch('torch.cuda.is_available', return_value=True):
+                    with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
+                        # Should be able to set true without argument
+                        args = base_args + [
+                            "--subtensor.register.cuda.use_cuda", # should be True without any arugment
+                        ]
+                        with pytest.raises(ExitEarlyException):
+                            cli = bittensor.cli(args=args)
+                            cli.run()
 
-                    # Should be able to set to false with no argument
+                        assert cli.config.subtensor.register.cuda.get('use_cuda') == True # should be None
 
-                    args = base_args + [
-                        "--subtensor.register.cuda.no_cuda",
-                    ]
-                    with pytest.raises(ExitEarlyException):
-                        cli = bittensor.cli(args=args)
-                        cli.run()
+                        # Should be able to set to false with no argument
 
-                    assert cli.config.subtensor.register.cuda.use_cuda == False
+                        args = base_args + [
+                            "--subtensor.register.cuda.no_cuda",
+                        ]
+                        with pytest.raises(ExitEarlyException):
+                            cli = bittensor.cli(args=args)
+                            cli.run()
+
+                        assert cli.config.subtensor.register.cuda.use_cuda == False
 
 
 class TestStakeUnstake(unittest.TestCase):
