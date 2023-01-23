@@ -31,7 +31,7 @@ To learn more about Bittensor read our [paper].(https://drive.google.com/file/d/
   - [4.1. Using the CLI](#41-cli)
   - [4.2. Selecting the network to join](#42-selecting-the-network-to-join)
   - [4.3. Selecting ports to use](https://github.com/quac88/bittensor/blob/master/README.md#43-selecting-ports-to-use)
-  - [4.4. Running a core_validator](#43-running-a-template-miner)
+  - [4.4. Running a core validator](#43-running-a-template-miner)
   - [4.5. Running a core server](#44-running-a-template-server)
   - [4.6. Syncing with the chain/ Finding the ranks/stake/uids of other nodes](#46-syncing-with-the-chain-finding-the-ranksstakeuids-of-other-nodes)
   - [4.7. Finding and creating the endpoints for other nodes in the network](#47-finding-and-creating-the-endpoints-for-other-nodes-in-the-network)
