@@ -129,7 +129,7 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.7.14", "3.8.14", "3.9.13", "3.10.6"]
+              python-version: ["3.8.14", "3.9.13", "3.10.6"]
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
