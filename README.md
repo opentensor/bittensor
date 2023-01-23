@@ -182,6 +182,7 @@ Registering a wallet ~ after installing [cubit](https://github.com/opentensor/cu
 ```bash
 $ btcli register --cuda --cuda.TPB 256 --cuda.update_interval 50_000
 ```
+*~ note that thes cuda parameters may need to be [adjusted](https://docs.bittensor.com/Arguments.html#cuda)*
 
 Running a miner
 ```bash
