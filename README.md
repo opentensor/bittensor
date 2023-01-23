@@ -138,7 +138,7 @@ axon = bittensor.axon (
 ).start().serve()
 bittensor.neurons.text.core_server.neuron( subtensor = subtensor ).run()
 ```
-*A Server will default to port '8091.' You can change this by modifying the config to the port of your choosing.*
+*A Server will default to port '8091.' You can change this by modifying the config to a port of your choosing.*
 
 ### 3.3. Validator 
 
