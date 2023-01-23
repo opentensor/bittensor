@@ -74,6 +74,7 @@ class TestCli(unittest.TestCase):
         defaults = bittensor.Config()
         bittensor.subtensor.add_defaults( defaults )
         defaults.subtensor.network = 'mock'
+        defaults.netuid = -1
         bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
         bittensor.wallet.add_defaults( defaults )
