@@ -21,7 +21,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machi
 RUN apt update && apt upgrade -y
 # Install bittensor
 ## Install dependencies
-RUN apt install -y curl sudo nano git htop netcat wget unzip python3-dev python3-pip tmux apt-utils cmake build-essential
+RUN apt install -y curl sudo nano git htop netcat wget unzip tmux apt-utils cmake build-essential
 ## Upgrade pip
 RUN pip3 install --upgrade pip
 
