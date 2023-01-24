@@ -76,7 +76,7 @@ class endpoint:
             coldkey = neuron.coldkey
         )
         """
-        if neuron.is_null():
+        if neuron.is_null:
             raise ValueError('Cannot create endpoint from null neuron')
         
         return endpoint_impl.Endpoint(
