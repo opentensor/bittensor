@@ -566,12 +566,18 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tuple
 
         block_hash (:obj:`bytes`):
             The current block hash.
+
+    Raises:
+        Exception: If the block hash is None.
+        ValueError: If the difficulty is None.
     """
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty(netuid = netuid)
     block_hash = subtensor.substrate.get_block_hash( block_number )
     if block_hash is None:
         raise Exception("Network error. Could not connect to substrate to get block hash")
+    if difficulty is None:
+        raise ValueError("Chain error. Difficulty is None")
     return block_number, difficulty, block_hash
 
 
