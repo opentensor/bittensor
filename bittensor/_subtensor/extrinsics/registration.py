@@ -75,6 +75,9 @@ def register_extrinsic (
             flag is true if extrinsic was finalized or uncluded in the block. 
             If we did not wait for finalization / inclusion, the response is true.
     """
+    if not subtensor.subnet_exists( netuid ):
+        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(netuid))
+        return False
 
     with bittensor.__console__.status(f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
