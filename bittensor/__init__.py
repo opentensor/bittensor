@@ -81,6 +81,16 @@ __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 __local_entrypoint__ = "ws://127.0.0.1:9945"
 
 
+# Block Explorers map network to explorer url
+## Must all be polkadotjs explorer urls
+__network_explorer_map__ = {
+    'local': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
+    'nobunaga': "https://staging.opentensor.ai/#/explorer",
+    'finney': "https://polkadot.js.org/apps/?rpc=wss://staging.parachain.opentensor.ai#/explorer"
+}
+
 # Avoid collisions with other processes
 from .utils.test_utils import get_random_unused_port
 mock_subtensor_port = get_random_unused_port()

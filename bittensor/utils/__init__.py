@@ -193,6 +193,48 @@ def strtobool(val: str) -> bool:
     else:
         raise ValueError("invalid truth value %r" % (val,))
 
+def get_explorer_root_url_by_network_from_map(network: str, network_map: Dict[str, str]) -> Optional[str]:
+    r"""
+    Returns the explorer root url for the given network name from the given network map.
+
+    Args:
+        network(str): The network to get the explorer url for.
+        network_map(Dict[str, str]): The network map to get the explorer url from.
+    
+    Returns:
+        The explorer url for the given network.
+        Or None if the network is not in the network map.
+    """
+    explorer_url: Optional[str] = None
+    if network in network_map:
+        explorer_url = network_map[network]
+
+    return explorer_url
+    
+
+def get_explorer_url_for_network(network: str, block_hash: str) -> Optional[str]:
+    r"""
+    Returns the explorer url for the given block hash and network.
+
+    Args:
+        network(str): The network to get the explorer url for.
+        block_hash(str): The block hash to get the explorer url for.
+    
+    Returns:
+        The explorer url for the given block hash and network.
+        Or None if the network is not known.
+    """
+
+    explorer_url: Optional[str] = None
+    # Will be None if the network is not known. i.e. not in bittensor.__network_explorer_map__
+    explorer_root_url: Optional[str] = get_explorer_root_url_by_network_from_map(network, bittensor.__network_explorer_map__)
+
+    if explorer_root_url is not None:
+        # We are on a known network.
+        explorer_url = "{root_url}/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
+    
+    return explorer_url
+
 def ss58_address_to_bytes(ss58_address: str) -> bytes:
     """Converts a ss58 address to a bytes object."""
     account_id_hex: str = scalecodec.ss58_decode(ss58_address, bittensor.__ss58_format__)
@@ -213,4 +255,3 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     """
     # First byte is length, then 32 bytes of key.
     return scalecodec.ss58_encode( bytes(u8_key).hex(), bittensor.__ss58_format__)
-    

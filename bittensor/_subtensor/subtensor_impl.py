@@ -281,6 +281,8 @@ class Subtensor:
         """ Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey. """
         return unstake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
 
+   
+
     def unstake (
         self,
         wallet: 'bittensor.wallet',
@@ -681,6 +683,9 @@ class Subtensor:
         netuids = self.get_netuids_for_hotkey( ss58_hotkey, block) 
         uids = [self.get_uid_for_hotkey_on_subnet(ss58_hotkey, net) for net in netuids] 
         return [self.neuron_for_uid( uid, net ) for uid, net in list(zip(uids, netuids))]
+
+    def neuron_has_validator_permit( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[bool]:
+        return self.query_paratensor( 'ValidatorPermit', block, [ netuid, uid ] ).value
 
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         return self.get_neuron_for_pubkey_and_subnet ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
