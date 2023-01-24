@@ -424,6 +424,32 @@ To run a local node (See: docs/running_a_validator.md) \n
                 ).value
         return make_substrate_call_with_retry()
 
+    @property
+    def prune_len (self) -> int:
+        r""" Returns PruneLen 
+        Returns:
+            prune_len (int):
+                the number of pruned tokens from each requests 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorPruneLen' ).value
+        return make_substrate_call_with_retry()
+
+    @property
+    def logits_divergence (self) -> int:
+        r""" Returns logits_divergence
+        Returns:
+            logits_divergence (int):
+                the divergence value for logit distances, a measure for anomaly detection 
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                U64MAX = 18446744073709551615
+                return substrate.query( module='SubtensorModule', storage_function = 'ValidatorLogitsDivergence' ).value/U64MAX
+        return make_substrate_call_with_retry()
 
     def serve_axon (
         self,
