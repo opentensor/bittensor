@@ -30,6 +30,7 @@ import os
 import wandb
 import math
 import random
+import sys
 import pandas
 import traceback
 from rich import print
@@ -103,6 +104,11 @@ class neuron:
         subtensor = bittensor.subtensor ( config = config ) if subtensor == None else subtensor
         if config.netuid == None:
             config.netuid = subtensor.get_subnets()[0]
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {config.netuid} does not exist[/red]")
+            sys.exit(1)
 
         # === Config check === 
         self.config = config

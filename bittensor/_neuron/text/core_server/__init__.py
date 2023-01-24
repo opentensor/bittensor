@@ -24,6 +24,7 @@ Example:
 
 import bittensor
 import os
+import sys
 
 from .nucleus_impl import server
 from .run import serve
@@ -124,6 +125,12 @@ class neuron:
         if self.config.netuid == None:
             subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
             self.config.netuid = subtensor.get_subnets()[0]
+        
+        # Verify subnet exists
+        if not self.subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         
         self.model = server(config = self.config)
 
