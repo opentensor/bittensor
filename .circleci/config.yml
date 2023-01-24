@@ -163,10 +163,10 @@ jobs:
           name: Executing release script
           command: |
             ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
-  
+
 
 workflows:
-  pre-pr:
+  pr-requirements:
     jobs:
       - build-and-test:
           matrix:
@@ -179,35 +179,33 @@ workflows:
           #requires:
             #- build-and-test
 
-  check-release-requirements:
+  release-branches-requirements:
     jobs:
       - check-version-updated:
           filters:
             branches:
               only:
-                - /^(infra|release|hotfix)/.*/
+                - /^(release|hotfix)/.*/
       - check-changelog-updated:
           filters:
             branches:
               only:
-                - /^(infra|release|hotfix)/.*/
+                - /^(release|hotfix)/.*/
       - release-dry-run:
           filters:
             branches:
               only:
-                - /^(infra)/.*/
+                - /^(release|hotfix)/.*/
   
-  release:
+  release-requirements:
     jobs:
       - check-version-not-released:
           filters:
             branches:
               only:
-                - /^(infra)/.*/
+                - master
       - release-dry-run:
-          requires:
-            - check-version-not-released
           filters:
             branches:
               only:
-                - /^(infra)/.*/
+                - master
