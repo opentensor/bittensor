@@ -18,7 +18,7 @@
 import bittensor
 
 def test_axon():
-    axon = bittensor.axon()
+    axon = bittensor.axon( netuid = -1 )
     axon.to_wandb()
 
 def test_dendrite():
@@ -27,7 +27,5 @@ def test_dendrite():
     del dendrite
 
 def test_metagraph():
-    config = bittensor.subtensor.config()
-    subtensor = bittensor.subtensor(network='mock', config=config, )
-    metagraph = bittensor.metagraph( subtensor=subtensor )
+    metagraph = bittensor.metagraph( _mock= True )
     metagraph.to_wandb()

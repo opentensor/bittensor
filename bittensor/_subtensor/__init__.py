@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -14,6 +15,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
 import argparse
 import copy
 import os
@@ -28,38 +30,6 @@ from bittensor.utils import strtobool_with_default
 from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
-
-__type_registery__ = {
-    "runtime_id": 2,
-    "types": {
-        "Balance": "u64",
-        "NeuronMetadataOf": {
-            "type": "struct",
-            "type_mapping": [
-                ["version", "u32"],
-                ["ip", "u128"], 
-                ["port", "u16"], 
-                ["ip_type", "u8"], 
-                ["uid", "u32"], 
-                ["modality", "u8"], 
-                ["hotkey", "AccountId"], 
-                ["coldkey", "AccountId"], 
-                ["active", "u32"],
-                ["last_update", "u64"],
-                ["priority", "u64"],
-                ["stake", "u64"],
-                ["rank", "u64"],
-                ["trust", "u64"],
-                ["consensus", "u64"],
-                ["incentive", "u64"],
-                ["dividends", "u64"],
-                ["emission", "u64"],
-                ["bonds", "Vec<(u32, u64)>"],
-                ["weights", "Vec<(u32, u32)>"]
-            ]
-        }
-    }
-}
 
 GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
 
@@ -136,18 +106,14 @@ class subtensor:
         # make sure it's wss:// or ws://
         # If it's bellagene (parachain testnet) then it has to be wss
         endpoint_url: str = config.subtensor.chain_endpoint
-        if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
-            if config.subtensor.network == "bellagene":
-                endpoint_url = "wss://{}".format(endpoint_url)
-            else:
-                endpoint_url = "ws://{}".format(endpoint_url)
+        
+        # make sure formatting is good
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
         
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
-            type_registry_preset='substrate-node-template',
-            type_registry = __type_registery__,
+            type_registry_preset='kusama',
             url = endpoint_url,
-            use_remote_preset=True
         )
 
         subtensor.check_config( config )
@@ -178,7 +144,7 @@ class subtensor:
         try:
             parser.add_argument('--' + prefix_str + 'subtensor.network', default = bittensor.defaults.subtensor.network, type=str,
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- nobunaga (staging network)
+                                        -- finney (staging network)
                                         -- nakamoto (master network)
                                         -- local (local running network)
                                         -- mock (creates a mock connection (for testing))
@@ -211,7 +177,7 @@ class subtensor:
         """ Adds parser defaults to object from enviroment variables.
         """
         defaults.subtensor = bittensor.Config()
-        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
+        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'finney'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
@@ -250,6 +216,9 @@ class subtensor:
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoint__
+        elif network == "finney": 
+            # Kiru Finney stagin network.
+            return bittensor.__finney_entrypoint__
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoint__

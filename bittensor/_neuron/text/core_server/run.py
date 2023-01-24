@@ -55,17 +55,17 @@ def serve(
 
     # Load/Create our bittensor wallet.
     if wallet == None:
-        wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor) 
+        wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor, netuid = config.netuid) 
     else:
-        wallet.reregister(subtensor=subtensor)
+        wallet.reregister(subtensor=subtensor, netuid = config.netuid)
 
     # Load/Sync/Save our metagraph.
     if metagraph == None:
         metagraph = bittensor.metagraph ( 
-            subtensor = subtensor
+            netuid = config.netuid,
         )
     
-    metagraph.load().sync().save()
+    metagraph.load().sync(netuid= config.netuid).save()
 
     # Create our optimizer.
     optimizer = torch.optim.SGD(
@@ -86,6 +86,7 @@ def serve(
     prometheus_info.info ({
         'type': "core_server",
         'uid': str(metagraph.hotkeys.index( wallet.hotkey.ss58_address )),
+        'netuid': config.netuid,
         'network': config.subtensor.network,
         'coldkey': str(wallet.coldkeypub.ss58_address),
         'hotkey': str(wallet.hotkey.ss58_address),
@@ -169,7 +170,6 @@ def serve(
                     the request type ('FORWARD' or 'BACKWARD').
         """
         # Check for registrations
-
         def registration_check():
             # If we allow non-registered requests return False = not blacklisted.
             is_registered = pubkey in metagraph.hotkeys
@@ -325,6 +325,7 @@ def serve(
         axon = bittensor.axon(
             config = config,
             wallet = wallet,
+            netuid = config.netuid,
             synapse_checks=synapse_check,
             synapse_last_hidden = forward_hidden_state if model.config.neuron.lasthidden else None,
             synapse_causal_lm = forward_casual_lm if model.config.neuron.causallm else None,
@@ -356,14 +357,13 @@ def serve(
         )
 
     last_set_block = subtensor.get_current_block()
-    blocks_per_epoch = subtensor.blocks_per_epoch if config.neuron.blocks_per_epoch == -1 else config.neuron.blocks_per_epoch
-    blocks_per_set_weights = subtensor.blocks_per_epoch if config.neuron.blocks_per_set_weights == -1 else config.neuron.blocks_per_set_weights
+    blocks_per_set_weights = subtensor.validator_epoch_length(config.netuid) if config.neuron.blocks_per_set_weights == -1 else config.neuron.blocks_per_set_weights
 
     # --- Run Forever.
     while True:
         iteration = 0
         local_data = {}
-        nn = subtensor.neuron_for_pubkey(wallet.hotkey.ss58_address)
+        nn = subtensor.get_neuron_for_pubkey_and_subnet(wallet.hotkey.ss58_address, netuid = config.netuid)
         uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
         current_block = subtensor.get_current_block()
         end_block = current_block + config.neuron.blocks_per_epoch
@@ -456,17 +456,18 @@ def serve(
 
         if current_block - last_set_block > blocks_per_set_weights:
             bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
-            metagraph.sync()
+            metagraph.sync(netuid=config.netuid)
             last_set_block = current_block
             if not config.neuron.no_set_weights:
                 try: 
                     bittensor.__console__.print('[green]Current Status:[/green]', {**wandb_data, **local_data})
                     # Set self weights to maintain activity.
                     # --- query the chain for the most current number of peers on the network
-                    chain_weights = torch.zeros(subtensor.n)
+                    chain_weights = torch.zeros(subtensor.subnetwork_n( netuid = config.netuid ))
                     chain_weights [ uid ] = 1 
                     did_set = subtensor.set_weights(
-                        uids=torch.arange(0,subtensor.n),
+                        netuid = config.netuid,
+                        uids=torch.arange(0,subtensor.subnetwork_n( netuid = config.netuid )),
                         weights = chain_weights,
                         wait_for_inclusion = False,
                         wallet = wallet,

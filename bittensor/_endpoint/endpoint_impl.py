@@ -28,13 +28,13 @@ SS58_LENGTH = 48
 MAXPORT = 65535
 MAXUID = 4294967295
 ACCEPTABLE_IPTYPES = [4,6]
-ACCEPTABLE_MODALITIES = [0]
+ACCEPTABLE_PROTOCOLS = [0] # TODO
 ENDPOINT_BUFFER_SIZE = 250
 
 class Endpoint:
     """ Implementation of an endpoint object, with attr hotkey, coldkey, modality and ip
     """
-    def __init__( self, version: int, uid:int, hotkey:str, ip:str, ip_type:int, port:int , modality:int, coldkey:str ):
+    def __init__( self, version: int, uid:int, hotkey:str, ip:str, ip_type:int, port:int , protocol:int, coldkey:str, modality: int = 0 ):
         self.version = version
         self.uid = uid
         self.hotkey = hotkey
@@ -42,6 +42,9 @@ class Endpoint:
         self.ip_type = ip_type
         self.port = port
         self.coldkey = coldkey
+        self.protocol = protocol
+
+        # TODO: remove modality from endpoint.
         self.modality = modality
 
 
@@ -58,7 +61,7 @@ class Endpoint:
         assert self.port > 0 and self.port < MAXPORT , 'port must be positive and less than 65535 - got {}'.format(self.port)
         assert len(self.coldkey) == SS58_LENGTH, 'coldkey string must be length 48 - got {}'.format(self.coldkey)
         assert len(self.hotkey) == SS58_LENGTH, 'hotkey string must be length 48 - got {}'.format(self.hotkey)
-        assert self.modality in ACCEPTABLE_MODALITIES, 'modality must be 0 (for now) - got {}'.format(self.modality)
+        assert self.protocol in ACCEPTABLE_PROTOCOLS, 'protocol must be 0 (for now) - got {}'.format(self.protocol)
 
     @property
     def is_serving(self) -> bool:
@@ -99,8 +102,8 @@ class Endpoint:
         if len(self.hotkey) != SS58_LENGTH:
             # 'hotkey string must be length 48'
             return False
-        if self.modality not in ACCEPTABLE_MODALITIES:
-            # 'modality must be 0 (for now)'
+        if self.protocol not in ACCEPTABLE_PROTOCOLS:
+            # 'protocol must be 0 (for now)'
             return False
         return True
     
@@ -128,6 +131,7 @@ class Endpoint:
                 'ip_type': self.ip_type,
                 'port': self.port,
                 'coldkey': self.coldkey,
+                'protocol': self.protocol,
                 'modality': self.modality,
             })
 
@@ -139,7 +143,7 @@ class Endpoint:
     def __eq__ (self, other: 'Endpoint'):
         if other == None:
             return False
-        if self.version == other.version and self.uid == other.uid and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and  self.coldkey == other.coldkey and self.hotkey == other.hotkey and self.modality == other.modality:
+        if self.version == other.version and self.uid == other.uid and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and  self.coldkey == other.coldkey and self.hotkey == other.hotkey and self.protocol == other.protocol:
             return True
         else:
             return False 

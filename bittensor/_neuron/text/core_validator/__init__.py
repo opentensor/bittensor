@@ -90,14 +90,26 @@ class neuron:
         metagraph: 'bittensor.Metagraph' = None,
         dendrite: 'bittensor.Dendrite' = None,
         dataset: 'bittensor.dataset' = None,
-        axon: 'bittensor.axon' = None
+        axon: 'bittensor.axon' = None,
+        netuid: int = None
     ):
 
         # === Set up Config ===
         if config == None: config = neuron.config()
+        
+        # === Set up subtensor and netuid === 
+        config.netuid = netuid if netuid != None else config.netuid
+
+        subtensor = bittensor.subtensor ( config = config ) if subtensor == None else subtensor
+        if config.netuid == None:
+            config.netuid = subtensor.get_subnets()[0]
+
+        # === Config check === 
         self.config = config
         neuron.check_config( self.config )
         self.config.to_defaults()
+
+        # === Mock options ===
         if self.config.neuron._mock == True:
             self.config.subtensor._mock = True
             self.config.wallet._mock = True
@@ -124,13 +136,13 @@ class neuron:
         self.vlogger = ValidatorLogger( config = self.config )
         self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
         self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
-        self.metagraph = bittensor.metagraph ( config = self.config, subtensor = self.subtensor ) if metagraph == None else metagraph
+        self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.
-        self.axon = bittensor.axon ( config = self.config, wallet = self.wallet ) if axon == None else axon
+        self.axon = bittensor.axon ( netuid=self.config.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
-        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
-                                          block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len + self.subtensor.prune_len)
+        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.netuid),
+                                          block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
@@ -203,7 +215,11 @@ class neuron:
     def config ( cls ):
         parser = argparse.ArgumentParser()    
         cls.add_args( parser )
-        nucleus.add_args( parser )        
+        nucleus.add_args( parser )    
+        
+        # Netuid Arg
+        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=0)
+
         bittensor.wallet.add_args( parser )
         bittensor.dendrite.add_args( parser )
         bittensor.subtensor.add_args( parser )
@@ -224,8 +240,11 @@ class neuron:
                 f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])')
 
     def __del__(self):
-        self.dataset.close()
-        self.dendrite.__del__()
+        if getattr(self, 'dataset', None) is not None:
+            self.dataset.close()
+        
+        if getattr(self, 'dendrite', None) is not None:
+            self.dendrite.__del__()
 
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
@@ -240,12 +259,12 @@ class neuron:
         # Connects wallet to network. 
         self.wallet.create()
         # NOTE: This registration step should likely be solved offline first.
-        self.wallet.reregister( subtensor = self.subtensor )
+        self.wallet.reregister( subtensor = self.subtensor, netuid=self.config.netuid )
 
         # === UID ===
         # Get our uid from the chain. 
         # At this point we should have a uid because we are already registered.
-        self.uid = self.wallet.get_uid( subtensor = self.subtensor )    
+        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid=self.config.netuid )    
 
         # === Monitoring ===
         # Optionally set up wandb logging.
@@ -259,6 +278,7 @@ class neuron:
 
         # === Set prometheus run info ===
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
+        # TODO (Cameron) this should be it's own storage map on-chain.
         self.axon.serve( subtensor = self.subtensor )
         self.vlogger.prometheus.log_run_info(
             parameters = self.nucleus.parameters(),
@@ -346,18 +366,18 @@ class neuron:
         # === Get params for epoch ===
         # Pulling the latest chain parameters.
         current_block = self.subtensor.block
-        batch_size = self.subtensor.validator_batch_size 
-        sequence_length = self.subtensor.validator_sequence_length
+        batch_size = self.subtensor.validator_batch_size(netuid=self.config.netuid)
+        sequence_length = self.subtensor.validator_sequence_length(netuid=self.config.netuid)
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         # Number of tokens to prune for phrase validation beyond sequence context
-        prune_len = self.config.neuron.prune_len = self.subtensor.prune_len
-        min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
-        blocks_per_epoch = self.subtensor.validator_epoch_length if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
-        epochs_until_reset = self.subtensor.validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
-        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
-        self.config.nucleus.logits_divergence = self.subtensor.logits_divergence
+        prune_len = self.config.neuron.prune_len = self.subtensor.validator_prune_len(netuid=self.config.netuid)
+        self.config.nucleus.logits_divergence = self.subtensor.validator_logits_divergence(netuid=self.config.netuid)
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
+        blocks_per_epoch = self.subtensor.validator_epoch_length(netuid=self.config.netuid) if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
+        epochs_until_reset = self.subtensor.validator_epochs_per_reset(netuid=self.config.netuid) if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power(netuid=self.config.netuid)
+        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power(netuid=self.config.netuid)
 
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len + prune_len != self.dataset.block_size):
@@ -525,7 +545,9 @@ class neuron:
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
             weights=sample_weights.detach().to('cpu'),
+            netuid = self.config.netuid,
             wallet=self.wallet,
+            version_key=bittensor.__version_as_int__, # TODO: correct?
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
@@ -573,7 +595,7 @@ class neuron:
         r""" Syncing metagraph together with other metagraph-size related objects
         """
         old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
-        self.metagraph.sync()
+        self.metagraph.sync(netuid=self.config.netuid)
         self.neuron_hotkeys = self.metagraph.hotkeys
 
         changed_hotkeys = []
@@ -680,8 +702,8 @@ class neuron:
 
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
 
-        min_allowed_weights = self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
 
         # === Populate neuron weights ===
         neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs for min_allowed_weights
@@ -699,7 +721,7 @@ class neuron:
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
-        quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
+        quantile = self.subtensor.validator_exclude_quantile(netuid=self.config.netuid) if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
         if 0 < max_exclude:
             exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
             lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
@@ -724,12 +746,12 @@ class nucleus( torch.nn.Module ):
         super(nucleus, self).__init__()
         self.config = config
         self.vlogger = vlogger
-        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
-        self.config.nucleus.logits_divergence = subtensor.logits_divergence if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
+        self.config.nucleus.logits_divergence = subtensor.validator_logits_divergence(netuid=self.config.netuid) if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
+        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
 
         self.device = device
-        self.max_n = subtensor.max_n
+        self.max_n = subtensor.max_n(netuid=self.config.netuid)
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
 
         tokenizer = bittensor.tokenizer()

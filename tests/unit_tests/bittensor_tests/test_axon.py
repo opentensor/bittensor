@@ -32,7 +32,7 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 
 wallet = bittensor.wallet.mock()
-axon = bittensor.axon(wallet = wallet)
+axon = bittensor.axon( netuid = -1, wallet = wallet)
 
 sender_wallet = bittensor.wallet.mock()
 
@@ -811,7 +811,7 @@ def test_forward_tensor_success_priority():
     def priority(pubkey:str, request_type:str, inputs_x):
         return 100
 
-    axon = bittensor.axon(wallet = wallet, priority= priority)
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority)
 
     def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
@@ -837,7 +837,7 @@ def test_forward_priority_timeout():
     def forward( inputs_x: torch.FloatTensor, synapses, hotkey):
         time.sleep(15)
 
-    axon = bittensor.axon(wallet = wallet, priority= priority, forward_timeout = 5)
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority, forward_timeout = 5)
     axon.attach_forward_callback(forward)
 
     inputs_raw = torch.rand(1,1)
@@ -860,7 +860,7 @@ def test_forward_priority_2nd_request_timeout():
     def priority(pubkey:str, request_type:str, inputs_x):
         return 100
 
-    axon = bittensor.axon(wallet = wallet, priority= priority, priority_threadpool = bittensor.prioritythreadpool(max_workers = 1))
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority, priority_threadpool = bittensor.prioritythreadpool(max_workers = 1))
 
     def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
         time.sleep(2)
@@ -898,7 +898,7 @@ def test_backward_response_success_text_priority():
     def priority(pubkey:str, request_type:str, inputs_x):
         return 100
 
-    axon = bittensor.axon(wallet = wallet, priority= priority)
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority)
 
     def forward( inputs_x: torch.FloatTensor, synapses, model_output = None):
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
@@ -925,6 +925,7 @@ def run_test_grpc_forward_works(receiver_version):
     def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
+        netuid = -1,
         port = 7084,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -971,6 +972,7 @@ def run_test_grpc_backward_works(receiver_version):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
 
     axon = bittensor.axon (
+        netuid = -1,
         port = 7086,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1012,6 +1014,7 @@ def test_grpc_forward_fails():
     def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
+        netuid = -1,
         port = 7084,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1050,6 +1053,7 @@ def test_grpc_backward_fails():
         return torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
 
     axon = bittensor.axon (
+        netuid = -1,
         port = 7086,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1095,7 +1099,7 @@ def is_port_in_use(port):
 def test_axon_is_destroyed():
     port = get_random_unused_port()
     assert is_port_in_use( port ) == False
-    axon = bittensor.axon ( port = port )
+    axon = bittensor.axon ( netuid = -1, port = port )
     assert is_port_in_use( port ) == True
     axon.start()
     assert is_port_in_use( port ) == True
@@ -1106,7 +1110,7 @@ def test_axon_is_destroyed():
 
     port = get_random_unused_port()
     assert is_port_in_use( port ) == False
-    axon2 = bittensor.axon ( port = port )
+    axon2 = bittensor.axon ( netuid = -1, port = port )
     assert is_port_in_use( port ) == True
     axon2.start()
     assert is_port_in_use( port ) == True
@@ -1115,9 +1119,9 @@ def test_axon_is_destroyed():
 
     port_3 = get_random_unused_port()
     assert is_port_in_use( port_3 ) == False
-    axonA = bittensor.axon ( port = port_3 )
+    axonA = bittensor.axon ( netuid = -1, port = port_3 )
     assert is_port_in_use( port_3 ) == True
-    axonB = bittensor.axon ( port = port_3 )
+    axonB = bittensor.axon ( netuid = -1, port = port_3 )
     assert axonA.server != axonB.server
     assert is_port_in_use( port_3 ) == True
     axonA.start()
@@ -1150,7 +1154,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
 
-        axon = bittensor.axon ( ip = 'fake_ip', server=mock_server, config=mock_config )
+        axon = bittensor.axon ( netuid = -1, ip = 'fake_ip', server=mock_server, config=mock_config )
         assert axon.external_ip != axon.ip # should be different
         assert axon.external_ip is None # should be None
 
@@ -1158,7 +1162,7 @@ class TestExternalAxon(unittest.TestCase):
         # Verify that not setting the external port arg will default to the internal axon port
         mock_config = bittensor.axon.config()
 
-        axon = bittensor.axon ( port = 1234, config=mock_config )
+        axon = bittensor.axon ( netuid = -1, port = 1234, config=mock_config )
         assert axon.external_port == axon.port
 
     def test_external_port_set_full_address_internal(self):
@@ -1172,7 +1176,7 @@ class TestExternalAxon(unittest.TestCase):
         
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        _ = bittensor.axon( netuid = -1, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1188,7 +1192,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        _ = bittensor.axon( config=mock_config, server=mock_server )
+        _ = bittensor.axon( netuid = -1, config=mock_config, server=mock_server )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1208,7 +1212,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
+        _ = bittensor.axon( netuid = -1, ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1223,7 +1227,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.external_ip = external_ip
         mock_config.axon.ip = internal_ip
 
-        _ = bittensor.axon( config=mock_config, server=mock_server )
+        _ = bittensor.axon( netuid = -1, config=mock_config, server=mock_server )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1245,7 +1249,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        _ = bittensor.axon( netuid = -1, ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1263,7 +1267,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        _ = bittensor.axon( config=mock_config, server=mock_server )
+        _ = bittensor.axon( netuid = -1, config=mock_config, server=mock_server )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1274,8 +1278,9 @@ class TestExternalAxon(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    unittest.main()
     # test_forward_joint_success()
     # test_forward_joint_missing_synapse()
     # test_forward_priority_timeout()
-    test_forward_priority_2nd_request_timeout()
+    #test_forward_priority_2nd_request_timeout()
     # test_forward_joint_faulty_synapse()

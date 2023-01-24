@@ -351,6 +351,7 @@ def _instrumented_client_server_pair(channel_kwargs, server_kwargs,
         ip = '127.0.0.1',
         server= axon_server,
         wallet = wallet,
+        netuid = -1,
     )
     
     server.server.add_generic_rpc_handlers((server_handler,))
