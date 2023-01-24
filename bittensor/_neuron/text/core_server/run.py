@@ -53,6 +53,11 @@ def serve(
     # Create Subtensor connection
     subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
 
+    # Verify subnet exists
+    if not subtensor.subnet_exists( netuid = config.netuid ):
+        bittensor.__console__.print(f"[red]Subnet {config.netuid} does not exist[/red]")
+        sys.exit(1)
+
     # Load/Create our bittensor wallet.
     if wallet == None:
         wallet = bittensor.wallet( config = config ).create().reregister(subtensor=subtensor, netuid = config.netuid) 
