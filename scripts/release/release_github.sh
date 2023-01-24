@@ -107,7 +107,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z $GITHUB_TOKEN ]]; then
+if [[ -z $GITHUB_TOKEN && apply == "true" ]]; then
     echo_error "Github token required (-T, --github-token)"
     exit 1
 fi
@@ -129,12 +129,20 @@ PREV_TAG_NAME=$PREV_TAG_VERSION
 TAG_NAME=v$VERSION
 
 # 2.1 Create Git tag for the repository
-echo_info "Tagging repository"
-tag_repository $TAG_NAME
+if [[ $APPLY == "true" ]]; then
+    echo_info "Tagging repository"
+    tag_repository $TAG_NAME
+else
+    echo_warning "Dry run execution. Not tagging Github repo"
+fi
 
 # 2.2. Generate release notes
-echo_info "Generating Github release notes"
-DESCRIPTION=$(generate_github_release_notes $GITHUB_TOKEN | jq '.body' | tail -1 | sed "s/\"//g")
+if [[ $APPLY == "true" ]]; then
+    echo_info "Generating Github release notes"
+    DESCRIPTION=$(generate_github_release_notes $GITHUB_TOKEN | jq '.body' | tail -1 | sed "s/\"//g")
+else
+    echo_warning "Dry run execution. Not generating Github release notes"
+fi
 
 # 2.3 Create Github release
 if [[ $APPLY == "true" ]]; then
@@ -150,9 +158,4 @@ if [[ $APPLY == "true" ]]; then
     sed -i "4 i\\\n$DESCRIPTION\n" CHANGELOG.md
 else
     echo_warning "Dry run execution. Not adding release notes to CHANGELOG.md"
-fi
-
-if [[ $APPLY == "false" ]]; then
-    echo_warning "Dryn run. We need to remove generated tag"
-    remove_tag $TAG_NAME
 fi
