@@ -138,9 +138,9 @@ echo_info "Tag generated: $TAG_NAME"
 
 # 3. Create Github resources
 if [[ $APPLY == "true" ]]; then
-  ${BASH_SOURCE%/*}/release_github.sh $APPLY_ACTION --github-token $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
+  ${BASH_SOURCE%/*}/github_release.sh $APPLY_ACTION --github-token $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
 else
-  ${BASH_SOURCE%/*}/release_github.sh $APPLY_ACTION $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
+  ${BASH_SOURCE%/*}/github_release.sh $APPLY_ACTION $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
 fi
 
 # 4. Generate python wheel and upload it to Pypi
