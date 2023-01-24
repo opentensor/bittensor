@@ -19,7 +19,7 @@
 
 import os
 import urllib
-
+import json
 import miniupnpc
 import netaddr
 import requests
@@ -92,9 +92,17 @@ def get_external_ip() -> str:
             ExternalIPNotFound (Exception):
                 Raised if all external ip attempts fail.
     """
-    # --- Try curl.
+    # --- Try AWS
     try:
-        process =  os.popen('curl -s ifconfig.me', close_fds=True)
+        external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
+        assert isinstance(ip_to_int(external_ip), int)
+        return str(external_ip)
+    except Exception:
+        pass
+
+    # --- Try ipconfig.
+    try:
+        process =  os.popen('curl -s ifconfig.me')
         external_ip = process.readline()
         process.close()
         assert isinstance(ip_to_int(external_ip), int)
@@ -102,17 +110,11 @@ def get_external_ip() -> str:
     except Exception:
         pass
 
-    # --- Try ipify
+    # --- Try ipinfo.
     try:
-        external_ip = requests.get('https://api.ipify.org').text
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass
-
-    # --- Try AWS
-    try:
-        external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
+        process =  os.popen('curl -s https://ipinfo.io')
+        external_ip = json.loads(process.read())['ip']
+        process.close()
         assert isinstance(ip_to_int(external_ip), int)
         return str(external_ip)
     except Exception:
