@@ -82,15 +82,15 @@ class StakeCommand:
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
             hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
-            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey ):
+            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey[1] ):
                 # Hotkey is not registered.
                 if (len(hotkeys_to_stake_to) == 1):
                     # Only one hotkey, error
-                    bittensor.__console__.print(f"[red]Hotkey [bold]{hotkey}[/bold] is not registered. Aborting.[/red]")
+                    bittensor.__console__.print(f"[red]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Aborting.[/red]")
                     return None
                 else:
                     # Otherwise, print warning and skip
-                    bittensor.__console__.print(f"[yellow]Hotkey [bold]{hotkey}[/bold] is not registered. Skipping.[/yellow]")
+                    bittensor.__console__.print(f"[yellow]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Skipping.[/yellow]")
                     continue
 
 
@@ -123,7 +123,7 @@ class StakeCommand:
         if not config.no_prompt:
             if not Confirm.ask(f"Do you want to stake to the following keys from {wallet.name}:\n" + \
                     "".join([
-                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {amount}𝜏[/bold white]\n" for hotkey, amount in zip(final_hotkeys, final_amounts)
+                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'${amount} \u03C4' if amount else 'All'}[/bold white]\n" for hotkey, amount in zip(final_hotkeys, final_amounts)
                     ])
                 ):
                 return None
