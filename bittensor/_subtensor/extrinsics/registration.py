@@ -1,6 +1,7 @@
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -15,6 +16,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
 import bittensor
 
 import torch
@@ -73,6 +75,9 @@ def register_extrinsic (
             flag is true if extrinsic was finalized or uncluded in the block. 
             If we did not wait for finalization / inclusion, the response is true.
     """
+    if not subtensor.subnet_exists( netuid ):
+        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(netuid))
+        return False
 
     with bittensor.__console__.status(f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )

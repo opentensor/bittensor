@@ -59,13 +59,13 @@ class OverviewCommand:
 
         # We are printing for a select number of hotkeys from all_hotkeys.
 
-        if cli.config.wallet.get('hotkeys', []):
+        if cli.config.get('hotkeys', []):
             if not cli.config.get('all_hotkeys', False):
                 # We are only showing hotkeys that are specified.
-                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in cli.config.wallet.hotkeys]
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in cli.config.hotkeys]
             else:
                 # We are excluding the specified hotkeys from all_hotkeys.
-                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str not in cli.config.wallet.hotkeys]
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str not in cli.config.hotkeys]
 
         # Check we have keys to display.
         if len(all_hotkeys) == 0:
@@ -280,6 +280,26 @@ class OverviewCommand:
             default="ascending",
             type=str,
             help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)'''
+        )
+        overview_parser.add_argument(
+            '--hotkeys',
+            '--exclude_hotkeys',
+            '--wallet.hotkeys',
+            '--wallet.exclude_hotkeys',
+            required=False,
+            action='store',
+            default=[],
+            type=str,
+            nargs='*',
+            help='''Specify the hotkeys by name or ss58 address. (e.g. hk1 hk2 hk3)'''
+        )
+        overview_parser.add_argument(
+            '--all_hotkeys',
+            '--wallet.all_hotkeys',
+            required=False,
+            action='store_true',
+            default=False,
+            help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
         )
         overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )  
         bittensor.wallet.add_args( overview_parser )

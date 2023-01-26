@@ -24,7 +24,8 @@ Example:
 
 import bittensor
 import os
-import torch
+import sys
+
 from .nucleus_impl import server
 from prometheus_client import Counter, Gauge, Histogram, Summary, Info, CollectorRegistry
 from threading import Lock
@@ -120,11 +121,7 @@ class neuron:
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
-        config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
-        # Try config.netuid as well
-        if config.neuron.netuid == None:
-            if config.get('netuid') != None:
-                config.neuron.netuid = config.get('netuid')
+        config.netuid = netuid if netuid != None else config.netuid
 
         self.check_config( config )
         self.config = config
@@ -147,6 +144,15 @@ class neuron:
         self.prometheus_guages = Gauge('neuron_guages', 'Guage sumamries for the running server-miner.', ['neuron_guages_name'], registry=registry)
         self.prometheus_info = Info('neuron_info', "Info sumamries for the running server-miner.", registry=registry)
         self.config.to_prometheus()
+
+        if self.config.netuid == None:
+            subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
+            self.config.netuid = subtensor.get_subnets()[0]
+        
+        # Verify subnet exists
+        if not self.subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
 
         self.mutex = Lock()
         self.model = server(config = config).to(config.neuron.device) if model == None else model

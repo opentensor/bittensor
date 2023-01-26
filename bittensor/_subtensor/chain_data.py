@@ -1,3 +1,19 @@
+# The MIT License (MIT)
+# Copyright © 2023 Opentensor Foundation
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
 from typing import List, Tuple, Dict
@@ -38,24 +54,17 @@ class NeuronInfo:
     axon_info: 'AxonInfo'
     is_null: bool = False
 
-    @staticmethod
-    def __u8_key_to_ss58(u8_key: Dict) -> str:
-        r""" Converts a u8 key to ss58.
-        """
-        # First byte is length, then 32 bytes of key.
-        return scalecodec.ss58_encode( bytes(u8_key['id']).hex(), bittensor.__ss58_format__)
-        
     @classmethod
     def from_json(cls, json: Dict) -> 'NeuronInfo':
         r""" Returns a NeuronInfo object from a json dictionary.
         """
         return NeuronInfo(
-            hotkey = cls.__u8_key_to_ss58(json['hotkey']),
-            coldkey = cls.__u8_key_to_ss58(json['coldkey']),
+            hotkey = bittensor.utils.u8_key_to_ss58(json['hotkey']['id']),
+            coldkey = bittensor.utils.u8_key_to_ss58(json['coldkey']['id']),
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            stake = Balance.from_rao(json['stake'][0][1]),
+            stake = Balance.from_rao(0 if len(json['stake']) == 0 else json['stake'][0][1]),
             total_stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
             rank = json['rank'] / U16_MAX,
             emission = json['emission'] / RAOPERTAO,
@@ -177,6 +186,27 @@ class DelegateInfo:
     owner_ss58: str # Coldkey of owner
     take: float # Take of the delegate as a percentage
 
+    @classmethod
+    def from_json(cls, json: Dict) -> 'DelegateInfo':
+        r""" Returns a DelegateInfo object from a json dictionary.
+        """
+        delegate_ss58 = bittensor.utils.u8_key_to_ss58(json['delegate_ss58']['id'])
+        owner = bittensor.utils.u8_key_to_ss58(json['owner_ss58']['id'])
+        take = bittensor.utils.U16_NORMALIZED_FLOAT(json['take'])
+        nominators = [
+            (bittensor.utils.u8_key_to_ss58(nom[0]['id']), Balance.from_rao(nom[1]))
+            for nom in json['nominators']
+        ]
+        total_stake = sum([nom[1] for nom in nominators])
+
+        return DelegateInfo(
+            hotkey_ss58=delegate_ss58,
+            take = take,
+            total_stake=total_stake,
+            nominators=nominators,
+            owner_ss58=owner
+        )
+
 
 @dataclass
 class SubnetInfo:
@@ -201,8 +231,35 @@ class SubnetInfo:
     max_n: int
     blocks_since_epoch: int
     tempo: int
-    blocks_per_epoch: int
     modality: int
     connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
+
+    @classmethod
+    def from_json(cls, json: Dict) -> 'SubnetInfo':
+        r""" Returns a SubnetInfo object from a json dictionary.
+        """
+        return SubnetInfo(
+            netuid = json['netuid'],
+            rho = json['rho'],
+            kappa = json['kappa'],
+            difficulty = json['difficulty'],
+            immunity_period = json['immunity_period'],
+            validator_batch_size = json['validator_batch_size'],
+            validator_sequence_length = json['validator_sequence_length'],
+            validator_epochs_per_reset = json['validator_epochs_per_reset'],
+            validator_epoch_length = json['validator_epoch_length'],
+            max_allowed_validators = json['max_allowed_validators'],
+            min_allowed_weights = json['min_allowed_weights'],
+            max_weight_limit = json['max_weights_limit'],
+            scaling_law_power = json['scaling_law_power'],
+            synergy_scaling_law_power= json['synergy_scaling_law_power'],
+            subnetwork_n = json['subnetwork_n'],
+            max_n = json['max_allowed_uids'],
+            blocks_since_epoch = json['blocks_since_last_step'],
+            tempo = json['tempo'],
+            modality = json['network_modality'],
+            connection_requirements= json['network_connect'],
+            emission_value= json['emission_values'],
+        )
     

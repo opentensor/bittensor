@@ -38,7 +38,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
             str(delegate.hotkey_ss58),
             str(delegate.take),
             str(delegate.owner_ss58),
-            str(delegate.nominators),
+            str(len(delegate.nominators)),
             str(delegate.total_stake),
         )
     bittensor.__console__.print(table)
@@ -222,7 +222,7 @@ class NominateCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
+        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
