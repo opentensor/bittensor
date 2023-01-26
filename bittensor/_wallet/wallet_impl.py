@@ -87,6 +87,9 @@ class Wallet():
     def trust(self, netuid: int) -> SimpleNamespace:
         return self.get_neuron(netuid = netuid).trust
 
+    def validator_trust(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).validator_trust
+
     def rank(self, netuid: int) -> SimpleNamespace:
         return self.get_neuron(netuid = netuid).rank
 
@@ -98,6 +101,9 @@ class Wallet():
 
     def consensus(self, netuid: int) -> SimpleNamespace:
         return self.get_neuron(netuid = netuid).consensus
+
+    def weight_consensus(self, netuid: int) -> SimpleNamespace:
+        return self.get_neuron(netuid = netuid).weight_consensus
 
     def ip(self, netuid: int) -> SimpleNamespace:
         return self.get_neuron(netuid = netuid).ip
