@@ -45,7 +45,7 @@ class TestCli(unittest.TestCase):
 
         self.config = TestCli.construct_config()
         # Mocked objects
-        self.mock_neuron = get_mock_neuron( )
+        self.mock_neuron = get_mock_neuron(uid=0)
         self._patches = []
         self._patches.append(patch('substrateinterface.SubstrateInterface.submit_extrinsic', return_value=success()))
         self._patches.append(patch('substrateinterface.SubstrateInterface.get_payment_info', return_value={
@@ -62,7 +62,16 @@ class TestCli(unittest.TestCase):
         bittensor.Subtensor.register = MagicMock(return_value = True) 
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         bittensor.Subtensor.neuron_for_uid = MagicMock(return_value=self.mock_neuron)
+        bittensor.Subtensor.neurons = MagicMock(return_value=[self.mock_neuron])
         bittensor.Subtensor.get_balance = MagicMock(return_value = Balance.from_tao(0))
+        bittensor.Subtensor.metagraph = MagicMock(
+            return_value = bittensor.metagraph.from_neurons(
+                network = 'mock',
+                netuid = -1,
+                neurons = [self.mock_neuron],
+                block = 0,
+            )
+        )
 
     def tearDown(self) -> None:
         for _patch in self._patches:
