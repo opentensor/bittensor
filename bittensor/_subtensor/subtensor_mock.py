@@ -43,19 +43,20 @@ __type_registery__ = {
                 ["modality", "u8"], 
                 ["hotkey", "AccountId"], 
                 ["coldkey", "AccountId"], 
-                ["active", "u32"],
+                ["active", "bool"],
                 ["last_update", "u64"],
                 ["validator_permit", "bool"],
-                ["priority", "u64"],
                 ["stake", "u64"],
-                ["rank", "u64"],
-                ["trust", "u64"],
-                ["consensus", "u64"],
-                ["incentive", "u64"],
-                ["dividends", "u64"],
+                ["rank", "u16"],
+                ["trust", "u16"],
+                ["consensus", "u16"],
+                ["validator_trust", "u16"],
+                ["weight_consensus", "u16"],
+                ["incentive", "u16"],
+                ["dividends", "u16"],
                 ["emission", "u64"],
-                ["bonds", "Vec<(u32, u64)>"],
-                ["weights", "Vec<(u32, u32)>"]
+                ["bonds", "Vec<(u16, u16)>"],
+                ["weights", "Vec<(u16, u16)>"]
             ]
         }
     }

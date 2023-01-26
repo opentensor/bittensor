@@ -81,6 +81,8 @@ class Metagraph( torch.nn.Module ):
         self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.validator_trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.weight_consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.incentive = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.emission = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.dividends = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
@@ -131,6 +133,18 @@ class Metagraph( torch.nn.Module ):
         """ Trust
         """
         return self.trust
+
+    @property
+    def Cw(self) -> torch.FloatTensor:
+        """ Weight consensus
+        """
+        return self.weight_consensus
+
+    @property
+    def Tv(self) -> torch.FloatTensor:
+        """ Validator trust
+        """
+        return self.validator_trust
 
     @property
     def D(self) -> torch.FloatTensor:
@@ -305,6 +319,8 @@ class Metagraph( torch.nn.Module ):
         self.ranks = torch.nn.Parameter( state_dict['ranks'], requires_grad=False )
         self.trust = torch.nn.Parameter( state_dict['trust'], requires_grad=False )
         self.consensus = torch.nn.Parameter( state_dict['consensus'], requires_grad=False )
+        self.validator_trust = torch.nn.Parameter( state_dict['validator_trust'], requires_grad=False )
+        self.weight_consensus = torch.nn.Parameter( state_dict['weight_consensus'], requires_grad=False )
         self.incentive = torch.nn.Parameter( state_dict['incentive'], requires_grad=False )
         self.emission = torch.nn.Parameter( state_dict['emission'], requires_grad=False )
         self.dividends = torch.nn.Parameter( state_dict['dividends'], requires_grad=False )
@@ -348,7 +364,7 @@ class Metagraph( torch.nn.Module ):
     def to_dataframe(self):
         try:
             index = self.uids.tolist()
-            columns = [ 'uid', 'active', 'stake', 'total_stake', 'rank', 'trust', 'consensus', 'incentive', 'dividends', 'emission']
+            columns = [ 'uid', 'active', 'stake', 'total_stake', 'rank', 'trust', 'consensus', 'validator_trust', 'weight_consensus', 'incentive', 'dividends', 'emission']
             dataframe = pandas.DataFrame(columns = columns, index = index)
             for uid in self.uids.tolist():
                 v = {
@@ -360,7 +376,9 @@ class Metagraph( torch.nn.Module ):
 
                     'rank': self.ranks[uid].item(),            
                     'trust': self.trust[uid].item(),             
-                    'consensus': self.consensus[uid].item(),             
+                    'consensus': self.consensus[uid].item(),
+                    'validator_trust': self.validator_trust[uid].item(),
+                    'weight_consensus': self.weight_consensus[uid].item(),
                     'incentive': self.incentive[uid].item(),             
                     'dividends': self.dividends[uid].item(),             
                     'emission': self.emission[uid].item()
