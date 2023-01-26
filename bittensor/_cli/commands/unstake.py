@@ -151,15 +151,15 @@ class UnStakeCommand:
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_unstake_from):
             hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
-            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey ):
+            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey[1] ):
                 # Hotkey is not registered.
                 if (len(hotkeys_to_unstake_from) == 1):
                     # Only one hotkey, error
-                    bittensor.__console__.print(f"[red]Hotkey [bold]{hotkey}[/bold] is not registered. Aborting.[/red]")
+                    bittensor.__console__.print(f"[red]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Aborting.[/red]")
                     return None
                 else:
                     # Otherwise, print warning and skip
-                    bittensor.__console__.print(f"[yellow]Hotkey [bold]{hotkey}[/bold] is not registered. Skipping.[/yellow]")
+                    bittensor.__console__.print(f"[yellow]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Skipping.[/yellow]")
                     continue
         
             unstake_amount_tao: float = cli.config.get('amount') # The amount specified to unstake.
