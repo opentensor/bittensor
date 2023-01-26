@@ -80,6 +80,8 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
                 "rank":0.0,
                 "trust":0.0,
                 "consensus":0.0,
+                "validator_trust": 0.0,
+                "weight_consensus": 0.0,
                 "incentive":0.0,
                 "dividends":0.0,
                 "emission":0.0,
