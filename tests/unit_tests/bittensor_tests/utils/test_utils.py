@@ -581,11 +581,7 @@ class TestExplorerURL(unittest.TestCase):
     )
     @unpack
     def test_get_explorer_url_for_network_by_network_and_block_hash(self, network: str, block_hash: str, expected: str) -> str:
-        def override_map_func(network: str, _) -> str:
-            return self.network_map[network]
-        
-        with patch('bittensor.utils.get_explorer_root_url_by_network_from_map', side_effect=override_map_func):
-            self.assertEqual(bittensor.utils.get_explorer_url_for_network(network, block_hash), expected)
+        self.assertEqual(bittensor.utils.get_explorer_url_for_network(network, block_hash, self.network_map), expected)
 
 
 if __name__ == "__main__":
