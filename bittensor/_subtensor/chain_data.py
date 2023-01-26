@@ -61,13 +61,14 @@ class NeuronInfo:
     def from_json(cls, json: Dict) -> 'NeuronInfo':
         r""" Returns a NeuronInfo object from a json dictionary.
         """
+        print(json['stake'])
         return NeuronInfo(
             hotkey = bittensor.utils.u8_key_to_ss58(json['hotkey']['id']),
             coldkey = bittensor.utils.u8_key_to_ss58(json['coldkey']['id']),
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            stake = { bittensor.utils.u8_key_to_ss58(stake[0]): Balance.from_rao(stake[1]) for stake in json['stake']},
+            stake = { bittensor.utils.u8_key_to_ss58(stake[0]['id']): Balance.from_rao(stake[1]) for stake in json['stake']},
             total_stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
             rank = json['rank'] / U16_MAX,
             emission = json['emission'] / RAOPERTAO,
