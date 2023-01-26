@@ -113,9 +113,7 @@ class wallet:
             parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
             parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
             parser.add_argument('--' + prefix_str + 'wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
-            
-            parser.add_argument('--' + prefix_str + 'wallet.hotkeys', '--' + prefix_str + 'wallet.exclude_hotkeys', required=False, action='store', default=bittensor.defaults.wallet.hotkeys, type=str, nargs='*', help='''Specify the hotkeys by name. (e.g. hk1 hk2 hk3)''')
-            parser.add_argument('--' + prefix_str + 'wallet.all_hotkeys', required=False, action='store_true', default=bittensor.defaults.wallet.all_hotkeys, help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.''')
+        
             parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, action='store', default=bittensor.defaults.wallet.reregister, type=strtobool, help='''Whether to reregister the wallet if it is not already registered.''')
 
         except argparse.ArgumentError as e:
@@ -130,9 +128,6 @@ class wallet:
         defaults.wallet.hotkey = os.getenv('BT_WALLET_HOTKEY') if os.getenv('BT_WALLET_HOTKEY') != None else 'default'
         defaults.wallet.path = os.getenv('BT_WALLET_PATH') if os.getenv('BT_WALLET_PATH') != None else '~/.bittensor/wallets/'
         defaults.wallet._mock = os.getenv('BT_WALLET_MOCK') if os.getenv('BT_WALLET_MOCK') != None else False
-        # CLI defaults for Overview
-        defaults.wallet.hotkeys = []
-        defaults.wallet.all_hotkeys = False
         # Defaults for registration
         defaults.wallet.reregister = True
 
@@ -144,6 +139,4 @@ class wallet:
         assert isinstance(config.wallet.get('name', bittensor.defaults.wallet.name), str)
         assert isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), str ) or config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) == None
         assert isinstance(config.wallet.path, str)
-        assert isinstance(config.wallet.hotkeys, list)
         assert isinstance(config.wallet.reregister, bool)
-        assert isinstance(config.wallet.all_hotkeys, bool)

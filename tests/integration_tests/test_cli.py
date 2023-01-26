@@ -188,7 +188,7 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
-        config.wallet.hotkeys = ['some_hotkey']
+        config.hotkeys = ['some_hotkey']
         config.all = False
         config.no_version_checking = True
 
