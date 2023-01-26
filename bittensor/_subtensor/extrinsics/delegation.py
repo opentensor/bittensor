@@ -197,9 +197,9 @@ def delegate_extrinsic(
                 staking_fee = bittensor.Balance.from_tao( 0.2 )
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate delegation fee, assuming base fee of 0.2")
 
-    # Check enough to stake.
-    if staking_balance > my_prev_coldkey_balance + staking_fee:
-        bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, staking_fee, wallet.name))
+    # Check enough balance to stake.
+    if staking_balance + staking_fee > my_prev_coldkey_balance:
+        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, staking_fee, wallet.name))
         return False
             
     # Ask before moving on.
