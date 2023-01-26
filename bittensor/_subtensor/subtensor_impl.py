@@ -653,35 +653,35 @@ class Subtensor:
     #### Neuron information per subnet ####
     ########################################
 
-    def is_hotkey_registered_any( self, ss58_hotkey: str, block: Optional[int] = None) -> bool:
-        return len( self.get_netuids_for_hotkey( ss58_hotkey, block) ) > 0
+    def is_hotkey_registered_any( self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+        return len( self.get_netuids_for_hotkey( hotkey_ss58, block) ) > 0
     
-    def is_hotkey_registered_on_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> bool:
-        return self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block ) != None
+    def is_hotkey_registered_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
+        return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
-    def is_hotkey_registered( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> bool:
-        return self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block ) != None
+    def is_hotkey_registered( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
+        return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
-    def get_uid_for_hotkey_on_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> int:
-        return self.query_paratensor( 'Uids', block, [ netuid, ss58_hotkey ] ).value  
+    def get_uid_for_hotkey_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> int:
+        return self.query_paratensor( 'Uids', block, [ netuid, hotkey_ss58 ] ).value  
 
-    def get_all_uids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
-        return [ self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block) for netuid in self.get_netuids_for_hotkey( ss58_hotkey, block)]
+    def get_all_uids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
+        return [ self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block) for netuid in self.get_netuids_for_hotkey( hotkey_ss58, block)]
 
-    def get_netuids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
-        result = self.query_map_paratensor( 'IsNetworkMember', block, [ ss58_hotkey ] )   
+    def get_netuids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
+        result = self.query_map_paratensor( 'IsNetworkMember', block, [ hotkey_ss58 ] )   
         netuids = []
         for netuid, is_member in result.records:
             if is_member:
                 netuids.append( netuid.value )
         return netuids
 
-    def get_neuron_for_pubkey_and_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
-        return self.neuron_for_uid( self.get_uid_for_hotkey_on_subnet(ss58_hotkey, netuid, block=block), netuid, block = block)
+    def get_neuron_for_pubkey_and_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
+        return self.neuron_for_uid( self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block=block), netuid, block = block)
 
-    def get_all_neurons_for_pubkey( self, ss58_hotkey: str, block: Optional[int] = None ) -> List[NeuronInfo]:
-        netuids = self.get_netuids_for_hotkey( ss58_hotkey, block) 
-        uids = [self.get_uid_for_hotkey_on_subnet(ss58_hotkey, net) for net in netuids] 
+    def get_all_neurons_for_pubkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[NeuronInfo]:
+        netuids = self.get_netuids_for_hotkey( hotkey_ss58, block) 
+        uids = [self.get_uid_for_hotkey_on_subnet(hotkey_ss58, net) for net in netuids] 
         return [self.neuron_for_uid( uid, net ) for uid, net in list(zip(uids, netuids))]
 
     def neuron_has_validator_permit( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[bool]:
