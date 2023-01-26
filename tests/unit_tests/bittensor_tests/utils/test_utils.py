@@ -10,15 +10,20 @@ import time
 import unittest
 from sys import platform
 from types import SimpleNamespace
+from typing import Dict
 from unittest.mock import MagicMock, patch
 
-import bittensor
 import pytest
-import torch
 from _pytest.fixtures import fixture
-from bittensor.utils import CUDASolver
+
+from ddt import data, ddt, unpack
+
+import torch
 from loguru import logger
 from substrateinterface.base import Keypair
+
+import bittensor
+from bittensor.utils import CUDASolver
 
 
 @fixture(scope="function")
@@ -545,6 +550,42 @@ class TestCUDASolverRun(unittest.TestCase):
             self.assertNotEqual(nonce_start_after_iteration, initial_nonce_start, "nonce_start was not updated after iteration")
             ## Should incerase by the number of nonces tried == TPB * update_interval
             self.assertEqual(nonce_start_after_iteration, (initial_nonce_start + update_interval * TPB) % nonce_limit,  "nonce_start was not updated by the correct amount")
+
+@ddt
+class TestExplorerURL(unittest.TestCase):
+    network_map: Dict[str, str] = {
+        "nakamoto": "https://polkadot.js.org/apps/?rpc=wss://archivelb.nakamoto.opentensor.ai:9943#/explorer",
+        "example": "https://polkadot.js.org/apps/?rpc=wss://example.example.com#/explorer",
+        "nobunaga": "https://polkadot.js.org/apps/?rpc=wss://nobunaga.bittensor.com:9943#/explorer",
+        # "bad": None # no explorer for this network
+    }
+
+    @data(
+        ("nobunaga", "https://polkadot.js.org/apps/?rpc=wss://nobunaga.bittensor.com:9943#/explorer"),
+        ("nakamoto", "https://polkadot.js.org/apps/?rpc=wss://archivelb.nakamoto.opentensor.ai:9943#/explorer"),
+        ("example", "https://polkadot.js.org/apps/?rpc=wss://example.example.com#/explorer"),
+        ("bad", None),
+        ("", None),
+        ("networknamewithoutexplorer", None)
+    )
+    @unpack
+    def test_get_explorer_root_url_by_network_from_map(self, network: str, expected: str) -> str:
+        self.assertEqual(bittensor.utils.get_explorer_root_url_by_network_from_map(network, self.network_map), expected)
+
+    @data(
+        ("nobunaga", "0x123", "https://polkadot.js.org/apps/?rpc=wss://nobunaga.bittensor.com:9943#/explorer/query/0x123"),
+        ("example", "0x123", "https://polkadot.js.org/apps/?rpc=wss://example.example.com#/explorer/query/0x123"),
+        ("bad", "0x123", None),
+        ("", "0x123", None),
+        ("networknamewithoutexplorer", "0x123", None)
+    )
+    @unpack
+    def test_get_explorer_url_for_network_by_network_and_block_hash(self, network: str, block_hash: str, expected: str) -> str:
+        def override_map_func(network: str, _) -> str:
+            return self.network_map[network]
+        
+        with patch('bittensor.utils.get_explorer_root_url_by_network_from_map', side_effect=override_map_func):
+            self.assertEqual(bittensor.utils.get_explorer_url_for_network(network, block_hash), expected)
 
 
 if __name__ == "__main__":

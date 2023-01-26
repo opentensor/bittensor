@@ -24,6 +24,7 @@ Example:
 
 import bittensor
 import os
+import sys
 
 from .nucleus_impl import server
 from .run import serve
@@ -78,6 +79,17 @@ class neuron:
         if config == None: config = server.config()
         config = config; 
 
+        config.netuid = netuid if netuid != None else config.netuid
+
+        subtensor = bittensor.subtensor ( config = config ) if subtensor == None else subtensor
+        if config.netuid == None:
+            config.netuid = subtensor.get_subnets()[0]
+        
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         if synapse_list != None:
             config.neuron.lasthidden = False
             config.neuron.causallm = False
@@ -100,11 +112,6 @@ class neuron:
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
-        config.neuron.netuid = netuid if netuid != None else config.neuron.netuid
-        # Try config.netuid as well
-        if config.neuron.netuid == None:
-            if config.get('netuid') != None:
-                config.neuron.netuid = config.get('netuid')
 
         self.check_config( config )
         bittensor.logging (
@@ -125,10 +132,6 @@ class neuron:
         self.axon = axon
         self.metagraph = metagraph
 
-        if self.config.neuron.netuid == None:
-            subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
-            self.config.neuron.netuid = subtensor.get_subnets()[0]
-        
         self.model = server(config = self.config)
 
     def run(self):

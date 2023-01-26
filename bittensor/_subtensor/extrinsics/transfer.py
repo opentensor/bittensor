@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -14,6 +15,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
 import bittensor
 
 from rich.prompt import Confirm
@@ -126,8 +128,11 @@ def transfer_extrinsic(
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 block_hash = response.block_hash
                 bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
-                explorer_url = "https://explorer.nakamoto.opentensor.ai/#/explorer/query/{block_hash}".format( block_hash = block_hash )
-                bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
+                
+                explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash )
+                if explorer_url is not None:
+                    bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
+                
             else:
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 

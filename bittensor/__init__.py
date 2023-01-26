@@ -69,17 +69,27 @@ __networks__ = [ 'local', 'nakamoto', 'finney']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
-__nakamoto_entrypoint__ = "AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
+__nakamoto_entrypoint__ = "ws://AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 
-__nobunaga_entrypoint__ = "staging.nobunaga.opentensor.ai:9944"
+__nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
 __finney_entrypoint__ = "wss://staging.parachain.opentensor.ai:443"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "127.0.0.1:9944"
+__local_entrypoint__ = "ws://127.0.0.1:9945"
 
+
+# Block Explorers map network to explorer url
+## Must all be polkadotjs explorer urls
+__network_explorer_map__ = {
+    'local': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
+    'nobunaga': "https://staging.opentensor.ai/#/explorer",
+    'finney': "https://polkadot.js.org/apps/?rpc=wss://staging.parachain.opentensor.ai#/explorer"
+}
 
 # Avoid collisions with other processes
 from .utils.test_utils import get_random_unused_port
@@ -171,6 +181,9 @@ from bittensor._synapse.text_causallm_impl import TextCausalLM as TextCausalLM
 from bittensor._synapse.text_causallmnext_impl import TextCausalLMNext as TextCausalLMNext
 from bittensor._synapse.text_lasthiddenstate_impl import TextLastHiddenState as TextLastHiddenState
 from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
+
+# ---- Errors and Exceptions -----
+from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
 # DEFAULTS
 defaults = Config()

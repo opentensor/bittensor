@@ -113,12 +113,12 @@ def test_upnpc_create_port_map(mocked_upnp):
 @pytest.mark.parametrize("url, expected", [
     ("wss://exampleendpoint:9944", "wss://exampleendpoint:9944"),
     ("ws://exampleendpoint:9944", "ws://exampleendpoint:9944"),
-    ("exampleendpoint:9944", "wss://exampleendpoint:9944"),
+    ("exampleendpoint:9944", "ws://exampleendpoint:9944"), # should add ws:// not wss://
     ("ws://exampleendpoint", "ws://exampleendpoint"), # should not add port if not specified
     ("wss://exampleendpoint", "wss://exampleendpoint"), # should not add port if not specified
-    ("exampleendpoint", "wss://exampleendpoint"), # should not add port if not specified
-    ("exampleendpointwithws://:9944", "wss://exampleendpointwithws://:9944"), # should only care about the front
-    ("exampleendpointwithwss://:9944", "wss://exampleendpointwithwss://:9944"), # should only care about the front
+    ("exampleendpoint", "ws://exampleendpoint"), # should not add port if not specified
+    ("exampleendpointwithws://:9944", "ws://exampleendpointwithws://:9944"), # should only care about the front
+    ("exampleendpointwithwss://:9944", "ws://exampleendpointwithwss://:9944"), # should only care about the front
 ])
 def test_format(url: str, expected: str):
     assert utils.networking.get_formatted_ws_endpoint_url(url) == expected

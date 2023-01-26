@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -23,6 +24,7 @@ from retry import retry
 from typing import List, Dict, Union, Optional, Tuple
 from substrateinterface import SubstrateInterface
 from bittensor.utils.balance import Balance
+from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
 from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
@@ -38,15 +40,6 @@ from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic
 # Logging
 from loguru import logger
 logger = logger.opt(colors=True)
-
-# Helpers
-RAOPERTAO = 1e9
-U16_MAX = 65535
-U64_MAX = 18446744073709551615
-def U16_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U16_MAX ) 
-def U64_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U64_MAX )
 
 class Subtensor:
     """
@@ -287,6 +280,8 @@ class Subtensor:
     ) -> bool:
         """ Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey. """
         return unstake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
+
+   
 
     def unstake (
         self,
@@ -557,35 +552,46 @@ class Subtensor:
             return []
 
     def get_all_subnets_info( self, block: Optional[int] = None ) -> List[SubnetInfo]:
-        all_subnets = self.get_subnets( block )
-        return [ self.get_subnet_info( netuid ) for netuid in all_subnets]
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = []
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="subnetInfo_getSubnetsInfo", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result == None:
+            return []
+        
+        return [ SubnetInfo.from_json(subnet_info) for subnet_info in result ]
 
     def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
-        if not self.subnet_exists( netuid ): return None
-        return SubnetInfo(
-            netuid=netuid,
-            blocks_per_epoch = 0,
-            rho = self.rho( netuid, block ),
-            kappa = self.kappa( netuid, block ),
-            difficulty = self.difficulty( netuid, block ),
-            immunity_period = self.immunity_period( netuid, block ),
-            validator_batch_size = self.validator_batch_size( netuid, block ),
-            validator_sequence_length = self.validator_sequence_length( netuid, block ),
-            validator_epochs_per_reset = self.validator_epochs_per_reset( netuid, block ),
-            validator_epoch_length = self.validator_epoch_length( netuid, block ),
-            min_allowed_weights = self.min_allowed_weights( netuid, block ),
-            max_weight_limit = self.max_weight_limit( netuid, block ),
-            scaling_law_power = self.scaling_law_power( netuid, block ),
-            synergy_scaling_law_power = self.synergy_scaling_law_power( netuid, block ),
-            subnetwork_n = self.subnetwork_n( netuid, block ),
-            max_n = self.max_n( netuid, block ),
-            blocks_since_epoch = self.blocks_since_epoch( netuid, block ),
-            max_allowed_validators = self.max_allowed_validators( netuid, block ),
-            emission_value = self.get_emission_value_by_subnet( netuid, block ),
-            tempo= self.tempo( netuid, block ),
-            modality= self.get_subnet_modality( netuid, block ),
-            connection_requirements = {},
-        )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="subnetInfo_getSubnetInfo", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result == None:
+            return None
+        
+        return SubnetInfo.from_json(result)
         
     ####################
     #### Nomination ####
@@ -603,62 +609,83 @@ class Subtensor:
         else:
             return 0
 
-    def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
-        delegates = []
-        query_results = self.query_map_paratensor( 'Delegates', block )
-        if query_results.records:
-            for record in query_results.records:
-                delegate_ss58 = record[0].value; take = record[1].value
-                total_stake = self.get_total_stake_for_hotkey( delegate_ss58, block )
-                nominators = self.get_nominators_for_hotkey( delegate_ss58, block )
-                owner = self.get_hotkey_owner( delegate_ss58, block )
-                info = DelegateInfo(
-                    hotkey_ss58=delegate_ss58,
-                    take = U16_NORMALIZED_FLOAT( take ),
-                    total_stake=total_stake,
-                    nominators=len(nominators),
-                    owner_ss58=owner
+    def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[DelegateInfo]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [encoded_hotkey]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegate", # custom rpc method
+                    params=params
                 )
-                delegates.append( info )
-            return delegates
-        else:
+
+        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( hotkey_ss58 )
+        encoded_hotkey: List[int] = [ int( byte ) for byte in hotkey_bytes ]
+        json_body = make_substrate_call_with_retry(encoded_hotkey)
+        if json_body['result'] == None:
+            return None
+            
+        return DelegateInfo.from_json( json_body['result'] )
+
+    def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = []
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegates", # custom rpc method
+                    params=params
+                )
+        json_body = make_substrate_call_with_retry()
+        if json_body['result'] == None:
             return []
+
+        return [DelegateInfo.from_json( delegate ) for delegate in json_body['result']]
 
 
     ########################################
     #### Neuron information per subnet ####
     ########################################
 
-    def is_hotkey_registered_any( self, ss58_hotkey: str, block: Optional[int] = None) -> bool:
-        return len( self.get_netuids_for_hotkey( ss58_hotkey, block) ) > 0
+    def is_hotkey_registered_any( self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+        return len( self.get_netuids_for_hotkey( hotkey_ss58, block) ) > 0
     
-    def is_hotkey_registered_on_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> bool:
-        return self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block ) != None
+    def is_hotkey_registered_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
+        return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
-    def is_hotkey_registered( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> bool:
-        return self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block ) != None
+    def is_hotkey_registered( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
+        return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
-    def get_uid_for_hotkey_on_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> int:
-        return self.query_paratensor( 'Uids', block, [ netuid, ss58_hotkey ] ).value  
+    def get_uid_for_hotkey_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> int:
+        return self.query_paratensor( 'Uids', block, [ netuid, hotkey_ss58 ] ).value  
 
-    def get_all_uids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
-        return [ self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block) for netuid in self.get_netuids_for_hotkey( ss58_hotkey, block)]
+    def get_all_uids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
+        return [ self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block) for netuid in self.get_netuids_for_hotkey( hotkey_ss58, block)]
 
-    def get_netuids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
-        result = self.query_map_paratensor( 'IsNetworkMember', block, [ ss58_hotkey ] )   
+    def get_netuids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
+        result = self.query_map_paratensor( 'IsNetworkMember', block, [ hotkey_ss58 ] )   
         netuids = []
         for netuid, is_member in result.records:
             if is_member:
                 netuids.append( netuid.value )
         return netuids
 
-    def get_neuron_for_pubkey_and_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
-        return self.neuron_for_uid( self.get_uid_for_hotkey_on_subnet(ss58_hotkey, netuid, block=block), netuid, block = block)
+    def get_neuron_for_pubkey_and_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
+        return self.neuron_for_uid( self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block=block), netuid, block = block)
 
-    def get_all_neurons_for_pubkey( self, ss58_hotkey: str, block: Optional[int] = None ) -> List[NeuronInfo]:
-        netuids = self.get_netuids_for_hotkey( ss58_hotkey, block) 
-        uids = [self.get_uid_for_hotkey_on_subnet(ss58_hotkey, net) for net in netuids] 
+    def get_all_neurons_for_pubkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[NeuronInfo]:
+        netuids = self.get_netuids_for_hotkey( hotkey_ss58, block) 
+        uids = [self.get_uid_for_hotkey_on_subnet(hotkey_ss58, net) for net in netuids] 
         return [self.neuron_for_uid( uid, net ) for uid, net in list(zip(uids, netuids))]
+
+    def neuron_has_validator_permit( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[bool]:
+        return self.query_paratensor( 'ValidatorPermit', block, [ netuid, uid ] ).value
 
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         return self.get_neuron_for_pubkey_and_subnet ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
