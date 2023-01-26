@@ -212,13 +212,14 @@ def get_explorer_root_url_by_network_from_map(network: str, network_map: Dict[st
     return explorer_url
     
 
-def get_explorer_url_for_network(network: str, block_hash: str) -> Optional[str]:
+def get_explorer_url_for_network(network: str, block_hash: str, network_map: Dict[str, str]) -> Optional[str]:
     r"""
     Returns the explorer url for the given block hash and network.
 
     Args:
         network(str): The network to get the explorer url for.
         block_hash(str): The block hash to get the explorer url for.
+        network_map(Dict[str, str]): The network map to get the explorer url from.
     
     Returns:
         The explorer url for the given block hash and network.
@@ -226,8 +227,8 @@ def get_explorer_url_for_network(network: str, block_hash: str) -> Optional[str]
     """
 
     explorer_url: Optional[str] = None
-    # Will be None if the network is not known. i.e. not in bittensor.__network_explorer_map__
-    explorer_root_url: Optional[str] = get_explorer_root_url_by_network_from_map(network, bittensor.__network_explorer_map__)
+    # Will be None if the network is not known. i.e. not in network_map
+    explorer_root_url: Optional[str] = get_explorer_root_url_by_network_from_map(network, network_map)
 
     if explorer_root_url is not None:
         # We are on a known network.
