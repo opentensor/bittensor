@@ -148,23 +148,18 @@ class neuron:
         if self.config.netuid == None:
             subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
             self.config.netuid = subtensor.get_subnets()[0]
-        
-        # Verify subnet exists
-        if not self.subtensor.subnet_exists( netuid = self.config.netuid ):
-            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
-            sys.exit(1)
 
         self.mutex = Lock()
         self.model = server(config = config).to(config.neuron.device) if model == None else model
         self.subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
         self.wallet = bittensor.wallet( config = config ) if wallet == None else wallet
-        self.metagraph = bittensor.metagraph ( config = config, netuid = self.config.neuron.netuid) if metagraph == None else metagraph
+        self.metagraph = bittensor.metagraph ( config = config, netuid = self.config.netuid) if metagraph == None else metagraph
         self.timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
         if axon == None:
             axon = bittensor.axon(
                 config = config,
                 wallet = wallet,
-                netuid = self.config.neuron.netuid,
+                netuid = self.config.netuid,
                 synapse_checks=self.synapse_check,
                 synapse_last_hidden = self.forward_hidden_state if self.model.config.neuron.lasthidden else None,
                 synapse_causal_lm = self.forward_casual_lm if self.model.config.neuron.causallm else None,
@@ -175,6 +170,11 @@ class neuron:
             )
         self.axon = axon
         self.query_data = {}
+
+        # Verify subnet exists
+        if not self.subtensor.subnet_exists( netuid = self.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
+            sys.exit(1)
 
     @classmethod
     def config(cls):
@@ -203,10 +203,10 @@ class neuron:
         self.config.to_defaults()
 
         # Load/Create our bittensor wallet.
-        self.wallet.reregister(subtensor=self.subtensor, netuid = self.config.neuron.netuid)
+        self.wallet.reregister(subtensor=self.subtensor, netuid = self.config.netuid)
 
 
-        self.metagraph.load().sync(netuid = self.config.neuron.netuid).save()
+        self.metagraph.load().sync(netuid = self.config.netuid).save()
 
         # Create our optimizer.
         optimizer = torch.optim.SGD(
@@ -220,7 +220,7 @@ class neuron:
         self.prometheus_info.info ({
             'type': "core_server",
             'uid': str(self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )),
-            'netuid': self.config.neuron.netuid,
+            'netuid': self.config.netuid,
             'network': self.config.subtensor.network,
             'coldkey': str(self.wallet.coldkeypub.ss58_address),
             'hotkey': str(self.wallet.hotkey.ss58_address),
@@ -251,7 +251,7 @@ class neuron:
             )
 
         last_set_block = self.subtensor.get_current_block()
-        blocks_per_set_weights = self.subtensor.validator_epoch_length(self.config.neuron.netuid) if self.config.neuron.blocks_per_set_weights == -1 else self.config.neuron.blocks_per_set_weights
+        blocks_per_set_weights = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.blocks_per_set_weights == -1 else self.config.neuron.blocks_per_set_weights
         epoch_starting_successes = self.axon.stats.total_successes
         epoch_starting_requests = self.axon.stats.total_requests
         # --- Run Forever.
@@ -260,7 +260,7 @@ class neuron:
             local_data = {}
             self.query_data = {}
             
-            nn = self.subtensor.get_neuron_for_pubkey_and_subnet(self.wallet.hotkey.ss58_address, netuid = self.config.neuron.netuid)
+            nn = self.subtensor.get_neuron_for_pubkey_and_subnet(self.wallet.hotkey.ss58_address, netuid = self.config.netuid)
             uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
             current_block = self.subtensor.get_current_block()
             end_block = current_block + self.config.neuron.blocks_per_epoch
@@ -371,7 +371,7 @@ class neuron:
 
 
             if current_block - last_set_block > blocks_per_set_weights:
-                self.metagraph.sync(netuid=self.config.neuron.netuid)
+                self.metagraph.sync(netuid=self.config.netuid)
                 last_set_block = current_block
                 epoch_starting_successes = self.axon.stats.total_successes
                 epoch_starting_requests = self.axon.stats.total_requests
@@ -386,11 +386,11 @@ class neuron:
                     try: 
                         # Set self weights to maintain activity.
                         # --- query the chain for the most current number of peers on the network
-                        chain_weights = torch.zeros(self.subtensor.subnetwork_n( netuid = self.config.neuron.netuid ))
+                        chain_weights = torch.zeros(self.subtensor.subnetwork_n( netuid = self.config.netuid ))
                         chain_weights [ uid ] = 1 
                         did_set = self.subtensor.set_weights(
                             uids=torch.arange(0,len(chain_weights)),
-                            netuid = self.config.neuron.netuid,
+                            netuid = self.config.netuid,
                             weights = chain_weights,
                             wait_for_inclusion = False,
                             wallet = self.wallet,
