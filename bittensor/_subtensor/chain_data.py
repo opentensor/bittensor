@@ -45,6 +45,8 @@ class NeuronInfo:
     incentive: float
     consensus: float
     trust: float
+    weight_consensus: float
+    validator_trust: float
     dividends: float
     last_update: int
     validator_permit: bool
@@ -71,6 +73,8 @@ class NeuronInfo:
             incentive = json['incentive'] / U16_MAX,
             consensus = json['consensus'] / U16_MAX,
             trust = json['trust'] / U16_MAX,
+            weight_consensus = json['weight_consensus'] / U16_MAX,
+            validator_trust = json['validator_trust'] / U16_MAX,
             dividends = json['dividends'] / U16_MAX,
             last_update = json['last_update'],
             validator_permit = json['validator_permit'],
@@ -93,6 +97,8 @@ class NeuronInfo:
             incentive = 0,
             consensus = 0,
             trust = 0,
+            weight_consensus = 0,
+            validator_trust = 0,
             dividends = 0,
             last_update = 0,
             validator_permit = False,
@@ -113,11 +119,13 @@ class NeuronInfo:
         else:
             neuron = NeuronInfo( **neuron_dict )
             neuron.stake = neuron.stake / RAOPERTAO
-            neuron.rank = neuron.rank / U64_MAX
-            neuron.trust = neuron.trust / U64_MAX
-            neuron.consensus = neuron.consensus / U64_MAX
-            neuron.incentive = neuron.incentive / U64_MAX
-            neuron.dividends = neuron.dividends / U64_MAX
+            neuron.rank = neuron.rank / U16_MAX
+            neuron.trust = neuron.trust / U16_MAX
+            neuron.consensus = neuron.consensus / U16_MAX
+            neuron.validator_trust = neuron.validator_trust / U16_MAX
+            neuron.weight_consensus = neuron.weight_consensus / U16_MAX
+            neuron.incentive = neuron.incentive / U16_MAX
+            neuron.dividends = neuron.dividends / U16_MAX
             neuron.emission = neuron.emission / RAOPERTAO
                 
             return neuron
