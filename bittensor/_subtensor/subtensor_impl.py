@@ -106,8 +106,28 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Adds the specified amount of stake to passed hotkey uid. """
+        """ Adds the specified amount of stake to the passed delegate using the passed wallet. """
         return delegate_extrinsic( 
+            subtensor = self, 
+            wallet = wallet,
+            delegate_ss58 = delegate_ss58, 
+            amount = amount, 
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization, 
+            prompt = prompt
+        )
+
+    def undelegate(
+        self, 
+        wallet: 'bittensor.wallet',
+        delegate_ss58: Optional[str] = None,
+        amount: Union[Balance, float] = None, 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """ Removes the specified amount of stake from the passed delegate using the passed wallet. """
+        return undelegate_extrinsic( 
             subtensor = self, 
             wallet = wallet,
             delegate_ss58 = delegate_ss58, 
