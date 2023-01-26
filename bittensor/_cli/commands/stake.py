@@ -38,17 +38,20 @@ class StakeCommand:
         
         # Get the hotkey_names (if any) and the hotkey_ss58s.
         hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
-        if config.wallet.get('all_hotkeys'):
+        if config.get('all_hotkeys'):
             # Stake to all hotkeys.
             all_hotkeys: List[bittensor.wallet] = get_hotkey_wallets_for_wallet( wallet = wallet )
+            # Get the hotkeys to exclude. (d)efault to no exclusions.
+            hotkeys_to_exclude: List[str] = cli.config.get('hotkeys', d=[])
             # Exclude hotkeys that are specified.
             hotkeys_to_stake_to = [
-                (wallet.hotkey_str, wallet.hotkey.ss58_address) for wallet in all_hotkeys if wallet.hotkey_str not in config.wallet.get('hotkeys', [])
+                (wallet.hotkey_str, wallet.hotkey.ss58_address) for wallet in all_hotkeys
+                    if wallet.hotkey_str not in hotkeys_to_exclude
             ] # definitely wallets
 
-        elif config.wallet.get('hotkeys'):
+        elif config.get('hotkeys'):
             # Stake to specific hotkeys.
-            for hotkey_ss58_or_hotkey_name in config.wallet.get('hotkeys'):
+            for hotkey_ss58_or_hotkey_name in config.get('hotkeys'):
                 if bittensor.utils.is_valid_ss58_address( hotkey_ss58_or_hotkey_name ):
                     # If the hotkey is a valid ss58 address, we add it to the list.
                     hotkeys_to_stake_to.append( (None, hotkey_ss58_or_hotkey_name ) )
@@ -141,7 +144,7 @@ class StakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
+        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
                     
@@ -201,6 +204,26 @@ class StakeCommand:
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
+        )
+        stake_parser.add_argument(
+            '--hotkeys',
+            '--exclude_hotkeys',
+            '--wallet.hotkeys',
+            '--wallet.exclude_hotkeys',
+            required=False,
+            action='store',
+            default=[],
+            type=str,
+            nargs='*',
+            help='''Specify the hotkeys by name or ss58 address. (e.g. hk1 hk2 hk3)'''
+        )
+        stake_parser.add_argument(
+            '--all_hotkeys',
+            '--wallet.all_hotkeys',
+            required=False,
+            action='store_true',
+            default=False,
+            help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
         )
         bittensor.wallet.add_args( stake_parser )
         bittensor.subtensor.add_args( stake_parser )
