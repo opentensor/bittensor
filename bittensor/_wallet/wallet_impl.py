@@ -126,12 +126,6 @@ class Wallet():
             return None
         return neuron.weight_consensus
 
-    def ip(self, netuid: int) -> Optional[SimpleNamespace]:
-        neuron = self.get_neuron(netuid=netuid)
-        if neuron is None:
-            return None
-        return neuron.ip
-
     def last_update(self, netuid: int) -> Optional[int]:
         neuron = self.get_neuron(netuid=netuid)
         if neuron is None:
