@@ -81,54 +81,90 @@ class Wallet():
     def __repr__(self):
         return self.__str__()
 
-    def neuron(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid)
+    def neuron(self, netuid: int) -> Optional['bittensor.NeuronInfo']:
+        return self.get_neuron(netuid=netuid)
 
-    def trust(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).trust
+    def trust(self, netuid: int) -> Optional[float]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.trust
 
-    def validator_trust(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).validator_trust
+    def validator_trust(self, netuid: int) -> Optional[float]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.validator_trust
 
-    def rank(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).rank
+    def rank(self, netuid: int) -> Optional[float]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.rank
 
-    def incentive(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).incentive
+    def incentive(self, netuid: int) -> Optional[float]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.incentive
 
-    def dividends(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).dividends
+    def dividends(self, netuid: int) -> Optional[float]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.dividends
 
-    def consensus(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).consensus
+    def consensus(self, netuid: int) -> Optional[float]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.consensus
 
-    def weight_consensus(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).weight_consensus
+    def weight_consensus(self, netuid: int) -> Optional[float]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.weight_consensus
 
-    def ip(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).ip
+    def ip(self, netuid: int) -> Optional[SimpleNamespace]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.ip
 
-    def last_update(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).last_update
+    def last_update(self, netuid: int) -> Optional[int]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.last_update
 
-    def validator_permit(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).validator_permit
+    def validator_permit(self, netuid: int) -> Optional[bool]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.validator_permit
 
-    def weights(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).weights
+    def weights(self, netuid: int) -> Optional[list[list[int]]]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.weights
 
-    def bonds(self, netuid: int) -> SimpleNamespace:
-        return self.get_neuron(netuid = netuid).bonds
+    def bonds(self, netuid: int) -> Optional[list[list[int]]]:
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.bonds
 
-    def uid(self, netuid: int) -> SimpleNamespace:
-        return self.get_uid(netuid = netuid)
+    def uid(self, netuid: int) -> int:
+        return self.get_uid(netuid=netuid)
 
     @property
-    def stake(self) -> SimpleNamespace:
+    def stake(self) -> 'bittensor.Balance':
         return self.get_stake()
 
     @property
-    def balance(self) -> SimpleNamespace:
+    def balance(self) -> 'bittensor.Balance':
         return self.get_balance()
 
     def is_registered( self, subtensor: Optional['bittensor.Subtensor'] = None, netuid: Optional[int] = None ) -> bool:
