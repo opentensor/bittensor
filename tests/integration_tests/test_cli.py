@@ -73,7 +73,6 @@ class TestCli(unittest.TestCase):
     def construct_config():
         defaults = bittensor.Config()
         bittensor.subtensor.add_defaults( defaults )
-        defaults.subtensor.network = 'mock'
         defaults.netuid = -1
         bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
@@ -144,7 +143,6 @@ class TestCli(unittest.TestCase):
                 return_value=True # Wallet exists
             )
         )):
-            bittensor.subtensor.register = MagicMock(return_value = True)  
             
             config = self.config
             config.wallet.path = '/tmp/test_cli_test_overview'
@@ -173,7 +171,6 @@ class TestCli(unittest.TestCase):
                 return_value=False
             )
         )):
-            bittensor.subtensor.register = MagicMock(return_value = True)  
             
             config = self.config
             config.command = "overview"
@@ -653,6 +650,7 @@ class TestStakeUnstake(unittest.TestCase):
         bittensor.Subtensor.register = MagicMock(return_value = True) 
         bittensor.Subtensor.neuron_for_pubkey = MagicMock(return_value=self.mock_neuron)
         bittensor.Subtensor.neuron_for_uid = MagicMock(return_value=self.mock_neuron)
+        bittensor.Subtensor.is_hotkey_registered_any = MagicMock(return_value = True)
         substrateinterface.SubstrateInterface.submit_extrinsic = MagicMock(return_value = success()) 
         substrateinterface.SubstrateInterface.query = MagicMock(return_value=success())
         substrateinterface.SubstrateInterface.get_block_hash = MagicMock(return_value='0x')
@@ -756,8 +754,6 @@ class TestStakeUnstake(unittest.TestCase):
         bittensor.wallet.add_defaults( defaults )
         bittensor.dataset.add_defaults( defaults )
 
-        defaults.subtensor._mock = True
-        defaults.subtensor.network = "mock"
         defaults.no_version_checking = True
         
         return defaults
@@ -786,10 +782,10 @@ class TestStakeUnstake(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
         # Notice no max_stake specified
 
         mock_stakes: Dict[str, float] = {
@@ -815,7 +811,7 @@ class TestStakeUnstake(unittest.TestCase):
                     cli.run()
                     mock_create_wallet.assert_has_calls(
                         [
-                            call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            call(config=ANY, hotkey=hk) for hk in config.hotkeys
                         ],
                         any_order=True
                     )
@@ -836,8 +832,8 @@ class TestStakeUnstake(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        # Notice wallet.hotkeys not specified
-        config.wallet.all_hotkeys = True
+        # Notice hotkeys not specified
+        config.all_hotkeys = True
         # Notice no max_stake specified
 
         mock_stakes: Dict[str, float] = {
@@ -882,8 +878,8 @@ class TestStakeUnstake(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = ["hk1"] # Exclude hk1
-        config.wallet.all_hotkeys = True
+        config.hotkeys = ["hk1"] # Exclude hk1
+        config.all_hotkeys = True
         # Notice no max_stake specified
 
         mock_stakes: Dict[str, float] = {
@@ -929,10 +925,10 @@ class TestStakeUnstake(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 5.0 # The keys should have at most 5.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
         # Notice no max_stake specified
 
         mock_stakes: Dict[str, float] = {
@@ -959,7 +955,7 @@ class TestStakeUnstake(unittest.TestCase):
                     cli.run()
                     mock_create_wallet.assert_has_calls(
                         [
-                            call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            call(config=ANY, hotkey=hk) for hk in config.hotkeys
                         ],
                         any_order=True
                     )
@@ -981,10 +977,10 @@ class TestStakeUnstake(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 5.0 # The keys should have at most 5.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
         # Notice no max_stake specified
         config.no_version_checking = True
 
@@ -1012,7 +1008,7 @@ class TestStakeUnstake(unittest.TestCase):
                     cli.run()
                     mock_create_wallet.assert_has_calls(
                         [
-                            call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            call(config=ANY, hotkey=hk) for hk in config.hotkeys
                         ],
                         any_order=True
                     )
@@ -1037,10 +1033,10 @@ class TestStakeUnstake(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
         # Notice no max_stake specified
 
         # enough to stake 5.0 to all 3 hotkeys
@@ -1055,7 +1051,7 @@ class TestStakeUnstake(unittest.TestCase):
                     cli.run()
                     mock_create_wallet.assert_has_calls(
                         [
-                            call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                            call(config=ANY, hotkey=hk) for hk in config.hotkeys
                         ],
                         any_order=True
                     )
@@ -1076,8 +1072,8 @@ class TestStakeUnstake(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        # Notice wallet.hotkeys is not specified
-        config.wallet.all_hotkeys = True
+        # Notice hotkeys is not specified
+        config.all_hotkeys = True
         # Notice no max_stake specified
 
         # enough to stake 5.0 to all 3 hotkeys
@@ -1110,8 +1106,8 @@ class TestStakeUnstake(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = ['hk1'] # exclude hk1
-        config.wallet.all_hotkeys = True
+        config.hotkeys = ['hk1'] # exclude hk1
+        config.all_hotkeys = True
         config.no_version_checking = True
 
         # Notice no max_stake specified
@@ -1147,10 +1143,10 @@ class TestStakeUnstake(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
         # Notice no max_stake specified
 
         mock_balance = bittensor.Balance(15.0 * 3) # Enough to stake 15.0 on each hotkey
@@ -1179,7 +1175,7 @@ class TestStakeUnstake(unittest.TestCase):
                         cli.run()
                         mock_create_wallet.assert_has_calls(
                             [
-                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                                call(config=ANY, hotkey=hk) for hk in config.hotkeys
                             ],
                             any_order=True
                         )
@@ -1187,7 +1183,7 @@ class TestStakeUnstake(unittest.TestCase):
 
                             [call(
                                 wallet=self.mock_coldkey_wallet,
-                                hotkey_ss58s=[self.mock_hotkey_keypairs[hk].ss58_address for hk in config.wallet.hotkeys],
+                                hotkey_ss58s=[self.mock_hotkey_keypairs[hk].ss58_address for hk in config.hotkeys],
                                 amounts=[CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001) for mock_wallet in self.mock_wallets],
                                 wait_for_inclusion=True,
                                 prompt=False)
@@ -1202,10 +1198,10 @@ class TestStakeUnstake(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
 
         # Notice no max_stake specified
 
@@ -1236,7 +1232,7 @@ class TestStakeUnstake(unittest.TestCase):
                         cli.run()
                         mock_create_wallet.assert_has_calls(
                             [
-                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                                call(config=ANY, hotkey=hk) for hk in config.hotkeys
                             ],
                             any_order=True
                         )
@@ -1258,10 +1254,10 @@ class TestStakeUnstake(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
         # Notice no max_stake specified
 
         mock_balance = bittensor.Balance(15.0) # Enough to stake 15.0 on one hotkey
@@ -1289,7 +1285,7 @@ class TestStakeUnstake(unittest.TestCase):
                         cli.run()
                         mock_create_wallet.assert_has_calls(
                             [
-                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                                call(config=ANY, hotkey=hk) for hk in config.hotkeys
                             ],
                             any_order=True
                         )
@@ -1308,10 +1304,10 @@ class TestStakeUnstake(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
 
         # Notice no max_stake specified
 
@@ -1340,7 +1336,7 @@ class TestStakeUnstake(unittest.TestCase):
                         cli.run()
                         mock_create_wallet.assert_has_calls(
                             [
-                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                                call(config=ANY, hotkey=hk) for hk in config.hotkeys
                             ],
                             any_order=True
                         )
@@ -1357,7 +1353,6 @@ class TestStakeUnstake(unittest.TestCase):
 
     def test_stake_with_single_hotkey_max_stake_enough_stake( self ):
         # tests max stake when stake >= max_stake already
-        bittensor.subtensor.register = MagicMock(return_value = True)
         
         config = self.config
         config.command = "stake"
@@ -1365,10 +1360,10 @@ class TestStakeUnstake(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkeys = False
 
         # Notice no max_stake specified
 
@@ -1397,7 +1392,7 @@ class TestStakeUnstake(unittest.TestCase):
                         cli.run()
                         mock_create_wallet.assert_has_calls(
                             [
-                                call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                                call(config=ANY, hotkey=hk) for hk in config.hotkeys
                             ],
                             any_order=True
                         )
