@@ -80,6 +80,7 @@ __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
 __local_entrypoint__ = "ws://127.0.0.1:9945"
 
+__tao_symbol__ = u'\u03C4'.encode('utf-8')
 
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls

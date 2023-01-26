@@ -215,7 +215,7 @@ class UnStakeCommand:
         if not cli.config.no_prompt:
             if not Confirm.ask(f"Do you want to unstake from the following keys to {wallet.name}:\n" + \
                     "".join([
-                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'${amount} \u03C4' if amount else 'All'}[/bold white]\n" for hotkey, amount in zip(final_hotkeys, final_amounts)
+                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n" for hotkey, amount in zip(final_hotkeys, final_amounts)
                     ])
                 ):
                 return None
