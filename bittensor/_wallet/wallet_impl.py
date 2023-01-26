@@ -20,7 +20,7 @@
 import os
 import sys
 from types import SimpleNamespace
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
@@ -138,13 +138,13 @@ class Wallet():
             return None
         return neuron.validator_permit
 
-    def weights(self, netuid: int) -> Optional[list[list[int]]]:
+    def weights(self, netuid: int) -> Optional[List[List[int]]]:
         neuron = self.get_neuron(netuid=netuid)
         if neuron is None:
             return None
         return neuron.weights
 
-    def bonds(self, netuid: int) -> Optional[list[list[int]]]:
+    def bonds(self, netuid: int) -> Optional[List[List[int]]]:
         neuron = self.get_neuron(netuid=netuid)
         if neuron is None:
             return None
