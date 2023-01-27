@@ -20,7 +20,7 @@ jobs:
       - restore_cache:
           name: Restore cached venv
           keys:
-            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}
+            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
             - v1-pypi-py<< parameters.python-version >>
 
       - run:
@@ -29,19 +29,19 @@ jobs:
             python -m venv env/
             . env/bin/activate
             python -m pip install --upgrade pip
-            pip install '.'
+            pip install '.[dev]'
 
       - save_cache:
           name: Save cached venv
           paths:
             - "env/"
-          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}
+          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
 
       - run:
           name: Install Bittensor
           command: |
             . env/bin/activate
-            pip install -e '.'
+            pip install -e '.[dev]'
 
       - run:
           name: Instantiate Mock Wallet & Protos
