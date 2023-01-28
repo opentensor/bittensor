@@ -98,6 +98,8 @@ def serve_extrinsic (
     output['hotkey'] = wallet.hotkey.ss58_address
 
     if neuron_up_to_date:
+        # Convert back to ip string for printing.
+        output['ip'] = net.ip_from_int(output['ip'])
         bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]{}[/bold white]".format(
             json.dumps(output, indent=4, sort_keys=True)
         ))
