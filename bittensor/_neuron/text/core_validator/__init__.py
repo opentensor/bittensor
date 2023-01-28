@@ -514,7 +514,7 @@ class neuron:
                 sample_uids, sample_weights = self.calculate_weights()
                 self.vlogger.print_weights_table(
                     min_allowed_weights = self.subtensor.min_allowed_weights( netuid = self.config.netuid ),
-                    max_weight_limit = self.subtensor.max_weight_limit( metuid = self.config.netuid ),
+                    max_weight_limit = self.subtensor.max_weight_limit( netuid = self.config.netuid ),
                     neuron_stats = self.neuron_stats,
                     title = str(self),
                     metagraph_n = self.metagraph.n, 
@@ -560,7 +560,7 @@ class neuron:
                 # console table - weight table (every end of epoch)
                 self.vlogger.print_weights_table(
                     min_allowed_weights = self.subtensor.min_allowed_weights( netuid = self.config.netuid ),
-                    max_weight_limit = self.subtensor.max_weight_limit( metuid = self.config.netuid ),
+                    max_weight_limit = self.subtensor.max_weight_limit( netuid = self.config.netuid ),
                     neuron_stats = self.neuron_stats,
                     title = str(self),
                     metagraph_n = self.metagraph.n, 
