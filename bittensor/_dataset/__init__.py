@@ -47,6 +47,7 @@ class dataset:
             save_dataset: bool=None,
             no_tokenizer: bool=None,
             num_batches: int = None,
+            max_datasets: int = None,
             _mock:bool=None
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
@@ -81,6 +82,7 @@ class dataset:
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
         config.dataset.num_batches = num_batches if num_batches != None else config.dataset.num_batches
+        config.dataset.max_datasets = max_datasets if max_datasets != None else config.dataset.max_datasets
         config.dataset._mock = _mock if _mock != None else config.dataset._mock
         dataset.check_config( config )
         if config.dataset._mock:
