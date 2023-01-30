@@ -1,0 +1,6 @@
+{
+    "fp16": {
+      "enabled": false
+    },
+    "zero_optimization": false
+}

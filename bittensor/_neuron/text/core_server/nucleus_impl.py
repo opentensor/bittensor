@@ -128,10 +128,9 @@ class server(torch.nn.Module):
         self.backward_gradients_count = 0 
         self.remote_losses = []
 
-        # config optimizer and pre_model to devices
+        # --- config optimizer and pre_model to devices
         if self.config.neuron.use_deepspeed:
             self.pre_model, self.optimizer = self.to_deepspeed(self.pre_model)
-            
             if self.device[:4] == 'cuda':
                 self.device = torch.device("cuda", self.config.local_rank)
         else:
@@ -509,9 +508,20 @@ class server(torch.nn.Module):
 
     def to_deepspeed(self, model):
         print("in to_deepspeed")
+        ds_config = {
+            "train_micro_batch_size_per_gpu": self.config.neuron.deepspeed.micro_batch_per_gpu,
+            "gradient_accumulation_steps": self.config.neuron.deepspeed.gradient_accumulation_steps,
+            "optimizer": {
+                "type": "SGD",
+                "params": {
+                    'lr': self.config.neuron.learning_rate,
+                    'momentum': self.config.neuron.momentum,
+                }
+            }
+        }
         deepspeed.init_distributed()
         ds_args = SimpleNamespace(
-            config = json.load(open(self.config.deepspeed_config, 'r', encoding='utf-8')),
+            config = ds_config,
             local_rank = self.config.local_rank,
             deepspeed_config = self.config.deepspeed_config
         )
@@ -612,8 +622,10 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
 
         parser.add_argument('--neuron.use_deepspeed', action='store_true', help='Use deepspeed or not', default=False)
+        parser.add_argument('--neuron.deepspeed.micro_batch_per_gpu', type=str, help='Number of micro-batches before gradient accumulation within GPUs.')
+        parser.add_argument('--neuron.deepspeed.gradient_accumulation_steps', type=str, help='Number of batches before sharing gradients across GPUs.')
         parser.add_argument('--deepspeed_config', type=str, help='Path to deepspeed config file.')
-        parser.add_argument('--local_rank', type=int, help='deepspeed local rank.')
+        parser.add_argument('--local_rank', type=int, help='Deepspeed local rank.')
         
         # Netuid Arg
         parser.add_argument('--netuid', type=int , help='Subnet netuid', default=0)

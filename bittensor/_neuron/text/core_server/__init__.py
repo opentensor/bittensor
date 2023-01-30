@@ -516,7 +516,6 @@ class neuron:
 
         return response_tensors, response_codes, response_messages
 
-
     def priority(self, pubkey:str, request_type:bittensor.proto.RequestType, inputs_x) -> float:
         r"""Calculates the priority on requests based on stake and size of input
             Args:
@@ -578,7 +577,6 @@ class neuron:
         # topk_token_phrases: [sum_b(sum_k(len(phrase_k) + 1)_b)] contains topk token phrases and probabilities
         #   Compacted 1-D tensor >= batch_size * (2 * topk + 1)
         return message, model_output, topk_token_phrases
-
 
     def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
         r"""Axon security blacklisting, used to blacklist message from low stake members
