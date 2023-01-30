@@ -160,7 +160,7 @@ class neuron:
             self.config.netuid = subtensor.get_subnets()[0]
 
         self.mutex = Lock()
-        self.model = server(config = config).to(config.neuron.device) if model == None else model
+        self.model = server(config = config) if model == None else model
         self.subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
         self.wallet = bittensor.wallet( config = config ) if wallet == None else wallet
         self.metagraph = bittensor.metagraph ( config = config, netuid = self.config.netuid) if metagraph == None else metagraph
@@ -215,15 +215,7 @@ class neuron:
         # Load/Create our bittensor wallet.
         self.wallet.reregister(subtensor=self.subtensor, netuid = self.config.netuid)
 
-
         self.metagraph.load().sync(netuid = self.config.netuid).save()
-
-        # Create our optimizer.
-        optimizer = torch.optim.SGD(
-            [ {"params": self.model.parameters()} ],
-            lr = self.config.neuron.learning_rate,
-            momentum = self.config.neuron.momentum,
-        )
 
         self.prometheus_guages.labels( 'model_size_params' ).set( sum(p.numel() for p in self.model.parameters()) )
         self.prometheus_guages.labels( 'model_size_bytes' ).set( sum(p.element_size() * p.nelement() for p in self.model.parameters()) )
@@ -277,8 +269,8 @@ class neuron:
 
             if self.config.neuron.local_train:
                 # --- Training step.
-                while end_block >= current_block:
-                    if current_block != self.subtensor.get_current_block() and self.axon.priority_threadpool.is_empty:
+                while iteration < self.config.iterations_per_epoch:
+                    if self.axon.priority_threadpool.is_empty: # current_block != self.subtensor.get_current_block() and 
                         with self.mutex:
                             logger.info(f'local training\titeration: {iteration}\tstart')
                             loss, _ = self.model( next(self.dataset).to(self.model.device) )
@@ -293,26 +285,37 @@ class neuron:
                         time.sleep(1)
                 
                 if iteration != 0:
-                    (losses/iteration).backward()
+                    while not self.axon.priority_threadpool.is_empty:
+                        time.sleep(1) 
+                    
+                    if self.config.neuron.use_deepspeed:
+                        self.model.pre_model.backward(losses/iteration)
+                        self.model.pre_model.step()
+
+                    else:
+                        (losses/iteration).backward()
+
+                    torch.cuda.empty_cache()
+                    losses = losses.detach().item()
             
             else:
                 while end_block > current_block:
                     time.sleep(12)
                     current_block = self.subtensor.get_current_block()
 
-            # --- Update parameters
-            if (self.config.neuron.local_train and iteration > 0) or (self.config.neuron.remote_train and self.model.backward_gradients_count > 0):
+            # --- Update parameters, if not using deepspeed, update params manually
+            if not self.config.neuron.use_deepspeed and ((self.config.neuron.local_train and iteration > 0) or (self.config.neuron.remote_train and self.model.backward_gradients_count > 0)):
                 # Custom learning rate
                 if self.model.backward_gradients_count > 0:
-                    optimizer.param_groups[0]['lr'] =  0.1/(self.model.backward_gradients_count)
+                    self.optimizer.param_groups[0]['lr'] =  0.1/(self.model.backward_gradients_count)
                 else:
-                    optimizer.param_groups[0]['lr'] =  0.1
+                    self.optimizer.param_groups[0]['lr'] =  0.1
 
                 logger.info('Optmization Started')
                 with self.mutex:
                     clip_grad_norm_(self.model.parameters(), 1.0)
-                    optimizer.step()
-                    optimizer.zero_grad()
+                    self.model.optimizer.step()
+                    self.model.optimizer.zero_grad()
                 logger.info('Optimization Successful: Model updated')
 
                 if (self.config.neuron.local_train and iteration > 0):
