@@ -616,6 +616,10 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
 
+        parser.add_argument('--neuron.use_deepspeed', action='store_true', help='Use deepspeed or not', default=False)
+        parser.add_argument('--deepspeed_config', type=str, help='Path to deepspeed config file.')
+        parser.add_argument('--local_rank', type=int, help='deepspeed local rank.')
+        
         # Netuid Arg
         parser.add_argument('--netuid', type=int , help='Subnet netuid', default=0)
 
