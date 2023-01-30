@@ -99,20 +99,6 @@ class server(torch.nn.Module):
         if self.config.neuron.autocast and self.device[:4] == 'cuda':
             self.pre_model.half()
 
-        # config optimizer and pre_model to devices
-        if self.config.neuron.use_deepspeed:
-            self.pre_model, self.optimizer = self.to_deepspeed(self.pre_model)
-            
-            if self.device[:4] == 'cuda':
-                self.device = torch.device("cuda", self.config.local_rank)
-        else:
-            self = self.to(self.device)
-            self.optimizer = torch.optim.SGD(
-                [ {"params": self.pre_model.parameters()} ],
-                lr = config.neuron.learning_rate,
-                momentum = config.neuron.momentum,
-            )
-
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
@@ -141,6 +127,20 @@ class server(torch.nn.Module):
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
         self.remote_losses = []
+
+        # config optimizer and pre_model to devices
+        if self.config.neuron.use_deepspeed:
+            self.pre_model, self.optimizer = self.to_deepspeed(self.pre_model)
+            
+            if self.device[:4] == 'cuda':
+                self.device = torch.device("cuda", self.config.local_rank)
+        else:
+            self = self.to(self.device)
+            self.optimizer = torch.optim.SGD(
+                [ {"params": self.pre_model.parameters()} ],
+                lr = config.neuron.learning_rate,
+                momentum = config.neuron.momentum,
+            )
 
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
@@ -592,6 +592,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.', default=False)
         parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=10)
         parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
+        parser.add_argument('--neuron.iterations_per_epoch', type=int, help='Iterations per epoch', default=5)
         parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
         parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=-1)
         parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
