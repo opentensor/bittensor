@@ -2,6 +2,7 @@ import argparse
 import math
 import bittensor
 import torch
+import json
 from torch import nn
 import torch.nn.functional as F
 from types import SimpleNamespace
@@ -14,6 +15,7 @@ from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map,
     translate_special_token_text, pad_offsets, topk_token_phrases, compact_topk_token_phrases
 
 from loguru import logger; logger = logger.opt(colors=True)
+import deepspeed
 
 class server(torch.nn.Module):
     def __init__(self, 
@@ -97,6 +99,20 @@ class server(torch.nn.Module):
         if self.config.neuron.autocast and self.device[:4] == 'cuda':
             self.pre_model.half()
 
+        # config optimizer and pre_model to devices
+        if self.config.neuron.use_deepspeed:
+            self.pre_model, self.optimizer = self.to_deepspeed(self.pre_model)
+            
+            if self.device[:4] == 'cuda':
+                self.device = torch.device("cuda", self.config.local_rank)
+        else:
+            self = self.to(self.device)
+            self.optimizer = torch.optim.SGD(
+                [ {"params": self.pre_model.parameters()} ],
+                lr = config.neuron.learning_rate,
+                momentum = config.neuron.momentum,
+            )
+
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
@@ -124,7 +140,7 @@ class server(torch.nn.Module):
 
         # -- keeps track of gradients applied
         self.backward_gradients_count = 0 
-        self.remote_losses = [] 
+        self.remote_losses = []
 
     def set_fine_tuning_params(self) -> Tuple[bool, str]:
         r''' Set to tune only the parameter of the last layer
@@ -308,13 +324,13 @@ class server(torch.nn.Module):
 
         if model_output == None:
             if self.config.neuron.remote_train:
-                model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                attention_mask=tokens['attention_mask'],
+                model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
+                                                attention_mask=tokens['attention_mask'].to(self.device),
                                                 output_hidden_states=True)
             else:
                 with torch.no_grad():
-                    model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                                    attention_mask=tokens['attention_mask'],
+                    model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
+                                                    attention_mask=tokens['attention_mask'].to(self.device),
                                                     output_hidden_states=True)
 
         self.model_output_check(model_output)
@@ -366,7 +382,7 @@ class server(torch.nn.Module):
         def _forward(_model_output=model_output):
             if _model_output is None:
                 # transformer models like gerpt2 typically perform worse with left-side attention mask, so turning it off
-                _model_output = self.pre_model(input_ids=tokens['input_ids'],
+                _model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
                                                 #attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
                 self.model_output_check(_model_output)
@@ -427,9 +443,6 @@ class server(torch.nn.Module):
                       [prob_floor_b=1, ignore_index, ..., ignore_index]],
                      [...]]
         """
-        transformers.set_seed(0)
-        transformers.enable_full_determinism(0)
-        
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer
 
@@ -437,8 +450,8 @@ class server(torch.nn.Module):
 
         def _forward(_model_output=model_output):
             if _model_output is None:
-                _model_output = self.pre_model(input_ids=tokens['input_ids'],
-                                               attention_mask=tokens['attention_mask'],
+                _model_output = self.pre_model(input_ids=tokens['input_ids'].to(self.device),
+                                               attention_mask=tokens['attention_mask'].to(self.device),
                                                output_hidden_states=True)
                 self.model_output_check(_model_output)
             # model_output.logits: [batch_size, sequence_len, server_vocab_size]
@@ -499,6 +512,23 @@ class server(torch.nn.Module):
         loss = self.loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
 
         return loss
+
+    def to_deepspeed(self, model):
+        print("in to_deepspeed")
+        deepspeed.init_distributed()
+        ds_args = SimpleNamespace(
+            config = json.load(open(self.config.deepspeed_config, 'r', encoding='utf-8')),
+            local_rank = self.config.local_rank,
+            deepspeed_config = self.config.deepspeed_config
+        )
+
+        model_engine, optimizer, _, _ = deepspeed.initialize(
+            args = ds_args,
+            model = model,
+            model_parameters = model.parameters(),
+        )
+
+        return model_engine, optimizer
 
     def check(self):
         r"""Checks the server settings
