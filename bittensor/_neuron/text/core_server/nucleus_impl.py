@@ -633,5 +633,5 @@ class server(torch.nn.Module):
         if path:
             file_path = str(os.getcwd() + '/' + path)
             with open(file_path, "r") as file:
-                memory_map = json.load(file)
+                memory_map = json.loads(file)
         return memory_map
