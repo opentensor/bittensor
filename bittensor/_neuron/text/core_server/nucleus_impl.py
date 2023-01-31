@@ -6,7 +6,8 @@ from torch import nn
 import torch.nn.functional as F
 from types import SimpleNamespace
 from typing import Tuple, Optional
-
+import os
+import json
 import transformers
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
@@ -24,10 +25,14 @@ class server(torch.nn.Module):
                 interpolate: bool =None,
                 inter_degree: str = None,
                 model = None,
-                tokenizer = None,
+                tokenizer: 'transformers.tokenizer' = None,
                 mapping_function = None,
                 token_remap = None,
-                checking= None):
+                checking= None,
+                device_map = None,
+                max_memory = None,
+                load_in_8bit = None,
+                ):
         r"""" Creates a server that serves up a pretrained miner on the bittensor network
         Args:
                 config (:obj:`bittensor.Config`, `required`): 
@@ -59,11 +64,21 @@ class server(torch.nn.Module):
         self.std_tokenizer = bittensor.tokenizer()
         self.device = config.neuron.device
 
+        #parameters of loading in the model
+        self.device_map = device_map if device_map != None else config.neuron.device_map
+        self.max_memory = max_memory if max_memory != None else self.load_memory_map(config.neuron.max_memory_path)
+        self.load_in_8bit = load_in_8bit if load_in_8bit != None else config.neuron.load_in_8bit
+
         #setting up pretrained model
         self.model_name = model_name if model_name != None else config.neuron.model_name
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
-            self.pre_model = model if model != None else AutoModelForCausalLM.from_pretrained(self.model_name)
+
+            if model == None:
+                model = self.load_model()
+
+            self.pre_model = model
+
             self.tokenizer = tokenizer
             if tokenizer is None:
                 try:
@@ -560,7 +575,10 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
         parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
         parser.add_argument('--neuron.finetune.layer_name', type=str, help='Specify since which layer to finetune. eg. encoder.layer.11', default=None)
-        
+        parser.add_argument('--neuron.device_map',  action='store_true', help='(experimental) automatically maps model across multiple gpus ', default=False)
+        parser.add_argument('--neuron.max_memory_path', type=str, help='If set, loads in memory mapping from path')
+        parser.add_argument('--neuron.load_in_8bit',  action='store_true', help='(experimental) automatically maps to LLM.int8()', default=False)
+
         # Miner arguements
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_server')
         parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
@@ -599,3 +617,21 @@ class server(torch.nn.Module):
         bittensor.metagraph.add_args( parser )
         bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
+
+    def load_model(self):
+        params = {
+            'pretrained_model_name_or_path':self.config.neuron.model_name,
+            'device_map':'auto' if self.device_map else None,
+            'max_memory':self.max_memory,
+            'load_in_8bit': True if self.load_in_8bit else False
+        }
+        model = AutoModelForCausalLM.from_pretrained(**params)
+        return model
+
+    def load_memory_map(self, path):
+        memory_map = None
+        if path:
+            file_path = str(os.getcwd() + '/' + path)
+            with open(file_path, "w") as file:
+                memory_map = json.load(file)
+        return memory_map
