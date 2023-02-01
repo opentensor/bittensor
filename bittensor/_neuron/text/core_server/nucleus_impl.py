@@ -443,13 +443,9 @@ class server(torch.nn.Module):
                       [prob_floor_b=1, ignore_index, ..., ignore_index]],
                      [...]]
         """
-        transformers.set_seed(0)
-        transformers.enable_full_determinism(0)
         
         if std_tokenizer is None:
             std_tokenizer = self.std_tokenizer
-
-        tokens = self.token_remap(token_batch, std_tokenizer)
 
         def _forward(_model_output=model_output):
             if _model_output is None:
@@ -475,6 +471,7 @@ class server(torch.nn.Module):
             return _forward()  # track gradients for training
 
         with torch.no_grad():
+            tokens = self.token_remap(token_batch, std_tokenizer)
             return _forward()  # no gradients
 
     def model_output_check(self, model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
