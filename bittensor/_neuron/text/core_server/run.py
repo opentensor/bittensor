@@ -431,8 +431,8 @@ def serve(
             'rank': nn.rank,
             'trust': nn.trust,
             'consensus': nn.consensus,
-            'validator_trust': nn.validator_trust,
-            'weight_consensus': nn.weight_consensus,
+            # 'validator_trust': nn.validator_trust,
+            # 'weight_consensus': nn.weight_consensus,
             'incentive': nn.incentive,
             'emission': nn.emission,
         }
@@ -453,8 +453,8 @@ def serve(
         prometheus_guages.labels("rank").set( nn.rank )
         prometheus_guages.labels("trust").set( nn.trust )
         prometheus_guages.labels("consensus").set( nn.consensus )
-        prometheus_guages.labels("validator_trust").set( nn.validator_trust )
-        prometheus_guages.labels("weight_consensus").set( nn.weight_consensus )
+        # prometheus_guages.labels("validator_trust").set( nn.validator_trust )
+        # prometheus_guages.labels("weight_consensus").set( nn.weight_consensus )
         prometheus_guages.labels("incentive").set( nn.incentive )
         prometheus_guages.labels("emission").set( nn.emission )
 
