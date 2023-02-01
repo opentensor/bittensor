@@ -67,6 +67,7 @@ class server(torch.nn.Module):
         #parameters of loading in the model
         self.device_map = device_map if device_map != None else config.neuron.device_map
         self.max_memory = max_memory if max_memory != None else self.load_memory_map(config.neuron.max_memory_path)
+        print(self.max_memory)
         self.load_in_8bit = load_in_8bit if load_in_8bit != None else config.neuron.load_in_8bit
 
         #setting up pretrained model
@@ -625,6 +626,7 @@ class server(torch.nn.Module):
             'max_memory':self.max_memory,
             'load_in_8bit': True if self.load_in_8bit else False
         }
+        print(params)
         model = AutoModelForCausalLM.from_pretrained(**params)
         return model
 
