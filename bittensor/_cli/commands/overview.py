@@ -114,8 +114,8 @@ class OverviewCommand:
             total_rank = 0.0
             total_trust = 0.0
             total_consensus = 0.0
-            total_validator_trust = 0.0
-            total_weight_consensus = 0.0
+            # total_validator_trust = 0.0
+            # total_weight_consensus = 0.0
             total_incentive = 0.0
             total_dividends = 0.0
             total_emission = 0   
@@ -128,8 +128,8 @@ class OverviewCommand:
                 rank = nn.rank
                 trust = nn.trust
                 consensus = nn.consensus
-                validator_trust = nn.validator_trust
-                weight_consensus = nn.weight_consensus
+                # validator_trust = nn.validator_trust
+                # weight_consensus = nn.weight_consensus
                 incentive = nn.incentive
                 dividends = nn.dividends
                 emission = int(nn.emission * 1000000000)
@@ -144,11 +144,11 @@ class OverviewCommand:
                     '{:.5f}'.format(rank), 
                     '{:.5f}'.format(trust), 
                     '{:.5f}'.format(consensus),
-                    '{:.5f}'.format(weight_consensus),
+                    # '{:.5f}'.format(weight_consensus),
                     '{:.5f}'.format(incentive),
                     '{:.5f}'.format(dividends),
                     '{}'.format(emission),
-                    '{:.5f}'.format(validator_trust),
+                    # '{:.5f}'.format(validator_trust),
                     '*' if validator_permit else '',
                     str(last_update),
                     bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
@@ -158,11 +158,11 @@ class OverviewCommand:
                 total_rank += rank
                 total_trust += trust
                 total_consensus += consensus
-                total_weight_consensus += weight_consensus
+                # total_weight_consensus += weight_consensus
                 total_incentive += incentive
                 total_dividends += dividends
                 total_emission += emission
-                total_validator_trust += validator_trust
+                # total_validator_trust += validator_trust
                 TABLE_DATA.append(row)
                 
             total_neurons = len(neurons)
@@ -182,7 +182,7 @@ class OverviewCommand:
             table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-            table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style="overline white", justify='right', style='green', no_wrap=True)
+            # table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style="overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]VAL", justify='right', no_wrap=True)
             table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
             table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
