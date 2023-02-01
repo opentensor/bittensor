@@ -52,7 +52,7 @@ class InspectCommand:
                 if cli.config.netuid != None:
                     # If a netuid is provided, inspect the hotkey and the neuron
                     dendrite = bittensor.dendrite( wallet = wallet )
-                    neuron = subtensor.get_neuron_for_pubkey_and_subnet( ss58_hotkey = wallet.hotkey.ss58_address, netuid = cli.config.netuid )
+                    neuron = subtensor.get_neuron_for_pubkey_and_subnet( hotkey_ss58 = wallet.hotkey.ss58_address, netuid = cli.config.netuid )
                     if neuron.is_null:
                         registered = '[bold white]No[/bold white]'
                         stake = bittensor.Balance.from_tao( 0 )
@@ -99,12 +99,12 @@ class InspectCommand:
                         stake = bittensor.Balance.from_tao( 0 )
                     else:
                         # Registered on subnets
-                        subnets_registered = subtensor.get_netuids_for_hotkey( ss58_hotkey = wallet.hotkey.ss58_address )
+                        subnets_registered = subtensor.get_netuids_for_hotkey( hotkey_ss58 = wallet.hotkey.ss58_address )
                         subnets = f'[bold white]{subnets_registered}[/bold white]'
                         
                         emission = bittensor.Balance.from_rao( 0 )
                         for netuid in subnets_registered:
-                            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address, netuid = netuid )
+                            neuron = subtensor.neuron_for_pubkey( hotkey_ss58 = wallet.hotkey.ss58_address, netuid = netuid )
                             emission += bittensor.Balance.from_rao( neuron.emission * 1000000000 )
 
                     cold_balance = wallet.get_balance( subtensor = subtensor )

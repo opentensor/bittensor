@@ -30,6 +30,7 @@ import os
 import wandb
 import math
 import random
+import sys
 import pandas
 import traceback
 from rich import print
@@ -104,6 +105,11 @@ class neuron:
         if config.netuid == None:
             config.netuid = subtensor.get_subnets()[0]
 
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {config.netuid} does not exist[/red]")
+            sys.exit(1)
+
         # === Config check === 
         self.config = config
         neuron.check_config( self.config )
@@ -135,7 +141,7 @@ class neuron:
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.vlogger = ValidatorLogger( config = self.config )
         self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
-        self.subtensor = bittensor.subtensor ( config = self.config ) if subtensor == None else subtensor
+        self.subtensor = subtensor
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.
         self.axon = bittensor.axon ( netuid=self.config.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon

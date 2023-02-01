@@ -232,7 +232,7 @@ class TestCli(unittest.TestCase):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
-        config.wallet.hotkeys = ['some_hotkey']
+        config.hotkeys = ['some_hotkey']
         config.all = False
         config.no_version_checking = False
 
@@ -352,10 +352,10 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -371,9 +371,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -394,7 +394,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -414,7 +414,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -430,7 +430,7 @@ class TestCli(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
         # Notice wallet.hotkeys not specified
-        config.wallet.all_hotkeys = True
+        config.all_hotkey = True
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -479,8 +479,8 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = ["hk1"] # Exclude hk1
-        config.wallet.all_hotkeys = True
+        config.hotkeys = ["hk1"] # Exclude hk1
+        config.all_hotkey = True
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -530,10 +530,10 @@ class TestCli(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 5.0 # The keys should have at most 5.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -549,9 +549,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -572,7 +572,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -589,7 +589,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -605,10 +605,10 @@ class TestCli(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 5.0 # The keys should have at most 5.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -624,9 +624,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -647,7 +647,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -664,7 +664,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -687,10 +687,10 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -702,7 +702,7 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 is_registered = MagicMock(
                     return_value = True
                 ),
@@ -719,7 +719,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -739,7 +739,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -755,7 +755,7 @@ class TestCli(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
         # Notice wallet.hotkeys is not specified
-        config.wallet.all_hotkeys = True
+        config.all_hotkey = True
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -802,8 +802,8 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True 
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = ['hk1'] # exclude hk1
-        config.wallet.all_hotkeys = True
+        config.hotkeys = ['hk1'] # exclude hk1
+        config.all_hotkey = True
         config.no_version_checking = False
 
         # Notice no max_stake specified
@@ -853,10 +853,10 @@ class TestCli(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -874,9 +874,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -897,7 +897,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -917,7 +917,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -933,10 +933,10 @@ class TestCli(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0', 'hk1', 'hk2'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         config.no_version_checking = False
 
         # Notice no max_stake specified
@@ -955,9 +955,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -978,7 +978,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -998,7 +998,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -1020,10 +1020,10 @@ class TestCli(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         # Notice no max_stake specified
         config.no_version_checking = False
 
@@ -1039,9 +1039,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -1062,7 +1062,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -1082,7 +1082,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -1098,10 +1098,10 @@ class TestCli(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         config.no_version_checking = False
 
         # Notice no max_stake specified
@@ -1118,9 +1118,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -1141,7 +1141,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -1161,7 +1161,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )
@@ -1186,10 +1186,10 @@ class TestCli(unittest.TestCase):
         # Notie amount is not specified
         config.max_stake = 15.0 # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
-        config.wallet.hotkeys = [
+        config.hotkeys = [
             'hk0'
         ]   
-        config.wallet.all_hotkeys = False
+        config.all_hotkey = False
         config.no_version_checking = False
 
         # Notice no max_stake specified
@@ -1206,9 +1206,9 @@ class TestCli(unittest.TestCase):
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                hotkey_str = config.wallet.hotkeys[0],
+                hotkey_str = config.hotkeys[0],
                 get_stake = MagicMock(
-                    return_value = mock_stakes[config.wallet.hotkeys[0]]
+                    return_value = mock_stakes[config.hotkeys[0]]
                 ),
                 is_registered = MagicMock(
                     return_value = True
@@ -1229,7 +1229,7 @@ class TestCli(unittest.TestCase):
                 is_registered = MagicMock(
                     return_value = True
                 )
-            ) for hk in config.wallet.hotkeys
+            ) for hk in config.hotkeys
         ]
 
         # The 0th wallet is created twice during unstake
@@ -1249,7 +1249,7 @@ class TestCli(unittest.TestCase):
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
-                        call(config=ANY, hotkey=hk) for hk in config.wallet.hotkeys
+                        call(config=ANY, hotkey=hk) for hk in config.hotkeys
                     ],
                     any_order=True
                 )

@@ -566,12 +566,18 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tuple
 
         block_hash (:obj:`bytes`):
             The current block hash.
+
+    Raises:
+        Exception: If the block hash is None.
+        ValueError: If the difficulty is None.
     """
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty(netuid = netuid)
     block_hash = subtensor.substrate.get_block_hash( block_number )
     if block_hash is None:
         raise Exception("Network error. Could not connect to substrate to get block hash")
+    if difficulty is None:
+        raise ValueError("Chain error. Difficulty is None")
     return block_number, difficulty, block_hash
 
 
@@ -842,6 +848,44 @@ def create_pow(
     update_interval: int = None,
     log_verbose: bool = False
     ) -> Optional[Dict[str, Any]]:
+    """
+    Creates a proof of work for the given subtensor and wallet.
+    Args:
+        subtensor (:obj:`bittensor.subtensor.Subtensor`, `required`):
+            The subtensor to create a proof of work for.
+        wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+            The wallet to create a proof of work for.
+        netuid (:obj:`int`, `required`):
+            The netuid for the subnet to create a proof of work for.
+        output_in_place (:obj:`bool`, `optional`, defaults to :obj:`True`):
+            If true, prints the progress of the proof of work to the console
+                in-place. Meaning the progress is printed on the same lines.
+        cuda (:obj:`bool`, `optional`, defaults to :obj:`False`):
+            If true, uses CUDA to solve the proof of work.
+        dev_id (:obj:`Union[List[int], int]`, `optional`, defaults to :obj:`0`):
+            The CUDA device id(s) to use. If cuda is true and dev_id is a list,
+                then multiple CUDA devices will be used to solve the proof of work.
+        tpb (:obj:`int`, `optional`, defaults to :obj:`256`):
+            The number of threads per block to use when solving the proof of work.
+            Should be a multiple of 32.
+        num_processes (:obj:`int`, `optional`, defaults to :obj:`None`):
+            The number of processes to use when solving the proof of work.
+            If None, then the number of processes is equal to the number of
+                CPU cores.
+        update_interval (:obj:`int`, `optional`, defaults to :obj:`None`):
+            The number of nonces to run before checking for a new block.
+        log_verbose (:obj:`bool`, `optional`, defaults to :obj:`False`):
+            If true, prints the progress of the proof of work more verbosely.   
+    Returns:
+        :obj:`Optional[Dict[str, Any]]`: The proof of work solution or None if
+            the wallet is already registered or there is a different error.
+    
+    Raises:
+        :obj:`ValueError`: If the subnet does not exist.
+    """
+    if not subtensor.subnet_exists(netuid = netuid):
+        raise ValueError(f'Subnet {netuid} does not exist')
+
     if cuda:
         solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, netuid = netuid, output_in_place=output_in_place, \
             dev_id=dev_id, TPB=tpb, update_interval=update_interval, log_verbose=log_verbose
