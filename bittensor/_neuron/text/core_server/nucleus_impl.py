@@ -633,5 +633,13 @@ class server(torch.nn.Module):
         if path:
             file_path = str(os.getcwd() + '/' + path)
             with open(file_path, "r") as file:
-                memory_map = json.load(file)
+                saved_mapping = json.load(file)
+
+                memory_map = {}
+                for v, i in saved_mapping.items():
+                    if v != 'cpu':
+                        memory_map[int(v)]= i
+                    else:
+                        memory_map[v] = i 
+        
         return memory_map
