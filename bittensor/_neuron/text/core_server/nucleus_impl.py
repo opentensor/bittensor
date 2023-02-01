@@ -631,17 +631,16 @@ class server(torch.nn.Module):
         return model
 
     def load_memory_map(self, path):
-        memory_map = None
-        if path:
-            file_path = str(os.getcwd() + '/' + path)
-            with open(file_path, "r") as file:
-                saved_mapping = json.load(file)
 
-                memory_map = {}
-                for v, i in saved_mapping.items():
-                    if v != 'cpu':
-                        memory_map[int(v)]= i
-                    else:
-                        memory_map[v] = i 
+        file_path = str(os.getcwd() + '/' + path)
+        with open(file_path, "r") as file:
+            saved_mapping = json.load(file)
+
+        memory_map = {}
+        for v, i in saved_mapping.items():
+            if v != 'cpu':
+                memory_map[int(v)]= i
+            else:
+                memory_map[v] = i 
         
         return memory_map
