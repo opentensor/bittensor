@@ -102,10 +102,10 @@ def serve_extrinsic (
                                     f"[green not bold]- coldkey: [/green not bold][white not bold]{output['coldkey']}[/white not bold] \n"
                                     f"[green not bold]- hotkey: [/green not bold][white not bold]{output['hotkey']}[/white not bold] \n"
                                     f"[green not bold]- Status: [/green not bold] |"
-                                    f"[green not bold] ip: [/green not bold][white not bold]{net.ip_to_int(output['ip'])}[/white not bold] |"
+                                    f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(output['ip'])}[/white not bold] |"
                                     f"[green not bold] ip_type: [/green not bold][white not bold]{output['ip_type']}[/white not bold] |"
-                                    f"[green not bold] netuid: [/green not bold][white not bold]{output['netuid']}[/white not bold] |"
                                     f"[green not bold] port: [/green not bold][white not bold]{output['port']}[/white not bold] | "
+                                    f"[green not bold] netuid: [/green not bold][white not bold]{output['netuid']}[/white not bold] |"
                                     f"[green not bold] protocol: [/green not bold][white not bold]{output['protocol']}[/white not bold] |"
                                     f"[green not bold] version: [/green not bold][white not bold]{output['version']}[/white not bold] |"
         )
