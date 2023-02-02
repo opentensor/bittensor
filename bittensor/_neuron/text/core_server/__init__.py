@@ -72,6 +72,9 @@ class neuron:
             seq2seq (:obj:bittensor.metagraph, `optional`):
                 seq2seq synapse control
             synapse_list (:obj:list of int, `optional`):
+                list of callable synapses
+            netuid (:obj: int, `optional`):
+                the corresponding the network uid 
       
 
     Examples::
@@ -87,12 +90,12 @@ class neuron:
         axon: 'bittensor.axon' = None,
         metagraph: 'bittensor.metagraph' = None,
         model: 'bittensor.neurons.text.core_server.server' = None, 
-        lasthidden = None,
-        causallm = None,
-        causallmnext = None,
-        seq2seq = None,
-        synapse_list = None,
-        netuid = None
+        lasthidden: bool = None,
+        causallm: bool = None,
+        causallmnext: bool = None,
+        seq2seq: bool = None,
+        synapse_list: list = None,
+        netuid: int = None
     ):
         if config is None:
             config = server.config()

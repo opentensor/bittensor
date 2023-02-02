@@ -24,14 +24,14 @@ class server(torch.nn.Module):
                 padding: bool =None, 
                 interpolate: bool =None,
                 inter_degree: str = None,
-                model = None,
+                model: 'torch.module' = None,
                 tokenizer: 'transformers.tokenizer' = None,
-                mapping_function = None,
-                token_remap = None,
-                checking= None,
-                device_map = None,
-                max_memory = None,
-                load_in_8bit = None,
+                mapping_function: callable = None,
+                token_remap: callable = None,
+                checking: bool = None,
+                device_map: bool = None,
+                max_memory: dict = None,
+                load_in_8bit: bool  = None,
                 ):
         r"""" Creates a server that serves up a pretrained miner on the bittensor network
         Args:
@@ -57,6 +57,14 @@ class server(torch.nn.Module):
                     Custom mapping function that maps between sequence length differences between tokenizers
                 token_remap (:obj:Callable, `optional`):
                     Custom function that maps between tokenizers (defaults to self.remapping_token)
+                device_map (:obj:bool, `optional`):
+                    If the server should map its model across multiple different gpus (multi-gpu serving)
+                load_in_8bit (:obj:bool, `optional`):
+                    If the server should turn on its LLM.int8 mixed quantilization.
+                    Reduces the memory usage by ~3x and increases inference speed
+                max_memory (:obj:dict, `optional`):
+                    Determines the max memory useage in each gpu, if not set, will be determined from the config
+                    
         """
         super(server, self).__init__()
         if config == None: config = server.config()
@@ -67,17 +75,14 @@ class server(torch.nn.Module):
         #parameters of loading in the model
         self.device_map = device_map if device_map != None else config.neuron.device_map
         self.max_memory = max_memory if max_memory != None else self.load_memory_map(config.neuron.max_memory_path)
-
         self.load_in_8bit = load_in_8bit if load_in_8bit != None else config.neuron.load_in_8bit
 
         #setting up pretrained model
         self.model_name = model_name if model_name != None else config.neuron.model_name
         self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
-
             if model == None:
-                model = self.load_model()
-
+                model = self.load_pretrained_model()
             self.pre_model = model
 
             self.tokenizer = tokenizer
@@ -616,31 +621,28 @@ class server(torch.nn.Module):
         bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
 
-    def load_model(self):
+    def load_pretrained_model(self):
         params = {
             'pretrained_model_name_or_path':self.config.neuron.model_name,
             'device_map':'auto' if self.device_map else None,
             'max_memory':self.max_memory,
             'load_in_8bit': True if self.load_in_8bit else False
         }
-
         model = AutoModelForCausalLM.from_pretrained(**params)
         return model
 
     def load_memory_map(self, path):
-
         if path == None:
             return None
 
         file_path = str(os.getcwd() + '/' + path)
         with open(file_path, "r") as file:
             saved_mapping = json.load(file)
-
         memory_map = {}
         for v, i in saved_mapping.items():
             if v != 'cpu':
                 memory_map[int(v)]= i
             else:
                 memory_map[v] = i 
-        
+
         return memory_map
