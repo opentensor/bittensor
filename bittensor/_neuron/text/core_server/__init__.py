@@ -270,7 +270,7 @@ class neuron:
             if self.config.neuron.local_train:
                 # --- Training step.
                 while iteration < self.config.iterations_per_epoch:
-                    if self.axon.priority_threadpool.is_empty: # current_block != self.subtensor.get_current_block() and 
+                    if self.axon.priority_threadpool.is_empty: 
                         with self.mutex:
                             logger.info(f'local training\titeration: {iteration}\tstart')
                             loss, _ = self.model( next(self.dataset).to(self.model.device) )
@@ -285,9 +285,6 @@ class neuron:
                         time.sleep(1)
                 
                 if iteration != 0:
-                    while not self.axon.priority_threadpool.is_empty:
-                        time.sleep(1) 
-                    
                     if self.config.neuron.use_deepspeed:
                         self.model.pre_model.backward(losses/iteration)
                         self.model.pre_model.step()
