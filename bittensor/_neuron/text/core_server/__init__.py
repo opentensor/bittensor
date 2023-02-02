@@ -362,6 +362,8 @@ class neuron:
             self.prometheus_guages.labels("rank").set( nn.rank )
             self.prometheus_guages.labels("trust").set( nn.trust )
             self.prometheus_guages.labels("consensus").set( nn.consensus )
+            # prometheus_guages.labels("validator_trust").set( nn.validator_trust )
+            # prometheus_guages.labels("weight_consensus").set( nn.weight_consensus )
             self.prometheus_guages.labels("incentive").set( nn.incentive )
             self.prometheus_guages.labels("emission").set( nn.emission )
 
