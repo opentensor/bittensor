@@ -1,3 +1,4 @@
+import os
 import argparse
 import math
 import bittensor
@@ -57,6 +58,7 @@ class server(torch.nn.Module):
         """
         super(server, self).__init__()
         if config == None: config = server.config()
+        server.check_config(config)
         self.config = config;print(config)
         self.std_tokenizer = bittensor.tokenizer()
         self.device = config.neuron.device
@@ -507,7 +509,6 @@ class server(torch.nn.Module):
         return loss
 
     def to_deepspeed(self, model):
-        print("in to_deepspeed")
         ds_config = {
             "train_micro_batch_size_per_gpu": self.config.neuron.deepspeed.micro_batch_per_gpu,
             "gradient_accumulation_steps": self.config.neuron.deepspeed.gradient_accumulation_steps,
@@ -523,7 +524,7 @@ class server(torch.nn.Module):
         ds_args = SimpleNamespace(
             config = ds_config,
             local_rank = self.config.local_rank,
-            deepspeed_config = self.config.deepspeed_config
+            deepspeed_config = os.path.expanduser(self.config.neuron.deepspeed.config)
         )
 
         model_engine, optimizer, _, _ = deepspeed.initialize(
@@ -574,6 +575,15 @@ class server(torch.nn.Module):
             logger.warning('No saved model found with error: {}', e)
 
     @staticmethod
+    def check_config(config):
+        if config.neuron.use_deepspeed:
+            print(os.getenv('TOKENIZERS_PARALLELISM'), os.getenv('NCCL_P2P_DISABLE'))
+            assert os.getenv('TOKENIZERS_PARALLELISM') == 'true', "Please set environmental variable TOKENIZERS_PARALLELISM=true in order to use deepspeed (--neuron.use_deepspeed)."
+            assert os.getenv('NCCL_P2P_DISABLE') == '1', "Please set environmental variable NCCL_P2P_DISABLE=1 in order to use deepspeed (--neuron.use_deepspeed)."
+            if config.neuron.local_train or config.neuron.remote_train:
+                logger.warning('Suggest turning off --neuron.local_train or --neuron.remote_train while --neuron.use_deepspeed is on, otherwise it may reduce serving power.') 
+
+    @staticmethod
     def config ():
         parser = argparse.ArgumentParser()
         parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
@@ -622,9 +632,9 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
 
         parser.add_argument('--neuron.use_deepspeed', action='store_true', help='Use deepspeed or not', default=False)
-        parser.add_argument('--neuron.deepspeed.micro_batch_per_gpu', type=str, help='Number of micro-batches before gradient accumulation within GPUs.')
-        parser.add_argument('--neuron.deepspeed.gradient_accumulation_steps', type=str, help='Number of batches before sharing gradients across GPUs.')
-        parser.add_argument('--deepspeed_config', type=str, help='Path to deepspeed config file.')
+        parser.add_argument('--neuron.deepspeed.micro_batch_per_gpu', type=str, help='Number of micro-batches before gradient accumulation within GPUs.', default = 32)
+        parser.add_argument('--neuron.deepspeed.gradient_accumulation_steps', type=str, help='Number of batches before sharing gradients across GPUs.', default = 1 )
+        parser.add_argument('--neuron.deepspeed.config', type=str, help='Path to deepspeed config file.', default='~/.bittensor/bittensor/bittensor/_neuron/text/core_server/ds_config.json')
         parser.add_argument('--local_rank', type=int, help='Deepspeed local rank.')
         
         # Netuid Arg
