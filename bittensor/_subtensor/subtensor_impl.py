@@ -355,6 +355,16 @@ class Subtensor:
         if not self.subnet_exists( netuid ): return None
         return self.query_paratensor("ValidatorBatchSize", block, [netuid] ).value
 
+    """ Returns network ValidatorPruneLen hyper parameter """
+    def validator_prune_len (self, netuid: int, block: Optional[int] = None ) -> int:
+        if not self.subnet_exists( netuid ): return None
+        return self.query_paratensor("ValidatorPruneLen", block, [netuid] ).value
+
+    """ Returns network ValidatorLogitsDivergence hyper parameter """
+    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> int:
+        if not self.subnet_exists( netuid ): return None
+        return self.query_paratensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
+
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
@@ -840,8 +850,8 @@ class Subtensor:
             incentive = 0,
             consensus = 0,
             trust = 0,
-            weight_consensus = 0,
-            validator_trust = 0,
+            # weight_consensus = 0,
+            # validator_trust = 0,
             dividends = 0,
             last_update = 0,
             validator_permit = False,
