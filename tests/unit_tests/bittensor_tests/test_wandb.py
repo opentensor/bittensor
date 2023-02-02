@@ -17,10 +17,6 @@
 
 import bittensor
 
-def test_axon():
-    axon = bittensor.axon( netuid = -1 )
-    axon.to_wandb()
-
 def test_dendrite():
     dendrite = bittensor.dendrite()
     dendrite.to_wandb()

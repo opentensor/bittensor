@@ -294,7 +294,7 @@ class TestBlacklist(unittest.TestCase):
 
     @staticmethod
     def construct_config():
-        defaults = bittensor.Config()
+        defaults = bittensor.neurons.core_server.neuron.config()
         bittensor.subtensor.add_defaults( defaults )
         bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
@@ -305,7 +305,7 @@ class TestBlacklist(unittest.TestCase):
         bittensor.prometheus.add_defaults( defaults )
 
         defaults.wandb.api_key = 'test'
-        defaults.neuron = bittensor.neurons.core_server.neuron.config()
+        bittensor.neurons.core_server.neuron.check_config(defaults)
         defaults.neuron.learning_rate = 0.0001
         defaults.neuron.momentum = 0.9
         defaults.prometheus.level = "OFF"
@@ -319,7 +319,7 @@ class TestBlacklist(unittest.TestCase):
 
     def test_stake_blacklist(self):
         import sys
-        sys.setrecursionlimit(100)
+        sys.setrecursionlimit(200)
 
         mock_hotkey = "0x0000000000000000000000000000000000000000"
         mock_hotkey_1 = "0x0000000000000000000000000000000000000001"
@@ -348,15 +348,12 @@ class TestBlacklist(unittest.TestCase):
         )
 
         mock_config = self.construct_config()
-        
-        mock_config.neuron.blacklist = bittensor.Config()
         mock_config.neuron.blacklist.stake = 1000 # blacklist if stake is less than 1000
 
         mock_model_config = bittensor.neurons.core_server.server.config()
         mock_model_config.neuron = MagicMock(
             disable_blacklist = False
         )
-
         mock_model = MagicMock(
                             spec=bittensor.neurons.core_server.server,
                             config=mock_model_config,
@@ -365,7 +362,7 @@ class TestBlacklist(unittest.TestCase):
         with patch('bittensor.axon.__new__', side_effect=self.exit_early) as mock_new_axon:
             with patch('bittensor.neurons.core_server.neuron.check_config', return_value=True):
                 with pytest.raises(MockException):
-                    bittensor.neurons.core_server.serve(
+                    bittensor.neurons.core_server.neuron(
                         config=mock_config,
                         model=MagicMock(
                             spec=bittensor.neurons.core_server.server,
@@ -377,7 +374,7 @@ class TestBlacklist(unittest.TestCase):
                         wallet=mock_wallet,
                         axon=None,
                         metagraph=mock_metagraph
-                    )
+                    ).run()
 
             # args, kwargs
             _, kwargs = mock_new_axon.call_args
