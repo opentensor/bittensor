@@ -458,19 +458,21 @@ class server(torch.nn.Module):
                                                attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
                 self.model_output_check(_model_output)
-            # model_output.logits: [batch_size, sequence_len, server_vocab_size]
-            last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
 
-            # Select topk tokenizer logits and retokenize with std_tokenizer,
-            # then compact new token phrases and probabilities into 1-D tensor
-            topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
-
-            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
+            original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).detach().item()
 
             message = f'Loss: {original_loss:.2f}'
 
             _model_output.loss = original_loss
-            return message, _model_output, topk_tensor
+
+            # model_output.logits: [batch_size, sequence_len, server_vocab_size]
+            last_logits = _model_output.logits[:, -1, :].detach().item().to('cpu')  # [batch_size] server prediction of continuation, right-aligned
+            
+            # Select topk tokenizer logits and retokenize with std_tokenizer,
+            # then compact new token phrases and probabilities into 1-D tensor
+            topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
+
+            return message, _model_output.to('cpu'), topk_tensor.to('cpu')
 
         if self.config.neuron.remote_train:
             return _forward()  # track gradients for training
