@@ -582,7 +582,7 @@ class server(torch.nn.Module):
             assert os.getenv('NCCL_P2P_DISABLE') == '1', "Please set environmental variable NCCL_P2P_DISABLE=1 in order to use deepspeed (--neuron.use_deepspeed)."
             if config.neuron.local_train or config.neuron.remote_train:
                 logger.warning('Suggest turning off --neuron.local_train or --neuron.remote_train while --neuron.use_deepspeed is on, otherwise it may reduce serving power.') 
-            assert config.local_rank == None, "If you wish to use deepspeed (--neuron.use_deepspeed), please run with deepspeed command. https://www.deepspeed.ai/getting-started/#launching-deepspeed-training"
+            assert config.local_rank != None, "If you wish to use deepspeed (--neuron.use_deepspeed), please run with deepspeed command. https://www.deepspeed.ai/getting-started/#launching-deepspeed-training"
 
     @staticmethod
     def config ():
