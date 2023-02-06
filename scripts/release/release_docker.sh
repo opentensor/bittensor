@@ -43,7 +43,7 @@ DOCKER_IMAGE_NAME="opentensorfdn/bittensor:$VERSION"
 # 2. Login
 if [[ $APPLY == "true" ]]; then
   echo_info "Docker registry login"
-  sudo docker login
+  docker login
 else
   echo_warning "Dry run execution. Not login into docker registry"
 fi
@@ -51,16 +51,16 @@ fi
 # 3. Creating docker image
 if [[ $APPLY == "true" ]]; then
   echo_info "Building docker image"
-  sudo docker build -t $DOCKER_IMAGE_NAME .
 else
-  echo_warning "Dry run execution. Not building docker image '$DOCKER_IMAGE_NAME'"
+  echo_warning "Dry run execution. Building docker image '$DOCKER_IMAGE_NAME' but not pushing it"
 fi
 
+docker build -t $DOCKER_IMAGE_NAME .
 
 # 4. Uploading docker image
 if [[ $APPLY == "true" ]]; then
   echo_info "Pushing docker image"
-  sudo docker push $DOCKER_IMAGE_NAME
+  docker push $DOCKER_IMAGE_NAME
 else
   echo_warning "Dry run execution. Not pushing docker image '$DOCKER_IMAGE_NAME'"
 fi

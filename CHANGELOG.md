@@ -1,5 +1,36 @@
 # Changelog
 
+## 3.6.3 / 2023-01-21
+
+## What's Changed
+* [hotfix][3.6.3] Fixing no version checking by @eduardogr in https://github.com/opentensor/bittensor/pull/1063
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.6.2...v3.6.3
+
+
+## 3.6.2 / 2023-01-19
+
+## What's Changed
+* Hotfix/3.6.2/validator logit parameters by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1057
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.6.1...v3.6.2
+
+
+## 3.6.1 / 2022-12-21
+
+## What's Changed
+* V3.6.0 nobunaga merge by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1028
+* Integration dendrite test fixes by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1029
+* Adding 3.6.0 release notes to CHANGELOG by @eduardogr in https://github.com/opentensor/bittensor/pull/1032
+* [BIT-612] Validator robustness improvements by @opentaco in https://github.com/opentensor/bittensor/pull/1034
+* [Hotfix 3.6.1] Validator robustness by @opentaco in https://github.com/opentensor/bittensor/pull/1035
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.6.0...v3.6.1
+
+
 ## 3.6.0 / 2022-12-13
 
 ## What's Changed

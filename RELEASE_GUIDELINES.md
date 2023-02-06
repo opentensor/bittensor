@@ -14,8 +14,14 @@ If you are new in this role, ask for the proper setup you need to run this proce
 ## Process of release
 
 1. Create a branch called `release/VERSION`, having VERSION with the version to release.
-1. Within the release branch; Update the version using the versioning script:
-  1. `./scripts/release/versioning.sh --update UPDATE_TYPE`, UPDATE_TYPE could be major, minor or patch.
+1. Within the release branch:
+  1. Update the version executing:`./scripts/release/versioning.sh --update UPDATE_TYPE`
+    1. **UPDATE_TYPE** could be *major*, *minor* or *patch*.
+  1. Add release notes to CHANGELOG executing: `./scripts/release/add_notes_changelog.sh -A -V NEW_VERSION -P PREVIOUS_TAG -T GH_ACCESS_TOKEN`
+    1. **NEW_VERSION**: e.g.: 3.6.4
+    1. **PREVIOUS_TAG**: e.g.: v3.6.3
+    1. **GH_ACCESS_TOKEN**: A github [personal access token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) you need. 
+
 1. Test the release branch and verify that it meets the requirements.
 1. After merging the release branch; Run the release script
 
@@ -51,12 +57,12 @@ So, executing the script to release a minor version will be:
 
 ```
 # For a dry run
-./scripts/release/release.sh --version minor --github-token $GITHUB_ACCESS_TOKEN`
+./scripts/release/release.sh
 ```
 
 ```
 # Applying changes
-./scripts/release/release.sh --apply --version minor --github-token $GITHUB_ACCESS_TOKEN`
+./scripts/release/release.sh --apply --github-token $GITHUB_ACCESS_TOKEN`
 ```
 
 ## Checking release
