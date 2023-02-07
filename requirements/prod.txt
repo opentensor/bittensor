@@ -45,4 +45,4 @@ ansible_vault>=2.1
 substrate-interface==1.2.4
 markupsafe==2.0.1
 ninja>=1.11.1 
-mpi4py==3.1.4
+mpi4py==3.1.3
