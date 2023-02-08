@@ -163,7 +163,7 @@ class neuron:
             self.config.netuid = subtensor.get_subnets()[0]
 
         self.mutex = Lock()
-        self.model = server(config = config).to(config.neuron.device) if model == None else model
+        self.model = server(config = config) if model == None else model
         self.subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
         self.wallet = bittensor.wallet( config = config ) if wallet == None else wallet
         self.metagraph = bittensor.metagraph ( config = config, netuid = self.config.netuid) if metagraph == None else metagraph
