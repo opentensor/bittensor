@@ -147,8 +147,8 @@ class neuron:
         self.axon = bittensor.axon ( netuid=self.config.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
-        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.netuid),
-                                          block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
+        self.dataset = (bittensor.dataset(config=self.config, batch_size=32,
+                                          block_size=256 + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
                         if dataset is None else dataset)
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
@@ -372,8 +372,8 @@ class neuron:
         # === Get params for epoch ===
         # Pulling the latest chain parameters.
         current_block = self.subtensor.block
-        batch_size = self.subtensor.validator_batch_size(netuid=self.config.netuid)
-        sequence_length = self.subtensor.validator_sequence_length(netuid=self.config.netuid)
+        batch_size = 32
+        sequence_length = 256
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         # Number of tokens to prune for phrase validation beyond sequence context
         prune_len = self.config.neuron.prune_len = self.subtensor.validator_prune_len(netuid=self.config.netuid)
