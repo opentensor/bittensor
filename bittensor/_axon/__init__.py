@@ -444,6 +444,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 raise Exception("Nonce is too small")
 
         if not keypair.verify(message, signature):
+            print(message)
             raise Exception("Signature mismatch")
         self.nonces[endpoint_key] = nonce
 
@@ -456,6 +457,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             "/Bittensor/Forward": bittensor.proto.RequestType.FORWARD,
             "/Bittensor/Backward": bittensor.proto.RequestType.BACKWARD,
         }.get(method)
+        print(method)
         if request_type is None:
             raise Exception("Unknown request type")
 
@@ -475,7 +477,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 receptor_uuid,
                 signature_format,
             ) = self.parse_signature(metadata)
-
+            print(signature, signature_format)
             # signature checking
             self.check_signature(
                 nonce, sender_hotkey, signature, receptor_uuid, signature_format
