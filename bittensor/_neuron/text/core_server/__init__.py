@@ -637,7 +637,7 @@ class neuron:
             registration_check()
             time_check()
             stake_check()            
-            return False
+            return False, ''
         except Exception as e:
             self.prometheus_counters.labels("blacklisted").inc()
-            return True
+            return True, e

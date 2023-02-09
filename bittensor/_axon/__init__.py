@@ -461,8 +461,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         if request_type is None:
             raise Exception("Unknown request type")
 
-        if self.blacklist(hotkey, request_type):
-            raise Exception("Request type is blacklisted")
+        failed, error_message =  self.blacklist(hotkey, request_type)
+        if failed:
+            raise Exception(str(error_message))
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
