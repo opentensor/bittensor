@@ -52,7 +52,11 @@ def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
         'accountId': "0x" + keypair.public_key.hex() if keypair.public_key != None else None,
         'publicKey': "0x" + keypair.public_key.hex()  if keypair.public_key != None else None,
         'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
-        'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
+        'secretSeed': "0x" + \
+            # If bytes -> str
+            ( keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex() ) 
+                # If None -> None
+                if keypair.seed_hex != None else None,
         'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
     }
     data = json.dumps( json_data ).encode()
