@@ -8,6 +8,7 @@ from torch import nn
 import torch.nn.functional as F
 from types import SimpleNamespace
 from typing import Tuple, Optional
+import importlib.util
 
 import transformers
 from transformers import AutoModel,AutoTokenizer,AutoConfig, AutoModelForCausalLM
@@ -583,6 +584,7 @@ class server(torch.nn.Module):
             if config.neuron.local_train or config.neuron.remote_train:
                 logger.warning('Suggest turning off --neuron.local_train or --neuron.remote_train while --neuron.use_deepspeed is on, otherwise it may reduce serving power.') 
             assert config.local_rank != None, "If you wish to use deepspeed (--neuron.use_deepspeed), please run with deepspeed command. https://www.deepspeed.ai/getting-started/#launching-deepspeed-training"
+            assert importlib.util.find_spec('mpi4py') != None, "Please pip install mpi4py."
 
     @staticmethod
     def config ():
