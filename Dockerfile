@@ -36,9 +36,9 @@ RUN bash -c "source $HOME/.nvm/nvm.sh && \
     # install pm2
     npm install --location=global pm2"
 
-RUN mkdir -p /root/.bittensor/
-COPY . /root/.bittensor/
-RUN cd /root/.bittensor/ && python3 -m pip install .
+RUN mkdir -p /root/.bittensor/bittensor
+COPY . /root/.bittensor/bittensor
+RUN cd /root/.bittensor/bittensor && python3 -m pip install .
 
 # Increase ulimit to 1,000,000
 RUN prlimit --pid=$PPID --nofile=1000000
