@@ -141,9 +141,7 @@ class Receptor(nn.Module):
         return ".".join([nonce, sender_hotkey, signature, self.receptor_uid])
 
     def sign(self):
-        if self.endpoint.version >= bittensor.__new_signature_version__:
-            return self.sign_v2()
-        return self.sign_v1()
+        return self.sign_v2()
 
     def nonce ( self ):
         r"""creates a string representation of the time

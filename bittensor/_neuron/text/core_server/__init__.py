@@ -25,6 +25,7 @@ Example:
 import bittensor
 import os
 import sys
+from typing import Dict, List, Callable, Optional, Tuple, Union
 
 from .nucleus_impl import server
 from prometheus_client import Counter, Gauge, Histogram, Summary, Info, CollectorRegistry
@@ -582,7 +583,7 @@ class neuron:
         return message, model_output, topk_token_phrases
 
 
-    def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> bool:
+    def blacklist(self, pubkey:str, request_type:bittensor.proto.RequestType) -> Tuple[bool, Optional[Exception]]:
         r"""Axon security blacklisting, used to blacklist message from low stake members
             Args:
                 pubkey ( str, `required`):
@@ -637,7 +638,7 @@ class neuron:
             registration_check()
             time_check()
             stake_check()            
-            return False, ''
-        except Exception as e:
+            return False, None
+        except Exception as error:
             self.prometheus_counters.labels("blacklisted").inc()
-            return True, e
+            return True, error
