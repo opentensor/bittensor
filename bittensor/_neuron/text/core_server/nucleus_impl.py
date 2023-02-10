@@ -473,10 +473,13 @@ class server(torch.nn.Module):
             return message, _model_output, topk_tensor
 
         if self.config.neuron.remote_train:
+            tokens = self.token_remap(token_batch, std_tokenizer)
             return _forward()  # track gradients for training
 
         with torch.no_grad():
             tokens = self.token_remap(token_batch, std_tokenizer)
+            if not self.device_map:
+                tokens = tokens.to(self.device)
             return _forward()  # no gradients
 
     def model_output_check(self, model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
