@@ -146,22 +146,7 @@ def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bo
 
 def get_ss58_format( ss58_address: str ) -> int:
     """Returns the ss58 format of the given ss58 address."""
-    ss58_format: int
-
-    # Decode the address
-    decoded_addr: bytes = ss58.base58.b58decode(ss58_address)
-
-    # bitwise and to check address type
-    # see: https://docs.substrate.io/reference/address-formats/#address-type
-    if 0b0100_0000 & decoded_addr[0]:
-        # Matches second address type, so bitwise-or with 0b0011_1111 to get the ss58 format
-        ss58_format = ((decoded_addr[0] & 0b0011_1111) << 2) | (decoded_addr[1] >> 6) | \
-                      ((decoded_addr[1] & 0b0011_1111) << 8)
-    else:
-        # First address type, so just use the first byte
-        ss58_format = decoded_addr[0]
-
-    return ss58_format
+    return ss58.get_ss58_format( ss58_address )
 
 def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
     """
