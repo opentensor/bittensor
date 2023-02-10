@@ -629,6 +629,9 @@ class server(torch.nn.Module):
             'load_in_8bit': True if self.load_in_8bit else False
         }
         model = AutoModelForCausalLM.from_pretrained(**params)
+
+        if not self.device_map: 
+            model.to(self.config.neuron.device) 
         return model
 
     def load_memory_map(self, path):
