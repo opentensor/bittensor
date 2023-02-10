@@ -47,12 +47,18 @@ class RegenColdkeyCommand:
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-        if config.mnemonic == None and config.seed == None:
-            prompt_answer = Prompt.ask("Enter mnemonic or seed")
+        
+        if config.mnemonic == None and config.seed == None and config.json == None:
+            prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):
                 config.seed = prompt_answer
-            else:
+            elif len(prompt_answer.split(" ")) > 1:
                 config.mnemonic = prompt_answer
+            else:
+                config.json = prompt_answer
+
+        if config.json and config.json_password == None:
+            config.json_password = Prompt.ask("Enter json backup password", password=True)
     
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
@@ -205,12 +211,17 @@ class RegenHotkeyCommand:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         
-        if config.mnemonic == None and config.seed == None:
-            prompt_answer = Prompt.ask("Enter mnemonic or seed")
+        if config.mnemonic == None and config.seed == None and config.json == None:
+            prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):
                 config.seed = prompt_answer
-            else:
+            elif len(prompt_answer.split(" ")) > 1:
                 config.mnemonic = prompt_answer
+            else:
+                config.json = prompt_answer
+
+        if config.json and config.json_password == None:
+            config.json_password = Prompt.ask("Enter json backup password", password=True)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
