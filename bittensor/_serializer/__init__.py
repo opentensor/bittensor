@@ -61,6 +61,10 @@ class serializer:
             return serializer_impl.MSGPackSerializer()
         elif serializer_type == bittensor.proto.Serializer.CMPPACK:
             return serializer_impl.CMPPackSerializer()
+        elif serializer_type == bittensor.proto.Serializer.UINT8:
+            return serializer_impl.UINT8Serializer()
+        elif serializer_type == bittensor.proto.Serializer.UINT1:
+            return serializer_impl.UINT1Serializer()
         else:
             raise bittensor.serializer.NoSerializerForEnum("No known serialzier for proto type {}".format(serializer_type))
 
