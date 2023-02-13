@@ -65,6 +65,12 @@ class serializer:
             return serializer_impl.UINT8Serializer()
         elif serializer_type == bittensor.proto.Serializer.UINT1:
             return serializer_impl.UINT1Serializer()
+        elif serializer_impl == bittensor.proto.Serializer.PositiveNegativeUINT1Serializer:
+            return serializer_impl.PositiveNegativeUINT1Serializer()
+        elif serializer_impl == bittensor.proto.Serializer.TWOCLIPPEDUINT8:
+            return serializer_impl.TwoClippedUINT8Serializer()
+        elif serializer_impl == bittensor.proto.Serializer.ONENORMUINT8:
+            return serializer_impl.OneNormUINT8Serializer
         else:
             raise bittensor.serializer.NoSerializerForEnum("No known serialzier for proto type {}".format(serializer_type))
 
