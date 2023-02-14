@@ -114,6 +114,34 @@ def do_delegation(
         else:
             raise StakeError(response.error_message)
 
+def do_undelegation(
+        subtensor: 'bittensor.Subtensor', 
+        wallet: 'bittensor.wallet',
+        delegate_ss58: str,
+        amount: 'bittensor.Balance', 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+    with subtensor.substrate as substrate:
+        call = substrate.compose_call(
+        call_module='Paratensor', 
+        call_function='remove_stake',
+        call_params={
+            'hotkey': delegate_ss58,
+            'amount_unstaked': amount.rao
+            }
+        )
+        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(response.error_message)
+
 
 def delegate_extrinsic(
         subtensor: 'bittensor.Subtensor', 
@@ -124,7 +152,7 @@ def delegate_extrinsic(
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-    r""" Delegates the specified amount of stake to passed hotkey uid.
+    r""" Delegates the specified amount of stake to the passed delegate.
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -197,9 +225,9 @@ def delegate_extrinsic(
                 staking_fee = bittensor.Balance.from_tao( 0.2 )
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate delegation fee, assuming base fee of 0.2")
 
-    # Check enough to stake.
-    if staking_balance > my_prev_coldkey_balance + staking_fee:
-        bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, staking_fee, wallet.name))
+    # Check enough balance to stake.
+    if staking_balance + staking_fee > my_prev_coldkey_balance:
+        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, staking_fee, wallet.name))
         return False
             
     # Ask before moving on.
@@ -210,6 +238,138 @@ def delegate_extrinsic(
     try:
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(subtensor.network)):
             staking_response: bool = do_delegation(
+                subtensor = subtensor,
+                wallet = wallet,
+                delegate_ss58 = delegate_ss58,
+                amount = staking_balance,
+                wait_for_inclusion = wait_for_inclusion,
+                wait_for_finalization = wait_for_finalization,
+            )
+
+        if staking_response: # If we successfully staked.
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                return True
+
+            bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+            with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(subtensor.network)):
+                new_balance = subtensor.get_balance( address = wallet.coldkey.ss58_address )
+                block = subtensor.get_current_block()
+                new_delegate_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                    coldkey_ss58 = wallet.coldkeypub.ss58_address,
+                    hotkey_ss58 = delegate_ss58,
+                    block=block
+                ) # Get current stake
+
+                bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( my_prev_coldkey_balance, new_balance ))
+                bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( my_prev_delegated_stake, new_delegate_stake ))
+                return True
+        else:
+            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
+            return False
+
+    except NotRegisteredError as e:
+        bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
+        return False
+    except StakeError as e:
+        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        return False
+
+def undelegate_extrinsic(
+        subtensor: 'bittensor.Subtensor', 
+        wallet: 'bittensor.wallet',
+        delegate_ss58: Optional[str] = None,
+        amount: Union[Balance, float] = None, 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+    r""" Un-delegates stake from the passed delegate.
+    Args:
+        wallet (bittensor.wallet):
+            Bittensor wallet object.
+        delegate_ss58 (Optional[str]):
+            ss58 address of the delegate.
+        amount (Union[Balance, float]):
+            Amount to unstake as bittensor balance, or float interpreted as Tao.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning true, 
+            or returns false if the extrinsic fails to enter the block within the timeout.   
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning true,
+            or returns false if the extrinsic fails to be finalized within the timeout.
+        prompt (bool):
+            If true, the call waits for confirmation from the user before proceeding.
+    Returns:
+        success (bool):
+            flag is true if extrinsic was finalized or uncluded in the block. 
+            If we did not wait for finalization / inclusion, the response is true.
+
+    Raises:
+        NotRegisteredError:
+            If the wallet is not registered on the chain.
+        NotDelegateError:
+            If the hotkey is not a delegate on the chain.
+    """
+    # Decrypt keys,
+    wallet.coldkey
+    if not subtensor.is_hotkey_delegate( delegate_ss58 ):
+        raise NotDelegateError("Hotkey: {} is not a delegate.".format( delegate_ss58 ))
+
+    # Get state.
+    my_prev_coldkey_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+    delegate_take = subtensor.get_delegate_take( delegate_ss58 )
+    delegate_owner = subtensor.get_hotkey_owner( delegate_ss58 )
+    my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = delegate_ss58 )
+
+    # Convert to bittensor.Balance
+    if amount == None:
+        # Stake it all.
+        staking_balance = bittensor.Balance.from_tao( my_prev_coldkey_balance.tao )
+    elif not isinstance(amount, bittensor.Balance ):
+        staking_balance = bittensor.Balance.from_tao( amount )
+    else:
+        staking_balance = amount
+
+    # Estimate transfer fee.
+    staking_fee = None # To be filled.
+    with bittensor.__console__.status(":satellite: Estimating Delegation Fees..."):
+        with subtensor.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='Paratensor', 
+                call_function='remove_stake',
+                call_params={
+                    'hotkey': delegate_ss58,
+                    'amount_unstaked': staking_balance.rao
+                }
+            )
+            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+            if payment_info:
+                staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
+                bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
+            else:
+                staking_fee = bittensor.Balance.from_tao( 0.2 )
+                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate delegation fee, assuming base fee of 0.2")
+
+    # Check enough stake to unstake.
+    if staking_balance > my_prev_delegated_stake:
+        bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  stake:{}\n  amount: {}\n coldkey: {}[/bold white]".format(my_prev_delegated_stake, staking_balance, wallet.name))
+        return False
+
+    # Check enough balance to unstake.
+    if my_prev_coldkey_balance < staking_fee:
+        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, staking_fee, wallet.name))
+        return False
+            
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  to: {}\n  fee: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, staking_fee, delegate_take, delegate_owner) ):
+            return False
+
+    try:
+        with bittensor.__console__.status(":satellite: Unstaking from: [bold white]{}[/bold white] ...".format(subtensor.network)):
+            staking_response: bool = do_undelegation(
                 subtensor = subtensor,
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
