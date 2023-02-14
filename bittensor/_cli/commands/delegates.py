@@ -108,16 +108,16 @@ class DelegateStakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        # Check for delegates.
-        with bittensor.__console__.status(":satellite: Loading delegates..."):
-            subtensor = bittensor.subtensor( config = config )
-            delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-
-        if len(delegates) == 0:
-            console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
-            sys.exit()
-
         if not config.get('delegate_ss58key'):
+            # Check for delegates.
+            with bittensor.__console__.status(":satellite: Loading delegates..."):
+                subtensor = bittensor.subtensor( config = config )
+                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+
+            if len(delegates) == 0:
+                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                sys.exit(1)
+            
             show_delegates( delegates )
             delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
             config.delegate_ss58key = str(delegate_ss58key)
@@ -199,16 +199,16 @@ class DelegateUnstakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        # Check for delegates.
-        with bittensor.__console__.status(":satellite: Loading delegates..."):
-            subtensor = bittensor.subtensor( config = config )
-            delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-
-        if len(delegates) == 0:
-            console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
-            sys.exit()
-
         if not config.get('delegate_ss58key'):
+            # Check for delegates.
+            with bittensor.__console__.status(":satellite: Loading delegates..."):
+                subtensor = bittensor.subtensor( config = config )
+                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+
+            if len(delegates) == 0:
+                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                sys.exit(1)
+            
             show_delegates( delegates )
             delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
             config.delegate_ss58key = str(delegate_ss58key)
