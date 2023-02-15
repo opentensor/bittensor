@@ -116,23 +116,27 @@ class CLI:
         async def main():
             session = aiohttp.ClientSession()
             async with session.ws_connect(URL) as ws:
-                await prompt_and_send(ws)
+                if not await prompt_and_send(ws, session):
+                    return
                 async for msg in ws:
                     token = msg.data
                     if '<|endoftext|>' in token:
-                        await prompt_and_send(ws)
+                        if not await prompt_and_send( ws, session ):
+                            break
                     else:
-                        print(bytes( token, 'utf-8' ).decode( 'utf-8','ignore' ), end="", flush=True)
+                        print(bytes( token, 'utf-8' ).decode( 'utf-8', 'ignore' ), end="", flush=True)
                     if msg.type in (aiohttp.WSMsgType.CLOSED,
                                     aiohttp.WSMsgType.ERROR):
                         break
-        async def prompt_and_send(ws):
+        async def prompt_and_send(ws, session):
             new_msg_to_send = input('Human >> ')
             if new_msg_to_send == 'exit':
-                print('Exiting!')
-                raise SystemExit(0)
+                print('Bye!')
+                await session.close()
+                return False
             print('Assistant >>', end="", flush=True)
             await ws.send_str(new_msg_to_send)
+            return True
 
         print('Type "exit" to quit')
         loop = asyncio.get_event_loop()
