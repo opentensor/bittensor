@@ -109,8 +109,8 @@ class CLI:
             install("asyncio") 
             import asyncio
 
-        HOST = os.getenv( self.config.host, '0.0.0.0' )
-        PORT = int(os.getenv('PORT', 8080))
+        HOST = '131.186.6.81'
+        PORT = 8080
         URL = f'http://{HOST}:{PORT}/chat'
 
         async def main():
@@ -121,7 +121,8 @@ class CLI:
                     token = msg.data
                     if '<|endoftext|>' in token:
                         await prompt_and_send(ws)
-                    print(token, end="", flush=True)
+                    else:
+                        print(bytes( token, 'utf-8' ).decode( 'utf-8','ignore' ), end="", flush=True)
                     if msg.type in (aiohttp.WSMsgType.CLOSED,
                                     aiohttp.WSMsgType.ERROR):
                         break
