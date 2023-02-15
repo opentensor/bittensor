@@ -89,6 +89,53 @@ class CLI:
             self.help()
         elif self.config.command == 'update':
             self.update()
+        elif self.config.command == 'chat':
+            self.chat()
+
+    def chat( self ):
+
+        # Install requirements.
+        import pip
+        def install( package ):
+            pip.main(['install', package])
+        try:
+            import aiohttp
+        except ModuleNotFoundError:
+            install("aiohttp") 
+            import aiohttp
+        try:
+            import asyncio
+        except ModuleNotFoundError:
+            install("asyncio") 
+            import asyncio
+
+        HOST = os.getenv( self.config.host, '0.0.0.0' )
+        PORT = int(os.getenv('PORT', 8080))
+        URL = f'http://{HOST}:{PORT}/chat'
+
+        async def main():
+            session = aiohttp.ClientSession()
+            async with session.ws_connect(URL) as ws:
+                await prompt_and_send(ws)
+                async for msg in ws:
+                    token = msg.data
+                    if '<|endoftext|>' in token:
+                        await prompt_and_send(ws)
+                    print(token, end="", flush=True)
+                    if msg.type in (aiohttp.WSMsgType.CLOSED,
+                                    aiohttp.WSMsgType.ERROR):
+                        break
+        async def prompt_and_send(ws):
+            new_msg_to_send = input('Human >> ')
+            if new_msg_to_send == 'exit':
+                print('Exiting!')
+                raise SystemExit(0)
+            print('Assistant >>', end="", flush=True)
+            await ws.send_str(new_msg_to_send)
+
+        print('Type "exit" to quit')
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
 
     def create_new_coldkey ( self ):
         r""" Creates a new coldkey under this wallet.

@@ -175,6 +175,21 @@ class cli:
         bittensor.subtensor.add_args( metagraph_parser )
 
 
+        chat_parser = cmd_parsers.add_parser(
+            'chat', 
+            help='''Chattensor commands'''
+        )
+        chat_parser.add_argument(
+            "--host", 
+            dest="host",
+            required=False,  
+            default="131.186.6.81:8080",
+            type=str,
+            help='Validator endpoint.'
+        )
+        chat_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+        bittensor.subtensor.add_args( chat_parser )
+
         help_parser = cmd_parsers.add_parser(
             'help', 
             add_help=False,
@@ -704,7 +719,12 @@ class cli:
             cli.check_help_config(config)
         elif config.command == "update":
             cli.check_update_config(config)
+        elif config.command == "chat":
+            cli.check_chat_config(config)
 
+    def check_chat_config( config: 'bittensor.Config'):
+        pass
+        
     def check_metagraph_config( config: 'bittensor.Config'):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
