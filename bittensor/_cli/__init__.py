@@ -179,6 +179,14 @@ class cli:
             'chat', 
             help='''Chattensor commands'''
         )
+        chat_parser.add_argument(
+            "--host", 
+            dest="host",
+            required=False,  
+            default="131.186.6.81:8080",
+            type=str,
+            help='Validator endpoint.'
+        )
         chat_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.subtensor.add_args( chat_parser )
 

@@ -109,10 +109,7 @@ class CLI:
             install("asyncio") 
             import asyncio
 
-        HOST = '131.186.6.81'
-        PORT = 8080
-        URL = f'http://{HOST}:{PORT}/chat'
-
+        URL = f'http://{self.config.host}/chat'
         async def main():
             session = aiohttp.ClientSession()
             async with session.ws_connect(URL) as ws:
@@ -124,10 +121,11 @@ class CLI:
                         if not await prompt_and_send( ws, session ):
                             break
                     else:
-                        print(bytes( token, 'utf-8' ).decode( 'utf-8', 'ignore' ), end="", flush=True)
+                        print(bytes( token, 'utf-8' ).decode( 'utf-8', 'ignore' ).replace("�", ""), end="", flush=True)
                     if msg.type in (aiohttp.WSMsgType.CLOSED,
                                     aiohttp.WSMsgType.ERROR):
                         break
+
         async def prompt_and_send(ws, session):
             new_msg_to_send = input('Human >> ')
             if new_msg_to_send == 'exit':
