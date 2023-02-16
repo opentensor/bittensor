@@ -20,7 +20,7 @@
 import os
 import sys
 from types import SimpleNamespace
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple, Dict, overload
 
 import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
@@ -91,10 +91,11 @@ class Wallet():
         return neuron.trust
 
     def validator_trust(self, netuid: int) -> Optional[float]:
-        neuron = self.get_neuron(netuid=netuid)
-        if neuron is None:
-            return None
-        return neuron.validator_trust
+        raise NotImplementedError
+        # neuron = self.get_neuron(netuid=netuid)
+        # if neuron is None:
+        #     return None
+        # return neuron.validator_trust
 
     def rank(self, netuid: int) -> Optional[float]:
         neuron = self.get_neuron(netuid=netuid)
@@ -121,10 +122,11 @@ class Wallet():
         return neuron.consensus
 
     def weight_consensus(self, netuid: int) -> Optional[float]:
-        neuron = self.get_neuron(netuid=netuid)
-        if neuron is None:
-            return None
-        return neuron.weight_consensus
+        raise NotImplementedError
+        # neuron = self.get_neuron(netuid=netuid)
+        # if neuron is None:
+        #     return None
+        # return neuron.weight_consensus
 
     def last_update(self, netuid: int) -> Optional[int]:
         neuron = self.get_neuron(netuid=netuid)
@@ -175,7 +177,8 @@ class Wallet():
                     Is the wallet registered on the chain.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        return subtensor.is_hotkey_registered( self.hotkey.ss58_address, netuid = netuid )
+        if netuid == None: return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
+        return subtensor.is_hotkey_registered_on_subnet( self.hotkey.ss58_address, netuid = netuid )
 
     def get_neuron ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> Optional['bittensor.NeuronInfo'] :
         """ Returns this wallet's neuron information from subtensor.
@@ -669,23 +672,6 @@ class Wallet():
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
-    def regen_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
-        """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
-            Args:
-                mnemonic: (Union[list, str], optional):
-                    Key mnemonic as list of words or string space separated words.
-                seed: (str, optional):
-                    Seed as hex string.
-                use_password (bool, optional):
-                    Is the created key password protected.
-                overwrite (bool, optional): 
-                    Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
-            Returns:
-                wallet (bittensor.Wallet):
-                    this object with newly created coldkey.
-        """
-        self.regenerate_coldkey(mnemonic, seed, use_password, overwrite)
-
     def regenerate_coldkeypub( self, ss58_address: Optional[str] = None, public_key: Optional[Union[str, bytes]] = None, overwrite: bool = False ) -> 'Wallet':
         """ Regenerates the coldkeypub from passed ss58_address or public_key and saves the file
                Requires either ss58_address or public_key to be passed.
@@ -721,13 +707,48 @@ class Wallet():
     # Short name for regenerate_coldkeypub
     regen_coldkeypub = regenerate_coldkeypub
 
-    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
-        """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
+    @overload
+    def regenerate_coldkey(
+            self,
+            mnemonic: Optional[Union[list, str]] = None,
+            use_password: bool = True,
+            overwrite: bool = False
+        ) -> 'Wallet':
+        ...
+
+    @overload
+    def regenerate_coldkey(
+            self,
+            seed: Optional[str] = None,
+            use_password: bool = True,
+            overwrite: bool = False
+        ) -> 'Wallet':
+        ...
+
+    @overload
+    def regenerate_coldkey(
+            self,
+            json: Optional[Tuple[Union[str, Dict], str]] = None,
+            use_password: bool = True,
+            overwrite: bool = False
+        ) -> 'Wallet':
+        ...
+
+
+    def regenerate_coldkey(
+            self,
+            use_password: bool = True,
+            overwrite: bool = False,
+            **kwargs
+        ) -> 'Wallet':
+        """ Regenerates the coldkey from passed mnemonic, seed, or json encrypts it with the user's password and saves the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
                 seed: (str, optional):
                     Seed as hex string.
+                json: (Tuple[Union[str, Dict], str], optional):
+                    Restore from encrypted JSON backup as (json_data: Union[str, Dict], passphrase: str)
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -735,47 +756,83 @@ class Wallet():
             Returns:
                 wallet (bittensor.Wallet):
                     this object with newly created coldkey.
+
+            Note: uses priority order: mnemonic > seed > json
         """
-        if mnemonic is None and seed is None:
-            raise ValueError("Must pass either mnemonic or seed")
+        if len(kwargs) == 0:
+            raise ValueError("Must pass either mnemonic, seed, or json")
+        
+        # Get from kwargs
+        mnemonic = kwargs.get('mnemonic', None)
+        seed = kwargs.get('seed', None)
+        json = kwargs.get('json', None)
+        
+        if mnemonic is None and seed is None and json is None:
+            raise ValueError("Must pass either mnemonic, seed, or json")
         if mnemonic is not None:
             if isinstance( mnemonic, str): mnemonic = mnemonic.split()
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
-            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))   
+            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic), ss58_format=bittensor.__ss58_format__ )
             display_mnemonic_msg( keypair, "coldkey" )
+        elif seed is not None:
+            keypair = Keypair.create_from_seed(seed, ss58_format=bittensor.__ss58_format__ )
         else:
-            # seed is not None
-            keypair = Keypair.create_from_seed(seed)
+            # json is not None
+            if not isinstance(json, tuple) or len(json) != 2 or not isinstance(json[0], (str, dict)) or not isinstance(json[1], str):
+                raise ValueError("json must be a tuple of (json_data: str | Dict, passphrase: str)")
+
+            json_data, passphrase = json
+            keypair = Keypair.create_from_encrypted_json( json_data, passphrase, ss58_format=bittensor.__ss58_format__ )
             
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self 
 
-    def regen_hotkey( self, mnemonic: Optional[Union[list, str]], seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
-        """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
-            Args:
-                mnemonic: (Union[list, str], optional):
-                    Key mnemonic as list of words or string space separated words.
-                seed: (str, optional):
-                    Seed as hex string.
-                use_password (bool, optional):
-                    Is the created key password protected.
-                overwrite (bool, optional): 
-                    Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
-            Returns:
-                wallet (bittensor.Wallet):
-                    this object with newly created hotkey.
-        """
-        self.regenerate_hotkey(mnemonic, seed, use_password, overwrite)
+    # Short name for regenerate_coldkey
+    regen_coldkey = regenerate_coldkey
 
-    def regenerate_hotkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    @overload
+    def regenerate_hotkey(
+            self,
+            mnemonic: Optional[Union[list, str]] = None,
+            use_password: bool = True,
+            overwrite: bool = False
+        ) -> 'Wallet':
+        ...
+
+    @overload
+    def regenerate_hotkey(
+            self,
+            seed: Optional[str] = None,
+            use_password: bool = True,
+            overwrite: bool = False
+        ) -> 'Wallet':
+        ...
+
+    @overload
+    def regenerate_hotkey(
+            self,
+            json: Optional[Tuple[Union[str, Dict], str]] = None,
+            use_password: bool = True,
+            overwrite: bool = False
+        ) -> 'Wallet':
+        ...
+
+    def regenerate_hotkey(
+            self,
+            use_password: bool = True,
+            overwrite: bool = False,
+            **kwargs
+        ) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
                     Key mnemonic as list of words or string space separated words.
                 seed: (str, optional):
                     Seed as hex string.
+                json: (Tuple[Union[str, Dict], str], optional):
+                    Restore from encrypted JSON backup as (json_data: Union[str, Dict], passphrase: str)
                 use_password (bool, optional):
                     Is the created key password protected.
                 overwrite (bool, optional): 
@@ -784,17 +841,35 @@ class Wallet():
                 wallet (bittensor.Wallet):
                     this object with newly created hotkey.
         """
-        if mnemonic is None and seed is None:
-            raise ValueError("Must pass either mnemonic or seed")
+        if len(kwargs) == 0:
+            raise ValueError("Must pass either mnemonic, seed, or json")
+        
+        # Get from kwargs
+        mnemonic = kwargs.get('mnemonic', None)
+        seed = kwargs.get('seed', None)
+        json = kwargs.get('json', None)
+
+        if mnemonic is None and seed is None and json is None:
+            raise ValueError("Must pass either mnemonic, seed, or json")
         if mnemonic is not None:
             if isinstance( mnemonic, str): mnemonic = mnemonic.split()
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
-            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-            display_mnemonic_msg( keypair, "hotkey" )
+            keypair = Keypair.create_from_mnemonic(" ".join(mnemonic), ss58_format=bittensor.__ss58_format__ )
+            display_mnemonic_msg( keypair, "coldkey" )
+        elif seed is not None:
+            keypair = Keypair.create_from_seed(seed, ss58_format=bittensor.__ss58_format__ )
         else:
-            # seed is not None
-            keypair = Keypair.create_from_seed(seed)
+            # json is not None
+            if not isinstance(json, tuple) or len(json) != 2 or not isinstance(json[0], (str, dict)) or not isinstance(json[1], str):
+                raise ValueError("json must be a tuple of (json_data: str | Dict, passphrase: str)")
+
+            json_data, passphrase = json
+            keypair = Keypair.create_from_encrypted_json( json_data, passphrase, ss58_format=bittensor.__ss58_format__ )
+
         
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self 
+    
+    # Short name for regenerate_hotkey
+    regen_hotkey = regenerate_hotkey

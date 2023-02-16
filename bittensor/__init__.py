@@ -71,7 +71,7 @@ __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails'
 
 __nakamoto_entrypoint__ = "ws://AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 
-__nobunaga_entrypoint__ = "ws://staging.nobunaga.opentensor.ai:9944"
+__nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
 __finney_entrypoint__ = "wss://staging.parachain.opentensor.ai:443"
 

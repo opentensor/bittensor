@@ -15,18 +15,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from substrateinterface import SubstrateInterface
-from scalecodec import ss58_encode
+from substrateinterface import SubstrateInterface, Keypair
+from scalecodec import GenericCall
 import psutil
 import subprocess
-from sys import platform   
-from typing import List, Optional
+from sys import platform
 import bittensor
 import time
 import os
+from typing import Optional, Tuple, Dict, Union
+import requests
 
 from . import subtensor_impl
-from bittensor.utils.test_utils import get_random_unused_port
 
 __type_registery__ = {
     "runtime_id": 2,
@@ -50,8 +50,8 @@ __type_registery__ = {
                 ["rank", "u16"],
                 ["trust", "u16"],
                 ["consensus", "u16"],
-                ["validator_trust", "u16"],
-                ["weight_consensus", "u16"],
+                # ["validator_trust", "u16"],
+                # ["weight_consensus", "u16"],
                 ["incentive", "u16"],
                 ["dividends", "u16"],
                 ["emission", "u64"],
@@ -62,7 +62,7 @@ __type_registery__ = {
     }
 }
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "zombienet"
 
 class mock_subtensor():
     r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
@@ -74,7 +74,6 @@ class mock_subtensor():
 
         if not cls.global_mock_process_is_running():
             _owned_mock_subtensor_process = cls.create_global_mock_process()
-            time.sleep(3)
         else:
             _owned_mock_subtensor_process = None
             print ('Mock subtensor already running.')
@@ -86,7 +85,7 @@ class mock_subtensor():
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
             url = "ws://{}".format('localhost:{}'.format(port)),
-            use_remote_preset=False
+            use_remote_preset=True
         )
         subtensor = Mock_Subtensor( 
             substrate = substrate,
@@ -125,15 +124,46 @@ class mock_subtensor():
         """
         try:
             operating_system = "OSX" if platform == "darwin" else "Linux"
-            path = "./bin/chain/{}/node-subtensor".format(operating_system)
+            path = "./bin/chain/{}/{}".format(operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
+            path_to_zombienet_config = "./bin/chain/specs/zombienet.toml"
+            zombienet_provider = "native"
+            env_vars: Dict[str, str] = {}
+
+            # Set the OS environment variable for the mock process.
+            env_vars['ZOMB_OS'] = operating_system
+
             ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
-            print(ws_port)
-            print(os.getpid())
-            baseport = get_random_unused_port()
-            rpc = get_random_unused_port()
-            subprocess.Popen([path, 'purge-chain', '--dev', '-y'], close_fds=True, shell=False)    
-            _mock_subtensor_process = subprocess.Popen( [path, '--dev', '--port', str(baseport), '--ws-port', str(ws_port), '--rpc-port', str(rpc), '--tmp'], close_fds=True, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+            print(f'MockSub ws_port: {ws_port}')
+            # Set the port for the mock process.
+            env_vars['ZOMB_WS_PORT'] = str(ws_port)
+            
+            _mock_subtensor_process = subprocess.Popen(
+                [
+                    path, 'spawn', '--provider', zombienet_provider, path_to_zombienet_config
+                ],
+                close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars )
+            
+            # Wait for the process to start. Check for errors.
+            try:
+                # Timeout is okay.
+                error_code = _mock_subtensor_process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                error_code = None
+            
+            if error_code is not None:
+                raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(error_code) )
+
             print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))
+
+            errored: bool = True
+            while errored:
+                errored = False
+                try:
+                    _ = requests.get('http://localhost:{}'.format(ws_port))
+                except requests.exceptions.ConnectionError as e:
+                    errored = True
+                    time.sleep(0.5) # Wait for the process to start.
+            
             return _mock_subtensor_process
         except Exception as e:
             raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(e) )
@@ -143,6 +173,8 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
     """
     Handles interactions with the subtensor chain.
     """
+    sudo_keypair: Keypair = Keypair.create_from_uri('//Alice') # Alice is the sudo keypair for the mock chain.
+    
     def __init__( 
         self, 
         _is_mocked: bool,
@@ -173,8 +205,8 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         self.optionally_kill_owned_mock_instance()
     
     def __exit__(self):
-        self.__del__()
-
+        pass
+    
     def optionally_kill_owned_mock_instance(self):
         r""" If this subtensor instance owns the mock process, it kills the process.
         """
@@ -189,80 +221,123 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 # Occasionally 
                 pass
 
-    def get_subnets( self, block: Optional[int] = None ) -> List[int]:
-        r""" Returns the list of subnets.
-        Note: Only mock subnet is -1
+    def wrap_sudo(self, call: GenericCall) -> GenericCall:
+        r""" Wraps a call in a sudo call.
         """
-        return [-1] 
+        return self.substrate.compose_call(
+            call_module='Sudo',
+            call_function='sudo',
+            call_params = {
+                'call': call.value
+            }
+        )
 
-    def subnet_exists( self, netuid: int, block: Optional[int] = None ) -> bool:
-        r""" Returns true if the subnet exists.
+    def sudo_force_set_balance(self, ss58_address: str, balance: Union['bittensor.Balance', int, float], ) -> Tuple[bool, Optional[str]]:
+        r""" Sets the balance of an account using the sudo key.
         """
-        return netuid == -1
-
-    def get_all_subnet_netuids( self, block: Optional[int] = None ) -> List[int]:
-        r""" Returns the list of netuids in the chain.
-        """
-        return [-1]
-
-    def neurons(self, netuid: int = -1, block: Optional[int] = None ) -> List['bittensor.NeuronInfo']: 
-        r"""Mock Function: Returns the list of neurons in the chain.
-        """
-        if block is None:
-            block = 0
+        if isinstance(balance, bittensor.Balance):
+            balance = balance.rao
+        elif isinstance(balance, float):
+            balance = int(balance * bittensor.utils.RAOPERTAO)
+        elif isinstance(balance, int):
+            pass
+        else:
+            raise ValueError('Invalid type for balance: {}'.format(type(balance)))
         
-        mock_neurons = []
-        for uid in range(0, 2000):
-            # have to add 1 to uid because hotkey from 0 is a legacy for null neuron`
-            ck = bittensor.Keypair(ss58_encode(int.to_bytes(uid + 1, 32, 'big', signed=False), bittensor.__ss58_format__))
-            hk = bittensor.Keypair(ss58_encode(int.to_bytes(uid + 1, 32, 'big', signed=False), bittensor.__ss58_format__))
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='Balances',
+                    call_function='set_balance',
+                    call_params = {
+                        'who': ss58_address,
+                        'new_free': balance,
+                        'new_reserved': 0
+                    }
+                )
 
-            mock_neuron_d = dict({
-                "netuid": netuid, # mock netuid
-                "axon_info": bittensor.AxonInfo(
-                    block = block,
-                    version = 1,
-                    ip = 0,
-                    port = 0,
-                    ip_type = 0,
-                    protocol = 0,
-                    placeholder1 = 0,
-                    placeholder2 = 0
-                ),
-                "prometheus_info": bittensor.PrometheusInfo(
-                    block = block,
-                    version = 1,
-                    ip = 0,
-                    port = 0,
-                    ip_type = 0
-                ),
-                "validator_permit": True,
-                "uid":uid,
-                "hotkey": hk.ss58_address,
-                "coldkey": ck.ss58_address,
-                "active":0,
-                "last_update":0,
-                "stake": {
-                    ck.ss58_address: 1e12
-                },
-                "total_stake":1e12,
-                "rank":0.0,
-                "trust":0.0,
-                "consensus":0.0,
-                "validator_trust": 0.0,
-                "weight_consensus": 0.0,
-                "incentive":0.0,
-                "dividends":0.0,
-                "emission":0.0,
-                "bonds":[],
-                "weights":[],
-                "is_null":False
-            })
+            wrapped_call = self.wrap_sudo(call)
 
-            mock_neuron = bittensor.NeuronInfo._neuron_dict_to_namespace(
-                mock_neuron_d
-            )
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = True, wait_for_finalization = True )
 
-            mock_neurons.append(mock_neuron)
-        
-        return mock_neurons
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+            
+    def sudo_set_difficulty(self, netuid: int, difficulty: int) -> Tuple[bool, Optional[str]]:
+        r""" Sets the difficulty of the mock chain using the sudo key.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='Paratensor',
+                    call_function='sudo_set_difficulty',
+                    call_params = {
+                        'netuid': netuid,
+                        'difficulty': difficulty
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = True, wait_for_finalization = True )
+
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+
+    def sudo_add_network(self, netuid: int, tempo: int = 0, modality: int = 0) -> Tuple[bool, Optional[str]]:
+        r""" Adds a network to the mock chain using the sudo key.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='Paratensor',
+                    call_function='sudo_add_network',
+                    call_params = {
+                        'netuid': netuid,
+                        'tempo': tempo,
+                        'modality': modality
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = True, wait_for_finalization = True )
+
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+            
+    def sudo_register(self, netuid: int, hotkey: str, coldkey: str, stake: int = 0, balance: int = 0) -> Tuple[bool, Optional[str]]:
+        r""" Registers a neuron to the subnet using sudo.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='Paratensor',
+                    call_function='sudo_register',
+                    call_params = {
+                        'netuid': netuid,
+                        'hotkey': hotkey,
+                        'coldkey': coldkey,
+                        'stake': stake,
+                        'balance': balance
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = True, wait_for_finalization = True )
+
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message

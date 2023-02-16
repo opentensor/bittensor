@@ -106,8 +106,28 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Adds the specified amount of stake to passed hotkey uid. """
+        """ Adds the specified amount of stake to the passed delegate using the passed wallet. """
         return delegate_extrinsic( 
+            subtensor = self, 
+            wallet = wallet,
+            delegate_ss58 = delegate_ss58, 
+            amount = amount, 
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization, 
+            prompt = prompt
+        )
+
+    def undelegate(
+        self, 
+        wallet: 'bittensor.wallet',
+        delegate_ss58: Optional[str] = None,
+        amount: Union[Balance, float] = None, 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """ Removes the specified amount of stake from the passed delegate using the passed wallet. """
+        return undelegate_extrinsic( 
             subtensor = self, 
             wallet = wallet,
             delegate_ss58 = delegate_ss58, 
@@ -354,6 +374,16 @@ class Subtensor:
     def validator_batch_size (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
         return self.query_paratensor("ValidatorBatchSize", block, [netuid] ).value
+
+    """ Returns network ValidatorPruneLen hyper parameter """
+    def validator_prune_len (self, netuid: int, block: Optional[int] = None ) -> int:
+        if not self.subnet_exists( netuid ): return None
+        return self.query_paratensor("ValidatorPruneLen", block, [netuid] ).value
+
+    """ Returns network ValidatorLogitsDivergence hyper parameter """
+    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> int:
+        if not self.subnet_exists( netuid ): return None
+        return self.query_paratensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
@@ -840,8 +870,8 @@ class Subtensor:
             incentive = 0,
             consensus = 0,
             trust = 0,
-            weight_consensus = 0,
-            validator_trust = 0,
+            # weight_consensus = 0,
+            # validator_trust = 0,
             dividends = 0,
             last_update = 0,
             validator_permit = False,
