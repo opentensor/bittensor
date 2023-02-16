@@ -52,4 +52,7 @@ class Session():
         self.dendrite = bittensor.dendrite( wallet = self.wallet )
         print ('bittensor.init\n\t{}\n\t{}'.format( self.wallet, self.subtensor ) )
 
+    def default_uid( self ) -> int:
+        return self.metagraph.I.sort()[1][-1].item()
+
 

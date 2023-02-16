@@ -200,12 +200,13 @@ def init(
     )
 
 def embed(
-    uid: int,
     prompt: str,
-    timeout: int = None,
+    uid: int = None,
+    timeout: int = 4,
     ) -> torch.FloatTensor:
     global session
     if session == None: init()
+    if uid == None: uid = session.default_uid()
     return session.dendrite.text_last_hidden_state(
         endpoints = session.metagraph.endpoint_objs[ uid ],
         inputs = prompt,
@@ -213,9 +214,9 @@ def embed(
     )[0][0]
 
 def prompt( 
-        uid: int,
         prompt: str,
-        timeout: int = None,
+        uid: int = None,
+        timeout: int = 4,
         topk:int = 50, 
         num_to_generate: int = 256,
         num_beams: int = 5,
@@ -232,9 +233,10 @@ def prompt(
     ):
     global session
     if session == None: init()
+    if uid == None: uid = session.default_uid()
     return session.dendrite.generate(
-        endpoints = session.metagraph.endpoint_objs[ uid ],
         prompt = prompt,
+        endpoints = session.metagraph.endpoint_objs[ uid ],
         timeout = timeout,
         topk = topk, 
         num_to_generate = num_to_generate,
