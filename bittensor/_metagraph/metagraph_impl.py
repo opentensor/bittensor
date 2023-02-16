@@ -366,7 +366,10 @@ class Metagraph( torch.nn.Module ):
     def to_dataframe(self):
         try:
             index = self.uids.tolist()
-            columns = [ 'uid', 'active', 'stake', 'total_stake', 'rank', 'trust', 'consensus', 'validator_trust', 'weight_consensus', 'incentive', 'dividends', 'emission']
+            columns = [ 'uid', 'active', 'stake', 'total_stake', 'rank', 'trust', 'consensus',
+                       # #'validator_trust', 'weight_consensus',
+                       # 'incentive', 'dividends', 'emission'
+                ]
             dataframe = pandas.DataFrame(columns = columns, index = index)
             for uid in self.uids.tolist():
                 v = {
