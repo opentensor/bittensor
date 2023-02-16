@@ -124,8 +124,8 @@ class mock_subtensor():
         """
         try:
             operating_system = "OSX" if platform == "darwin" else "Linux"
-            path = "./bin/chain/{}/{}".format(operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
-            path_to_zombienet_config = "./bin/chain/specs/zombienet.toml"
+            path = "./tests/zombienet/bin/{}/{}".format(operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
+            path_to_zombienet_config = "./tests/zombienet/zombienet.toml"
             zombienet_provider = "native"
             env_vars: Dict[str, str] = {}
 
