@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import bittensor
+from bittensor.utils import version_checking
 from .commands import *
 
 class CLI:
@@ -32,7 +32,7 @@ class CLI:
         # (d)efaults to True if config.no_version_checking is not set.
         if not config.get("no_version_checking", d=True):
             try:
-                bittensor.utils.version_checking()
+                version_checking()
             except:
                 raise RuntimeError("To avoid internet based version checking pass --no_version_checking while running the CLI.")
         self.config = config

@@ -21,11 +21,13 @@ Create and init the CLI class, which handles the coldkey, hotkey and money trans
 
 import sys
 import argparse
-import bittensor
+from bittensor import __console__, __version__
+from bittensor import config as btconfig
+from bittensor import Config, CLI
 from . import cli_impl
 from .commands import *
 from typing import List, Optional
-console = bittensor.__console__
+console = __console__
 
 # Turn off rich console locals trace.
 from rich.traceback import install
@@ -37,9 +39,9 @@ class cli:
     """
     def __new__(
             cls,
-            config: Optional['bittensor.Config'] = None,
+            config: Optional['Config'] = None,
             args: Optional[List[str]] = None, 
-        ) -> 'bittensor.CLI':
+        ) -> 'CLI':
         r""" Creates a new bittensor.cli from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
@@ -53,12 +55,12 @@ class cli:
         return cli_impl.CLI( config = config)
 
     @staticmethod   
-    def config(args: List[str]) -> 'bittensor.config':
+    def config(args: List[str]) -> 'btconfig':
         """ From the argument parser, add config to bittensor.executor and local config 
             Return: bittensor.config object
         """
         parser = argparse.ArgumentParser(
-            description=f"bittensor cli v{bittensor.__version__}",
+            description=f"bittensor cli v{__version__}",
             usage="btcli <command> <command args>",
             add_help=True)
 
@@ -93,10 +95,10 @@ class cli:
             parser.print_help()
             sys.exit()
 
-        return bittensor.config( parser, args=args )
+        return btconfig( parser, args=args )
 
     @staticmethod   
-    def check_config (config: 'bittensor.Config'):
+    def check_config (config: 'Config'):
         """ Check if the essential config exist under different command
         """
         if config.command == "run":
@@ -150,5 +152,3 @@ class cli:
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()
-
-                
