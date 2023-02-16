@@ -111,7 +111,7 @@ else
   echo_warning "Dry run execution"
 fi
 
-if [[ -z $GITHUB_TOKEN ]]; then
+if [[ -z $GITHUB_TOKEN && $APPLY == "true" ]]; then
     echo_error "Github token required (-T, --github-token)"
     exit 1
 fi
@@ -137,20 +137,17 @@ echo_info "Previous version tag: $PREV_VERSION_TAG"
 echo_info "Tag generated: $TAG_NAME"
 
 # 3. Create Github resources
-${BASH_SOURCE%/*}/release_github.sh $APPLY_ACTION --github-token $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
+if [[ $APPLY == "true" ]]; then
+  ${BASH_SOURCE%/*}/github_release.sh $APPLY_ACTION --github-token $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
+else
+  ${BASH_SOURCE%/*}/github_release.sh $APPLY_ACTION $GITHUB_TOKEN -P $PREV_VERSION_TAG -V $VERSION
+fi
 
 # 4. Generate python wheel and upload it to Pypi
-if [[ $APPLY == "true" ]]; then
-  echo_warning "Releasing pip package"
-  ${BASH_SOURCE%/*}/release_pip.sh $APPLY_ACTION
-else
-  echo_warning "Dry run execution. Not releasing pip package"
-fi
+echo_info "Releasing pip package"
+${BASH_SOURCE%/*}/release_pip.sh $APPLY_ACTION
 
 # 5. Creating docker image and upload
-if [[ $APPLY == "true" ]]; then
-  echo_warning "Releasing docker image"
-  ${BASH_SOURCE%/*}/release_docker.sh $APPLY_ACTION --version $VERSION
-else
-  echo_warning "Dry run execution. Not releasing docker image"
-fi
+echo_info "Releasing docker image"
+${BASH_SOURCE%/*}/release_docker.sh $APPLY_ACTION --version $VERSION
+

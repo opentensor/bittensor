@@ -98,9 +98,19 @@ def serve_extrinsic (
     output['hotkey'] = wallet.hotkey.ss58_address
 
     if neuron_up_to_date:
-        bittensor.__console__.print(":white_heavy_check_mark: [green]Already Served[/green]\n  [bold white]{}[/bold white]".format(
-            json.dumps(output, indent=4, sort_keys=True)
-        ))
+        bittensor.__console__.print(f":white_heavy_check_mark: [green]Already Served[/green]\n"
+                                    f"[green not bold]- coldkey: [/green not bold][white not bold]{output['coldkey']}[/white not bold] \n"
+                                    f"[green not bold]- hotkey: [/green not bold][white not bold]{output['hotkey']}[/white not bold] \n"
+                                    f"[green not bold]- Status: [/green not bold] |"
+                                    f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(output['ip'])}[/white not bold] |"
+                                    f"[green not bold] ip_type: [/green not bold][white not bold]{output['ip_type']}[/white not bold] |"
+                                    f"[green not bold] port: [/green not bold][white not bold]{output['port']}[/white not bold] | "
+                                    f"[green not bold] netuid: [/green not bold][white not bold]{output['netuid']}[/white not bold] |"
+                                    f"[green not bold] protocol: [/green not bold][white not bold]{output['protocol']}[/white not bold] |"
+                                    f"[green not bold] version: [/green not bold][white not bold]{output['version']}[/white not bold] |"
+        )
+
+
         return True
 
     if prompt:

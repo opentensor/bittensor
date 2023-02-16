@@ -18,25 +18,47 @@
 
 import argparse
 import bittensor
+import os
+import sys
 from rich.prompt import Prompt
+from typing import Optional
 
 class RegenColdkeyCommand:
     def run ( cli ):
         r""" Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config = cli.config)
-        wallet.regenerate_coldkey( mnemonic = cli.config.mnemonic, seed = cli.config.seed, use_password = cli.config.use_password, overwrite = cli.config.overwrite_coldkey )
+
+        json_str: Optional[str] = None
+        json_password: Optional[str] = None
+        if cli.config.get('json'):
+            file_name: str = cli.config.get('json')
+            if not os.path.exists(file_name) or not os.path.isfile(file_name):
+                raise ValueError('File {} does not exist'.format(file_name))
+            with open(cli.config.get('json'), 'r') as f:
+                json_str = f.read()
+            
+            # Password can be "", assume if None
+            json_password = cli.config.get('json_password', "")
+
+        wallet.regenerate_coldkey( mnemonic = cli.config.mnemonic, seed = cli.config.seed, json = (json_str, json_password), use_password = cli.config.use_password, overwrite = cli.config.overwrite_coldkey )
    
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-        if config.mnemonic == None and config.seed == None:
-            prompt_answer = Prompt.ask("Enter mnemonic or seed")
+        
+        if config.mnemonic == None and config.seed == None and config.json == None:
+            prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):
                 config.seed = prompt_answer
-            else:
+            elif len(prompt_answer.split(" ")) > 1:
                 config.mnemonic = prompt_answer
+            else:
+                config.json = prompt_answer
+
+        if config.json and config.json_password == None:
+            config.json_password = Prompt.ask("Enter json backup password", password=True)
     
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
@@ -56,6 +78,18 @@ class RegenColdkeyCommand:
             required=False,  
             default=None,
             help='Seed hex string used to regen your key i.e. 0x1234...'
+        )
+        regen_coldkey_parser.add_argument(
+            "--json",
+            required=False,
+            default=None,
+            help='''Path to a json file containing the encrypted key backup. (e.g. from PolkadotJS)'''
+        )
+        regen_coldkey_parser.add_argument(
+            "--json_password",
+            required=False,
+            default=None,
+            help='''Password to decrypt the json file.'''
         )
         regen_coldkey_parser.add_argument(
             '--use_password', 
@@ -152,7 +186,20 @@ class RegenHotkeyCommand:
     def run ( cli ):
         r""" Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config = cli.config)
-        wallet.regenerate_hotkey( mnemonic = cli.config.mnemonic, seed=cli.config.seed, use_password = cli.config.use_password, overwrite = cli.config.overwrite_hotkey)
+
+        json_str: Optional[str] = None
+        json_password: Optional[str] = None
+        if cli.config.get('json'):
+            file_name: str = cli.config.get('json')
+            if not os.path.exists(file_name) or not os.path.isfile(file_name):
+                raise ValueError('File {} does not exist'.format(file_name))
+            with open(cli.config.get('json'), 'r') as f:
+                json_str = f.read()
+            
+            # Password can be "", assume if None
+            json_password = cli.config.get('json_password', "")
+
+        wallet.regenerate_hotkey( mnemonic = cli.config.mnemonic, seed=cli.config.seed, json = (json_str, json_password), use_password = cli.config.use_password, overwrite = cli.config.overwrite_hotkey)
     
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
@@ -164,12 +211,17 @@ class RegenHotkeyCommand:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         
-        if config.mnemonic == None and config.seed == None:
-            prompt_answer = Prompt.ask("Enter mnemonic or seed")
+        if config.mnemonic == None and config.seed == None and config.json == None:
+            prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):
                 config.seed = prompt_answer
-            else:
+            elif len(prompt_answer.split(" ")) > 1:
                 config.mnemonic = prompt_answer
+            else:
+                config.json = prompt_answer
+
+        if config.json and config.json_password == None:
+            config.json_password = Prompt.ask("Enter json backup password", password=True)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
@@ -189,6 +241,18 @@ class RegenHotkeyCommand:
             required=False,  
             default=None,
             help='Seed hex string used to regen your key i.e. 0x1234...'
+        )
+        regen_hotkey_parser.add_argument(
+            "--json",
+            required=False,
+            default=None,
+            help='''Path to a json file containing the encrypted key backup. (e.g. from PolkadotJS)'''
+        )
+        regen_hotkey_parser.add_argument(
+            "--json_password",
+            required=False,
+            default=None,
+            help='''Password to decrypt the json file.'''
         )
         regen_hotkey_parser.add_argument(
             '--use_password', 

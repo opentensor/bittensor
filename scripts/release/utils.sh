@@ -17,6 +17,10 @@ function echo_info {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
 
+function echo_json {
+    echo "{\"type\":\"$1\",\"message\":\"$2\"}"
+}
+
 function get_git_tag_higher_version {
     echo `git tag -l --sort -version:refname | head -n 1`
 }

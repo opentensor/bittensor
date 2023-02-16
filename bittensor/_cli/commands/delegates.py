@@ -74,7 +74,7 @@ class DelegateStakeCommand:
         delegate_stake_parser.add_argument(
             '--delegate_ss58key', 
             dest = "delegate_ss58key",
-            type = float,  
+            type = str,  
             required = False,
             help='''The ss58 address of the choosen delegate''', 
         )
@@ -108,16 +108,16 @@ class DelegateStakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        # Check for delegates.
-        with bittensor.__console__.status(":satellite: Loading delegates..."):
-            subtensor = bittensor.subtensor( config = config )
-            delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-
-        if len(delegates) == 0:
-            console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
-            sys.exit()
-
         if not config.get('delegate_ss58key'):
+            # Check for delegates.
+            with bittensor.__console__.status(":satellite: Loading delegates..."):
+                subtensor = bittensor.subtensor( config = config )
+                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+
+            if len(delegates) == 0:
+                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                sys.exit(1)
+            
             show_delegates( delegates )
             delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
             config.delegate_ss58key = str(delegate_ss58key)
@@ -126,6 +126,97 @@ class DelegateStakeCommand:
         if not config.get('amount') and not config.get('stake_all'):
             if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
                 amount = Prompt.ask("Enter Tao amount to stake")
+                try:
+                    config.amount = float(amount)
+                except ValueError:
+                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    sys.exit()
+            else:
+                config.stake_all = True
+
+class DelegateUnstakeCommand:
+
+    @staticmethod
+    def run( cli ):
+        '''Undelegates stake from a chain delegate.'''
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor.undelegate( 
+            wallet = wallet, 
+            delegate_ss58 = config.get('delegate_ss58key'), 
+            amount = config.get('amount'), 
+            wait_for_inclusion = True, 
+            prompt = not config.no_prompt 
+        )
+
+    @staticmethod
+    def add_args( parser: argparse.ArgumentParser ):
+        undelegate_stake_parser = parser.add_parser(
+            'undelegate', 
+            help='''Undelegate Stake from an account.'''
+        )
+        undelegate_stake_parser.add_argument( 
+            '--no_version_checking', 
+            action='store_true', 
+            help='''Set false to stop cli version checking''', 
+            default = False 
+        )
+        undelegate_stake_parser.add_argument(
+            '--delegate_ss58key', 
+            dest = "delegate_ss58key",
+            type = str,  
+            required = False,
+            help='''The ss58 address of the choosen delegate''', 
+        )
+        undelegate_stake_parser.add_argument(
+            '--all', 
+            dest="unstake_all", 
+            action='store_true'
+        )
+        undelegate_stake_parser.add_argument(
+            '--amount', 
+            dest="amount", 
+            type=float, 
+            required=False
+        )        
+        undelegate_stake_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( undelegate_stake_parser )
+        bittensor.subtensor.add_args( undelegate_stake_parser )
+
+    @staticmethod   
+    def check_config( config: 'bittensor.Config' ):
+        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.get('delegate_ss58key'):
+            # Check for delegates.
+            with bittensor.__console__.status(":satellite: Loading delegates..."):
+                subtensor = bittensor.subtensor( config = config )
+                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+
+            if len(delegates) == 0:
+                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                sys.exit(1)
+            
+            show_delegates( delegates )
+            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
+            config.delegate_ss58key = str(delegate_ss58key)
+            
+        # Get amount.
+        if not config.get('amount') and not config.get('unstake_all'):
+            if not Confirm.ask("Unstake all Tao to account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
+                amount = Prompt.ask("Enter Tao amount to unstake")
                 try:
                     config.amount = float(amount)
                 except ValueError:
