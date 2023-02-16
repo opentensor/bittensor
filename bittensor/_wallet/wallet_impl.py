@@ -21,6 +21,7 @@ import os
 import sys
 from types import SimpleNamespace
 from typing import Optional, Union
+from rich.prompt import Confirm
 
 import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
@@ -39,6 +40,18 @@ def display_mnemonic_msg( keypair : Keypair, key_type : str ):
     print ("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
     print("btcli regen_{} --mnemonic {}".format(key_type, mnemonic))
     print('')
+
+def console_display_mnemonic_msg( keypair : Keypair, key_type : str, no_prompt: bool = False):
+    """ Displaying the mnemonic and warning message to keep mnemonic safe
+    """
+    mnemonic = keypair.mnemonic
+    bittensor.__console__.print(
+        "\n[bold red]IMPORTANT[/bold red]: [bold red]Store this mnemonic in a secure (preferable offline place), as anyone[/bold red] " \
+                "[bold red]who has possesion of this mnemonic can use it to regenerate the key and access your tokens.[/bold red] \n" )
+    bittensor.__console__.print("[bold white]The mnemonic to the new {} is:[/bold white]\n\n[bold green]{}[/bold green]\n".format(key_type, mnemonic))
+    bittensor.__console__.print("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
+    bittensor.__console__.print("btcli regen_{} --mnemonic {}".format(key_type, mnemonic))
+    bittensor.__console__.print('')
 
 class Wallet():
     """
@@ -525,7 +538,7 @@ class Wallet():
             self._coldkeypub = self.coldkeypub_file.keypair
         return self._coldkeypub
             
-    def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False, no_prompt: bool = False) -> 'Wallet':
         """ Creates coldkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
                 uri: (str, required):
@@ -539,12 +552,14 @@ class Wallet():
                     this object with newly created coldkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair, "coldkey" )
+        console_display_mnemonic_msg( keypair, "coldkey", no_prompt = no_prompt)
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
+        if not no_prompt and Confirm.ask("I have stored the above mnemonic and wish to clear the screen history?"):
+            bittensor.__console__.clear()
         return self
 
-    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False, no_prompt: bool = False) -> 'Wallet':  
         """ Creates hotkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
                 uri: (str, required):
@@ -558,8 +573,10 @@ class Wallet():
                     this object with newly created hotkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair, "hotkey" )
+        console_display_mnemonic_msg( keypair, "hotkey", no_prompt = no_prompt)
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
+        if not no_prompt and Confirm.ask("I have stored the above mnemonic and wish to clear the screen history?"):
+            bittensor.__console__.clear()
         return self
 
     def new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
@@ -577,7 +594,7 @@ class Wallet():
         """
         self.create_new_coldkey( n_words, use_password, overwrite )
 
-    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False, no_prompt:bool = False) -> 'Wallet':  
         """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -592,9 +609,11 @@ class Wallet():
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair, "coldkey" )
+        console_display_mnemonic_msg( keypair, "coldkey", no_prompt = no_prompt)
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
+        if not no_prompt and Confirm.ask("I have stored the above mnemonic and wish to clear the screen history?"):
+            bittensor.__console__.clear()
         return self
 
     def new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
@@ -612,7 +631,7 @@ class Wallet():
         """
         self.create_new_hotkey( n_words, use_password, overwrite )
 
-    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False, no_prompt: bool = False) -> 'Wallet':  
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -627,8 +646,10 @@ class Wallet():
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair, "hotkey" )
+        console_display_mnemonic_msg( keypair, "hotkey", no_prompt = no_prompt )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
+        if not no_prompt and Confirm.ask("I have stored the above mnemonic and wish to clear the screen history?"):
+            bittensor.__console__.clear()
         return self
 
     def regen_coldkey( self, mnemonic: Optional[Union[list, str]]=None, seed: Optional[str]=None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
@@ -679,7 +700,7 @@ class Wallet():
     # Short name for regenerate_coldkeypub
     regen_coldkeypub = regenerate_coldkeypub
 
-    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True,  overwrite:bool = False) -> 'Wallet':
+    def regenerate_coldkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True,  overwrite:bool = False, no_prompt: bool = False) -> 'Wallet':
         """ Regenerates the coldkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -701,13 +722,15 @@ class Wallet():
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))   
-            display_mnemonic_msg( keypair, "coldkey" )
+            console_display_mnemonic_msg( keypair, "coldkey", no_prompt = no_prompt )
         else:
             # seed is not None
             keypair = Keypair.create_from_seed(seed)
             
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
+        if not no_prompt and Confirm.ask("I have stored the above mnemonic and wish to clear the screen history?"):
+            bittensor.__console__.clear()
         return self 
 
     def regen_hotkey( self, mnemonic: Optional[Union[list, str]], seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
@@ -727,7 +750,7 @@ class Wallet():
         """
         self.regenerate_hotkey(mnemonic, seed, use_password, overwrite)
 
-    def regenerate_hotkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
+    def regenerate_hotkey( self, mnemonic: Optional[Union[list, str]] = None, seed: Optional[str] = None, use_password: bool = True, overwrite:bool = False, no_prompt: bool = False) -> 'Wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
             Args:
                 mnemonic: (Union[list, str], optional):
@@ -749,10 +772,12 @@ class Wallet():
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic))
-            display_mnemonic_msg( keypair, "hotkey" )
+            console_display_mnemonic_msg( keypair, "hotkey", no_prompt = no_prompt )
         else:
             # seed is not None
             keypair = Keypair.create_from_seed(seed)
         
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
+        if not no_prompt and Confirm.ask("I have stored the above mnemonic and wish to clear the screen history?"):
+            bittensor.__console__.clear()
         return self 

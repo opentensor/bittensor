@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import torch
 from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
@@ -181,3 +182,71 @@ wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
 
 from substrateinterface import Keypair as Keypair
+
+# Bittensor init.
+from bittensor._session import Session as Session
+session = None
+def init( 
+        coldkey: str = defaults.wallet.name,
+        hotkey: str = defaults.wallet.hotkey,
+        network: str = defaults.subtensor.network,
+    ):
+    turn_console_off()
+    global session
+    session = Session( 
+        coldkey = coldkey,
+        hotkey = hotkey,
+        network = network
+    )
+
+def embed(
+    uid: int,
+    prompt: str,
+    timeout: int = None,
+    ) -> torch.FloatTensor:
+    global session
+    if session == None: init()
+    return session.dendrite.text_last_hidden_state(
+        endpoints = session.metagraph.endpoint_objs[ uid ],
+        inputs = prompt,
+        timeout = timeout,
+    )[0][0]
+
+def prompt( 
+        uid: int,
+        prompt: str,
+        timeout: int = None,
+        topk:int = 50, 
+        num_to_generate: int = 256,
+        num_beams: int = 5,
+        no_repeat_ngram_size: int = 2,
+        early_stopping: bool = False,
+        num_return_sequences: int = 1,
+        do_sample: bool = False,
+        top_p: float = 0.95, 
+        temperature: float = 1.0,
+        repetition_penalty: float = 1.0,
+        length_penalty: float = 1.0,
+        max_time: float = 150,
+        num_beam_groups: int = 1,
+    ):
+    global session
+    if session == None: init()
+    return session.dendrite.generate(
+        endpoints = session.metagraph.endpoint_objs[ uid ],
+        prompt = prompt,
+        timeout = timeout,
+        topk = topk, 
+        num_to_generate = num_to_generate,
+        num_beams = num_beams,
+        no_repeat_ngram_size = no_repeat_ngram_size,
+        early_stopping = early_stopping,
+        num_return_sequences = num_return_sequences,
+        do_sample = do_sample,
+        top_p = top_p, 
+        temperature = temperature,
+        repetition_penalty = repetition_penalty,
+        length_penalty = length_penalty,
+        max_time = max_time,
+        num_beam_groups = num_beam_groups,
+    )
