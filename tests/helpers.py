@@ -15,9 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union
+from typing import Union, Optional
 from bittensor import Balance, NeuronInfo, AxonInfo, PrometheusInfo, Keypair, __ss58_format__
 from scalecodec import ss58_encode
+
+from Crypto.Hash import keccak
 
 class CLOSE_IN_VALUE():
     value: Union[float, int, Balance]
@@ -34,7 +36,17 @@ class CLOSE_IN_VALUE():
                 ((__o - self.tolerance) <= self.value and self.value <= (__o + self.tolerance))
 
 
-def get_mock_keypair( uid: int ) -> Keypair:
+def get_mock_keypair( uid: int, test_name: Optional[str] = None ) -> Keypair:
+    """
+    Returns a mock keypair from a uid and optional test_name.
+    If test_name is not provided, the uid is the only seed.
+    If test_name is provided, the uid is hashed with the test_name to create a unique seed for the test.
+    """
+    if test_name is not None:
+        hashed_test_name: bytes = keccak.new(digest_bits=256, data=test_name.encode('utf-8')).digest()
+        hashed_test_name_as_int: int = int.from_bytes(hashed_test_name, byteorder='big', signed=False)
+        uid = uid + hashed_test_name_as_int
+
     return Keypair(ss58_encode(int.to_bytes(uid, 32, 'big', signed=False), __ss58_format__))
 
 def get_mock_hotkey( uid: int ) -> str:
