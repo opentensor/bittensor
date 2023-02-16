@@ -319,6 +319,11 @@ enum Serializer {
 	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
 	MSGPACK = 0; // MSGPACK serializer
 	CMPPACK = 1; // CMPPACK serializer
+	UINT8 = 2; // UINT8 serializer.
+	UINT1 = 3; // UINT1 serializer.
+	2CLIPPEDUINT8 = 4; // Clipped -2, +2 uint8 serializer.
+	1NORMUINT8 = 5; // 1 Norm unit8 serializer.
+	PNUINT1 = 6; // PositiveNegativeUINT1Serializer
 }
 
 // TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.

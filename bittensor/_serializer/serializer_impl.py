@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import torch
+import numpy as np
 import msgpack
 import msgpack_numpy
 from typing import Tuple, List, Union, Optional
@@ -180,6 +181,287 @@ class MSGPackSerializer( Serializer ):
         numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
         return torch_object.type(dtype)
+
+class UINT8Serializer( Serializer ):
+    """ Serializes by normalization on 0,1 --> 0,256 and then byte encoding.
+    """
+    def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+
+        Args:
+            torch_tensor (torch.Tensor): 
+                Torch tensor to serialize.
+
+            modality (bittensor.proto.Modality): 
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
+        shape = list(torch_tensor.shape)
+        encoded = torch_tensor.cpu().detach()
+        encoded -= encoded.min(-1, keepdim=True)[0]
+        encoded /= encoded.max(-1, keepdim=True)[0]
+        encoded = encoded.flatten()
+        encoded = encoded * 256
+        encoded = encoded.byte()
+        data_buffer = bytes( encoded )
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    shape = shape,
+                                    dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.MSGPACK,
+                                    tensor_type = bittensor.proto.TensorType.TORCH,
+                                    modality = modality,
+                                    requires_grad = torch_tensor.requires_grad
+                                )
+        return torch_proto
+
+    def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
+
+        Args:
+            torch_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            torch.Tensor: 
+                Deserialized torch tensor.
+        """
+        dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype( torch_proto.dtype )
+        shape = tuple( torch_proto.shape )
+        decoded = torch.frombuffer( torch_proto.buffer, dtype = torch.uint8 ).cpu().detach()
+        decoded = decoded.float()
+        decoded /= 256
+        decoded = decoded.reshape( shape ).view( shape ).requires_grad_( torch_proto.requires_grad )
+        return decoded.type(dtype)
+
+class TwoClippedUINT8Serializer( Serializer ):
+    """ Serializes by clipping --> -2,2 --> 0,1 --> 0, 256 and then byte encoding.
+    """
+    def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+
+        Args:
+            torch_tensor (torch.Tensor): 
+                Torch tensor to serialize.
+
+            modality (bittensor.proto.Modality): 
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
+        shape = list(torch_tensor.shape)
+        encoded = torch_tensor
+        encoded = torch.clip( encoded, min = -2, max = 2 ) 
+        encoded = (encoded + 2) * ( 256 / 4 ) # onto range (0, 256)
+        encoded = encoded.byte().flatten().cpu().detach()
+        data_buffer = bytes( encoded )
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    shape = shape,
+                                    dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.MSGPACK,
+                                    tensor_type = bittensor.proto.TensorType.TORCH,
+                                    modality = modality,
+                                    requires_grad = torch_tensor.requires_grad
+                                )
+        return torch_proto
+
+    def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
+
+        Args:
+            torch_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            torch.Tensor: 
+                Deserialized torch tensor.
+        """
+        dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype( torch_proto.dtype )
+        shape = tuple( torch_proto.shape )
+        decoded = torch.frombuffer( torch_proto.buffer, dtype = torch.uint8 ).cpu().detach()
+        decoded = (decoded.float() / ( 256 / 4)) - 2
+        decoded = decoded.reshape( shape ).view( shape ).requires_grad_( torch_proto.requires_grad )
+        return decoded.type(dtype)
+
+class OneNormUINT8Serializer( Serializer ):
+    """ Serializes by normalizing  -1,1 then 0,1 then 0,256 and then byte encoding.
+    """
+    def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+
+        Args:
+            torch_tensor (torch.Tensor): 
+                Torch tensor to serialize.
+
+            modality (bittensor.proto.Modality): 
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
+        shape = list(torch_tensor.shape)
+        eps = 0.000001
+        encoded = ((  torch_tensor/torch_tensor.norm() + eps ) + 1) * 256
+        encoded = encoded.flatten().byte().cpu().detach()
+        data_buffer = bytes( encoded )
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    shape = shape,
+                                    dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.MSGPACK,
+                                    tensor_type = bittensor.proto.TensorType.TORCH,
+                                    modality = modality,
+                                    requires_grad = torch_tensor.requires_grad
+                                )
+        return torch_proto
+
+    def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
+
+        Args:
+            torch_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            torch.Tensor: 
+                Deserialized torch tensor.
+        """
+        dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype( torch_proto.dtype )
+        shape = tuple( torch_proto.shape )
+        decoded = torch.frombuffer( torch_proto.buffer, dtype = torch.uint8 ).cpu().detach()
+        decoded = (decoded.float() -1) / 256 
+        decoded = decoded.reshape( shape ).view( shape ).requires_grad_( torch_proto.requires_grad )
+        return decoded.type(dtype)
+
+class UINT1Serializer(  Serializer ):
+    """ Serializes by normalizing (-1, 1) then (False, True)
+    """
+    def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+
+        Args:
+            torch_tensor (torch.Tensor): 
+                Torch tensor to serialize.
+
+            modality (bittensor.proto.Modality): 
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
+        shape = list(torch_tensor.shape)
+        encoded = torch_tensor.cpu().detach()
+        encoded -= encoded.min(-1, keepdim=True)[0] + 0.0000001
+        encoded /= encoded.max(-1, keepdim=True)[0]
+        encoded = encoded.flatten()
+        encoded = encoded > encoded.mean()
+        encoded = encoded.bool().numpy()
+        encoded = np.packbits( encoded )
+        data_buffer = msgpack.packb( encoded, default = msgpack_numpy.encode )
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    shape = shape,
+                                    dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.MSGPACK,
+                                    tensor_type = bittensor.proto.TensorType.TORCH,
+                                    modality = modality,
+                                    requires_grad = torch_tensor.requires_grad
+                                )
+        return torch_proto
+
+    def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
+
+        Args:
+            torch_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            torch.Tensor: 
+                Deserialized torch tensor.
+        """
+        dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype( torch_proto.dtype )
+        shape = torch.Size( tuple( torch_proto.shape ) )
+        decoded = msgpack.unpackb( torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
+        decoded = np.unpackbits( decoded ) 
+        decoded = torch.tensor( decoded, dtype = torch.float32 ) - 0.5
+        decoded = decoded[:shape.numel()].reshape(shape)
+        decoded = decoded.requires_grad_( torch_proto.requires_grad )
+        return decoded.type(dtype)
+
+class PositiveNegativeUINT1Serializer(  Serializer ):
+    """ Serializes by normalizing (-1, 1) then (False, True)
+    """
+    def serialize_from_torch(self, torch_tensor: torch.Tensor, modality: bittensor.proto.Modality) -> bittensor.proto.Tensor:
+        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+
+        Args:
+            torch_tensor (torch.Tensor): 
+                Torch tensor to serialize.
+
+            modality (bittensor.proto.Modality): 
+                Datatype modality. i.e. TENSOR, TEXT, IMAGE
+
+        Returns:
+            bittensor.proto.Tensor: 
+                The serialized torch tensor as bittensor.proto.proto. 
+        """
+        dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
+        shape = list(torch_tensor.shape)
+        eps = 0.00001
+        encoded = torch_tensor.cpu().detach().flatten()
+        encoded = encoded / (encoded.norm() + eps) # norm to -1,1
+        encoded = encoded > 0
+        encoded = encoded.bool().numpy()
+        encoded = np.packbits( encoded )
+        data_buffer = msgpack.packb( encoded, default = msgpack_numpy.encode )
+        torch_proto = bittensor.proto.Tensor (
+                                    version = bittensor.__version_as_int__,
+                                    buffer = data_buffer,
+                                    shape = shape,
+                                    dtype = dtype,
+                                    serializer = bittensor.proto.Serializer.MSGPACK,
+                                    tensor_type = bittensor.proto.TensorType.TORCH,
+                                    modality = modality,
+                                    requires_grad = torch_tensor.requires_grad
+                                )
+        return torch_proto
+
+    def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
+        """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
+
+        Args:
+            torch_proto (bittensor.proto.Tensor): 
+                Proto containing torch tensor to derserialize.
+
+        Returns:
+            torch.Tensor: 
+                Deserialized torch tensor.
+        """
+        dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype( torch_proto.dtype )
+        shape = torch.Size( tuple( torch_proto.shape ) )
+        decoded = msgpack.unpackb( torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
+        decoded = np.unpackbits( decoded ) 
+        decoded = torch.tensor( decoded, dtype = torch.float32 ) - 0.5
+        decoded = decoded[:shape.numel()].reshape(shape)
+        decoded = decoded.requires_grad_( torch_proto.requires_grad )
+        return decoded.type(dtype)
 
 
 class CMPPackSerializer( Serializer ):
