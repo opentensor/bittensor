@@ -64,6 +64,8 @@ class TextLastHiddenState (Synapse):
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        embedding_dimension: int = bittensor.__network_dim__,
+        padding: bool = None,
     ) -> 'TextLastHiddenState':
         """ TextLastHiddenState Synapse initializer.
             Args:
@@ -92,6 +94,8 @@ class TextLastHiddenState (Synapse):
         self.check_mask_is_valid(mask)
         self.mask = mask
         self.synapse_type = TextLastHiddenState.synapse_type
+        self.embedding_dimension = embedding_dimension
+        self.padding = padding
 
     def __repr__(self) -> str: return self.__str__()
     def __str__(self) -> str: return "TextLastHiddenState"
@@ -115,16 +119,14 @@ class TextLastHiddenState (Synapse):
                     Deserialized instance class.
         """
         # Get the optional mask item.
-        try:
-            mask = instance_proto.mask
-        except AttributeError:
-            mask = []
         return TextLastHiddenState (
-            mask = mask,
+            mask = instance_proto.mask,
             forward_request_serializer_type = instance_proto.forward_request_serializer_type,
             forward_response_serializer_type = instance_proto.forward_response_serializer_type,
             backward_request_serializer_type = instance_proto.backward_request_serializer_type,
             backward_response_serializer_type = instance_proto.backward_response_serializer_type,
+            embedding_dimension = instance_proto.embedding_dimension,
+            padding = instance_proto.padding,
         )
 
     def serialize_to_instance_proto( self ) -> 'bittensor.proto.Synapse.TextLastHiddenState':
@@ -136,6 +138,8 @@ class TextLastHiddenState (Synapse):
             forward_response_serializer_type = self.forward_response_serializer_type,
             backward_request_serializer_type = self.backward_request_serializer_type,
             backward_response_serializer_type = self.backward_response_serializer_type,
+            embedding_dimension = self.embedding_dimension,
+            padding = self.padding
         )
 
     def serialize_to_wire_proto( self, code: 'bittensor.proto.ReturnCode' = 0, message: str = '' ) -> 'bittensor.proto.Synapse':

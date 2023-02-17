@@ -141,6 +141,12 @@ message Synapse {
 
 		// Mask
 		repeated int32 mask = 7;
+
+		//embedding dim
+		int32 embedding_dimension = 8;
+
+		//padding 
+		bool padding = 9;
 	}
 
 	message TextCausalLM {
@@ -321,8 +327,8 @@ enum Serializer {
 	CMPPACK = 1; // CMPPACK serializer
 	UINT8 = 2; // UINT8 serializer.
 	UINT1 = 3; // UINT1 serializer.
-	2CLIPPEDUINT8 = 4; // Clipped -2, +2 uint8 serializer.
-	1NORMUINT8 = 5; // 1 Norm unit8 serializer.
+	CLIPPEDUINT8 = 4; // Clipped -2, +2 uint8 serializer.
+	NORMUINT8 = 5; // 1 Norm unit8 serializer.
 	PNUINT1 = 6; // PositiveNegativeUINT1Serializer
 }
 

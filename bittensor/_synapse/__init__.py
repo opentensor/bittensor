@@ -47,6 +47,8 @@ class synapse:
         forward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_request_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
         backward_response_serializer_type: 'bittensor.proto.Serializer.Type' = bittensor.proto.Serializer.MSGPACK,
+        embedding_dimension: int = bittensor.__network_dim__,
+        padding: bool = None,
     ) -> TextLastHiddenState:
         """ Factory function which returns a TextLastHiddenState synapse adapter given arguments.
             Args:
@@ -70,6 +72,8 @@ class synapse:
             forward_response_serializer_type = forward_response_serializer_type,
             backward_request_serializer_type = backward_request_serializer_type,
             backward_response_serializer_type = backward_response_serializer_type,
+            embedding_dimension = embedding_dimension,
+            padding = padding
         )
 
     @staticmethod
