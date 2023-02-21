@@ -112,7 +112,7 @@ def add_stake_extrinsic(
                     'amount_staked': staking_balance.rao
                 }
             )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkeypub)
             if payment_info:
                 staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
                 bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
