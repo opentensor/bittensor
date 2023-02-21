@@ -124,7 +124,7 @@ class OverviewCommand:
                 nn: bittensor.NeuronInfo
                 uid = nn.uid
                 active = nn.active
-                stake = nn.stake.tao
+                stake = nn.total_stake.tao
                 rank = nn.rank
                 trust = nn.trust
                 consensus = nn.consensus
