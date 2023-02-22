@@ -227,3 +227,201 @@ class TestCMPSerialization(unittest.TestCase):
     def test_bittensor_dtype_to_torch_dtype(self):
         with pytest.raises(bittensor.serializer.DeserializationException):
             bittensor.serializer.bittensor_dtype_to_torch_dtype(11)
+
+
+class TestUINT8Serialization(unittest.TestCase):
+
+    def test_serialize(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT8 )
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
+            
+            assert torch.is_tensor(tensor_b)
+    
+    def test_serialize_reduction(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT8 )
+            norm_serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK)
+
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            norm_content = norm_serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+            assert content.ByteSize() < norm_content.ByteSize()/4
+
+    def test_serialize_object_type_exception(self):
+        # Let's grab a random image, and try and de-serialize it incorrectly.
+        image = torch.ones( [1, 28, 28] )
+
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT8 )
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = 11)
+
+    def test_deserialization_object_type_exception(self):
+        data = torch.rand([12, 23])
+        
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT8 )
+        tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.deserialize(tensor_message, to_type = 11)
+    
+
+class TestUINT1Serialization(unittest.TestCase):
+
+    def test_serialize(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT1 )
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
+            
+            assert torch.is_tensor(tensor_b)
+    
+    def test_serialize_reduction(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT1 )
+            norm_serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK)
+
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            norm_content = norm_serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+            assert content.ByteSize() < norm_content.ByteSize()/8
+
+    def test_serialize_object_type_exception(self):
+        # Let's grab a random image, and try and de-serialize it incorrectly.
+        image = torch.ones( [1, 28, 28] )
+
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT1 )
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = 11)
+
+    def test_deserialization_object_type_exception(self):
+        data = torch.rand([12, 23])
+        
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.UINT1 )
+        tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.deserialize(tensor_message, to_type = 11)
+
+class TestPNUINT1Serialization(unittest.TestCase):
+
+    def test_serialize(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.PNUINT1 )
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
+            
+            assert torch.is_tensor(tensor_b)
+    
+    def test_serialize_reduction(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.PNUINT1 )
+            norm_serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK)
+
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            norm_content = norm_serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+            assert content.ByteSize() < norm_content.ByteSize()/8
+
+    def test_serialize_object_type_exception(self):
+        # Let's grab a random image, and try and de-serialize it incorrectly.
+        image = torch.ones( [1, 28, 28] )
+
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.PNUINT1 )
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = 11)
+
+    def test_deserialization_object_type_exception(self):
+        data = torch.rand([12, 23])
+        
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.PNUINT1 )
+        tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.deserialize(tensor_message, to_type = 11)
+
+
+class TestTWOCLIPPEDUINT8Serialization(unittest.TestCase):
+
+    def test_serialize(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.TWOCLIPPEDUINT8 )
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
+            
+            assert torch.is_tensor(tensor_b)
+    
+    def test_serialize_reduction(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.TWOCLIPPEDUINT8 )
+            norm_serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK)
+
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            norm_content = norm_serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+            assert content.ByteSize() < norm_content.ByteSize()/4
+
+    def test_serialize_object_type_exception(self):
+        # Let's grab a random image, and try and de-serialize it incorrectly.
+        image = torch.ones( [1, 28, 28] )
+
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.TWOCLIPPEDUINT8 )
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = 11)
+
+    def test_deserialization_object_type_exception(self):
+        data = torch.rand([12, 23])
+        
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.TWOCLIPPEDUINT8 )
+        tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.deserialize(tensor_message, to_type = 11)
+
+class TestONENORMUINT8Serialization(unittest.TestCase):
+
+    def test_serialize(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.ONENORMUINT8 )
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
+            
+            assert torch.is_tensor(tensor_b)
+    
+    def test_serialize_reduction(self):
+        for _ in range(10):
+            tensor_a = torch.rand([12, 23])
+            serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.ONENORMUINT8 )
+            norm_serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK)
+
+            content = serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            norm_content = norm_serializer.serialize(tensor_a, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
+            
+            assert content.ByteSize() < norm_content.ByteSize()/4
+
+    def test_serialize_object_type_exception(self):
+        # Let's grab a random image, and try and de-serialize it incorrectly.
+        image = torch.ones( [1, 28, 28] )
+
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.ONENORMUINT8 )
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.serialize(image, modality = bittensor.proto.Modality.IMAGE, from_type = 11)
+
+    def test_deserialization_object_type_exception(self):
+        data = torch.rand([12, 23])
+        
+        serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.ONENORMUINT8 )
+        tensor_message = serializer.serialize(data, modality = bittensor.proto.Modality.TEXT, from_type = bittensor.proto.TensorType.TORCH)
+
+        with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
+            serializer.deserialize(tensor_message, to_type = 11)
