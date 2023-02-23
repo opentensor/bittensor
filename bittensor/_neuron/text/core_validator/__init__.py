@@ -380,8 +380,8 @@ class neuron:
         self.config.nucleus.logits_divergence = self.subtensor.validator_logits_divergence(netuid=self.config.netuid)
         min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)
         max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
-        blocks_per_epoch = self.subtensor.validator_epoch_length(netuid=self.config.netuid) if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
-        epochs_until_reset = self.subtensor.validator_epochs_per_reset(netuid=self.config.netuid) if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        blocks_per_epoch = self.get_validator_epoch_length()
+        epochs_until_reset = self.get_validator_epochs_per_reset if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
         self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power(netuid=self.config.netuid)
         self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power(netuid=self.config.netuid)
 
@@ -744,6 +744,22 @@ class neuron:
                     f'max:{sample_weights.max()}')
 
         return sample_uids, sample_weights
+
+    def get_validator_epoch_length(self):
+        if self.subtensor.network == 'finney':
+            validator_epoch_length = self.subtensor.validator_epoch_length(self.config.netuid)
+        elif self.subtensor.network == 'nakamoto':
+            validator_epoch_length = self.subtensor.validator_epoch_length
+        
+        return validator_epoch_length
+
+    def get_validator_epochs_per_reset(self):
+        if self.subtensor.network == 'finney':
+            validator_epochs_per_reset = self.subtensor.validator_epochs_per_reset(self.config.netuid)
+        elif self.subtensor.network == 'nakamoto':
+            validator_epochs_per_reset = self.subtensor.validator_epochs_per_reset
+        
+        return validator_epochs_per_reset
 
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
@@ -1533,3 +1549,5 @@ def unsuccess(_name, _unsuccessful):
     for _uid, _return_op, _time in _unsuccessful:
         unsuccess_txt += f'{_uid}[<red>{_return_op}</red> <yellow>{_time:.2f}</yellow>] '
     logger.info(unsuccess_txt)
+
+    

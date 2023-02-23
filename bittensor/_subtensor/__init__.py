@@ -26,7 +26,7 @@ from substrateinterface import SubstrateInterface
 from torch.cuda import is_available as is_cuda_available
 
 from bittensor.utils import strtobool_with_default
-
+from .naka_subtensor_impl import Subtensor as Nakamoto_subtensor
 from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
@@ -117,11 +117,19 @@ class subtensor:
         )
 
         subtensor.check_config( config )
-        return subtensor_impl.Subtensor( 
-            substrate = substrate,
-            network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
-            chain_endpoint = config.subtensor.chain_endpoint,
-        )
+        network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+        if network == 'nakamoto':
+            return Nakamoto_subtensor( 
+                substrate = substrate,
+                network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
+                chain_endpoint = config.subtensor.chain_endpoint,
+            )
+        elif network =='finney':
+            return subtensor_impl.Subtensor( 
+                substrate = substrate,
+                network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
+                chain_endpoint = config.subtensor.chain_endpoint,
+            )
 
     @staticmethod   
     def config() -> 'bittensor.Config':

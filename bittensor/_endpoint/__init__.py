@@ -45,8 +45,8 @@ class endpoint:
         ip:str, 
         ip_type:int, 
         port:int, 
-        protocol:int, 
         coldkey:str,
+        protocol:int = 0, # TODO: activate protocol
         modality: int = 0 # TODO: remove modality
     ) -> 'bittensor.Endpoint':
         endpoint.assert_format(
