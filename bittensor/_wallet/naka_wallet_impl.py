@@ -136,7 +136,7 @@ class Wallet():
     def balance(self) -> SimpleNamespace:
         return self.get_balance()
 
-    def is_registered( self, subtensor: 'bittensor.Subtensor' = None ) -> bool:
+    def is_registered( self, subtensor: 'bittensor.Subtensor' = None, netuid: int = None ) -> bool:
         """ Returns true if this wallet is registered.
             Args:
                 subtensor( 'bittensor.Subtensor' ):
@@ -165,7 +165,7 @@ class Wallet():
         neuron = subtensor.neuron_for_wallet( self )
         return neuron
 
-    def get_uid ( self, subtensor: 'bittensor.Subtensor' = None ) -> int:
+    def get_uid ( self, subtensor: 'bittensor.Subtensor' = None, netuid: int = None ) -> int:
         """ Returns this wallet's hotkey uid or -1 if the hotkey is not subscribed.
             Args:
                 subtensor( 'bittensor.Subtensor' ):
@@ -221,7 +221,7 @@ class Wallet():
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
-        netuid = 1, 
+        netuid: int = None, 
     ) -> Optional['bittensor.Wallet']:
         """ Re-register this wallet on the chain.
             Args:
@@ -277,6 +277,7 @@ class Wallet():
             update_interval: Optional[int] = None,
             output_in_place: bool = True,
             log_verbose: bool = False,
+            netuid: int = None
         ) -> 'bittensor.Wallet':
         """ Registers the wallet to chain.
         Args:
