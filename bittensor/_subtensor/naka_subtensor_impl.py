@@ -213,7 +213,6 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return substrate.query( module='SubtensorModule', storage_function = 'ValidatorBatchSize' ).value
         return make_substrate_call_with_retry()
 
-
     @property
     def validator_sequence_length (self) -> int:
         r""" Returns the chain default validator sequence length.
@@ -241,7 +240,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         return make_substrate_call_with_retry()
 
     @property
-    def validator_epoch_length (self, netuid=1) -> int:
+    def validator_epoch_length (self) -> int:
         r""" Default validator epoch length.
         Returns:
             validator_epoch_length (int):
@@ -425,7 +424,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 ).value
         return make_substrate_call_with_retry()
 
-    def validator_prune_len (self, netuid=1) -> int:
+    @property
+    def validator_prune_len (self) -> int:
         r""" Returns PruneLen 
         Returns:
             prune_len (int):
@@ -437,7 +437,8 @@ To run a local node (See: docs/running_a_validator.md) \n
                 return substrate.query( module='SubtensorModule', storage_function = 'ValidatorPruneLen' ).value
         return make_substrate_call_with_retry()
 
-    def validator_logits_divergence (self, netuid=1) -> int:
+    @property
+    def validator_logits_divergence (self) -> int:
         r""" Returns logits_divergence
         Returns:
             logits_divergence (int):
@@ -532,6 +533,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
+        netuid: int = None,
     ) -> bool:
         r""" Registers the wallet to chain.
         Args:
@@ -668,6 +670,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             wait_for_inclusion: bool = False,
             wait_for_finalization = True,
             prompt: bool = False,
+            netuid: int = None,
         ) -> bool:
         r""" Subscribes an bittensor endpoint to the substensor chain.
         Args:
@@ -1447,7 +1450,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             wait_for_inclusion:bool = False,
             wait_for_finalization:bool = False,
             prompt:bool = False,
-            netuid = 1
+            netuid:int = None
         ) -> bool:
         r""" Sets the given weights and values on chain for wallet hotkey account.
         Args:
@@ -1636,7 +1639,7 @@ To run a local node (See: docs/running_a_validator.md) \n
             neuron.is_null = False
             return neuron
 
-    def neuron_for_uid( self, uid: int, block: int = None ) -> Union[ dict, None ]: 
+    def neuron_for_uid( self, uid: int, block: int = None, netuid: int = None ) -> Union[ dict, None ]: 
         r""" Returns a list of neuron from the chain. 
         Args:
             uid ( int ):
@@ -1661,7 +1664,7 @@ To run a local node (See: docs/running_a_validator.md) \n
         neuron = Subtensor._neuron_dict_to_namespace( result )
         return neuron
 
-    def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None) -> int:
+    def get_uid_for_hotkey( self, ss58_hotkey: str, block: int = None, netuid: int = None ) -> int:
         r""" Returns true if the passed hotkey is registered on the chain.
         Args:
             ss58_hotkey ( str ):
