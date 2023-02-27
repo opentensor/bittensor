@@ -482,7 +482,7 @@ class neuron:
                 # console message - validator identifier status (every 25 validation steps)
                 self.vlogger.print_console_validator_identifier(self.uid, self.wallet, self.dendrite.receptor_pool.external_ip)
                 # console message - validator update status (every 25 validation steps)
-                self.vlogger.print_console_metagraph_status(self.uid, self.metagraph, current_block, start_block, self.subtensor.network)
+                self.vlogger.print_console_metagraph_status(self.uid, self.metagraph, current_block, start_block, self.subtensor.network, self.config.netuid)
                 # save neuron_stats to filesystem
                 self.save()
 
