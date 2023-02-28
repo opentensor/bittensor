@@ -108,7 +108,7 @@ class SetWeightsCommand:
         subtensor = bittensor.subtensor( config = cli.config )
 
         # Verify subnet exists
-        if not subtensor.subnet_exists( netuid = cli.config.netuid ):
+        if cli.config.subtensor.network == 'finney' and not subtensor.subnet_exists( netuid = cli.config.netuid ):
             bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist[/red]")
             sys.exit(1)
 
