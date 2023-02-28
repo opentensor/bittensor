@@ -92,7 +92,8 @@ class neuron:
         causallmnext = None,
         seq2seq = None,
         synapse_list = None,
-        netuid = None
+        netuid = None,
+        blacklist_hotkeys = [],
     ):
         if config is None:
             config = server.config()
@@ -132,6 +133,7 @@ class neuron:
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
+        config.neuron.blacklist.hotkeys = blacklist_hotkeys if blacklist_hotkeys != [] else config.neuron.blacklist.hotkeys
 
         self.check_config( config )
         self.config = config
@@ -635,11 +637,19 @@ class neuron:
         
             return False
 
+        # Check for hotkeys
+        def hotkey_check():
+            # Only check if the request are forward requests
+            if (pubkey in self.config.neuron.blacklist.hotkeys):
+                raise Exception('Hotkey blacklist')
+            return False
+        
         # Black list or not
         try:
             registration_check()
             time_check()
-            stake_check()            
+            stake_check()      
+            hotkey_check()      
             return False
         except Exception as e:
             self.prometheus_counters.labels("blacklisted").inc()
