@@ -136,6 +136,9 @@ class neuron:
         self.check_config( config )
         self.config = config
 
+        self.config.neuron.max_batch_size = subtensor.validator_batch_size(netuid=self.config.netuid) if self.config.neuron.max_batch_size == -1 else self.config.neuron.max_batch_size
+        self.config.neuron.max_sequence_len = subtensor.validator_sequence_length(netuid=self.config.netuid) if self.config.neuron.max_sequence_len == -1 else self.config.neuron.max_sequence_len
+
         bittensor.logging (
             config = config,
             logging_dir = config.neuron.full_path,
@@ -216,7 +219,7 @@ class neuron:
         self.wallet.reregister(subtensor=self.subtensor, netuid = self.config.netuid)
 
 
-        self.metagraph.load().sync(netuid = self.config.netuid).save()
+        self.metagraph.load().sync(netuid = self.config.netuid, subtensor=self.subtensor).save()
 
         # Create our optimizer.
         optimizer = torch.optim.SGD(
@@ -415,7 +418,7 @@ class neuron:
                     except Exception as e:
                         logger.error('Failure setting weights on chain with error: {}', e)
 
-    def synapse_check(self, synapse, hotkey):
+    def synapse_check(self, synapse, hotkey, inputs_x=None):
         """
             Custom synapse function to protect certain synapse functions depending on the stake and weight.
             Certain synapses require more compute than others. For instance, TEXT_SEQ_2_SEQ requires a significantly
@@ -436,13 +439,17 @@ class neuron:
                 return False
             
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
-
-            if self.metagraph.S[incoming_uid] < self.config.neuron.causallm_stake:
+            batch_size, sequence_len  =  inputs_x[0].size()
+            if (self.metagraph.S[incoming_uid] < self.config.neuron.causallm_stake) \
+                or (batch_size > self.config.neuron.max_batch_size) \
+                or (sequence_len > self.config.neuron.max_sequence_len):
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
-
-            if self.metagraph.S[incoming_uid] < self.config.neuron.causallmnext_stake:
+            batch_size, sequence_len  =  inputs_x[0].size()
+            if (self.metagraph.S[incoming_uid] < self.config.neuron.causallmnext_stake) \
+                or (batch_size > self.config.neuron.max_batch_size) \
+                or (sequence_len > self.config.neuron.max_sequence_len):
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
@@ -588,7 +595,6 @@ class neuron:
                     the request type ('FORWARD' or 'BACKWARD').
         """
         # Check for registrations
-
         def registration_check():
             # If we allow non-registered requests return False = not blacklisted.
             is_registered = pubkey in self.metagraph.hotkeys
