@@ -100,14 +100,14 @@ class Subtensor:
         while True:
             def connection_error_message():
                 print('''
-Check that your internet connection is working and the chain endpoints are available: <blue>{}</blue>
-The subtensor.network should likely be one of the following choices:
-    -- local - (your locally running node)
-    -- nobunaga - (staging)
-    -- nakamoto - (main)
-Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
-To run a local node (See: docs/running_a_validator.md) \n
-                              '''.format( attempted_endpoints) )
+                        Check that your internet connection is working and the chain endpoints are available: <blue>{}</blue>
+                        The subtensor.network should likely be one of the following choices:
+                            -- local - (your locally running node)
+                            -- nobunaga - (staging)
+                            -- nakamoto - (main)
+                        Or you may set the endpoint manually using the --subtensor.chain_endpoint flag 
+                        To run a local node (See: docs/running_a_validator.md) \n
+                    '''.format( attempted_endpoints) )
 
             # ---- Get next endpoint ----
             ws_chain_endpoint = self.endpoint_for_network( blacklist = attempted_endpoints )

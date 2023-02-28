@@ -177,8 +177,15 @@ class Wallet():
                     Is the wallet registered on the chain.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if netuid == None: return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
-        return subtensor.is_hotkey_registered_on_subnet( self.hotkey.ss58_address, netuid = netuid )
+        if self.config.subtensor.network == 'finney':
+            if netuid == None:
+                return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
+            else:
+                return subtensor.is_hotkey_registered_on_subnet( self.hotkey.ss58_address, netuid = netuid )
+        else:
+            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = self.hotkey.ss58_address )
+            return not neuron.is_null
+        
 
     def get_neuron ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> Optional['bittensor.NeuronInfo'] :
         """ Returns this wallet's neuron information from subtensor.
