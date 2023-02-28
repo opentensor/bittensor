@@ -57,6 +57,7 @@ class HelpCommand:
             default='None', 
         )
         help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+        bittensor.subtensor.add_args( help_parser )
 
 class UpdateCommand:
     @staticmethod
@@ -86,6 +87,7 @@ class UpdateCommand:
             default=False,
         )
         update_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+        bittensor.subtensor.add_args( update_parser )
 
 class ListSubnetsCommand:
     @staticmethod
