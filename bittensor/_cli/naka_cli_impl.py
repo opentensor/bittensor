@@ -581,12 +581,8 @@ class CLI:
         """
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
-        metagraph = bittensor.metagraph( subtensor = subtensor )
+        metagraph = bittensor.metagraph( subtensor = subtensor ).sync()
         wallet = bittensor.wallet( config = self.config )
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            metagraph.load()
-            metagraph.sync()
-            metagraph.save()
 
         table = Table()
         rows = []
