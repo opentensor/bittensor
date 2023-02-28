@@ -166,7 +166,9 @@ class axon:
                                   interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                   options = [('grpc.keepalive_time_ms', 100000),
-                                             ('grpc.keepalive_timeout_ms', 500000)]
+                                             ('grpc.keepalive_timeout_ms', 500000),
+                                             ('grpc.max_receive_message_length', config.axon.maximum_message_length)
+                                             ]
                                 )
 
         synapses = {}
@@ -269,6 +271,8 @@ class axon:
             help='Timeout for causallmnext synapse', default= bittensor.__blocktime__)
             parser.add_argument('--' +  prefix_str + 'axon.seq2seq_timeout', type = int, 
             help='Timeout for seq2seq synapse', default= 3*bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.maximum_message_length', type = int, 
+            help='Maximum message length for requestion', default= 4*1024*1024)
             parser.add_argument('--' + prefix_str + 'axon.prometheus.level', 
                 required = False, 
                 type = str, 
