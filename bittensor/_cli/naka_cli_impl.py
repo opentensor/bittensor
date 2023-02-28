@@ -130,11 +130,17 @@ class CLI:
         for uid in self.config.uids:
             neuron = subtensor.neuron_for_uid( uid )
             endpoint = bittensor.endpoint.from_neuron( neuron )
-            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
-            latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
-            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
+            _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses = [bittensor.synapse.TextCausalLMNext()])
+            latency = "{}".format(t[0].tolist()[0]) if c[0].tolist()[0] == 1 else 'N/A'
+            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(
+                uid, 
+                latency, 
+                bittensor.utils.codes.code_to_loguru_color( c[0].item() ), 
+                bittensor.utils.codes.code_to_string( c[0].item() ), 
+                bittensor.utils.codes.code_to_loguru_color( c[0].item() )), highlight=True)
             stats[uid] = latency
         print (stats)
+        dendrite.__del__()
 
     def inspect ( self ):
         r""" Inspect a cold, hot pair.
