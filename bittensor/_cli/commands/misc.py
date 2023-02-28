@@ -98,7 +98,7 @@ class ListSubnetsCommand:
 
         rows = []
         total_neurons = 0
-        
+
         for subnet in subnets:
             total_neurons += subnet.max_n
             rows.append((
@@ -111,7 +111,7 @@ class ListSubnetsCommand:
                 str(subnet.validator_sequence_length),
                 str(subnet.tempo),
                 str(subnet.modality),
-                str(list(subnet.connection_requirements.keys())),
+                str([cr[1] for cr in subnet.connection_requirements]),
                 str(subnet.emission_value),
             ))
 
