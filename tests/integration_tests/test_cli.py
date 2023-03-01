@@ -65,7 +65,8 @@ class TestCli(unittest.TestCase):
                 "emission":0.0,
                 "bonds":[],
                 "weights":[],
-                "is_null":False
+                "is_null":False,
+                "total_stake": 200
             })
         )
         bittensor.Subtensor.register = MagicMock(return_value = True) 
@@ -1413,6 +1414,7 @@ class TestCli(unittest.TestCase):
         config.overwrite_coldkey = True
         config.overwrite_hotkey = True
         config.no_version_checking = False
+        config.netuid = 1
 
         # First create a new coldkey
         config.command = "new_coldkey"
