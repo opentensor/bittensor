@@ -86,3 +86,4 @@ class ListCommand:
         )
         list_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.wallet.add_args( list_parser )
+        bittensor.subtensor.add_args( list_parser )

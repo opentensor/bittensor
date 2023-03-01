@@ -45,8 +45,8 @@ class endpoint:
         ip:str, 
         ip_type:int, 
         port:int, 
-        protocol:int, 
         coldkey:str,
+        protocol:int = 0, # TODO: activate protocol
         modality: int = 0 # TODO: remove modality
     ) -> 'bittensor.Endpoint':
         endpoint.assert_format(
@@ -79,16 +79,29 @@ class endpoint:
         if neuron.is_null:
             raise ValueError('Cannot create endpoint from null neuron')
         
-        return endpoint_impl.Endpoint(
-            version = neuron.axon_info.version,
-            uid = neuron.uid, 
-            hotkey = neuron.hotkey, 
-            port = neuron.axon_info.port,
-            ip = neuron.axon_info.ip, 
-            ip_type = neuron.axon_info.ip_type, 
-            protocol = neuron.axon_info.protocol,
-            coldkey = neuron.coldkey
-        )
+        if hasattr(neuron, 'axon_info'): #if config.subtensor.network == 'finney'
+            return endpoint_impl.Endpoint(
+                version = neuron.axon_info.version,
+                uid = neuron.uid, 
+                hotkey = neuron.hotkey, 
+                port = neuron.axon_info.port,
+                ip = neuron.axon_info.ip, 
+                ip_type = neuron.axon_info.ip_type, 
+                protocol = neuron.axon_info.protocol,
+                coldkey = neuron.coldkey
+            )
+        else:
+            return endpoint_impl.Endpoint(
+                version = neuron.version,
+                uid = neuron.uid, 
+                hotkey = neuron.hotkey, 
+                port = neuron.port,
+                ip = neuron.ip, 
+                ip_type = neuron.ip_type, 
+                modality = neuron.modality, 
+                coldkey = neuron.coldkey,
+                protocol = None
+            )
 
     @staticmethod
     def from_dict(endpoint_dict: dict) -> 'bittensor.Endpoint':
