@@ -1336,6 +1336,7 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True
         config.overwrite_coldkey = True
         config.no_version_checking = False
+        config.json = None
 
         cli = bittensor.cli(config)
         cli.run()
@@ -1367,6 +1368,7 @@ class TestCli(unittest.TestCase):
         config.no_prompt = True
         config.overwrite_hotkey = True
         config.no_version_checking = False
+        config.json = None
 
         cli = bittensor.cli(config)
         cli.run()
