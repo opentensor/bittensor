@@ -509,7 +509,7 @@ class CLI:
         """
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = self.config )
-        metagraph = bittensor.metagraph( subtensor = subtensor )
+        metagraph = bittensor.metagraph( network = 'nakamoto', subtensor = subtensor )
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(self.config.subtensor.network))
         metagraph.sync()
         metagraph.save()
