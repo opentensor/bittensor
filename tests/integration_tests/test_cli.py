@@ -362,6 +362,8 @@ class TestCli(unittest.TestCase):
         config.no_version_checking = False
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
+         
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -374,6 +376,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -390,6 +393,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -437,6 +441,7 @@ class TestCli(unittest.TestCase):
         config.no_version_checking = False
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -449,6 +454,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -487,6 +493,7 @@ class TestCli(unittest.TestCase):
         config.no_version_checking = False
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -499,6 +506,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -540,6 +548,7 @@ class TestCli(unittest.TestCase):
         config.no_version_checking = False
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -552,6 +561,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -568,6 +578,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -615,6 +626,7 @@ class TestCli(unittest.TestCase):
         config.no_version_checking = False
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # hk1 has less than 5.0 stake
@@ -627,6 +639,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -643,6 +656,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -697,6 +711,7 @@ class TestCli(unittest.TestCase):
         config.no_version_checking = False
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         # enough to stake 5.0 to all 3 hotkeys
         mock_balance: Balance = bittensor.Balance.from_float(5.0 * 3)
@@ -705,19 +720,16 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
-                is_registered = MagicMock(
-                    return_value = True
-                ),
-
+                hotkey = mock_hotkey,
+                is_registered = MagicMock(return_value = True),
                 _coldkey = mock_coldkey,
-                coldkey =  MagicMock(
-                            return_value=mock_coldkey
-                        )
+                coldkey =  MagicMock(return_value=mock_coldkey),
             ) 
         ] + [
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 is_registered = MagicMock(
                     return_value = True
                 )
@@ -764,6 +776,7 @@ class TestCli(unittest.TestCase):
         mock_hotkeys = ['hk0', 'hk1', 'hk2']
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         # enough to stake 5.0 to all 3 hotkeys
         mock_balance: Balance = bittensor.Balance.from_float(5.0 * 3)
@@ -772,6 +785,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey, 
                 is_registered = MagicMock(
                     return_value = True
                 )
@@ -813,6 +827,7 @@ class TestCli(unittest.TestCase):
         mock_hotkeys = ['hk0', 'hk1', 'hk2']
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         # enough to stake 5.0 to all 3 hotkeys
         mock_balance: Balance = bittensor.Balance.from_float(5.0 * 3)
@@ -821,9 +836,10 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey= mock_hotkey,
                 is_registered = MagicMock(
                     return_value = True
-                )
+                ),
             ) for hk in mock_hotkeys
         ]
 
@@ -865,6 +881,7 @@ class TestCli(unittest.TestCase):
         mock_balance = bittensor.Balance(15.0 * 3) # Enough to stake 15.0 on each hotkey
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -877,6 +894,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey =  mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -887,18 +905,19 @@ class TestCli(unittest.TestCase):
                 _coldkey = mock_coldkey,
                 coldkey =  MagicMock(
                             return_value=mock_coldkey
-                        )
+                )
             ) 
         ] + [
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
                 is_registered = MagicMock(
                     return_value = True
-                )
+                ),
             ) for hk in config.hotkeys
         ]
 
@@ -946,6 +965,7 @@ class TestCli(unittest.TestCase):
         mock_balance = bittensor.Balance(1.0) # Not enough to stake 15.0 on each hotkey
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -958,6 +978,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -974,6 +995,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -1032,6 +1054,7 @@ class TestCli(unittest.TestCase):
         mock_balance = bittensor.Balance(15.0) # Enough to stake 15.0 on one hotkey
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # All have more than 5.0 stake
@@ -1042,6 +1065,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -1058,6 +1082,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+               hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -1111,6 +1136,7 @@ class TestCli(unittest.TestCase):
         mock_balance = bittensor.Balance(1.0) # Not enough to stake 15.0 on the hotkey
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # has 5.0 stake
@@ -1121,6 +1147,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -1137,6 +1164,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -1199,6 +1227,7 @@ class TestCli(unittest.TestCase):
         mock_balance = bittensor.Balance(30.0) # enough to stake 15.0 on the hotkey
 
         mock_coldkey = "" # Not None
+        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # already has 15.0 stake
@@ -1209,6 +1238,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -1225,6 +1255,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
+                hotkey = mock_hotkey,
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -1393,6 +1424,7 @@ class TestCli(unittest.TestCase):
         config.n_words = 12
         config.use_password = False
         config.no_version_checking = False
+        config.netuid = 1
 
 
         config.overwrite_hotkey = True
