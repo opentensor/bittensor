@@ -35,7 +35,7 @@ from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
 from .extrinsics.registration import register_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
-from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic
+from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
 
 # Logging
 from loguru import logger

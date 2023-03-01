@@ -371,7 +371,8 @@ class ValidatorLogger:
         metagraph: 'bittensor.Metagraph', 
         current_block: int, 
         start_block: int, 
-        network: str
+        network: str,
+        netuid: int
     ):
         r""" Console print for current validator's metagraph status. 
         """
@@ -381,7 +382,7 @@ class ValidatorLogger:
         f'Updated [yellow]{current_block - metagraph.last_update[uid]}[/yellow] [dim]blocks ago[/dim] | '
         f'Dividends [green not bold]{metagraph.dividends[uid]:.5f}[/green not bold] | '
         f'Stake \u03C4[magenta not bold]{metagraph.stake[uid]:.5f}[/magenta not bold] '
-        f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {network})[/dim]')
+        f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {network}:{netuid})[/dim]')
 
     def print_console_query_summary(
         self, 
