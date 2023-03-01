@@ -70,6 +70,8 @@ class metagraph:
         config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
         if config.metagraph._mock:
             return metagraph_mock.MockMetagraph()
+        if subtensor != None:
+            network = subtensor.network
         if netuid == None:
             netuid = config.get('netuid', None)
         if network == None:
