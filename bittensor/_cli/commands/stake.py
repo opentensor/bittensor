@@ -32,13 +32,6 @@ class StakeCommand:
     def run( cli ):
         r""" Stake token of amount to hotkey(s).
         """
-        def is_hotkey_registered_any(hotkey_ss58):
-            if config.subtensor.network == 'finney':
-                return subtensor.is_hotkey_registered_any( hotkey_ss58 )
-            else:
-                neuron = subtensor.neuron_for_pubkey( ss58_hotkey = hotkey_ss58 )
-                return not neuron.is_null
-            
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
@@ -89,7 +82,7 @@ class StakeCommand:
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
             hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
-            if not is_hotkey_registered_any( hotkey_ss58 = hotkey[1] ):
+            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey[1] ):
                 # Hotkey is not registered.
                 if (len(hotkeys_to_stake_to) == 1):
                     # Only one hotkey, error
