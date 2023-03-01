@@ -81,7 +81,8 @@ class OverviewCommand:
             neurons[str(netuid)] = []
 
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            for netuid in netuids:
+            netuid_copy = netuids.copy()
+            for netuid in netuid_copy:
                 all_neurons = subtensor.neurons( netuid = netuid )
                 # Map the hotkeys to uids
                 hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
