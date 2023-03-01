@@ -135,6 +135,7 @@ class TestCli(unittest.TestCase):
         config.uids = [1,2,3]
         config.weights = [0.25, 0.25, 0.25, 0.25]
         config.no_version_checking = False
+        config.json = None
 
         cli = bittensor.cli
         
