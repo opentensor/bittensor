@@ -28,14 +28,13 @@ class QueryCommand:
         subtensor = bittensor.subtensor( config = cli.config )
 
         # Verify subnet exists
-        if cli.config.subtensor.network == 'finney':
-            if not hasattr(cli.config, 'netuid'):
-                bittensor.__console__.print(f"[red]Please specify subnet with --netuid.[/red]")
-                sys.exit(1)
+        if not hasattr(cli.config, 'netuid'):
+            bittensor.__console__.print(f"[red]Please specify subnet with --netuid.[/red]")
+            sys.exit(1)
 
-            if not subtensor.subnet_exists( netuid = cli.config.netuid ):
-                bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist.[/red]")
-                sys.exit(1)
+        if not subtensor.subnet_exists( netuid = cli.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist.[/red]")
+            sys.exit(1)
 
         dendrite = bittensor.dendrite( wallet = wallet )
         stats = {}

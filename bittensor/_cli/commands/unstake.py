@@ -126,13 +126,6 @@ class UnStakeCommand:
     def run( cli ):
         r""" Unstake token of amount from hotkey(s).
         """        
-        def is_hotkey_registered_any(hotkey_ss58):
-            if config.subtensor.network == 'finney':
-                return subtensor.is_hotkey_registered_any( hotkey_ss58 )
-            else:
-                neuron = subtensor.neuron_for_pubkey( ss58_hotkey = hotkey_ss58 )
-                return not neuron.is_null
-
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = cli.config )
@@ -181,7 +174,7 @@ class UnStakeCommand:
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_unstake_from):
             hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
-            if not is_hotkey_registered_any( hotkey_ss58 = hotkey[1] ):
+            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey[1] ):
                 # Hotkey is not registered.
                 if (len(hotkeys_to_unstake_from) == 1):
                     # Only one hotkey, error
