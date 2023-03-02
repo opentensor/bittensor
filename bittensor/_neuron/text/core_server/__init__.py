@@ -276,6 +276,9 @@ class neuron:
             self.query_data = {}
             
             nn = self.subtensor.get_neuron_for_pubkey_and_subnet(self.wallet.hotkey.ss58_address, netuid = self.config.netuid)
+            self.config.neuron.max_batch_size = self.subtensor.validator_batch_size(netuid=self.config.netuid) 
+            self.config.neuron.max_sequence_len = self.subtensor.validator_sequence_length(netuid=self.config.netuid) 
+
             uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
             current_block = self.subtensor.get_current_block()
             end_block = current_block + self.config.neuron.blocks_per_epoch
