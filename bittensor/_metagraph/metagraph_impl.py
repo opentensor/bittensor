@@ -57,6 +57,8 @@ class Metagraph( torch.nn.Module ):
     """
     network: str
     netuid: int
+    neurons: Optional[List[Optional['bittensor.Neurons']]]
+    info: Optional['bittensor.SubnetInfo']
 
     def __init__( self, network: str, netuid: int ):
         r""" Initializes a new Metagraph torch chain interface object.
@@ -91,8 +93,9 @@ class Metagraph( torch.nn.Module ):
         self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         self._endpoint_objs = None
         self.neurons = None
+        self.info = None
         return self
-
+    
     @property
     def S(self) -> torch.FloatTensor:
         """ Stake
@@ -273,7 +276,8 @@ class Metagraph( torch.nn.Module ):
             network = self.network
         if netuid == None:
             netuid = self.netuid
-        return self.save_to_path( path = '~/.bittensor/', filename = f"{str(network)}_{str(self.netuid)}.pt")
+        print(f"Saving metagraph to ~/.bittensor/{str(network)}_{str(netuid)}.pt")
+        return self.save_to_path( path = '~/.bittensor/', filename = f"{str(network)}_{str(netuid)}.pt")
 
     def load_from_path(self, path:str ) -> 'Metagraph':
         r""" Loads this metagraph object with state_dict under the specified path.
@@ -324,6 +328,7 @@ class Metagraph( torch.nn.Module ):
         self.bonds = torch.nn.Parameter( state_dict['bonds'], requires_grad=False )
         self.endpoints = torch.nn.Parameter( state_dict['endpoints'], requires_grad=False )
         self._endpoint_objs = None
+        self.info = torch.nn.Parameter( state_dict['info'], requires_grad=False )
         return self
 
     def sync ( self, netuid: int, subtensor: 'bittensor.Subtensor' = None, block: Optional[int] = None ) -> 'Metagraph':

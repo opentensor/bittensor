@@ -115,19 +115,23 @@ class metagraph:
         pass
 
     @staticmethod
-    def from_neurons( network: str, netuid: int, neurons: List['bittensor.NeuronInfo'], block: int ) -> 'bittensor.Metagraph':
+    def from_neurons( network: str, netuid: int, info: 'bittensor.SubnetInfo', neurons: List['bittensor.NeuronInfo'], block: int ) -> 'bittensor.Metagraph':
         r""" Creates a metagraph from a list of neurons.
             Args: 
                 network: (:obj:`str`, required):
                     Name of the network for the metagraph.
                 netuid: (:obj:`int`, required):
                     netuid of the subnet for the metagraph.
+                info: (:obj:`SubnetInfo`, required):
+                    SubnetInfo object for the metagraph, including the subnet's hyperparameters.
                 neurons: (:obj:`List[NeuronInfo]`, required):
                     List of neurons to create metagraph from.
                 block: (:obj:`int`, required):
                     Block number at time of the metagraph.
         """
         metagraph = metagraph_impl.Metagraph( network = network, netuid = netuid )
+        metagraph.info = info
+
         n_total = len(neurons)
 
         # Fill arrays.
