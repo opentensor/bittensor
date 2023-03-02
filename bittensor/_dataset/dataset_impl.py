@@ -22,6 +22,7 @@ import json
 import os
 import random
 import time
+import warnings
 from multiprocessing import cpu_count
 from typing import Union
 
@@ -129,7 +130,7 @@ class GenesisTextDataset( Dataset ):
         block_size,
         batch_size,
         num_workers,
-        dataset_name,
+        dataset_names,
         data_dir,
         save_dataset,
         max_datasets,
@@ -141,7 +142,7 @@ class GenesisTextDataset( Dataset ):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
-        self.dataset_name = dataset_name
+        self.dataset_names = dataset_names
         self.data_dir = data_dir
         self.save_dataset = save_dataset
         self.datafile_size_bound = 262158
@@ -152,6 +153,16 @@ class GenesisTextDataset( Dataset ):
         self.backup_dataset_cap_size = 5e7 # set 50MB limit per folder
         self.IPFS_fails_max = 10
         self.num_batches = num_batches
+
+        # Ensure dataset_names is formatted correctly
+        if isinstance(self.dataset_names, str):
+            self.dataset_names = [self.dataset_names]
+
+        allowed_datasets = bittensor.__datasets__ + ["default"]
+        for dataset_name in self.dataset_names:
+            if dataset_name not in allowed_datasets:
+                self.dataset_names.remove(dataset_name)
+                warnings.warn(f"Requested dataset {dataset_name} not in allowed datasets: {allowed_datasets}")
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -342,7 +353,7 @@ class GenesisTextDataset( Dataset ):
         directories = []
         self.IPFS_fails = 0
         
-        if self.dataset_name == 'default':
+        if self.dataset_names == ['default']:
             i = 0
             dataset_hashes = list(self.dataset_hashes.values())
             random.shuffle(dataset_hashes)
@@ -355,7 +366,7 @@ class GenesisTextDataset( Dataset ):
                     break
                     
         else:
-            for key in self.dataset_name:
+            for key in self.dataset_names:
                 if key in self.dataset_hashes.keys():
                     dataset_meta = {'Folder': 'mountain','Name': key, 'Hash': self.dataset_hashes[key]['Hash'] }  
                     directories += get_hashes(dataset_meta)
@@ -413,13 +424,13 @@ class GenesisTextDataset( Dataset ):
     def get_text_from_local(self, min_data_len):
 
         folders = os.listdir( os.path.expanduser (self.data_dir))
-        if self.dataset_name == 'default':
+        if self.dataset_names == ['default']:
             folders_avail = folders
             random.shuffle(folders_avail)
             folders_avail = folders_avail[:self.max_datasets]
         else:
             folders_avail = []
-            for dataset_name in self.dataset_name:
+            for dataset_name in self.dataset_names:
                 if dataset_name in folders:
                     folders_avail.append(dataset_name)
             random.shuffle(folders_avail)

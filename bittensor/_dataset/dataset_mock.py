@@ -33,7 +33,7 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         block_size,
         batch_size,
         num_workers,
-        dataset_name,
+        dataset_names,
         data_dir,
         save_dataset,
         max_datasets,
@@ -45,7 +45,7 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
-        self.dataset_name = dataset_name
+        self.dataset_names = dataset_names
         self.data_dir = data_dir
         self.save_dataset = save_dataset
         self.datafile_size_bound = 262158
