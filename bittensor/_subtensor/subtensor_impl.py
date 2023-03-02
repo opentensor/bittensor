@@ -790,14 +790,25 @@ class Subtensor:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
         """
+        status: Optional['rich.console.Status'] = None
         if bittensor.__use_console__:
-            with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                neurons = self.neurons( netuid = netuid, block = block )
-        else:
-            neurons = self.neurons( netuid = netuid, block = block )
+            status = bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth").start()
+        
+        # Get neurons.
+        neurons = self.neurons( netuid = netuid, block = block )
+        # Get subnet info.
+        subnet_info: Optional[bittensor.SubnetInfo] = self.get_subnet_info( netuid = netuid, block = block )
+        if subnet_info == None:
+            status.stop() if status else ...
+            raise ValueError('Could not find subnet info for netuid: {}'.format(netuid))
+
+        status.stop() if status else ...
+
         # Create metagraph.
         block_number = self.block
-        metagraph = bittensor.metagraph.from_neurons( network = self.network, neurons = neurons, netuid = netuid, block = block_number )
+
+        metagraph = bittensor.metagraph.from_neurons( network = self.network, netuid = netuid, info = subnet_info, neurons = neurons, block = block_number )
+        print("Metagraph subtensor: ", self.network)
         return metagraph
 
 
