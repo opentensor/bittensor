@@ -21,6 +21,8 @@
 import argparse
 import os
 import copy
+from typing import Union
+import warnings
 
 import bittensor
 from . import dataset_impl
@@ -43,11 +45,12 @@ class dataset:
             block_size: int = None,
             batch_size: int = None,
             num_workers: int = None,
-            dataset_name: list = [],
+            dataset_names: Union[list, str] = None,
             save_dataset: bool=None,
             no_tokenizer: bool=None,
             num_batches: int = None,
-            _mock:bool=None
+            _mock:bool=None,
+            dataset_name: list = None, # For backwards compatibility
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
             Args:
@@ -59,7 +62,7 @@ class dataset:
                     Batch size.
                 num_workers (:obj:`int`, `optional`):
                     Number of workers for data loader.
-                dataset_name (:obj:`list`, `optional`):
+                dataset_names (:obj:`list`,`str`, `optional`):
                     Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, 
                     Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).
                 save_dataset (:obj:`bool`, `optional`):
@@ -77,18 +80,23 @@ class dataset:
         config.dataset.block_size = block_size if block_size != None else config.dataset.block_size
         config.dataset.batch_size = batch_size if batch_size != None else config.dataset.batch_size
         config.dataset.num_workers = num_workers if num_workers != None else config.dataset.num_workers
-        config.dataset.dataset_name = dataset_name if dataset_name != [] else config.dataset.dataset_name
+        config.dataset.dataset_names = dataset_names if dataset_names != None else config.dataset.dataset_names
         config.dataset.save_dataset = save_dataset if save_dataset != None else config.dataset.save_dataset
         config.dataset.no_tokenizer = no_tokenizer if no_tokenizer != None else config.dataset.no_tokenizer
         config.dataset.num_batches = num_batches if num_batches != None else config.dataset.num_batches
         config.dataset._mock = _mock if _mock != None else config.dataset._mock
         dataset.check_config( config )
+
+        if dataset_name is not None:
+            warnings.warn("dataset_name as a parameter is deprecated and will be removed in a future release. Use `dataset_names` instead.", DeprecationWarning)
+            config.dataset.dataset_names = dataset_name
+
         if config.dataset._mock:
             return dataset_mock.MockGenesisTextDataset(
                 block_size = config.dataset.block_size,
                 batch_size = config.dataset.batch_size,
                 num_workers = config.dataset.num_workers,
-                dataset_name = config.dataset.dataset_name,
+                dataset_names = config.dataset.dataset_names,
                 data_dir = config.dataset.data_dir,
                 save_dataset = config.dataset.save_dataset,
                 max_datasets = config.dataset.max_datasets,
@@ -100,7 +108,7 @@ class dataset:
                 block_size = config.dataset.block_size,
                 batch_size = config.dataset.batch_size,
                 num_workers = config.dataset.num_workers,
-                dataset_name = config.dataset.dataset_name,
+                dataset_names = config.dataset.dataset_names,
                 data_dir = config.dataset.data_dir,
                 save_dataset = config.dataset.save_dataset,
                 max_datasets = config.dataset.max_datasets,
@@ -110,7 +118,7 @@ class dataset:
 
     @classmethod
     def mock(cls):
-        return dataset( _mock = True, dataset_name = ['Books3'])
+        return dataset( _mock = True, dataset_names = ['Books3'])
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
@@ -130,8 +138,8 @@ class dataset:
             parser.add_argument('--' + prefix_str + 'dataset.batch_size', type=int, help='Batch size.', default = bittensor.defaults.dataset.batch_size)
             parser.add_argument('--' + prefix_str + 'dataset.block_size', type=int, help='Number of text items to pull for each example..', default = bittensor.defaults.dataset.block_size)
             parser.add_argument('--' + prefix_str + 'dataset.num_workers',  type=int, help='Number of workers for data loader.', default = bittensor.defaults.dataset.num_workers)
-            parser.add_argument('--' + prefix_str + 'dataset.dataset_name', type=str, required=False, nargs='*', action='store', help='Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).',
-                                                                    default = bittensor.defaults.dataset.dataset_name)
+            parser.add_argument('--' + prefix_str + 'dataset.dataset_names', type=str, required=False, nargs='*', action='store', help='Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).',
+                                                                    default = bittensor.defaults.dataset.dataset_names)
             parser.add_argument('--' + prefix_str + 'dataset.data_dir', type=str, help='Where to save and load the data.', default = bittensor.defaults.dataset.data_dir)
             parser.add_argument('--' + prefix_str + 'dataset.save_dataset', action='store_true', help='Save the downloaded dataset or not.', default = bittensor.defaults.dataset.save_dataset)
             parser.add_argument('--' + prefix_str + 'dataset.max_datasets',  type=int, help='Number of datasets to load', default = bittensor.defaults.dataset.max_datasets)
@@ -160,7 +168,7 @@ class dataset:
         defaults.dataset.batch_size = os.getenv('BT_DATASET_BATCH_SIZE') if os.getenv('BT_DATASET_BATCH_SIZE') != None else 10
         defaults.dataset.block_size = os.getenv('BT_DATASET_BLOCK_SIZE') if os.getenv('BT_DATASET_BLOCK_SIZE') != None else 20
         defaults.dataset.num_workers = os.getenv('BT_DATASET_NUM_WORKERS') if os.getenv('BT_DATASET_NUM_WORKERS') != None else 0
-        defaults.dataset.dataset_name = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
+        defaults.dataset.dataset_names = os.getenv('BT_DATASET_DATASET_NAME') if os.getenv('BT_DATASET_DATASET_NAME') != None else 'default'
         defaults.dataset.data_dir = os.getenv('BT_DATASET_DATADIR') if os.getenv('BT_DATASET_DATADIR') != None else '~/.bittensor/data/'
         defaults.dataset.save_dataset = os.getenv('BT_DATASET_SAVE_DATASET') if os.getenv('BT_DATASET_SAVE_DATASET') != None else False
         defaults.dataset.max_datasets = os.getenv('BT_DATASET_MAX_DATASETS') if os.getenv('BT_DATASET_MAX_DATASETS') != None else 3
