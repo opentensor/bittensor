@@ -926,15 +926,18 @@ class TestCli(unittest.TestCase):
         mock_wallets[1].coldkey = MagicMock(
                                     return_value=mock_coldkey
                                 )
-        mock_wallets[1].get_balance = MagicMock(
-            return_value = mock_balance
-        )
         
         cli = bittensor.cli(config)
-
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
-            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
+            with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake: 
+                patcher_hotkey_registered = patch('bittensor.Subtensor.is_hotkey_registered_any', return_value=True)
+                patcher_get_stake = patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', side_effect= mock_stakes.values())
+                patcher_get_balance = patch('bittensor.Subtensor.get_balance', return_value=mock_balance)
+                
+                patcher_hotkey_registered.start() # as is_hotkey_registered:
+                patcher_get_stake.start()
+                patcher_get_balance.start()
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -943,10 +946,17 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
                 mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao), 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
+                    [call(
+                        wallet=mock_wallets[0],
+                        hotkey_ss58s=[w.hotkey.ss58_address for w in mock_wallets[1:]],
+                        amounts=[CLOSE_IN_VALUE(config.max_stake - mock_stakes[mock_wallet.hotkey_str].tao, 0.001) for mock_wallet in mock_wallets[1:]], 
+                        wait_for_inclusion=True, 
+                        prompt=False)],
                     any_order = True
                 )
-
+                patcher_hotkey_registered.stop() # as is_hotkey_registered:
+                patcher_get_stake.stop()
+                patcher_get_balance.stop()
     def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance( self ):        
         config = self.config
         config.command = "stake"
