@@ -957,6 +957,7 @@ class TestCli(unittest.TestCase):
                 patcher_hotkey_registered.stop() # as is_hotkey_registered:
                 patcher_get_stake.stop()
                 patcher_get_balance.stop()
+    
     def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance( self ):        
         config = self.config
         config.command = "stake"
@@ -1029,6 +1030,11 @@ class TestCli(unittest.TestCase):
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake', return_value=True) as mock_add_stake:
+                patcher_hotkey_registered = patch('bittensor.Subtensor.is_hotkey_registered_any', return_value=True)
+                patcher_get_balance = patch('bittensor.Subtensor.get_balance', return_value=mock_balance)
+                patcher_hotkey_registered.start() 
+                patcher_get_balance.start()
+
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -1046,6 +1052,8 @@ class TestCli(unittest.TestCase):
                 
                 # We should not try to stake more than the mock_balance
                 self.assertAlmostEqual(total_staked, mock_balance.tao, delta=0.001)
+                patcher_hotkey_registered.stop() 
+                patcher_get_balance.stop()
 
     def test_stake_with_single_hotkey_max_stake( self ):        
         config = self.config
