@@ -21,19 +21,19 @@ from unittest.mock import MagicMock
 logging = bittensor.logging()
 
 def test_construct_text_corpus():
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, save_dataset = True, dataset_name = constant.dataset.dataset_name)
+    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, save_dataset = True, dataset_names = constant.dataset.dataset_names)
     dataset.construct_text_corpus()
     dataset.close()
 
 def test_next():
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
+    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_names = constant.dataset.dataset_names)
     next(dataset)
     next(dataset)
     next(dataset)
     dataset.close()
 
 def test_mock():
-    dataset = bittensor.dataset(_mock=True, dataset_name = constant.dataset.dataset_name)
+    dataset = bittensor.dataset(_mock=True, dataset_names = constant.dataset.dataset_names)
     next(dataset)
     next(dataset)
     next(dataset)
@@ -47,7 +47,7 @@ def test_mock_function():
     dataset.close()
 
 def test_fail_IPFS_server():
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
+    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_names = constant.dataset.dataset_names)
     dataset.requests_retry_session = MagicMock(return_value = None)
     next(dataset)
     next(dataset)
@@ -57,7 +57,7 @@ def test_fail_IPFS_server():
 def test_change_data_size():
     data_sizes = [(10,20), (15.5, 20.5),(30, 40), (25,35)]
     result_data_sizes = [(10,20), (10,20),(30, 40), (25,35)]
-    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_name = constant.dataset.dataset_name)
+    dataset = bittensor.dataset(num_batches = constant.dataset.num_batches, dataset_names = constant.dataset.dataset_names)
     for data_size, result_data_size in zip(data_sizes, result_data_sizes):
         dataset.set_data_size(*data_size)
         assert next(dataset).size() == result_data_size
