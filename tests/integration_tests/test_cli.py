@@ -599,6 +599,13 @@ class TestCli(unittest.TestCase):
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
+                patcher_hotkey_registered = patch('bittensor.Subtensor.is_hotkey_registered_any', return_value=True)
+                patcher_hotkey_registered.start()
+                patcher_get_stake = patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', side_effect= mock_stakes.values())
+                patcher_get_stake.start()
+                # patcher_get_balance = patch('bittensor.Subtensor.get_balance', return_value=mock_balance)
+                # patcher_get_balance.start()
+
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -606,10 +613,29 @@ class TestCli(unittest.TestCase):
                     ],
                     any_order=True
                 )
+
+                print(
+                    '\n', "check",
+                    '\n', mock_wallets[0],
+                    '\n', [w.hotkey.ss58_address for w in mock_wallets[1:]],
+                    '\n', [(mock_stakes[mock_wallet.hotkey_str].tao - config.max_stake) for mock_wallet in mock_wallets[1:]], 
+                    '\n', True, 
+                    '\n', False
+                )
+                print(mock_wallets[0] == mock_wallets[0])
                 mock_unstake.assert_has_calls(
-                    [call(wallets=mock_wallets[1:], amounts=[CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str].tao - config.max_stake), 0.001) for mock_wallet in mock_wallets[1:]], wait_for_inclusion=True, prompt=False)],
+                    [call(
+                        wallet=mock_wallets[0],
+                        hotkey_ss58s = [w.hotkey.ss58_address for w in mock_wallets[1:]],
+                        amounts=[CLOSE_IN_VALUE((mock_stakes[mock_wallet.hotkey_str].tao - config.max_stake), 0.0001) for mock_wallet in mock_wallets[1:]], 
+                        wait_for_inclusion=True, 
+                        prompt=False
+                    )],
                     any_order = True
                 )
+
+                patcher_hotkey_registered.stop()
+                patcher_get_stake.stop()
 
     def test_unstake_with_multiple_hotkeys_max_stake_not_enough_stake( self ):        
         config = self.config
