@@ -603,8 +603,6 @@ class TestCli(unittest.TestCase):
                 patcher_hotkey_registered.start()
                 patcher_get_stake = patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', side_effect= mock_stakes.values())
                 patcher_get_stake.start()
-                # patcher_get_balance = patch('bittensor.Subtensor.get_balance', return_value=mock_balance)
-                # patcher_get_balance.start()
 
                 cli.run()
                 mock_create_wallet.assert_has_calls(
@@ -652,7 +650,6 @@ class TestCli(unittest.TestCase):
         config.no_version_checking = False
 
         mock_coldkey = "" # Not None
-        mock_hotkey = SimpleNamespace(ss58_address = "0x" + ''.join([str('A') for i in range(64)])) 
 
         mock_stakes: Dict[str, float] = {
             # hk1 has less than 5.0 stake
@@ -665,7 +662,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = config.hotkeys[0],
-                hotkey = mock_hotkey,
+                hotkey = SimpleNamespace(ss58_address = "0x" + config.hotkeys[0] + ''.join([str('A') for i in range(64 - len(config.hotkeys[0]))])) ,
                 get_stake = MagicMock(
                     return_value = mock_stakes[config.hotkeys[0]]
                 ),
@@ -682,7 +679,7 @@ class TestCli(unittest.TestCase):
             SimpleNamespace(
                 name = config.wallet.name,
                 hotkey_str = hk,
-                hotkey = mock_hotkey,
+                hotkey = SimpleNamespace(ss58_address = "0x" + hk + ''.join([str('A') for i in range(64 - len(config.hotkeys[0]))])),
                 get_stake = MagicMock(
                     return_value = mock_stakes[hk]
                 ),
@@ -703,6 +700,10 @@ class TestCli(unittest.TestCase):
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
+                patcher_hotkey_registered = patch('bittensor.Subtensor.is_hotkey_registered_any', return_value=True)
+                patcher_hotkey_registered.start()
+                patcher_get_stake = patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', side_effect= mock_stakes.values())
+                patcher_get_stake.start()
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -717,12 +718,15 @@ class TestCli(unittest.TestCase):
                 ## Uses the 1st index as args list
                 ## call.args only works in Python 3.8+
                 args, kwargs = mock_unstake.call_args
-                mock_wallets_ = kwargs['wallets']
+                mock_hotkeys = kwargs['hotkey_ss58s']
+                print(mock_hotkeys)
                 
-
                 # We shouldn't unstake from hk1 as it has less than max_stake staked
-                assert all(mock_wallet.hotkey_str != 'hk1' for mock_wallet in mock_wallets_)
+                assert all(mock_hotkey[2:2+len('hk1')] != 'hk1' for mock_hotkey in mock_hotkeys)
 
+                patcher_hotkey_registered.stop()
+                patcher_get_stake.stop()
+                
     def test_stake_with_specific_hotkeys( self ):        
         config = self.config
         config.command = "stake"
