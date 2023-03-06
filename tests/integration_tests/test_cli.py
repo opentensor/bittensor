@@ -419,6 +419,8 @@ class TestCli(unittest.TestCase):
             with patch('bittensor.Subtensor.unstake_multiple', return_value=True) as mock_unstake:
                 patcher_hotkey_registered = patch('bittensor.Subtensor.is_hotkey_registered_any', return_value=True)
                 patcher_hotkey_registered.start()
+                patcher_get_stake = patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', side_effect= mock_stakes.values())
+                patcher_get_stake.start()
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -426,10 +428,17 @@ class TestCli(unittest.TestCase):
                     ],
                     any_order=True
                 )
+                print(
+                    '\n', mock_wallets[0], 
+                    '\n', [w.hotkey.ss58_address for w in mock_wallets],
+                    '\n', [5.0]*len(mock_wallets[1:]), 
+                    '\n', True, 
+                    '\n', False
+                )
                 mock_unstake.assert_has_calls(
                     [call(
                             wallet=mock_wallets[0], 
-                            hotkey_ss58s = [hk.hotkey.ss58_address for hk in config.hotkeys],
+                            hotkey_ss58s = [w.hotkey.ss58_address for w in mock_wallets[1:]],
                             amounts=[5.0]*len(mock_wallets[1:]), 
                             wait_for_inclusion=True, 
                             prompt=False
@@ -437,6 +446,7 @@ class TestCli(unittest.TestCase):
                     any_order = True
                 )
                 patcher_hotkey_registered.stop()
+                patcher_get_stake.stop()
     def test_unstake_with_all_hotkeys( self ):
         config = self.config
         config.command = "unstake"
