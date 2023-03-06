@@ -1547,8 +1547,7 @@ class TestCLIUsingArgs(unittest.TestCase):
 
                 assert mock_neuron.call_count == 1
                 args, kwargs = mock_neuron.call_args
-
-                assert len(args) == 0 and len(kwargs) == 0 # should not have any args; indicates that "All" synapses are being used
+                assert len(args) == 0 and len(kwargs) == 1 # should not have any args except netuid; indicates that "All" synapses are being used
 
 
 if __name__ == '__main__':
