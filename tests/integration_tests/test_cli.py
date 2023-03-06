@@ -412,13 +412,6 @@ class TestCli(unittest.TestCase):
                     ],
                     any_order=True
                 )
-                print(
-                    '\n', mock_wallets[0], 
-                    '\n', [w.hotkey.ss58_address for w in mock_wallets],
-                    '\n', [5.0]*len(mock_wallets[1:]), 
-                    '\n', True, 
-                    '\n', False
-                )
                 mock_unstake.assert_has_calls(
                     [call(
                             wallet=mock_wallets[0], 
@@ -511,15 +504,6 @@ class TestCli(unittest.TestCase):
                     any_order=True
                 )
 
-                print(
-                    '\n', "check",
-                    '\n', mock_wallets[0],
-                    '\n', [w.hotkey.ss58_address for w in mock_wallets[1:]],
-                    '\n', [(mock_stakes[mock_wallet.hotkey_str].tao - config.max_stake) for mock_wallet in mock_wallets[1:]], 
-                    '\n', True, 
-                    '\n', False
-                )
-                print(mock_wallets[0] == mock_wallets[0])
                 mock_unstake.assert_has_calls(
                     [call(
                         wallet=mock_wallets[0],
@@ -618,7 +602,6 @@ class TestCli(unittest.TestCase):
                 ## call.args only works in Python 3.8+
                 args, kwargs = mock_unstake.call_args
                 mock_hotkeys = kwargs['hotkey_ss58s']
-                print(mock_hotkeys)
                 
                 # We shouldn't unstake from hk1 as it has less than max_stake staked
                 assert all(mock_hotkey[2:2+len('hk1')] != 'hk1' for mock_hotkey in mock_hotkeys)
