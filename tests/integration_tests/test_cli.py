@@ -780,6 +780,8 @@ class TestCli(unittest.TestCase):
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_wallets
             with patch('bittensor.Subtensor.add_stake_multiple', return_value=True) as mock_add_stake:
+                patcher_hotkey_registered = patch('bittensor.Subtensor.is_hotkey_registered_any', return_value=True)
+                patcher_hotkey_registered.start()
                 cli.run()
                 mock_create_wallet.assert_has_calls(
                     [
@@ -787,10 +789,18 @@ class TestCli(unittest.TestCase):
                     ],
                     any_order=True
                 )
+
                 mock_add_stake.assert_has_calls(
-                    [call(wallets=mock_wallets[1:], amounts=[5.0] * len(mock_wallets[1:]), wait_for_inclusion=True, prompt=False)],
+                    [call(
+                            wallet=mock_wallets[0], 
+                            hotkey_ss58s = [mock_hotkey.ss58_address for hk in config.hotkeys],
+                            amounts=[5.0] * len(mock_wallets[1:]), 
+                            wait_for_inclusion=True, 
+                            prompt=False
+                        )],
                     any_order = True
                 )
+                patcher_hotkey_registered.stop()
 
     def test_stake_with_all_hotkeys( self ):        
         config = self.config
