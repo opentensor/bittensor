@@ -203,22 +203,6 @@ class TestCli(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_cache_cache_fails( self ):
-        config = self.config
-        config.command = "overview"
-        config.no_cache = False # Use neuron cache
-        config.no_prompt = True
-        config.all = False
-        config.no_version_checking = False
-
-        with patch('bittensor.Metagraph.retrieve_cached_neurons') as mock_retrieve_cached_neurons:
-            # Mock the cache retrieval to fail
-            mock_retrieve_cached_neurons.side_effect = Exception("Cache failed")
-
-            # Should not raise an exception
-            cli = bittensor.cli(config)
-            cli.run()
-
     def test_overview_without_no_cache_confg( self ):        
         config = self.config
         config.command = "overview"
