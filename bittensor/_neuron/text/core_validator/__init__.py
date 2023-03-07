@@ -48,7 +48,6 @@ from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 from threading import Lock
 from prometheus_client import Counter, Gauge, Histogram, Summary, Info
-import copy
 
 logger = logger.opt( colors=True )
 console = Console()
