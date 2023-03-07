@@ -118,6 +118,7 @@ class RegenColdkeyCommand:
             help='''Overwrite the old coldkey with the newly generated coldkey'''
         )
         bittensor.wallet.add_args( regen_coldkey_parser )
+        bittensor.subtensor.add_args( regen_coldkey_parser )
 
 
 class RegenColdkeypubCommand:
@@ -180,6 +181,7 @@ class RegenColdkeypubCommand:
             help='''Overwrite the old coldkeypub file with the newly generated coldkeypub'''
         )
         bittensor.wallet.add_args( regen_coldkeypub_parser )
+        bittensor.subtensor.add_args( regen_coldkeypub_parser )
 
 class RegenHotkeyCommand:
 
@@ -282,6 +284,7 @@ class RegenHotkeyCommand:
             help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( regen_hotkey_parser )
+        bittensor.subtensor.add_args( regen_hotkey_parser )
     
 
 
@@ -339,6 +342,7 @@ class NewHotkeyCommand:
             help='''Overwrite the old hotkey with the newly generated hotkey'''
         )
         bittensor.wallet.add_args( new_hotkey_parser ) 
+        bittensor.subtensor.add_args( new_hotkey_parser )
 
 
 class NewColdkeyCommand:
@@ -394,3 +398,4 @@ class NewColdkeyCommand:
             help='''Overwrite the old coldkey with the newly generated coldkey'''
         )
         bittensor.wallet.add_args( new_coldkey_parser )
+        bittensor.subtensor.add_args( new_coldkey_parser )

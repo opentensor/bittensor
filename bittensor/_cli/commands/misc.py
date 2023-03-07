@@ -57,6 +57,7 @@ class HelpCommand:
             default='None', 
         )
         help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+        bittensor.subtensor.add_args( help_parser )
 
 class UpdateCommand:
     @staticmethod
@@ -86,6 +87,7 @@ class UpdateCommand:
             default=False,
         )
         update_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+        bittensor.subtensor.add_args( update_parser )
 
 class ListSubnetsCommand:
     @staticmethod
@@ -96,7 +98,7 @@ class ListSubnetsCommand:
 
         rows = []
         total_neurons = 0
-        
+
         for subnet in subnets:
             total_neurons += subnet.max_n
             rows.append((
@@ -109,7 +111,7 @@ class ListSubnetsCommand:
                 str(subnet.validator_sequence_length),
                 str(subnet.tempo),
                 str(subnet.modality),
-                str(list(subnet.connection_requirements.keys())),
+                str([cr[1] for cr in subnet.connection_requirements]),
                 str(subnet.emission_value),
             ))
 

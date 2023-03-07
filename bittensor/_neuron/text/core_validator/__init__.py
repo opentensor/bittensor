@@ -102,11 +102,11 @@ class neuron:
         config.netuid = netuid if netuid != None else config.netuid
 
         subtensor = bittensor.subtensor ( config = config ) if subtensor == None else subtensor
-        if config.netuid == None:
+        if config.subtensor.network == 'finney' and config.netuid == None:
             config.netuid = subtensor.get_subnets()[0]
 
         # Verify subnet exists
-        if not subtensor.subnet_exists( netuid = config.netuid ):
+        if config.subtensor.network == 'finney' and not subtensor.subnet_exists( netuid = config.netuid ):
             bittensor.__console__.print(f"[red]Subnet {config.netuid} does not exist[/red]")
             sys.exit(1)
 
@@ -147,9 +147,15 @@ class neuron:
         self.axon = bittensor.axon ( netuid=self.config.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
-        self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.netuid),
-                                          block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
-                        if dataset is None else dataset)
+        if self.config.subtensor.network == 'finney':
+            self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size(self.config.netuid),
+                                            block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
+                            if dataset is None else dataset)
+        else:
+            self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
+                                            block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len +  self.subtensor.validator_prune_len)
+                            if dataset is None else dataset)
+
         self.optimizer = torch.optim.SGD(
             self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum
         )
@@ -371,19 +377,31 @@ class neuron:
         """
         # === Get params for epoch ===
         # Pulling the latest chain parameters.
+        if self.config.subtensor.network == 'finney':
+            batch_size = self.subtensor.validator_batch_size(netuid=self.config.netuid)
+            sequence_length = self.subtensor.validator_sequence_length(netuid=self.config.netuid)
+            # Number of tokens to prune for phrase validation beyond sequence context
+            prune_len = self.config.neuron.prune_len = self.subtensor.validator_prune_len(netuid=self.config.netuid)
+            self.config.nucleus.logits_divergence = self.subtensor.validator_logits_divergence(netuid=self.config.netuid)
+            min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)
+            max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
+            self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power(netuid=self.config.netuid)
+            self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power(netuid=self.config.netuid)
+        else:
+            batch_size = self.subtensor.validator_batch_size
+            sequence_length = self.subtensor.validator_sequence_length
+            # Number of tokens to prune for phrase validation beyond sequence context
+            prune_len = self.config.neuron.prune_len = self.subtensor.validator_prune_len
+            self.config.nucleus.logits_divergence = self.subtensor.validator_logits_divergence
+            min_allowed_weights = self.subtensor.min_allowed_weights
+            max_weight_limit = self.subtensor.max_weight_limit
+            self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power
+            self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power
+
         current_block = self.subtensor.block
-        batch_size = self.subtensor.validator_batch_size(netuid=self.config.netuid)
-        sequence_length = self.subtensor.validator_sequence_length(netuid=self.config.netuid)
         validation_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
-        # Number of tokens to prune for phrase validation beyond sequence context
-        prune_len = self.config.neuron.prune_len = self.subtensor.validator_prune_len(netuid=self.config.netuid)
-        self.config.nucleus.logits_divergence = self.subtensor.validator_logits_divergence(netuid=self.config.netuid)
-        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)
-        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
-        blocks_per_epoch = self.subtensor.validator_epoch_length(netuid=self.config.netuid) if self.config.neuron.blocks_per_epoch == -1 else self.config.neuron.blocks_per_epoch
-        epochs_until_reset = self.subtensor.validator_epochs_per_reset(netuid=self.config.netuid) if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
-        self.config.nucleus.scaling_law_power = self.subtensor.scaling_law_power(netuid=self.config.netuid)
-        self.config.nucleus.synergy_scaling_law_power = self.subtensor.synergy_scaling_law_power(netuid=self.config.netuid)
+        epochs_until_reset = self.get_validator_epochs_per_reset() if self.config.neuron.epochs_until_reset == -1 else self.config.neuron.epochs_until_reset
+        blocks_per_epoch = self.get_validator_epoch_length()
 
         # === Update dataset size ===
         if (batch_size != self.dataset.batch_size) or (sequence_length + validation_len + prune_len != self.dataset.block_size):
@@ -515,8 +533,8 @@ class neuron:
                 # console table - weight table (every validation step)
                 sample_uids, sample_weights = self.calculate_weights()
                 self.vlogger.print_weights_table(
-                    min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid),
-                    max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid),
+                    min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
+                    max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.max_weight_limit,
                     neuron_stats = self.neuron_stats,
                     title = str(self),
                     metagraph_n = self.metagraph.n, 
@@ -553,22 +571,22 @@ class neuron:
             weights=sample_weights.detach().to('cpu'),
             netuid = self.config.netuid,
             wallet=self.wallet,
-            version_key=bittensor.__version_as_int__, # TODO: correct?
+            version_key=1,
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
         # === ALL end of epoch logging (including console message, console table, prometheus, wandb)===
         if self.config.logging.debug or self.config.logging.trace:
                 # console table - weight table (every end of epoch)
-                self.vlogger.print_weights_table(
-                    min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid),
-                    max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid),
-                    neuron_stats = self.neuron_stats,
-                    title = str(self),
-                    metagraph_n = self.metagraph.n, 
-                    sample_uids = sample_uids, 
-                    sample_weights = sample_weights,
-                )  
+            self.vlogger.print_weights_table(
+                min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
+                max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
+                neuron_stats = self.neuron_stats,
+                title = str(self),
+                metagraph_n = self.metagraph.n, 
+                sample_uids = sample_uids, 
+                sample_weights = sample_weights,
+            )  
 
         # console message - subtensor weight (every end of epoch)
         self.vlogger.print_console_subtensor_weight(
@@ -708,8 +726,9 @@ class neuron:
 
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
 
-        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid)
-        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else  self.subtensor.max_weight_limit
+
 
         # === Populate neuron weights ===
         neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs for min_allowed_weights
@@ -727,7 +746,11 @@ class neuron:
 
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
-        quantile = self.subtensor.validator_exclude_quantile(netuid=self.config.netuid) if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
+        
+        if self.config.subtensor.network == 'finney':  
+            quantile = self.subtensor.validator_exclude_quantile(netuid=self.config.netuid) if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
+        else:
+            quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
         if 0 < max_exclude:
             exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
             lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
@@ -745,6 +768,16 @@ class neuron:
 
         return sample_uids, sample_weights
 
+    def get_validator_epoch_length(self):
+        validator_epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.subtensor.network == 'finney' else self.subtensor.validator_epoch_length
+        
+        return validator_epoch_length
+
+    def get_validator_epochs_per_reset(self):
+        validator_epochs_per_reset = self.subtensor.validator_epochs_per_reset(self.config.netuid) if self.subtensor.network == 'finney' else self.subtensor.validator_epochs_per_reset
+        
+        return validator_epochs_per_reset
+
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
     """
@@ -752,12 +785,19 @@ class nucleus( torch.nn.Module ):
         super(nucleus, self).__init__()
         self.config = config
         self.vlogger = vlogger
-        self.config.nucleus.logits_divergence = subtensor.validator_logits_divergence(netuid=self.config.netuid) if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
-        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+
+        if self.config.subtensor.network == 'finney':
+            self.config.nucleus.logits_divergence = subtensor.validator_logits_divergence(netuid=self.config.netuid) if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
+            self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+            self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+            self.max_n = subtensor.max_n(netuid=self.config.netuid)
+        else:
+            self.config.nucleus.logits_divergence = subtensor.validator_logits_divergence if self.config.nucleus.logits_divergence == -1 else self.config.nucleus.logits_divergence
+            self.config.nucleus.scaling_law_power = subtensor.scaling_law_power if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
+            self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
+            self.max_n = subtensor.max_n
 
         self.device = device
-        self.max_n = subtensor.max_n(netuid=self.config.netuid)
         self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
 
         tokenizer = bittensor.tokenizer()
@@ -1533,3 +1573,5 @@ def unsuccess(_name, _unsuccessful):
     for _uid, _return_op, _time in _unsuccessful:
         unsuccess_txt += f'{_uid}[<red>{_return_op}</red> <yellow>{_time:.2f}</yellow>] '
     logger.info(unsuccess_txt)
+
+    
