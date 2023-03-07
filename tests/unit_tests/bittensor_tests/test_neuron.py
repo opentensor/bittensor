@@ -341,7 +341,7 @@ class TestBlacklist(unittest.TestCase):
                 mock_hotkey,
                 mock_hotkey_1,
             ],
-            total_stake=[
+            S=[
                 torch.tensor(100), # stake for mock_hotkey, uid 0
                 torch.tensor(1001), # stake for mock_hotkey_1, uid 1
             ]
