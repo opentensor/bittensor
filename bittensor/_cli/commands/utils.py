@@ -36,28 +36,28 @@ class IntListPrompt(PromptBase):
 
 
 def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtensor', allow_none: bool = False ):
+    if subtensor.network =='finney':
+        all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
+        if len(all_netuids) == 0:
+            console.print(":cross_mark:[red]There are no open networks.[/red]")
+            sys.exit()
 
-    all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
-    if len(all_netuids) == 0:
-        console.print(":cross_mark:[red]There are no open networks.[/red]")
-        sys.exit()
-
-    # Make sure netuid is set.
-    if config.get('netuid', 'notset') == 'notset':
-        if not config.no_prompt:
-            netuid = IntListPrompt.ask("Enter netuid", choices=all_netuids, default=str(all_netuids[0]))
+        # Make sure netuid is set.
+        if config.get('netuid', 'notset') == 'notset':
+            if not config.no_prompt:
+                netuid = IntListPrompt.ask("Enter netuid", choices=all_netuids, default=str(all_netuids[0]))
+            else:
+                netuid = str(bittensor.defaults.netuid) if not allow_none else 'None'
         else:
-            netuid = str(bittensor.defaults.netuid) if not allow_none else 'None'
-    else:
-        netuid = config.netuid
-        
-    if isinstance(netuid, str) and netuid.lower() in ['none'] and allow_none:
-        config.netuid = None
-    else:
-        try:
-            config.netuid = int(netuid)
-        except ValueError:
-            raise ValueError('netuid must be an integer or "None" (if applicable)')
+            netuid = config.netuid
+            
+        if isinstance(netuid, str) and netuid.lower() in ['none'] and allow_none:
+            config.netuid = None
+        else:
+            try:
+                config.netuid = int(netuid)
+            except ValueError:
+                raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
 def check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
