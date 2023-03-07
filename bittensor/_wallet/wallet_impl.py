@@ -177,7 +177,7 @@ class Wallet():
                     Is the wallet registered on the chain.
         """
         if subtensor == None: subtensor = bittensor.subtensor(self.config)
-        if self.config.subtensor.network == 'finney':
+        if subtensor.network == 'finney':
             if netuid == None:
                 return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
             else:

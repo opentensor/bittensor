@@ -125,7 +125,7 @@ def serve_extrinsic (
     with bittensor.__console__.status(":satellite: Serving axon on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
         with subtensor.substrate as substrate:
             call = substrate.compose_call(
-                call_module='Paratensor',
+                call_module='SubtensorModule',
                 call_function='serve_axon',
                 call_params=params
             )

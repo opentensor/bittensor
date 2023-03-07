@@ -81,7 +81,7 @@ def set_weights_extrinsic(
         try:
             with subtensor.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module='Paratensor',
+                    call_module='SubtensorModule',
                     call_function='set_weights',
                     call_params = {
                         'dests': weight_uids,
