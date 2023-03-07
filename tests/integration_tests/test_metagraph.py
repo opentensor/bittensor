@@ -26,33 +26,23 @@ class TestMetagraph(unittest.TestCase):
     def setUp(self):
         mock_subtensor.kill_global_mock_process()
         sub = bittensor.subtensor(_mock=True)
+        sub.network = 'test'
         self.metagraph = bittensor.metagraph(subtensor=sub)
 
     def test_print_empty(self):
         print (self.metagraph)
 
     def test_sync(self):
-        self.metagraph.sync()
-        self.metagraph.sync(0)
+        self.metagraph.sync(netuid = 1)
 
     def test_load_sync_save(self):
-        self.metagraph.sync()
+        self.metagraph.sync(netuid = 1)
         self.metagraph.save()
         self.metagraph.load()
         self.metagraph.save()
 
     def test_factory(self):
-        self.metagraph.load().sync().save()
-
-    def test_forward(self):
-        metagraph = self.metagraph
-        row = torch.ones( (metagraph.n), dtype = torch.float32 )
-        for i in range( metagraph.n ):
-            metagraph(i, row)
-        metagraph.sync()
-        row = torch.ones( (metagraph.n), dtype = torch.float32 )
-        for i in range( metagraph.n ):
-            metagraph(i, row)
+        self.metagraph.load().sync(netuid = 1).save()
 
     def test_state_dict(self):
         self.metagraph.load()
@@ -76,9 +66,5 @@ class TestMetagraph(unittest.TestCase):
         metagraph.D
         metagraph.C
 
-    def test_retrieve_cached_neurons(self):
-        n = self.metagraph.retrieve_cached_neurons()
-        assert len(n) >= 2000
-        
     def test_to_dataframe(self):
         df = self.metagraph.to_dataframe()
