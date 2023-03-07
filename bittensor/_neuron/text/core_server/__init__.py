@@ -93,7 +93,7 @@ class neuron:
         seq2seq = None,
         synapse_list = None,
         netuid = None,
-        blacklist_hotkeys = [],
+        blacklist_hotkeys = None,
     ):
         if config is None:
             config = server.config()
@@ -124,7 +124,7 @@ class neuron:
         config.neuron.causallm = causallm if causallm != None else config.neuron.causallm
         config.neuron.causallmnext = causallmnext if causallmnext is not None else config.neuron.causallmnext
         config.neuron.seq2seq = seq2seq if seq2seq != None else config.neuron.seq2seq
-        config.neuron.blacklist.hotkeys = blacklist_hotkeys if blacklist_hotkeys != [] else config.neuron.blacklist.hotkeys
+        config.neuron.blacklist.hotkeys = blacklist_hotkeys if blacklist_hotkeys != None else config.neuron.blacklist.hotkeys
 
         self.check_config( config )
         self.config = config
@@ -427,33 +427,34 @@ class neuron:
         ## Uid that sent the request
         incoming_uid = self.metagraph.hotkeys.index(hotkey)
         if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
-            
-            if self.metagraph.S[incoming_uid] < self.config.neuron.lasthidden_stake:
+            if self.metagraph.S[incoming_uid] < self.config.neuron.lasthidden_stake \
+                or (batch_size > self.config.neuron.max_batch_size) \
+                or (sequence_len > self.config.neuron.max_sequence_len):
                 return False
             
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
             batch_size, sequence_len  =  inputs_x[0].size()
             if (self.metagraph.S[incoming_uid] < self.config.neuron.causallm_stake) \
-                and (batch_size > self.config.neuron.max_batch_size) \
-                and (sequence_len > self.config.neuron.max_sequence_len):
+                or (batch_size > self.config.neuron.max_batch_size) \
+                or (sequence_len > self.config.neuron.max_sequence_len):
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
             batch_size, sequence_len  =  inputs_x[0].size()
             if (self.metagraph.S[incoming_uid] < self.config.neuron.causallmnext_stake) \
-                and (batch_size > self.config.neuron.max_batch_size) \
-                and (sequence_len > self.config.neuron.max_sequence_len):
+                or (batch_size > self.config.neuron.max_batch_size) \
+                or (sequence_len > self.config.neuron.max_sequence_len):
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
             batch_size, sequence_len  =  inputs_x[0].size()
             if (self.metagraph.S[incoming_uid] < self.config.neuron.seq2seq_stake) \
-                and (batch_size > self.config.neuron.max_batch_size) \
-                and (sequence_len > self.config.neuron.max_sequence_len) \
-                and (self.metagraph.W[incoming_uid,  self.uid]):
+                or (batch_size > self.config.neuron.max_batch_size) \
+                or (sequence_len > self.config.neuron.max_sequence_len) \
+                or (self.metagraph.W[incoming_uid,  self.uid]):
                 return False     
         else:
-            return False
+            raise Exception('Unknown Synapse')
 
         return True
 
