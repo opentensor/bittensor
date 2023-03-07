@@ -320,26 +320,26 @@ class Subtensor:
     #### Standard Calls ####
     ########################
 
-    """ Queries Paratensor named storage with params and block. """
-    def query_paratensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+    """ Queries subtensor named storage with params and block. """
+    def query_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(
-                    module='Paratensor',
+                    module='SubtensorModule',
                     storage_function = name,
                     params = params,
                     block_hash = None if block == None else substrate.get_block_hash(block)
                 )
         return make_substrate_call_with_retry()
 
-    """ Queries Paratensor map storage with params and block. """
-    def query_map_paratensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+    """ Queries subtensor map storage with params and block. """
+    def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query_map(
-                    module='Paratensor',
+                    module='SubtensorModule',
                     storage_function = name,
                     params = params,
                     block_hash = None if block == None else substrate.get_block_hash(block)
@@ -353,102 +353,102 @@ class Subtensor:
     """ Returns network Rho hyper parameter """
     def rho (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor( "Rho", block, [netuid] ).value
+        return self.query_subtensor( "Rho", block, [netuid] ).value
 
     """ Returns network Kappa hyper parameter """
     def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_paratensor( "Kappa", block, [netuid] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor( "Kappa", block, [netuid] ).value )
 
     """ Returns network Difficulty hyper parameter """
     def difficulty (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor( "Difficulty", block, [netuid] ).value
+        return self.query_subtensor( "Difficulty", block, [netuid] ).value
 
     """ Returns network ImmunityPeriod hyper parameter """
     def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("ImmunityPeriod", block, [netuid] ).value
+        return self.query_subtensor("ImmunityPeriod", block, [netuid] ).value
 
     """ Returns network ValidatorBatchSize hyper parameter """
     def validator_batch_size (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("ValidatorBatchSize", block, [netuid] ).value
+        return self.query_subtensor("ValidatorBatchSize", block, [netuid] ).value
 
     """ Returns network ValidatorPruneLen hyper parameter """
     def validator_prune_len (self, netuid: int, block: Optional[int] = None ) -> int:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("ValidatorPruneLen", block, [netuid] ).value
+        return self.query_subtensor("ValidatorPruneLen", block, [netuid] ).value
 
     """ Returns network ValidatorLogitsDivergence hyper parameter """
     def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> int:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
+        return self.query_subtensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("ValidatorSequenceLength", block, [netuid] ).value
+        return self.query_subtensor("ValidatorSequenceLength", block, [netuid] ).value
 
     """ Returns network ValidatorEpochsPerReset hyper parameter """
     def validator_epochs_per_reset (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("ValidatorEpochsPerReset", block, [netuid] ).value
+        return self.query_subtensor("ValidatorEpochsPerReset", block, [netuid] ).value
 
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_epoch_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("ValidatorEpochLen", block, [netuid] ).value
+        return self.query_subtensor("ValidatorEpochLen", block, [netuid] ).value
 
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_exclude_quantile (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_paratensor("ValidatorEpochLen", block, [netuid] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorEpochLen", block, [netuid] ).value )
 
     """ Returns network MaxAllowedValidators hyper parameter """
     def max_allowed_validators(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor( 'MaxAllowedValidators', block, [netuid] ).value
+        return self.query_subtensor( 'MaxAllowedValidators', block, [netuid] ).value
         
     """ Returns network MinAllowedWeights hyper parameter """
     def min_allowed_weights (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor("MinAllowedWeights", block, [netuid] ).value
+        return self.query_subtensor("MinAllowedWeights", block, [netuid] ).value
 
     """ Returns network MaxWeightsLimit hyper parameter """
     def max_weight_limit (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_paratensor('MaxWeightsLimit', block, [netuid] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor('MaxWeightsLimit', block, [netuid] ).value )
 
     """ Returns network ScalingLawPower hyper parameter """
     def scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_paratensor('ScalingLawPower', block, [netuid] ).value)
+        return U16_NORMALIZED_FLOAT( self.query_subtensor('ScalingLawPower', block, [netuid] ).value)
 
     """ Returns network SynergyScalingLawPower hyper parameter """
     def synergy_scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_paratensor('SynergyScalingLawPower', block, [netuid] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor('SynergyScalingLawPower', block, [netuid] ).value )
 
     """ Returns network SubnetworkN hyper parameter """
     def subnetwork_n (self, netuid: int, block: Optional[int] = None ) -> int:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor('SubnetworkN', block, [netuid] ).value
+        return self.query_subtensor('SubnetworkN', block, [netuid] ).value
 
     """ Returns network MaxAllowedUids hyper parameter """
     def max_n (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor('MaxAllowedUids', block, [netuid] ).value
+        return self.query_subtensor('MaxAllowedUids', block, [netuid] ).value
 
     """ Returns network BlocksSinceLastStep hyper parameter """
     def blocks_since_epoch (self, netuid: int, block: Optional[int] = None) -> int:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor('BlocksSinceLastStep', block, [netuid] ).value
+        return self.query_subtensor('BlocksSinceLastStep', block, [netuid] ).value
 
     """ Returns network Tempo hyper parameter """
     def tempo (self, netuid: int, block: Optional[int] = None) -> int:
         if not self.subnet_exists( netuid ): return None
-        return self.query_paratensor('Tempo', block, [netuid] ).value
+        return self.query_subtensor('Tempo', block, [netuid] ).value
 
     ##########################
     #### Account fucntions ###
@@ -456,34 +456,34 @@ class Subtensor:
 
     """ Returns the total stake held on a hotkey including delegative """
     def get_total_stake_for_hotkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
-        return bittensor.Balance.from_rao( self.query_paratensor( 'TotalHotkeyStake', block, [ss58_address] ).value )
+        return bittensor.Balance.from_rao( self.query_subtensor( 'TotalHotkeyStake', block, [ss58_address] ).value )
 
     """ Returns the total stake held on a coldkey across all hotkeys including delegates"""
     def get_total_stake_for_coldkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
-        return bittensor.Balance.from_rao( self.query_paratensor( 'TotalColdkeyStake', block, [ss58_address] ).value )
+        return bittensor.Balance.from_rao( self.query_subtensor( 'TotalColdkeyStake', block, [ss58_address] ).value )
 
     """ Returns the stake under a coldkey - hotkey pairing """
     def get_stake_for_coldkey_and_hotkey( self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
-        return bittensor.Balance.from_rao( self.query_paratensor( 'Stake', block, [hotkey_ss58, coldkey_ss58] ).value )
+        return bittensor.Balance.from_rao( self.query_subtensor( 'Stake', block, [hotkey_ss58, coldkey_ss58] ).value )
 
     """ Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner"""
     def get_stake( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str,'bittensor.Balance']]:
-        return [ (r[0].value, bittensor.Balance.from_rao( r[1].value ))  for r in self.query_map_paratensor( 'Stake', block, [hotkey_ss58] ) ]
+        return [ (r[0].value, bittensor.Balance.from_rao( r[1].value ))  for r in self.query_map_subtensor( 'Stake', block, [hotkey_ss58] ) ]
 
     """ Returns true if the hotkey is known by the chain and there are accounts. """
     def does_hotkey_exist( self, hotkey_ss58: str, block: Optional[int] = None ) -> bool:
-        return (self.query_paratensor( 'Owner', block, [hotkey_ss58 ] ).value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM")
+        return (self.query_subtensor( 'Owner', block, [hotkey_ss58 ] ).value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM")
 
     """ Returns the coldkey owner of the passed hotkey """
     def get_hotkey_owner( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[str]:
         if self.does_hotkey_exist( hotkey_ss58, block ):
-            return self.query_paratensor( 'Owner', block, [hotkey_ss58 ] ).value
+            return self.query_subtensor( 'Owner', block, [hotkey_ss58 ] ).value
         else:
             return None
 
     """ Returns the axon information for this hotkey account """
     def get_axon_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
-        result = self.query_paratensor( 'Axons', block, [hotkey_ss58 ] )        
+        result = self.query_subtensor( 'Axons', block, [hotkey_ss58 ] )        
         if result != None:
             return AxonInfo(
                 ip = bittensor.utils.networking.ip_from_int( result.value.ip ),
@@ -499,7 +499,7 @@ class Subtensor:
 
     """ Returns the prometheus information for this hotkey account """
     def get_prometheus_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
-        result = self.query_paratensor( 'Prometheus', block, [hotkey_ss58 ] )        
+        result = self.query_subtensor( 'Prometheus', block, [hotkey_ss58 ] )        
         if result != None:
             return PrometheusInfo (
                 ip = bittensor.utils.networking.ip_from_int( result.value.ip ),
@@ -525,24 +525,24 @@ class Subtensor:
         return self.get_current_block()
 
     def total_issuance (self, block: Optional[int] = None ) -> 'bittensor.Balance':
-        return bittensor.Balance.from_rao( self.query_paratensor( 'TotalIssuance', block ).value )
+        return bittensor.Balance.from_rao( self.query_subtensor( 'TotalIssuance', block ).value )
 
     def total_stake (self,block: Optional[int] = None ) -> 'bittensor.Balance':
-        return bittensor.Balance.from_rao( self.query_paratensor( "TotalStake", block ).value )
+        return bittensor.Balance.from_rao( self.query_subtensor( "TotalStake", block ).value )
 
     def serving_rate_limit (self, block: Optional[int] = None ) -> Optional[int]:
-        return self.query_paratensor( "ServingRateLimit", block ).value
+        return self.query_subtensor( "ServingRateLimit", block ).value
 
     #####################################
     #### Network Parameters ####
     #####################################
 
     def subnet_exists( self, netuid: int, block: Optional[int] = None ) -> bool:
-        return self.query_paratensor( 'NetworksAdded', block, [netuid] ).value  
+        return self.query_subtensor( 'NetworksAdded', block, [netuid] ).value  
 
     def get_all_subnet_netuids( self, block: Optional[int] = None ) -> List[int]:
         subnet_netuids = []
-        result = self.query_map_paratensor( 'NetworksAdded', block )
+        result = self.query_map_subtensor( 'NetworksAdded', block )
         if result.records:
             for netuid, exists in result:  
                 if exists:
@@ -551,19 +551,19 @@ class Subtensor:
         return subnet_netuids
 
     def get_total_subnets( self, block: Optional[int] = None ) -> int:
-        return self.query_paratensor( 'TotalNetworks', block ).value      
+        return self.query_subtensor( 'TotalNetworks', block ).value      
 
     def get_subnet_modality( self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        return self.query_paratensor( 'NetworkModality', block, [netuid] ).value   
+        return self.query_subtensor( 'NetworkModality', block, [netuid] ).value   
 
     def get_subnet_connection_requirement( self, netuid_0: int, netuid_1: int, block: Optional[int] = None) -> Optional[int]:
-        return self.query_paratensor( 'NetworkConnect', block, [netuid_0, netuid_1] ).value
+        return self.query_subtensor( 'NetworkConnect', block, [netuid_0, netuid_1] ).value
 
     def get_emission_value_by_subnet( self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        return bittensor.Balance.from_rao( self.query_paratensor( 'EmissionValues', block, [ netuid ] ).value )
+        return bittensor.Balance.from_rao( self.query_subtensor( 'EmissionValues', block, [ netuid ] ).value )
 
     def get_subnet_connection_requirements( self, netuid: int, block: Optional[int] = None) -> Dict[str, int]:
-        result = self.query_map_paratensor( 'NetworkConnect', block, [netuid] )
+        result = self.query_map_subtensor( 'NetworkConnect', block, [netuid] )
         if result.records:
             requirements = {}
             for tuple in result.records:
@@ -573,7 +573,7 @@ class Subtensor:
 
     def get_subnets( self, block: Optional[int] = None ) -> List[int]:
         subnets = []
-        result = self.query_map_paratensor( 'NetworksAdded', block )
+        result = self.query_map_subtensor( 'NetworksAdded', block )
         if result.records:
             for network in result.records:
                 subnets.append( network[0].value )
@@ -630,10 +630,10 @@ class Subtensor:
         return hotkey_ss58 in [ info.hotkey_ss58 for info in self.get_delegates() ]
 
     def get_delegate_take( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[float]:
-        return U16_NORMALIZED_FLOAT( self.query_paratensor( 'Delegates', block, [ hotkey_ss58 ] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor( 'Delegates', block, [ hotkey_ss58 ] ).value )
 
     def get_nominators_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str, Balance]]:
-        result = self.query_map_paratensor( 'Stake', block, [ hotkey_ss58 ] ) 
+        result = self.query_map_subtensor( 'Stake', block, [ hotkey_ss58 ] ) 
         if result.records:
             return [(record[0].value, record[1].value) for record in result.records]
         else:
@@ -693,13 +693,13 @@ class Subtensor:
         return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
     def get_uid_for_hotkey_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> int:
-        return self.query_paratensor( 'Uids', block, [ netuid, hotkey_ss58 ] ).value  
+        return self.query_subtensor( 'Uids', block, [ netuid, hotkey_ss58 ] ).value  
 
     def get_all_uids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
         return [ self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block) for netuid in self.get_netuids_for_hotkey( hotkey_ss58, block)]
 
     def get_netuids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
-        result = self.query_map_paratensor( 'IsNetworkMember', block, [ hotkey_ss58 ] )   
+        result = self.query_map_subtensor( 'IsNetworkMember', block, [ hotkey_ss58 ] )   
         netuids = []
         for netuid, is_member in result.records:
             if is_member:
@@ -715,7 +715,7 @@ class Subtensor:
         return [self.neuron_for_uid( uid, net ) for uid, net in list(zip(uids, netuids))]
 
     def neuron_has_validator_permit( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[bool]:
-        return self.query_paratensor( 'ValidatorPermit', block, [ netuid, uid ] ).value
+        return self.query_subtensor( 'ValidatorPermit', block, [ netuid, uid ] ).value
 
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         return self.get_neuron_for_pubkey_and_subnet ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
