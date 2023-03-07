@@ -157,7 +157,6 @@ class neuron:
                                             block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
                             if dataset is None else dataset)
         else:
-            copy.deepcopy(self.config)
             self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
                                             block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len +  self.subtensor.validator_prune_len)
                             if dataset is None else dataset)
