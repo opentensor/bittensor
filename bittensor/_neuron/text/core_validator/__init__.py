@@ -48,7 +48,6 @@ from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 from threading import Lock
 from prometheus_client import Counter, Gauge, Histogram, Summary, Info
-import copy
 
 logger = logger.opt( colors=True )
 console = Console()
@@ -99,7 +98,6 @@ class neuron:
         # === Set up Config ===
         if config == None: config = neuron.config()
         
-        copy.deepcopy(config)
         # === Set up subtensor and netuid === 
         config.netuid = netuid if netuid != None else config.netuid
 
@@ -112,13 +110,11 @@ class neuron:
             bittensor.__console__.print(f"[red]Subnet {config.netuid} does not exist[/red]")
             sys.exit(1)
 
-        copy.deepcopy(config)
         # === Config check === 
         self.config = config
         neuron.check_config( self.config )
         self.config.to_defaults()
 
-        copy.deepcopy(self.config)
         # === Mock options ===
         if self.config.neuron._mock == True:
             self.config.subtensor._mock = True
@@ -130,7 +126,6 @@ class neuron:
             self.config.axon._mock = True
         print ( self.config )
 
-        copy.deepcopy(self.config)
         # ===  Logging + prometheus ===
         self.config.to_prometheus()
         bittensor.logging( 
