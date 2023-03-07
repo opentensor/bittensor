@@ -27,26 +27,24 @@ import pytest
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
+from bittensor._subtensor.chain_data import NeuronInfo
 
 
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
-        self.subtensor = bittensor.subtensor( network = 'nobunaga' )
+        self.subtensor = bittensor.subtensor( network = 'finney' )
         self.wallet = bittensor.wallet(_mock=True)
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        self.mock_neuron = self.subtensor._neuron_dict_to_namespace(
+        self.mock_neuron = NeuronInfo._neuron_dict_to_namespace(
             dict({
-                "version":1,
-                "ip":0,
-                "port":0,
-                "ip_type":0,
                 "uid":1,
-                "modality":0,
+                "netuid": 1, 
+                "total_stake": 10, 
+                "validator_permit": False,
                 "hotkey":'some_hotkey',
                 "coldkey":'some_coldkey',
                 "active":0,
                 "last_update":0,
-                "priority":0,
                 "stake":1000000000000.0,
                 "rank":0.0,
                 "trust":0.0,
@@ -56,42 +54,27 @@ class TestSubtensor(unittest.TestCase):
                 "emission":0.0,
                 "bonds":[],
                 "weights":[],
-                "is_null":False
+                "is_null":False,
+                "prometheus_info": {},
+                "axon_info": {}
             })
         )
-        self.neurons = [self.subtensor.neuron_for_uid(0), self.subtensor.neuron_for_uid(1) ]
+        self.neurons = [self.subtensor.neuron_for_uid(0, netuid = 1), self.subtensor.neuron_for_uid(1, netuid = 1) ]
         self.balance = Balance.from_tao(1000)
         assert True
 
-    def test_defaults_to_nobunaga( self ):
-        assert self.subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
-
-    def test_networks( self ):
-        assert self.subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
+    def test_defaults_to_finney( self ):
+        assert self.subtensor.chain_endpoint == bittensor.__finney_entrypoint__
 
     def test_network_overrides( self ):
         config = bittensor.subtensor.config()
-        subtensor = bittensor.subtensor(network='nobunaga', config=config, )
-        assert subtensor.endpoint_for_network() == bittensor.__nobunaga_entrypoint__
-
-    def test_connect_no_failure( self ):
-        self.subtensor.connect(timeout = 1, failure=False)
-
-
-    def test_connect_success( self ):
-        success = self.subtensor.connect()
-        assert success == True
-
-
-    def test_connect_fail( self ):
-        self.subtensor.substrate=None
-        with pytest.raises(RuntimeError):
-            self.subtensor.connect()
+        subtensor = bittensor.subtensor(network='nobunaga', config=config )
+        assert subtensor.chain_endpoint == bittensor.__nobunaga_entrypoint__
 
 
     def test_neurons( self ):
         assert len(self.neurons) > 0
-        assert type(self.neurons[0].axon_info.ip) == int
+        assert type(self.neurons[0].axon_info.ip) == str
         assert type(self.neurons[0].axon_info.port) == int
         assert type(self.neurons[0].axon_info.ip_type) == int
         assert type(self.neurons[0].uid) == int
@@ -99,8 +82,8 @@ class TestSubtensor(unittest.TestCase):
         assert type(self.neurons[0].hotkey) == str
         assert type(self.neurons[0].coldkey) == str
 
-        neuron = self.subtensor.neuron_for_uid( 1 )
-        assert type(neuron.axon_info.ip) == int
+        neuron = self.subtensor.neuron_for_uid( 1, netuid = 1 )
+        assert type(neuron.axon_info.ip) == str
         assert type(neuron.axon_info.port) == int
         assert type(neuron.axon_info.ip_type) == int
         assert type(neuron.uid) == int
@@ -108,8 +91,8 @@ class TestSubtensor(unittest.TestCase):
         assert type(neuron.hotkey) == str
         assert type(neuron.coldkey) == str
 
-        neuron = self.subtensor.neuron_for_pubkey(neuron.hotkey)
-        assert type(neuron.axon_info.ip) == int
+        neuron = self.subtensor.get_neuron_for_pubkey_and_subnet(neuron.hotkey, netuid = 1)
+        assert type(neuron.axon_info.ip) == str
         assert type(neuron.axon_info.port) == int
         assert type(neuron.axon_info.ip_type) == int
         assert type(neuron.uid) == int
@@ -324,6 +307,7 @@ class TestSubtensor(unittest.TestCase):
         success= self.subtensor.set_weights(wallet=self.wallet,
                             uids=[neuron.uid],
                             weights=chain_weights,
+                            netuid = 1
                             )
         assert success == True
 
@@ -339,7 +323,8 @@ class TestSubtensor(unittest.TestCase):
         success= self.subtensor.set_weights(wallet=self.wallet,
                             uids=[neuron.uid],
                             weights=chain_weights,
-                            wait_for_inclusion = True
+                            wait_for_inclusion = True,
+                            netuid = 1
                             )
         assert success == True
 
@@ -357,7 +342,8 @@ class TestSubtensor(unittest.TestCase):
         fail= self.subtensor.set_weights(wallet=self.wallet,
                             uids=[neuron.uid],
                             weights=chain_weights,
-                            wait_for_inclusion = True
+                            wait_for_inclusion = True,
+                            netuid = 1
                             )
         assert fail == False
 
@@ -374,17 +360,17 @@ class TestSubtensor(unittest.TestCase):
 
     def test_get_uid_for_hotkey( self ):
         neuron = self.neurons[ 1 ]
-        uid= self.subtensor.get_uid_for_hotkey(neuron.hotkey)
+        uid= self.subtensor.get_uid_for_hotkey_on_subnet(neuron.hotkey, netuid = 1)
         assert type(uid) == int
 
     def test_hotkey_register( self ):
         neuron = self.neurons[ 1 ]
-        register= self.subtensor.is_hotkey_registered(neuron.hotkey)
+        register= self.subtensor.is_hotkey_registered(neuron.hotkey, netuid = 1)
         assert register == True
 
     def test_hotkey_register_failed( self ):
         self.subtensor.get_uid_for_hotkey = MagicMock(return_value = -1) 
-        register= self.subtensor.is_hotkey_registered('mock')
+        register= self.subtensor.is_hotkey_registered('mock', netuid = 1)
         assert register == False
 
     def test_registration_multiprocessed_already_registered( self ):
@@ -421,7 +407,7 @@ class TestSubtensor(unittest.TestCase):
                         mock_set_status.__exit__ = MagicMock(return_value=True)
 
                         # should return True
-                        assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5 ) == True
+                        assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5, netuid = 1 ) == True
 
                     # calls until True and once again before exiting subtensor class
                     # This assertion is currently broken when difficulty is too low
@@ -463,7 +449,7 @@ class TestSubtensor(unittest.TestCase):
                 mock_set_status.__exit__ = MagicMock(return_value=True)
 
                 # should return True
-                assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5) == True
+                assert self.subtensor.register(wallet=wallet, num_processes=3, update_interval=5, netuid=1) == True
 
     def test_registration_failed( self ):
         class failed():
@@ -489,7 +475,7 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
 
             # should return True
-            assert self.subtensor.register(wallet=wallet,) == False
+            assert self.subtensor.register(wallet=wallet, netuid=1) == False
             assert bittensor.utils.create_pow.call_count == 3 
 
     def test_registration_stale_then_continue( self ):
@@ -526,7 +512,7 @@ class TestSubtensor(unittest.TestCase):
                 # then should create a new pow and check if it is stale
                 # then should enter substrate and exit early because of test
                 with pytest.raises(ExitEarly):
-                    bittensor.Subtensor.register(mock_subtensor_self, mock_wallet)
+                    bittensor.Subtensor.register(mock_subtensor_self, mock_wallet, netuid=1)
                 assert mock_create_pow.call_count == 2 # must try another pow after stale
                 assert mock_not_stale.call_count == 2
                 assert mock_substrate_enter.call_count == 1 # only tries to submit once, then exits
