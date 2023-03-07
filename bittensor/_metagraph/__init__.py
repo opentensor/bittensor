@@ -77,7 +77,7 @@ class metagraph:
         if network == None:
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
 
-        if network =='finney' or network == 'test':
+        if network =='finney':
             return metagraph_impl.Metagraph( network = network, netuid = netuid )
         elif network =='nakamoto':
             return naka_metagraph(config = config, subtensor = subtensor)
