@@ -18,19 +18,21 @@
 
 
 import unittest
+from copy import deepcopy
 from types import SimpleNamespace
 from typing import Dict
 from unittest.mock import ANY, MagicMock, call, patch
+
+import rich
+
 import pytest
-from copy import deepcopy
+import substrateinterface
+from substrateinterface.base import Keypair
 
 import bittensor
-import substrateinterface
-from bittensor._subtensor.subtensor_mock import mock_subtensor, Mock_Subtensor
+from bittensor._subtensor.subtensor_mock import Mock_Subtensor, mock_subtensor
 from bittensor.utils.balance import Balance
-from substrateinterface.base import Keypair
-from tests.helpers import CLOSE_IN_VALUE, get_mock_keypair
-
+from tests.helpers import MockConsole, get_mock_keypair
 
 _subtensor_mock: Mock_Subtensor = None
 
@@ -41,6 +43,14 @@ def setUpModule():
 
     # create a mock subnet
     created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0 )
+    assert err == None
+
+    # create a second mock subnet
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0 )
+    assert err == None
+
+     # create a third mock subnet
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0 )
     assert err == None
 
     # Make registration difficulty 0. Instant registration.
@@ -92,31 +102,194 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         return defaults
 
     def test_overview( self ):
-        # Mock IO for wallet
-        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
-            exists_on_device=MagicMock(
-                return_value=True # Wallet exists
-            )
-        )):
-            config = self.config
-            config.wallet.path = '/tmp/test_cli_test_overview'
-            config.wallet.name = 'mock_wallet'
-            config.command = "overview"
-            config.no_cache = True  # Don't use neuron cache
-            config.no_prompt = True
-            config.all = False
+        config = self.config
+        config.wallet.path = '/tmp/test_cli_test_overview'
+        config.wallet.name = 'mock_wallet'
+        config.command = "overview"
+        config.no_prompt = True
+        config.all = False
 
-            cli = bittensor.cli(config)
-            with patch('os.walk', return_value=iter(
-                    [('/tmp/test_cli_test_overview/mock_wallet/hotkeys', [], ['hk0', 'hk1', 'hk2'])] # no dirs, 3 files
-                )):
-                with patch('bittensor.Wallet.hotkey', ss58_address=bittensor.Keypair.create_from_mnemonic(
-                        bittensor.Keypair.generate_mnemonic()
-                ).ss58_address):
-                    with patch('bittensor.Wallet.coldkeypub', ss58_address=bittensor.Keypair.create_from_mnemonic(
-                        bittensor.Keypair.generate_mnemonic()
-                    ).ss58_address):
-                        cli.run()
+        cli = bittensor.cli(config)
+
+        mock_hotkeys = ['hk0', 'hk1', 'hk2', 'hk3', 'hk4']
+
+        mock_coldkey_kp = get_mock_keypair(0, self.id())
+
+        mock_wallets = [
+            SimpleNamespace(
+                name = config.wallet.name,
+                coldkey = mock_coldkey_kp,
+                coldkeypub = mock_coldkey_kp,
+                hotkey_str = hk,
+                hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkeypub_file = MagicMock(
+                    exists_on_device=MagicMock(
+                        return_value=True # Wallet exists
+                    )
+                ),
+            ) for idx, hk in enumerate(mock_hotkeys)
+        ]
+
+        mock_registrations = [
+            (1, mock_wallets[0]),
+            (1, mock_wallets[1]),
+            # (1, mock_wallets[2]), Not registered on netuid 1
+            (2, mock_wallets[0]),
+            # (2, mock_wallets[1]), Not registered on netuid 2
+            (2, mock_wallets[2]),
+            (3, mock_wallets[0]),
+            (3, mock_wallets[1]),
+            (3, mock_wallets[2]), # All registered on netuid 3 (but hk3)
+            (3, mock_wallets[4]) # hk4 is only on netuid 3
+        ] # hk3 is not registered on any network
+
+        # Register each wallet to it's subnet.
+        for netuid, wallet in mock_registrations:
+            _subtensor_mock.sudo_register(
+                netuid = netuid,
+                coldkey = wallet.coldkey.ss58_address,
+                hotkey = wallet.hotkey.ss58_address
+            )
+
+        def mock_get_wallet(*args, **kwargs):
+            hk = kwargs.get('hotkey')
+            name_ = kwargs.get('name')
+
+            if not hk and kwargs.get('config'):
+                hk = kwargs.get('config').wallet.hotkey
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+
+            for wallet in mock_wallets:
+                if wallet.name == name_ and wallet.hotkey_str == hk:
+                    return wallet
+            else:
+                for wallet in mock_wallets:
+                    if wallet.name == name_:
+                        return wallet
+                else:
+                    return mock_wallets[0]
+        
+        mock_console = MockConsole()
+        with patch('bittensor._cli.commands.overview.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
+            mock_get_all_wallets.return_value = mock_wallets
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = mock_get_wallet
+                with patch('bittensor.__console__', mock_console):
+                    cli.run()
+
+                    # Check that the overview was printed.
+                    self.assertIsNotNone(mock_console.captured_print)
+
+                    output_no_syntax = mock_console.remove_rich_syntax(mock_console.captured_print)
+                        
+                    # Check that each subnet was printed.
+                    self.assertIn('Subnet: 1', output_no_syntax)
+                    self.assertIn('Subnet: 2', output_no_syntax)
+                    self.assertIn('Subnet: 3', output_no_syntax)
+
+                    # Check that only registered hotkeys are printed once for each subnet.
+                    for wallet in mock_wallets:
+                        expected = [wallet.hotkey_str for _, wallet in mock_registrations].count(wallet.hotkey_str)
+                        occurrences = output_no_syntax.count(wallet.hotkey_str)
+                        self.assertEqual(occurrences, expected)
+                        
+                    # Check that unregistered hotkeys are not printed.
+                    for wallet in mock_wallets:
+                        if wallet not in [w for _, w in mock_registrations]:
+                            self.assertNotIn(wallet.hotkey_str, output_no_syntax)
+
+    def test_overview_not_in_first_subnet( self ):
+        config = self.config
+        config.wallet.path = '/tmp/test_cli_test_overview'
+        config.wallet.name = 'mock_wallet'
+        config.command = "overview"
+        config.no_prompt = True
+        config.all = False
+
+        cli = bittensor.cli(config)
+
+        mock_hotkeys = ['hk0', 'hk1', 'hk2', 'hk3', 'hk4']
+
+        mock_coldkey_kp = get_mock_keypair(0, self.id())
+
+        mock_wallets = [
+            SimpleNamespace(
+                name = config.wallet.name,
+                coldkey = mock_coldkey_kp,
+                coldkeypub = mock_coldkey_kp,
+                hotkey_str = hk,
+                hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkeypub_file = MagicMock(
+                    exists_on_device=MagicMock(
+                        return_value=True # Wallet exists
+                    )
+                ),
+            ) for idx, hk in enumerate(mock_hotkeys)
+        ]
+
+        mock_registrations = [
+            # No registrations in subnet 1 or 2
+            (3, mock_wallets[4]) # hk4 is on netuid 3
+        ]
+
+        # Register each wallet to it's subnet
+        for netuid, wallet in mock_registrations:
+            _subtensor_mock.sudo_register(
+                netuid = netuid,
+                coldkey = wallet.coldkey.ss58_address,
+                hotkey = wallet.hotkey.ss58_address
+            )
+
+        def mock_get_wallet(*args, **kwargs):
+            hk = kwargs.get('hotkey')
+            name_ = kwargs.get('name')
+
+            if not hk and kwargs.get('config'):
+                hk = kwargs.get('config').wallet.hotkey
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+
+            for wallet in mock_wallets:
+                if wallet.name == name_ and wallet.hotkey_str == hk:
+                    return wallet
+            else:
+                for wallet in mock_wallets:
+                    if wallet.name == name_:
+                        return wallet
+                else:
+                    return mock_wallets[0]
+        
+        mock_console = MockConsole()
+        with patch('bittensor._cli.commands.overview.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
+            mock_get_all_wallets.return_value = mock_wallets
+            with patch('bittensor.wallet') as mock_create_wallet:
+                mock_create_wallet.side_effect = mock_get_wallet
+                with patch('bittensor.__console__', mock_console):
+                    cli.run()
+
+                    # Check that the overview was printed.
+                    self.assertIsNotNone(mock_console.captured_print)
+
+                    output_no_syntax = mock_console.remove_rich_syntax(mock_console.captured_print)
+                        
+                    # Check that each subnet was printed except subnet 1 and 2.
+                    # Subnet 1 and 2 are not printed because no wallet is registered to them.
+                    self.assertNotIn('Subnet: 1', output_no_syntax)
+                    self.assertNotIn('Subnet: 2', output_no_syntax)
+                    self.assertIn('Subnet: 3', output_no_syntax)
+
+                    # Check that only registered hotkeys are printed once for each subnet.
+                    for wallet in mock_wallets:
+                        expected = [wallet.hotkey_str for _, wallet in mock_registrations].count(wallet.hotkey_str)
+                        occurrences = output_no_syntax.count(wallet.hotkey_str)
+                        self.assertEqual(occurrences, expected)
+                        
+                    # Check that unregistered hotkeys are not printed.
+                    for wallet in mock_wallets:
+                        if wallet not in [w for _, w in mock_registrations]:
+                            self.assertNotIn(wallet.hotkey_str, output_no_syntax)
+                    
 
     def test_overview_no_wallet( self ):
         # Mock IO for wallet
@@ -1520,6 +1693,141 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey_ss58=mock_wallets[1].coldkey.ss58_address
             )
             self.assertAlmostEqual(stake.tao, mock_delegated.tao - config.amount, places=4)
+
+    def test_transfer( self ):
+        config = self.config
+        config.command = "transfer"
+        config.no_prompt = True 
+        config.amount = 3.2
+        config.wallet.name = "w1"
+
+        mock_balances: Dict[str, bittensor.Balance] = {
+            'w0': bittensor.Balance.from_float(10.0),
+            'w1': bittensor.Balance.from_float(config.amount + 0.001)
+        }
+
+        mock_wallets = []
+        for idx, wallet_name in enumerate(list(mock_balances.keys())):
+            wallet = SimpleNamespace(
+                    name = wallet_name,
+                    coldkey = get_mock_keypair(idx, self.id()),
+                    coldkeypub = get_mock_keypair(idx, self.id())
+                )
+            mock_wallets.append(wallet)
+
+        # Set dest to w0
+        config.dest = mock_wallets[0].coldkey.ss58_address
+
+        # Give w0 and w1 balance
+        for wallet in mock_wallets:
+            success, err = _subtensor_mock.sudo_force_set_balance(
+                ss58_address=wallet.coldkey.ss58_address,
+                balance = mock_balances[wallet.name].rao
+            )
+            self.assertTrue(success, err)
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            name_ = kwargs.get('name')
+
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+
+            for wallet in mock_wallets:
+                if wallet.name == name_:
+                    return wallet
+            else:
+                raise ValueError(f'No mock wallet found with name: {name_}')
+            
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+            
+            cli.run()
+
+            # Check the balance of w0
+            balance = _subtensor_mock.get_balance(
+                address=mock_wallets[0].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(balance.tao, mock_balances['w0'].tao + config.amount, places=4)
+
+            # Check the balance of w1
+            balance = _subtensor_mock.get_balance(
+                address=mock_wallets[1].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(balance.tao, mock_balances['w1'].tao - config.amount, places=4) # no fees
+
+    def test_transfer_not_enough_balance( self ):
+        config = self.config
+        config.command = "transfer"
+        config.no_prompt = True 
+        config.amount = 3.2
+        config.wallet.name = "w1"
+
+        mock_balances: Dict[str, bittensor.Balance] = {
+            'w0': bittensor.Balance.from_float(10.0), 
+            'w1': bittensor.Balance.from_float(config.amount - 0.1) # not enough balance
+        }
+
+        mock_wallets = []
+        for idx, wallet_name in enumerate(list(mock_balances.keys())):
+            wallet = SimpleNamespace(
+                    name = wallet_name,
+                    coldkey = get_mock_keypair(idx, self.id()),
+                    coldkeypub = get_mock_keypair(idx, self.id())
+                )
+            mock_wallets.append(wallet)
+
+        # Set dest to w0
+        config.dest = mock_wallets[0].coldkey.ss58_address
+
+        # Give w0 and w1 balance
+        for wallet in mock_wallets:
+            success, err = _subtensor_mock.sudo_force_set_balance(
+                ss58_address=wallet.coldkey.ss58_address,
+                balance = mock_balances[wallet.name].rao
+            )
+            self.assertTrue(success, err)
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            name_ = kwargs.get('name')
+
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+
+            for wallet in mock_wallets:
+                if wallet.name == name_:
+                    return wallet
+            else:
+                raise ValueError(f'No mock wallet found with name: {name_}')
+        
+        mock_console = MockConsole()
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+            
+            with patch('bittensor.__console__', mock_console):
+                cli.run()
+            
+            # Check that the overview was printed.
+            self.assertIsNotNone(mock_console.captured_print)
+
+            output_no_syntax = mock_console.remove_rich_syntax(mock_console.captured_print)
+
+            self.assertIn('Not enough balance', output_no_syntax)
+
+            # Check the balance of w0
+            balance = _subtensor_mock.get_balance(
+                address=mock_wallets[0].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(balance.tao, mock_balances['w0'].tao, places=4) # did not transfer
+
+            # Check the balance of w1
+            balance = _subtensor_mock.get_balance(
+                address=mock_wallets[1].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(balance.tao, mock_balances['w1'].tao, places=4) # did not transfer
     
     def test_register( self ):
         config = self.config
