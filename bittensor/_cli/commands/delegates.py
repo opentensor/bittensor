@@ -73,6 +73,7 @@ class DelegateStakeCommand:
         )
         delegate_stake_parser.add_argument(
             '--delegate_ss58key', 
+            '--delegate_ss58',
             dest = "delegate_ss58key",
             type = str,  
             required = False,
@@ -164,6 +165,7 @@ class DelegateUnstakeCommand:
         )
         undelegate_stake_parser.add_argument(
             '--delegate_ss58key', 
+            '--delegate_ss58',
             dest = "delegate_ss58key",
             type = str,  
             required = False,
