@@ -80,7 +80,9 @@ __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
 __local_entrypoint__ = "ws://127.0.0.1:9945"
 
-__tao_symbol__ = u'\u03C4'.encode('utf-8')
+__tao_symbol__: str = u'\u03C4'.encode('utf-8')
+
+__rao_symbol__: str = u"\u03C1".encode('utf-8')
 
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
@@ -96,6 +98,8 @@ __network_explorer_map__ = {
 from .utils.test_utils import get_random_unused_port
 mock_subtensor_port = get_random_unused_port()
 __mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
+
+__mock_chain_db__ = './tmp/mock_chain_db'
 
 
 # --- Prometheus ---
@@ -135,6 +139,7 @@ import bittensor._neuron as neurons
 
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
+from bittensor._cli.commands import utils as cli_utils
 
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance

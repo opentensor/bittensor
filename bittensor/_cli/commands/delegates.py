@@ -74,7 +74,7 @@ class DelegateStakeCommand:
         delegate_stake_parser.add_argument(
             '--delegate_ss58key', 
             dest = "delegate_ss58key",
-            type = float,  
+            type = str,  
             required = False,
             help='''The ss58 address of the choosen delegate''', 
         )

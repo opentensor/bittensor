@@ -1150,8 +1150,19 @@ class TestExternalAxon(unittest.TestCase):
         # Verify that not setting the external port arg will default to the internal axon port
         mock_config = bittensor.axon.config()
 
-        axon = bittensor.axon ( netuid = -1, port = 1234, config=mock_config )
-        assert axon.external_port == axon.port
+        mock_wallet = mock.MagicMock(
+            hotkey = mock.MagicMock(
+                ss58_address = 'fake_hotkey_address',
+                spec = bittensor.Keypair
+            ),
+            spec = bittensor.Wallet
+        )
+
+        with mock.patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.return_value = mock_wallet
+
+            axon = bittensor.axon ( netuid = -1, port = 1234, config=mock_config )
+            assert axon.external_port == axon.port
 
     def test_external_port_set_full_address_internal(self):
         internal_port = 1234

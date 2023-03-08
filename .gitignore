@@ -214,3 +214,5 @@ replicate.yaml
 
 # Notebooks
 *.ipynb
+
+tests/zombienet/bin/**/*

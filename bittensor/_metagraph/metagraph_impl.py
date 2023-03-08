@@ -19,7 +19,7 @@
 
 import os
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 from loguru import logger
 
 import pandas
@@ -28,6 +28,7 @@ import torch
 
 import bittensor
 import bittensor.utils.networking as net
+from bittensor import Balance
 
 class Metagraph( torch.nn.Module ):
     r""" Maintains chain state as a torch.nn.Module.
@@ -73,7 +74,10 @@ class Metagraph( torch.nn.Module ):
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
         self.tau = torch.nn.Parameter( torch.tensor( [1], dtype=torch.float32), requires_grad = False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
-        self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
+        self.stake: List[Dict[str, Balance]] = []
+        self.total_stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
         self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
@@ -97,7 +101,8 @@ class Metagraph( torch.nn.Module ):
     def S(self) -> torch.FloatTensor:
         """ Stake
         """
-        return self.stake
+        # We return total_stake because we don't need to know the delegators
+        return self.total_stake
 
     @property
     def R(self) -> torch.FloatTensor:
@@ -297,7 +302,7 @@ class Metagraph( torch.nn.Module ):
         torch.save(metastate, full_path + '/' + filename)
         return self
 
-    def load_from_state_dict(self, state_dict:dict ) -> 'Metagraph':
+    def load_from_state_dict(self, state_dict: dict ) -> 'Metagraph':
         r""" Loads this metagraph object from passed state_dict.
             Args: 
                 state_dict: (:obj:`dict`, required):
@@ -308,7 +313,11 @@ class Metagraph( torch.nn.Module ):
         self.tau = torch.nn.Parameter( state_dict['tau'], requires_grad=False )
         self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
         self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
-        self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+
+        # We don't save stake in the state_dict
+        self.stake = None
+        self.total_stake = torch.nn.Parameter( state_dict['total_stake'], requires_grad=False )
+
         self.ranks = torch.nn.Parameter( state_dict['ranks'], requires_grad=False )
         self.trust = torch.nn.Parameter( state_dict['trust'], requires_grad=False )
         self.consensus = torch.nn.Parameter( state_dict['consensus'], requires_grad=False )
@@ -326,13 +335,15 @@ class Metagraph( torch.nn.Module ):
         self._endpoint_objs = None
         return self
 
-    def sync ( self, netuid: int, subtensor: 'bittensor.Subtensor' = None, block: Optional[int] = None ) -> 'Metagraph':
+    def sync ( self, netuid: Optional[int] = None, subtensor: 'bittensor.Subtensor' = None, block: Optional[int] = None ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
             Args:
-                subtensor: (:obj:`bittensor.Subtensor`, required):
+                subtensor: (:obj:`bittensor.Subtensor`, optional, defaults to None):
                     Subtensor to sync with.
-                netuid: (:obj:`int`, required):
+                    Creates a new subtensor if None.
+                netuid: (:obj:`int`, optional, defaults to None):
                     netuid of subnet to create metagraph for.
+                    Defaults to the netuid of the metagraph object.
                 block: (:obj:`int`, optional, defaults to None):
                     block to sync with. If None, syncs with the current block.
             Returns:
@@ -342,6 +353,10 @@ class Metagraph( torch.nn.Module ):
         # Take default subtensor if not set.
         if subtensor == None:
             subtensor = bittensor.subtensor()
+        if netuid == None:
+            netuid = self.netuid
+            if netuid == None:
+                raise ValueError('Metagraph.sync() requires a netuid to sync with.')
         # Pull metagraph from chain using subtensor.
         metagraph = subtensor.metagraph( netuid = netuid, block = block )
         # Update self with new values.
@@ -351,17 +366,19 @@ class Metagraph( torch.nn.Module ):
     def to_dataframe(self):
         try:
             index = self.uids.tolist()
-            columns = [ 'uid', 'active', 'stake', 'rank', 'trust', 'consensus',
-                # 'validator_trust', 'weight_consensus',
-                'incentive', 'dividends', 'emission'
-            ]
-            
+            columns = [ 'uid', 'active', 'stake', 'total_stake', 'rank', 'trust', 'consensus',
+                       # #'validator_trust', 'weight_consensus',
+                       # 'incentive', 'dividends', 'emission'
+                ]
             dataframe = pandas.DataFrame(columns = columns, index = index)
             for uid in self.uids.tolist():
                 v = {
                     'uid': self.uids[uid].item(),
-                    'active': self.active[uid].item(),             
-                    'stake': self.stake[uid].item(),             
+                    'active': self.active[uid].item(),         
+
+                    'stake': self.stake[uid],  
+                    'total_stake': self.total_stake[uid].item(),  
+
                     'rank': self.ranks[uid].item(),            
                     'trust': self.trust[uid].item(),             
                     'consensus': self.consensus[uid].item(),
