@@ -62,7 +62,7 @@ __type_registery__ = {
     }
 }
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "zombienet"
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
 
 class mock_subtensor():
     r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
@@ -124,24 +124,15 @@ class mock_subtensor():
         """
         try:
             operating_system = "OSX" if platform == "darwin" else "Linux"
-            path = "./tests/zombienet/bin/{}/{}".format(operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
-            path_to_zombienet_config = "./tests/zombienet/zombienet.toml"
-            zombienet_provider = "native"
-            env_vars: Dict[str, str] = {}
-
-            # Set the OS environment variable for the mock process.
-            env_vars['ZOMB_OS'] = operating_system
-
+            path = "./tests/mock_subtensor/bin/{}/{}".format(operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
+            
             ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
             print(f'MockSub ws_port: {ws_port}')
-            # Set the port for the mock process.
-            env_vars['ZOMB_WS_PORT'] = str(ws_port)
+            
             
             _mock_subtensor_process = subprocess.Popen(
-                [
-                    path, 'spawn', '--provider', zombienet_provider, path_to_zombienet_config
-                ],
-                close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars )
+                [ path ] + '--chain dev --base-path /tmp/mock_tensor --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' '),
+                close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
             
             # Wait for the process to start. Check for errors.
             try:
