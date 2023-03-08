@@ -205,34 +205,14 @@ def delegate_extrinsic(
     else:
         staking_balance = staking_balance
 
-    # Estimate transfer fee.
-    staking_fee = None # To be filled.
-    with bittensor.__console__.status(":satellite: Estimating Delegation Fees..."):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule', 
-                call_function='add_stake',
-                call_params={
-                    'hotkey': delegate_ss58,
-                    'amount_staked': staking_balance.rao
-                }
-            )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
-            if payment_info:
-                staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
-            else:
-                staking_fee = bittensor.Balance.from_tao( 0.2 )
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate delegation fee, assuming base fee of 0.2")
-
     # Check enough balance to stake.
-    if staking_balance + staking_fee > my_prev_coldkey_balance:
-        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, staking_fee, wallet.name))
+    if staking_balance > my_prev_coldkey_balance:
+        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, wallet.name))
         return False
             
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  fee: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, staking_fee, delegate_take, delegate_owner) ):
+        if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_take, delegate_owner) ):
             return False
 
     try:
@@ -332,39 +312,14 @@ def undelegate_extrinsic(
     else:
         staking_balance = amount
 
-    # Estimate transfer fee.
-    staking_fee = None # To be filled.
-    with bittensor.__console__.status(":satellite: Estimating Delegation Fees..."):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule', 
-                call_function='remove_stake',
-                call_params={
-                    'hotkey': delegate_ss58,
-                    'amount_unstaked': staking_balance.rao
-                }
-            )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
-            if payment_info:
-                staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
-            else:
-                staking_fee = bittensor.Balance.from_tao( 0.2 )
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate delegation fee, assuming base fee of 0.2")
-
     # Check enough stake to unstake.
     if staking_balance > my_prev_delegated_stake:
         bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  stake:{}\n  amount: {}\n coldkey: {}[/bold white]".format(my_prev_delegated_stake, staking_balance, wallet.name))
         return False
-
-    # Check enough balance to unstake.
-    if my_prev_coldkey_balance < staking_fee:
-        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, staking_fee, wallet.name))
-        return False
             
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  to: {}\n  fee: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, staking_fee, delegate_take, delegate_owner) ):
+        if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_take, delegate_owner) ):
             return False
 
     try:

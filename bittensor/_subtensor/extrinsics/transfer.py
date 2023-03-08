@@ -75,34 +75,14 @@ def transfer_extrinsic(
     # Check balance.
     with bittensor.__console__.status(":satellite: Checking Balance..."):
         account_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
-
-    # Estimate transfer fee.
-    with bittensor.__console__.status(":satellite: Estimating Transfer Fees..."):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='Balances',
-                call_function='transfer',
-                call_params={
-                    'dest': dest, 
-                    'value': transfer_balance.rao
-                }
-            )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
-            transfer_fee = "N/A"
-            if payment_info:
-                transfer_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( transfer_fee ))
-            else:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate transfer fee, assuming base fee of 0.2")
-                transfer_fee = bittensor.Balance.from_tao( 0.2 )
-
-    if account_balance < transfer_balance + transfer_fee:
-        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {} fee: {}[/bold white]".format( account_balance, transfer_balance, transfer_fee ))
+    
+    if account_balance < transfer_balance:
+        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
         return False
 
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, transfer_fee )):
+        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest )):
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
