@@ -605,7 +605,7 @@ class neuron:
             ], axis = 1); df['uid'] = df.index
             wandb_data_dend = self.dendrite.to_wandb()
             wandb_weight = {f'stats/weight_{uid}': weight for uid, weight in zip (sample_uids, sample_weights)}
-            wandb_data = { 'stake': self.metagraph.S[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
+            wandb_data = { 'total_stake': self.metagraph.total_stake[ self.uid ].item(), 'dividends': self.metagraph.D[ self.uid ].item() } 
             wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block, commit=False)
             wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
 
@@ -731,7 +731,7 @@ class neuron:
 
 
         # === Populate neuron weights ===
-        neuron_weights = torch.zeros_like(self.metagraph.S)  # allow unevaluated UIDs for min_allowed_weights
+        neuron_weights = torch.zeros_like(self.metagraph.total_stake)  # allow unevaluated UIDs for min_allowed_weights
         for uid in self.neuron_stats:
             if weight_key in self.neuron_stats[uid]:
                 neuron_weights[uid] = torch.tensor([self.neuron_stats[uid][weight_key]])

@@ -51,7 +51,7 @@ class QueryBenchmark:
         self.conf = QueryBenchmark.benchmark_config()
         bittensor.logging( config = self.conf ) 
         self.subtensor = bittensor.subtensor(_mock=True)
-        self.graph = bittensor.metagraph( subtensor = self.subtensor , _mock=True)
+        self.graph = bittensor.metagraph( subtensor = self.subtensor , _mock=True, netuid = self.conf.netuid)
         self.wallet = bittensor.wallet(_mock=True)
         self.dendrite = bittensor.dendrite( wallet = self.wallet, multiprocess = False, _mock=True )
         self.console = Console()
@@ -72,6 +72,7 @@ class QueryBenchmark:
     def add_args( cls, parser: argparse.ArgumentParser ):
         try:
             parser.add_argument('--n_calls', type=int, help='Number of function calls.', default=100)
+            parser.add_argument('--netuid', type=int, help='The netuid of the subnet to bench.', default=0)
             parser.add_argument('--batch_size', type=int, help='Batch size', default=10)
             parser.add_argument('--block_size', type=int, help='Block_size', default=10)
             parser.add_argument('--delay', type=int, help='Message delay', default=0)

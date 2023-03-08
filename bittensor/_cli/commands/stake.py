@@ -77,7 +77,7 @@ class StakeCommand:
             hotkeys_to_stake_to = [ (None, bittensor.wallet( config = config ).hotkey.ss58_address) ]
         
         # Get coldkey balance
-        wallet_balance: Balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        wallet_balance: Balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
         final_hotkeys: List[Tuple[str, str]] = [] 
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
@@ -97,7 +97,7 @@ class StakeCommand:
             stake_amount_tao: float = config.get('amount')
             if config.get('max_stake'):
                 # Get the current stake of the hotkey from this coldkey.
-                hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = hotkey[1], coldkey_ss58 = wallet.coldkey.ss58_address )
+                hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = hotkey[1], coldkey_ss58 = wallet.coldkeypub.ss58_address )
                 stake_amount_tao: float = config.get('max_stake') - hotkey_stake.tao
 
                 # If the max_stake is greater than the current wallet balance, stake the entire balance.

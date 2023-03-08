@@ -28,6 +28,9 @@ import torch
 from . import metagraph_impl
 import bittensor
 import bittensor.utils.networking as net
+import scalecodec
+import binascii
+import random
 
 RAOPERTAO = 1000000000
 U64MAX = 18446744073709551615
@@ -36,7 +39,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
     r""" MOCKED VERSION OF THE METAGRAPH
 
     """
-    def __init__( self ):
+    def __init__( self ) -> None:
         r""" Initializes a new Metagraph torch chain interface object.
         """
         super(MockMetagraph, self).__init__(network="mock", netuid=-1)
@@ -44,7 +47,9 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         tblock = torch.tensor( 0, dtype=torch.int64 )
         tuids = torch.tensor( list( range( 2000 )), dtype=torch.int64 )
         tactive = torch.tensor( [ 1 for _ in range (2000)], dtype=torch.int64 )
-        tstake = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
+
+        ttotal_stake = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
+
         tranks = torch.tensor(  [1.0/2000 for _ in range (2000) ], dtype=torch.float32 )
         ttrust = torch.tensor( [ 1.0 for _ in range (2000) ], dtype=torch.float32 )
         tconsensus = torch.tensor( [1.0 for _ in range (2000) ], dtype=torch.float32 )
@@ -62,7 +67,14 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         self.n = torch.nn.Parameter( tn, requires_grad=False )
         self.block = torch.nn.Parameter( tblock, requires_grad=False )
         self.uids = torch.nn.Parameter( tuids, requires_grad=False )
-        self.stake = torch.nn.Parameter( tstake, requires_grad=False )
+
+        self.stake = [{ 
+            scalecodec.ss58_encode( 
+                random.randint(0, U64MAX).to_bytes(32, 'big', signed=False), bittensor.__ss58_format__
+            ): bittensor.Balance.from_rao(1.0) for _ in range(random.randint(0, 10)) # random addresses to Balance(1.0)
+        } for _ in range(2000) ] # 1 dict of addresses -> Balance per uid
+        self.total_stake = torch.nn.Parameter( ttotal_stake, requires_grad=False )
+
         self.ranks = torch.nn.Parameter( tranks, requires_grad=False )
         self.trust = torch.nn.Parameter( ttrust, requires_grad=False )
         self.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
@@ -80,14 +92,17 @@ class MockMetagraph( metagraph_impl.Metagraph ):
 
         print("---- MOCKED METAGRAPH INITIALIZED ----")
 
-    def clear( self ) -> 'Metagraph':
+    def clear( self ) -> 'bittensor.Metagraph':
         r""" Erases Metagraph state.
         """
         self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype=torch.int64), requires_grad=False )
         self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
         self.tau = torch.nn.Parameter( torch.tensor( [1], dtype=torch.float32), requires_grad = False )
         self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
-        self.stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
+        self.stake = []
+        self.total_stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+
         self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
         self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
@@ -106,7 +121,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
         self._endpoint_objs = None
         return self
 
-    def load( self, network:str = None  ) -> 'Metagraph':
+    def load( self, network:str = None  ) -> 'bittensor.Metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir.
             Args: 
                 network: (:obj:`str`, required):
@@ -125,7 +140,7 @@ class MockMetagraph( metagraph_impl.Metagraph ):
             logger.exception(e)
         return self
 
-    def save( self, network:str = None ) -> 'Metagraph':
+    def save( self, network:str = None ) -> 'bittensor.Metagraph':
         r""" Saves this metagraph object's state_dict under bittensor root dir.
             Args: 
                 network: (:obj:`str`, required):
@@ -135,5 +150,5 @@ class MockMetagraph( metagraph_impl.Metagraph ):
             network = 'mock'
         return self.save_to_path( path = '~/.bittensor/', filename = 'mock.pt')
 
-    def sync ( self, block: int = None, cached: bool = True ) -> 'Metagraph':
+    def sync ( self, block: int = None, cached: bool = True ) -> 'bittensor.Metagraph':
         return self

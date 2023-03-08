@@ -381,8 +381,8 @@ class ValidatorLogger:
         f"{f'UID [bright_cyan]{uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
         f'Updated [yellow]{current_block - metagraph.last_update[uid]}[/yellow] [dim]blocks ago[/dim] | '
         f'Dividends [green not bold]{metagraph.dividends[uid]:.5f}[/green not bold] | '
-        f'Stake \u03C4[magenta not bold]{metagraph.stake[uid]:.5f}[/magenta not bold] '
-        f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {network}:{netuid})[/dim]')
+        f'Stake \u03C4[magenta not bold]{metagraph.total_stake[uid]:.5f}[/magenta not bold] '
+        f'[dim](retrieved [yellow]{current_block - start_block}[/yellow] blocks ago from {network})[/dim]')
 
     def print_console_query_summary(
         self, 
@@ -517,7 +517,7 @@ class ValidatorPrometheus:
         """
         self.gauges.labels("epoch").inc()
         self.gauges.labels("set_weights").inc()
-        self.gauges.labels("stake").set( metagraph.stake[uid] )
+        self.gauges.labels("stake").set( metagraph.total_stake[uid] )
         self.gauges.labels("rank").set( metagraph.ranks[uid] )
         self.gauges.labels("trust").set( metagraph.trust[uid] )
         self.gauges.labels("incentive").set( metagraph.incentive[uid] )
