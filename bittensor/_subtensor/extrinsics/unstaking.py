@@ -117,10 +117,8 @@ def unstake_extrinsic (
     # Decrypt keys,
     wallet.coldkey
 
-    own_hotkey: bool = False # Flag to indicate if we are using the wallet's own hotkey.
     if hotkey_ss58 is None:
         hotkey_ss58 = wallet.hotkey.ss58_address # Default to wallet's own hotkey.
-        own_hotkey = True
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
         old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )        

@@ -72,6 +72,9 @@ def add_stake_extrinsic(
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
         old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+        # Get hotkey owner
+        hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
+        own_hotkey = (wallet.coldkeypub.ss58_address == hotkey_owner)
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate( hotkey_ss58 ):
@@ -79,8 +82,6 @@ def add_stake_extrinsic(
             
             # Get hotkey take
             hotkey_take = subtensor.get_delegate_take( hotkey_ss58 )
-            # Get hotkey owner
-            hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
         
         # Get current stake
         old_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58 )
