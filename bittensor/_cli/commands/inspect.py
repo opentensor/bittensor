@@ -61,7 +61,7 @@ class InspectCommand:
                     else:
                         endpoint = bittensor.endpoint.from_neuron( neuron )
                         registered = '[bold white]Yes[/bold white]'
-                        stake = bittensor.Balance.from_tao( neuron.total_stake )
+                        stake = neuron.total_stake
                         emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
                         synapses = [bittensor.synapse.TextLastHiddenState()]
                         _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)
