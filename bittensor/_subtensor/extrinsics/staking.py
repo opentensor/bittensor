@@ -71,7 +71,10 @@ def add_stake_extrinsic(
     own_hotkey: bool = (wallet.hotkey.ss58_address == hotkey_ss58)
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
-        old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+        # Get hotkey owner
+        hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
+        own_hotkey = (wallet.coldkeypub.ss58_address == hotkey_owner)
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate( hotkey_ss58 ):
@@ -79,8 +82,6 @@ def add_stake_extrinsic(
             
             # Get hotkey take
             hotkey_take = subtensor.get_delegate_take( hotkey_ss58 )
-            # Get hotkey owner
-            hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
         
         # Get current stake
         old_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58 )
@@ -112,7 +113,7 @@ def add_stake_extrinsic(
                     'amount_staked': staking_balance.rao
                 }
             )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
+            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkeypub)
             if payment_info:
                 staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
                 bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
@@ -154,7 +155,7 @@ def add_stake_extrinsic(
 
             bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
             with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(subtensor.network)):
-                new_balance = subtensor.get_balance( address = wallet.coldkey.ss58_address )
+                new_balance = subtensor.get_balance( address = wallet.coldkeypub.ss58_address )
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
@@ -208,7 +209,7 @@ def add_stake_multiple_extrinsic (
             flag is true if any wallet was staked.
             If we did not wait for finalization / inclusion, the response is true.
     """
-    if not isinstance(hotkey_ss58s, list):
+    if not isinstance(hotkey_ss58s, list) or not all(isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s):
         raise TypeError("hotkey_ss58s must be a list of str")
     
     if len(hotkey_ss58s) == 0:
@@ -235,11 +236,11 @@ def add_stake_multiple_extrinsic (
 
     old_stakes = []
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
-        old_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         # Get the old stakes.
         for hotkey_ss58 in hotkey_ss58s:
-            old_stakes.append( subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkey.ss58_address, hotkey_ss58 = hotkey_ss58 ) )
+            old_stakes.append( subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58 ) )
 
     # Remove existential balance to keep key alive.
     ## Keys must maintain a balance of at least 1000 rao to stay alive.
@@ -330,7 +331,7 @@ def add_stake_multiple_extrinsic (
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
 
                 block = subtensor.get_current_block()
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkey.ss58_address, hotkey_ss58, block = block )
+                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
                 new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address, block = block )
                 bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, old_stake, new_stake ))
                 old_balance = new_balance
@@ -400,8 +401,10 @@ def __do_add_stake_single(
     # Decrypt keys,
     wallet.coldkey
     wallet.hotkey
-
-    if not wallet.hotkey.ss58_address == hotkey_ss58:
+    
+    hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
+    own_hotkey = (wallet.coldkeypub.ss58_address == hotkey_owner)
+    if not own_hotkey:
         # We are delegating.
         # Verify that the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):

@@ -186,7 +186,7 @@ class UnStakeCommand:
                     continue
         
             unstake_amount_tao: float = cli.config.get('amount') # The amount specified to unstake.
-            hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = hotkey[1], coldkey_ss58 = wallet.coldkey.ss58_address )
+            hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = hotkey[1], coldkey_ss58 = wallet.coldkeypub.ss58_address )
             if unstake_amount_tao == None:
                 unstake_amount_tao = hotkey_stake.tao
             if cli.config.get('max_stake'):
