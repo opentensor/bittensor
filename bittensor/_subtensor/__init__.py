@@ -119,12 +119,13 @@ class subtensor:
         subtensor.check_config( config )
         network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
         if network == 'nakamoto':
+            # Use nakamoto-specific subtensor.
             return Nakamoto_subtensor( 
                 substrate = substrate,
                 network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
                 chain_endpoint = config.subtensor.chain_endpoint,
             )
-        elif network =='finney':
+        else:
             return subtensor_impl.Subtensor( 
                 substrate = substrate,
                 network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
