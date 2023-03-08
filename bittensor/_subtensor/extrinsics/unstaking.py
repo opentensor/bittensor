@@ -138,30 +138,10 @@ def unstake_extrinsic (
     if unstaking_balance > stake_on_uid:
         bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
         return False
-
-    # Estimate unstaking fee.
-    unstake_fee = None # To be filled.
-    with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule', 
-                call_function='remove_stake',
-                call_params={
-                    'hotkey': hotkey_ss58,
-                    'amount_unstaked': unstaking_balance.rao
-                }
-            )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
-            if payment_info:
-                unstake_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( unstake_fee ))
-            else:
-                unstake_fee = bittensor.Balance.from_tao( 0.2 )
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
-                    
+    
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}\n  fee: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str, unstake_fee) ):
+        if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
             return False
 
     
@@ -280,30 +260,10 @@ def unstake_multiple_extrinsic (
         if unstaking_balance > stake_on_uid:
             bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
             continue
-
-        # Estimate unstaking fee.
-        unstake_fee = None # To be filled.
-        with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-            with subtensor.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module='SubtensorModule', 
-                    call_function='remove_stake',
-                    call_params={
-                        'hotkey': hotkey_ss58,
-                        'amount_unstaked': unstaking_balance.rao
-                    }
-                )
-                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
-                if payment_info:
-                    unstake_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( unstake_fee ))
-                else:
-                    unstake_fee = bittensor.Balance.from_tao( 0.2 )
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
-                        
+      
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}\n  fee: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str, unstake_fee) ):
+            if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
                 continue
         
         try:

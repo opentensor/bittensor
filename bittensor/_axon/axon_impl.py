@@ -665,7 +665,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
         # --- calling attached synapses ---
         for index, synapse in enumerate(synapses):
             try:
-                synapse_check =  self.synapse_checks(synapse, hotkey)
+                synapse_check =  self.synapse_checks(synapse, hotkey, inputs_x)
 
                 if synapse.synapse_type in self.synapse_callbacks and self.synapse_callbacks[synapse.synapse_type] != None and synapse_check:
                     message, model_output, response_tensor = self.synapse_callbacks[synapse.synapse_type](inputs_x[index], synapse, model_output)
