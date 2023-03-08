@@ -37,8 +37,9 @@ class NeuronInfo:
     coldkey: str
     uid: int
     netuid: int
-    active: int
-    stake: Balance
+    active: int    
+    # mapping of coldkey to amount staked to this Neuron
+    stake: Dict[str, Balance]
     total_stake: Balance
     rank: float
     emission: float
@@ -66,7 +67,7 @@ class NeuronInfo:
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            stake = Balance.from_rao(0 if len(json['stake']) == 0 else json['stake'][0][1]),
+            stake = { bittensor.utils.u8_key_to_ss58(stake[0]['id']): Balance.from_rao(stake[1]) for stake in json['stake']},
             total_stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
             rank = json['rank'] / U16_MAX,
             emission = json['emission'] / RAOPERTAO,
@@ -90,8 +91,8 @@ class NeuronInfo:
             uid = 0,
             netuid = 0,
             active =  0,
-            stake = 0,
-            total_stake = 0,
+            stake = {},
+            total_stake = Balance.from_rao(0),
             rank = 0,
             emission = 0,
             incentive = 0,
@@ -114,11 +115,13 @@ class NeuronInfo:
 
     @staticmethod
     def _neuron_dict_to_namespace(neuron_dict) -> 'NeuronInfo':
+        # TODO: Legacy: remove?
         if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
             return NeuronInfo._null_neuron()
         else:
             neuron = NeuronInfo( **neuron_dict )
-            neuron.stake = neuron.stake / RAOPERTAO
+            neuron.stake = { hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items() }
+            neuron.total_stake = Balance.from_rao(neuron.total_stake)
             neuron.rank = neuron.rank / U16_MAX
             neuron.trust = neuron.trust / U16_MAX
             neuron.consensus = neuron.consensus / U16_MAX
@@ -267,7 +270,7 @@ class SubnetInfo:
             blocks_since_epoch = json['blocks_since_last_step'],
             tempo = json['tempo'],
             modality = json['network_modality'],
-            connection_requirements= json['network_connect'],
+            connection_requirements = { str(subnet): req for subnet, req in json['network_connect'] },
             emission_value= json['emission_values'],
         )
     

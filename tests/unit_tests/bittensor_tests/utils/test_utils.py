@@ -230,7 +230,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
 
 class TestSS58Utils(unittest.TestCase):
-    def test_is_valid_ss58_address():
+    def test_is_valid_ss58_address(self):
         keypair = bittensor.Keypair.create_from_mnemonic(
             bittensor.Keypair.generate_mnemonic(
                 words=12
@@ -241,7 +241,7 @@ class TestSS58Utils(unittest.TestCase):
         assert bittensor.utils.is_valid_ss58_address(good_address)
         assert not bittensor.utils.is_valid_ss58_address(bad_address)
 
-    def test_is_valid_ss58_address_legacy():
+    def test_is_valid_ss58_address_legacy(self):
         keypair = bittensor.Keypair.create_from_mnemonic(
             bittensor.Keypair.generate_mnemonic(
                 words=12
@@ -252,7 +252,7 @@ class TestSS58Utils(unittest.TestCase):
         assert bittensor.utils.is_valid_ss58_address(good_address)
         assert not bittensor.utils.is_valid_ss58_address(bad_address)
 
-    def test_is_valid_ed25519_pubkey():
+    def test_is_valid_ed25519_pubkey(self):
         keypair = bittensor.Keypair.create_from_mnemonic(
             bittensor.Keypair.generate_mnemonic(
                 words=12
@@ -581,11 +581,7 @@ class TestExplorerURL(unittest.TestCase):
     )
     @unpack
     def test_get_explorer_url_for_network_by_network_and_block_hash(self, network: str, block_hash: str, expected: str) -> str:
-        def override_map_func(network: str, _) -> str:
-            return self.network_map[network]
-        
-        with patch('bittensor.utils.get_explorer_root_url_by_network_from_map', side_effect=override_map_func):
-            self.assertEqual(bittensor.utils.get_explorer_url_for_network(network, block_hash), expected)
+        self.assertEqual(bittensor.utils.get_explorer_url_for_network(network, block_hash, self.network_map), expected)
 
 
 if __name__ == "__main__":

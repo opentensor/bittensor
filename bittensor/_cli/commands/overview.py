@@ -124,7 +124,7 @@ class OverviewCommand:
                 nn: bittensor.NeuronInfo
                 uid = nn.uid
                 active = nn.active
-                stake = nn.stake.tao
+                stake = nn.total_stake.tao
                 rank = nn.rank
                 trust = nn.trust
                 consensus = nn.consensus
@@ -253,13 +253,6 @@ class OverviewCommand:
             dest='all', 
             action='store_true', 
             help='''View overview for all wallets.''',
-            default=False,
-        )
-        overview_parser.add_argument(
-            '--no_cache', 
-            dest='no_cache', 
-            action='store_true', 
-            help='''Set true to avoid using the cached overview from IPFS.''',
             default=False,
         )
         overview_parser.add_argument(
