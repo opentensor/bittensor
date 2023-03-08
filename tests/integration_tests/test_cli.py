@@ -1756,6 +1756,69 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=mock_wallets[1].coldkey.ss58_address
             )
             self.assertAlmostEqual(balance.tao, mock_balances['w1'].tao - config.amount, places=4) # no fees
+
+    def test_transfer_not_enough_balance( self ):
+        config = self.config
+        config.command = "transfer"
+        config.no_prompt = True 
+        config.amount = 3.2
+        config.wallet.name = "w1"
+
+        mock_balances: Dict[str, bittensor.Balance] = {
+            'w0': bittensor.Balance.from_float(10.0), 
+            'w1': bittensor.Balance.from_float(config.amount - 0.1) # not enough balance
+        }
+
+        mock_wallets = []
+        for idx, wallet_name in enumerate(list(mock_balances.keys())):
+            wallet = SimpleNamespace(
+                    name = wallet_name,
+                    coldkey = get_mock_keypair(idx, self.id()),
+                    coldkeypub = get_mock_keypair(idx, self.id())
+                )
+            mock_wallets.append(wallet)
+
+        # Set dest to w0
+        config.dest = mock_wallets[0].coldkey.ss58_address
+
+        # Give w0 and w1 balance
+        for wallet in mock_wallets:
+            success, err = _subtensor_mock.sudo_force_set_balance(
+                ss58_address=wallet.coldkey.ss58_address,
+                balance = mock_balances[wallet.name].rao
+            )
+            self.assertTrue(success, err)
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            name_ = kwargs.get('name')
+
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+
+            for wallet in mock_wallets:
+                if wallet.name == name_:
+                    return wallet
+            else:
+                raise ValueError(f'No mock wallet found with name: {name_}')
+            
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+            
+            cli.run()
+
+            # Check the balance of w0
+            balance = _subtensor_mock.get_balance(
+                address=mock_wallets[0].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(balance.tao, mock_balances['w0'].tao, places=4) # did not transfer
+
+            # Check the balance of w1
+            balance = _subtensor_mock.get_balance(
+                address=mock_wallets[1].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(balance.tao, mock_balances['w1'].tao, places=4) # did not transfer
     
     def test_register( self ):
         config = self.config
