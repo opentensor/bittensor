@@ -373,7 +373,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         return wallet
             else:
                 return mock_wallets[0]
-        # TODO: Fix mocking here
+    
         with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.side_effect = mock_get_wallet
 
