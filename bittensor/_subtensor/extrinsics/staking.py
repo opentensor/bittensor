@@ -401,8 +401,10 @@ def __do_add_stake_single(
     # Decrypt keys,
     wallet.coldkey
     wallet.hotkey
-
-    if not wallet.hotkey.ss58_address == hotkey_ss58:
+    
+    hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
+    own_hotkey = (wallet.coldkeypub.ss58_address == hotkey_owner)
+    if not own_hotkey:
         # We are delegating.
         # Verify that the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):
