@@ -55,7 +55,7 @@ def nominate_extrinsic(
         try:
             with subtensor.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module='Paratensor',
+                    call_module='Subtensor',
                     call_function='become_delegate',
                     call_params = {
                         'hotkey': wallet.hotkey.ss58_address
@@ -96,7 +96,7 @@ def do_delegation(
     ) -> bool:
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
-        call_module='Paratensor', 
+        call_module='Subtensor', 
         call_function='add_stake',
         call_params={
             'hotkey': delegate_ss58,
@@ -124,7 +124,7 @@ def do_undelegation(
     ) -> bool:
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
-        call_module='Paratensor', 
+        call_module='Subtensor', 
         call_function='remove_stake',
         call_params={
             'hotkey': delegate_ss58,
@@ -210,7 +210,7 @@ def delegate_extrinsic(
     with bittensor.__console__.status(":satellite: Estimating Delegation Fees..."):
         with subtensor.substrate as substrate:
             call = substrate.compose_call(
-                call_module='Paratensor', 
+                call_module='Subtensor', 
                 call_function='add_stake',
                 call_params={
                     'hotkey': delegate_ss58,
@@ -337,7 +337,7 @@ def undelegate_extrinsic(
     with bittensor.__console__.status(":satellite: Estimating Delegation Fees..."):
         with subtensor.substrate as substrate:
             call = substrate.compose_call(
-                call_module='Paratensor', 
+                call_module='Subtensor', 
                 call_function='remove_stake',
                 call_params={
                     'hotkey': delegate_ss58,

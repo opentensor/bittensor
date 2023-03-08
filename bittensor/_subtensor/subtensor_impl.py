@@ -326,7 +326,7 @@ class Subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(
-                    module='Paratensor',
+                    module='Subtensor',
                     storage_function = name,
                     params = params,
                     block_hash = None if block == None else substrate.get_block_hash(block)
@@ -339,7 +339,7 @@ class Subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query_map(
-                    module='Paratensor',
+                    module='Subtensor',
                     storage_function = name,
                     params = params,
                     block_hash = None if block == None else substrate.get_block_hash(block)
