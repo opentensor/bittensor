@@ -330,7 +330,7 @@ def add_stake_multiple_extrinsic (
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
 
                 block = subtensor.get_current_block()
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkeypub.ss58_address, hotkey_ss58, block = block )
+                new_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
                 new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address, block = block )
                 bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, old_stake, new_stake ))
                 old_balance = new_balance
