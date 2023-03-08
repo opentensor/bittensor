@@ -375,7 +375,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
     
         with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.side_effect = mock_get_wallet
+            mock_get_all_wallets.return_value = mock_get_wallet
 
             # Check stakes before unstaking
             for wallet in mock_wallets:
@@ -444,7 +444,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
     
         with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.side_effect = mock_get_wallet
+            mock_get_all_wallets.return_value = mock_get_wallet
 
             # Check stakes before unstaking
             for wallet in mock_wallets:
@@ -520,7 +520,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
     
         with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.side_effect = mock_get_wallet
+            mock_get_all_wallets.return_value = mock_get_wallet
 
             # Check stakes before unstaking
             for wallet in mock_wallets:
@@ -1519,7 +1519,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey_ss58=mock_wallets[1].coldkey.ss58_address
             )
             self.assertAlmostEqual(stake.tao, mock_delegated.tao - config.amount, places=4)
-
     
     def test_register( self ):
         config = self.config
