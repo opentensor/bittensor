@@ -80,6 +80,7 @@ class metagraph:
         if network =='finney':
             return metagraph_impl.Metagraph( network = network, netuid = netuid )
         elif network =='nakamoto':
+            config.subtensor.network = 'nakamoto'
             return naka_metagraph(config = config, subtensor = subtensor)
 
     @classmethod   
