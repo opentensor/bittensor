@@ -84,7 +84,7 @@ class Config ( Munch ):
                 bittensor.defaults.dataset.block_size = self.dataset.block_size
                 bittensor.defaults.dataset.num_batches = self.dataset.num_batches
                 bittensor.defaults.dataset.num_workers = self.dataset.num_workers
-                bittensor.defaults.dataset.dataset_name = self.dataset.dataset_name
+                bittensor.defaults.dataset.dataset_names = self.dataset.dataset_names
                 bittensor.defaults.dataset.data_dir = self.dataset.data_dir
                 bittensor.defaults.dataset.save_dataset = self.dataset.save_dataset
                 bittensor.defaults.dataset.max_datasets = self.dataset.max_datasets

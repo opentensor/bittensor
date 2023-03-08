@@ -124,7 +124,7 @@ def register_extrinsic (
                     with subtensor.substrate as substrate:
                         # create extrinsic call
                         call = substrate.compose_call( 
-                            call_module='Paratensor',  
+                            call_module='SubtensorModule',  
                             call_function='register', 
                             call_params={ 
                                 'netuid': netuid,

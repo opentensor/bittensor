@@ -388,7 +388,7 @@ class neuron:
                     try: 
                         # Set self weights to maintain activity.
                         # --- query the chain for the most current number of peers on the network
-                        chain_weights = torch.zeros(self.get_n())
+                        chain_weights = torch.zeros(self.get_neuron_num())
                         chain_weights [ uid ] = 1 
                         did_set = self.subtensor.set_weights(
                             uids=torch.arange(0,len(chain_weights)),
@@ -396,6 +396,7 @@ class neuron:
                             weights = chain_weights,
                             wait_for_inclusion = False,
                             wallet = self.wallet,
+                            version_key =1
                         )
                         if did_set:
                             logger.success('Successfully set weights on the chain')
@@ -636,7 +637,7 @@ class neuron:
             nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
         return nn
 
-    def get_n(self):
+    def get_neuron_num(self):
         if self.subtensor.network == 'finney':
             n = self.subtensor.subnetwork_n( netuid = self.config.netuid)
         elif self.subtensor.network == 'nakamoto':

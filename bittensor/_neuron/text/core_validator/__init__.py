@@ -157,7 +157,6 @@ class neuron:
                                             block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len +  self.subtensor.validator_prune_len(netuid=self.config.netuid))
                             if dataset is None else dataset)
         else:
-            copy.deepcopy(self.config)
             self.dataset = (bittensor.dataset(config=self.config, batch_size=self.subtensor.validator_batch_size,
                                             block_size=self.subtensor.validator_sequence_length + self.config.neuron.validation_len +  self.subtensor.validator_prune_len)
                             if dataset is None else dataset)
@@ -577,7 +576,7 @@ class neuron:
             weights=sample_weights.detach().to('cpu'),
             netuid = self.config.netuid,
             wallet=self.wallet,
-            version_key=bittensor.__version_as_int__, # TODO: correct?
+            version_key=1,
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
