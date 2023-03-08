@@ -374,7 +374,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
         # TODO: Fix mocking here
-        with patch('bittensor.cli_utils.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
+        with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.side_effect = mock_get_wallet
 
             # Check stakes before unstaking
@@ -443,7 +443,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
     
-        with patch('bittensor.cli_utils.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
+        with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.side_effect = mock_get_wallet
 
             # Check stakes before unstaking
@@ -519,7 +519,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
     
-        with patch('bittensor.cli_utils.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
+        with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
             mock_get_all_wallets.side_effect = mock_get_wallet
 
             # Check stakes before unstaking
@@ -671,7 +671,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
-            with patch('bittensor.cli_utils.get_hotkey_wallets_for_wallet') as mock_get_hotkey_wallets_for_wallet:
+            with patch('bittensor._cli.commands.stake.get_hotkey_wallets_for_wallet') as mock_get_hotkey_wallets_for_wallet:
                 mock_get_hotkey_wallets_for_wallet.return_value = mock_wallets
 
                 # Check stakes before staking
@@ -1170,7 +1170,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertGreaterEqual(balance.tao, mock_balance.tao - config.max_stake)
-
 
     def test_stake_with_single_hotkey_max_stake_enough_stake( self ):
         # tests max stake when stake >= max_stake already
