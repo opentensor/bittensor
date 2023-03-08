@@ -263,7 +263,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         """
         with self.substrate as substrate:
             call = substrate.compose_call(
-                    call_module='Paratensor',
+                    call_module='Subtensor',
                     call_function='sudo_set_difficulty',
                     call_params = {
                         'netuid': netuid,
@@ -287,7 +287,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         """
         with self.substrate as substrate:
             call = substrate.compose_call(
-                    call_module='Paratensor',
+                    call_module='Subtensor',
                     call_function='sudo_add_network',
                     call_params = {
                         'netuid': netuid,
@@ -312,7 +312,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         """
         with self.substrate as substrate:
             call = substrate.compose_call(
-                    call_module='Paratensor',
+                    call_module='Subtensor',
                     call_function='sudo_register',
                     call_params = {
                         'netuid': netuid,
