@@ -1802,11 +1802,20 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     return wallet
             else:
                 raise ValueError(f'No mock wallet found with name: {name_}')
-            
+        
+        mock_console = MockConsole()
         with patch('bittensor.wallet') as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
             
-            cli.run()
+            with patch('bittensor.__console__', mock_console):
+                cli.run()
+            
+            # Check that the overview was printed.
+            self.assertIsNotNone(mock_console.captured_print)
+
+            output_no_syntax = mock_console.remove_rich_syntax(mock_console.captured_print)
+
+            self.assertIn('Not enough balance', output_no_syntax)
 
             # Check the balance of w0
             balance = _subtensor_mock.get_balance(
