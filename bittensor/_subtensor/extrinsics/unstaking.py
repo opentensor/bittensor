@@ -263,7 +263,7 @@ def unstake_multiple_extrinsic (
         old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
 
         for hotkey_ss58 in hotkey_ss58s:
-            old_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58 ) # Get stake on hotkey.
+            old_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58 ) # Get stake on hotkey.
             old_stakes.append(old_stake) # None if not registered.
 
     successful_unstakes = 0
@@ -329,7 +329,7 @@ def unstake_multiple_extrinsic (
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(subtensor.network)):
                     block = subtensor.get_current_block()
-                    new_stake = subtensor.get_stake_for_coldkey_and_hotkey( wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
+                    new_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
                     bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, stake_on_uid, new_stake ))
                     successful_unstakes += 1
             else:
