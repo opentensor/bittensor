@@ -129,7 +129,7 @@ def transfer_extrinsic(
                 block_hash = response.block_hash
                 bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
                 
-                explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash )
+                explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash, bittensor.__network_explorer_map__ )
                 if explorer_url is not None:
                     bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
                 
