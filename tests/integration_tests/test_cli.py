@@ -111,7 +111,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         cli = bittensor.cli(config)
 
-        mock_hotkeys = ['hk0', 'hk1', 'hk2', 'hk3']
+        mock_hotkeys = ['hk0', 'hk1', 'hk2', 'hk3', 'hk4']
 
         mock_coldkey_kp = get_mock_keypair(0, self.id())
 
@@ -139,7 +139,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             (2, mock_wallets[2]),
             (3, mock_wallets[0]),
             (3, mock_wallets[1]),
-            (3, mock_wallets[2]), # All registered on netuid 3
+            (3, mock_wallets[2]), # All registered on netuid 3 (but hk3)
+            (3, mock_wallets[4]) # hk4 is only on netuid 3
         ] # hk3 is not registered on any network
 
         # Register two wallets
