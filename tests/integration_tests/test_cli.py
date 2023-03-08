@@ -1268,7 +1268,59 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
-                
+        
+    def test_nominate( self ):
+        config = self.config
+        config.command = "nominate"
+        config.no_prompt = True 
+        config.wallet.name = "w0"
+        config.hotkey = "hk0"
+
+        mock_balance = bittensor.Balance.from_float(100.0)
+
+        mock_wallet = SimpleNamespace(
+                name = 'w0',
+                coldkey = get_mock_keypair(0, self.id()),
+                coldkeypub = get_mock_keypair(0, self.id()),
+                hotkey_str = 'hk0',
+                hotkey = get_mock_keypair(0 + 100, self.id()),
+            )
+
+        # Register mock wallet and give it a balance
+        success, err = _subtensor_mock.sudo_register(
+            netuid = 1,
+            hotkey = mock_wallet.hotkey.ss58_address,
+            coldkey = mock_wallet.coldkey.ss58_address,
+            balance = mock_balance.rao,
+        )
+        self.assertTrue(success, err)
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            hk = kwargs.get('hotkey')
+            name_ = kwargs.get('name')
+
+            if not hk and kwargs.get('config'):
+                hk = kwargs.get('config').wallet.hotkey
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+            
+            if mock_wallet.name == name_:
+                return mock_wallet
+            else:
+                raise ValueError("Mock wallet not found")
+            
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+            
+            cli.run()
+
+            # Check the nomination
+            is_delegate = _subtensor_mock.is_hotkey_delegate(
+                hotkey_ss58=mock_wallet.hotkey.ss58_address
+            )
+            self.assertTrue(is_delegate)
     def test_register( self ):
         config = self.config
         config.command = "register"
