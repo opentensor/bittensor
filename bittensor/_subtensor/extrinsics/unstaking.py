@@ -64,7 +64,7 @@ def __do_remove_stake_single(
 
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
-        call_module='Subtensor', 
+        call_module='SubtensorModule', 
         call_function='remove_stake',
         call_params={
             'hotkey': hotkey_ss58,
@@ -146,7 +146,7 @@ def unstake_extrinsic (
     with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
         with subtensor.substrate as substrate:
             call = substrate.compose_call(
-                call_module='Subtensor', 
+                call_module='SubtensorModule', 
                 call_function='remove_stake',
                 call_params={
                     'hotkey': hotkey_ss58,
@@ -288,7 +288,7 @@ def unstake_multiple_extrinsic (
         with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
             with subtensor.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module='Subtensor', 
+                    call_module='SubtensorModule', 
                     call_function='remove_stake',
                     call_params={
                         'hotkey': hotkey_ss58,
