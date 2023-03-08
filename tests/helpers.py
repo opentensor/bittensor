@@ -47,7 +47,7 @@ def get_mock_keypair( uid: int, test_name: Optional[str] = None ) -> Keypair:
         hashed_test_name_as_int: int = int.from_bytes(hashed_test_name, byteorder='big', signed=False)
         uid = uid + hashed_test_name_as_int
 
-    return Keypair(ss58_encode(int.to_bytes(uid, 32, 'big', signed=False), __ss58_format__))
+    return Keypair.create_from_seed( seed_hex = int.to_bytes(uid, 32, 'big', signed=False), ss58_format = __ss58_format__)
 
 def get_mock_hotkey( uid: int ) -> str:
     return get_mock_keypair(uid).ss58_address
