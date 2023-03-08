@@ -131,7 +131,8 @@ class mock_subtensor():
             
             
             _mock_subtensor_process = subprocess.Popen(
-                [ path ] + '--chain dev --base-path /tmp/mock_tensor --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' '),
+                [ path ] + '--chain dev --base-path /tmp/mock_tensor --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
+                f'--port {int(bittensor.get_random_unused_port())} --rpc-port {int(bittensor.get_random_unused_port())} --ws-port {ws_port}'.split(' '),
                 close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
             
             # Wait for the process to start. Check for errors.
