@@ -37,7 +37,7 @@ _subtensor_mock: Mock_Subtensor = None
 def setUpModule():
     global _subtensor_mock
     # Start a mock instance of subtensor.
-    _subtensor_mock = bittensor.subtensor( network = 'mock' )
+    _subtensor_mock = bittensor.subtensor( _mock = True, network='finney' )
 
     # create a mock subnet
     created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0 )
@@ -80,7 +80,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         defaults.netuid = 1
         bittensor.subtensor.add_defaults( defaults )
         # Always use mock subtensor.
-        defaults.subtensor.network = 'mock'
+        defaults.subtensor.network = 'finney'
+        defaults.subtensor._mock = True
         # Skip version checking.
         defaults.no_version_checking = True
         bittensor.dendrite.add_defaults( defaults )
