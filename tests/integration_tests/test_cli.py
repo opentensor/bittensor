@@ -37,7 +37,7 @@ _subtensor_mock: Mock_Subtensor = None
 def setUpModule():
     global _subtensor_mock
     # Start a mock instance of subtensor.
-    _subtensor_mock = bittensor.subtensor( network = 'mock' )
+    _subtensor_mock = bittensor.subtensor( _mock = True, network='finney' )
 
     # create a mock subnet
     created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0 )
@@ -80,7 +80,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         defaults.netuid = 1
         bittensor.subtensor.add_defaults( defaults )
         # Always use mock subtensor.
-        defaults.subtensor.network = 'mock'
+        defaults.subtensor.network = 'finney'
+        defaults.subtensor._mock = True
         # Skip version checking.
         defaults.no_version_checking = True
         bittensor.dendrite.add_defaults( defaults )
@@ -373,9 +374,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         return wallet
             else:
                 return mock_wallets[0]
-        # TODO: Fix mocking here
+    
         with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.side_effect = mock_get_wallet
+            mock_get_all_wallets.return_value = mock_get_wallet
 
             # Check stakes before unstaking
             for wallet in mock_wallets:
@@ -444,7 +445,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
     
         with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.side_effect = mock_get_wallet
+            mock_get_all_wallets.return_value = mock_get_wallet
 
             # Check stakes before unstaking
             for wallet in mock_wallets:
@@ -520,7 +521,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
     
         with patch('bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet') as mock_get_all_wallets:
-            mock_get_all_wallets.side_effect = mock_get_wallet
+            mock_get_all_wallets.return_value = mock_get_wallet
 
             # Check stakes before unstaking
             for wallet in mock_wallets:
@@ -1268,7 +1269,258 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
-                
+        
+    def test_nominate( self ):
+        config = self.config
+        config.command = "nominate"
+        config.no_prompt = True 
+        config.wallet.name = "w0"
+        config.hotkey = "hk0"
+
+        mock_balance = bittensor.Balance.from_float(100.0)
+
+        mock_wallet = SimpleNamespace(
+                name = 'w0',
+                coldkey = get_mock_keypair(0, self.id()),
+                coldkeypub = get_mock_keypair(0, self.id()),
+                hotkey_str = 'hk0',
+                hotkey = get_mock_keypair(0 + 100, self.id()),
+            )
+
+        # Register mock wallet and give it a balance
+        success, err = _subtensor_mock.sudo_register(
+            netuid = 1,
+            hotkey = mock_wallet.hotkey.ss58_address,
+            coldkey = mock_wallet.coldkey.ss58_address,
+            balance = mock_balance.rao,
+        )
+        self.assertTrue(success, err)
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            hk = kwargs.get('hotkey')
+            name_ = kwargs.get('name')
+
+            if not hk and kwargs.get('config'):
+                hk = kwargs.get('config').wallet.hotkey
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+            
+            if mock_wallet.name == name_:
+                return mock_wallet
+            else:
+                raise ValueError("Mock wallet not found")
+            
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+            
+            cli.run()
+
+            # Check the nomination
+            is_delegate = _subtensor_mock.is_hotkey_delegate(
+                hotkey_ss58=mock_wallet.hotkey.ss58_address
+            )
+            self.assertTrue(is_delegate)
+
+    def test_delegate_stake( self ):
+        config = self.config
+        config.command = "delegate"
+        config.no_prompt = True 
+        config.amount = 5.0
+        config.wallet.name = "w1"
+
+        mock_balances: Dict[str, bittensor.Balance] = {
+            # All have more than 5.0 stake
+            'w0': {
+                'hk0': bittensor.Balance.from_float(10.0),
+            },
+            'w1': {
+                'hk1': bittensor.Balance.from_float(11.1)
+            },
+        }
+
+        mock_stake = bittensor.Balance.from_float(5.0)
+
+        mock_wallets = []
+        for idx, wallet_name in enumerate(list(mock_balances.keys())):
+            for idx_hk, hk in enumerate(list(mock_balances[wallet_name].keys())):
+                wallet = SimpleNamespace(
+                        name = wallet_name,
+                        coldkey = get_mock_keypair(idx, self.id()),
+                        coldkeypub = get_mock_keypair(idx, self.id()),
+                        hotkey_str = hk,
+                        hotkey = get_mock_keypair(idx * 100 + idx_hk, self.id()),
+                    )
+                mock_wallets.append(wallet)
+
+        # Set hotkey to be the hotkey from the other wallet
+        config.delegate_ss58key: str = mock_wallets[0].hotkey.ss58_address
+
+        # Register mock wallets and give them balance
+        success, err = _subtensor_mock.sudo_register(
+            netuid = 1,
+            hotkey = mock_wallets[0].hotkey.ss58_address,
+            coldkey = mock_wallets[0].coldkey.ss58_address,
+            balance = mock_balances['w0']['hk0'].rao,
+            stake = mock_stake.rao # Needs set stake to be a validator
+        )
+        self.assertTrue(success, err)
+
+        # Give w1 some balance
+        success, err = _subtensor_mock.sudo_force_set_balance(
+            ss58_address=mock_wallets[1].coldkey.ss58_address,
+            balance = mock_balances['w1']['hk1'].rao
+        )
+        self.assertTrue(success, err)
+
+        # Make the first wallet a delegate
+        success = _subtensor_mock.nominate(
+            wallet = mock_wallets[0]
+        )
+        self.assertTrue(success)
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            hk = kwargs.get('hotkey')
+            name_ = kwargs.get('name')
+
+            if not hk and kwargs.get('config'):
+                hk = kwargs.get('config').wallet.hotkey
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+
+            for wallet in mock_wallets:
+                if wallet.name == name_ and wallet.hotkey_str == hk:
+                    return wallet
+            else:
+                for wallet in mock_wallets:
+                    if wallet.name == name_:
+                        return wallet
+                else:
+                    return mock_wallets[0]
+            
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+            
+            cli.run()
+
+            # Check the stake
+            stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                hotkey_ss58=mock_wallets[0].hotkey.ss58_address,
+                coldkey_ss58=mock_wallets[1].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(stake.tao, config.amount, places=4)
+
+    def test_undelegate_stake( self ):
+        config = self.config
+        config.command = "undelegate"
+        config.no_prompt = True 
+        config.amount = 5.0
+        config.wallet.name = "w1"
+
+        mock_balances: Dict[str, bittensor.Balance] = {
+            # All have more than 5.0 stake
+            'w0': {
+                'hk0': bittensor.Balance.from_float(10.0),
+            },
+            'w1': {
+                'hk1': bittensor.Balance.from_float(11.1)
+            },
+        }
+
+        mock_stake = bittensor.Balance.from_float(5.0)
+        mock_delegated = bittensor.Balance.from_float(6.0)
+
+        mock_wallets = []
+        for idx, wallet_name in enumerate(list(mock_balances.keys())):
+            for idx_hk, hk in enumerate(list(mock_balances[wallet_name].keys())):
+                wallet = SimpleNamespace(
+                        name = wallet_name,
+                        coldkey = get_mock_keypair(idx, self.id()),
+                        coldkeypub = get_mock_keypair(idx, self.id()),
+                        hotkey_str = hk,
+                        hotkey = get_mock_keypair(idx * 100 + idx_hk, self.id()),
+                    )
+                mock_wallets.append(wallet)
+
+        # Set hotkey to be the hotkey from the other wallet
+        config.delegate_ss58key: str = mock_wallets[0].hotkey.ss58_address
+
+        # Register mock wallets and give them balance
+        success, err = _subtensor_mock.sudo_register(
+            netuid = 1,
+            hotkey = mock_wallets[0].hotkey.ss58_address,
+            coldkey = mock_wallets[0].coldkey.ss58_address,
+            balance = mock_balances['w0']['hk0'].rao,
+            stake = mock_stake.rao # Needs set stake to be a validator
+        )
+        self.assertTrue(success, err)
+
+        # Give w1 some balance
+        success, err = _subtensor_mock.sudo_force_set_balance(
+            ss58_address=mock_wallets[1].coldkey.ss58_address,
+            balance = mock_balances['w1']['hk1'].rao
+        )
+        self.assertTrue(success, err)
+
+        # Make the first wallet a delegate
+        success = _subtensor_mock.nominate(
+            wallet = mock_wallets[0]
+        )
+        self.assertTrue(success)
+
+        # Stake to the delegate
+        success = _subtensor_mock.delegate(
+            wallet = mock_wallets[1],
+            delegate_ss58=mock_wallets[0].hotkey.ss58_address,
+            amount = mock_delegated,
+            wait_for_finalization=True,
+            prompt=False
+        )
+        self.assertTrue(success)
+
+        # Verify the stake
+        stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+            hotkey_ss58=mock_wallets[0].hotkey.ss58_address,
+            coldkey_ss58=mock_wallets[1].coldkey.ss58_address
+        )
+        self.assertAlmostEqual(stake.tao, mock_delegated.tao, places=4)
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            hk = kwargs.get('hotkey')
+            name_ = kwargs.get('name')
+
+            if not hk and kwargs.get('config'):
+                hk = kwargs.get('config').wallet.hotkey
+            if not name_ and kwargs.get('config'):
+                name_ = kwargs.get('config').wallet.name
+
+            for wallet in mock_wallets:
+                if wallet.name == name_ and wallet.hotkey_str == hk:
+                    return wallet
+            else:
+                for wallet in mock_wallets:
+                    if wallet.name == name_:
+                        return wallet
+                else:
+                    return mock_wallets[0]
+            
+        with patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+            
+            cli.run()
+
+            # Check the stake
+            stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                hotkey_ss58=mock_wallets[0].hotkey.ss58_address,
+                coldkey_ss58=mock_wallets[1].coldkey.ss58_address
+            )
+            self.assertAlmostEqual(stake.tao, mock_delegated.tao - config.amount, places=4)
+    
     def test_register( self ):
         config = self.config
         config.command = "register"
