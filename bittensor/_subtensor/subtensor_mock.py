@@ -75,7 +75,7 @@ class mock_subtensor():
         if not cls.global_mock_process_is_running():
             # Remove any old chain db
             if os.path.exists(bittensor.__mock_chain_db__):
-                os.rmdir(bittensor.__mock_chain_db__)
+                os.system(f'rm -rf {bittensor.__mock_chain_db__}')
             _owned_mock_subtensor_process = cls.create_global_mock_process()
         else:
             _owned_mock_subtensor_process = None
