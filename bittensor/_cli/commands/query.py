@@ -28,8 +28,12 @@ class QueryCommand:
         subtensor = bittensor.subtensor( config = cli.config )
 
         # Verify subnet exists
+        if not hasattr(cli.config, 'netuid'):
+            bittensor.__console__.print(f"[red]Please specify subnet with --netuid.[/red]")
+            sys.exit(1)
+
         if not subtensor.subnet_exists( netuid = cli.config.netuid ):
-            bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist[/red]")
+            bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist.[/red]")
             sys.exit(1)
 
         dendrite = bittensor.dendrite( wallet = wallet )
@@ -37,14 +41,25 @@ class QueryCommand:
         for uid in cli.config.uids:
             neuron = subtensor.neuron_for_uid( uid = uid, netuid = cli.config.netuid )
             endpoint = bittensor.endpoint.from_neuron( neuron )
-            _, c, t = dendrite.forward_text( endpoints = endpoint, inputs = 'hello world')
-            latency = "{}".format(t.tolist()[0]) if c.tolist()[0] == 1 else 'N/A'
-            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(uid, latency, bittensor.utils.codes.code_to_loguru_color( c.item() ), bittensor.utils.codes.code_to_string( c.item() ), bittensor.utils.codes.code_to_loguru_color( c.item() )), highlight=True)
+            _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses = [bittensor.synapse.TextCausalLMNext()])
+            latency = "{}".format(t[0].tolist()[0]) if c[0].tolist()[0] == 1 else 'N/A'
+            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(
+                    uid, 
+                    latency, 
+                    bittensor.utils.codes.code_to_loguru_color( c[0].item() ), 
+                    bittensor.utils.codes.code_to_string( c[0].item() ), 
+                    bittensor.utils.codes.code_to_loguru_color( c[0].item() )
+                ), highlight=True)
             stats[uid] = latency
         print (stats)
+        dendrite.__del__()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
+
+        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -84,6 +99,12 @@ class QueryCommand:
             action='store_true', 
             help='''Set true to avoid prompting the user.''',
             default=False,
+        )
+        query_parser.add_argument(
+            '--netuid',
+            type=int,
+            help='netuid for subnet to serve this neuron on',
+            default=argparse.SUPPRESS,
         )
         query_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.wallet.add_args( query_parser )

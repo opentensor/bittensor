@@ -26,6 +26,7 @@ from . import metagraph_impl
 from . import metagraph_mock
 from typing import Optional, List
 import bittensor.utils.weight_utils as weight_utils
+from .naka_metagraph_impl import Metagraph as naka_metagraph
 
 class metagraph:
     """ Factory class for the bittensor.Metagraph class or the MockMetagraph
@@ -43,6 +44,7 @@ class metagraph:
             config: 'bittensor.config' = None,
             network: str = None,
             netuid: Optional[int] = None,
+            subtensor: 'bittensor.Subtensor' = None,
             _mock:bool=None
         ) -> 'bittensor.Metagraph':
         r""" Creates a new bittensor.Metagraph object from passed arguments.
@@ -68,12 +70,17 @@ class metagraph:
         config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
         if config.metagraph._mock:
             return metagraph_mock.MockMetagraph()
+        if subtensor != None:
+            network = subtensor.network
         if netuid == None:
             netuid = config.get('netuid', None)
         if network == None:
-            network = config.get('subtensor.network', None)
-        
-        return metagraph_impl.Metagraph( network = network, netuid = netuid )
+            network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+
+        if network =='finney':
+            return metagraph_impl.Metagraph( network = network, netuid = netuid )
+        elif network =='nakamoto':
+            return naka_metagraph(config = config, subtensor = subtensor)
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':

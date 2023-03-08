@@ -371,7 +371,8 @@ class ValidatorLogger:
         metagraph: 'bittensor.Metagraph', 
         current_block: int, 
         start_block: int, 
-        network: str
+        network: str,
+        netuid: int
     ):
         r""" Console print for current validator's metagraph status. 
         """

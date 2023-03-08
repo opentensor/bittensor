@@ -25,6 +25,7 @@ import bittensor
 from . import cli_impl
 from .commands import *
 from typing import List, Optional
+from .naka_cli_impl import CLI as naka_CLI
 console = bittensor.__console__
 
 # Turn off rich console locals trace.
@@ -50,7 +51,13 @@ class cli:
         if config == None: 
             config = cli.config(args)
         cli.check_config( config )
-        return cli_impl.CLI( config = config)
+        if config.subtensor:
+            network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+
+        if network == 'finney':
+            return cli_impl.CLI( config = config)
+        elif network == 'nakamoto':
+            return naka_CLI(config=config)
 
     @staticmethod   
     def config(args: List[str]) -> 'bittensor.config':
@@ -80,6 +87,7 @@ class cli:
         MetagraphCommand.add_args( cmd_parsers )
         SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
+        NewHotkeyCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
         RegenColdkeyCommand.add_args( cmd_parsers )

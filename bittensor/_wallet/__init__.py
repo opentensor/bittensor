@@ -26,7 +26,7 @@ import bittensor
 from bittensor.utils import strtobool
 
 from . import wallet_impl, wallet_mock
-
+from .naka_wallet_impl import Wallet as naka_wallet
 
 class wallet:
     """ Create and init wallet that stores hot and coldkey
@@ -78,12 +78,21 @@ class wallet:
                 config = config
             )
 
-        return wallet_impl.Wallet(
-            name = config.wallet.get('name', bittensor.defaults.wallet.name), 
-            hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
-            path = config.wallet.path,
-            config = config
-        )
+        network = config.get('subtensor.network', bittensor.defaults.subtensor.network)
+        if network == 'finney':
+            return wallet_impl.Wallet(
+                name = config.wallet.get('name', bittensor.defaults.wallet.name), 
+                hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
+                path = config.wallet.path,
+                config = config
+            )
+        elif network == 'nakamoto':
+            return naka_wallet(
+                name = config.wallet.get('name', bittensor.defaults.wallet.name), 
+                hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
+                path = config.wallet.path,
+                config = config
+            )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
