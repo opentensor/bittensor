@@ -272,11 +272,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             'hk2': bittensor.Balance.from_float(12.2),
         }
 
+        mock_coldkey_kp = get_mock_keypair(0, self.id())
+
         mock_wallets = [
             SimpleNamespace(
                 name = config.wallet.name,
-                coldkey = get_mock_keypair(idx, self.id()),
-                coldkeypub = get_mock_keypair(idx, self.id()),
+                coldkey = mock_coldkey_kp,
+                coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
             ) for idx, hk in enumerate(config.hotkeys)
