@@ -139,6 +139,7 @@ import bittensor._neuron as neurons
 
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
+from bittensor._cli.commands import utils as cli_utils
 
 # ---- Factories -----
 from bittensor.utils.balance import Balance as Balance
