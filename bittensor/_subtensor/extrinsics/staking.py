@@ -208,7 +208,7 @@ def add_stake_multiple_extrinsic (
             flag is true if any wallet was staked.
             If we did not wait for finalization / inclusion, the response is true.
     """
-    if not isinstance(hotkey_ss58s, list):
+    if not isinstance(hotkey_ss58s, list) or not all(isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s):
         raise TypeError("hotkey_ss58s must be a list of str")
     
     if len(hotkey_ss58s) == 0:
