@@ -74,7 +74,7 @@ class prometheus:
         if isinstance(level, prometheus.level):
             level = level.name # Convert ENUM to str.
 
-        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint) 
+        if subtensor == None: subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint) 
         
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
