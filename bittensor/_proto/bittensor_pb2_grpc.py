@@ -2,12 +2,13 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from bittensor._proto import bittensor_pb2 as bittensor_dot___proto_dot_bittensor__pb2
+from text_causal_lm_next import messages_pb2 as text__causal__lm__next_dot_messages__pb2
+from text_last_hidden_state import messages_pb2 as text__last__hidden__state_dot_messages__pb2
+from text_seq2seq import messages_pb2 as text__seq2seq_dot_messages__pb2
 
 
 class BittensorStub(object):
-    """Service definition for tensor processing servers.
-    """
+    """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
         """Constructor.
@@ -15,32 +16,41 @@ class BittensorStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Forward = channel.unary_unary(
-                '/Bittensor/Forward',
-                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+        self.ForwardTextLastHiddenState = channel.unary_unary(
+                '/Bittensor/ForwardTextLastHiddenState',
+                request_serializer=text__last__hidden__state_dot_messages__pb2.ForwardTextLastHiddenStateRequest.SerializeToString,
+                response_deserializer=text__last__hidden__state_dot_messages__pb2.ForwardTextLastHiddenStateResponse.FromString,
                 )
-        self.Backward = channel.unary_unary(
-                '/Bittensor/Backward',
-                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+        self.ForwardTextCausalLMNext = channel.unary_unary(
+                '/Bittensor/ForwardTextCausalLMNext',
+                request_serializer=text__causal__lm__next_dot_messages__pb2.ForwardTextCausalLMNextRequest.SerializeToString,
+                response_deserializer=text__causal__lm__next_dot_messages__pb2.ForwardTextCausalLMNextResponse.FromString,
+                )
+        self.ForwardTextSeq2Seq = channel.unary_unary(
+                '/Bittensor/ForwardTextSeq2Seq',
+                request_serializer=text__seq2seq_dot_messages__pb2.ForwardTextSeq2SeqRequest.SerializeToString,
+                response_deserializer=text__seq2seq_dot_messages__pb2.ForwardTextSeq2SeqResponse.FromString,
                 )
 
 
 class BittensorServicer(object):
-    """Service definition for tensor processing servers.
-    """
+    """Missing associated documentation comment in .proto file."""
 
-    def Forward(self, request, context):
-        """Forward tensor request. 
+    def ForwardTextLastHiddenState(self, request, context):
+        """Forward calls.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Backward(self, request, context):
-        """Backward tensor request i.e. gradient.
-        """
+    def ForwardTextCausalLMNext(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ForwardTextSeq2Seq(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -48,15 +58,20 @@ class BittensorServicer(object):
 
 def add_BittensorServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Forward': grpc.unary_unary_rpc_method_handler(
-                    servicer.Forward,
-                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+            'ForwardTextLastHiddenState': grpc.unary_unary_rpc_method_handler(
+                    servicer.ForwardTextLastHiddenState,
+                    request_deserializer=text__last__hidden__state_dot_messages__pb2.ForwardTextLastHiddenStateRequest.FromString,
+                    response_serializer=text__last__hidden__state_dot_messages__pb2.ForwardTextLastHiddenStateResponse.SerializeToString,
             ),
-            'Backward': grpc.unary_unary_rpc_method_handler(
-                    servicer.Backward,
-                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+            'ForwardTextCausalLMNext': grpc.unary_unary_rpc_method_handler(
+                    servicer.ForwardTextCausalLMNext,
+                    request_deserializer=text__causal__lm__next_dot_messages__pb2.ForwardTextCausalLMNextRequest.FromString,
+                    response_serializer=text__causal__lm__next_dot_messages__pb2.ForwardTextCausalLMNextResponse.SerializeToString,
+            ),
+            'ForwardTextSeq2Seq': grpc.unary_unary_rpc_method_handler(
+                    servicer.ForwardTextSeq2Seq,
+                    request_deserializer=text__seq2seq_dot_messages__pb2.ForwardTextSeq2SeqRequest.FromString,
+                    response_serializer=text__seq2seq_dot_messages__pb2.ForwardTextSeq2SeqResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -66,11 +81,10 @@ def add_BittensorServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class Bittensor(object):
-    """Service definition for tensor processing servers.
-    """
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Forward(request,
+    def ForwardTextLastHiddenState(request,
             target,
             options=(),
             channel_credentials=None,
@@ -80,14 +94,14 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Forward',
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+        return grpc.experimental.unary_unary(request, target, '/Bittensor/ForwardTextLastHiddenState',
+            text__last__hidden__state_dot_messages__pb2.ForwardTextLastHiddenStateRequest.SerializeToString,
+            text__last__hidden__state_dot_messages__pb2.ForwardTextLastHiddenStateResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def Backward(request,
+    def ForwardTextCausalLMNext(request,
             target,
             options=(),
             channel_credentials=None,
@@ -97,8 +111,25 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Backward',
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+        return grpc.experimental.unary_unary(request, target, '/Bittensor/ForwardTextCausalLMNext',
+            text__causal__lm__next_dot_messages__pb2.ForwardTextCausalLMNextRequest.SerializeToString,
+            text__causal__lm__next_dot_messages__pb2.ForwardTextCausalLMNextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ForwardTextSeq2Seq(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/Bittensor/ForwardTextSeq2Seq',
+            text__seq2seq_dot_messages__pb2.ForwardTextSeq2SeqRequest.SerializeToString,
+            text__seq2seq_dot_messages__pb2.ForwardTextSeq2SeqResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

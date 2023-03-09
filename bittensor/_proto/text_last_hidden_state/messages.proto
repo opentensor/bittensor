@@ -1,0 +1,35 @@
+
+// python3 -m grpc.tools.protoc bittensor/_proto/text_last_hidden_state/messages.proto  -I. --python_out=. --grpc_python_out=. --proto_path bittensor/_proto/
+
+syntax = "proto3";
+
+import "tensors/messages.proto";
+
+/////////////////////////
+// TextLastHiddenState //
+/////////////////////////
+message ForwardTextLastHiddenStateRequest {
+	int32 version = 1;
+	string hotkey = 2;	
+
+	Serializer input_text_serializer = 3;
+	Serializer output_embeddings_serializer = 4;
+
+	Tensor input_text = 5;
+
+	// Specifies which embeddings to return in the seuqences
+	// [1,2] implies return the first and second embeddings.
+	int32 mask = 7;
+}
+
+message ForwardTextLastHiddenStateResponse {
+	int32 version = 1;
+	string hotkey = 2;	
+
+	Tensor input_text = 3;
+	Tensor output_embeddings = 4;
+
+	// Specifies which embeddings to return/were returned in the sequence.
+	// [1,2] implies return the first and second embeddings.
+	int32 mask = 5;
+}
