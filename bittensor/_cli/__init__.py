@@ -96,6 +96,7 @@ class cli:
         DelegateUnstakeCommand.add_args( cmd_parsers )
         ListDelegatesCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
+        BurnedRegisterCommand.add_args( cmd_parsers )
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
@@ -156,6 +157,8 @@ class cli:
             DelegateStakeCommand.check_config( config )
         elif config.command == "undelegate":
             DelegateUnstakeCommand.check_config( config )
+        elif config.command == "burned_register":
+            BurnedRegisterCommand.check_config( config )
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()

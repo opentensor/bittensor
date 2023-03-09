@@ -88,4 +88,6 @@ class CLI:
             ListDelegatesCommand.run( self )
         elif self.config.command == 'list_subnets':
             ListSubnetsCommand.run( self )
+        elif self.config.command == 'burned_register':
+            BurnedRegisterCommand.run( self )
         
