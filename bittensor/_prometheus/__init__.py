@@ -47,9 +47,16 @@ class prometheus:
 
     def __new__( 
         cls,
+        wallet: 'bittensor.wallet',
         config: 'bittensor.config' = None,
         port: int = None,
-        level: Union[str, "prometheus.level"] = None
+        level: Union[str, "prometheus.level"] = None,
+        netuid: int = None,
+        network: str = None,
+        chain_endpoint: str = None,
+        subtensor: 'bittensor.subtensor' = None,
+        use_upnpc: bool = False, 
+        prompt: bool = False, 
     ):
         """ Instantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
@@ -67,10 +74,20 @@ class prometheus:
         if isinstance(level, prometheus.level):
             level = level.name # Convert ENUM to str.
 
+        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint) 
+        if wallet == None: subtensor = bittensor.wallet( )
+        
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
         cls.check_config( config )
-        if config.prometheus.level != prometheus.level.OFF.name:
+        serve_success = subtensor.serve_prometheus(
+            wallet = wallet,
+            port = config.prometheus.port,
+            netuid = netuid,
+            use_upnpc = use_upnpc, 
+            prompt = prompt
+        )
+        if serve_success and (config.prometheus.level != prometheus.level.OFF.name):
             try:
                 start_http_server( config.prometheus.port )
             except OSError:
@@ -82,6 +99,7 @@ class prometheus:
             logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( config.prometheus.port ))
         else:
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
+            raise RuntimeError('Failed to serve neuron.')
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
