@@ -378,7 +378,7 @@ class neuron:
 
 
             if current_block - last_set_block > blocks_per_set_weights:
-                self.metagraph.sync(netuid=self.config.netuid)
+                self.metagraph.sync(netuid=self.config.netuid, subtensor = self.subtensor)
                 last_set_block = current_block
                 epoch_starting_successes = self.axon.stats.total_successes
                 epoch_starting_requests = self.axon.stats.total_requests
