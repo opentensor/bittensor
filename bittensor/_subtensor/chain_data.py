@@ -20,6 +20,7 @@ from typing import List, Tuple, Dict
 import bittensor
 from bittensor import Balance
 import scalecodec
+import torch
 
 
 # Constants
@@ -270,7 +271,21 @@ class SubnetInfo:
             blocks_since_epoch = json['blocks_since_last_step'],
             tempo = json['tempo'],
             modality = json['network_modality'],
-            connection_requirements = { str(subnet): req for subnet, req in json['network_connect'] },
+            connection_requirements = {
+                str(int(netuid)): int(req) for netuid, req in json['network_connect']
+            },
             emission_value= json['emission_values'],
         )
     
+    def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
+        r""" Returns a torch tensor of the subnet info.
+        """
+        return torch.nn.ParameterDict( 
+            self.__dict__
+        )
+    
+    @classmethod
+    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'SubnetInfo':
+        r""" Returns a SubnetInfo object from a torch parameter_dict.
+        """
+        return cls( **dict(parameter_dict) )

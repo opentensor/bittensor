@@ -81,7 +81,10 @@ class subtensor:
         # Select using chain_endpoint arg.
         if chain_endpoint != None:
             config.subtensor.chain_endpoint = chain_endpoint
-            config.subtensor.network = network
+            if network != None:
+                config.subtensor.network = network
+            else:
+                config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
             
         # Select using network arg.
         elif network != None:

@@ -58,6 +58,8 @@ class Metagraph( torch.nn.Module ):
     """
     network: str
     netuid: int
+    neurons: Optional[List[Optional['bittensor.Neurons']]]
+    info: Optional['bittensor.SubnetInfo']
 
     def __init__( self, network: str, netuid: int ):
         r""" Initializes a new Metagraph torch chain interface object.
@@ -65,7 +67,15 @@ class Metagraph( torch.nn.Module ):
         super(Metagraph, self).__init__()
         self.network = network
         self.netuid = netuid
+        self._register_state_dict_hook(Metagraph.__info_state_dict_hook__)
         self.clear()
+
+    def __info_state_dict_hook__(self, state_dict, prefix, local_metadata):
+        r""" Hook for state_dict to add info to state_dict. e.g. before saving.
+        """
+        if self.info is not None:
+            state_dict[prefix + 'info'] = self.info.to_parameter_dict()
+        return state_dict
 
     def clear( self ) -> 'Metagraph':
         r""" Erases Metagraph state.
@@ -95,8 +105,9 @@ class Metagraph( torch.nn.Module ):
         self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         self._endpoint_objs = None
         self.neurons = None
+        self.info = None
         return self
-
+    
     @property
     def S(self) -> torch.FloatTensor:
         """ Stake
@@ -256,10 +267,13 @@ class Metagraph( torch.nn.Module ):
                 network = self.network
             if netuid == None:
                 netuid = self.netuid
-            metagraph_path = f"~/.bittensor/{str(network)}_{str(self.netuid)}.pt"
+            metagraph_path = f"~/.bittensor/{str(network)}_{str(netuid)}.pt"
             metagraph_path = os.path.expanduser(metagraph_path)
             if os.path.isfile(metagraph_path):
                 self.load_from_path( path = metagraph_path )
+                # Update network and netuid.
+                self.network = network
+                self.netuid = netuid
             else:
                 logger.warning('Did not load metagraph from path: {}, file does not exist. Run metagraph.save() first.', metagraph_path)
         except Exception as e:
@@ -278,7 +292,7 @@ class Metagraph( torch.nn.Module ):
             network = self.network
         if netuid == None:
             netuid = self.netuid
-        return self.save_to_path( path = '~/.bittensor/', filename = f"{str(network)}_{str(self.netuid)}.pt")
+        return self.save_to_path( path = '~/.bittensor/', filename = f"{str(network)}_{str(netuid)}.pt")
 
     def load_from_path(self, path:str ) -> 'Metagraph':
         r""" Loads this metagraph object with state_dict under the specified path.
@@ -288,7 +302,9 @@ class Metagraph( torch.nn.Module ):
         """
         full_path = os.path.expanduser(path)
         metastate = torch.load( full_path )
-        return self.load_from_state_dict( metastate )
+        metagraph = self.load_from_state_dict( metastate )
+        self.__dict__.update(metagraph.__dict__)
+        return self
 
     def save_to_path(self, path:str, filename:str ) -> 'Metagraph':
         r""" Saves this metagraph object's state_dict to the specified path.
@@ -333,6 +349,7 @@ class Metagraph( torch.nn.Module ):
         self.bonds = torch.nn.Parameter( state_dict['bonds'], requires_grad=False )
         self.endpoints = torch.nn.Parameter( state_dict['endpoints'], requires_grad=False )
         self._endpoint_objs = None
+        self.info = bittensor.SubnetInfo.from_parameter_dict( state_dict['info'] ) if 'info' in state_dict else None
         return self
 
     def sync ( self, netuid: Optional[int] = None, subtensor: 'bittensor.Subtensor' = None, block: Optional[int] = None ) -> 'Metagraph':
