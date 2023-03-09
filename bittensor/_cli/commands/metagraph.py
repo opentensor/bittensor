@@ -50,7 +50,7 @@ class MetagraphCommand:
             ep = metagraph.endpoint_objs[uid]
             row = [
                 str(ep.uid), 
-                '{:.5f}'.format( metagraph.stake[uid]),
+                '{:.5f}'.format( metagraph.total_stake[uid]),
                 '{:.5f}'.format( metagraph.ranks[uid]),
                 '{:.5f}'.format( metagraph.trust[uid]), 
                 '{:.5f}'.format( metagraph.consensus[uid]),
@@ -66,7 +66,7 @@ class MetagraphCommand:
                 ep.hotkey[:10],
                 ep.coldkey[:10]
             ]
-            total_stake += metagraph.stake[uid]
+            total_stake += metagraph.total_stake[uid]
             total_rank += metagraph.ranks[uid]
             # total_validator_trust += metagraph.validator_trust[uid]
             total_trust += metagraph.trust[uid]
