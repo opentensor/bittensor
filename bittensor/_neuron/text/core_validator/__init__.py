@@ -619,7 +619,7 @@ class neuron:
         r""" Syncing metagraph together with other metagraph-size related objects
         """
         old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
-        self.metagraph.sync(netuid=self.config.netuid)
+        self.metagraph.sync( subtensor=self.subtensor, netuid=self.config.netuid)
         self.neuron_hotkeys = self.metagraph.hotkeys
 
         changed_hotkeys = []
