@@ -230,7 +230,7 @@ class neuron:
         nucleus.add_args( parser )    
         
         # Netuid Arg
-        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=0)
+        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=1)
 
         bittensor.wallet.add_args( parser )
         bittensor.dendrite.add_args( parser )
