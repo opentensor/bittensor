@@ -67,7 +67,7 @@ class InspectCommand:
                         _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)
                         latency = "{}".format((t[0]).tolist()[0]) if (c[0]).tolist()[0] == 1 else 'N/A'
 
-                    cold_balance = wallet.get_balance( subtensor = subtensor )
+                    cold_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
                     bittensor.__console__.print((
                         "\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n" + \
                         "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]"
@@ -107,7 +107,7 @@ class InspectCommand:
                             neuron = subtensor.neuron_for_pubkey( hotkey_ss58 = wallet.hotkey.ss58_address, netuid = netuid )
                             emission += bittensor.Balance.from_rao( neuron.emission * 1000000000 )
 
-                    cold_balance = wallet.get_balance( subtensor = subtensor )
+                    cold_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
                     bittensor.__console__.print((
                         "\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n" + \
                         "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]"
