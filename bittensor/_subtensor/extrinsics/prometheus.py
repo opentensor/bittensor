@@ -27,6 +27,7 @@ def prometheus_extrinsic(
     wallet: 'bittensor.wallet',
     port: int, 
     netuid: int,
+    external_ip = None,
     wait_for_inclusion: bool = False,
     wait_for_finalization = True,
     use_upnpc = False,
@@ -60,8 +61,8 @@ def prometheus_extrinsic(
         external_ip = external_ip
 
     call_params={
-        'version': bittensor.__version__, 
-        'ip': external_ip, 
+        'version': bittensor.__version_as_int__, 
+        'ip': net.ip_to_int(external_ip), 
         'port': external_port, 
         'ip_type': net.ip_version(external_ip),
     }
