@@ -212,6 +212,7 @@ def burned_register_extrinsic (
         bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(netuid))
         return False
 
+    wallet.coldkey # unlock coldkey
     with bittensor.__console__.status(f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
 
@@ -244,7 +245,7 @@ def burned_register_extrinsic (
                     'hotkey': wallet.hotkey.ss58_address
                 } 
             )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
             
             # We only wait here if we expect finalization.
