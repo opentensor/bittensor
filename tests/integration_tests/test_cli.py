@@ -1897,9 +1897,43 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "metagraph"
         config.no_prompt = True
         
+        # Add some neurons to the metagraph
+        mock_nn = []
+        for i in range(10):
+            mock_nn.append( 
+                SimpleNamespace(
+                    hotkey = get_mock_keypair(i + 100, self.id()).ss58_address,
+                    coldkey = get_mock_keypair(i, self.id()).ss58_address,
+                    balance = Balance.from_rao( random.randint(0, 2**45) ).rao,
+                    stake = Balance.from_rao( random.randint(0, 2**45) ).rao,
+                )
+            )
+            success, err = _subtensor_mock.sudo_register(
+                netuid = config.netuid,
+                hotkey = mock_nn[i].hotkey,
+                coldkey = mock_nn[i].coldkey,
+                balance = mock_nn[i].balance,
+                stake = mock_nn[i].stake
+            )
+            self.assertTrue(success, err)
 
         cli = bittensor.cli(config)
-        cli.run()
+
+        mock_console = MockConsole()
+        with patch('bittensor.__console__', mock_console):
+            cli.run()
+
+        # Check that the overview was printed.
+        self.assertIsNotNone(mock_console.captured_print)
+
+        output_no_syntax = mock_console.remove_rich_syntax(mock_console.captured_print)
+
+        self.assertIn('Metagraph', output_no_syntax)
+        nn = _subtensor_mock.neurons( netuid = config.netuid )
+        self.assertIn(str(len(nn) - 1), output_no_syntax) # Check that the number of neurons is output
+        # Check each uid is in the output
+        for neuron in nn:
+            self.assertIn(str(neuron.uid), output_no_syntax)
 
     def test_set_weights( self ):
 
