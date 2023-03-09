@@ -162,13 +162,13 @@ class CLI:
                 wallet.hotkey
                 wallet.coldkeypub
                 neuron = subtensor.neuron_for_pubkey( ss58_hotkey = wallet.hotkey.ss58_address )
-                endpoint = bittensor.endpoint.from_neuron( neuron )
                 if neuron.is_null:
                     registered = '[bold white]No[/bold white]'
                     stake = bittensor.Balance.from_tao( 0 )
                     emission = bittensor.Balance.from_rao( 0 )
                     latency = 'N/A'
                 else:
+                    endpoint = bittensor.endpoint.from_neuron( neuron )
                     registered = '[bold white]Yes[/bold white]'
                     stake = bittensor.Balance.from_tao( neuron.stake )
                     emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
