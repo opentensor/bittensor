@@ -132,10 +132,6 @@ class neuron:
             config = self.config, 
             logging_dir = self.config.neuron.full_path 
         )
-        bittensor.prometheus( 
-            config = self.config, 
-            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
-        )
 
         # === Create Bittensor objects ===
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
@@ -182,6 +178,12 @@ class neuron:
         # load last saved validator values from the file system
         if not config.neuron.restart:
             self.load()
+        
+        bittensor.prometheus(
+            config = self.config, 
+            wallet = self.wallet,
+            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
+        )
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
