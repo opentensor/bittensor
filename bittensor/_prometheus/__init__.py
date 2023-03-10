@@ -114,13 +114,14 @@ class prometheus:
             except OSError:
                 # The singleton process is likely already running.
                 logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( port ) )
-                return
             prometheus.started = True
             prometheus.port = port
             logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( port ))
+            return True
         else:
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
             raise RuntimeError('Failed to serve neuron.')
+            return False
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
