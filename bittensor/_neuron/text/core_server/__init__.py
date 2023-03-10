@@ -329,7 +329,7 @@ class neuron:
                 self.model.backward_gradients_count = 0
                 
             data = {            
-                'stake': nn.total_stake,
+                'stake': nn.stake,
                 'rank': nn.rank,
                 'trust': nn.trust,
                 'consensus': nn.consensus,
@@ -349,7 +349,7 @@ class neuron:
                 wandb.log( { 'stats': wandb.Table( dataframe = df ) }, step = current_block )
 
             # === Prometheus logging.
-            self.prometheus_guages.labels("stake").set( nn.total_stake )
+            self.prometheus_guages.labels("stake").set( nn.stake )
             self.prometheus_guages.labels("rank").set( nn.rank )
             self.prometheus_guages.labels("trust").set( nn.trust )
             self.prometheus_guages.labels("consensus").set( nn.consensus )
@@ -382,7 +382,7 @@ class neuron:
 
                 print(f"[white not bold]{datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
                     f"{f'UID [bright_cyan]{uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
-                    f'[dim white not bold] [green]{str(nn.total_stake):.4}[/green] Stake [/dim white not bold]'
+                    f'[dim white not bold] [green]{str(nn.stake):.4}[/green] Stake [/dim white not bold]'
                     f'[dim white not bold]| [yellow]{nn.trust:.3}[/yellow] Trust [/dim white not bold]'
                     f'[dim white not bold]| [green]{nn.incentive:.3}[/green] Incentive [/dim white not bold]')
 
