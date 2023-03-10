@@ -42,5 +42,6 @@ class TestPrometheus(unittest.TestCase):
     
     def test_init_prometheus_failed(self):
         self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = self.fail) 
-        assert False == bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor)
+        with pytest.raises(Exception):
+            bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor)
     

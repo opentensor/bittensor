@@ -55,7 +55,6 @@ class prometheus:
         network: str = None,
         chain_endpoint: str = None,
         subtensor: 'bittensor.subtensor' = None,
-        prompt: bool = False, 
     ):
         """ Instantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
@@ -76,8 +75,6 @@ class prometheus:
                     If subtensor is not set, uses this network flag to create the subtensor connection.
                 chain_endpoint (default=None, type=str)
                     Overrides the network argument if not set.
-                prompt (:obj:`bool`, `optional`):
-                    If true, the call waits for confirmation from the user before proceeding.
         """
         if config == None:
             config = prometheus.config()
@@ -98,15 +95,13 @@ class prometheus:
             subtensor = subtensor,
             port = config.prometheus.port,
             level = config.prometheus.level,
-            prompt = prompt,
         )
         
-    def serve(cls, wallet, subtensor, netuid, port, level, prompt):
+    def serve(cls, wallet, subtensor, netuid, port, level):
         serve_success = subtensor.serve_prometheus(
             wallet = wallet,
             port = port,
             netuid = netuid,
-            prompt = prompt
         )
         if serve_success and (level != prometheus.level.OFF.name):
             try:
@@ -121,7 +116,6 @@ class prometheus:
         else:
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
             raise RuntimeError('Failed to serve neuron.')
-            return False
 
     @classmethod
     def config(cls) -> 'bittensor.Config':

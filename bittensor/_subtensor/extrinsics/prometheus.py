@@ -49,8 +49,6 @@ def prometheus_extrinsic(
         wait_for_finalization (bool):
             if set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
             flag is true if extrinsic was finalized or uncluded in the block. 
