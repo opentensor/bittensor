@@ -259,9 +259,8 @@ class Subtensor:
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        prompt: bool = False,
     ) -> bool:
-        return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt = prompt)
+        return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization)
     #################
     #### Staking ####
     #################

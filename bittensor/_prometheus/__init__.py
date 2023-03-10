@@ -55,7 +55,6 @@ class prometheus:
         network: str = None,
         chain_endpoint: str = None,
         subtensor: 'bittensor.subtensor' = None,
-        prompt: bool = False, 
     ):
         """ Instantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
@@ -98,7 +97,6 @@ class prometheus:
             subtensor = subtensor,
             port = config.prometheus.port,
             level = config.prometheus.level,
-            prompt = prompt,
         )
         
     def serve(cls, wallet, subtensor, netuid, port, level, prompt):
@@ -106,7 +104,6 @@ class prometheus:
             wallet = wallet,
             port = port,
             netuid = netuid,
-            prompt = prompt
         )
         if serve_success and (level != prometheus.level.OFF.name):
             try:
