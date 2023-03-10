@@ -35,6 +35,7 @@ from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
 from .extrinsics.registration import register_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
 
 # Logging
@@ -251,6 +252,16 @@ class Subtensor:
     ) -> bool:
         return serve_axon_extrinsic( self, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
 
+    def serve_prometheus (
+        self,
+        wallet: 'bittensor.wallet',
+        port: int,
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt = prompt)
     #################
     #### Staking ####
     #################

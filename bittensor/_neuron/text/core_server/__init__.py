@@ -134,12 +134,6 @@ class neuron:
             logging_dir = config.neuron.full_path,
         )
 
-        # Init prometheus.
-        # By default we pick the prometheus port to be axon.port - 1000 so that we can match port to server.
-        bittensor.prometheus ( 
-            config = config,
-            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
-        )
         # --- Setup prometheus summaries.
         # These will not be posted if the user passes --prometheus.level OFF
         registry = CollectorRegistry()
@@ -177,6 +171,14 @@ class neuron:
             )
         self.axon = axon
         self.query_data = {}
+        
+        # Init prometheus.
+        # By default we pick the prometheus port to be axon.port - 1000 so that we can match port to server.
+        bittensor.prometheus ( 
+            config = config,
+            wallet = self.wallet,
+            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
+        )
 
         # Verify subnet exists
         if self.config.subtensor.network == 'finney' and not self.subtensor.subnet_exists( netuid = self.config.netuid ):
