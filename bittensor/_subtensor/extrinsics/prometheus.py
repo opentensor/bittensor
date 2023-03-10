@@ -30,7 +30,6 @@ def prometheus_extrinsic(
     ip: int = None,
     wait_for_inclusion: bool = False,
     wait_for_finalization = True,
-    prompt = False,
 ) -> bool:
     r""" Subscribes an bittensor endpoint to the substensor chain.
     Args:
