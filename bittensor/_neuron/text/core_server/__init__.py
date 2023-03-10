@@ -159,8 +159,8 @@ class neuron:
         self.metagraph = bittensor.metagraph ( config = config, netuid = self.config.netuid) if metagraph == None else metagraph
         self.timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
 
-        self.config.neuron.max_batch_size = subtensor.validator_batch_size(netuid=self.config.netuid) if self.config.neuron.max_batch_size == -1 else self.config.neuron.max_batch_size
-        self.config.neuron.max_sequence_len = subtensor.validator_sequence_length(netuid=self.config.netuid) if self.config.neuron.max_sequence_len == -1 else self.config.neuron.max_sequence_len
+        self.config.neuron.max_batch_size = self.subtensor.validator_batch_size(netuid=self.config.netuid) if self.config.neuron.max_batch_size == -1 else self.config.neuron.max_batch_size
+        self.config.neuron.max_sequence_len = self.subtensor.validator_sequence_length(netuid=self.config.netuid) if self.config.neuron.max_sequence_len == -1 else self.config.neuron.max_sequence_len
 
         if axon == None:
             axon = bittensor.axon(
