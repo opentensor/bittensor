@@ -75,8 +75,6 @@ class prometheus:
                     If subtensor is not set, uses this network flag to create the subtensor connection.
                 chain_endpoint (default=None, type=str)
                     Overrides the network argument if not set.
-                prompt (:obj:`bool`, `optional`):
-                    If true, the call waits for confirmation from the user before proceeding.
         """
         if config == None:
             config = prometheus.config()
