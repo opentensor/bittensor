@@ -129,9 +129,6 @@ class neuron:
         self.check_config( config )
         self.config = config
 
-        self.config.neuron.max_batch_size = subtensor.validator_batch_size(netuid=self.config.netuid) if self.config.neuron.max_batch_size == -1 else self.config.neuron.max_batch_size
-        self.config.neuron.max_sequence_len = subtensor.validator_sequence_length(netuid=self.config.netuid) if self.config.neuron.max_sequence_len == -1 else self.config.neuron.max_sequence_len
-
         bittensor.logging (
             config = config,
             logging_dir = config.neuron.full_path,
@@ -161,6 +158,10 @@ class neuron:
         self.wallet = bittensor.wallet( config = config ) if wallet == None else wallet
         self.metagraph = bittensor.metagraph ( config = config, netuid = self.config.netuid) if metagraph == None else metagraph
         self.timecheck_dicts = {bittensor.proto.RequestType.FORWARD:{}, bittensor.proto.RequestType.BACKWARD:{}}
+
+        self.config.neuron.max_batch_size = subtensor.validator_batch_size(netuid=self.config.netuid) if self.config.neuron.max_batch_size == -1 else self.config.neuron.max_batch_size
+        self.config.neuron.max_sequence_len = subtensor.validator_sequence_length(netuid=self.config.netuid) if self.config.neuron.max_sequence_len == -1 else self.config.neuron.max_sequence_len
+
         if axon == None:
             axon = bittensor.axon(
                 config = config,
