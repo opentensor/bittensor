@@ -97,7 +97,7 @@ class prometheus:
             level = config.prometheus.level,
         )
         
-    def serve(cls, wallet, subtensor, netuid, port, level, prompt):
+    def serve(cls, wallet, subtensor, netuid, port, level):
         serve_success = subtensor.serve_prometheus(
             wallet = wallet,
             port = port,
@@ -116,7 +116,6 @@ class prometheus:
         else:
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
             raise RuntimeError('Failed to serve neuron.')
-            return False
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
