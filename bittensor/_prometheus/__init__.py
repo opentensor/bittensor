@@ -55,18 +55,29 @@ class prometheus:
         network: str = None,
         chain_endpoint: str = None,
         subtensor: 'bittensor.subtensor' = None,
-        use_upnpc: bool = False, 
         prompt: bool = False, 
     ):
         """ Instantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
             Args:
+                wallet (:obj: `bittensor.wallet`, `required`):
+                    bittensor wallet object.
                 config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.prometheus.config()):
                     A config namespace object created by calling bittensor.prometheus.config()
                 port (:obj:`int`, `optional`, defaults to bittensor.defaults.prometheus.port ):
                     The port to run the prometheus DB on, this uniquely identifies the prometheus DB.
                 level (:obj:`prometheus.level`, `optional`, defaults to bittensor.defaults.prometheus.level ):
                     Prometheus logging level. If OFF, the prometheus DB is not initialized.
+                netuid (:obj: `int`, `optional`):
+                    network uid to serve on.
+                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
+                    Chain connection through which to serve.
+                network (default='local', type=str)
+                    If subtensor is not set, uses this network flag to create the subtensor connection.
+                chain_endpoint (default=None, type=str)
+                    Overrides the network argument if not set.
+                prompt (:obj:`bool`, `optional`):
+                    If true, the call waits for confirmation from the user before proceeding.
         """
         if config == None:
             config = prometheus.config()
@@ -83,7 +94,6 @@ class prometheus:
             wallet = wallet,
             port = config.prometheus.port,
             netuid = netuid,
-            use_upnpc = use_upnpc, 
             prompt = prompt
         )
         if serve_success and (config.prometheus.level != prometheus.level.OFF.name):

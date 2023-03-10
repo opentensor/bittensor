@@ -30,7 +30,6 @@ def prometheus_extrinsic(
     ip: int = None,
     wait_for_inclusion: bool = False,
     wait_for_finalization = True,
-    use_upnpc = False,
     prompt = False,
 ) -> bool:
     r""" Subscribes an bittensor endpoint to the substensor chain.
@@ -59,21 +58,6 @@ def prometheus_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
     """
         
-    # ---- Setup UPNPC ----
-    if use_upnpc:
-        if prompt:
-            if not Confirm.ask("Attempt port forwarding with upnpc?"):
-                return False
-        try:
-            external_port = net.upnpc_create_port_map( port = port )
-            bittensor.__console__.print(":white_heavy_check_mark: [green]Forwarded port: {}[/green]".format( port ))
-            bittensor.logging.success(prefix = 'Forwarded port', sufix = '<blue>{}</blue>'.format( port ))
-        
-        except net.UPNPCException as upnpc_exception:
-            raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
-    else:
-        external_port = port 
-
     # ---- Get external ip ----
     if ip == None:
         try:
@@ -88,7 +72,7 @@ def prometheus_extrinsic(
     call_params={
         'version': bittensor.__version_as_int__, 
         'ip': net.ip_to_int(external_ip), 
-        'port': external_port, 
+        'port': port, 
         'ip_type': net.ip_version(external_ip),
     }
 

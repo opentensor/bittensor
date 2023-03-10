@@ -259,10 +259,9 @@ class Subtensor:
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        use_upnpc: bool = False,
         prompt: bool = False,
     ) -> bool:
-        return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, use_upnpc = use_upnpc, prompt = prompt)
+        return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt = prompt)
     #################
     #### Staking ####
     #################
