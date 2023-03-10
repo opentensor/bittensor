@@ -90,22 +90,34 @@ class prometheus:
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
         cls.check_config( config )
+
+        return cls.serve(
+            cls,
+            wallet = wallet,
+            netuid = netuid,
+            subtensor = subtensor,
+            port = config.prometheus.port,
+            level = config.prometheus.level,
+            prompt = prompt,
+        )
+        
+    def serve(cls, wallet, subtensor, netuid, port, level, prompt):
         serve_success = subtensor.serve_prometheus(
             wallet = wallet,
-            port = config.prometheus.port,
+            port = port,
             netuid = netuid,
             prompt = prompt
         )
-        if serve_success and (config.prometheus.level != prometheus.level.OFF.name):
+        if serve_success and (level != prometheus.level.OFF.name):
             try:
-                start_http_server( config.prometheus.port )
+                start_http_server( port )
             except OSError:
                 # The singleton process is likely already running.
-                logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( config.prometheus.port ) )
+                logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( port ) )
                 return
             prometheus.started = True
-            prometheus.port = config.prometheus.port
-            logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( config.prometheus.port ))
+            prometheus.port = port
+            logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( port ))
         else:
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
             raise RuntimeError('Failed to serve neuron.')
