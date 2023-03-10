@@ -150,8 +150,8 @@ class metagraph:
         ranks = [ 0 for _ in range(n_total) ]
         trust = [ 0 for _ in range(n_total) ]
         consensus = [ 0 for _ in range(n_total) ]
-        # validator_trust = [ 0 for _ in range(n_total) ]
-        # weight_consensus = [ 0 for _ in range(n_total) ]
+        validator_trust = [ 0 for _ in range(n_total) ]
+        weight_consensus = [ 0 for _ in range(n_total) ]
         incentive = [ 0 for _ in range(n_total) ]
         emission = [ 0 for _ in range(n_total) ]
         dividends = [ 0 for _ in range(n_total) ]
@@ -171,8 +171,8 @@ class metagraph:
             ranks[n.uid] = n.rank
             trust[n.uid] = n.trust
             consensus[n.uid] = n.consensus
-            # validator_trust[n.uid] = n.validator_trust
-            # weight_consensus[n.uid] = n.weight_consensus
+            validator_trust[n.uid] = n.validator_trust
+            weight_consensus[n.uid] = n.weight_consensus
             incentive[n.uid] = n.incentive
             dividends[n.uid] = n.dividends
             emission[n.uid] = n.emission
@@ -203,8 +203,8 @@ class metagraph:
         tranks = torch.tensor( ranks, dtype=torch.float32 )
         ttrust = torch.tensor( trust, dtype=torch.float32 )
         tconsensus = torch.tensor( consensus, dtype=torch.float32 )
-        # tvalidator_trust = torch.tensor( validator_trust, dtype=torch.float32 )
-        # tweight_consensus = torch.tensor( weight_consensus, dtype=torch.float32 )
+        tvalidator_trust = torch.tensor( validator_trust, dtype=torch.float32 )
+        tweight_consensus = torch.tensor( weight_consensus, dtype=torch.float32 )
         tincentive = torch.tensor( incentive, dtype=torch.float32 )
         temission = torch.tensor( emission, dtype=torch.float32 )
         tdividends = torch.tensor( dividends, dtype=torch.float32 )
