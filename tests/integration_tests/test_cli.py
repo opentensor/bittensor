@@ -84,7 +84,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         defaults.subtensor._mock = True
         # Skip version checking.
         defaults.no_version_checking = True
-        bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
         bittensor.wallet.add_defaults( defaults )
         bittensor.dataset.add_defaults( defaults )

@@ -409,7 +409,6 @@ def _unary_unary_client(channel, multicallable_kwargs, message):
                                         ('rpc-auth-header','Bittensor'),
                                         ('bittensor-signature',sign(wallet)),
                                         ('bittensor-version',str(bittensor.__version_as_int__)),
-                                        ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                                         )
                               , **multicallable_kwargs)
     if response != message:

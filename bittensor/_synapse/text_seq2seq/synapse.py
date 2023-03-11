@@ -27,13 +27,17 @@ class TextSeq2SeqSynapse( bittensor.TextSeq2SeqServicer ):
         r""" Initializes a new Synapse."""
         self.priority_threadpool = bittensor.prioritythreadpool()
     
-    def priority( self, hotkey:str, text_prompt: torch.FloatTensor, request: 'bittensor.proto.ForwardTextSeq2SeqRequest'  ) -> float:
+    def priority( self, hotkey:str, text_prompt: torch.FloatTensor, request: bittensor.ForwardTextSeq2SeqRequest ) -> float:
         """ priority: Returns the priority of the synapse."""
         raise NotImplementedError('Must implement priority() in subclass.')
 
-    def blacklist( self, hotkey:str, text_prompt: torch.FloatTensor, request: 'bittensor.proto.ForwardTextSeq2SeqRequest' ) -> torch.FloatTensor:
+    def blacklist( self, hotkey:str, text_prompt: torch.FloatTensor, request: bittensor.ForwardTextSeq2SeqRequest ) -> torch.FloatTensor:
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
+    
+    def _attach( self, axon: 'bittensor.axon.Axon' ):
+        """ _attach: Attaches the synapse to the axon."""
+        bittensor.grpc.add_TextSeq2SeqServicer_to_server( self, axon.server )
 
     def forward( 
             self,
@@ -124,7 +128,7 @@ class TextSeq2SeqSynapse( bittensor.TextSeq2SeqServicer ):
                     response.serialized_text_outputs (string): serialized text outputs.
         """
         # Deserialize text prompt.
-        text_prompt_serializer = bittensor.bittensor.serializer_for_type( request.text_prompt_serializer_type )
+        text_prompt_serializer = bittensor.serializer( serializer_type = request.text_prompt_serializer_type )
         text_prompt = text_prompt_serializer.deserialize( request.serialized_text_prompt, from_type = bittensor.proto.TensorType.TORCH )
         
         # Check if the request hotkey is blacklisted.
@@ -158,7 +162,7 @@ class TextSeq2SeqSynapse( bittensor.TextSeq2SeqServicer ):
         generations = future.result( timeout = request.timeout )
 
         # Serialize generations.
-        generations_serializer = bittensor.bittensor.serializer_for_type( request.generations_serializer_type )
+        generations_serializer = bittensor.serializer( serializer_type = request.generations_serializer_type )
         serialized_generations= generations_serializer.serialize( generations, from_type = bittensor.proto.TensorType.TORCH )
 
         # Return the response.

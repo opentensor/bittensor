@@ -14,7 +14,6 @@ def test_run_core_validator_config():
     config = core_validator.config()
 
     assert config['dataset']['batch_size'] == 10
-    assert config['dendrite']['requires_grad'] == True
     assert config['logging']['logging_dir'] == '~/.bittensor/miners'
     assert config['neuron']['clip_gradients'] == 1.0
 

@@ -18,29 +18,37 @@
 import torch
 import asyncio
 import bittensor
+from typing import Union, Optional
 
-class TextCausalLMReceptor(torch.nn.Module):
-    """ Receptor for the text_causal_lm synapse."""
+class TextCausalLMDendrite(torch.nn.Module):
+    """ Dendrite for the connecting to text_causal_lm synapses"""
 
     def __init__(
             self,
-            wallet: 'bittensor.wallet',
-            endpoint: 'bittensor.Endpoint', 
+            endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
+            wallet: Optional[ 'bittensor.wallet' ]  = None,
             text_inputs_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             hidden_states_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
         ):
-        """ Initializes the receptor
+        """ Initializes the Dendrite
             Args:
-                wallet (:obj:`bittensor.wallet`, `required`):
-                    bittensor wallet object.
-                endpoint (:obj:`bittensor.endpoint`, `required`):
+                endpoint (:obj:Union[]`bittensor.endpoint`, `required`):
                     bittensor endpoint object.
+                wallet (:obj:`bittensor.wallet`, `optional`):
+                    bittensor wallet object.
                 text_inputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for text inputs.
                 hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for hidden states.
         """    
-        self.receptor = bittensor.receptor( endpoint = endpoint, wallet = wallet )
+        super(TextCausalLMDendrite, self).__init__()
+        if wallet is None: 
+            wallet = bittensor.wallet()
+        self.wallet = wallet
+        if isinstance(endpoint, torch.Tensor ): 
+            endpoint = bittensor.endpoint.from_tensor( endpoint )
+        self.endpoint = endpoint
+        self.receptor = bittensor.receptor( endpoint = self.endpoint, wallet = self.wallet )
         self._text_inputs_serializer_type = text_inputs_serializer_type
         self._hidden_states_serializer_type = hidden_states_serializer_type
 
@@ -85,7 +93,7 @@ class TextCausalLMReceptor(torch.nn.Module):
                     torch tensor of hidden states.
         """
         # Serialize the text inputs.
-        text_serializer = bittensor.bittensor.serializer_for_type( self._text_inputs_serializer_type )
+        text_serializer = bittensor.serializer( serializer_type = self._text_inputs_serializer_type )
         serialized_text = text_serializer.serialize( text_inputs, from_type = bittensor.proto.TensorType.TORCH )
 
         # Build the request.
@@ -103,15 +111,14 @@ class TextCausalLMReceptor(torch.nn.Module):
                     ('rpc-auth-header','Bittensor'),
                     ('bittensor-signature', self.receptor.sign() ),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
-                    ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
         # Wait for the response.
         grpc_response = await asyncio.wait_for( asyncio_future, timeout = timeout )
 
         # Deserialize the hidden states.
-        hidden_states_serializer = bittensor.bittensor.serializer_for_type( self._hidden_states_serializer_type )
+        hidden_states_serializer = bittensor.serializer( serializer_type = self._hidden_states_serializer_type )
         hidden_states = hidden_states_serializer.deserialize( grpc_response.hidden_states, to_type = bittensor.proto.TensorType.TORCH )
-        
+
         # Return the hidden states.
         return hidden_states
 

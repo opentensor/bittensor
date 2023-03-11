@@ -43,7 +43,7 @@ class axon:
             >>> class TextLastHiddenStateSynapse( bittensor.proto.TextLastHiddenStateSynapse ):
             >>>     def forward( self, text_inputs: torch.LongTensor ) -> torch.FloatTensor:
             >>>         return torch.zeros( ( text_inputs.shape[0], text_inputs.shape[1], bittensor.__network_dim__ ) )
-            >>> axon.register( wallet, TextLastHiddenStateSynapse() )
+            >>> axon.attach( TextLastHiddenStateSynapse() )
             >>> axon.start()
     """
 
@@ -119,7 +119,6 @@ class axon:
             port = config.axon.port,
             external_ip = config.axon.external_ip, # don't use internal ip if it is None, we will try to find it later
             external_port = config.axon.external_port or config.axon.port, # default to internal port if external port is not set
-            prometheus_level = config.axon.prometheus.level,
         )
 
     @classmethod   
@@ -159,12 +158,6 @@ class axon:
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
             parser.add_argument('--' + prefix_str + 'axon.maximum_concurrent_rpcs', type=int, 
                 help='''Maximum number of allowed active connections''',  default = bittensor.defaults.axon.maximum_concurrent_rpcs)
-            parser.add_argument('--' + prefix_str + 'axon.prometheus.level', 
-                required = False, 
-                type = str, 
-                choices = [l.name for l in list(bittensor.prometheus.level)], 
-                default = bittensor.defaults.axon.prometheus.level, 
-                help = '''Prometheus logging level axon. <OFF | INFO | DEBUG>''')
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -182,8 +175,6 @@ class axon:
         defaults.axon.external_ip = os.getenv('BT_AXON_EXTERNAL_IP') if os.getenv('BT_AXON_EXTERNAL_IP') != None else None
         defaults.axon.max_workers = os.getenv('BT_AXON_MAX_WORERS') if os.getenv('BT_AXON_MAX_WORERS') != None else 10
         defaults.axon.maximum_concurrent_rpcs = os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') if os.getenv('BT_AXON_MAXIMUM_CONCURRENT_RPCS') != None else 400
-        defaults.axon.prometheus = bittensor.config()
-        defaults.axon.prometheus.level = os.getenv('BT_AXON_PROMETHEUS_LEVEL') if os.getenv('BT_AXON_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.DEBUG.name
 
     @classmethod   
     def check_config(cls, config: 'bittensor.Config' ):
@@ -191,7 +182,6 @@ class axon:
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
         assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
-        assert config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
         bittensor.wallet.check_config( config )
 
 class AuthInterceptor(grpc.ServerInterceptor):
@@ -291,19 +281,12 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Signature mismatch")
         self.nonces[endpoint_key] = nonce
 
-    def black_list_checking(self, hotkey: str, method: str):
+    def black_list_checking( self, hotkey: str ):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
         if self.blacklist == None:
             return
 
-        request_type = {
-            "/Bittensor/Forward": bittensor.proto.RequestType.FORWARD,
-            "/Bittensor/Backward": bittensor.proto.RequestType.BACKWARD,
-        }.get(method)
-        if request_type is None:
-            raise Exception("Unknown request type")
-
-        if self.blacklist(hotkey, request_type):
+        if self.blacklist(hotkey):
             raise Exception("Request type is blacklisted")
 
     def intercept_service(self, continuation, handler_call_details):
@@ -326,7 +309,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             )
 
             # blacklist checking
-            self.black_list_checking(sender_hotkey, method)
+            self.black_list_checking( sender_hotkey )
 
             return continuation(handler_call_details)
 
