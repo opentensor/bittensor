@@ -12,9 +12,6 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
-from text_last_hidden_state import messages_pb2 as text__last__hidden__state_dot_messages__pb2
-from text_causal_lm_next import messages_pb2 as text__causal__lm__next_dot_messages__pb2
-from text_seq2seq import messages_pb2 as text__seq2seq_dot_messages__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -23,9 +20,8 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\x1a%text_last_hidden_state/messages.proto\x1a\"text_causal_lm_next/messages.proto\x1a\x1btext_seq2seq/messages.proto*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18\x32\xa5\x02\n\tBittensor\x12g\n\x1a\x46orwardTextLastHiddenState\x12\".ForwardTextLastHiddenStateRequest\x1a#.ForwardTextLastHiddenStateResponse\"\x00\x12^\n\x17\x46orwardTextCausalLMNext\x12\x1f.ForwardTextCausalLMNextRequest\x1a .ForwardTextCausalLMNextResponse\"\x00\x12O\n\x12\x46orwardTextSeq2Seq\x12\x1a.ForwardTextSeq2SeqRequest\x1a\x1b.ForwardTextSeq2SeqResponse\"\x00\x62\x06proto3'
-  ,
-  dependencies=[text__last__hidden__state_dot_messages__pb2.DESCRIPTOR,text__causal__lm__next_dot_messages__pb2.DESCRIPTOR,text__seq2seq_dot_messages__pb2.DESCRIPTOR,])
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\xdc\x03\n\x19\x46orwardTextSeq2SeqRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12+\n\x16prompt_text_serializer\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12/\n\x1ageneration_text_serializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x1c\n\x0bprompt_text\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x06 \x01(\x05\x12\x17\n\x0fnum_to_generate\x18\x07 \x01(\x05\x12\x11\n\tnum_beams\x18\x08 \x01(\x05\x12\x1c\n\x14no_repeat_ngram_size\x18\t \x01(\x05\x12\x16\n\x0e\x65\x61rly_stopping\x18\n \x01(\x08\x12\x1c\n\x14num_return_sequences\x18\x0b \x01(\x05\x12\x11\n\tdo_sample\x18\x0c \x01(\x08\x12\r\n\x05top_p\x18\r \x01(\x02\x12\x13\n\x0btemperature\x18\x0f \x01(\x02\x12\x1a\n\x12repetition_penalty\x18\x10 \x01(\x02\x12\x16\n\x0elength_penalty\x18\x11 \x01(\x02\x12\x10\n\x08max_time\x18\x12 \x01(\x02\x12\x17\n\x0fnum_beam_groups\x18\x13 \x01(\x05\"^\n\x1a\x46orwardTextSeq2SeqResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1f\n\x0egenerated_text\x18\x03 \x01(\x0b\x32\x07.Tensor\"\xad\x01\n!ForwardTextLastHiddenStateRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\'\n\x16serialized_text_inputs\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x30\n\x1btext_inputs_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x0c\n\x04mask\x18\x05 \x01(\x05\"\xae\x01\n\"ForwardTextLastHiddenStateResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\'\n\x16serialized_text_inputs\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x30\n\x1btext_inputs_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x0c\n\x04mask\x18\x05 \x01(\x05\"\xc3\x01\n\x1a\x46orwardTextCausalLMRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12*\n\x15input_text_serializer\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12-\n\x18output_logits_serializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x1b\n\ninput_text\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x06 \x01(\x05\"l\n\x1b\x46orwardTextCausalLMResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1e\n\routput_logits\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x04 \x01(\x05\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x32\x9d\x02\n\tBittensor\x12g\n\x1a\x46orwardTextLastHiddenState\x12\".ForwardTextLastHiddenStateRequest\x1a#.ForwardTextLastHiddenStateResponse\"\x00\x12V\n\x17\x46orwardTextCausalLMNext\x12\x1b.ForwardTextCausalLMRequest\x1a\x1c.ForwardTextCausalLMResponse\"\x00\x12O\n\x12\x46orwardTextSeq2Seq\x12\x1a.ForwardTextSeq2SeqRequest\x1a\x1b.ForwardTextSeq2SeqResponse\"\x00\x32^\n\x0bTextSeq2Seq\x12O\n\x12\x46orwardTextSeq2Seq\x12\x1a.ForwardTextSeq2SeqRequest\x1a\x1b.ForwardTextSeq2SeqResponse\"\x00\x32~\n\x13TextLastHiddenState\x12g\n\x1a\x46orwardTextLastHiddenState\x12\".ForwardTextLastHiddenStateRequest\x1a#.ForwardTextLastHiddenStateResponse\"\x00\x32g\n\x0cTextCausalLM\x12W\n\x18\x46orwardTextCausalLMState\x12\x1b.ForwardTextCausalLMRequest\x1a\x1c.ForwardTextCausalLMResponse\"\x00\x62\x06proto3'
+)
 
 _RETURNCODE = _descriptor.EnumDescriptor(
   name='ReturnCode',
@@ -162,12 +158,120 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=141,
-  serialized_end=726,
+  serialized_start=1448,
+  serialized_end=2033,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
 ReturnCode = enum_type_wrapper.EnumTypeWrapper(_RETURNCODE)
+_SERIALIZER = _descriptor.EnumDescriptor(
+  name='Serializer',
+  full_name='Serializer',
+  filename=None,
+  file=DESCRIPTOR,
+  create_key=_descriptor._internal_create_key,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='MSGPACK', index=0, number=0,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='CMPPACK', index=1, number=1,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=2035,
+  serialized_end=2073,
+)
+_sym_db.RegisterEnumDescriptor(_SERIALIZER)
+
+Serializer = enum_type_wrapper.EnumTypeWrapper(_SERIALIZER)
+_TENSORTYPE = _descriptor.EnumDescriptor(
+  name='TensorType',
+  full_name='TensorType',
+  filename=None,
+  file=DESCRIPTOR,
+  create_key=_descriptor._internal_create_key,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='TORCH', index=0, number=0,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='TENSORFLOW', index=1, number=1,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='NUMPY', index=2, number=2,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=2075,
+  serialized_end=2125,
+)
+_sym_db.RegisterEnumDescriptor(_TENSORTYPE)
+
+TensorType = enum_type_wrapper.EnumTypeWrapper(_TENSORTYPE)
+_DATATYPE = _descriptor.EnumDescriptor(
+  name='DataType',
+  full_name='DataType',
+  filename=None,
+  file=DESCRIPTOR,
+  create_key=_descriptor._internal_create_key,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='UNKNOWN', index=0, number=0,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='FLOAT32', index=1, number=1,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='FLOAT64', index=2, number=2,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='INT32', index=3, number=3,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='INT64', index=4, number=4,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='UTF8', index=5, number=5,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='FLOAT16', index=6, number=6,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+  ],
+  containing_type=None,
+  serialized_options=None,
+  serialized_start=2127,
+  serialized_end=2221,
+)
+_sym_db.RegisterEnumDescriptor(_DATATYPE)
+
+DataType = enum_type_wrapper.EnumTypeWrapper(_DATATYPE)
 NoReturn = 0
 Success = 1
 Timeout = 2
@@ -193,10 +297,607 @@ SenderUnknown = 21
 UnknownException = 22
 Unauthenticated = 23
 BadEndpoint = 24
+MSGPACK = 0
+CMPPACK = 1
+TORCH = 0
+TENSORFLOW = 1
+NUMPY = 2
+UNKNOWN = 0
+FLOAT32 = 1
+FLOAT64 = 2
+INT32 = 3
+INT64 = 4
+UTF8 = 5
+FLOAT16 = 6
 
 
+
+_FORWARDTEXTSEQ2SEQREQUEST = _descriptor.Descriptor(
+  name='ForwardTextSeq2SeqRequest',
+  full_name='ForwardTextSeq2SeqRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextSeq2SeqRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextSeq2SeqRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='prompt_text_serializer', full_name='ForwardTextSeq2SeqRequest.prompt_text_serializer', index=2,
+      number=3, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='generation_text_serializer', full_name='ForwardTextSeq2SeqRequest.generation_text_serializer', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='prompt_text', full_name='ForwardTextSeq2SeqRequest.prompt_text', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='topk', full_name='ForwardTextSeq2SeqRequest.topk', index=5,
+      number=6, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='num_to_generate', full_name='ForwardTextSeq2SeqRequest.num_to_generate', index=6,
+      number=7, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='num_beams', full_name='ForwardTextSeq2SeqRequest.num_beams', index=7,
+      number=8, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='no_repeat_ngram_size', full_name='ForwardTextSeq2SeqRequest.no_repeat_ngram_size', index=8,
+      number=9, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='early_stopping', full_name='ForwardTextSeq2SeqRequest.early_stopping', index=9,
+      number=10, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='num_return_sequences', full_name='ForwardTextSeq2SeqRequest.num_return_sequences', index=10,
+      number=11, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='do_sample', full_name='ForwardTextSeq2SeqRequest.do_sample', index=11,
+      number=12, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='top_p', full_name='ForwardTextSeq2SeqRequest.top_p', index=12,
+      number=13, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='temperature', full_name='ForwardTextSeq2SeqRequest.temperature', index=13,
+      number=15, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='repetition_penalty', full_name='ForwardTextSeq2SeqRequest.repetition_penalty', index=14,
+      number=16, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='length_penalty', full_name='ForwardTextSeq2SeqRequest.length_penalty', index=15,
+      number=17, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='max_time', full_name='ForwardTextSeq2SeqRequest.max_time', index=16,
+      number=18, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='num_beam_groups', full_name='ForwardTextSeq2SeqRequest.num_beam_groups', index=17,
+      number=19, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=37,
+  serialized_end=513,
+)
+
+
+_FORWARDTEXTSEQ2SEQRESPONSE = _descriptor.Descriptor(
+  name='ForwardTextSeq2SeqResponse',
+  full_name='ForwardTextSeq2SeqResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextSeq2SeqResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextSeq2SeqResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='generated_text', full_name='ForwardTextSeq2SeqResponse.generated_text', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=515,
+  serialized_end=609,
+)
+
+
+_FORWARDTEXTLASTHIDDENSTATEREQUEST = _descriptor.Descriptor(
+  name='ForwardTextLastHiddenStateRequest',
+  full_name='ForwardTextLastHiddenStateRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextLastHiddenStateRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextLastHiddenStateRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='serialized_text_inputs', full_name='ForwardTextLastHiddenStateRequest.serialized_text_inputs', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text_inputs_serializer_type', full_name='ForwardTextLastHiddenStateRequest.text_inputs_serializer_type', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='mask', full_name='ForwardTextLastHiddenStateRequest.mask', index=4,
+      number=5, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=612,
+  serialized_end=785,
+)
+
+
+_FORWARDTEXTLASTHIDDENSTATERESPONSE = _descriptor.Descriptor(
+  name='ForwardTextLastHiddenStateResponse',
+  full_name='ForwardTextLastHiddenStateResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextLastHiddenStateResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextLastHiddenStateResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='serialized_text_inputs', full_name='ForwardTextLastHiddenStateResponse.serialized_text_inputs', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text_inputs_serializer_type', full_name='ForwardTextLastHiddenStateResponse.text_inputs_serializer_type', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='mask', full_name='ForwardTextLastHiddenStateResponse.mask', index=4,
+      number=5, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=788,
+  serialized_end=962,
+)
+
+
+_FORWARDTEXTCAUSALLMREQUEST = _descriptor.Descriptor(
+  name='ForwardTextCausalLMRequest',
+  full_name='ForwardTextCausalLMRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextCausalLMRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextCausalLMRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='input_text_serializer', full_name='ForwardTextCausalLMRequest.input_text_serializer', index=2,
+      number=3, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='output_logits_serializer', full_name='ForwardTextCausalLMRequest.output_logits_serializer', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='input_text', full_name='ForwardTextCausalLMRequest.input_text', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='topk', full_name='ForwardTextCausalLMRequest.topk', index=5,
+      number=6, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=965,
+  serialized_end=1160,
+)
+
+
+_FORWARDTEXTCAUSALLMRESPONSE = _descriptor.Descriptor(
+  name='ForwardTextCausalLMResponse',
+  full_name='ForwardTextCausalLMResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextCausalLMResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextCausalLMResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='output_logits', full_name='ForwardTextCausalLMResponse.output_logits', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='topk', full_name='ForwardTextCausalLMResponse.topk', index=3,
+      number=4, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1162,
+  serialized_end=1270,
+)
+
+
+_TENSOR = _descriptor.Descriptor(
+  name='Tensor',
+  full_name='Tensor',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='Tensor.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='buffer', full_name='Tensor.buffer', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='shape', full_name='Tensor.shape', index=2,
+      number=3, type=3, cpp_type=2, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='serializer', full_name='Tensor.serializer', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='tensor_type', full_name='Tensor.tensor_type', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='dtype', full_name='Tensor.dtype', index=5,
+      number=6, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='requires_grad', full_name='Tensor.requires_grad', index=6,
+      number=8, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1273,
+  serialized_end=1445,
+)
+
+_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['prompt_text_serializer'].enum_type = _SERIALIZER
+_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['generation_text_serializer'].enum_type = _SERIALIZER
+_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['prompt_text'].message_type = _TENSOR
+_FORWARDTEXTSEQ2SEQRESPONSE.fields_by_name['generated_text'].message_type = _TENSOR
+_FORWARDTEXTLASTHIDDENSTATEREQUEST.fields_by_name['serialized_text_inputs'].message_type = _TENSOR
+_FORWARDTEXTLASTHIDDENSTATEREQUEST.fields_by_name['text_inputs_serializer_type'].enum_type = _SERIALIZER
+_FORWARDTEXTLASTHIDDENSTATERESPONSE.fields_by_name['serialized_text_inputs'].message_type = _TENSOR
+_FORWARDTEXTLASTHIDDENSTATERESPONSE.fields_by_name['text_inputs_serializer_type'].enum_type = _SERIALIZER
+_FORWARDTEXTCAUSALLMREQUEST.fields_by_name['input_text_serializer'].enum_type = _SERIALIZER
+_FORWARDTEXTCAUSALLMREQUEST.fields_by_name['output_logits_serializer'].enum_type = _SERIALIZER
+_FORWARDTEXTCAUSALLMREQUEST.fields_by_name['input_text'].message_type = _TENSOR
+_FORWARDTEXTCAUSALLMRESPONSE.fields_by_name['output_logits'].message_type = _TENSOR
+_TENSOR.fields_by_name['serializer'].enum_type = _SERIALIZER
+_TENSOR.fields_by_name['tensor_type'].enum_type = _TENSORTYPE
+_TENSOR.fields_by_name['dtype'].enum_type = _DATATYPE
+DESCRIPTOR.message_types_by_name['ForwardTextSeq2SeqRequest'] = _FORWARDTEXTSEQ2SEQREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextSeq2SeqResponse'] = _FORWARDTEXTSEQ2SEQRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardTextLastHiddenStateRequest'] = _FORWARDTEXTLASTHIDDENSTATEREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextLastHiddenStateResponse'] = _FORWARDTEXTLASTHIDDENSTATERESPONSE
+DESCRIPTOR.message_types_by_name['ForwardTextCausalLMRequest'] = _FORWARDTEXTCAUSALLMREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextCausalLMResponse'] = _FORWARDTEXTCAUSALLMRESPONSE
+DESCRIPTOR.message_types_by_name['Tensor'] = _TENSOR
 DESCRIPTOR.enum_types_by_name['ReturnCode'] = _RETURNCODE
+DESCRIPTOR.enum_types_by_name['Serializer'] = _SERIALIZER
+DESCRIPTOR.enum_types_by_name['TensorType'] = _TENSORTYPE
+DESCRIPTOR.enum_types_by_name['DataType'] = _DATATYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+ForwardTextSeq2SeqRequest = _reflection.GeneratedProtocolMessageType('ForwardTextSeq2SeqRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTSEQ2SEQREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextSeq2SeqRequest)
+  })
+_sym_db.RegisterMessage(ForwardTextSeq2SeqRequest)
+
+ForwardTextSeq2SeqResponse = _reflection.GeneratedProtocolMessageType('ForwardTextSeq2SeqResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTSEQ2SEQRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextSeq2SeqResponse)
+  })
+_sym_db.RegisterMessage(ForwardTextSeq2SeqResponse)
+
+ForwardTextLastHiddenStateRequest = _reflection.GeneratedProtocolMessageType('ForwardTextLastHiddenStateRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTLASTHIDDENSTATEREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextLastHiddenStateRequest)
+  })
+_sym_db.RegisterMessage(ForwardTextLastHiddenStateRequest)
+
+ForwardTextLastHiddenStateResponse = _reflection.GeneratedProtocolMessageType('ForwardTextLastHiddenStateResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTLASTHIDDENSTATERESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextLastHiddenStateResponse)
+  })
+_sym_db.RegisterMessage(ForwardTextLastHiddenStateResponse)
+
+ForwardTextCausalLMRequest = _reflection.GeneratedProtocolMessageType('ForwardTextCausalLMRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTCAUSALLMREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextCausalLMRequest)
+  })
+_sym_db.RegisterMessage(ForwardTextCausalLMRequest)
+
+ForwardTextCausalLMResponse = _reflection.GeneratedProtocolMessageType('ForwardTextCausalLMResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTCAUSALLMRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextCausalLMResponse)
+  })
+_sym_db.RegisterMessage(ForwardTextCausalLMResponse)
+
+Tensor = _reflection.GeneratedProtocolMessageType('Tensor', (_message.Message,), {
+  'DESCRIPTOR' : _TENSOR,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:Tensor)
+  })
+_sym_db.RegisterMessage(Tensor)
 
 
 
@@ -207,16 +908,16 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=729,
-  serialized_end=1022,
+  serialized_start=2224,
+  serialized_end=2509,
   methods=[
   _descriptor.MethodDescriptor(
     name='ForwardTextLastHiddenState',
     full_name='Bittensor.ForwardTextLastHiddenState',
     index=0,
     containing_service=None,
-    input_type=text__last__hidden__state_dot_messages__pb2._FORWARDTEXTLASTHIDDENSTATEREQUEST,
-    output_type=text__last__hidden__state_dot_messages__pb2._FORWARDTEXTLASTHIDDENSTATERESPONSE,
+    input_type=_FORWARDTEXTLASTHIDDENSTATEREQUEST,
+    output_type=_FORWARDTEXTLASTHIDDENSTATERESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
@@ -225,8 +926,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
     full_name='Bittensor.ForwardTextCausalLMNext',
     index=1,
     containing_service=None,
-    input_type=text__causal__lm__next_dot_messages__pb2._FORWARDTEXTCAUSALLMNEXTREQUEST,
-    output_type=text__causal__lm__next_dot_messages__pb2._FORWARDTEXTCAUSALLMNEXTRESPONSE,
+    input_type=_FORWARDTEXTCAUSALLMREQUEST,
+    output_type=_FORWARDTEXTCAUSALLMRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
@@ -235,8 +936,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
     full_name='Bittensor.ForwardTextSeq2Seq',
     index=2,
     containing_service=None,
-    input_type=text__seq2seq_dot_messages__pb2._FORWARDTEXTSEQ2SEQREQUEST,
-    output_type=text__seq2seq_dot_messages__pb2._FORWARDTEXTSEQ2SEQRESPONSE,
+    input_type=_FORWARDTEXTSEQ2SEQREQUEST,
+    output_type=_FORWARDTEXTSEQ2SEQRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
@@ -244,5 +945,83 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
 _sym_db.RegisterServiceDescriptor(_BITTENSOR)
 
 DESCRIPTOR.services_by_name['Bittensor'] = _BITTENSOR
+
+
+_TEXTSEQ2SEQ = _descriptor.ServiceDescriptor(
+  name='TextSeq2Seq',
+  full_name='TextSeq2Seq',
+  file=DESCRIPTOR,
+  index=1,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=2511,
+  serialized_end=2605,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='ForwardTextSeq2Seq',
+    full_name='TextSeq2Seq.ForwardTextSeq2Seq',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDTEXTSEQ2SEQREQUEST,
+    output_type=_FORWARDTEXTSEQ2SEQRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_TEXTSEQ2SEQ)
+
+DESCRIPTOR.services_by_name['TextSeq2Seq'] = _TEXTSEQ2SEQ
+
+
+_TEXTLASTHIDDENSTATE = _descriptor.ServiceDescriptor(
+  name='TextLastHiddenState',
+  full_name='TextLastHiddenState',
+  file=DESCRIPTOR,
+  index=2,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=2607,
+  serialized_end=2733,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='ForwardTextLastHiddenState',
+    full_name='TextLastHiddenState.ForwardTextLastHiddenState',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDTEXTLASTHIDDENSTATEREQUEST,
+    output_type=_FORWARDTEXTLASTHIDDENSTATERESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_TEXTLASTHIDDENSTATE)
+
+DESCRIPTOR.services_by_name['TextLastHiddenState'] = _TEXTLASTHIDDENSTATE
+
+
+_TEXTCAUSALLM = _descriptor.ServiceDescriptor(
+  name='TextCausalLM',
+  full_name='TextCausalLM',
+  file=DESCRIPTOR,
+  index=3,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=2735,
+  serialized_end=2838,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='ForwardTextCausalLMState',
+    full_name='TextCausalLM.ForwardTextCausalLMState',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDTEXTCAUSALLMREQUEST,
+    output_type=_FORWARDTEXTCAUSALLMRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_TEXTCAUSALLM)
+
+DESCRIPTOR.services_by_name['TextCausalLM'] = _TEXTCAUSALLM
 
 # @@protoc_insertion_point(module_scope)
