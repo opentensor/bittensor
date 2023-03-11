@@ -18,18 +18,19 @@
 import torch
 import asyncio
 import bittensor
+from typing import Union, Optional
 
-class TextSeq2SeqReceptor( torch.nn.Module ):
-    """ bittensor receptor for text_seq2seq synapse."""
+class TextSeq2SeqDendrite( torch.nn.Module ):
+    """ bittensor dendrite for text_seq2seq synapse."""
 
     def __init__(
             self,
-            wallet: 'bittensor.wallet',
-            endpoint: 'bittensor.Endpoint', 
+            endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
+            wallet: Optional[ 'bittensor.wallet' ]  = None,
             text_prompt_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             generations_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
         ):
-        """ Initializes the receptor
+        """ Initializes the dendrite
             Args:
                 wallet (:obj:`bittensor.wallet`, `required`):
                     bittensor wallet object.
@@ -40,7 +41,14 @@ class TextSeq2SeqReceptor( torch.nn.Module ):
                 generations_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for generations.
         """
-        self.receptor = bittensor.receptor( endpoint = endpoint, wallet = wallet )
+        super(TextSeq2SeqDendrite, self).__init__()
+        if wallet is None: 
+            wallet = bittensor.wallet()
+        self.wallet = wallet
+        if isinstance(endpoint, torch.Tensor ): 
+            endpoint = bittensor.endpoint.from_tensor( endpoint )
+        self.endpoint = endpoint
+        self.receptor = bittensor.receptor( endpoint = self.endpoint, wallet = self.wallet )
         self._text_prompt_serializer_type = text_prompt_serializer_type
         self._generations_serializer_type = generations_serializer_type
 
@@ -181,7 +189,7 @@ class TextSeq2SeqReceptor( torch.nn.Module ):
                     Generations from each endpoint.
         """
         # Serialize the text prompt.
-        text_serializer = bittensor.bittensor.serializer_for_type( self._text_prompt_serializer_type )
+        text_serializer = bittensor.serializer( serializer_type = self._text_prompt_serializer_type )
         serialized_text = text_serializer.serialize( text_prompt, from_type = bittensor.proto.TensorType.TORCH )
 
         # Create the request.
@@ -212,15 +220,14 @@ class TextSeq2SeqReceptor( torch.nn.Module ):
                     ('rpc-auth-header','Bittensor'),
                     ('bittensor-signature', self.receptor.sign() ),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
-                    ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
         # Wait for the response.
         grpc_response = await asyncio.wait_for( asyncio_future, timeout = timeout )
 
         # Deserialize the generations.
-        generations_serializer = bittensor.bittensor.serializer_for_type( self._generations_serializer_type )
+        generations_serializer = bittensor.serializer( serializer_type = self._generations_serializer_type )
         generations = generations_serializer.deserialize( grpc_response.serialized_generations, to_type = bittensor.proto.TensorType.TORCH )
-        
+
         # Return the generations.
         return generations
 

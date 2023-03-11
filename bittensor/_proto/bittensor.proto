@@ -92,20 +92,21 @@ message ForwardTextLastHiddenStateRequest {
 	int32 version = 1;
 	string hotkey = 2;	
 
-	Tensor serialized_text_inputs = 3;
-	Serializer text_inputs_serializer_type = 4;
+	Serializer text_inputs_serializer_type = 3;
+	Serializer hidden_states_serializer_type = 4;
 
-	int32 mask = 5;
+	Tensor serialized_text_inputs = 5;
+
+	int32 mask = 6;
 }
 
 message ForwardTextLastHiddenStateResponse {
 	int32 version = 1;
 	string hotkey = 2;	
 
-	Tensor serialized_text_inputs = 3;
-	Serializer text_inputs_serializer_type = 4;
+	Tensor serialized_hidden_states = 3;
 
-	int32 mask = 5;
+	int32 mask = 4;
 }
 
 /////////////////////////

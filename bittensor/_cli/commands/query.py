@@ -36,23 +36,14 @@ class QueryCommand:
             bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist.[/red]")
             sys.exit(1)
 
-        dendrite = bittensor.dendrite( wallet = wallet )
         stats = {}
         for uid in cli.config.uids:
             neuron = subtensor.neuron_for_uid( uid = uid, netuid = cli.config.netuid )
             endpoint = bittensor.endpoint.from_neuron( neuron )
-            _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses = [bittensor.synapse.TextCausalLMNext()])
-            latency = "{}".format(t[0].tolist()[0]) if c[0].tolist()[0] == 1 else 'N/A'
             bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(
-                    uid, 
-                    latency, 
-                    bittensor.utils.codes.code_to_loguru_color( c[0].item() ), 
-                    bittensor.utils.codes.code_to_string( c[0].item() ), 
-                    bittensor.utils.codes.code_to_loguru_color( c[0].item() )
+                uid, 
                 ), highlight=True)
-            stats[uid] = latency
         print (stats)
-        dendrite.__del__()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
@@ -109,5 +100,4 @@ class QueryCommand:
         query_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.wallet.add_args( query_parser )
         bittensor.subtensor.add_args( query_parser )
-        bittensor.dendrite.add_args( query_parser )
         bittensor.logging.add_args( query_parser )

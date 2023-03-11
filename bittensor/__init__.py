@@ -134,9 +134,6 @@ from bittensor._logging import logging as logging
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
-# ---- Neurons ----
-import bittensor._neuron as neurons
-
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
 from bittensor._cli.commands import utils as cli_utils
@@ -149,15 +146,12 @@ from bittensor._wallet import wallet as wallet
 from bittensor._keyfile import keyfile as keyfile
 from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
-from bittensor._dendrite import dendrite as dendrite
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._prometheus import prometheus as prometheus
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
-from bittensor._synapse import synapse  as synapse 
 from bittensor._dataset import dataset as dataset
-from bittensor._receptor import receptor_pool as receptor_pool
 from bittensor._wandb import wandb as wandb
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
@@ -171,7 +165,6 @@ from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
 from bittensor._receptor.receptor_impl import Receptor as Receptor
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
-from bittensor._dendrite.dendrite_impl import Dendrite as Dendrite
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
@@ -179,7 +172,6 @@ from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._subtensor.chain_data import SubnetInfo as SubnetInfo
 from bittensor._dataset.dataset_impl import Dataset as Dataset
-from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
 
@@ -204,16 +196,15 @@ from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStat
 from bittensor._synapse.text_causal_lm.synapse import TextCausalLMSynapse
 from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
 
-# ---- Receptors -----
-from bittensor._synapse.text_last_hidden_state.receptor import TextLastHiddenStateReceptor as text_last_hidden_state
-from bittensor._synapse.text_causal_lm.receptor import TextCausalLMReceptor as text_causal_lm
-from bittensor._synapse.text_seq2seq.receptor import TextSeq2SeqReceptor as text_seq2seq
+# ---- Dendrites -----
+from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
+from bittensor._synapse.text_causal_lm.dendrite import TextCausalLMDendrite as text_causal_lm
+from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text_seq2seq
 
 # DEFAULTS
 defaults = Config()
 defaults.netuid = 1
 subtensor.add_defaults( defaults )
-dendrite.add_defaults( defaults )
 axon.add_defaults( defaults )
 prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )

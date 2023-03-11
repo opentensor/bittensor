@@ -296,7 +296,6 @@ class TestBlacklist(unittest.TestCase):
     def construct_config():
         defaults = bittensor.neurons.core_server.neuron.config()
         bittensor.subtensor.add_defaults( defaults )
-        bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
         bittensor.wallet.add_defaults( defaults )
         bittensor.dataset.add_defaults( defaults )
@@ -381,10 +380,10 @@ class TestBlacklist(unittest.TestCase):
             blacklist = kwargs['blacklist']
 
             # Check that the blacklist rejects below min stake
-            assert blacklist(mock_hotkey, bittensor.proto.RequestType.FORWARD) == True
+            assert blacklist(mock_hotkey) == True
 
             # Check that the blacklist accepts above min stake
-            assert blacklist(mock_hotkey_1, bittensor.proto.RequestType.FORWARD) == False
+            assert blacklist(mock_hotkey_1) == False
 
 
 if __name__ == '__main__':

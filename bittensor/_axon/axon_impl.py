@@ -33,7 +33,6 @@ class Axon():
         external_ip: str,
         external_port: int,
         server: 'grpc._Server',
-        prometheus_level: str,
     ):
         r""" Initializes a new Axon tensor processing endpoint.
             
@@ -52,8 +51,6 @@ class Axon():
                     external port of this axon.
                 server (:obj:`grpc._Server`, `required`):
                     Grpc server endpoint.
-                prometheus_level (:obj:`str`, `required`):
-                    Prometheus logging level.
         """
         self.ip = ip
         self.port = port
@@ -61,15 +58,13 @@ class Axon():
         self.external_port = external_port
         self.wallet = wallet
         self.server = server
-        self.prometheus_level = prometheus_level
-        self.started = None        
+        self.started = False        
         self._prometheus_uuid = uuid.uuid1()
 
-
-    def attach( self, wallet: 'bittensor.wallet', netuid: int, synapse: 'bittensor.Synapse' ) -> 'Axon':
+    def attach( self, synapse: 'bittensor.Synapse' ) -> 'Axon':
         r""" Attaches a synapse to this axon.
         """
-        synapse.attach( axon )
+        synapse._attach( axon = self )
         return self
 
     def __str__(self) -> str:

@@ -120,34 +120,11 @@ class CLI:
         wallet = bittensor.wallet(config = self.config)
         wallet.regenerate_hotkey( mnemonic = self.config.mnemonic, seed=self.config.seed, use_password = self.config.use_password, overwrite = self.config.overwrite_hotkey)
 
-    def query ( self ):
-        r""" Query an endpoint and get query time.
-        """
-        wallet = bittensor.wallet(config = self.config)
-        subtensor = bittensor.subtensor( config = self.config )
-        dendrite = bittensor.dendrite( wallet = wallet )
-        stats = {}
-        for uid in self.config.uids:
-            neuron = subtensor.neuron_for_uid( uid )
-            endpoint = bittensor.endpoint.from_neuron( neuron )
-            _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses = [bittensor.synapse.TextCausalLMNext()])
-            latency = "{}".format(t[0].tolist()[0]) if c[0].tolist()[0] == 1 else 'N/A'
-            bittensor.__console__.print("\tUid: [bold white]{}[/bold white]\n\tLatency: [bold white]{}[/bold white]\n\tCode: [bold {}]{}[/bold {}]\n\n".format(
-                uid, 
-                latency, 
-                bittensor.utils.codes.code_to_loguru_color( c[0].item() ), 
-                bittensor.utils.codes.code_to_string( c[0].item() ), 
-                bittensor.utils.codes.code_to_loguru_color( c[0].item() )), highlight=True)
-            stats[uid] = latency
-        print (stats)
-        dendrite.__del__()
-
     def inspect ( self ):
         r""" Inspect a cold, hot pair.
         """
         wallet = bittensor.wallet(config = self.config)
         subtensor = bittensor.subtensor( config = self.config )
-        dendrite = bittensor.dendrite( wallet = wallet )
 
         
         with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(self.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
@@ -172,12 +149,9 @@ class CLI:
                     registered = '[bold white]Yes[/bold white]'
                     stake = bittensor.Balance.from_tao( neuron.stake )
                     emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
-                    synapses = [bittensor.synapse.TextLastHiddenState()]
-                    _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)
-                    latency = "{}".format((t[0]).tolist()[0]) if (c[0]).tolist()[0] == 1 else 'N/A'
 
                 cold_balance = wallet.get_balance( subtensor = subtensor )
-                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__(), "latency:".ljust(15), latency ), highlight=True)
+                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, "hotkey:".ljust(15), wallet.hotkey.ss58_address, "registered:".ljust(15), registered, "balance:".ljust(15), cold_balance.__rich__(), "stake:".ljust(15), stake.__rich__(), "emission:".ljust(15), emission.__rich_rao__() ), highlight=True)
 
 
     def run_miner ( self ):

@@ -37,7 +37,6 @@ def test_strict():
     parser.add_argument("--cov", help="Dummy Args")
     parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
     parser.add_argument("--cov-config",  help="Dummy Args")
-    bittensor.dendrite.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.wallet.add_args( parser )
     bittensor.subtensor.add_args( parser )
@@ -51,8 +50,6 @@ def test_strict():
 def test_prefix():
     # Test the use of prefixes to instantiate all of the bittensor objects.
     parser = argparse.ArgumentParser()
-    bittensor.dendrite.add_args( parser)
-    bittensor.dendrite.add_args( parser, prefix = 'second' )
 
     bittensor.logging.add_args( parser )
     bittensor.logging.add_args( parser, prefix = 'second' )
@@ -77,12 +74,6 @@ def test_prefix():
 
     config_non_strict = bittensor.config( parser, strict=False)
     config_strict = bittensor.config( parser, strict=True)
-
-    bittensor.dendrite( config_strict ).__del__()
-    bittensor.dendrite( config_non_strict ).__del__()
-    bittensor.dendrite( config_strict.second ).__del__()
-    bittensor.dendrite( config_non_strict.second ).__del__()
-
     bittensor.axon( config_strict ).stop()
     bittensor.axon( config_non_strict ).stop()
     bittensor.axon( config_strict.second ).stop()
@@ -115,7 +106,6 @@ def test_prefix():
 def construct_config():
     defaults = bittensor.Config()
     bittensor.subtensor.add_defaults( defaults )
-    bittensor.dendrite.add_defaults( defaults )
     bittensor.axon.add_defaults( defaults )
     bittensor.wallet.add_defaults( defaults )
     bittensor.dataset.add_defaults( defaults )

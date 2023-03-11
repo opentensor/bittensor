@@ -51,7 +51,6 @@ class InspectCommand:
 
                 if cli.config.netuid != None:
                     # If a netuid is provided, inspect the hotkey and the neuron
-                    dendrite = bittensor.dendrite( wallet = wallet )
                     neuron = subtensor.get_neuron_for_pubkey_and_subnet( hotkey_ss58 = wallet.hotkey.ss58_address, netuid = cli.config.netuid )
                     if neuron.is_null:
                         registered = '[bold white]No[/bold white]'
@@ -63,14 +62,11 @@ class InspectCommand:
                         registered = '[bold white]Yes[/bold white]'
                         stake = bittensor.Balance.from_tao( neuron.total_stake )
                         emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
-                        synapses = [bittensor.synapse.TextLastHiddenState()]
-                        _, c, t = dendrite.text( endpoints = endpoint, inputs = 'hello world', synapses=synapses)
-                        latency = "{}".format((t[0]).tolist()[0]) if (c[0]).tolist()[0] == 1 else 'N/A'
 
                     cold_balance = wallet.get_balance( subtensor = subtensor )
                     bittensor.__console__.print((
                         "\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n" + \
-                        "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]"
+                        "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n[/bold grey]"
                     )
                     .format(
                         wallet,
@@ -86,8 +82,6 @@ class InspectCommand:
                         stake.__rich__(),
                         "emission:".ljust(15),
                         emission.__rich_rao__(),
-                        "latency:".ljust(15),
-                        latency 
                     ), highlight=True)
                 else:
                     # Otherwise, print all subnets the hotkey is registered on.

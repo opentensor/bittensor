@@ -24,12 +24,6 @@ class TestWandb(unittest.TestCase):
         axon = bittensor.axon( netuid = -1, wallet = mock_wallet )
         axon.to_wandb()
 
-    def test_dendrite(self):
-        mock_wallet = bittensor.wallet( _mock = True )
-        dendrite = bittensor.dendrite( wallet = mock_wallet)
-        dendrite.to_wandb()
-        del dendrite
-
     def test_metagraph(self):
         metagraph = bittensor.metagraph( _mock= True )
         metagraph.to_wandb()

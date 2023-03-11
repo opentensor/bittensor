@@ -22,21 +22,21 @@ import bittensor
 class TextCausalLMSynapse( bittensor.TextCausalLMServicer ):
     """ TextCausalLMSynapse: A class for servicing text_causal_lm requests from the axon."""
 
-    def priority( self, hotkey:str, text_inputs: torch.FloatTensor ) -> float:
+    def priority( self, hotkey:str, text_inputs: torch.FloatTensor, request: bittensor.ForwardTextCausalLMResponse) -> float:
         """ priority: Returns the priority of the synapse for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement priority() in subclass.')
 
-    def blacklist( self, hotkey:str, text_inputs: torch.FloatTensor ) -> torch.FloatTensor:
+    def blacklist( self, hotkey:str, text_inputs: torch.FloatTensor, request: bittensor.ForwardTextCausalLMRequest ) -> torch.FloatTensor:
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs. """
         raise NotImplementedError('Must implement blacklist() in subclass.')
 
-    def forward( self, text_inputs: torch.FloatTensor ) -> torch.FloatTensor:
+    def forward( self, hotkey: str, text_inputs: torch.FloatTensor, request: bittensor.ForwardTextLastHiddenStateRequest ) -> torch.FloatTensor:
         """ forward: Forward pass through the synapse."""
         raise NotImplementedError('Must implement forward() in subclass.')
 
     def _attach( self, axon: 'bittensor.axon.Axon' ):
         """ _attach: Attaches the synapse to the axon. """
-        bittensor.grpc.add_TextCausalLMServicer_to_server( self, axon )
+        bittensor.grpc.add_TextCausalLMServicer_to_server( self, axon.server )
     
     def ForwardTextCausalLM( 
             self, 
@@ -63,27 +63,28 @@ class TextCausalLMSynapse( bittensor.TextCausalLMServicer ):
                     serialized_hidden_states = hidden_states_serializer.serialize( hidden_states, from_type = bittensor.proto.TensorType.TORCH )
         """
         # Deserialize text_inputs.
-        text_deserialized = bittensor.bittensor.serializer_for_type( request.text_inputs_serializer_type )
+        text_deserialized = bittensor.serializer( serializer_type = request.text_inputs_serializer_type )
         text_inputs = text_deserialized.deserialize( request.serialized_text_inputs, from_type = bittensor.proto.TensorType.TORCH )
 
         # Check blacklist.
-        if self.blacklist( request.hotkey, text_inputs ): return bittensor.ForwardTextCausalLMResponse()
+        if self.blacklist( request.hotkey, text_inputs, request ): return bittensor.ForwardTextCausalLMResponse()
 
         # Get priority.
-        priority = self.priority( request.hotkey, text_inputs  )
+        priority = self.priority( request.hotkey, text_inputs, request )
 
         # Submit to threadpool.
         future = self.priority_threadpool.submit(
             self.forward,
             hotkey = request.hotkey,
             text_inputs = text_inputs,
+            request = request,
             priority = priority,
         )
         # Wait for result.
         hidden_states = future.result( timeout = request.timeout )
 
         # Serialize hidden_states.
-        hidden_states_serializer = bittensor.bittensor.serializer_for_type( request.hidden_states_serializer_type )
+        hidden_states_serializer = bittensor.serializer( serializer_type = request.hidden_states_serializer_type )
         serialized_hidden_states = hidden_states_serializer.serialize( hidden_states, from_type = bittensor.proto.TensorType.TORCH )
 
         # Return response.
