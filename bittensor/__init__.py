@@ -182,14 +182,32 @@ from bittensor._dataset.dataset_impl import Dataset as Dataset
 from bittensor._receptor.receptor_pool_impl import ReceptorPool as ReceptorPool
 from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
-from bittensor._synapse.synapse_impl import Synapse as Synapse
-from bittensor._synapse.text_causallm_impl import TextCausalLM as TextCausalLM
-from bittensor._synapse.text_causallmnext_impl import TextCausalLMNext as TextCausalLMNext
-from bittensor._synapse.text_lasthiddenstate_impl import TextLastHiddenState as TextLastHiddenState
-from bittensor._synapse.text_seq2seq_impl import TextSeq2Seq as TextSeq2Seq
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
+
+# ---- Synapse Protos -----
+from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
+from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMResponse
+from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
+
+# ---- Synapse Servicers -----
+from bittensor._proto.bittensor_pb2_grpc import TextLastHiddenStateServicer
+from bittensor._proto.bittensor_pb2_grpc import TextCausalLMServicer
+from bittensor._proto.bittensor_pb2_grpc import TextSeq2SeqServicer
+
+# ---- Synapses -----
+from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
+from bittensor._synapse.text_causal_lm.synapse import TextCausalLMSynapse
+from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
+
+# ---- Receptors -----
+from bittensor._synapse.text_last_hidden_state.receptor import TextLastHiddenStateReceptor as text_last_hidden_state
+from bittensor._synapse.text_causal_lm.receptor import TextCausalLMReceptor as text_causal_lm
+from bittensor._synapse.text_seq2seq.receptor import TextSeq2SeqReceptor as text_seq2seq
 
 # DEFAULTS
 defaults = Config()

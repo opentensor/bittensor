@@ -1,17 +1,147 @@
 // python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=. --proto_path bittensor/_proto/
-
 syntax = "proto3";
-
-import "text_last_hidden_state/messages.proto";
-import "text_causal_lm_next/messages.proto";
-import "text_seq2seq/messages.proto";
 
 service Bittensor {
 	// Forward calls.
-	rpc ForwardTextLastHiddenState (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
-	rpc ForwardTextCausalLMNext (ForwardTextCausalLMNextRequest) returns (ForwardTextCausalLMNextResponse) {}
-	rpc ForwardTextSeq2Seq (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
+    rpc ForwardTextLastHiddenState (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
+	rpc ForwardTextCausalLMNext (ForwardTextCausalLMRequest) returns (ForwardTextCausalLMResponse) {}
+    rpc ForwardTextSeq2Seq (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
 }
+
+/////////////////
+// TextSeq2Seq //
+/////////////////
+// Service definition.
+service TextSeq2Seq {
+    rpc ForwardTextSeq2Seq (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
+}
+
+// Forward Request.
+message ForwardTextSeq2SeqRequest {
+    // Caller information.
+    int32 version = 1;
+	string hotkey = 2;	
+
+    // Serializers required on forward messages.
+	Serializer prompt_text_serializer = 3;
+	Serializer generation_text_serializer = 4;
+
+    // Tokenized text response.
+	Tensor prompt_text = 5;
+
+    // Specifies the number of Topk logits to return.
+    // Logit values are packed (pos, value) acocording 
+    // to the bittensor tokenizer vocab size.
+    int32 topk = 6;
+
+    // Number of tokens to predict
+    int32 num_to_generate = 7;
+
+    //Generate Arguments
+    // Number of beams
+    int32 num_beams = 8;
+
+    //Number of repeat words
+    int32 no_repeat_ngram_size = 9;
+
+    //Early Stopping
+    bool early_stopping = 10;
+    
+    //Number of return seuqences
+    int32 num_return_sequences = 11;
+
+    //If sampling should be used
+    bool do_sample = 12;
+
+    //The probability cutoff
+    float top_p = 13;
+
+    //temperature of the softmax function
+    float temperature = 15;
+
+    //penalty for repeated words
+    float repetition_penalty = 16; 
+
+    //penalty for length 
+    float length_penalty = 17;
+
+    //maximum amount of time 
+    float max_time = 18;
+
+    //groups for beam search
+    int32 num_beam_groups = 19;
+}
+
+// Forward Response.
+message ForwardTextSeq2SeqResponse {
+    int32 version = 1;
+	string hotkey = 2;	
+
+    // Logits containing generated text.
+	Tensor generated_text = 3;
+}
+
+/////////////////////////
+// TextLastHiddenState //
+/////////////////////////
+service TextLastHiddenState {
+    rpc ForwardTextLastHiddenState (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
+}
+
+message ForwardTextLastHiddenStateRequest {
+	int32 version = 1;
+	string hotkey = 2;	
+
+	Tensor serialized_text_inputs = 3;
+	Serializer text_inputs_serializer_type = 4;
+
+	int32 mask = 5;
+}
+
+message ForwardTextLastHiddenStateResponse {
+	int32 version = 1;
+	string hotkey = 2;	
+
+	Tensor serialized_text_inputs = 3;
+	Serializer text_inputs_serializer_type = 4;
+
+	int32 mask = 5;
+}
+
+/////////////////////////
+// TextCausalLM //
+/////////////////////////
+service TextCausalLM {
+    rpc ForwardTextCausalLMState (ForwardTextCausalLMRequest) returns (ForwardTextCausalLMResponse) {}
+}
+
+message ForwardTextCausalLMRequest {
+	int32 version = 1;
+	string hotkey = 2;	
+
+	Serializer input_text_serializer = 3;
+	Serializer output_logits_serializer = 4;
+
+	Tensor input_text = 5;
+
+	// Specifies the number of Topk logits to return.
+	// Logit values are packed (pos, value) acocording 
+	// to the bittensor tokenizer vocab size.
+	int32 topk = 6;
+}
+
+message ForwardTextCausalLMResponse {
+	int32 version = 1;
+	string hotkey = 2;	
+	
+	Tensor output_logits = 3;
+
+	// Specifies the number of Topk logits to return.
+	// Logit values are packed (pos, value) acocording 
+	// to the bittensor tokenizer vocab size.
+	int32 topk = 4;
+}
+
 
 // Return codes from Backward and Forward call.
 enum ReturnCode {
@@ -41,5 +171,77 @@ enum ReturnCode {
 	Unauthenticated = 23; // Authentication failed.
 	BadEndpoint = 24; // Dummy endpoint
 }
+
+/////////////////
+// TensorProto //
+/////////////////
+// A serialized tensor object created using the serializer class.
+// SIZE: 32 bytes + variable buffer size.
+message Tensor {
+	// Version: [REQUIRED] Strictly increasing protocol version identifier.
+	// Indentifies protocol version for backward compatibility.
+	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
+	int32 version = 1;
+
+	// Buffer: [REQUIRED] Serialized raw tensor content.
+	bytes buffer = 2;
+
+	// Shape: [REQUIRED] Shape of this tensor.
+	// NOTE: Variable dimensions (i.e. batch) are non-explicit here as -1.
+	// ~ 5 * int32 = 128 bits - (16 bytes)
+	repeated int64 shape = 3;
+
+	// Serializer: [REQUIRED] Specifies the serialization/deserialization method.
+	// Users should be able to decode all tensors by specifying the encoding type and the raw data. 
+	// i.e.
+	// 1. (client) serializer = bittensor.bittensor.serializer_for_type(bittensor.Serializer.MSGPACK)
+	// 2. (client) serializer.serialize(torch.Tensor, from_type = bittensor.proto.TensorType.TORCH) --> bittensor.proto.Tensor
+	// 3. (server) deserializer = bittensor.bittensor.serializer_for_type(request.serialzer)
+	// 4. (server) deserializer.deserialize(request.tensor, to_type = bittensor.proto.TensorType.TENSORFLOW) --> tensorflow.Tensor    	
+	// SIZE: 32-bits (4 bytes)
+	Serializer serializer = 4;
+
+	// TensorType: [REQUIRED] Purely a placeholder, not used in deserialization etc, 
+	// however, could come in handy later
+	// SIZE: 32-bits (4 bytes)
+	TensorType tensor_type = 5;
+    	
+	// Dtype: [REQUIRED] The tensor datatype.
+	// Used for serialization deserialization.
+	// int32 32-bits (4-bytes)
+	DataType dtype = 6;
+
+	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
+	// 1 bit.
+	bool requires_grad = 8;
+}
+
+
+enum Serializer {
+	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
+	MSGPACK = 0; // MSGPACK serializer
+	CMPPACK = 1; // CMPPACK serializer
+}
+
+// TensorType: [REQUIRED] The tensor type, for use between multipl frameworks.
+enum TensorType {
+	TORCH = 0; // Torch object
+	TENSORFLOW = 1; // Tensorflow tensor type.
+	NUMPY = 2; // Numpy tensor type.
+}
+
+// Dtype: [REQUIRED] The tensor datatype.
+// Used for serialization deserialization.
+// int32 32-bits (4-bytes)
+enum DataType {
+	UNKNOWN = 0;
+	FLOAT32 = 1;
+	FLOAT64 = 2;
+	INT32 = 3;
+	INT64 = 4;
+	UTF8 = 5;
+	FLOAT16 = 6;
+}
+
 
 
