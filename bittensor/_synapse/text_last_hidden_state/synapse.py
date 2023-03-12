@@ -20,25 +20,70 @@ import grpc
 import torch
 import bittensor
 
-class TextLastHiddenStateSynapse( bittensor.TextLastHiddenStateServicer ):
-    """ TextLastHiddenStateSynapse: A class for servicing text_last_hidden_state requests."""
+from .. import synapse
+
+class TextLastHiddenStateForwardCall( synapse.ForwardCall ):
+    """ TextLastHiddenStateForwardCall: A class for storing the state of a forward call."""
+
+    response_proto: bittensor.ForwardTextLastHiddenStateResponse = bittensor.ForwardTextLastHiddenStateResponse()
+
+    def __init__( self, request_proto: bittensor.ForwardTextLastHiddenStateRequest ):
+        super().__init__( request_proto = request_proto )
+        self.text_inputs = None
+        self.hidden_states = None
+
+    def get_inputs_shape(self) -> torch.Size:
+        if self.text_inputs is not None:
+            return self.text_inputs.shape
+        else: return None
     
-    def priority( self, hotkey:str, text_inputs: torch.FloatTensor, request: bittensor.ForwardTextLastHiddenStateRequest ) -> float:
+    def get_outputs_shape(self) -> torch.Size:
+        if self.hidden_states is not None:
+            return self.hidden_states.shape
+        else: return None
+
+class TextLastHiddenStateSynapse( synapse.Synapse ):
+    """ TextLastHiddenStateSynapse: A class for servicing text_last_hidden_state requests."""
+
+    def __init__( self ):
+        r""" Initializes a new Synapse."""
+        self.priority_threadpool = bittensor.prioritythreadpool()
+
+    def __str__(self):
+        return 'TextLastHiddenState'
+    
+    def priority( self, forward_call: 'TextLastHiddenStateForwardCall' ) -> float:
         """ priority: Returns the priority of the synapse for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement priority() in subclass.')
 
-    def blacklist( self, hotkey:str, text_inputs: torch.FloatTensor, request: bittensor.ForwardTextLastHiddenStateRequest ) -> torch.FloatTensor:
+    def blacklist( self, forward_call: 'TextLastHiddenStateForwardCall'  ) -> torch.FloatTensor:
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
 
-    def forward( self, hotkey:str, text_inputs: torch.FloatTensor, request: bittensor.ForwardTextLastHiddenStateRequest  ) -> torch.FloatTensor:
+    def forward( self, forward_call: 'TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
         """ forward: Returns the hidden states of the synapse for the given text_inputs."""
         raise NotImplementedError('Must implement forward() in subclass.')
-
-    def _attach( self, axon: 'bittensor.axon.Axon' ):
-        """ _attach: Attaches the synapse to the axon."""
-        bittensor.grpc.add_TextLastHiddenStateServicer_to_server( self, axon.server )
     
+    def _apply_forward_call(self, forward_call: TextLastHiddenStateForwardCall ):   
+
+        # Deserialize text inputs. 
+        text_deserializer = bittensor.serializer( serializer_type = forward_call.request_proto.text_inputs_serializer_type )
+        forward_call.text_inputs = text_deserializer.deserialize( forward_call.request_proto.serialized_text_inputs, to_type = bittensor.proto.TensorType.TORCH )
+
+        # Apply forward call.
+        forward_call.hidden_states = self.forward( forward_call = forward_call )
+
+        # Serialize hidden states.
+        hidden_states_serializer = bittensor.serializer( serializer_type = forward_call.request_proto.hidden_states_serializer_type )
+        serialized_hidden_states = hidden_states_serializer.serialize( forward_call.hidden_states, from_type = bittensor.proto.TensorType.TORCH )
+
+        # Set response.
+        forward_call.response_proto = bittensor.ForwardTextLastHiddenStateResponse(
+            serialized_hidden_states = serialized_hidden_states,
+            return_code = bittensor.proto.ReturnCode.Success,
+            message = 'Success'
+        )
+
     def ForwardTextLastHiddenState( 
             self, 
             request: bittensor.ForwardTextLastHiddenStateRequest, 
@@ -48,101 +93,17 @@ class TextLastHiddenStateSynapse( bittensor.TextLastHiddenStateServicer ):
             ----------------------------
             Args:
                 request (bittensor.ForwardTextLastHiddenStateRequest): 
+                    request.version (int): version of the caller.
                     request.hotkey (string): hotkey of the neuron.
-                    request.serialized_text_inputs (string): serialized text inputs.
-                    request.text_inputs_serializer_type (bittensor.proto.SerializerType): text inputs serializer type.
-                    request.hidden_states_serializer_type (bittensor.proto.SerializerType): hidden states serializer type.
                     request.timeout (float): timeout for the request.
+                    request.text_inputs_serializer_type (bittensor.proto.SerializerType): text inputs serializer type.
+                    request.serialized_text_inputs (string): serialized text inputs.
                 context (grpc.ServicerContext):
                     grpc tcp context.
             Returns:
                 response (bittensor.ForwardTextLastHiddenStateResponse): 
                     response.serialized_hidden_states (string): serialized hidden states.
         """
-        # Call variables.
-        start_time = time.time()
-        request_code = bittensor.proto.ReturnCode.Success
-        request_message = 'Success'
-
-        response_code = bittensor.proto.ReturnCode.Success
-        response_message = 'Success'
-
-        try:
-            # Deserialize text inputs.
-            text_deserialized = bittensor.serializer( serializer_type = request.text_inputs_serializer_type )
-            text_inputs = text_deserialized.deserialize( request.serialized_text_inputs, from_type = bittensor.proto.TensorType.TORCH )
-
-            # Check blacklist.
-            if self.blacklist( request.hotkey, text_inputs, request ): 
-                raise Exception('Blacklisted')
-            
-            # Get priority.
-            priority = self.priority( request.hotkey, text_inputs, request )
-            
-            # Queue the forward call.
-            future = self.priority_threadpool.submit(
-                self.forward,
-                hotkey = request.hotkey,
-                text_inputs = text_inputs,
-                request = request,
-                priority = priority,
-            )
-
-        except Exception as e:
-            request_code = bittensor.proto.ReturnCode.UnknownException
-            request_message = str(e)
-
-        # Log request.
-        bittensor.logging.rpc_log ( 
-            axon = False, 
-            forward = True, 
-            is_response = False, 
-            code = request_code, 
-            call_time = time.time() - start_time, 
-            pubkey = self.endpoint.hotkey, 
-            uid = self.endpoint.uid, 
-            inputs = list(text_inputs.shape), 
-            outputs = None,
-            message = request_message,
-            synapse = 'text_last_hidden_state'
-        )
-        if request_code != bittensor.proto.ReturnCode.Success:
-            return bittensor.ForwardTextLastHiddenStateResponse()
-
-        # Do forward.
-        try:
-            # Get the result.
-            hidden_states = future.result( timeout = request.timeout )
-            
-            # Serialize hidden states.
-            hidden_states_serializer = bittensor.serializer( serializer_type = request.hidden_states_serializer_type )
-            serialized_hidden_states = hidden_states_serializer.serialize( hidden_states, from_type = bittensor.proto.TensorType.TORCH )
-            
-            # Return response.
-            response = bittensor.proto.TextLastHiddenStateResponse(
-                serialized_hidden_states = serialized_hidden_states,
-            )
-
-        except Exception as e:
-            response_code = bittensor.proto.ReturnCode.UnknownException
-            response_message = str(e)
-
+        forward_call = TextLastHiddenStateForwardCall( request_proto = request )
+        return self._Forward( forward_call = forward_call )
     
-        # Log response
-        bittensor.logging.rpc_log ( 
-            axon = False, 
-            forward = True, 
-            is_response = True, 
-            code = response_code, 
-            call_time = time.time() - start_time, 
-            pubkey = self.endpoint.hotkey, 
-            uid = self.endpoint.uid, 
-            inputs = list(text_inputs.shape), 
-            outputs = list(hidden_states.shape) if response_code == bittensor.proto.ReturnCode.Success else None,
-            message = response_message,
-            synapse = 'text_last_hidden_state'
-        )
-        if response_code != bittensor.proto.ReturnCode.Success:
-            return bittensor.ForwardTextLastHiddenStateResponse()
-        else:
-            return response

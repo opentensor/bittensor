@@ -44,11 +44,11 @@ class prioritythreadpool:
         if config == None: 
             config = prioritythreadpool.config()
         config = copy.deepcopy( config )
-        config.axon.priority.max_workers = max_workers if max_workers != None else config.axon.priority.max_workers
-        config.axon.priority.maxsize = maxsize if maxsize != None else config.axon.priority.maxsize
+        config.priority.max_workers = max_workers if max_workers != None else config.priority.max_workers
+        config.priority.maxsize = maxsize if maxsize != None else config.priority.maxsize
 
         prioritythreadpool.check_config( config )
-        return priority_thread_pool_impl.PriorityThreadPoolExecutor(maxsize = config.axon.priority.maxsize, max_workers = config.axon.priority.max_workers)
+        return priority_thread_pool_impl.PriorityThreadPoolExecutor(maxsize = config.priority.maxsize, max_workers = config.priority.max_workers)
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
@@ -56,8 +56,8 @@ class prioritythreadpool:
         """
         prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--' + prefix_str + 'axon.priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = bittensor.defaults.axon.priority.max_workers)
-            parser.add_argument('--' + prefix_str + 'axon.priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.axon.priority.maxsize)  
+            parser.add_argument('--' + prefix_str + 'priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = bittensor.defaults.priority.max_workers)
+            parser.add_argument('--' + prefix_str + 'priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.priority.maxsize)  
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -75,10 +75,10 @@ class prioritythreadpool:
     def add_defaults(cls, defaults):
         """ Adds parser defaults to object from enviroment variables.
         """
-        defaults.axon = bittensor.Config()
-        defaults.axon.priority = bittensor.Config()
-        defaults.axon.priority.max_workers = os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') if os.getenv('BT_AXON_PRIORITY_MAX_WORKERS') != None else 5
-        defaults.axon.priority.maxsize = os.getenv('BT_AXON_PRIORITY_MAXSIZE') if os.getenv('BT_AXON_PRIORITY_MAXSIZE') != None else 10
+        defaults.priority = bittensor.Config()
+        defaults.priority = bittensor.Config()
+        defaults.priority.max_workers = os.getenv('BT_PRIORITY_MAX_WORKERS') if os.getenv('BT_PRIORITY_MAX_WORKERS') != None else 5
+        defaults.priority.maxsize = os.getenv('BT_PRIORITY_MAXSIZE') if os.getenv('BT_PRIORITY_MAXSIZE') != None else 10
     
     @classmethod   
     def config(cls) -> 'bittensor.Config':
@@ -93,5 +93,5 @@ class prioritythreadpool:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for threadpool worker number and size
         """
-        assert isinstance(config.axon.priority.max_workers, int), 'axon.priority.max_workers must be a int'
-        assert isinstance(config.axon.priority.maxsize, int), 'axon.priority.maxsize must be a int'
+        assert isinstance(config.priority.max_workers, int), 'priority.max_workers must be a int'
+        assert isinstance(config.priority.maxsize, int), 'priority.maxsize must be a int'

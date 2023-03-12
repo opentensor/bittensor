@@ -205,6 +205,7 @@ defaults = Config()
 defaults.netuid = 1
 subtensor.add_defaults( defaults )
 axon.add_defaults( defaults )
+prioritythreadpool.add_defaults( defaults )
 prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )

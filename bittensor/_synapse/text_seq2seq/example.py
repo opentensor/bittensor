@@ -1,5 +1,6 @@
 import torch
 import bittensor
+from . import call
 
 bittensor.logging(debug=True)
 
@@ -19,14 +20,14 @@ local_endpoint = bittensor.endpoint(
 )    
 
 # Create a synapse that returns zeros.
-class Synapse(bittensor.TextLastHiddenStateSynapse):
-    def priority(self, forward_call: 'TextLastHiddenStateForwardCall' ) -> float:
+class Synapse( bittensor.TextSeq2SeqSynapse ):
+    def priority(self, forward_call: 'call.TextSeq2SeqForwardCall' ) -> float:
         return 0.0
     
-    def blacklist(self, forward_call: 'TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
+    def blacklist(self, forward_call: 'call.TextSeq2SeqForwardCall' ) -> torch.FloatTensor:
         return False
     
-    def forward(self, forward_call: 'TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
+    def forward(self, forward_call: 'call.TextSeq2SeqForwardCall' ) -> torch.FloatTensor:
         return torch.zeros( forward_call.text_inputs.shape[0], forward_call.text_inputs.shape[1], bittensor.__network_dim__ )
     
 # Create a synapse and attach it to an axon.
@@ -35,8 +36,8 @@ axon = bittensor.axon( wallet = wallet, port = 9090, ip = '127.0.0.1' )
 axon.attach( synapse = synapse )
 axon.start()
 
-# Create a text_last_hidden_state module and call it.
-module = bittensor.text_last_hidden_state( endpoint = local_endpoint, wallet = wallet )
+# Create a text_last_hidden_stsate module and call it.
+module = bittensor.text_seq2seq( endpoint = local_endpoint, wallet = wallet )
 response = module( text_inputs = torch.ones( ( 1, 1 ), dtype = torch.long ), timeout = 1 )
 
 # Delete objects.
