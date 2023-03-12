@@ -1,6 +1,7 @@
 import torch
 import bittensor
 
+from . import call
 bittensor.logging(debug=True)
 
 # Create a mock wallet.
@@ -20,13 +21,13 @@ local_endpoint = bittensor.endpoint(
 
 # Create a synapse that returns zeros.
 class Synapse(bittensor.TextLastHiddenStateSynapse):
-    def priority(self, forward_call: 'TextLastHiddenStateForwardCall' ) -> float:
+    def priority(self, forward_call: 'call.TextLastHiddenStateForwardCall' ) -> float:
         return 0.0
     
-    def blacklist(self, forward_call: 'TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
+    def blacklist(self, forward_call: 'call.TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
         return False
     
-    def forward(self, forward_call: 'TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
+    def forward(self, forward_call: 'call.TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
         return torch.zeros( forward_call.text_inputs.shape[0], forward_call.text_inputs.shape[1], bittensor.__network_dim__ )
     
 # Create a synapse and attach it to an axon.
