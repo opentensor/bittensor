@@ -23,11 +23,11 @@ message ForwardTextSeq2SeqRequest {
 	string hotkey = 2;	
 
     // Serializers required on forward messages.
-	Serializer prompt_text_serializer = 3;
-	Serializer generation_text_serializer = 4;
+	Serializer text_prompt_serializer_type = 3;
+	Serializer generations_serializer_type = 4;
 
     // Tokenized text response.
-	Tensor prompt_text = 5;
+	Tensor serialized_text_prompt = 5;
 
     // Specifies the number of Topk logits to return.
     // Logit values are packed (pos, value) acocording 
@@ -70,6 +70,9 @@ message ForwardTextSeq2SeqRequest {
 
     //groups for beam search
     int32 num_beam_groups = 19;
+
+	// QueryTimeout
+	float timeout = 20;
 }
 
 // Forward Response.
@@ -78,7 +81,10 @@ message ForwardTextSeq2SeqResponse {
 	string hotkey = 2;	
 
     // Logits containing generated text.
-	Tensor generated_text = 3;
+	Tensor serialized_generations = 3;
+
+	string message = 4;
+	ReturnCode return_code = 5; 
 }
 
 /////////////////////////
@@ -98,6 +104,9 @@ message ForwardTextLastHiddenStateRequest {
 	Tensor serialized_text_inputs = 5;
 
 	int32 mask = 6;
+
+	// QueryTimeout
+	float timeout = 7;
 }
 
 message ForwardTextLastHiddenStateResponse {
@@ -107,6 +116,9 @@ message ForwardTextLastHiddenStateResponse {
 	Tensor serialized_hidden_states = 3;
 
 	int32 mask = 4;
+
+	string message = 7;
+	ReturnCode return_code = 8; 
 }
 
 /////////////////////////
@@ -129,6 +141,9 @@ message ForwardTextCausalLMRequest {
 	// Logit values are packed (pos, value) acocording 
 	// to the bittensor tokenizer vocab size.
 	int32 topk = 6;
+
+	// QueryTimeout
+	float timeout = 7;
 }
 
 message ForwardTextCausalLMResponse {
@@ -141,6 +156,10 @@ message ForwardTextCausalLMResponse {
 	// Logit values are packed (pos, value) acocording 
 	// to the bittensor tokenizer vocab size.
 	int32 topk = 4;
+
+	string message = 5;
+	ReturnCode return_code = 6; 
+
 }
 
 
