@@ -93,4 +93,3 @@ class Axon():
         if self.server != None:
             self.server.stop( grace = 1 )
         self.started = False
-        return self

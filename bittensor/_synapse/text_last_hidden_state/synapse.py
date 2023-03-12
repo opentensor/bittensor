@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import grpc
 import torch
 import bittensor
@@ -58,33 +59,90 @@ class TextLastHiddenStateSynapse( bittensor.TextLastHiddenStateServicer ):
                 response (bittensor.ForwardTextLastHiddenStateResponse): 
                     response.serialized_hidden_states (string): serialized hidden states.
         """
-        # Deserialize text inputs.
-        text_deserialized = bittensor.serializer( serializer_type = request.text_inputs_serializer_type )
-        text_inputs = text_deserialized.deserialize( request.serialized_text_inputs, from_type = bittensor.proto.TensorType.TORCH )
-        
-        # Check blacklist.
-        if self.blacklist( request.hotkey, text_inputs, request ): return bittensor.ForwardTextLastHiddenStateResponse()
-        
-        # Get priority.
-        priority = self.priority( request.hotkey, text_inputs, request )
-        
-        # Queue the forward call.
-        future = self.priority_threadpool.submit(
-            self.forward,
-            hotkey = request.hotkey,
-            text_inputs = text_inputs,
-            request = request,
-            priority = priority,
+        # Call variables.
+        start_time = time.time()
+        request_code = bittensor.proto.ReturnCode.Success
+        request_message = 'Success'
+
+        response_code = bittensor.proto.ReturnCode.Success
+        response_message = 'Success'
+
+        try:
+            # Deserialize text inputs.
+            text_deserialized = bittensor.serializer( serializer_type = request.text_inputs_serializer_type )
+            text_inputs = text_deserialized.deserialize( request.serialized_text_inputs, from_type = bittensor.proto.TensorType.TORCH )
+
+            # Check blacklist.
+            if self.blacklist( request.hotkey, text_inputs, request ): 
+                raise Exception('Blacklisted')
+            
+            # Get priority.
+            priority = self.priority( request.hotkey, text_inputs, request )
+            
+            # Queue the forward call.
+            future = self.priority_threadpool.submit(
+                self.forward,
+                hotkey = request.hotkey,
+                text_inputs = text_inputs,
+                request = request,
+                priority = priority,
+            )
+
+        except Exception as e:
+            request_code = bittensor.proto.ReturnCode.UnknownException
+            request_message = str(e)
+
+        # Log request.
+        bittensor.logging.rpc_log ( 
+            axon = False, 
+            forward = True, 
+            is_response = False, 
+            code = request_code, 
+            call_time = time.time() - start_time, 
+            pubkey = self.endpoint.hotkey, 
+            uid = self.endpoint.uid, 
+            inputs = list(text_inputs.shape), 
+            outputs = None,
+            message = request_message,
+            synapse = 'text_last_hidden_state'
         )
-        
-        # Get the result.
-        hidden_states = future.result( timeout = request.timeout )
-        
-        # Serialize hidden states.
-        hidden_states_serializer = bittensor.serializer( serializer_type = request.hidden_states_serializer_type )
-        serialized_hidden_states = hidden_states_serializer.serialize( hidden_states, from_type = bittensor.proto.TensorType.TORCH )
-        
-        # Return response.
-        return bittensor.proto.TextLastHiddenStateResponse(
-            serialized_hidden_states = serialized_hidden_states,
+        if request_code != bittensor.proto.ReturnCode.Success:
+            return bittensor.ForwardTextLastHiddenStateResponse()
+
+        # Do forward.
+        try:
+            # Get the result.
+            hidden_states = future.result( timeout = request.timeout )
+            
+            # Serialize hidden states.
+            hidden_states_serializer = bittensor.serializer( serializer_type = request.hidden_states_serializer_type )
+            serialized_hidden_states = hidden_states_serializer.serialize( hidden_states, from_type = bittensor.proto.TensorType.TORCH )
+            
+            # Return response.
+            response = bittensor.proto.TextLastHiddenStateResponse(
+                serialized_hidden_states = serialized_hidden_states,
+            )
+
+        except Exception as e:
+            response_code = bittensor.proto.ReturnCode.UnknownException
+            response_message = str(e)
+
+    
+        # Log response
+        bittensor.logging.rpc_log ( 
+            axon = False, 
+            forward = True, 
+            is_response = True, 
+            code = response_code, 
+            call_time = time.time() - start_time, 
+            pubkey = self.endpoint.hotkey, 
+            uid = self.endpoint.uid, 
+            inputs = list(text_inputs.shape), 
+            outputs = list(hidden_states.shape) if response_code == bittensor.proto.ReturnCode.Success else None,
+            message = response_message,
+            synapse = 'text_last_hidden_state'
         )
+        if response_code != bittensor.proto.ReturnCode.Success:
+            return bittensor.ForwardTextLastHiddenStateResponse()
+        else:
+            return response
