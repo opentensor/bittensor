@@ -15,6 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import grpc
+import time
 import torch
 import asyncio
 import bittensor
@@ -51,6 +53,17 @@ class TextLastHiddenStateDendrite(torch.nn.Module):
         self.receptor = bittensor.receptor( endpoint = self.endpoint, wallet = self.wallet )
         self._text_inputs_serializer_type = text_inputs_serializer_type
         self._hidden_states_serializer_type = hidden_states_serializer_type
+
+    def _nill_response_for_inputs( self, text_inputs: torch.FloatTensor ) -> torch.FloatTensor:
+        """ Returns a nill response for the given inputs.
+            Args:
+                text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
+                    torch tensor of text inputs.
+            Returns:
+                hidden_states (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, hidden_size)`, `required`):
+                    torch tensor of hidden states.
+        """
+        return torch.zeros( text_inputs.shape[0], text_inputs.shape[1], bittensor.__network_dim__ ).to( text_inputs.device )
 
     def forward( 
             self, 
@@ -89,33 +102,111 @@ class TextLastHiddenStateDendrite(torch.nn.Module):
                 hidden_states (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, hidden_size)`, `required`):
                     torch tensor of hidden states.
         """
-        # Serialize text inputs.
-        text_serializer = bittensor.serializer( serializer_type = self._text_inputs_serializer_type )
-        serialized_text = text_serializer.serialize( text_inputs, from_type = bittensor.proto.TensorType.TORCH )
+        start_time = time.time()
+        request_code = bittensor.proto.ReturnCode.Success
+        response_code = bittensor.proto.ReturnCode.Success
+        request_message = 'Success'
+        response_message = 'Success'
 
-        # Make request.
-        request = bittensor.ForwardTextLastHiddenStateRequest(
-            serialized_text_inputs = serialized_text,
-            text_inputs_serializer_type = self._text_inputs_serializer_type,
-            hidden_states_serializer_type = self._hidden_states_serializer_type,
+        # ========================
+        # ==== Create request ====
+        # ========================
+        try:
+            # Serialize text inputs.
+            text_serializer = bittensor.serializer( serializer_type = self._text_inputs_serializer_type )
+            serialized_text = text_serializer.serialize( text_inputs, from_type = bittensor.proto.TensorType.TORCH )
+
+            # Make request.
+            request = bittensor.ForwardTextLastHiddenStateRequest(
+                serialized_text_inputs = serialized_text,
+                text_inputs_serializer_type = self._text_inputs_serializer_type,
+                hidden_states_serializer_type = self._hidden_states_serializer_type,
+            )
+            
+        except Exception as e:
+            request_code = bittensor.proto.ReturnCode.RequestSerializationException
+            request_message = str(e)
+            
+        # =====================
+        # ==== Log request ====
+        # =====================
+        bittensor.logging.rpc_log ( 
+            axon = False, 
+            forward = True, 
+            is_response = False, 
+            code = request_code, 
+            call_time = time.time() - start_time, 
+            pubkey = self.endpoint.hotkey, 
+            uid = self.endpoint.uid, 
+            inputs = list(text_inputs.shape), 
+            outputs = None,
+            message = request_message,
+            synapse = 'text_last_hidden_state'
         )
+        if request_code != bittensor.proto.ReturnCode.Success:
+            return self._nill_response_for_inputs( text_inputs = text_inputs )
 
-        # Make call.
-        asyncio_future = self.receptor.stub.ForwardTextLastHiddenState(
-                request = request, 
-                timeout = timeout,
-                metadata = (
-                    ('rpc-auth-header','Bittensor'),
-                    ('bittensor-signature', self.receptor.sign() ),
-                    ('bittensor-version',str(bittensor.__version_as_int__)),
-                ))
-        # Wait for response.
-        grpc_response = await asyncio.wait_for( asyncio_future, timeout = timeout )
+        # ==========================
+        # ==== Fire and Recieve ====
+        # ==========================
+        try:
+            # Make call.
+            asyncio_future = self.receptor.stub.ForwardTextLastHiddenState(
+                    request = request, 
+                    timeout = timeout,
+                    metadata = (
+                        ('rpc-auth-header','Bittensor'),
+                        ('bittensor-signature', self.receptor.sign() ),
+                        ('bittensor-version',str(bittensor.__version_as_int__)),
+                    ))
+            
+            print ( asyncio_future )
+            # Wait for response.
+            grpc_response = await asyncio.wait_for( asyncio_future, timeout = timeout )
 
-        # Deserialize hidden states.
-        hidden_states_serializer = bittensor.serializer( serializer_type = self._hidden_states_serializer_type )
-        hidden_states = hidden_states_serializer.deserialize( grpc_response.hidden_states, to_type = bittensor.proto.TensorType.TORCH )
+            # Catch failed code.
+            if grpc_response.return_code != bittensor.proto.ReturnCode.Success:
+                raise Exception( 'Remote Server Failure: '+ grpc_response.message )
+
+            # Deserialize hidden states.
+            hidden_states_serializer = bittensor.serializer( serializer_type = self._hidden_states_serializer_type )
+            hidden_states = hidden_states_serializer.deserialize( grpc_response.hidden_states, to_type = bittensor.proto.TensorType.TORCH )
+
+        # ================
+        # ==== Errors ====
+        # ================
+        except grpc.RpcError as rpc_error_call:
+            # Request failed with GRPC code.
+            response_code = rpc_error_call.code()
+            response_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+        except asyncio.TimeoutError:
+            response_code = bittensor.proto.ReturnCode.Timeout
+            response_message = 'GRPC request timeout after: {}s'.format(timeout)
+        except Exception as e:
+            response_code = bittensor.proto.ReturnCode.UnknownException
+            response_message = str(e)
+
+        # =====================
+        # ==== Log Response ====
+        # =====================
+        bittensor.logging.rpc_log ( 
+            axon = False, 
+            forward = True, 
+            is_response = True, 
+            code = response_code, 
+            call_time = time.time() - start_time, 
+            pubkey = self.endpoint.hotkey, 
+            uid = self.endpoint.uid, 
+            inputs = list(text_inputs.shape), 
+            outputs = list(hidden_states.shape) if response_code == bittensor.proto.ReturnCode.Success else None,
+            message = response_message,
+            synapse = 'text_last_hidden_state'
+        )
+        if response_code != bittensor.proto.ReturnCode.Success:
+            return self._nill_response_for_inputs( text_inputs = text_inputs )
+
         return hidden_states
+    
 
     
 
