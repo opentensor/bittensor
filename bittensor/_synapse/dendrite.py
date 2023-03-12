@@ -21,50 +21,7 @@ import torch
 import asyncio
 import bittensor
 from typing import Union, Optional, Callable
-
-from dataclasses import dataclass
-
-@dataclass
-class ForwardCall(object):
-    """ CallState object.
-        CallState is a dataclass that holds the state of a call to a receptor.
-    """
-    # The receptor endpoint.
-    endpoint: bittensor.Endpoint = None
-    # The timeout for the call.
-    timeout: float = 0.0
-    # The start time of the call.
-    start_time: float = 0.0
-    # The end time of the call.
-    end_time: float = 0.0
-    # The request code, filled while preprocessing the request.
-    request_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
-    # The request message, filled while preprocessing the request.
-    request_message: str = 'Success'
-    # The response code, filled after the call is made.
-    response_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
-    # The response message, filled after the call is made.
-    response_message: str = 'Success'
-    # The request proto, filled while preprocessing the request.
-    request_proto: object = None
-    # The response proto, filled after the call is made.
-    response_proto: object = None
-    
-    def __init__(self, timeout: float = bittensor.__blocktime__):
-        self.timeout = timeout
-        self.start_time = time.time()
-
-    def get_inputs_shape(self):
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
-    
-    def get_outputs_shape(self):
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
-    
-    def to_forward_request_proto( self ) -> object:
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
-
-    def from_forward_response_proto( self, object ) -> object:
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
+from . import call
 
 class Dendrite(torch.nn.Module):
     """ Dendrite object.
@@ -99,12 +56,12 @@ class Dendrite(torch.nn.Module):
         """ Returns the stub callable for the dendrite. """
         raise NotImplemented('Dendrite._stub_callable() not implemented.')
 
-    def _forward( self, call_state: 'ForwardCall' ) -> 'ForwardCall':
+    def _forward( self, call_state: 'call.ForwardCall' ) -> 'call.ForwardCall':
         """ Forward call to remote endpoint."""
         loop = asyncio.get_event_loop()
         return loop.run_until_complete( self.async_forward( call_state = call_state ) )
     
-    async def async_forward( self, forward_call: 'ForwardCall' ) -> 'ForwardCall':
+    async def async_forward( self, forward_call: 'call.ForwardCall' ) -> 'call.ForwardCall':
         """ The function async_forward is a coroutine function that makes an RPC call 
             to a remote endpoint to perform a forward pass. It uses a ForwardCall object which it fills 
             using the subclass inherited functions _fill_forward_request and _process_forward_response.
@@ -112,10 +69,10 @@ class Dendrite(torch.nn.Module):
 
             The function also logs the request and response messages using bittensor.logging.rpc_log.
             Args:
-                forward_call (:obj:ForwardCall, required): 
+                forward_call (:obj:call.ForwardCall, required): 
                     The ForwardCall object containing the request to be made to the remote endpoint.
             Returns:
-                forward_call (:obj:ForwardCall, required):
+                forward_call (:obj:call.ForwardCall, required):
                     The ForwardCall object containing the response from the remote endpoint.
         """
         forward_call.endpoint = self.endpoint
