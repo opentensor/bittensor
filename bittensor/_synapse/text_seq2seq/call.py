@@ -18,7 +18,7 @@
 import torch
 import bittensor
 
-class TextSeq2SeqForwardCall( bittensor.ForwardCall ):
+class TextSeq2SeqBittensorCall( bittensor.BittensorCall ):
     """ Call state for the text_seq_to_seq synapse."""
     def __init__( 
             self, 

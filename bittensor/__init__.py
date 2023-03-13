@@ -183,9 +183,9 @@ from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
 
 # ---- Calls -----
-from bittensor._synapse.call import ForwardCall
-from bittensor._synapse.text_seq2seq.call import TextSeq2SeqForwardCall 
-from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
+from bittensor._synapse.call import BittensorCall
+from bittensor._synapse.text_seq2seq.call import TextSeq2SeqBittensorCall 
+from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateBittensorCall
 
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse

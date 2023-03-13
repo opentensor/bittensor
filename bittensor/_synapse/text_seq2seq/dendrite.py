@@ -30,12 +30,12 @@ class TextSeq2SeqDendrite( bittensor.Dendrite ):
     
     def pre_process_forward_call_to_request_proto( 
             self, 
-            forward_call: 'bittensor.TextSeq2SeqForwardCall' 
+            forward_call: 'bittensor.TextSeq2SeqBittensorCall' 
         ) -> 'bittensor.ForwardTextSeq2SeqRequest':
         """ Preprocesses the forward call to a request proto.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextSeq2SeqBittensorCall`, `required`):
                     forward_call to preprocess.
             Returns:
                 request_proto (:obj:`bittensor.ForwardTextSeq2SeqRequest`, `required`):
@@ -68,18 +68,18 @@ class TextSeq2SeqDendrite( bittensor.Dendrite ):
     
     def post_process_response_proto_to_forward_call( 
             self, 
-            forward_call: bittensor.TextSeq2SeqForwardCall,
+            forward_call: bittensor.TextSeq2SeqBittensorCall,
             response_proto: bittensor.ForwardTextSeq2SeqResponse 
-        ) -> bittensor.TextSeq2SeqForwardCall :
+        ) -> bittensor.TextSeq2SeqBittensorCall :
         """ Postprocesses the response proto to fill forward call.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextSeq2SeqBittensorCall`, `required`):
                     bittensor forward call object to fill.
                 response_proto (:obj:`bittensor.ForwardTextSeq2SeqResponse`, `required`):
                     bittensor forward response proto.
             Returns:
-                forward_call (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextSeq2SeqBittensorCall`, `required`):
                     filled bittensor forward call object.
         """
         # Deserialize generations.
@@ -150,7 +150,7 @@ class TextSeq2SeqDendrite( bittensor.Dendrite ):
                     Generations from each endpoint.
         """
         return self._forward( 
-            forward_call = bittensor.TextSeq2SeqForwardCall( 
+            forward_call = bittensor.TextSeq2SeqBittensorCall( 
                 text_prompt = text_prompt, 
                 timeout = timeout,
                 topk = topk,

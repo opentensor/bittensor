@@ -20,7 +20,7 @@ import bittensor
 from dataclasses import dataclass
 
 @dataclass
-class ForwardCall(object):
+class BittensorCall(object):
     """ CallState object.
         CallState is a dataclass that holds the state of a call to a receptor.
     """
