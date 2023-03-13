@@ -76,28 +76,28 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
     def __str__(self):
         return 'TextLastHiddenState'
     
-    def priority( self, forward_call: 'bittensor.TextSeq2SeqForwardCall' ) -> float:
+    def priority( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
         """ priority: Returns the priority of the synapse for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement priority() in subclass.')
     
-    def _priority( self, forward_call: 'bittensor.TextSeq2SeqForwardCall' ) -> float:
+    def _priority( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
         """ _priority: Returns the priority of the forward call.
             Args:
-                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                forward_call (:obj:`bittensor.BittensorCall`, `required`):
                     forward_call to check.
             Returns:
                 float: priority of the forward call.
         """
         return self.priority( forward_call)
 
-    def blacklist( self, forward_call: 'bittensor.TextSeq2SeqForwardCall'  ) -> bool:
+    def blacklist( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall'  ) -> bool:
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
     
-    def _blacklist( self, forward_call: bittensor.ForwardCall ) -> bool:
+    def _blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
         """ __blacklist: Checks if the forward call is blacklisted.
             Args:
-                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                forward_call (:obj:`bittensor.BittensorCall`, `required`):
                     forward_call to check.
             Returns:
                 bool: True if blacklisted, False otherwise.
@@ -137,13 +137,13 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
         except Exception as e:
             return True
 
-    def forward( self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bittensor.TextLastHiddenStateForwardCall:
+    def forward( self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> bittensor.TextLastHiddenStateBittensorCall:
         """ fills in the hidden_states of the forward call.
             Args:
-                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     bittensor forward call dataclass to fill.
             Returns:
-                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     filled bittensor forward call dataclass.
         """
         raise NotImplementedError('Must implement forward() in subclass.')
@@ -151,21 +151,21 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
     def pre_process_request_proto_to_forward_call( 
             self, 
             request_proto: bittensor.ForwardTextLastHiddenStateRequest 
-        ) -> 'bittensor.TextLastHiddenStateForwardCall':
+        ) -> 'bittensor.TextLastHiddenStateBittensorCall':
         """ pre_process_request_proto_to_forward_call
             ------------------------------------------
             Args:
                 request_proto (bittensor.ForwardTextLastHiddenStateRequest):
                     bittensor forward request proto.
             Returns:
-                bittensor.TextLastHiddenStateForwardCall (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
+                bittensor.TextLastHiddenStateBittensorCall (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     bittensor forward call dataclass.
         """
         # Deserialize text inputs.
         text_serializer = bittensor.serializer( serializer_type = request_proto.text_inputs_serializer_type )
         text_inputs = text_serializer.deserialize( request_proto.serialized_text_inputs )
 
-        return bittensor.TextLastHiddenStateForwardCall(
+        return bittensor.TextLastHiddenStateBittensorCall(
             text_inputs = text_inputs,
             timeout = request_proto.timeout,
             text_inputs_serializer_type = request_proto.text_inputs_serializer_type,
@@ -174,12 +174,12 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
     
     def post_process_forward_call_to_response_proto( 
             self, 
-            forward_call: 'bittensor.TextLastHiddenStateForwardCall' 
+            forward_call: 'bittensor.TextLastHiddenStateBittensorCall' 
         ) -> bittensor.ForwardTextLastHiddenStateResponse:
         """ post_process_forward_call_to_response_proto
             --------------------------------------------
             Args:
-                forward_call (bittensor.TextLastHiddenStateForwardCall):
+                forward_call (bittensor.TextLastHiddenStateBittensorCall):
                     forward_call.text_inputs (torch.FloatTensor): text inputs.
                     forward_call.timeout (float): timeout for the request.
                     forward_call.text_inputs_serializer_type (bittensor.proto.SerializerType): text inputs serializer type.

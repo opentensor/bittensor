@@ -57,12 +57,12 @@ class Dendrite(torch.nn.Module):
     
     def pre_process_forward_call_to_request_proto( 
             self, 
-            forward_call: 'bittensor.ForwardCall' 
+            forward_call: 'bittensor.BittensorCall' 
         ) -> 'bittensor.ForwardRequest':
         """ Preprocesses the request proto to a forward call.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                forward_call (:obj:`bittensor.BittensorCall`, `required`):
                     forward_call to preprocess.
             Returns:
                 request_proto (:obj:`bittensor.ForwardRequest`, `required`):
@@ -72,41 +72,41 @@ class Dendrite(torch.nn.Module):
     
     def post_process_response_proto_to_forward_call( 
             self, 
-            forward_call: bittensor.ForwardCall,
+            forward_call: bittensor.BittensorCall,
             response_proto: 'bittensor.ForwardResponse'
-        ) -> bittensor.ForwardCall:
+        ) -> bittensor.BittensorCall:
         """ Postprocesses the response proto to fill forward call.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                forward_call (:obj:`bittensor.BittensorCall`, `required`):
                     bittensor forward call object to fill.
                 response_proto (:obj:`bittensor.ForwardResponse`, `required`):
                     bittensor forward response proto.
             Returns:
-                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                forward_call (:obj:`bittensor.BittensorCall`, `required`):
                     filled bittensor forward call object.
         """
         raise NotImplementedError('Must implement post_process_response_proto_to_forward_call() in subclass.')
     
 
-    def _forward( self, forward_call: 'bittensor.ForwardCall' ) -> 'bittensor.ForwardCall':
+    def _forward( self, forward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
         """ Forward call to remote endpoint."""
         loop = asyncio.get_event_loop()
         return loop.run_until_complete( self.async_forward( forward_call = forward_call ) )
 
-    async def async_forward( self, forward_call: 'bittensor.ForwardCall' ) -> 'bittensor.ForwardCall':
+    async def async_forward( self, forward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
         """ The function async_forward is a coroutine function that makes an RPC call 
-            to a remote endpoint to perform a forward pass. It uses a ForwardCall object which it fills 
+            to a remote endpoint to perform a forward pass. It uses a BittensorCall object which it fills 
             using the subclass inherited functions _fill_forward_request and _process_forward_response.
-            It returns the ForwardCall object with the filled responses.
+            It returns the BittensorCall object with the filled responses.
 
             The function also logs the request and response messages using bittensor.logging.rpc_log.
             Args:
-                forward_call (:obj:bittensor.ForwardCall, required): 
-                    The ForwardCall object containing the request to be made to the remote endpoint.
+                forward_call (:obj:bittensor.BittensorCall, required): 
+                    The BittensorCall object containing the request to be made to the remote endpoint.
             Returns:
-                forward_call (:obj:bittensor.ForwardCall, required):
-                    The ForwardCall object containing the response from the remote endpoint.
+                forward_call (:obj:bittensor.BittensorCall, required):
+                    The BittensorCall object containing the response from the remote endpoint.
         """
         forward_call.endpoint = self.endpoint
         forward_call.hotkey = self.endpoint.hotkey

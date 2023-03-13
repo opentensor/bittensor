@@ -21,13 +21,13 @@ local_endpoint = bittensor.endpoint(
 
 # Create a synapse that returns zeros.
 class Synapse(bittensor.TextLastHiddenStateSynapse):
-    def priority(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> float:
+    def priority(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> float:
         return 0.0
     
-    def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
+    def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> torch.FloatTensor:
         return False
     
-    def forward(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bittensor.TextLastHiddenStateForwardCall:
+    def forward(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> bittensor.TextLastHiddenStateBittensorCall:
         forward_call.hidden_states = torch.zeros( forward_call.text_inputs.shape[0], forward_call.text_inputs.shape[1], bittensor.__network_dim__ )
         return forward_call
     

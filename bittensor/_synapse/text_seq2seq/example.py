@@ -20,13 +20,13 @@ local_endpoint = bittensor.endpoint(
 
 # Create a synapse that returns zeros.
 class Synapse( bittensor.TextSeq2SeqSynapse ):
-    def priority(self, forward_call: 'bittensor.TextSeq2SeqForwardCall' ) -> float:
+    def priority(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
         return 0.0
     
-    def blacklist(self, forward_call: 'bittensor.TextSeq2SeqForwardCall' ) -> torch.FloatTensor:
+    def blacklist(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> torch.FloatTensor:
         return False
     
-    def forward(self, forward_call: 'bittensor.TextSeq2SeqForwardCall' ) -> 'bittensor.TextSeq2SeqForwardCall':
+    def forward(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> 'bittensor.TextSeq2SeqBittensorCall':
         forward_call.generations = torch.zeros( forward_call.text_prompt.shape[0], forward_call.text_prompt.shape[1], bittensor.__network_dim__ )
         return forward_call
     

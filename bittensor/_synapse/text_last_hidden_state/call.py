@@ -18,7 +18,7 @@
 import torch
 import bittensor
 
-class TextLastHiddenStateForwardCall( bittensor.ForwardCall ):
+class TextLastHiddenStateBittensorCall( bittensor.BittensorCall ):
     """ Call state for the text_last_hidden_state synapse."""
     def __init__( 
             self, 
@@ -38,7 +38,7 @@ class TextLastHiddenStateForwardCall( bittensor.ForwardCall ):
                 hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for hidden states.
             Returns:
-                call.TextLastHiddenStateForwardCall (:obj:`call.TextLastHiddenStateForwardCall`, `required`):
+                call.TextLastHiddenStateBittensorCall (:obj:`call.TextLastHiddenStateBittensorCall`, `required`):
                     bittensor forward call dataclass.
         """
         super().__init__(

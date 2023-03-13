@@ -30,12 +30,12 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
     
     def pre_process_forward_call_to_request_proto( 
             self, 
-            forward_call: 'bittensor.TextLastHiddenStateForwardCall' 
+            forward_call: 'bittensor.TextLastHiddenStateBittensorCall' 
         ) -> 'bittensor.ForwardTextLastHiddenStateRequest':
         """ Preprocesses the forward call to a request proto.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     forward_call to preprocess.
             Returns:
                 request_proto (:obj:`bittensor.ForwardTextLastHiddenStateRequest`, `required`):
@@ -54,18 +54,18 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
     
     def post_process_response_proto_to_forward_call( 
             self, 
-            forward_call: bittensor.TextLastHiddenStateForwardCall,
+            forward_call: bittensor.TextLastHiddenStateBittensorCall,
             response_proto: bittensor.ForwardTextLastHiddenStateResponse 
-        ) -> bittensor.TextLastHiddenStateForwardCall :
+        ) -> bittensor.TextLastHiddenStateBittensorCall :
         """ Postprocesses the response proto to fill forward call.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     bittensor forward call object to fill.
                 response_proto (:obj:`bittensor.ForwardTextLastHiddenStateResponse`, `required`):
                     bittensor forward response proto.
             Returns:
-                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     filled bittensor forward call object.
         """
         hidden_states_serializer = bittensor.serializer( serializer_type = forward_call.hidden_states_serializer_type )
@@ -79,7 +79,7 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
             timeout: float = bittensor.__blocktime__,
             text_inputs_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             hidden_states_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
-        ) -> 'bittensor.TextLastHiddenStateForwardCall':
+        ) -> 'bittensor.TextLastHiddenStateBittensorCall':
         """ Forward call to the receptor.
             Args:
                 text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
@@ -91,11 +91,11 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
                 hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for hidden states.
             Returns:
-                bittensor.TextLastHiddenStateForwardCall (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
+                bittensor.TextLastHiddenStateBittensorCall (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     bittensor forward call dataclass.
         """
         return self._forward( 
-            forward_call = bittensor.TextLastHiddenStateForwardCall( 
+            forward_call = bittensor.TextLastHiddenStateBittensorCall( 
                 text_inputs = text_inputs, 
                 timeout = timeout,
                 text_inputs_serializer_type = text_inputs_serializer_type,
