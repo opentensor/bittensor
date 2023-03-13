@@ -20,8 +20,11 @@ import grpc
 import bittensor
 import argparse
 
-class TextSeq2SeqSynapse( bittensor.Synapse  ):
+class TextSeq2SeqSynapse( bittensor.Synapse, bittensor.grpc.TextSeq2SeqServicer ):
     """ TextSeq2SeqSynapse: Class for servicing text_seq2seq requests."""
+
+    # Synapse name.
+    name: str = 'text_seq2seq'
 
     def __init__(
             self, 
@@ -33,6 +36,10 @@ class TextSeq2SeqSynapse( bittensor.Synapse  ):
         super().__init__( config, metagraph )
         self.config = config
         self.metagraph = metagraph
+
+    def _attach( self, axon: 'bittensor.axon' ):
+        """ _attach: Attaches the synapse to the axon."""
+        bittensor.grpc.add_TextSeq2SeqServicer_to_server( self, axon.server )
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
@@ -234,40 +241,6 @@ class TextSeq2SeqSynapse( bittensor.Synapse  ):
             serialized_generations = serialized_generations
         )
     
-    def ForwardTextSeq2Seq( 
-            self, 
-            request: bittensor.ForwardTextSeq2SeqRequest, 
-            context: grpc.ServicerContext 
-        ) -> bittensor.ForwardTextLastHiddenStateResponse:
-        """ ForwardTextSeq2Seq
-            --------------------
-            Args:
-                request (bittensor.ForwardTextSeq2SeqRequest): 
-                    request.hotkey (string): hotkey of the neuron.
-                    request.serialized_text_prompt (string): serialized text prompt.
-                    request.text_prompt_serializer_type (bittensor.proto.SerializerType): text prompt serializer type.
-                    request.generations_serializer_type (bittensor.proto.SerializerType): generations serializer type.
-                    request.timeout (float): timeout for the request.
-                    request.topk (int): topk for the request.
-                    request.num_to_generate (int): num_to_generate for the request.
-                    request.num_beams (int): num_beams for the request.
-                    request.no_repeat_ngram_size (int): no_repeat_ngram_size for the request.
-                    request.early_stopping (bool): early_stopping for the request.
-                    request.num_return_sequences (int): num_return_sequences for the request.
-                    request.do_sample (bool): do_sample for the request.
-                    request.top_p (float): top_p for the request.
-                    request.temperature (float): temperature for the request.
-                    request.repetition_penalty (float): repetition_penalty for the request.
-                    request.length_penalty (float): length_penalty for the request.
-                    request.max_time (float): max_time for the request.
-                    request.num_beam_groups (int): num_beam_groups for the request.
-                context (grpc.ServicerContext):
-                    grpc tcp context.
-            Returns:
-                response (bittensor.ForwardTextSeq2SeqResponse): 
-                    response.serialized_text_outputs (string): serialized text outputs.
-        """
-        return self._Forward( request_proto = request )
 
     
     

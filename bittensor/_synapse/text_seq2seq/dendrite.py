@@ -22,11 +22,14 @@ from typing import Callable
 class TextSeq2SeqDendrite( bittensor.Dendrite ):
     """ bittensor dendrite for text_seq2seq synapse."""
 
+    # Dendrite name.
+    name: str = 'text_seq2seq'
+
     def __str__( self ) -> str:
         return "TextSeq2Seq"
-
-    def _stub_callable( self ) -> Callable:
-        return self.receptor.stub.ForwardTextSeq2Seq
+    
+    def get_stub( self, channel ) -> Callable:
+        return bittensor.grpc.TextSeq2SeqStub( channel )
     
     def pre_process_forward_call_to_request_proto( 
             self, 

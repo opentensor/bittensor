@@ -5,7 +5,7 @@ import grpc
 from bittensor._proto import bittensor_pb2 as bittensor_dot___proto_dot_bittensor__pb2
 
 
-class BittensorStub(object):
+class TextLastHiddenStateStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -14,75 +14,42 @@ class BittensorStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ForwardTextLastHiddenState = channel.unary_unary(
-                '/Bittensor/ForwardTextLastHiddenState',
+        self.Forward = channel.unary_unary(
+                '/TextLastHiddenState/Forward',
                 request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateRequest.SerializeToString,
                 response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateResponse.FromString,
                 )
-        self.ForwardTextCausalLMNext = channel.unary_unary(
-                '/Bittensor/ForwardTextCausalLMNext',
-                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMRequest.SerializeToString,
-                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMResponse.FromString,
-                )
-        self.ForwardTextSeq2Seq = channel.unary_unary(
-                '/Bittensor/ForwardTextSeq2Seq',
-                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqRequest.SerializeToString,
-                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqResponse.FromString,
-                )
 
 
-class BittensorServicer(object):
+class TextLastHiddenStateServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def ForwardTextLastHiddenState(self, request, context):
-        """Forward calls.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def ForwardTextCausalLMNext(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def ForwardTextSeq2Seq(self, request, context):
+    def Forward(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_BittensorServicer_to_server(servicer, server):
+def add_TextLastHiddenStateServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ForwardTextLastHiddenState': grpc.unary_unary_rpc_method_handler(
-                    servicer.ForwardTextLastHiddenState,
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
                     request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateRequest.FromString,
                     response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateResponse.SerializeToString,
             ),
-            'ForwardTextCausalLMNext': grpc.unary_unary_rpc_method_handler(
-                    servicer.ForwardTextCausalLMNext,
-                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMRequest.FromString,
-                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMResponse.SerializeToString,
-            ),
-            'ForwardTextSeq2Seq': grpc.unary_unary_rpc_method_handler(
-                    servicer.ForwardTextSeq2Seq,
-                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqRequest.FromString,
-                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqResponse.SerializeToString,
-            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Bittensor', rpc_method_handlers)
+            'TextLastHiddenState', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class Bittensor(object):
+class TextLastHiddenState(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ForwardTextLastHiddenState(request,
+    def Forward(request,
             target,
             options=(),
             channel_credentials=None,
@@ -92,31 +59,58 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/ForwardTextLastHiddenState',
+        return grpc.experimental.unary_unary(request, target, '/TextLastHiddenState/Forward',
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateRequest.SerializeToString,
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
-    @staticmethod
-    def ForwardTextCausalLMNext(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/ForwardTextCausalLMNext',
-            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMRequest.SerializeToString,
-            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+class TextSeq2SeqStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/TextSeq2Seq/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqResponse.FromString,
+                )
+
+
+class TextSeq2SeqServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_TextSeq2SeqServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'TextSeq2Seq', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class TextSeq2Seq(object):
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ForwardTextSeq2Seq(request,
+    def Forward(request,
             target,
             options=(),
             channel_credentials=None,
@@ -126,7 +120,7 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/ForwardTextSeq2Seq',
+        return grpc.experimental.unary_unary(request, target, '/TextSeq2Seq/Forward',
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqRequest.SerializeToString,
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextSeq2SeqResponse.FromString,
             options, channel_credentials,

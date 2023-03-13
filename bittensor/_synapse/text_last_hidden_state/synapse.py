@@ -21,8 +21,11 @@ import torch
 import bittensor
 import argparse
 
-class TextLastHiddenStateSynapse( bittensor.Synapse ):
+class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHiddenStateServicer ):
     """ TextLastHiddenStateSynapse: A class for servicing text_last_hidden_state requests."""
+
+    # Synapse name.
+    name: str = 'text_last_hidden_state'
 
     def __init__(
             self, 
@@ -34,6 +37,9 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
         super().__init__( config, metagraph )
         self.config = config
         self.metagraph = metagraph
+
+    def __str__(self):
+        return 'TextLastHiddenState'
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
@@ -73,10 +79,11 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         pass
+     
+    def _attach( self, axon: 'bittensor.axon' ):
+        """ _attach: Attaches the synapse to the axon."""
+        bittensor.grpc.add_TextLastHiddenStateServicer_to_server( self, axon.server )
 
-    def __str__(self):
-        return 'TextLastHiddenState'
-    
     def priority( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
         """ priority: Returns the priority of the synapse for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement priority() in subclass.')
@@ -218,26 +225,5 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
         return bittensor.ForwardTextLastHiddenStateResponse(
             serialized_hidden_states = serialized_hidden_states
         )
-    
-    def ForwardTextLastHiddenState( 
-            self, 
-            request: bittensor.ForwardTextLastHiddenStateRequest, 
-            context: grpc.ServicerContext 
-        ) -> bittensor.ForwardTextLastHiddenStateResponse:
-        """ ForwardTextLastHiddenState
-            ----------------------------
-            Args:
-                request (bittensor.ForwardTextLastHiddenStateRequest): 
-                    request.version (int): version of the caller.
-                    request.hotkey (string): hotkey of the neuron.
-                    request.timeout (float): timeout for the request.
-                    request.text_inputs_serializer_type (bittensor.proto.SerializerType): text inputs serializer type.
-                    request.serialized_text_inputs (string): serialized text inputs.
-                context (grpc.ServicerContext):
-                    grpc tcp context.
-            Returns:
-                response (bittensor.ForwardTextLastHiddenStateResponse): 
-                    response.serialized_hidden_states (string): serialized hidden states.
-        """
-        return self._Forward( request_proto = request )
+
     

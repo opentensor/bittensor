@@ -21,12 +21,15 @@ from typing import Callable
 
 class TextLastHiddenStateDendrite( bittensor.Dendrite ):
     """ Dendrite for the text_last_hidden_state synapse."""
-    
+
+    # Dendrite name.
+    name: str = 'text_last_hidden_state'
+
     def __str__( self ) -> str:
         return "TextLastHiddenState"
 
-    def _stub_callable( self ) -> Callable:
-        return self.receptor.stub.ForwardTextLastHiddenState
+    def get_stub( self, channel ) -> Callable:
+        return bittensor.grpc.TextLastHiddenStateStub( channel )
     
     def pre_process_forward_call_to_request_proto( 
             self, 
