@@ -83,6 +83,18 @@ def prometheus_extrinsic(
         }
 
     if neuron_up_to_date:
+        output = neuron.prometheus_info
+        bittensor.__console__.print(
+            f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
+            f"[green not bold]- Status: [/green not bold] |"
+            f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(output['ip'])}[/white not bold] |"
+            f"[green not bold] ip_type: [/green not bold][white not bold]{output['ip_type']}[/white not bold] |"
+            f"[green not bold] port: [/green not bold][white not bold]{output['port']}[/white not bold] | "
+            f"[green not bold] version: [/green not bold][white not bold]{output['version']}[/white not bold] |"
+        )
+
+
+        bittensor.__console__.print(":white_heavy_check_mark: [white]Prometheus already served.[/white]".format( external_ip ))
         return True
 
     with bittensor.__console__.status(":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
