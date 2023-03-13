@@ -17,6 +17,7 @@
 
 import os
 import grpc
+import torch
 import bittensor
 import argparse
 
@@ -162,12 +163,20 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
                     bittensor forward call dataclass.
         """
         # Deserialize text inputs.
-        text_serializer = bittensor.serializer( serializer_type = request_proto.text_inputs_serializer_type )
-        text_inputs = text_serializer.deserialize( request_proto.serialized_text_inputs )
+        text_deserializer = bittensor.serializer( serializer_type = request_proto.text_inputs_serializer_type )
+        text_inputs = text_deserializer.deserialize( request_proto.serialized_text_inputs )
+        # Optionally deserialize mask.
+        if len( request_proto.serialized_mask.shape ) > 0:
+            mask_deserializer = bittensor.serializer( serializer_type = request_proto.mask_serializer_type )
+            mask = mask_deserializer.deserialize( request_proto.serialized_mask )
+        else:
+            mask = None
 
         return bittensor.TextLastHiddenStateBittensorCall(
             text_inputs = text_inputs,
+            mask = mask,
             timeout = request_proto.timeout,
+            mask_serializer_type = request_proto.mask_serializer_type,
             text_inputs_serializer_type = request_proto.text_inputs_serializer_type,
             hidden_states_serializer_type = request_proto.hidden_states_serializer_type,
         )
@@ -189,8 +198,21 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
                 response (bittensor.ForwardTextLastHiddenStateResponse):
                     response.serialized_hidden_states (string): serialized hidden states.
         """
+        # Optionally apply mask.
+        if forward_call.mask != None:
+            # Apply mask.
+            hidden_states = forward_call.hidden_states.reshape( -1, bittensor.__network_dim__ )
+
+            # Filter hidden states.
+            hidden_states = hidden_states[ forward_call.mask.reshape(-1) ]
+
+        # Else return the raw hidden states.
+        else:
+            hidden_states = forward_call.hidden_states
+
+        # Serialize hidden states.
         hidden_state_serializer = bittensor.serializer( serializer_type = forward_call.hidden_states_serializer_type )
-        serialized_hidden_states = hidden_state_serializer.serialize( forward_call.hidden_states )
+        serialized_hidden_states = hidden_state_serializer.serialize( hidden_states )
 
         # Return the forward response proto.
         return bittensor.ForwardTextLastHiddenStateResponse(
