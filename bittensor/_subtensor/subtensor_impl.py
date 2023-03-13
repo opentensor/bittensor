@@ -630,7 +630,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
 
-        if result == None:
+        if result in (None, []):
             return []
         
         return SubnetInfo.list_from_vec_u8( result )
@@ -651,7 +651,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
 
-        if result == None:
+        if result in (None, []):
             return None
         
         return SubnetInfo.from_vec_u8( result )
@@ -690,7 +690,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body['result']
 
-        if result == None:
+        if result in (None, []):
             return None
             
         return DelegateInfo.from_vec_u8( result )
@@ -710,7 +710,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
 
-        if result == None:
+        if result in (None, []):
             return []
 
         return DelegateInfo.list_from_vec_u8( result )
@@ -783,9 +783,12 @@ class Subtensor:
                     params=params
                 )
         json_body = make_substrate_call_with_retry()
-        if json_body['result'] == None:
+        result = json_body['result']
+
+        if result in (None, []):
             return NeuronInfo._null_neuron()
-        return NeuronInfo.from_vec_u8( json_body['result'] ) 
+        
+        return NeuronInfo.from_vec_u8( result ) 
 
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 
@@ -812,6 +815,9 @@ class Subtensor:
         
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
+
+        if result in (None, []):
+            return []
         
         return NeuronInfo.list_from_vec_u8( result )
 
