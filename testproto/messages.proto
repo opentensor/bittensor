@@ -1,9 +1,0 @@
-// python3 -m grpc.tools.protoc testproto/messages.proto  -I. --python_out=. --grpc_python_out=. --proto_path testproto
-syntax = "proto3";
-
-service ServerThing {
-    rpc Forward (FMessage) returns (FMessage) {}
-}
-message FMessage {
-    int32 thing = 1;
-}
