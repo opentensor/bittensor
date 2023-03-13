@@ -29,7 +29,7 @@ class TextSeq2SeqSynapse( bittensor.Synapse, bittensor.grpc.TextSeq2SeqServicer 
     def __init__(
             self, 
             config: 'bittensor.Config' = None, 
-            metagraph: 'bittensor.metagraph.Metagraph' = None
+            metagraph: 'bittensor.metagraph.Metagraph' = None,
         ):
         if config == None: config = TextSeq2SeqSynapse.config()
         TextSeq2SeqSynapse.check_config( config )

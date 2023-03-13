@@ -29,12 +29,12 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
     def __init__(
             self, 
             config: 'bittensor.Config' = None, 
-            metagraph: 'bittensor.metagraph.Metagraph' = None
+            metagraph: 'bittensor.metagraph.Metagraph' = None,
         ):
         if config == None: config = TextLastHiddenStateSynapse.config()
         TextLastHiddenStateSynapse.check_config( config )
         super().__init__( config, metagraph )
-        self.config = copy.deepcopy(config)
+        self.config = copy.deepcopy( config )
         self.metagraph = metagraph
         self.priority_threadpool = bittensor.prioritythreadpool( config = config.synapse.text_last_hidden_state )
 
