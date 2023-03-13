@@ -22,19 +22,13 @@ local_endpoint = bittensor.endpoint(
 # Create a synapse that returns zeros.
 class Synapse(bittensor.TextLastHiddenStateSynapse):
 
-    def __init__(self):
-        super().__init__( 
-            wallet = wallet,
-            metagraph = metagraph,
-        )
-
-    def priority(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> float:
+    def priority(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> float:
         return 0.0
     
-    def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> bool:
+    def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bool:
         return False
     
-    def forward(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> bittensor.TextLastHiddenStateBittensorCall:
+    def forward(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bittensor.TextLastHiddenStateForwardCall:
         forward_call.hidden_states = torch.zeros( forward_call.text_inputs.shape[0], forward_call.text_inputs.shape[1], bittensor.__network_dim__ )
         return forward_call
     
@@ -46,7 +40,17 @@ axon.start()
 
 # Create a text_last_hidden_state module and call it.
 module = bittensor.text_last_hidden_state( endpoint = local_endpoint, wallet = wallet )
-response = module.forward( text_inputs = torch.ones( ( 3, 4 ), dtype = torch.long ), mask = torch.rand( ( 3, 4 ) ) > 0.5, timeout = 1 )
+response = module.forward( 
+    text_inputs = torch.ones( ( 3, 4 ), dtype = torch.long ), 
+    mask = torch.rand( ( 3, 4 ) ) > 0.5, 
+    timeout = 1 
+)
+response = module.backward( 
+    text_inputs = torch.ones( ( 3, 4 ), dtype = torch.long ), 
+    hidden_states = response.hidden_states,
+    hidden_states_grads = response.hidden_states,
+    mask = torch.rand( ( 3, 4 ) ) > 0.5, 
+)
 
 # Delete objects.
 del axon

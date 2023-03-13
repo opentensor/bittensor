@@ -148,13 +148,13 @@ def main( ):
     # --- Build our TextLastHiddenState synapse.
     if not config.neuron.no_lasthidden:
         class TLHSSynapse( bittensor.TextLastHiddenStateSynapse ):
-            def priority(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> float:
+            def priority(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> float:
                 return 0.0
             
-            def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> torch.FloatTensor:
+            def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
                 return False
             
-            def forward(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> bittensor.TextLastHiddenStateBittensorCall:
+            def forward(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bittensor.TextLastHiddenStateForwardCall:
                 with call_mutex:
                     _, _, hidden = model.encode_forward( forward_call.text_inputs.to( model.device ) )
                     forward_call.hidden_states = hidden

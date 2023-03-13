@@ -3,6 +3,7 @@ syntax = "proto3";
 
 service TextLastHiddenState {
 	rpc Forward (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
+	rpc Backward (BackwardTextLastHiddenStateRequest) returns (BackwardTextLastHiddenStateResponse) {}
 }
 
 service TextSeq2Seq  {
@@ -109,6 +110,28 @@ message ForwardTextLastHiddenStateResponse {
 
 	string message = 4;
 	ReturnCode return_code = 5; 
+}
+
+message BackwardTextLastHiddenStateRequest {
+	int32 version = 1;
+	string hotkey = 2;	
+
+	Serializer mask_serializer_type = 3;
+	Serializer hidden_states_serializer_type = 4;
+	Serializer hidden_states_grads_serializer_type = 5;
+	Serializer text_inputs_serializer_type = 6;
+
+	Tensor serialized_text_inputs = 7;
+	Tensor serialized_hidden_states = 8;
+	Tensor serialized_hidden_states_grads = 9;
+	Tensor serialized_mask = 10;
+}
+
+message BackwardTextLastHiddenStateResponse {
+	int32 version = 1;
+	string hotkey = 2;	
+	string message = 3;
+	ReturnCode return_code = 4; 
 }
 
 /////////////////////////
