@@ -11,11 +11,6 @@ service Bittensor {
 /////////////////
 // TextSeq2Seq //
 /////////////////
-// Service definition.
-service TextSeq2Seq {
-    rpc ForwardTextSeq2Seq (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
-}
-
 // Forward Request.
 message ForwardTextSeq2SeqRequest {
     // Caller information.
@@ -90,10 +85,6 @@ message ForwardTextSeq2SeqResponse {
 /////////////////////////
 // TextLastHiddenState //
 /////////////////////////
-service TextLastHiddenState {
-    rpc ForwardTextLastHiddenState (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
-}
-
 message ForwardTextLastHiddenStateRequest {
 	int32 version = 1;
 	string hotkey = 2;	
@@ -124,10 +115,6 @@ message ForwardTextLastHiddenStateResponse {
 /////////////////////////
 // TextCausalLM //
 /////////////////////////
-service TextCausalLM {
-    rpc ForwardTextCausalLMState (ForwardTextCausalLMRequest) returns (ForwardTextCausalLMResponse) {}
-}
-
 message ForwardTextCausalLMRequest {
 	int32 version = 1;
 	string hotkey = 2;	
