@@ -66,19 +66,6 @@ def test_sign_v1():
 def test_sign_v2():
     sign_v2(sender_wallet, wallet)
 
-def test_forward_wandb():
-    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    request = bittensor.proto.TensorMessage(
-        version = bittensor.__version_as_int__,
-        tensors=[inputs_serialized]
-    )
-    response, code, synapses = axon._forward( request )
-    #axon.update_stats_for_request( request, response, call_time, code )
-    print( axon.to_wandb() )
-
-
 def test_forward_not_implemented():
     inputs_raw = torch.rand(3, 3)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -705,9 +692,10 @@ def test_backward_grads_shape_error():
 
 
 def test_backward_response_success_hidden():
-    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        return None, dict(), torch.zeros( [1, 1, bittensor.__network_dim__], requires_grad=True)
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
+
+    axon.attach_backward_callback(backward)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__network_dim__)
     synapses = [bittensor.synapse.TextLastHiddenState()]
@@ -724,10 +712,10 @@ def test_backward_response_success_hidden():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm():
-    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        return None, dict(), torch.zeros( [1, 1, bittensor.__vocab_size__], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
+    axon.attach_backward_callback( backward)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__vocab_size__)
     synapses = [bittensor.synapse.TextCausalLM()]
@@ -744,10 +732,10 @@ def test_backward_response_success_causal_lm():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm_next():
-    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):  # [batch_size, (topk + 1), max_len]
-        return None, dict(), torch.zeros([1, (synapses[0].topk + 1), 1 + 1], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
-    axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+    axon.attach_backward_callback( backward)
     synapses = [bittensor.synapse.TextCausalLMNext()]
 
     inputs_raw = torch.ones(1, 1)
@@ -968,8 +956,8 @@ def test_grpc_forward_works():
         run_test_grpc_forward_works(receiver_version)
 
 def run_test_grpc_backward_works(receiver_version):
-    def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
-        return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
     axon = bittensor.axon (
         netuid = -1,
@@ -977,7 +965,7 @@ def run_test_grpc_backward_works(receiver_version):
         ip = '127.0.0.1',
         wallet = wallet,
     )
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    axon.attach_backward_callback( backward)
     axon.start()
 
     channel = grpc.insecure_channel(

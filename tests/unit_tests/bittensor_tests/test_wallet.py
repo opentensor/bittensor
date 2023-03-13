@@ -73,7 +73,7 @@ class TestWallet(unittest.TestCase):
 
             mock_set_coldkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_coldkey.call_args_list[0][0][0]
-            self.assertEqual(keypair.seed_hex, seed_str)
+            self.assertEqual(keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex(), seed_str)
             self.assertEqual(keypair.ss58_address, ss58_addr) # Check that the ss58 address is correct
 
         seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
@@ -88,7 +88,7 @@ class TestWallet(unittest.TestCase):
 
             mock_set_hotkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_hotkey.call_args_list[0][0][0]
-            self.assertEqual(keypair.seed_hex, seed_str)
+            self.assertEqual(keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex(), seed_str)
             self.assertEqual(keypair.ss58_address, ss58_addr) # Check that the ss58 address is correct
 
         seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short

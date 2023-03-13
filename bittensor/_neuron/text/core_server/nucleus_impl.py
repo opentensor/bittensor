@@ -371,7 +371,6 @@ class server(torch.nn.Module):
                                                output_hidden_states=True)
                 self.model_output_check(_model_output)
             pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
-
             probs_std = translate_logits_to_probs_std(pre_logits,
                                                       tokens['offset_mapping'], tokens['offset_mapping_std'],
                                                       self.tokenizer, self.std_tokenizer,
@@ -380,7 +379,6 @@ class server(torch.nn.Module):
                                                       tokens['input_ids'], token_batch)
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
-
             #removing the loss calculation for stablity testing
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
             translated_loss = self.get_loss_fct(logits_std, token_batch).item()
@@ -451,6 +449,7 @@ class server(torch.nn.Module):
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
+
             message = f'Loss: {original_loss:.2f}'
 
             _model_output.loss = original_loss

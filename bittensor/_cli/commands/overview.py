@@ -59,13 +59,13 @@ class OverviewCommand:
 
         # We are printing for a select number of hotkeys from all_hotkeys.
 
-        if cli.config.wallet.get('hotkeys', []):
+        if cli.config.get('hotkeys', []):
             if not cli.config.get('all_hotkeys', False):
                 # We are only showing hotkeys that are specified.
-                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in cli.config.wallet.hotkeys]
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in cli.config.hotkeys]
             else:
                 # We are excluding the specified hotkeys from all_hotkeys.
-                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str not in cli.config.wallet.hotkeys]
+                all_hotkeys = [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str not in cli.config.hotkeys]
 
         # Check we have keys to display.
         if len(all_hotkeys) == 0:
@@ -81,7 +81,8 @@ class OverviewCommand:
             neurons[str(netuid)] = []
 
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            for netuid in netuids:
+            netuid_copy = netuids.copy()
+            for netuid in netuid_copy:
                 all_neurons = subtensor.neurons( netuid = netuid )
                 # Map the hotkeys to uids
                 hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
@@ -114,6 +115,8 @@ class OverviewCommand:
             total_rank = 0.0
             total_trust = 0.0
             total_consensus = 0.0
+            # total_validator_trust = 0.0
+            # total_weight_consensus = 0.0
             total_incentive = 0.0
             total_dividends = 0.0
             total_emission = 0   
@@ -126,6 +129,8 @@ class OverviewCommand:
                 rank = nn.rank
                 trust = nn.trust
                 consensus = nn.consensus
+                # validator_trust = nn.validator_trust
+                # weight_consensus = nn.weight_consensus
                 incentive = nn.incentive
                 dividends = nn.dividends
                 emission = int(nn.emission * 1000000000)
@@ -139,12 +144,14 @@ class OverviewCommand:
                     '{:.5f}'.format(stake),
                     '{:.5f}'.format(rank), 
                     '{:.5f}'.format(trust), 
-                    '{:.5f}'.format(consensus), 
+                    '{:.5f}'.format(consensus),
+                    # '{:.5f}'.format(weight_consensus),
                     '{:.5f}'.format(incentive),
                     '{:.5f}'.format(dividends),
                     '{}'.format(emission),
-                    str(last_update),
+                    # '{:.5f}'.format(validator_trust),
                     '*' if validator_permit else '',
+                    str(last_update),
                     bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
                     nn.hotkey
                 ]
@@ -152,9 +159,11 @@ class OverviewCommand:
                 total_rank += rank
                 total_trust += trust
                 total_consensus += consensus
+                # total_weight_consensus += weight_consensus
                 total_incentive += incentive
                 total_dividends += dividends
                 total_emission += emission
+                # total_validator_trust += validator_trust
                 TABLE_DATA.append(row)
                 
             total_neurons = len(neurons)
@@ -174,8 +183,9 @@ class OverviewCommand:
             table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-            table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
+            # table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style="overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]VAL", justify='right', no_wrap=True)
+            table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
             table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
             table.add_column("[overline white]HOTKEY_SS58", style='dim blue', no_wrap=False)
             table.show_footer = True
@@ -280,6 +290,26 @@ class OverviewCommand:
             default="ascending",
             type=str,
             help='''Sort the hotkeys in the specified ordering. (ascending/asc or descending/desc/reverse)'''
+        )
+        overview_parser.add_argument(
+            '--hotkeys',
+            '--exclude_hotkeys',
+            '--wallet.hotkeys',
+            '--wallet.exclude_hotkeys',
+            required=False,
+            action='store',
+            default=[],
+            type=str,
+            nargs='*',
+            help='''Specify the hotkeys by name or ss58 address. (e.g. hk1 hk2 hk3)'''
+        )
+        overview_parser.add_argument(
+            '--all_hotkeys',
+            '--wallet.all_hotkeys',
+            required=False,
+            action='store_true',
+            default=False,
+            help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
         )
         overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )  
         bittensor.wallet.add_args( overview_parser )

@@ -106,8 +106,28 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Adds the specified amount of stake to passed hotkey uid. """
+        """ Adds the specified amount of stake to the passed delegate using the passed wallet. """
         return delegate_extrinsic( 
+            subtensor = self, 
+            wallet = wallet,
+            delegate_ss58 = delegate_ss58, 
+            amount = amount, 
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization, 
+            prompt = prompt
+        )
+
+    def undelegate(
+        self, 
+        wallet: 'bittensor.wallet',
+        delegate_ss58: Optional[str] = None,
+        amount: Union[Balance, float] = None, 
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """ Removes the specified amount of stake from the passed delegate using the passed wallet. """
+        return undelegate_extrinsic( 
             subtensor = self, 
             wallet = wallet,
             delegate_ss58 = delegate_ss58, 
@@ -354,6 +374,16 @@ class Subtensor:
     def validator_batch_size (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
         return self.query_paratensor("ValidatorBatchSize", block, [netuid] ).value
+
+    """ Returns network ValidatorPruneLen hyper parameter """
+    def validator_prune_len (self, netuid: int, block: Optional[int] = None ) -> int:
+        if not self.subnet_exists( netuid ): return None
+        return self.query_paratensor("ValidatorPruneLen", block, [netuid] ).value
+
+    """ Returns network ValidatorLogitsDivergence hyper parameter """
+    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> int:
+        if not self.subnet_exists( netuid ): return None
+        return self.query_paratensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
@@ -653,36 +683,39 @@ class Subtensor:
     #### Neuron information per subnet ####
     ########################################
 
-    def is_hotkey_registered_any( self, ss58_hotkey: str, block: Optional[int] = None) -> bool:
-        return len( self.get_netuids_for_hotkey( ss58_hotkey, block) ) > 0
+    def is_hotkey_registered_any( self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+        return len( self.get_netuids_for_hotkey( hotkey_ss58, block) ) > 0
     
-    def is_hotkey_registered_on_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> bool:
-        return self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block ) != None
+    def is_hotkey_registered_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
+        return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
-    def is_hotkey_registered( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> bool:
-        return self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block ) != None
+    def is_hotkey_registered( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
+        return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
-    def get_uid_for_hotkey_on_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None) -> int:
-        return self.query_paratensor( 'Uids', block, [ netuid, ss58_hotkey ] ).value  
+    def get_uid_for_hotkey_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> int:
+        return self.query_paratensor( 'Uids', block, [ netuid, hotkey_ss58 ] ).value  
 
-    def get_all_uids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
-        return [ self.get_uid_for_hotkey_on_subnet( ss58_hotkey, netuid, block) for netuid in self.get_netuids_for_hotkey( ss58_hotkey, block)]
+    def get_all_uids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
+        return [ self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block) for netuid in self.get_netuids_for_hotkey( hotkey_ss58, block)]
 
-    def get_netuids_for_hotkey( self, ss58_hotkey: str, block: Optional[int] = None) -> List[int]:
-        result = self.query_map_paratensor( 'IsNetworkMember', block, [ ss58_hotkey ] )   
+    def get_netuids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
+        result = self.query_map_paratensor( 'IsNetworkMember', block, [ hotkey_ss58 ] )   
         netuids = []
         for netuid, is_member in result.records:
             if is_member:
                 netuids.append( netuid.value )
         return netuids
 
-    def get_neuron_for_pubkey_and_subnet( self, ss58_hotkey: str, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
-        return self.neuron_for_uid( self.get_uid_for_hotkey_on_subnet(ss58_hotkey, netuid, block=block), netuid, block = block)
+    def get_neuron_for_pubkey_and_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
+        return self.neuron_for_uid( self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block=block), netuid, block = block)
 
-    def get_all_neurons_for_pubkey( self, ss58_hotkey: str, block: Optional[int] = None ) -> List[NeuronInfo]:
-        netuids = self.get_netuids_for_hotkey( ss58_hotkey, block) 
-        uids = [self.get_uid_for_hotkey_on_subnet(ss58_hotkey, net) for net in netuids] 
+    def get_all_neurons_for_pubkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[NeuronInfo]:
+        netuids = self.get_netuids_for_hotkey( hotkey_ss58, block) 
+        uids = [self.get_uid_for_hotkey_on_subnet(hotkey_ss58, net) for net in netuids] 
         return [self.neuron_for_uid( uid, net ) for uid, net in list(zip(uids, netuids))]
+
+    def neuron_has_validator_permit( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[bool]:
+        return self.query_paratensor( 'ValidatorPermit', block, [ netuid, uid ] ).value
 
     def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         return self.get_neuron_for_pubkey_and_subnet ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
@@ -837,6 +870,8 @@ class Subtensor:
             incentive = 0,
             consensus = 0,
             trust = 0,
+            # weight_consensus = 0,
+            # validator_trust = 0,
             dividends = 0,
             last_update = 0,
             validator_permit = False,

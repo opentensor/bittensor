@@ -84,6 +84,7 @@ class cli:
         RegenHotkeyCommand.add_args( cmd_parsers )
         RegenColdkeyCommand.add_args( cmd_parsers )
         DelegateStakeCommand.add_args( cmd_parsers )
+        DelegateUnstakeCommand.add_args( cmd_parsers )
         ListDelegatesCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
 
@@ -144,6 +145,8 @@ class cli:
             ListSubnetsCommand.check_config( config )
         elif config.command == "delegate":
             DelegateStakeCommand.check_config( config )
+        elif config.command == "undelegate":
+            DelegateUnstakeCommand.check_config( config )
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()
