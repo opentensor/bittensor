@@ -179,12 +179,6 @@ class neuron:
         if not config.neuron.restart:
             self.load()
         
-        bittensor.prometheus(
-            config = self.config, 
-            wallet = self.wallet,
-            port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
-        )
-
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         r""" Checks/validates the config namespace object.
@@ -294,6 +288,13 @@ class neuron:
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
         # TODO (Cameron) this should be it's own storage map on-chain.
         self.axon.serve( subtensor = self.subtensor )
+        
+        bittensor.prometheus(
+            config = self.config, 
+            wallet = self.wallet,
+            port = self.config.prometheus.port if self.config.axon.port == bittensor.defaults.axon.port else self.config.axon.port - 1000
+        )
+        
         self.vlogger.prometheus.log_run_info(
             parameters = self.nucleus.parameters(),
             uid = self.uid,
