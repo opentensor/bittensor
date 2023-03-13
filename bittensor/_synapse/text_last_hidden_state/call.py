@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import torch
 import bittensor
 
@@ -23,6 +24,39 @@ class TextLastHiddenStateBittensorCall( bittensor.BittensorCall ):
 
     # The name of the synapse call.
     name: str = 'text_last_hidden_state'
+
+    def __str__( self ) -> str:
+        return """
+bittensor.TextLastHiddenStateBittensorCall( 
+    description: Returns the last hidden state of the endpoint subject to passed mask.
+    caller: {},
+    version: {},
+    timeout = {}, 
+    start_time = {},
+    end_time = {},
+    elapsed = {},
+    Args:
+    \ttext_inputs: torch.LongTensor = {}, 
+    \tmask: torch.BoolTensor = {}, 
+    \thidden_states: torch.FloatTensor = {},
+    \tmask_serializer_type: bittensor.serializer_type = {}, 
+    \ttext_inputs_serializer_type: bittensor.serializer_type = {}, 
+    \thidden_states_serializer_type: bittensor.serializer_type = {} 
+)
+""".format(
+            self.hotkey,
+            self.version,
+            self.timeout,
+            self.start_time,
+            self.end_time,
+            time.time() - self.start_time,
+            self.text_inputs, 
+            self.mask,
+            self.hidden_states if self.hidden_states != None else "To be filled by the forward call.",
+            self.mask_serializer_type,
+            self.text_inputs_serializer_type,
+            self.hidden_states_serializer_type
+        )
     
     def __init__( 
             self, 
@@ -56,7 +90,7 @@ class TextLastHiddenStateBittensorCall( bittensor.BittensorCall ):
         )
         self.text_inputs = text_inputs
         self.mask = mask
-        self.hidden_states = torch.zeros( text_inputs.shape[0], text_inputs.shape[1], bittensor.__network_dim__ )
+        self.hidden_states = None
         self.mask_serializer_type = mask_serializer_type
         self.text_inputs_serializer_type = text_inputs_serializer_type
         self.hidden_states_serializer_type = hidden_states_serializer_type

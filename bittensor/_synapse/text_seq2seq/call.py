@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import torch
 import bittensor
 
@@ -23,6 +24,63 @@ class TextSeq2SeqBittensorCall( bittensor.BittensorCall ):
 
     # Name of the synapse
     name: str = 'text_seq2seq'
+
+    def __str__( self ) -> str:
+        return """
+bittensor.TextSeq2SeqBittensorCall( 
+    name: {},
+    description: Generates text from a text prompt.
+    caller: {},
+    version: {},
+    timeout = {}, 
+    start_time = {},
+    end_time = {},
+    elapsed = {},
+    Args:
+    \ttext_prompt: torch.LongTensor = {},
+    \tgenerations: torch.LongTensor = {}, 
+    \ttopk:int = {}, 
+    \tnum_to_generate: int = {},
+    \tnum_beams: int = {},
+    \tno_repeat_ngram_size: int = {},
+    \tearly_stopping: bool = {},
+    \tnum_return_sequences: int = {},
+    \tdo_sample: bool = {},
+    \ttop_p: float = {}, 
+    \ttemperature: float = {},
+    \trepetition_penalty: float = {},
+    \tlength_penalty: float = {},
+    \tmax_time: float = {},
+    \tnum_beam_groups: int = {},
+    \ttext_prompt_serializer_type: 'bittensor.serializer_type' = {}
+    \tgenerations_serializer_type: 'bittensor.serializer_type' = {}
+)
+""".format(
+            self.name,
+            self.hotkey,
+            self.version,
+            self.timeout,
+            self.start_time,
+            self.end_time,
+            time.time() - self.start_time,
+            self.text_prompt,
+            self.generations if self.generations != None else "To be filled by the forward call.",
+            self.topk,
+            self.num_to_generate,
+            self.num_beams,
+            self.no_repeat_ngram_size,
+            self.early_stopping,
+            self.num_return_sequences, 
+            self.do_sample, 
+            self.top_p,
+            self.temperature,
+            self.repetition_penalty,
+            self.length_penalty,
+            self.max_time,
+            self.num_beam_groups,
+            self.text_prompt_serializer_type,
+            self.generations_serializer_type,
+        )
 
     def __init__( 
             self, 

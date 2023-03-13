@@ -24,8 +24,6 @@ class BittensorCall(object):
     """ CallState object.
         CallState is a dataclass that holds the state of a call to a receptor.
     """
-    # The receptor endpoint.
-    endpoint: bittensor.Endpoint = None
     # The hotkey of the receptor.
     hotkey: str = ''
     # The version of the caller
