@@ -21,10 +21,27 @@ Implementation of the config class, which manages the config of different bitten
 
 import yaml
 import json
+import bittensor
+from copy import deepcopy
 from munch import Munch
 from prometheus_client import Info
 from pandas.io.json import json_normalize
-import bittensor
+
+from collections import MutableMapping
+
+def _merge(d, v):
+    """
+    Merge two dictionaries.
+
+    Merge dict-like `v` into dict-like `d`. In case keys between them are the same, merge
+    their sub-dictionaries where possible. Otherwise, values in `v` overwrite `d`.
+    """
+    for key in v:
+        if key in d and isinstance(d[key], MutableMapping) and isinstance(v[key], MutableMapping):
+            d[key] = _merge(d[key], v[key])
+        else:
+            d[key] = v[key]
+    return d
 
 class Config ( Munch ):
     """
@@ -51,6 +68,11 @@ class Config ( Munch ):
         """
         for key,val in kwargs.items():
             self[key] = val
+
+    def merge(self, b):
+        """ Merge two configs
+        """
+        self = _merge(self, b)
 
     def to_prometheus(self):
         """

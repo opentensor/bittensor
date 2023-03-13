@@ -18,6 +18,7 @@
 import os
 import time
 import grpc
+import copy
 import bittensor
 import argparse
 
@@ -35,9 +36,9 @@ class Synapse:
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, defaults to bittensor.metagraph.Metagraph()):
                     bittensor metagraph object.
         """
-        if config == None: config = bittensor.config()
+        if config == None: config = Synapse.config()
         Synapse.check_config( config )
-        self.priority_threadpool = bittensor.prioritythreadpool()
+        self.config = copy.deepcopy(config)
         self.metagraph = metagraph
 
     @classmethod
@@ -124,10 +125,10 @@ class Synapse:
         """
         # Call subclass blacklist and optionaly return if metagraph is None.
         try:
-            return self._blacklist( forward_call )
+            sub_blacklist = self._blacklist( forward_call )
         except:
-            pass
-        if self.metagraph == None: return False
+            sub_blacklist = False
+        if self.metagraph == None: return sub_blacklist
 
         # Check for registration
         def registration_check():
@@ -148,7 +149,7 @@ class Synapse:
         try:
             registration_check()
             stake_check()            
-            return False
+            return sub_blacklist
         except Exception as e:
             return True
 
