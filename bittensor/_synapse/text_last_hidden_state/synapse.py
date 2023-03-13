@@ -33,7 +33,7 @@ class TextLastHiddenStateSynapse( bittensor.Synapse ):
         """ priority: Returns the priority of the synapse for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement priority() in subclass.')
 
-    def blacklist( self, forward_call: 'bittensor.TextLastHiddenStateForwardCall'  ) -> torch.FloatTensor:
+    def blacklist( self, forward_call: 'bittensor.TextLastHiddenStateForwardCall'  ) -> bool:
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
 
