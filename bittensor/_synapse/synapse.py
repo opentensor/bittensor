@@ -22,17 +22,26 @@ import argparse
 
 class Synapse( bittensor.grpc.BittensorServicer ):
 
-    def __init__( self, config: 'bittensor.Config' =  None, metagraph: 'bittensor.metagraph.Metagraph' = None ):
-        r""" Initializes a new Synapse."""
+    def __init__( 
+            self, 
+            config: 'bittensor.Config' =  None, 
+            metagraph: 'bittensor.metagraph.Metagraph' = None
+        ):
+        """ Initializes a new Synapse.
+            Args:
+                config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.config()):
+                    bittensor config object.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, defaults to bittensor.metagraph.Metagraph()):
+                    bittensor metagraph object.
+        """
         if config == None: config = bittensor.config()
+        Synapse.check_config( config )
         self.priority_threadpool = bittensor.prioritythreadpool()
         self.metagraph = metagraph
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
-        """ Get config from the argument parser 
-            Return: bittensor.config object
-        """
+        """ Returns the config for this synapse."""
         parser = argparse.ArgumentParser()
         cls.add_args( parser )
         return bittensor.config( parser )
@@ -51,8 +60,7 @@ class Synapse( bittensor.grpc.BittensorServicer ):
 
     @classmethod   
     def help(cls):
-        """ Print help to stdout
-        """
+        """ Print help to stdout """
         parser = argparse.ArgumentParser()
         cls.add_args( parser )
         print (cls.__new__.__doc__)
@@ -76,11 +84,15 @@ class Synapse( bittensor.grpc.BittensorServicer ):
         """ _attach: Attaches the synapse to the axon."""
         bittensor.grpc.add_BittensorServicer_to_server( self, axon.server )
 
+    # Instance priority called by subclass priority which is called by super priority.
     def priority( self, forward_call: bittensor.ForwardCall ) -> float:
         raise NotImplementedError('Must implement priority() in subclass.')
+
+    def _priority( self, forward_call: bittensor.ForwardCall ) -> float:
+        return self.priority()
     
-    def _priority( self, forward_call: bittensor.ForwardCall ) -> bool:
-        """ _priority: Returns the priority of the forward call.
+    def __priority( self, forward_call: bittensor.ForwardCall ) -> bool:
+        """ __priority: Returns the priority of the forward call.
             Args:
                 forward_call (:obj:`bittensor.ForwardCall`, `required`):
                     forward_call to check.
@@ -90,32 +102,35 @@ class Synapse( bittensor.grpc.BittensorServicer ):
         # Call subclass priority, if not implemented use the 
         # metagraph priority based on stake.
         try:
-            return float( self.priority( forward_call ) )
+            return float( self._priority( forward_call ) )
         except:
-            if self.metagraph == None:
+            if self.metagraph != None:
                 uid = self.metagraph.hotkeys.index( forward_call.hotkey )
                 return float( self.metagraph.S[uid].item() )
             else:
                 return 0.0 
 
+    # Instance blacklist called by subclass blacklist which is called by super blacklist.
     def blacklist( self, forward_call: bittensor.ForwardCall ) -> bool:
-        raise NotImplementedError('Must implement blacklist() in subclass.')
-    
+        raise NotImplementedError('Must implement subclass_blacklist() in subclass.')
+
     def _blacklist( self, forward_call: bittensor.ForwardCall ) -> bool:
-        """ _blacklist: Checks if the forward call is blacklisted.
+        return self._blacklist( forward_call )
+    
+    def __blacklist( self, forward_call: bittensor.ForwardCall ) -> bool:
+        """ ___blacklist: Checks if the forward call is blacklisted.
             Args:
                 forward_call (:obj:`bittensor.ForwardCall`, `required`):
                     forward_call to check.
             Returns:
                 bool: True if blacklisted, False otherwise.
         """
-
         # Call subclass blacklist and optionaly return if metagraph is None.
-        subclass_blacklist = self.blacklist( forward_call )
-        if subclass_blacklist:
-            return subclass_blacklist
-        elif self.metagraph == None:
-            return subclass_blacklist
+        try:
+            return self._blacklist( forward_call )
+        except:
+            pass
+        if self.metagraph == None: return False
 
         # Check for registration
         def registration_check():
@@ -177,9 +192,9 @@ class Synapse( bittensor.grpc.BittensorServicer ):
         forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request_proto )
         try:
             # Check blacklist.
-            if self.blacklist( forward_call ): raise Exception('Blacklisted')
+            if self.__blacklist( forward_call ): raise Exception('Blacklisted')
             # Get priority.
-            priority = self.priority( forward_call )
+            priority = self.__priority( forward_call )
             # Queue the forward call.
             future = self.priority_threadpool.submit(
                 self.forward,
