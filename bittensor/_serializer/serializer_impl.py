@@ -36,7 +36,7 @@ class Serializer(object):
         torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
         return torch_proto
 
-    def serialize (self, tensor_obj: object, from_type: int = bittensor.proto.TensorType.TORCH) -> bittensor.proto.Tensor:
+    def serialize (self, tensor_obj: object, from_type: int = bittensor.proto.TensorType.TORCH ) -> bittensor.proto.Tensor:
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:
@@ -72,7 +72,7 @@ class Serializer(object):
 
         raise NotImplementedError
 
-    def deserialize (self, tensor_pb2: bittensor.proto.Tensor, to_type: int) -> object:
+    def deserialize (self, tensor_pb2: bittensor.proto.Tensor, to_type: int = bittensor.proto.TensorType.TORCH ) -> object:
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:

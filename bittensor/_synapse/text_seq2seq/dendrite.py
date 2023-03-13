@@ -18,10 +18,8 @@
 import torch
 import bittensor
 from typing import Callable
-from .. import dendrite
-from . import call
 
-class TextSeq2SeqDendrite( dendrite.Dendrite ):
+class TextSeq2SeqDendrite( bittensor.Dendrite ):
     """ bittensor dendrite for text_seq2seq synapse."""
 
     def __str__( self ) -> str:
@@ -29,6 +27,65 @@ class TextSeq2SeqDendrite( dendrite.Dendrite ):
 
     def _stub_callable( self ) -> Callable:
         return self.receptor.stub.ForwardTextSeq2Seq
+    
+    def pre_process_forward_call_to_request_proto( 
+            self, 
+            forward_call: 'bittensor.TextSeq2SeqForwardCall' 
+        ) -> 'bittensor.ForwardTextSeq2SeqRequest':
+        """ Preprocesses the forward call to a request proto.
+            --------------------------------------------
+            Args:
+                forward_call (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                    forward_call to preprocess.
+            Returns:
+                request_proto (:obj:`bittensor.ForwardTextSeq2SeqRequest`, `required`):
+                    bittensor request proto object.
+        """
+        # Serialize text prompt.
+        text_prompt_serializer = bittensor.serializer( serializer_type = forward_call.text_prompt_serializer_type )
+        serialized_text_prompt = text_prompt_serializer.serialize( forward_call.text_prompt, from_type = bittensor.proto.TensorType.TORCH )
+
+        # Fill request
+        return bittensor.ForwardTextSeq2SeqRequest(
+            serialized_text_prompt = serialized_text_prompt,
+            text_prompt_serializer_type = forward_call.text_prompt_serializer_type,
+            generations_serializer_type = forward_call.generations_serializer_type,
+            topk = forward_call.topk,
+            num_to_generate = forward_call.num_to_generate,
+            num_beams = forward_call.num_beams,
+            no_repeat_ngram_size = forward_call.no_repeat_ngram_size,
+            early_stopping = forward_call.early_stopping,
+            num_return_sequences = forward_call.num_return_sequences,
+            do_sample = forward_call.do_sample,
+            top_p = forward_call.top_p,
+            temperature = forward_call.temperature,
+            repetition_penalty = forward_call.repetition_penalty,
+            length_penalty = forward_call.length_penalty,
+            max_time = forward_call.max_time,
+            num_beam_groups = forward_call.num_beam_groups,
+            timeout = forward_call.timeout,
+        )
+    
+    def post_process_response_proto_to_forward_call( 
+            self, 
+            forward_call: bittensor.TextSeq2SeqForwardCall,
+            response_proto: bittensor.ForwardTextSeq2SeqResponse 
+        ) -> bittensor.TextSeq2SeqForwardCall :
+        """ Postprocesses the response proto to fill forward call.
+            --------------------------------------------
+            Args:
+                forward_call (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                    bittensor forward call object to fill.
+                response_proto (:obj:`bittensor.ForwardTextSeq2SeqResponse`, `required`):
+                    bittensor forward response proto.
+            Returns:
+                forward_call (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                    filled bittensor forward call object.
+        """
+        # Deserialize generations.
+        generations_deserializer = bittensor.serializer( serializer_type = forward_call.generations_serializer_type )
+        forward_call.generations = generations_deserializer.deserialize( response_proto.serialized_generations, to_type = bittensor.proto.TensorType.TORCH )
+        return forward_call
     
     def forward( 
             self, 
@@ -93,7 +150,7 @@ class TextSeq2SeqDendrite( dendrite.Dendrite ):
                     Generations from each endpoint.
         """
         return self._forward( 
-            forward_call = call.TextSeq2SeqForwardCall( 
+            forward_call = bittensor.TextSeq2SeqForwardCall( 
                 text_prompt = text_prompt, 
                 timeout = timeout,
                 topk = topk,

@@ -16,11 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import grpc
 import torch
 import bittensor
-
-from . import call
 
 class Synapse( bittensor.grpc.BittensorServicer ):
 
@@ -43,8 +40,39 @@ class Synapse( bittensor.grpc.BittensorServicer ):
 
     def forward(self, forward_call: call.ForwardCall ):
         raise NotImplementedError('Must implement forward() in subclass.')
+    
+    def pre_process_request_proto_to_forward_call( 
+            self, 
+            request_proto: 'bittensor.ForwardRequest' 
+        ) -> 'bittensor.ForwardCall':
+        """ pre_process_request_proto_to_forward_call
+            ------------------------------------------
+            Args:
+                request_proto (bittensor.ForwardRequest):
+                    request_proto to process in to a forward call.
+            Returns:
+                bittensor.ForwardCall (:obj:`bittensor.ForwardCall`, `required`):
+                    forward call processed from the request proto.
+            """
+        raise NotImplementedError('Must implement pre_process_request_proto_to_forward_call() in subclass.')
+    
+    def post_process_forward_call_to_response_proto( 
+            self, 
+            forward_call: 'bittensor.ForwardCall' 
+        ) -> 'bittensor.ForwardResponse':
+        """ post_process_forward_call_to_response_proto
+            --------------------------------------------
+            Args:
+                forward_call (bittensor.ForwardCall):
+                    forward_call to process in to a response proto.
+            Returns:    
+                response (bittensor.ForwardResponse):
+                    response proto processed from the forward call.
+        """
+        raise NotImplementedError('Must implement post_process_forward_call_to_response_proto() in subclass.')
         
-    def _Forward( self, forward_call: call.ForwardCall ) -> 'call.ForwardCall':
+    def _Forward( self, request_proto: 'bittensor.ForwardRequest' ) -> 'call.ForwardCall':
+        forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request_proto )
         try:
             # Check blacklist.
             if self.blacklist( forward_call ): raise Exception('Blacklisted')
@@ -75,7 +103,7 @@ class Synapse( bittensor.grpc.BittensorServicer ):
                 synapse = self.__str__()
             )
             if forward_call.request_code != bittensor.proto.ReturnCode.Success:
-                return forward_call.to_forward_response_proto()
+                return self.post_process_forward_call_to_response_proto( forward_call )
 
         # Do forward.
         try:
@@ -83,6 +111,7 @@ class Synapse( bittensor.grpc.BittensorServicer ):
             future.result( timeout = forward_call.timeout )
 
         except Exception as e:
+            print ('failed forward')
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
             forward_call.response_message = str(e)
         finally:
@@ -100,4 +129,4 @@ class Synapse( bittensor.grpc.BittensorServicer ):
                 message = forward_call.response_message,
                 synapse = self.__str__()
             )
-            return forward_call.to_forward_response_proto()
+            return self.post_process_forward_call_to_response_proto( forward_call )

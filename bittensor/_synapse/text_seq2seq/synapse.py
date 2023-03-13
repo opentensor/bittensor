@@ -19,25 +19,22 @@ import grpc
 import torch
 import bittensor
 
-from .. import synapse
-from . import call
-
-class TextSeq2SeqSynapse( synapse.Synapse  ):
+class TextSeq2SeqSynapse( bittensor.Synapse  ):
     """ TextSeq2SeqSynapse: Class for servicing text_seq2seq requests."""
 
     def __str__(self):
         return 'TextSeq2Seq'
     
-    def priority( self, forward_call: 'call.TextSeq2SeqForwardCall' ) -> float:
+    def priority( self, forward_call: 'bittensor.TextSeq2SeqForwardCall' ) -> float:
         """ priority: Returns the priority of the synapse for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement priority() in subclass.')
 
-    def blacklist( self, forward_call: 'call.TextSeq2SeqForwardCall'  ) -> torch.FloatTensor:
+    def blacklist( self, forward_call: 'bittensor.TextSeq2SeqForwardCall'  ) -> torch.FloatTensor:
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
 
-    def forward( self, forward_call: 'call.TextSeq2SeqForwardCall' ) -> torch.FloatTensor:
-        """ forward: Returns the forward pass of the synapse.
+    def forward( self, forward_call: 'bittensor.TextSeq2SeqForwardCall' ) -> 'bittensor.TextSeq2SeqForwardCall':
+        """ Fills the forward_call with the results of the forward pass.
             Args:
                 forward_call.text_prompt (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
                     torch tensor of text prompt.
@@ -70,9 +67,68 @@ class TextSeq2SeqSynapse( synapse.Synapse  ):
                 forward_call.num_beam_groups (:obj:`int`, `optional`, defaults to 1):
                     num_beam_groups for the request.
             Returns:
-                torch.FloatTensor: torch tensor of text generations.
+                forward_call (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                    filled forward call dataclass.
         """
         raise NotImplementedError('Must implement forward() in subclass.')
+    
+    def pre_process_request_proto_to_forward_call( 
+            self, 
+            request_proto: bittensor.ForwardTextSeq2SeqRequest 
+        ) -> 'bittensor.TextSeq2SeqForwardCall':
+        """ pre_process_request_proto_to_forward_call
+            ------------------------------------------
+            Args:
+                request_proto (bittensor.ForwardTextSeq2SeqRequest):
+                    bittensor forward request proto.
+            Returns:
+                bittensor.TextSeq2SeqForwardCall (:obj:`bittensor.TextSeq2SeqForwardCall`, `required`):
+                    bittensor forward call dataclass.
+        """
+        # Deserialize text inputs.
+        text_prompts_deserializer = bittensor.serializer( serializer_type = request_proto.text_prompt_serializer_type )
+        text_prompt = text_prompts_deserializer.deserialize( request_proto.serialized_text_prompt )
+
+        # Fill forward call.
+        return bittensor.TextSeq2SeqForwardCall(
+            text_prompt = text_prompt,
+            timeout = request_proto.timeout,
+            topk = request_proto.topk,
+            num_to_generate = request_proto.num_to_generate,
+            num_beams = request_proto.num_beams,
+            no_repeat_ngram_size = request_proto.no_repeat_ngram_size,
+            early_stopping = request_proto.early_stopping,
+            num_return_sequences = request_proto.num_return_sequences,
+            do_sample = request_proto.do_sample,
+            top_p = request_proto.top_p,
+            temperature = request_proto.temperature,
+            repetition_penalty = request_proto.repetition_penalty,
+            length_penalty = request_proto.length_penalty,
+            max_time = request_proto.max_time,
+            num_beam_groups = request_proto.num_beam_groups,
+        )
+    
+    def post_process_forward_call_to_response_proto( 
+            self, 
+            forward_call: 'bittensor.TextSeq2SeqForwardCall' 
+        ) -> bittensor.ForwardTextSeq2SeqResponse:
+        """ post_process_forward_call_to_response_proto
+            --------------------------------------------
+            Args:
+                forward_call (bittensor.TextSeq2SeqForwardCall):
+                    forward call to process.
+            Returns:    
+                response (bittensor.ForwardTextSeq2SeqResponse):
+                    serialized response proto with the results of the forward call.
+        """
+        # Serialize generations.
+        generations_serializer = bittensor.serializer( serializer_type = forward_call.generations_serializer_type )
+        serialized_generations = generations_serializer.serialize( forward_call.generations, from_type = bittensor.proto.TensorType.TORCH )
+
+        # Set response.
+        return bittensor.ForwardTextSeq2SeqResponse(
+            serialized_generations = serialized_generations
+        )
     
     def ForwardTextSeq2Seq( 
             self, 
@@ -107,8 +163,7 @@ class TextSeq2SeqSynapse( synapse.Synapse  ):
                 response (bittensor.ForwardTextSeq2SeqResponse): 
                     response.serialized_text_outputs (string): serialized text outputs.
         """
-        forward_call = call.TextSeq2SeqForwardCall.from_forward_request_proto( request )
-        return self._Forward( forward_call = forward_call )
+        return self._Forward( request_proto = request )
 
     
     
