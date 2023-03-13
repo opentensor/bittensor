@@ -82,7 +82,7 @@ class PretrainedModel(torch.nn.Module):
         """
         super(PretrainedModel, self).__init__()
         if config == None: config = PretrainedModel.config()
-        self.config = config;print(config)
+        self.config = config
         self.std_tokenizer = bittensor.tokenizer()
         self.device = config.model.device
 
