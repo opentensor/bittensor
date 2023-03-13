@@ -39,8 +39,8 @@ class NeuronInfo:
     uid: int
     netuid: int
     active: int    
-    # mapping of coldkey to amount staked to this Neuron
     stake: Balance
+    # mapping of coldkey to amount staked to this Neuron
     stake_dict: Dict[str, Balance]
     total_stake: Balance
     rank: float
