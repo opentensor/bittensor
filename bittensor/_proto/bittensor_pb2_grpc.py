@@ -19,12 +19,23 @@ class TextLastHiddenStateStub(object):
                 request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateRequest.SerializeToString,
                 response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateResponse.FromString,
                 )
+        self.Backward = channel.unary_unary(
+                '/TextLastHiddenState/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextLastHiddenStateRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextLastHiddenStateResponse.FromString,
+                )
 
 
 class TextLastHiddenStateServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -37,6 +48,11 @@ def add_TextLastHiddenStateServicer_to_server(servicer, server):
                     servicer.Forward,
                     request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateRequest.FromString,
                     response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextLastHiddenStateRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextLastHiddenStateResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -62,6 +78,23 @@ class TextLastHiddenState(object):
         return grpc.experimental.unary_unary(request, target, '/TextLastHiddenState/Forward',
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateRequest.SerializeToString,
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextLastHiddenStateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextLastHiddenState/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextLastHiddenStateRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextLastHiddenStateResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
