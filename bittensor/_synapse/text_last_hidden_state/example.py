@@ -38,8 +38,9 @@ axon.attach( synapse = synapse )
 axon.start()
 
 # Create a text_last_hidden_state module and call it.
+
 module = bittensor.text_last_hidden_state( endpoint = local_endpoint, wallet = wallet )
-response = module( text_inputs = torch.ones( ( 1, 1 ), dtype = torch.long ), timeout = 1 )
+response = module.forward( text_inputs = torch.ones( ( 1, 1 ), dtype = torch.long ), timeout = 1 )
 
 # Delete objects.
 del axon
