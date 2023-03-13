@@ -42,7 +42,6 @@ class MetagraphCommand:
         total_validator_trust = 0.0
         total_trust = 0.0
         total_consensus = 0.0
-        total_weight_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
         total_emission = 0  
@@ -54,7 +53,6 @@ class MetagraphCommand:
                 '{:.5f}'.format( metagraph.ranks[uid]),
                 '{:.5f}'.format( metagraph.trust[uid]), 
                 '{:.5f}'.format( metagraph.consensus[uid]),
-                '{:.5f}'.format( metagraph.weight_consensus[uid]),
                 '{:.5f}'.format( metagraph.incentive[uid]),
                 '{:.5f}'.format( metagraph.dividends[uid]),
                 '{}'.format( int(metagraph.emission[uid] * 1000000000)),
@@ -71,7 +69,6 @@ class MetagraphCommand:
             total_validator_trust += metagraph.validator_trust[uid]
             total_trust += metagraph.trust[uid]
             total_consensus += metagraph.consensus[uid]
-            total_weight_consensus += metagraph.weight_consensus[uid]
             total_incentive += metagraph.incentive[uid]
             total_dividends += metagraph.dividends[uid]
             total_emission += int(metagraph.emission[uid] * 1000000000)
@@ -86,7 +83,6 @@ class MetagraphCommand:
         table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]WCONSENSUS", '{:.5f}'.format(total_weight_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
