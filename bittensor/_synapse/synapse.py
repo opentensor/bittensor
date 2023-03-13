@@ -32,13 +32,13 @@ class Synapse( bittensor.grpc.BittensorServicer ):
         """ _attach: Attaches the synapse to the axon."""
         bittensor.grpc.add_BittensorServicer_to_server( self, axon.server )
 
-    def priority( self, forward_call: call.ForwardCall ) -> float:
+    def priority( self, forward_call: bittensor.ForwardCall ) -> float:
         raise NotImplementedError('Must implement priority() in subclass.')
 
-    def blacklist( self, forward_call: call.ForwardCall ) -> torch.FloatTensor:
+    def blacklist( self, forward_call: bittensor.ForwardCall ) -> torch.FloatTensor:
         raise NotImplementedError('Must implement blacklist() in subclass.')
 
-    def forward(self, forward_call: call.ForwardCall ):
+    def forward(self, forward_call: bittensor.ForwardCall ) -> bittensor.ForwardCall:
         raise NotImplementedError('Must implement forward() in subclass.')
     
     def pre_process_request_proto_to_forward_call( 
@@ -71,7 +71,7 @@ class Synapse( bittensor.grpc.BittensorServicer ):
         """
         raise NotImplementedError('Must implement post_process_forward_call_to_response_proto() in subclass.')
         
-    def _Forward( self, request_proto: 'bittensor.ForwardRequest' ) -> 'call.ForwardCall':
+    def _Forward( self, request_proto: 'bittensor.ForwardRequest' ) -> 'bittensor.ForwardCall':
         forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request_proto )
         try:
             # Check blacklist.
@@ -111,7 +111,6 @@ class Synapse( bittensor.grpc.BittensorServicer ):
             future.result( timeout = forward_call.timeout )
 
         except Exception as e:
-            print ('failed forward')
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
             forward_call.response_message = str(e)
         finally:
