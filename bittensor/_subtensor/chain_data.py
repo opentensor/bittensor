@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 import bittensor
 from bittensor import Balance
 import json
@@ -28,9 +28,12 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-def json_from_vec_u8( vec_u8: List[int] ) -> Dict:
+def json_from_vec_u8( vec_u8: List[int] ) -> Optional[Dict]:
     r""" Returns a json dictionary from a bytes object.
     """
+    if len(vec_u8) == 0:
+        return None
+
     as_bytes = bytes(vec_u8)
     as_json_str = as_bytes.decode('utf-8')
     as_json = json.loads(as_json_str)
@@ -70,6 +73,9 @@ class NeuronInfo:
         r""" Returns a NeuronInfo object from a vec_u8.
         """
         json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return NeuronInfo._null_neuron() # return null neuron instead of None
+        
         return NeuronInfo.from_json(json)
     
     @classmethod
@@ -77,6 +83,9 @@ class NeuronInfo:
         r""" Returns a list of NeuronInfo objects from a vec_u8.
         """
         json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return []
+
         return [NeuronInfo.from_json(neuron) for neuron in json]
 
     @classmethod
@@ -217,10 +226,13 @@ class DelegateInfo:
     take: float # Take of the delegate as a percentage
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> 'DelegateInfo':
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional['DelegateInfo']:
         r""" Returns a DelegateInfo object from a vec_u8.
         """
         json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return None
+        
         return DelegateInfo.from_json(json)
     
     @classmethod
@@ -228,6 +240,9 @@ class DelegateInfo:
         r""" Returns a list of DelegateInfo objects from a vec_u8.
         """
         json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return []
+        
         return [DelegateInfo.from_json(delegate) for delegate in json]
 
     @classmethod
@@ -280,10 +295,13 @@ class SubnetInfo:
     emission_value: float
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> 'SubnetInfo':
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional['SubnetInfo']:
         r""" Returns a SubnetInfo object from a vec_u8.
         """
         json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return None
+        
         return SubnetInfo.from_json(json)
     
     @classmethod
@@ -291,6 +309,9 @@ class SubnetInfo:
         r""" Returns a list of SubnetInfo objects from a vec_u8.
         """
         json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return []
+        
         return [SubnetInfo.from_json(subnet) for subnet in json]
 
     @classmethod
