@@ -15,15 +15,59 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import time
-import torch
 import bittensor
+import argparse
 
 class Synapse( bittensor.grpc.BittensorServicer ):
 
-    def __init__( self ):
+    def __init__( self, config: 'bittensor.Config' =  None, metagraph: 'bittensor.metagraph.Metagraph' = None ):
         r""" Initializes a new Synapse."""
+        if config == None: config = bittensor.config()
         self.priority_threadpool = bittensor.prioritythreadpool()
+        self.metagraph = metagraph
+
+    @classmethod
+    def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser 
+            Return: bittensor.config object
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        return bittensor.config( parser )
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
+        """ Accept specific arguments from parser
+        """
+        prefix_str = '' if prefix == None else prefix + '.'
+        try:
+            parser.add_argument('--' + prefix_str + 'synapse.blacklist.stake', type=float, help='The amount of stake (tao) required to make a call.', default=10)
+            parser.add_argument('--' + prefix_str + 'synapse.blacklist.allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=True)
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
+
+    @classmethod   
+    def help(cls):
+        """ Print help to stdout
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args( parser )
+        print (cls.__new__.__doc__)
+        parser.print_help()
+
+    @classmethod   
+    def add_defaults(cls, defaults):
+        """ Add default values to defaults object"""
+        defaults.synapse = bittensor.Config()
+        defaults.synapse.blacklist.stake = os.getenv('BT_SYNAPSE_BLACKLIST_STAKE') if os.getenv('BT_SYNAPSE_BLACKLIST_STAKE') != None else 10
+        defaults.synapse.blacklist.allow_non_registered = os.getenv('BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED') if os.getenv('BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED') != None else True
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        pass
 
     def __str__(self):
         return "synapse"
@@ -34,9 +78,67 @@ class Synapse( bittensor.grpc.BittensorServicer ):
 
     def priority( self, forward_call: bittensor.ForwardCall ) -> float:
         raise NotImplementedError('Must implement priority() in subclass.')
+    
+    def _priority( self, forward_call: bittensor.ForwardCall ) -> bool:
+        """ _priority: Returns the priority of the forward call.
+            Args:
+                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                    forward_call to check.
+            Returns:
+                float: priority of the forward call.
+        """
+        # Call subclass priority, if not implemented use the 
+        # metagraph priority based on stake.
+        try:
+            return float( self.priority( forward_call ) )
+        except:
+            if self.metagraph == None:
+                uid = self.metagraph.hotkeys.index( forward_call.hotkey )
+                return float( self.metagraph.S[uid].item() )
+            else:
+                return 0.0 
 
-    def blacklist( self, forward_call: bittensor.ForwardCall ) -> torch.FloatTensor:
+    def blacklist( self, forward_call: bittensor.ForwardCall ) -> bool:
         raise NotImplementedError('Must implement blacklist() in subclass.')
+    
+    def _blacklist( self, forward_call: bittensor.ForwardCall ) -> bool:
+        """ _blacklist: Checks if the forward call is blacklisted.
+            Args:
+                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                    forward_call to check.
+            Returns:
+                bool: True if blacklisted, False otherwise.
+        """
+
+        # Call subclass blacklist and optionaly return if metagraph is None.
+        subclass_blacklist = self.blacklist( forward_call )
+        if subclass_blacklist:
+            return subclass_blacklist
+        elif self.metagraph == None:
+            return subclass_blacklist
+
+        # Check for registration
+        def registration_check():
+            is_registered = forward_call.hotkey in self.metagraph.hotkeys
+            if not is_registered:
+                if self.config.synapse.blacklist.allow_non_registered:
+                    return False
+                raise Exception('Registration blacklist')
+
+        # Blacklist based on stake.
+        def stake_check() -> bool:
+            uid = self.metagraph.hotkeys.index( forward_call.hotkey )
+            if self.metagraph.S[uid].item() < self.config.synapse.blacklist.stake:
+                raise Exception('Stake blacklist')
+            return False
+
+        # Optionally blacklist based on checks.
+        try:
+            registration_check()
+            stake_check()            
+            return False
+        except Exception as e:
+            return True
 
     def forward(self, forward_call: bittensor.ForwardCall ) -> bittensor.ForwardCall:
         raise NotImplementedError('Must implement forward() in subclass.')
