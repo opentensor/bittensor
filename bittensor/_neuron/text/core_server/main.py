@@ -21,7 +21,8 @@ import time
 import torch
 import argparse
 import bittensor
-import datetime
+from rich import print
+from datetime import datetime
 from threading import Lock
 
 # Torch tooling.
@@ -48,16 +49,17 @@ def get_config ():
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     
     # Miner arguements
-    parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_server')
-    parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
-    parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.', default=False)
-    parser.add_argument('--neuron.max_batch_size', type=int, help='The maximum batch size for forward requests.', default=-1)
-    parser.add_argument('--neuron.max_sequence_len', type=int, help='The maximum sequence length for forward requests.', default=-1)
-    parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store', help='To blacklist certain hotkeys', default=[])
+    parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_server')
+    parser.add_argument('--neuron.blocks_per_epoch', type=str, help='Blocks until the miner sets weights on chain', default = 100 )
+    parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default = False)
+    parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.', default = False)
+    parser.add_argument('--neuron.max_batch_size', type=int, help='The maximum batch size for forward requests.', default = -1)
+    parser.add_argument('--neuron.max_sequence_len', type=int, help='The maximum sequence length for forward requests.', default = -1)
+    parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store', help='To blacklist certain hotkeys', default = [])
 
     # Synapse Arguements
-    parser.add_argument('--neuron.no_lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
-    parser.add_argument('--neuron.no_seq2seq', action='store_false', help='To turn off seq2seq synapse', default=True)
+    parser.add_argument('--neuron.no_lasthidden', action='store_true', help='To turn off last hidden synapse', default=False)
+    parser.add_argument('--neuron.no_seq2seq', action='store_true', help='To turn off seq2seq synapse', default=False)
 
     # Netuid Arg
     parser.add_argument('--netuid', type=int , help='Subnet netuid', default=1)
@@ -97,7 +99,7 @@ def main( ):
 
     # --- Build /Load our model and set the device.
     call_mutex = Lock()
-    model = PretrainedModel( config = config ).to( config.neuron.device )
+    model = PretrainedModel( config = config ).to( config.model.device )
     if not config.neuron.restart:
         model.load( config.neuron.full_path )
 
@@ -106,7 +108,7 @@ def main( ):
     axon.start()
 
     # --- Build our TextSeq2Seq synapse.
-    if config.neuron.seq2seq:
+    if not config.neuron.no_seq2seq:
         class TS2SSynapse( bittensor.TextSeq2SeqSynapse ):
             def priority(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
                 return 0.0
@@ -138,13 +140,13 @@ def main( ):
                     forward_call.generations = pad_sequence(tokens, batch_first=True)
                     return forward_call
                 
-    # Attach the synapse to the axon.
-    synapse_s2s = TS2SSynapse( config = config, metagraph = metagraph )
-    axon.attach( synapse = synapse_s2s )
+        # Attach the synapse to the axon.
+        synapse_s2s = TS2SSynapse( config = config, metagraph = metagraph )
+        axon.attach( synapse = synapse_s2s )
 
         
     # --- Build our TextLastHiddenState synapse.
-    if config.neuron.lasthidden_stake:
+    if not config.neuron.no_lasthidden:
         class TLHSSynapse( bittensor.TextLastHiddenStateSynapse ):
             def priority(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> float:
                 return 0.0
@@ -162,18 +164,14 @@ def main( ):
         axon.attach( synapse = synapse_tlhs )
 
     # --- Run Forever.
-    block_per_epoch = config.neuron.blocks_per_epoch
     last_update = subtensor.get_current_block()
-    uid = metagraph.hotkeys.index( wallet.hotkey.ss58_address )
     while True:        
 
         # --- Wait until next epoch.
         current_block = subtensor.get_current_block()
-        while current_block - last_update >= block_per_epoch:
+        while (current_block - last_update) < config.neuron.blocks_per_epoch:
             time.sleep( bittensor.__blocktime__ )
             current_block = subtensor.get_current_block()
-
-        # --- Set last update.
         last_update = subtensor.get_current_block()
 
         # --- Update the metagraph with the latest network state.
@@ -184,7 +182,7 @@ def main( ):
         print(
             f"[white not bold]{datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
             f"{f'UID [bright_cyan]{uid}[/bright_cyan]'.center(16 + len('[bright_cyan][/bright_cyan]'))} | "
-            f'[dim white not bold] [green]{str( metagraph.stake[ uid ].item() ):.4}[/green] Stake [/dim white not bold]'
+            f'[dim white not bold] [green]{str( metagraph.S[ uid ].item() ):.4}[/green] Stake [/dim white not bold]'
             f'[dim white not bold]| [yellow]{ str( metagraph.trust[ uid ].item() ) :.3}[/yellow] Trust [/dim white not bold]'
             f'[dim white not bold]| [green]{ str( metagraph.incentive[ uid ].item() ):.3}[/green] Incentive [/dim white not bold]')
 
