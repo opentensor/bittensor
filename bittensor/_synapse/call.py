@@ -26,6 +26,10 @@ class ForwardCall(object):
     """
     # The receptor endpoint.
     endpoint: bittensor.Endpoint = None
+    # The hotkey of the receptor.
+    hotkey: str = ''
+    # The version of the caller
+    version: int = 0
     # The timeout for the call.
     timeout: float = 0.0
     # The start time of the call.
@@ -45,7 +49,10 @@ class ForwardCall(object):
     # The response proto, filled after the call is made.
     response_proto: object = None
     
-    def __init__(self, timeout: float = bittensor.__blocktime__):
+    def __init__(
+            self, 
+            timeout: float = bittensor.__blocktime__
+        ):
         self.timeout = timeout
         self.start_time = time.time()
 
@@ -53,17 +60,4 @@ class ForwardCall(object):
         raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
     
     def get_outputs_shape(self):
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
-
-    @staticmethod
-    def from_forward_request_proto( self ) -> 'ForwardCall':
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
-
-    def to_forward_request_proto( self ) -> object:
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
-    
-    def to_forward_response_proto( self ) -> object:
-        raise NotImplementedError('process_forward_response_proto not implemented for this call type.')
-
-    def from_forward_response_proto( self, object ) -> object:
         raise NotImplementedError('process_forward_response_proto not implemented for this call type.')

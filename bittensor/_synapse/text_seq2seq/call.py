@@ -17,9 +17,8 @@
 
 import torch
 import bittensor
-from .. import dendrite
 
-class TextSeq2SeqForwardCall( dendrite.ForwardCall ):
+class TextSeq2SeqForwardCall( bittensor.ForwardCall ):
     """ Call state for the text_seq_to_seq synapse."""
     def __init__( 
             self, 
@@ -106,57 +105,3 @@ class TextSeq2SeqForwardCall( dendrite.ForwardCall ):
         if self.generations is not None:
             return self.generations.shape
         else: return None
-
-    def to_forward_response_proto( self ) -> object:
-        # Serialize hidden states.
-        generations_serializer = bittensor.serializer( serializer_type = self.generations_serializer_type )
-        serialized_generations = generations_serializer.serialize( self.generations, from_type = bittensor.proto.TensorType.TORCH )
-
-        # Set response.
-        return bittensor.ForwardTextSeq2SeqResponse(
-            serialized_generations = serialized_generations
-        )
-
-    def from_forward_response_proto( self, response_proto: bittensor.ForwardTextSeq2SeqResponse ) -> object:
-        # Catch failed code.
-        if response_proto.return_code != bittensor.proto.ReturnCode.Success:
-            raise Exception( 'Remote Server Failure: '+ response_proto.message )
-
-        # Deserialize hidden states.
-        generations_deserializer = bittensor.serializer( serializer_type = self.generations_serializer_type )
-        self.generations = generations_deserializer.deserialize( response_proto.serialized_generations, to_type = bittensor.proto.TensorType.TORCH )
-
-    def from_forward_request_proto( self, response_proto: bittensor.ForwardTextSeq2SeqRequest ) -> object:
-        # Catch failed code.
-        if response_proto.return_code != bittensor.proto.ReturnCode.Success:
-            raise Exception( 'Remote Server Failure: '+ response_proto.message )
-
-        # Deserialize hidden states.
-        generations_deserializer = bittensor.serializer( serializer_type = self.generations_serializer_type )
-        self.generations = generations_deserializer.deserialize( response_proto.serialized_generations, to_type = bittensor.proto.TensorType.TORCH )
-
-    def to_forward_request_proto( self ) -> bittensor.ForwardTextSeq2SeqRequest:
-        # Serialize text inputs.
-        text_prompt_serializer = bittensor.serializer( serializer_type = self._text_prompt_serializer_type )
-        serialized_text_prompt = text_prompt_serializer.serialize( self.text_prompt, from_type = bittensor.proto.TensorType.TORCH )
-
-        # Fill request
-        return bittensor.ForwardTextSeq2SeqRequest(
-            serialized_text_prompt = serialized_text_prompt,
-            text_prompt_serializer_type = self.text_prompt_serializer_type,
-            generations_serializer_type = self.generations_serializer_type,
-            topk = self.topk,
-            num_to_generate = self.num_to_generate,
-            num_beams = self.num_beams,
-            no_repeat_ngram_size = self.no_repeat_ngram_size,
-            early_stopping = self.early_stopping,
-            num_return_sequences = self.num_return_sequences,
-            do_sample = self.do_sample,
-            top_p = self.top_p,
-            temperature = self.temperature,
-            repetition_penalty = self.repetition_penalty,
-            length_penalty = self.length_penalty,
-            max_time = self.max_time,
-            num_beam_groups = self.num_beam_groups,
-            timeout = self.timeout,
-        )

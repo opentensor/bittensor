@@ -180,25 +180,28 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 # ---- Synapse Protos -----
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMResponse
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
 
 # ---- Synapse Servicers -----
 from bittensor._proto.bittensor_pb2_grpc import TextLastHiddenStateServicer
-from bittensor._proto.bittensor_pb2_grpc import TextCausalLMServicer
 from bittensor._proto.bittensor_pb2_grpc import TextSeq2SeqServicer
 
+# ---- Calls -----
+from bittensor._synapse.call import ForwardCall
+from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
+from bittensor._synapse.text_seq2seq.call import TextSeq2SeqForwardCall 
+
 # ---- Synapses -----
+from bittensor._synapse.synapse import Synapse
 from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
-from bittensor._synapse.text_causal_lm.synapse import TextCausalLMSynapse
 from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
 
 # ---- Dendrites -----
+from bittensor._synapse.dendrite import Dendrite
 from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
-from bittensor._synapse.text_causal_lm.dendrite import TextCausalLMDendrite as text_causal_lm
 from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text_seq2seq
+
 
 # DEFAULTS
 defaults = Config()

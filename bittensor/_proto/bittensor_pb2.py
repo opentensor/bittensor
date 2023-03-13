@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\xed\x03\n\x19\x46orwardTextSeq2SeqRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12+\n\x16prompt_text_serializer\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12/\n\x1ageneration_text_serializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x1c\n\x0bprompt_text\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x06 \x01(\x05\x12\x17\n\x0fnum_to_generate\x18\x07 \x01(\x05\x12\x11\n\tnum_beams\x18\x08 \x01(\x05\x12\x1c\n\x14no_repeat_ngram_size\x18\t \x01(\x05\x12\x16\n\x0e\x65\x61rly_stopping\x18\n \x01(\x08\x12\x1c\n\x14num_return_sequences\x18\x0b \x01(\x05\x12\x11\n\tdo_sample\x18\x0c \x01(\x08\x12\r\n\x05top_p\x18\r \x01(\x02\x12\x13\n\x0btemperature\x18\x0f \x01(\x02\x12\x1a\n\x12repetition_penalty\x18\x10 \x01(\x02\x12\x16\n\x0elength_penalty\x18\x11 \x01(\x02\x12\x10\n\x08max_time\x18\x12 \x01(\x02\x12\x17\n\x0fnum_beam_groups\x18\x13 \x01(\x05\x12\x0f\n\x07timeout\x18\x14 \x01(\x02\"\x91\x01\n\x1a\x46orwardTextSeq2SeqResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1f\n\x0egenerated_text\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x0f\n\x07message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\xf2\x01\n!ForwardTextLastHiddenStateRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x30\n\x1btext_inputs_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x32\n\x1dhidden_states_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\'\n\x16serialized_text_inputs\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04mask\x18\x06 \x01(\x05\x12\x0f\n\x07timeout\x18\x07 \x01(\x02\"\xb1\x01\n\"ForwardTextLastHiddenStateResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12)\n\x18serialized_hidden_states\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04mask\x18\x04 \x01(\x05\x12\x0f\n\x07message\x18\x07 \x01(\t\x12 \n\x0breturn_code\x18\x08 \x01(\x0e\x32\x0b.ReturnCode\"\xd4\x01\n\x1a\x46orwardTextCausalLMRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12*\n\x15input_text_serializer\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12-\n\x18output_logits_serializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x1b\n\ninput_text\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x06 \x01(\x05\x12\x0f\n\x07timeout\x18\x07 \x01(\x02\"\x9f\x01\n\x1b\x46orwardTextCausalLMResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1e\n\routput_logits\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x04 \x01(\x05\x12\x0f\n\x07message\x18\x05 \x01(\t\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x32\x9d\x02\n\tBittensor\x12g\n\x1a\x46orwardTextLastHiddenState\x12\".ForwardTextLastHiddenStateRequest\x1a#.ForwardTextLastHiddenStateResponse\"\x00\x12V\n\x17\x46orwardTextCausalLMNext\x12\x1b.ForwardTextCausalLMRequest\x1a\x1c.ForwardTextCausalLMResponse\"\x00\x12O\n\x12\x46orwardTextSeq2Seq\x12\x1a.ForwardTextSeq2SeqRequest\x1a\x1b.ForwardTextSeq2SeqResponse\"\x00\x32^\n\x0bTextSeq2Seq\x12O\n\x12\x46orwardTextSeq2Seq\x12\x1a.ForwardTextSeq2SeqRequest\x1a\x1b.ForwardTextSeq2SeqResponse\"\x00\x32~\n\x13TextLastHiddenState\x12g\n\x1a\x46orwardTextLastHiddenState\x12\".ForwardTextLastHiddenStateRequest\x1a#.ForwardTextLastHiddenStateResponse\"\x00\x32g\n\x0cTextCausalLM\x12W\n\x18\x46orwardTextCausalLMState\x12\x1b.ForwardTextCausalLMRequest\x1a\x1c.ForwardTextCausalLMResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\xfe\x03\n\x19\x46orwardTextSeq2SeqRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x30\n\x1btext_prompt_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x30\n\x1bgenerations_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\'\n\x16serialized_text_prompt\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x06 \x01(\x05\x12\x17\n\x0fnum_to_generate\x18\x07 \x01(\x05\x12\x11\n\tnum_beams\x18\x08 \x01(\x05\x12\x1c\n\x14no_repeat_ngram_size\x18\t \x01(\x05\x12\x16\n\x0e\x65\x61rly_stopping\x18\n \x01(\x08\x12\x1c\n\x14num_return_sequences\x18\x0b \x01(\x05\x12\x11\n\tdo_sample\x18\x0c \x01(\x08\x12\r\n\x05top_p\x18\r \x01(\x02\x12\x13\n\x0btemperature\x18\x0f \x01(\x02\x12\x1a\n\x12repetition_penalty\x18\x10 \x01(\x02\x12\x16\n\x0elength_penalty\x18\x11 \x01(\x02\x12\x10\n\x08max_time\x18\x12 \x01(\x02\x12\x17\n\x0fnum_beam_groups\x18\x13 \x01(\x05\x12\x0f\n\x07timeout\x18\x14 \x01(\x02\"\x99\x01\n\x1a\x46orwardTextSeq2SeqResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\'\n\x16serialized_generations\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x0f\n\x07message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\xf2\x01\n!ForwardTextLastHiddenStateRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x30\n\x1btext_inputs_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x32\n\x1dhidden_states_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\'\n\x16serialized_text_inputs\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04mask\x18\x06 \x01(\x05\x12\x0f\n\x07timeout\x18\x07 \x01(\x02\"\xb1\x01\n\"ForwardTextLastHiddenStateResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12)\n\x18serialized_hidden_states\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04mask\x18\x04 \x01(\x05\x12\x0f\n\x07message\x18\x07 \x01(\t\x12 \n\x0breturn_code\x18\x08 \x01(\x0e\x32\x0b.ReturnCode\"\xd4\x01\n\x1a\x46orwardTextCausalLMRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12*\n\x15input_text_serializer\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12-\n\x18output_logits_serializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x1b\n\ninput_text\x18\x05 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x06 \x01(\x05\x12\x0f\n\x07timeout\x18\x07 \x01(\x02\"\x9f\x01\n\x1b\x46orwardTextCausalLMResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1e\n\routput_logits\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x0c\n\x04topk\x18\x04 \x01(\x05\x12\x0f\n\x07message\x18\x05 \x01(\t\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x32\x9d\x02\n\tBittensor\x12g\n\x1a\x46orwardTextLastHiddenState\x12\".ForwardTextLastHiddenStateRequest\x1a#.ForwardTextLastHiddenStateResponse\"\x00\x12V\n\x17\x46orwardTextCausalLMNext\x12\x1b.ForwardTextCausalLMRequest\x1a\x1c.ForwardTextCausalLMResponse\"\x00\x12O\n\x12\x46orwardTextSeq2Seq\x12\x1a.ForwardTextSeq2SeqRequest\x1a\x1b.ForwardTextSeq2SeqResponse\"\x00\x32^\n\x0bTextSeq2Seq\x12O\n\x12\x46orwardTextSeq2Seq\x12\x1a.ForwardTextSeq2SeqRequest\x1a\x1b.ForwardTextSeq2SeqResponse\"\x00\x32~\n\x13TextLastHiddenState\x12g\n\x1a\x46orwardTextLastHiddenState\x12\".ForwardTextLastHiddenStateRequest\x1a#.ForwardTextLastHiddenStateResponse\"\x00\x32g\n\x0cTextCausalLM\x12W\n\x18\x46orwardTextCausalLMState\x12\x1b.ForwardTextCausalLMRequest\x1a\x1c.ForwardTextCausalLMResponse\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -158,8 +158,8 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1658,
-  serialized_end=2243,
+  serialized_start=1683,
+  serialized_end=2268,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
@@ -184,8 +184,8 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2245,
-  serialized_end=2283,
+  serialized_start=2270,
+  serialized_end=2308,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
@@ -215,8 +215,8 @@ _TENSORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2285,
-  serialized_end=2335,
+  serialized_start=2310,
+  serialized_end=2360,
 )
 _sym_db.RegisterEnumDescriptor(_TENSORTYPE)
 
@@ -266,8 +266,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2337,
-  serialized_end=2431,
+  serialized_start=2362,
+  serialized_end=2456,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -335,21 +335,21 @@ _FORWARDTEXTSEQ2SEQREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='prompt_text_serializer', full_name='ForwardTextSeq2SeqRequest.prompt_text_serializer', index=2,
+      name='text_prompt_serializer_type', full_name='ForwardTextSeq2SeqRequest.text_prompt_serializer_type', index=2,
       number=3, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='generation_text_serializer', full_name='ForwardTextSeq2SeqRequest.generation_text_serializer', index=3,
+      name='generations_serializer_type', full_name='ForwardTextSeq2SeqRequest.generations_serializer_type', index=3,
       number=4, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='prompt_text', full_name='ForwardTextSeq2SeqRequest.prompt_text', index=4,
+      name='serialized_text_prompt', full_name='ForwardTextSeq2SeqRequest.serialized_text_prompt', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -466,7 +466,7 @@ _FORWARDTEXTSEQ2SEQREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=37,
-  serialized_end=530,
+  serialized_end=547,
 )
 
 
@@ -493,7 +493,7 @@ _FORWARDTEXTSEQ2SEQRESPONSE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='generated_text', full_name='ForwardTextSeq2SeqResponse.generated_text', index=2,
+      name='serialized_generations', full_name='ForwardTextSeq2SeqResponse.serialized_generations', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -525,8 +525,8 @@ _FORWARDTEXTSEQ2SEQRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=533,
-  serialized_end=678,
+  serialized_start=550,
+  serialized_end=703,
 )
 
 
@@ -599,8 +599,8 @@ _FORWARDTEXTLASTHIDDENSTATEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=681,
-  serialized_end=923,
+  serialized_start=706,
+  serialized_end=948,
 )
 
 
@@ -666,8 +666,8 @@ _FORWARDTEXTLASTHIDDENSTATERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=926,
-  serialized_end=1103,
+  serialized_start=951,
+  serialized_end=1128,
 )
 
 
@@ -740,8 +740,8 @@ _FORWARDTEXTCAUSALLMREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1106,
-  serialized_end=1318,
+  serialized_start=1131,
+  serialized_end=1343,
 )
 
 
@@ -807,8 +807,8 @@ _FORWARDTEXTCAUSALLMRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1321,
-  serialized_end=1480,
+  serialized_start=1346,
+  serialized_end=1505,
 )
 
 
@@ -881,14 +881,14 @@ _TENSOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1483,
-  serialized_end=1655,
+  serialized_start=1508,
+  serialized_end=1680,
 )
 
-_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['prompt_text_serializer'].enum_type = _SERIALIZER
-_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['generation_text_serializer'].enum_type = _SERIALIZER
-_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['prompt_text'].message_type = _TENSOR
-_FORWARDTEXTSEQ2SEQRESPONSE.fields_by_name['generated_text'].message_type = _TENSOR
+_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['text_prompt_serializer_type'].enum_type = _SERIALIZER
+_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['generations_serializer_type'].enum_type = _SERIALIZER
+_FORWARDTEXTSEQ2SEQREQUEST.fields_by_name['serialized_text_prompt'].message_type = _TENSOR
+_FORWARDTEXTSEQ2SEQRESPONSE.fields_by_name['serialized_generations'].message_type = _TENSOR
 _FORWARDTEXTSEQ2SEQRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _FORWARDTEXTLASTHIDDENSTATEREQUEST.fields_by_name['text_inputs_serializer_type'].enum_type = _SERIALIZER
 _FORWARDTEXTLASTHIDDENSTATEREQUEST.fields_by_name['hidden_states_serializer_type'].enum_type = _SERIALIZER
@@ -974,8 +974,8 @@ _BITTENSOR = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2434,
-  serialized_end=2719,
+  serialized_start=2459,
+  serialized_end=2744,
   methods=[
   _descriptor.MethodDescriptor(
     name='ForwardTextLastHiddenState',
@@ -1020,8 +1020,8 @@ _TEXTSEQ2SEQ = _descriptor.ServiceDescriptor(
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2721,
-  serialized_end=2815,
+  serialized_start=2746,
+  serialized_end=2840,
   methods=[
   _descriptor.MethodDescriptor(
     name='ForwardTextSeq2Seq',
@@ -1046,8 +1046,8 @@ _TEXTLASTHIDDENSTATE = _descriptor.ServiceDescriptor(
   index=2,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2817,
-  serialized_end=2943,
+  serialized_start=2842,
+  serialized_end=2968,
   methods=[
   _descriptor.MethodDescriptor(
     name='ForwardTextLastHiddenState',
@@ -1072,8 +1072,8 @@ _TEXTCAUSALLM = _descriptor.ServiceDescriptor(
   index=3,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2945,
-  serialized_end=3048,
+  serialized_start=2970,
+  serialized_end=3073,
   methods=[
   _descriptor.MethodDescriptor(
     name='ForwardTextCausalLMState',

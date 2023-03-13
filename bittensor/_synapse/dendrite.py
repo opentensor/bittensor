@@ -21,7 +21,6 @@ import torch
 import asyncio
 import bittensor
 from typing import Union, Optional, Callable
-from . import call
 
 class Dendrite(torch.nn.Module):
     """ Dendrite object.
@@ -54,14 +53,48 @@ class Dendrite(torch.nn.Module):
 
     def _stub_callable( self ) -> Callable:
         """ Returns the stub callable for the dendrite. """
-        raise NotImplemented('Dendrite._stub_callable() not implemented.')
+        raise NotImplementedError('Dendrite._stub_callable() not implemented.')
+    
+    def pre_process_forward_call_to_request_proto( 
+            self, 
+            forward_call: 'bittensor.ForwardCall' 
+        ) -> 'bittensor.ForwardRequest':
+        """ Preprocesses the request proto to a forward call.
+            --------------------------------------------
+            Args:
+                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                    forward_call to preprocess.
+            Returns:
+                request_proto (:obj:`bittensor.ForwardRequest`, `required`):
+                    bittensor forward call object.
+        """
+        raise NotImplementedError('Must implement pre_process_forward_call_to_request_proto() in subclass.')
+    
+    def post_process_response_proto_to_forward_call( 
+            self, 
+            forward_call: bittensor.ForwardCall,
+            response_proto: 'bittensor.ForwardResponse'
+        ) -> bittensor.ForwardCall:
+        """ Postprocesses the response proto to fill forward call.
+            --------------------------------------------
+            Args:
+                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                    bittensor forward call object to fill.
+                response_proto (:obj:`bittensor.ForwardResponse`, `required`):
+                    bittensor forward response proto.
+            Returns:
+                forward_call (:obj:`bittensor.ForwardCall`, `required`):
+                    filled bittensor forward call object.
+        """
+        raise NotImplementedError('Must implement post_process_response_proto_to_forward_call() in subclass.')
+    
 
-    def _forward( self, call_state: 'call.ForwardCall' ) -> 'call.ForwardCall':
+    def _forward( self, forward_call: 'bittensor.ForwardCall' ) -> 'bittensor.ForwardCall':
         """ Forward call to remote endpoint."""
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete( self.async_forward( call_state = call_state ) )
-    
-    async def async_forward( self, forward_call: 'call.ForwardCall' ) -> 'call.ForwardCall':
+        return loop.run_until_complete( self.async_forward( forward_call = forward_call ) )
+
+    async def async_forward( self, forward_call: 'bittensor.ForwardCall' ) -> 'bittensor.ForwardCall':
         """ The function async_forward is a coroutine function that makes an RPC call 
             to a remote endpoint to perform a forward pass. It uses a ForwardCall object which it fills 
             using the subclass inherited functions _fill_forward_request and _process_forward_response.
@@ -69,20 +102,23 @@ class Dendrite(torch.nn.Module):
 
             The function also logs the request and response messages using bittensor.logging.rpc_log.
             Args:
-                forward_call (:obj:call.ForwardCall, required): 
+                forward_call (:obj:bittensor.ForwardCall, required): 
                     The ForwardCall object containing the request to be made to the remote endpoint.
             Returns:
-                forward_call (:obj:call.ForwardCall, required):
+                forward_call (:obj:bittensor.ForwardCall, required):
                     The ForwardCall object containing the response from the remote endpoint.
         """
         forward_call.endpoint = self.endpoint
+        forward_call.hotkey = self.endpoint.hotkey
+        forward_call.version = bittensor.__version_as_int__
+
         try:
-            forward_call.request_proto = forward_call.to_forward_request_proto()
+            forward_call.request_proto = self.pre_process_forward_call_to_request_proto( forward_call = forward_call )
         except Exception as e:
             forward_call.request_code = bittensor.proto.ReturnCode.RequestSerializationException
             forward_call.request_message = str(e)
         finally:
-            # Log request
+            # Log accepted request
             bittensor.logging.rpc_log ( 
                 axon = False, 
                 forward = True, 
@@ -96,14 +132,13 @@ class Dendrite(torch.nn.Module):
                 message = forward_call.request_message,
                 synapse = self.__str__()
             )
-            # Optionall return.
+            # Optionally return.
             if forward_call.request_code != bittensor.proto.ReturnCode.Success:
                 forward_call.end_time = time.time()
                 return forward_call
 
-        # ==================
-        # ==== Response ====
-        # ==================
+   
+        # Make the call and wait for response.
         try:
             # Make asyncio call.
             asyncio_future = self._stub_callable()(
@@ -117,18 +152,23 @@ class Dendrite(torch.nn.Module):
         
             # Wait for response.
             forward_call.response_proto = await asyncio.wait_for( asyncio_future, timeout = forward_call.timeout )
-        
+
             # Process response.
-            forward_call.from_forward_response_proto( forward_call.response_proto )
+            forward_call = self.post_process_response_proto_to_forward_call( 
+                forward_call = forward_call, 
+                response_proto = forward_call.response_proto 
+            )
 
         except grpc.RpcError as rpc_error_call:
             # Request failed with GRPC code.
             forward_call.response_code = rpc_error_call.code()
             forward_call.response_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
         except asyncio.TimeoutError:
+            # Catch timeout errors.
             forward_call.response_code = bittensor.proto.ReturnCode.Timeout
             forward_call.response_message = 'GRPC request timeout after: {}s'.format( forward_call.timeout)
         except Exception as e:
+            # Catch unknown errors.
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
             forward_call.response_message = str(e)
         finally:
