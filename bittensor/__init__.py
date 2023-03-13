@@ -182,24 +182,20 @@ from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
 
-# ---- Synapse Servicers -----
-from bittensor._proto.bittensor_pb2_grpc import TextLastHiddenStateServicer
-from bittensor._proto.bittensor_pb2_grpc import TextSeq2SeqServicer
-
 # ---- Calls -----
 from bittensor._synapse.call import ForwardCall
-from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
 from bittensor._synapse.text_seq2seq.call import TextSeq2SeqForwardCall 
+from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
 
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
-from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
 from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
+from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
 
 # ---- Dendrites -----
 from bittensor._synapse.dendrite import Dendrite
-from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
 from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text_seq2seq
+from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
 
 
 # DEFAULTS
