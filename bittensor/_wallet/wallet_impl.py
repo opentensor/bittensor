@@ -91,11 +91,10 @@ class Wallet():
         return neuron.trust
 
     def validator_trust(self, netuid: int) -> Optional[float]:
-        raise NotImplementedError
-        # neuron = self.get_neuron(netuid=netuid)
-        # if neuron is None:
-        #     return None
-        # return neuron.validator_trust
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.validator_trust
 
     def rank(self, netuid: int) -> Optional[float]:
         neuron = self.get_neuron(netuid=netuid)
@@ -120,13 +119,6 @@ class Wallet():
         if neuron is None:
             return None
         return neuron.consensus
-
-    def weight_consensus(self, netuid: int) -> Optional[float]:
-        raise NotImplementedError
-        # neuron = self.get_neuron(netuid=netuid)
-        # if neuron is None:
-        #     return None
-        # return neuron.weight_consensus
 
     def last_update(self, netuid: int) -> Optional[int]:
         neuron = self.get_neuron(netuid=netuid)

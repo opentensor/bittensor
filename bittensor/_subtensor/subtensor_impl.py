@@ -914,7 +914,6 @@ class Subtensor:
             incentive = 0,
             consensus = 0,
             trust = 0,
-            weight_consensus = 0,
             validator_trust = 0,
             dividends = 0,
             last_update = 0,
