@@ -84,6 +84,8 @@ class serializer:
             dtype = bittensor.proto.DataType.INT64
         elif tdtype == torch.float16:
             dtype = bittensor.proto.DataType.FLOAT16
+        elif tdtype == torch.bool:
+            dtype = bittensor.proto.DataType.BOOL
         else:
             dtype = bittensor.proto.DataType.UNKNOWN
         return dtype
@@ -108,6 +110,8 @@ class serializer:
             dtype=torch.int64
         elif bdtype == bittensor.proto.DataType.FLOAT16:
             dtype=torch.float16
+        elif bdtype == bittensor.proto.DataType.BOOL:
+            dtype=torch.bool
         else:
             raise bittensor.serializer.DeserializationException(
                 'Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}'

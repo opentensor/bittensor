@@ -20,6 +20,10 @@ import bittensor
 
 class TextSeq2SeqBittensorCall( bittensor.BittensorCall ):
     """ Call state for the text_seq_to_seq synapse."""
+
+    # Name of the synapse
+    name: str = 'text_seq2seq'
+
     def __init__( 
             self, 
             text_prompt: torch.LongTensor, 

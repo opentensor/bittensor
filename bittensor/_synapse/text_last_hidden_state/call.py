@@ -20,10 +20,16 @@ import bittensor
 
 class TextLastHiddenStateBittensorCall( bittensor.BittensorCall ):
     """ Call state for the text_last_hidden_state synapse."""
+
+    # The name of the synapse call.
+    name: str = 'text_last_hidden_state'
+    
     def __init__( 
             self, 
             text_inputs: torch.LongTensor, 
+            mask: torch.BoolTensor,
             timeout: float = bittensor.__blocktime__,
+            mask_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             text_inputs_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             hidden_states_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
         ):
@@ -31,8 +37,12 @@ class TextLastHiddenStateBittensorCall( bittensor.BittensorCall ):
             Args:
                 text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
                     torch tensor of text inputs.
+                mask (:obj:`torch.BoolTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
+                    Mask over hidden states to be returned.
                 timeout (:obj:`float`, `optional`, defaults to 5 seconds):  
                     timeout for the forward call.
+                mask_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+                    serializer type for mask.
                 text_inputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for text inputs.
                 hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
@@ -45,7 +55,9 @@ class TextLastHiddenStateBittensorCall( bittensor.BittensorCall ):
             timeout = timeout
         )
         self.text_inputs = text_inputs
+        self.mask = mask
         self.hidden_states = torch.zeros( text_inputs.shape[0], text_inputs.shape[1], bittensor.__network_dim__ )
+        self.mask_serializer_type = mask_serializer_type
         self.text_inputs_serializer_type = text_inputs_serializer_type
         self.hidden_states_serializer_type = hidden_states_serializer_type
 
