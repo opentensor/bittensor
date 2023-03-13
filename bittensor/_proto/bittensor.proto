@@ -1,11 +1,12 @@
 // python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=. --proto_path bittensor/_proto/
 syntax = "proto3";
 
-service Bittensor {
-	// Forward calls.
-    rpc ForwardTextLastHiddenState (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
-	rpc ForwardTextCausalLMNext (ForwardTextCausalLMRequest) returns (ForwardTextCausalLMResponse) {}
-    rpc ForwardTextSeq2Seq (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
+service TextLastHiddenState {
+	rpc Forward (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
+}
+
+service TextSeq2Seq  {
+	rpc Forward (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
 }
 
 /////////////////

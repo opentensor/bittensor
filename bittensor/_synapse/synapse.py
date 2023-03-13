@@ -17,10 +17,11 @@
 
 import os
 import time
+import grpc
 import bittensor
 import argparse
 
-class Synapse( bittensor.grpc.BittensorServicer ):
+class Synapse:
 
     def __init__( 
             self, 
@@ -79,10 +80,6 @@ class Synapse( bittensor.grpc.BittensorServicer ):
 
     def __str__(self):
         return "synapse"
-    
-    def _attach( self, axon: 'bittensor.axon.Axon' ):
-        """ _attach: Attaches the synapse to the axon."""
-        bittensor.grpc.add_BittensorServicer_to_server( self, axon.server )
 
     # Instance priority called by subclass priority which is called by super priority.
     def priority( self, forward_call: bittensor.BittensorCall ) -> float:
@@ -188,18 +185,32 @@ class Synapse( bittensor.grpc.BittensorServicer ):
         """
         raise NotImplementedError('Must implement post_process_forward_call_to_response_proto() in subclass.')
         
-    def _Forward(
+    def Forward( 
             self, 
-            request_proto: 'bittensor.ForwardRequest' 
+            request: 'bittensor.ForwardRequest', 
+            context: grpc.ServicerContext 
         ) -> 'bittensor.ForwardResponse':
+        """ ForwardTextLastHiddenState
+            ----------------------------
+            Args:
+                request (bittensor.ForwardRequest): 
+                    request.version (int): version of the caller.
+                    request.hotkey (string): hotkey of the neuron.
+                    request.timeout (float): timeout for the request.
+                context (grpc.ServicerContext):
+                    grpc tcp context.
+            Returns:
+                response (bittensor.ForwardResponse): 
+                    response.serialized_hidden_states (string): serialized hidden states.
+        """
 
         # Build forward call.
-        forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request_proto )
-        forward_call.hotkey = request_proto.hotkey
+        forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request )
+        forward_call.hotkey = request.hotkey
         forward_call.start_time = time.time()
-        forward_call.timeout = request_proto.timeout
-        forward_call.version = request_proto.version
-        
+        forward_call.timeout = request.timeout
+        forward_call.version = request.version
+
         try:
             # Check blacklist.
             if self.__blacklist( forward_call ): raise Exception('Blacklisted')

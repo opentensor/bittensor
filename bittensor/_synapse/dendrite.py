@@ -51,9 +51,9 @@ class Dendrite(torch.nn.Module):
         """ Returns the name of the dendrite."""
         return "Dendrite"
 
-    def _stub_callable( self ) -> Callable:
-        """ Returns the stub callable for the dendrite. """
-        raise NotImplementedError('Dendrite._stub_callable() not implemented.')
+    def get_stub( self ) -> object:
+        """ Returns the channel stub for the dendrite. """
+        raise NotImplementedError('Dendrite.get_forward_stub() not implemented.')
     
     def pre_process_forward_call_to_request_proto( 
             self, 
@@ -142,7 +142,7 @@ class Dendrite(torch.nn.Module):
         # Make the call and wait for response.
         try:
             # Make asyncio call.
-            asyncio_future = self._stub_callable()(
+            asyncio_future = self.get_stub( self.receptor.channel).Forward(
                 request = forward_call.request_proto,
                 timeout = forward_call.timeout,
                 metadata = (

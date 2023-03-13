@@ -63,7 +63,6 @@ class receptor:
             options=[('grpc.max_send_message_length', grpc_max_send_message_length),
                      ('grpc.max_receive_message_length', grpc_max_receive_message_length),
                      ('grpc.keepalive_time_ms', grpc_keepalive_time_ms)])
-        self.stub = bittensor.grpc.BittensorStub( self.channel )
         self.receptor_uid = str(uuid.uuid1())
         self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
 
