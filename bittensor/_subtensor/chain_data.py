@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Dict
 import bittensor
 from bittensor import Balance
-import scalecodec
+import json
 import torch
 
 
@@ -27,6 +27,14 @@ import torch
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
+
+def json_from_vec_u8( vec_u8: List[int] ) -> Dict:
+    r""" Returns a json dictionary from a bytes object.
+    """
+    as_bytes = bytes(vec_u8)
+    as_json_str = as_bytes.decode('utf-8')
+    as_json = json.loads(as_json_str)
+    return as_json
 
 # Dataclasses for chain data.
 @dataclass
@@ -56,6 +64,20 @@ class NeuronInfo:
     prometheus_info: 'PrometheusInfo'
     axon_info: 'AxonInfo'
     is_null: bool = False
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> 'NeuronInfo':
+        r""" Returns a NeuronInfo object from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        return NeuronInfo.from_json(json)
+    
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['NeuronInfo']:
+        r""" Returns a list of NeuronInfo objects from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        return [NeuronInfo.from_json(neuron) for neuron in json]
 
     @classmethod
     def from_json(cls, json: Dict) -> 'NeuronInfo':
@@ -195,6 +217,20 @@ class DelegateInfo:
     take: float # Take of the delegate as a percentage
 
     @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> 'DelegateInfo':
+        r""" Returns a DelegateInfo object from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        return DelegateInfo.from_json(json)
+    
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['DelegateInfo']:
+        r""" Returns a list of DelegateInfo objects from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        return [DelegateInfo.from_json(delegate) for delegate in json]
+
+    @classmethod
     def from_json(cls, json: Dict) -> 'DelegateInfo':
         r""" Returns a DelegateInfo object from a json dictionary.
         """
@@ -242,6 +278,20 @@ class SubnetInfo:
     modality: int
     connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> 'SubnetInfo':
+        r""" Returns a SubnetInfo object from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        return SubnetInfo.from_json(json)
+    
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['SubnetInfo']:
+        r""" Returns a list of SubnetInfo objects from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        return [SubnetInfo.from_json(subnet) for subnet in json]
 
     @classmethod
     def from_json(cls, json: Dict) -> 'SubnetInfo':

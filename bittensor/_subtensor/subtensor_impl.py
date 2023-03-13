@@ -633,7 +633,7 @@ class Subtensor:
         if result == None:
             return []
         
-        return [ SubnetInfo.from_json(subnet_info) for subnet_info in result ]
+        return SubnetInfo.list_from_vec_u8( result )
 
     def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -654,7 +654,7 @@ class Subtensor:
         if result == None:
             return None
         
-        return SubnetInfo.from_json(result)
+        return SubnetInfo.from_vec_u8( result )
         
     ####################
     #### Nomination ####
@@ -688,10 +688,12 @@ class Subtensor:
         hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( hotkey_ss58 )
         encoded_hotkey: List[int] = [ int( byte ) for byte in hotkey_bytes ]
         json_body = make_substrate_call_with_retry(encoded_hotkey)
-        if json_body['result'] == None:
+        result = json_body['result']
+
+        if result == None:
             return None
             
-        return DelegateInfo.from_json( json_body['result'] )
+        return DelegateInfo.from_vec_u8( result )
 
     def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -706,10 +708,12 @@ class Subtensor:
                     params=params
                 )
         json_body = make_substrate_call_with_retry()
-        if json_body['result'] == None:
+        result = json_body['result']
+
+        if result == None:
             return []
 
-        return [DelegateInfo.from_json( delegate ) for delegate in json_body['result']]
+        return DelegateInfo.list_from_vec_u8( result )
 
 
     ########################################
@@ -781,7 +785,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         if json_body['result'] == None:
             return NeuronInfo._null_neuron()
-        return NeuronInfo.from_json( json_body['result'] ) 
+        return NeuronInfo.from_vec_u8( json_body['result'] ) 
 
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 
@@ -809,7 +813,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
         
-        return [ NeuronInfo.from_json( neuron ) for neuron in result ]
+        return NeuronInfo.list_from_vec_u8( result )
 
     def metagraph( self, netuid: int, block: Optional[int] = None ) -> 'bittensor.Metagraph':
         r""" Returns the metagraph for the subnet.
