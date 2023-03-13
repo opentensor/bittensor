@@ -5,7 +5,7 @@ import call
 bittensor.logging(debug=True)
 
 # Create a mock wallet.
-wallet = bittensor.wallet( name = 'floppy', hotkey = '3')
+wallet = bittensor.wallet().create_if_non_existent()
 
 # Create a local endpoint receptor grpc connection.
 local_endpoint = bittensor.endpoint(
