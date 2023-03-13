@@ -18,25 +18,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
 import os
 import copy
-import inspect
-import time
-from concurrent import futures
-from typing import Dict, List, Callable, Optional, Tuple, Union
-from bittensor._threadpool import prioritythreadpool
-
-import torch
 import grpc
-from substrateinterface import Keypair
-
+import argparse
 import bittensor
-from . import axon_impl
+
+from concurrent import futures
+from substrateinterface import Keypair
+from typing import Dict, List, Callable, Optional, Tuple, Union
 
 class axon:
-    """ The factory class for bittensor.Axon object
-    The Axon is a grpc server for the bittensor network which opens up communication between it and other neurons.    
+    """ Encapsulates a bittensor grpc server that services forward and backward requests from other neurons.
     Examples:: 
             >>> wallet = bittensor.wallet()
             >>> axon = bittensor.axon( config = bittensor.axon.config() )
@@ -47,12 +40,10 @@ class axon:
             >>> axon.start()
     """
 
-    def __new__(
-            cls,
+    def __init__(
+            self,
             config: Optional['bittensor.config'] = None,
             wallet: Optional['bittensor.Wallet'] = None,
-            thread_pool: Optional['futures.ThreadPoolExecutor'] = None,
-            server: Optional['grpc._Server'] = None,
             port: Optional[int] = None,
             ip: Optional[str] = None,
             external_ip: Optional[str] = None,
@@ -67,10 +58,6 @@ class axon:
                     bittensor.axon.config()
                 wallet (:obj:`Optional[bittensor.Wallet]`, `optional`):
                     bittensor wallet with hotkey and coldkeypub.
-                thread_pool (:obj:`Optional[ThreadPoolExecutor]`, `optional`):
-                    Threadpool used for processing server queries.
-                server (:obj:`Optional[grpc._Server]`, `required`):
-                    Grpc server endpoint, overrides passed threadpool.
                 port (:type:`Optional[int]`, `optional`):
                     Binding port.
                 ip (:type:`Optional[str]`, `optional`):
@@ -86,6 +73,8 @@ class axon:
                 blacklist (:obj:`Optional[callable]`, `optional`):
                     function to blacklist requests.
         """   
+
+        # Build and check config.
         if config == None: 
             config = axon.config()
         config = copy.deepcopy(config)
@@ -96,31 +85,39 @@ class axon:
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         axon.check_config( config )
-        if wallet == None:
-            wallet = bittensor.wallet( config = config )
-        if thread_pool == None:
-            thread_pool = futures.ThreadPoolExecutor( max_workers = config.axon.max_workers )
-        if server == None:
-            receiver_hotkey = wallet.hotkey.ss58_address
-            server = grpc.server( 
-                thread_pool,
-                interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist),),
-                maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
-                options = [('grpc.keepalive_time_ms', 100000),
-                            ('grpc.keepalive_timeout_ms', 500000)]
-            )
-            full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
-            server.add_insecure_port( full_address )
+        self.config = config
 
-        return axon_impl.Axon(
-            wallet = wallet, 
-            server = server,
-            ip = config.axon.ip,
-            port = config.axon.port,
-            external_ip = config.axon.external_ip, # don't use internal ip if it is None, we will try to find it later
-            external_port = config.axon.external_port or config.axon.port, # default to internal port if external port is not set
+        # Build axon objects.
+        if wallet == None: wallet = bittensor.wallet( config = self.config )
+        self.wallet = wallet
+
+        # Build axon objects.
+        self.ip = self.config.axon.ip
+        self.port = self.config.axon.port
+        self.external_ip = self.config.axon.external_ip
+        self.external_port = self.config.axon.external_port or self.config.axon.port
+        self.full_address = str( self.config.axon.ip ) + ":" + str( self.config.axon.port )
+        self.blacklist = blacklist
+        self.started = False  
+
+        # Synapse storage.
+        self.synapses: List[ bittensor.Synapse ] = []
+
+        # Build interceptor.
+        self.receiver_hotkey = self.wallet.hotkey.ss58_address
+        self.auth_interceptor = AuthInterceptor( receiver_hotkey = self.receiver_hotkey, blacklist = self.blacklist )
+
+        # Build grpc server
+        self.thread_pool = futures.ThreadPoolExecutor( max_workers = self.config.axon.max_workers )
+        self.server = grpc.server( 
+            self.thread_pool,
+            interceptors=( self.auth_interceptor, ),
+            maximum_concurrent_rpcs = self.config.axon.maximum_concurrent_rpcs,
+            options = [('grpc.keepalive_time_ms', 100000),
+                        ('grpc.keepalive_timeout_ms', 500000)]
         )
-
+        self.server.add_insecure_port( self.full_address )
+      
     @classmethod   
     def config(cls) -> 'bittensor.Config':
         """ Get config from the argument parser
@@ -183,6 +180,41 @@ class axon:
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
         assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
         bittensor.wallet.check_config( config )
+
+    def attach( self, synapse: 'bittensor.Synapse' ) -> 'bittensor.axon':
+        r""" Attaches a synapse to this axon.
+        """
+        synapse._attach( axon = self )
+        # Should be a dict and check existance.
+        self.synapses.append( synapse )
+        return self
+
+    def __str__(self) -> str:
+        return "Axon({}, {}, {}, {})".format( self.ip, self.port, self.wallet.hotkey.ss58_address, "started" if self.started else "stopped")
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __del__(self):
+        r""" Called when this axon is deleted, ensures background threads shut down properly.
+        """
+        self.stop()
+
+    def start(self) -> 'bittensor.axon':
+        r""" Starts the standalone axon GRPC server thread.
+        """
+        if self.server != None:
+            self.server.stop( grace = 1 )  
+        self.server.start()
+        self.started = True
+        return self
+
+    def stop(self) -> 'bittensor.axon':
+        r""" Stop the axon grpc server.
+        """
+        if self.server != None:
+            self.server.stop( grace = 1 )
+        self.started = False
 
 class AuthInterceptor(grpc.ServerInterceptor):
     """Creates a new server interceptor that authenticates incoming messages from passed arguments."""

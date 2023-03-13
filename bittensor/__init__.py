@@ -157,7 +157,6 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from bittensor._axon.axon_impl import Axon as Axon
 from bittensor._subtensor.chain_data import AxonInfo as AxonInfo
 from bittensor._config.config_impl import Config as Config
 from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
