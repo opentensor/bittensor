@@ -16,8 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import grpc
-import torch
+import copy
 import bittensor
 import argparse
 
@@ -32,11 +31,12 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
             config: 'bittensor.Config' = None, 
             metagraph: 'bittensor.metagraph.Metagraph' = None
         ):
-        if config == None: config = bittensor.config()
+        if config == None: config = TextLastHiddenStateSynapse.config()
         TextLastHiddenStateSynapse.check_config( config )
         super().__init__( config, metagraph )
-        self.config = config
+        self.config = copy.deepcopy(config)
         self.metagraph = metagraph
+        self.priority_threadpool = bittensor.prioritythreadpool( config = config.synapse.text_last_hidden_state )
 
     def __str__(self):
         return 'TextLastHiddenState'
@@ -54,6 +54,7 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
         """
         prefix_str = '' if prefix == None else prefix + '.'
         super().add_args( parser = parser, prefix = prefix )
+        bittensor.prioritythreadpool.add_args( parser, prefix = prefix_str + 'synapse.text_last_hidden_state' )
         try:
             parser.add_argument('--' + prefix_str + 'synapse.text_last_hidden_state.blacklist.stake', type=float, help='The amount of stake (tao) required to make a call.', default=10)
             parser.add_argument('--' + prefix_str + 'synapse.text_last_hidden_state.blacklist.allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=True)
@@ -113,27 +114,23 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
 
         # Call subclass blacklist and optionaly return if metagraph is None.
         try:
-            subclass_blacklist = self.blacklist( forward_call )
+            instance_blacklist = self.blacklist( forward_call )
         except:
-            # subclass_blacklist not implemented.
-            subclass_blacklist = False
-        if subclass_blacklist:
-            return subclass_blacklist
-        elif self.metagraph == None:
-            return subclass_blacklist
+            instance_blacklist = False
+        if self.metagraph == None: return instance_blacklist
 
         # Check for registration
         def registration_check():
             is_registered = forward_call.hotkey in self.metagraph.hotkeys
             if not is_registered:
-                if self.config.synapse.text_seq2seq.blacklist.allow_non_registered:
+                if self.config.synapse.text_last_hidden_state.blacklist.allow_non_registered:
                     return False
                 raise Exception('Registration blacklist')
 
         # Blacklist based on stake.
         def stake_check() -> bool:
             uid = self.metagraph.hotkeys.index( forward_call.hotkey )
-            if self.metagraph.S[uid].item() < self.config.synapse.text_seq2seq.blacklist.stake:
+            if self.metagraph.S[uid].item() < self.config.synapse.text_last_hidden_state.blacklist.stake:
                 raise Exception('Stake blacklist')
             return False
 
@@ -141,7 +138,7 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
         try:
             registration_check()
             stake_check()            
-            return False
+            return instance_blacklist
         except Exception as e:
             return True
 

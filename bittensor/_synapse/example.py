@@ -31,7 +31,7 @@ class TS2SSynapse( bittensor.TextSeq2SeqSynapse ):
         return forward_call
     
 # Create a synapse that returns zeros.
-class TLHSSynapse(bittensor.TextLastHiddenStateSynapse):
+class TLHSSynapse( bittensor.TextLastHiddenStateSynapse ):
     def priority(self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> float:
         return 0.0
     
@@ -42,9 +42,14 @@ class TLHSSynapse(bittensor.TextLastHiddenStateSynapse):
         forward_call.hidden_states = torch.zeros( forward_call.text_inputs.shape[0], forward_call.text_inputs.shape[1], bittensor.__network_dim__ )
         return forward_call
     
+config = bittensor.config()
+config.merge( TLHSSynapse.config() )
+config.merge( TS2SSynapse.config() )
+print ( config )
+
 # Create a synapss.
-synapse_s2s = TS2SSynapse()
-synapse_tlhs = TLHSSynapse()
+synapse_s2s = TS2SSynapse( config = config )
+synapse_tlhs = TLHSSynapse( config = config )
 
 # Create an axon and attach the synapse.
 axon = bittensor.axon( wallet = wallet, port = 9090, ip = '127.0.0.1' )

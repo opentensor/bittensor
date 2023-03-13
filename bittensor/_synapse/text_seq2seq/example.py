@@ -23,7 +23,7 @@ class Synapse( bittensor.TextSeq2SeqSynapse ):
     def priority(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
         return 0.0
     
-    def blacklist(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> torch.FloatTensor:
+    def blacklist(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> bool:
         return False
     
     def forward(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> 'bittensor.TextSeq2SeqBittensorCall':
