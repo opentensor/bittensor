@@ -108,12 +108,13 @@ class Dendrite(torch.nn.Module):
                 forward_call (:obj:bittensor.BittensorCall, required):
                     The BittensorCall object containing the response from the remote endpoint.
         """
-        forward_call.endpoint = self.endpoint
-        forward_call.hotkey = self.endpoint.hotkey
+        forward_call.hotkey = self.wallet.hotkey.ss58_address
         forward_call.version = bittensor.__version_as_int__
-
         try:
             forward_call.request_proto = self.pre_process_forward_call_to_request_proto( forward_call = forward_call )
+            forward_call.request_proto.hotkey = self.wallet.hotkey.ss58_address
+            forward_call.request_proto.version = bittensor.__version_as_int__
+            forward_call.request_proto.timeout = forward_call.timeout
         except Exception as e:
             forward_call.request_code = bittensor.proto.ReturnCode.RequestSerializationException
             forward_call.request_message = str(e)

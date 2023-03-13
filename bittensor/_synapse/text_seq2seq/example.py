@@ -27,6 +27,7 @@ class Synapse( bittensor.TextSeq2SeqSynapse ):
         return False
     
     def forward(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> 'bittensor.TextSeq2SeqBittensorCall':
+        print (forward_call)
         forward_call.generations = torch.zeros( forward_call.text_prompt.shape[0], forward_call.text_prompt.shape[1], bittensor.__network_dim__ )
         return forward_call
     
@@ -57,6 +58,7 @@ response = module(
     text_prompt_serializer_type = bittensor.proto.Serializer.MSGPACK,
     generations_serializer_type = bittensor.proto.Serializer.MSGPACK
 )
+print (response)
 
 # Delete objects.
 del axon

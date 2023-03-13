@@ -188,8 +188,18 @@ class Synapse( bittensor.grpc.BittensorServicer ):
         """
         raise NotImplementedError('Must implement post_process_forward_call_to_response_proto() in subclass.')
         
-    def _Forward( self, request_proto: 'bittensor.ForwardRequest' ) -> 'bittensor.BittensorCall':
+    def _Forward(
+            self, 
+            request_proto: 'bittensor.ForwardRequest' 
+        ) -> 'bittensor.ForwardResponse':
+
+        # Build forward call.
         forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request_proto )
+        forward_call.hotkey = request_proto.hotkey
+        forward_call.start_time = time.time()
+        forward_call.timeout = request_proto.timeout
+        forward_call.version = request_proto.version
+        
         try:
             # Check blacklist.
             if self.__blacklist( forward_call ): raise Exception('Blacklisted')
