@@ -73,6 +73,18 @@ def prometheus_extrinsic(
         'ip_type': net.ip_version(external_ip),
     }
 
+    with bittensor.__console__.status(":satellite: Checking Prometheus..."):
+        neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
+        neuron_up_to_date = not neuron.is_null and call_params == {
+            'version': neuron.prometheus_info.version,
+            'ip': net.ip_to_int(neuron.prometheus_info.ip),
+            'port': neuron.prometheus_info.port,
+            'ip_type': neuron.prometheus_info.ip_type,
+        }
+
+    if neuron_up_to_date:
+        return True
+
     with bittensor.__console__.status(":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
         with subtensor.substrate as substrate:
             call = substrate.compose_call(
