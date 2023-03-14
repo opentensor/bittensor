@@ -39,8 +39,9 @@ class NeuronInfo:
     uid: int
     netuid: int
     active: int    
+    stake: Balance
     # mapping of coldkey to amount staked to this Neuron
-    stake: Dict[str, Balance]
+    stake_dict: Dict[str, Balance]
     total_stake: Balance
     rank: float
     emission: float
@@ -67,7 +68,8 @@ class NeuronInfo:
             uid = json['uid'],
             netuid = json['netuid'],
             active = int(json['active']), # 0 or 1
-            stake = { bittensor.utils.u8_key_to_ss58(stake[0]['id']): Balance.from_rao(stake[1]) for stake in json['stake']},
+            stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
+            stake_dict = { bittensor.utils.u8_key_to_ss58(stake[0]['id']): Balance.from_rao(stake[1]) for stake in json['stake']},
             total_stake = Balance.from_rao(sum([stake for _, stake in json['stake']])),
             rank = json['rank'] / U16_MAX,
             emission = json['emission'] / RAOPERTAO,
@@ -90,7 +92,8 @@ class NeuronInfo:
             uid = 0,
             netuid = 0,
             active =  0,
-            stake = {},
+            stake = Balance.from_rao(0),
+            stake_dict = {},
             total_stake = Balance.from_rao(0),
             rank = 0,
             emission = 0,
@@ -118,8 +121,9 @@ class NeuronInfo:
             return NeuronInfo._null_neuron()
         else:
             neuron = NeuronInfo( **neuron_dict )
-            neuron.stake = { hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items() }
-            neuron.total_stake = Balance.from_rao(neuron.total_stake)
+            neuron.stake = Balance.from_rao(neuron.total_stake)
+            neuron.stake_dict = { hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items() }
+            neuron.total_stake = neuron.stake
             neuron.rank = neuron.rank / U16_MAX
             neuron.trust = neuron.trust / U16_MAX
             neuron.consensus = neuron.consensus / U16_MAX

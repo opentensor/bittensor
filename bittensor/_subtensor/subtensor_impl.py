@@ -825,7 +825,8 @@ class Subtensor:
         """
         status: Optional['rich.console.Status'] = None
         if bittensor.__use_console__:
-            status = bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth").start()
+            status = bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth")
+            status.start()
         
         # Get neurons.
         neurons = self.neurons( netuid = netuid, block = block )
