@@ -9,7 +9,7 @@ service TextLastHiddenState {
 service TextSeq2Seq  {
 	rpc Forward (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
 }
-
+ 
 /////////////////
 // TextSeq2Seq //
 /////////////////

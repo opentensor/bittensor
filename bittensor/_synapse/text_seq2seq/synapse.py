@@ -28,12 +28,22 @@ class TextSeq2SeqSynapse( bittensor.Synapse, bittensor.grpc.TextSeq2SeqServicer 
 
     def __init__(
             self, 
+            wallet: 'bittensor.Wallet',
             config: 'bittensor.Config' = None, 
             metagraph: 'bittensor.metagraph.Metagraph' = None,
         ):
+        """ __init__: Initializes the synapse.
+            Args:
+                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+                    bittensor wallet object.
+                config (:obj:`bittensor.Config`, `optional`):
+                    bittensor config object.
+                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`):
+                    bittensor metagraph object.
+        """
         if config == None: config = TextSeq2SeqSynapse.config()
         TextSeq2SeqSynapse.check_config( config )
-        super().__init__( config, metagraph )
+        super().__init__( wallet, config, metagraph )
         self.config = copy.deepcopy(config)
         self.metagraph = metagraph
         self.priority_threadpool = bittensor.prioritythreadpool( config = config.synapse.text_seq2seq )

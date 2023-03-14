@@ -31,13 +31,13 @@ class Synapse( bittensor.TextSeq2SeqSynapse ):
         return forward_call
     
 # Create a synapse and attach it to an axon.
-synapse = Synapse()
+synapse = Synapse( wallet = wallet )
 axon = bittensor.axon( wallet = wallet, port = 9090, ip = '127.0.0.1' )
 axon.attach( synapse = synapse )
 axon.start()
 
 # Create a text_last_hidden_stsate module and call it.
-module = bittensor.text_seq2seq( endpoint = local_endpoint, wallet = wallet )
+module = bittensor.text_seq2seq( wallet = wallet, endpoint = local_endpoint )
 response = module( 
     text_prompt = torch.ones( ( 1, 1 ), dtype = torch.long ),
     timeout = 1,

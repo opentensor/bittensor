@@ -26,11 +26,14 @@ class Synapse:
 
     def __init__( 
             self, 
+            wallet: 'bittensor.wallet.Wallet',
             config: 'bittensor.Config' =  None, 
-            metagraph: 'bittensor.metagraph.Metagraph' = None
+            metagraph: 'bittensor.metagraph.Metagraph' = None,
         ):
         """ Initializes a new Synapse.
             Args:
+                wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+                    bittensor wallet object.
                 config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.config()):
                     bittensor config object.
                 metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, defaults to bittensor.metagraph.Metagraph()):
@@ -39,6 +42,7 @@ class Synapse:
         if config == None: config = Synapse.config()
         Synapse.check_config( config )
         self.config = copy.deepcopy(config)
+        self.wallet = wallet
         self.metagraph = metagraph
 
     @classmethod
@@ -150,8 +154,11 @@ class Synapse:
         except Exception as e:
             return True
 
-    def forward(self, forward_call: bittensor.BittensorCall ) -> bittensor.BittensorCall:
+    def forward(self, forward_call: 'bittensor.BittensorCall' ) -> bittensor.BittensorCall:
         raise NotImplementedError('Must implement forward() in subclass.')
+    
+    def backward( self, backward_call: 'bittensor.BittensorCall' ):
+        raise NotImplementedError('Must implement backward() in subclass.')
     
     def pre_process_request_proto_to_forward_call( 
             self, 
@@ -197,6 +204,21 @@ class Synapse:
                     response proto processed from the forward call.
         """
         raise NotImplementedError('Must implement post_process_forward_call_to_response_proto() in subclass.')
+    
+    def post_process_backward_call_to_response_proto( 
+            self, 
+            forward_call: 'bittensor.BittensorCall' 
+        ) -> 'bittensor.BackwardResponse':
+        """ post_process_forward_call_to_response_proto
+            --------------------------------------------
+            Args:
+                forward_call (bittensor.BittensorCall):
+                    backward_call to process in to a response proto.
+            Returns:    
+                response (bittensor.BackwardResponse):
+                    response proto processed from the forward call.
+        """
+        raise NotImplementedError('Must implement post_process_backward_call_to_response_proto() in subclass.')
         
     def Forward( 
             self, 
@@ -216,15 +238,14 @@ class Synapse:
                 response (bittensor.ForwardResponse): 
                     response.serialized_hidden_states (string): serialized hidden states.
         """
-
-        # Build forward call.
-        forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request )
-        forward_call.hotkey = request.hotkey
-        forward_call.start_time = time.time()
-        forward_call.timeout = request.timeout
-        forward_call.version = request.version
-
         try:
+            # Build forward call.
+            forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request )
+            forward_call.hotkey = request.hotkey
+            forward_call.start_time = time.time()
+            forward_call.timeout = request.timeout
+            forward_call.version = request.version
+            
             # Check blacklist.
             if self._blacklist( forward_call ): raise Exception('Blacklisted')
             # Get priority.
@@ -255,7 +276,10 @@ class Synapse:
                 synapse = self.__str__()
             )
             if forward_call.request_code != bittensor.proto.ReturnCode.Success:
-                return self.post_process_forward_call_to_response_proto( forward_call )
+                response = self.post_process_forward_call_to_response_proto( forward_call )
+                response.hotkey = self.wallet.hotkey.ss58_address
+                response.version = bittensor.__version_as_int__
+                return response
 
         # Do forward.
         try:
@@ -280,14 +304,17 @@ class Synapse:
                 message = forward_call.response_message,
                 synapse = self.__str__()
             )
-            return self.post_process_forward_call_to_response_proto( forward_call )
-        
+            response = self.post_process_forward_call_to_response_proto( forward_call )
+            response.hotkey = self.wallet.hotkey.ss58_address
+            response.version = bittensor.__version_as_int__
+            return response
+
 
     def Backward( 
             self, 
             request: 'bittensor.BackwardRequest', 
             context: grpc.ServicerContext 
-        ):
+        ) -> 'bittensor.ForwardResponse':
         """ ForwardTextLastHiddenState
             ----------------------------
             Args:
@@ -296,21 +323,24 @@ class Synapse:
                     request.hotkey (string): hotkey of the neuron.
                 context (grpc.ServicerContext):
                     grpc tcp context.
-        """
-        print ('backward')
-        # Build backward call.
-        backward_call = self.pre_process_request_proto_to_backward_call( request_proto = request )
-        backward_call.hotkey = request.hotkey
-        backward_call.start_time = time.time()
-        backward_call.version = request.version
+            Returns:
+                response (bittensor.BackwardResponse): 
+                    response from the backward call.
 
+        """
         try:
+            # Build backward call.
+            backward_call = self.pre_process_request_proto_to_backward_call( request_proto = request )
+            backward_call.hotkey = request.hotkey
+            backward_call.start_time = time.time()
+            backward_call.version = request.version
+
             # Check blacklist.
-            if self.__blacklist( backward_call ): raise Exception('Blacklisted')
+            if self._blacklist( backward_call ): raise Exception('Blacklisted')
             # Get priority.
             priority = self.__priority( backward_call )
             # Queue the backward call.
-            self.priority_threadpool.submit(
+            future = self.priority_threadpool.submit(
                 self.backward,
                 backward_call = backward_call,
                 priority = priority,
@@ -333,4 +363,41 @@ class Synapse:
                 message = backward_call.request_message,
                 synapse = self.__str__()
             )
+            if backward_call.request_code != bittensor.proto.ReturnCode.Success:
+                response_proto = self.post_process_backward_call_to_response_proto( backward_call )
+                response_proto.hotkey = self.wallet.hotkey.ss58_address
+                response_proto.version = bittensor.__version_as_int__
+                response_proto.return_code = backward_call.request_code
+                response_proto.message = backward_call.request_message
+                return response_proto
+
+        # Do backward.
+        try:
+            # Get the result.
+            future.result( timeout = bittensor.__blocktime__ )
+
+        except Exception as e:
+            backward_call.response_code = bittensor.proto.ReturnCode.UnknownException
+            backward_call.response_message = str(e)
+        finally:
+            # Log response
+            bittensor.logging.rpc_log ( 
+                axon = True, 
+                forward = False, 
+                is_response = True, 
+                code = backward_call.response_code, 
+                call_time = time.time() - backward_call.start_time, 
+                pubkey = backward_call.hotkey, 
+                uid = None, 
+                inputs = list( backward_call.get_inputs_shape() ) if backward_call.response_code == bittensor.proto.ReturnCode.Success else None,
+                outputs = list( backward_call.get_outputs_shape() ) if backward_call.response_code == bittensor.proto.ReturnCode.Success else None,
+                message = backward_call.response_message,
+                synapse = self.__str__()
+            )
+            response_proto = self.post_process_backward_call_to_response_proto( backward_call )
+            response_proto.hotkey = self.wallet.hotkey.ss58_address
+            response_proto.version = bittensor.__version_as_int__
+            response_proto.return_code = backward_call.request_code
+            response_proto.message = backward_call.request_message
+            return response_proto
 
