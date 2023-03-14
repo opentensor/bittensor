@@ -180,6 +180,7 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateRequest
+from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateResponse
 
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse

@@ -28,18 +28,39 @@ class Synapse(bittensor.TextLastHiddenStateSynapse):
     def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bool:
         return False
     
-    def forward(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bittensor.TextLastHiddenStateForwardCall:
-        forward_call.hidden_states = torch.zeros( forward_call.text_inputs.shape[0], forward_call.text_inputs.shape[1], bittensor.__network_dim__ )
-        return forward_call
+    def forward( 
+            self, 
+            text_inputs: torch.LongTensor,
+            hotkey: str,
+        ) -> torch.FloatTensor:
+        """ fills in the hidden_states of the forward call.
+            Args:
+                text_inputs (:obj:`torch.LongTensor`, `required`):
+                    tokenized text inputs.
+                hotkey (:obj:`str`, `required`):
+                    hotkey of the calling neuron
+            Returns:
+                hidden_states (:obj:`torch.FloatTensor`, `required`):
+                    hidden states of the last layer of the model.
+        """    
+        return torch.zeros( text_inputs.shape[0], text_inputs.shape[1], bittensor.__network_dim__ )
+    
+    def backward( 
+            self, 
+            text_inputs: torch.LongTensor,
+            hidden_states: torch.FloatTensor,
+            hidden_states_grads: torch.FloatTensor,
+        ):
+        pass
     
 # Create a synapse and attach it to an axon.
-synapse = Synapse()
+synapse = Synapse( wallet = wallet )
 axon = bittensor.axon( wallet = wallet, port = 9090, ip = '127.0.0.1' )
 axon.attach( synapse = synapse )
 axon.start()
 
 # Create a text_last_hidden_state module and call it.
-module = bittensor.text_last_hidden_state( endpoint = local_endpoint, wallet = wallet )
+module = bittensor.text_last_hidden_state( wallet = wallet, endpoint = local_endpoint )
 response = module.forward( 
     text_inputs = torch.ones( ( 3, 4 ), dtype = torch.long ), 
     mask = torch.rand( ( 3, 4 ) ) > 0.5, 

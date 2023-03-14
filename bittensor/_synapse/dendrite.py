@@ -28,24 +28,22 @@ class Dendrite(torch.nn.Module):
     """
     def __init__(
             self,
+            wallet: 'bittensor.wallet',
             endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
-            wallet: Optional[ 'bittensor.wallet' ]  = None,
         ):
         """ Initializes the Dendrite
             Args:
+                wallet (:obj:`bittensor.wallet`, `required`):
+                    bittensor wallet object.
                 endpoint (:obj:Union[]`bittensor.endpoint`, `required`):
                     bittensor endpoint object.
-                wallet (:obj:`bittensor.wallet`, `optional`):
-                    bittensor wallet object.
         """
         super(Dendrite, self).__init__()
-        if wallet is None: 
-            wallet = bittensor.wallet()
         self.wallet = wallet
         if isinstance(endpoint, torch.Tensor ): 
             endpoint = bittensor.endpoint.from_tensor( endpoint )
         self.endpoint = endpoint
-        self.receptor = bittensor.receptor( endpoint = self.endpoint, wallet = self.wallet )
+        self.receptor = bittensor.receptor( wallet = self.wallet, endpoint = self.endpoint )
 
     def __str__( self ) -> str:
         """ Returns the name of the dendrite."""
@@ -248,15 +246,46 @@ class Dendrite(torch.nn.Module):
                 backward_call.end_time = time.time()
                 return
         
-        # Make the asyncio call, do not wait for response.
-        asyncio_future = self.get_stub( self.receptor.channel).Backward(
-            request = backward_call.request_proto,
-            metadata = (
-                ('rpc-auth-header','Bittensor'),
-                ('bittensor-signature', self.receptor.sign() ),
-                ('bittensor-version',str(bittensor.__version_as_int__)),
-            ))
-        await asyncio.wait_for( asyncio_future, timeout = 1 )
+        try:
+            # Make the asyncio call, do not wait for response.
+            asyncio_future = self.get_stub( self.receptor.channel ).Backward(
+                request = backward_call.request_proto,
+                metadata = (
+                    ('rpc-auth-header','Bittensor'),
+                    ('bittensor-signature', self.receptor.sign() ),
+                    ('bittensor-version',str(bittensor.__version_as_int__)),
+                ))
+            backward_call.response_proto = await asyncio.wait_for( asyncio_future, timeout = bittensor.__blocktime__ )
+            
+        except grpc.RpcError as rpc_error_call:
+            # Request failed with GRPC code.
+            backward_call.response_code = rpc_error_call.code()
+            backward_call.response_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+        except asyncio.TimeoutError:
+            # Catch timeout errors.
+            backward_call.response_code = bittensor.proto.ReturnCode.Timeout
+            backward_call.response_message = 'GRPC request timeout after: {}s'.format( backward_call.timeout)
+        except Exception as e:
+            # Catch unknown errors.
+            backward_call.response_code = bittensor.proto.ReturnCode.UnknownException
+            backward_call.response_message = str(e)
+        finally:
+            # Log Response 
+            bittensor.logging.rpc_log( 
+                axon = False, 
+                forward = True, 
+                is_response = True, 
+                code = backward_call.response_code, 
+                call_time = time.time() - backward_call.start_time, 
+                pubkey = self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs = backward_call.get_inputs_shape(), 
+                outputs = backward_call.get_outputs_shape() if backward_call.response_code == bittensor.proto.ReturnCode.Success else None,
+                message = backward_call.response_message,
+                synapse = self.__str__(),
+            )
+            backward_call.end_time = time.time()
+            return backward_call
 
 
     
