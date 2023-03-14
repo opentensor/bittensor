@@ -102,45 +102,6 @@ class TextSeq2SeqSynapse( bittensor.Synapse, bittensor.grpc.TextSeq2SeqServicer 
     def blacklist( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall'  ) -> bool:
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
-    
-    def _blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
-        """ __blacklist: Checks if the forward call is blacklisted.
-            Args:
-                forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    forward_call to check.
-            Returns:
-                bool: True if blacklisted, False otherwise.
-        """
-
-        # Call subclass blacklist and optionaly return if metagraph is None.
-        try:
-            instance_blacklist = self.blacklist( forward_call )
-        except:
-            instance_blacklist = False
-        if self.metagraph == None: return instance_blacklist
-
-        # Check for registration
-        def registration_check():
-            is_registered = forward_call.hotkey in self.metagraph.hotkeys
-            if not is_registered:
-                if self.config.synapse.text_seq2seq.blacklist.allow_non_registered:
-                    return False
-                raise Exception('Registration blacklist')
-
-        # Blacklist based on stake.
-        def stake_check() -> bool:
-            uid = self.metagraph.hotkeys.index( forward_call.hotkey )
-            if self.metagraph.S[uid].item() < self.config.synapse.text_seq2seq.blacklist.stake:
-                raise Exception('Stake blacklist')
-            return False
-
-        # Optionally blacklist based on checks.
-        try:
-            registration_check()
-            stake_check()            
-            return instance_blacklist
-        except Exception as e:
-            return True
 
     def forward( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> 'bittensor.TextSeq2SeqBittensorCall':
         """ Fills the forward_call with the results of the forward pass.

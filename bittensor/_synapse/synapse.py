@@ -111,12 +111,9 @@ class Synapse:
     # Instance blacklist called by subclass blacklist which is called by super blacklist.
     def blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
         raise NotImplementedError('Must implement subclass_blacklist() in subclass.')
-
-    def _blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
-        return self._blacklist( forward_call )
     
-    def __blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
-        """ ___blacklist: Checks if the forward call is blacklisted.
+    def _blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
+        """ __blacklist: Checks if the forward call is blacklisted.
             Args:
                 forward_call (:obj:`bittensor.BittensorCall`, `required`):
                     forward_call to check.
@@ -125,9 +122,9 @@ class Synapse:
         """
         # Call subclass blacklist and optionaly return if metagraph is None.
         try:
-            sub_blacklist = self._blacklist( forward_call )
+            sub_blacklist = self.blacklist( forward_call )
         except:
-            sub_blacklist = False
+            sub_blacklist = True
         if self.metagraph == None: return sub_blacklist
 
         # Check for registration
@@ -214,7 +211,7 @@ class Synapse:
 
         try:
             # Check blacklist.
-            if self.__blacklist( forward_call ): raise Exception('Blacklisted')
+            if self._blacklist( forward_call ): raise Exception('Blacklisted')
             # Get priority.
             priority = self.__priority( forward_call )
             # Queue the forward call.
@@ -226,6 +223,7 @@ class Synapse:
         except Exception as e:
             forward_call.request_code = bittensor.proto.ReturnCode.UnknownException
             forward_call.request_message = str(e)
+
         finally:
             # Log request.
             bittensor.logging.rpc_log ( 
