@@ -287,13 +287,13 @@ class neuron:
         # === Set prometheus run info ===
         # Serve the axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
         # TODO (Cameron) this should be it's own storage map on-chain.
-        self.axon.serve( subtensor = self.subtensor )
-        
         bittensor.prometheus(
             config = self.config, 
             wallet = self.wallet,
+            netuid = self.config.netuid
             port = self.config.prometheus.port if self.config.axon.port == bittensor.defaults.axon.port else self.config.axon.port - 1000
         )
+        self.axon.serve( subtensor = self.subtensor )
         
         self.vlogger.prometheus.log_run_info(
             parameters = self.nucleus.parameters(),
