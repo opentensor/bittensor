@@ -168,6 +168,21 @@ class Synapse:
             """
         raise NotImplementedError('Must implement pre_process_request_proto_to_forward_call() in subclass.')
     
+    def pre_process_request_proto_to_backward_call( 
+            self, 
+            request_proto: 'bittensor.BackwardRequest' 
+        ) -> 'bittensor.BittensorCall':
+        """ pre_process_request_proto_to_backward_call
+            ------------------------------------------
+            Args:
+                request_proto (bittensor.BackwardRequest):
+                    request_proto to process in to a backward call.
+            Returns:
+                bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
+                    backward call processed from the request proto.
+            """
+        raise NotImplementedError('Must implement pre_process_request_proto_to_backward_call() in subclass.')
+    
     def post_process_forward_call_to_response_proto( 
             self, 
             forward_call: 'bittensor.BittensorCall' 
@@ -266,3 +281,56 @@ class Synapse:
                 synapse = self.__str__()
             )
             return self.post_process_forward_call_to_response_proto( forward_call )
+        
+
+    def Backward( 
+            self, 
+            request: 'bittensor.BackwardRequest', 
+            context: grpc.ServicerContext 
+        ):
+        """ ForwardTextLastHiddenState
+            ----------------------------
+            Args:
+                request (bittensor.BackwardRequest): 
+                    request.version (int): version of the caller.
+                    request.hotkey (string): hotkey of the neuron.
+                context (grpc.ServicerContext):
+                    grpc tcp context.
+        """
+        print ('backward')
+        # Build backward call.
+        backward_call = self.pre_process_request_proto_to_backward_call( request_proto = request )
+        backward_call.hotkey = request.hotkey
+        backward_call.start_time = time.time()
+        backward_call.version = request.version
+
+        try:
+            # Check blacklist.
+            if self.__blacklist( backward_call ): raise Exception('Blacklisted')
+            # Get priority.
+            priority = self.__priority( backward_call )
+            # Queue the backward call.
+            self.priority_threadpool.submit(
+                self.backward,
+                backward_call = backward_call,
+                priority = priority,
+            )
+        except Exception as e:
+            backward_call.request_code = bittensor.proto.ReturnCode.UnknownException
+            backward_call.request_message = str(e)
+        finally:
+            # Log request.
+            bittensor.logging.rpc_log ( 
+                axon = True, 
+                forward = False, 
+                is_response = False, 
+                code = backward_call.request_code, 
+                call_time = time.time() - backward_call.start_time, 
+                pubkey = backward_call.hotkey, 
+                uid = None, 
+                inputs = backward_call.get_inputs_shape() if backward_call.request_code == bittensor.proto.ReturnCode.Success else None,
+                outputs = None,
+                message = backward_call.request_message,
+                synapse = self.__str__()
+            )
+

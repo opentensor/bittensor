@@ -33,12 +33,12 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
     
     def pre_process_forward_call_to_request_proto( 
             self, 
-            forward_call: 'bittensor.TextLastHiddenStateBittensorCall' 
+            forward_call: 'bittensor.TextLastHiddenStateForwardCall' 
         ) -> 'bittensor.ForwardTextLastHiddenStateRequest':
         """ Preprocesses the forward call to a request proto.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     forward_call to preprocess.
             Returns:
                 request_proto (:obj:`bittensor.ForwardTextLastHiddenStateRequest`, `required`):
@@ -69,18 +69,18 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
     
     def post_process_response_proto_to_forward_call( 
             self, 
-            forward_call: bittensor.TextLastHiddenStateBittensorCall,
+            forward_call: bittensor.TextLastHiddenStateForwardCall,
             response_proto: bittensor.ForwardTextLastHiddenStateResponse 
-        ) -> bittensor.TextLastHiddenStateBittensorCall :
+        ) -> bittensor.TextLastHiddenStateForwardCall :
         """ Postprocesses the response proto to fill forward call.
             --------------------------------------------
             Args:
-                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     bittensor forward call object to fill.
                 response_proto (:obj:`bittensor.ForwardTextLastHiddenStateResponse`, `required`):
                     bittensor forward response proto.
             Returns:
-                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     filled bittensor forward call object.
         """
         forward_call.response_code = response_proto.return_code
@@ -131,7 +131,7 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
             mask_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             text_inputs_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             hidden_states_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
-        ) -> 'bittensor.TextLastHiddenStateBittensorCall':
+        ) -> 'bittensor.TextLastHiddenStateForwardCall':
         """ Forward call to the receptor.
             Args:
                 text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
@@ -145,17 +145,112 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
                 hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for hidden states.
             Returns:
-                bittensor.TextLastHiddenStateBittensorCall (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
+                bittensor.TextLastHiddenStateForwardCall (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     bittensor forward call dataclass.
         """
         return self._forward( 
-            forward_call = bittensor.TextLastHiddenStateBittensorCall( 
+            forward_call = bittensor.TextLastHiddenStateForwardCall( 
                 text_inputs = text_inputs, 
                 mask = mask,
                 timeout = timeout,
                 mask_serializer_type = mask_serializer_type,
                 text_inputs_serializer_type = text_inputs_serializer_type,
                 hidden_states_serializer_type = hidden_states_serializer_type
+            ) )
+    
+
+    def pre_process_backward_call_to_request_proto( 
+            self, 
+            backward_call: 'bittensor.TextLastHiddenStateBackwardCall' 
+        ) -> 'bittensor.BackwardTextLastHiddenStateRequest':
+        """ Preprocesses the forward call to a request proto.
+            --------------------------------------------
+            Args:
+                forward_call (:obj:`bittensor.TextLastHiddenStateBackwardCall`, `required`):
+                    backward_call to preprocess.
+            Returns:
+                request_proto (:obj:`bittensor.BackwardTextLastHiddenStateRequest`, `required`):
+                    bittensor request proto object.
+        """
+        # Serialize text inputs.
+        text_serializer = bittensor.serializer( serializer_type = backward_call.text_inputs_serializer_type )
+        serialized_text_inputs = text_serializer.serialize( backward_call.text_inputs )
+
+        if backward_call.mask != None:
+            # Apply mask to hidden states.
+            hidden_states = backward_call.hidden_states.reshape( -1, bittensor.__network_dim__ )
+            hidden_states = hidden_states[ backward_call.mask.reshape(-1) ]
+        hidden_states_serializer = bittensor.serializer( serializer_type = backward_call.hidden_states_serializer_type )
+        serialized_hidden_states = hidden_states_serializer.serialize( hidden_states )
+       
+        if backward_call.mask != None:
+            # Apply mask to gradients.
+            hidden_states_grads = backward_call.hidden_states_grads.reshape( -1, bittensor.__network_dim__ )
+            hidden_states_grads = hidden_states_grads[ backward_call.mask.reshape(-1) ]
+        hidden_states_grads_serializer = bittensor.serializer( serializer_type = backward_call.hidden_states_grads_serializer_type )
+        serialized_hidden_states_grads = hidden_states_grads_serializer.serialize( hidden_states_grads )
+
+        if backward_call.mask != None:
+            # serialize mask.
+            mask_serializer = bittensor.serializer( serializer_type = backward_call.mask_serializer_type )
+            serialized_mask = mask_serializer.serialize( backward_call.mask )
+        else:
+            serialized_mask = None
+
+        # Return forward call.
+        return bittensor.BackwardTextLastHiddenStateRequest(
+            serialized_mask = serialized_mask,
+            serialized_text_inputs = serialized_text_inputs,
+            serialized_hidden_states = serialized_hidden_states,
+            serialized_hidden_states_grads = serialized_hidden_states_grads,
+
+            mask_serializer_type = backward_call.mask_serializer_type,
+            text_inputs_serializer_type = backward_call.text_inputs_serializer_type,
+            hidden_states_serializer_type = backward_call.hidden_states_serializer_type,
+            hidden_states_grads_serializer_type = backward_call.hidden_states_grads_serializer_type,
+        )
+    
+    def backward( 
+        self, 
+        text_inputs: torch.FloatTensor, 
+        hidden_states: torch.FloatTensor,
+        hidden_states_grads: torch.FloatTensor,
+        mask: torch.BoolTensor = None,
+        mask_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
+        text_inputs_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
+        hidden_states_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
+        hidden_states_grads_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
+    ):
+        """ Backward call to the receptor.
+            Args:
+                text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
+                    torch tensor of text inputs.
+                hidden_states (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, net_dim)`, `required`):
+                    torch tensor of hidden states against which the gradients have accumulated.
+                hidden_states_grads (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, net_dim)`, `required`):
+                    torch tensor of grads for the hidden states.
+                mask (:obj:`torch.BoolTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`, defaults to :obj:`None`):
+                    mask over returned hidden states.
+                text_inputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+                    serializer type for text inputs.
+                hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+                    serializer type for hidden states.
+                hidden_states_grads_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+                    serializer type for hidden states grads.
+            Returns:
+                None
+        """
+        return self._backward( 
+            backward_call = bittensor.TextLastHiddenStateBackwardCall( 
+                text_inputs = text_inputs, 
+                hidden_states = hidden_states,
+                hidden_states_grads = hidden_states_grads,
+                mask = mask,
+                
+                mask_serializer_type = mask_serializer_type,
+                text_inputs_serializer_type = text_inputs_serializer_type,
+                hidden_states_serializer_type = hidden_states_serializer_type,
+                hidden_states_grads_serializer_type = hidden_states_grads_serializer_type,
             ) )
 
     

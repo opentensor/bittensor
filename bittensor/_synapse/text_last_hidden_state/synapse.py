@@ -17,6 +17,7 @@
 
 import os
 import copy
+import torch
 import bittensor
 import argparse
 
@@ -105,13 +106,13 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
     
-    def forward( self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> bittensor.TextLastHiddenStateBittensorCall:
+    def forward( self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bittensor.TextLastHiddenStateForwardCall:
         """ fills in the hidden_states of the forward call.
             Args:
-                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     bittensor forward call dataclass to fill.
             Returns:
-                forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
+                forward_call (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     filled bittensor forward call dataclass.
         """
         raise NotImplementedError('Must implement forward() in subclass.')
@@ -119,14 +120,14 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
     def pre_process_request_proto_to_forward_call( 
             self, 
             request_proto: bittensor.ForwardTextLastHiddenStateRequest 
-        ) -> 'bittensor.TextLastHiddenStateBittensorCall':
+        ) -> 'bittensor.TextLastHiddenStateForwardCall':
         """ pre_process_request_proto_to_forward_call
             ------------------------------------------
             Args:
                 request_proto (bittensor.ForwardTextLastHiddenStateRequest):
                     bittensor forward request proto.
             Returns:
-                bittensor.TextLastHiddenStateBittensorCall (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
+                bittensor.TextLastHiddenStateForwardCall (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     bittensor forward call dataclass.
         """
         # Deserialize text inputs.
@@ -139,7 +140,7 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
         else:
             mask = None
 
-        return bittensor.TextLastHiddenStateBittensorCall(
+        return bittensor.TextLastHiddenStateForwardCall(
             text_inputs = text_inputs,
             mask = mask,
             timeout = request_proto.timeout,
@@ -150,12 +151,12 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
     
     def post_process_forward_call_to_response_proto( 
             self, 
-            forward_call: 'bittensor.TextLastHiddenStateBittensorCall' 
+            forward_call: 'bittensor.TextLastHiddenStateForwardCall' 
         ) -> bittensor.ForwardTextLastHiddenStateResponse:
         """ post_process_forward_call_to_response_proto
             --------------------------------------------
             Args:
-                forward_call (bittensor.TextLastHiddenStateBittensorCall):
+                forward_call (bittensor.TextLastHiddenStateForwardCall):
                     forward_call.text_inputs (torch.FloatTensor): text inputs.
                     forward_call.timeout (float): timeout for the request.
                     forward_call.text_inputs_serializer_type (bittensor.proto.SerializerType): text inputs serializer type.
@@ -195,5 +196,67 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
             return_code = forward_call.request_code,
             message = forward_call.request_message
         )
+    
+    def pre_process_request_proto_to_backward_call( 
+        self, 
+        request_proto: 'bittensor.BackwardRequest' 
+    ) -> 'bittensor.BittensorCall':
+        """ pre_process_request_proto_to_backward_call
+            ------------------------------------------
+            Args:
+                request_proto (bittensor.BackwardRequest):
+                    request_proto to process in to a backward call.
+            Returns:
+                bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
+                    backward call processed from the request proto.
+        """
+        text_deserializer = bittensor.serializer( serializer_type = request_proto.text_inputs_serializer_type )
+        text_inputs = text_deserializer.deserialize( request_proto.serialized_text_inputs )
 
+        hidden_states_deserializer = bittensor.serializer( serializer_type = request_proto.hidden_states_serializer_type )
+        hidden_states = hidden_states_deserializer.deserialize( request_proto.serialized_hidden_states )
+
+        hidden_states_grads_deserializer = bittensor.serializer( serializer_type = request_proto.hidden_states_grads_serializer_type )
+        hidden_states_grads = hidden_states_grads_deserializer.deserialize( request_proto.serialized_hidden_states_grads )
+
+        # Optionally deserialize mask.
+        try:
+            mask_serializer = bittensor.serializer( serializer_type = request_proto.mask_serializer_type )
+            mask = mask_serializer.serialize( request_proto.serialized_mask )
+        except:
+            mask = None
+
+        # If the mask is not none, we need to expand the hidden states to the proper size.
+        if mask != None:
+            # From the encode_forward_response function the forward_response_tensor is [ len(mask), net_dim ]
+            # a set of rows from the stacked_forward_response_tensor = [ bs * seq, net_dim ]
+            # We will load these rows into a destination tensor = [bs, seq, net_dim]
+            hidden_states_destination = torch.zeros( [ mask.size(0) * mask.size(1), bittensor.__network_dim__ ])
+            hidden_states_grads_destination = torch.zeros( [ mask.size(0) * mask.size(1), bittensor.__network_dim__ ])
+
+            # Iterate through the mask and fill the destination tensor 
+            # with the hidden states from the forward call.
+            counter = 0
+            for i, not_masked in enumerate(mask.reshape(-1)):
+                if not_masked:
+                    hidden_states_destination[i, :] = hidden_states[counter, :]
+                    hidden_states_grads_destination[i, :] = hidden_states_grads[counter, :]
+                    counter += 1
+            
+            # Reshape the destination tensor to the proper expanded size.
+            hidden_states = hidden_states_destination.reshape( ( mask.size(0), mask.size(1), bittensor.__network_dim__) )
+            hidden_states_grads = hidden_states_grads_destination.reshape( (mask.size(0), mask.size(1), bittensor.__network_dim__) )
+
+        # Return backward call.
+        return bittensor.TextLastHiddenStateForwardCall(
+            mask = mask,
+            text_inputs = text_inputs,
+            hidden_states = hidden_states,
+            hidden_states_grads = hidden_states_grads,
+
+            mask_serializer_type = request_proto.mask_serializer_type,
+            text_inputs_serializer_type = request_proto.text_inputs_serializer_type,
+            hidden_states_serializer_type = request_proto.hidden_states_serializer_type,
+            hidden_states_grads_serializer_type = request_proto.hidden_states_grads_serializer_type,
+        )
     
