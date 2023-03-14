@@ -83,7 +83,6 @@ def prometheus_extrinsic(
         }
 
     if neuron_up_to_date:
-        output = neuron.prometheus_info
         bittensor.__console__.print(
             f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
             f"[green not bold]- Status: [/green not bold] |"
