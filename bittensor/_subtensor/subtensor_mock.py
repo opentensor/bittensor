@@ -51,7 +51,6 @@ __type_registery__ = {
                 ["trust", "u16"],
                 ["consensus", "u16"],
                 ["validator_trust", "u16"],
-                ["weight_consensus", "u16"],
                 ["incentive", "u16"],
                 ["dividends", "u16"],
                 ["emission", "u64"],

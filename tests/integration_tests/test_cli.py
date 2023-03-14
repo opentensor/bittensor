@@ -1870,6 +1870,31 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertTrue( registered )
       
+    def test_burned_register( self ):
+        config = self.config
+        config.command = "burned_register"
+        config.no_prompt = True
+
+        mock_wallet = generate_wallet()
+
+        # Give the wallet some balance for burning
+        success, err = _subtensor_mock.sudo_force_set_balance(
+            ss58_address=mock_wallet.coldkeypub.ss58_address,
+            balance = bittensor.Balance.from_float(200.0)
+        )
+        self.assertTrue(success, err)
+        
+        with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
+            cli = bittensor.cli(config)
+            cli.run()
+            mock_create_wallet.assert_called_once()
+            
+            # Verify that the wallet was registered
+            subtensor = bittensor.subtensor(config)
+            registered = subtensor.is_hotkey_registered_on_subnet( hotkey_ss58 = mock_wallet.hotkey.ss58_address, netuid = 1 )
+
+            self.assertTrue( registered )
+      
     def test_stake( self ):
         amount_to_stake: Balance = Balance.from_tao( 0.5 )
         config = self.config

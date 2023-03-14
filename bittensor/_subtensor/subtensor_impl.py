@@ -32,9 +32,10 @@ from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
-from .extrinsics.registration import register_extrinsic
+from .extrinsics.registration import register_extrinsic, burned_register_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
 
 # Logging
@@ -199,6 +200,24 @@ class Subtensor:
             update_interval = update_interval,
             log_verbose = log_verbose,
         )
+    
+    def burned_register (
+        self,
+        wallet: 'bittensor.Wallet',
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False
+    ) -> bool:
+        """ Registers the wallet to chain by burning TAO."""
+        return burned_register_extrinsic( 
+            subtensor = self, 
+            wallet = wallet, 
+            netuid = netuid, 
+            wait_for_inclusion = wait_for_inclusion, 
+            wait_for_finalization = wait_for_finalization, 
+            prompt = prompt
+        )
 
     ##################
     #### Transfer ####
@@ -251,6 +270,15 @@ class Subtensor:
     ) -> bool:
         return serve_axon_extrinsic( self, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
 
+    def serve_prometheus (
+        self,
+        wallet: 'bittensor.wallet',
+        port: int,
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> bool:
+        return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization)
     #################
     #### Staking ####
     #################
@@ -364,6 +392,11 @@ class Subtensor:
     def difficulty (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
         return self.query_subtensor( "Difficulty", block, [netuid] ).value
+    
+    """ Returns network Burn hyper parameter """
+    def burn (self, netuid: int, block: Optional[int] = None ) -> Optional[bittensor.Balance]:
+        if not self.subnet_exists( netuid ): return None
+        return bittensor.Balance.from_rao( self.query_subtensor( "Burn", block, [netuid] ).value )
 
     """ Returns network ImmunityPeriod hyper parameter """
     def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
@@ -882,7 +915,6 @@ class Subtensor:
             incentive = 0,
             consensus = 0,
             trust = 0,
-            weight_consensus = 0,
             validator_trust = 0,
             dividends = 0,
             last_update = 0,

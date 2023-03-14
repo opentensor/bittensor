@@ -590,7 +590,7 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
 
         # Netuid Arg
-        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=0)
+        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=1)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
