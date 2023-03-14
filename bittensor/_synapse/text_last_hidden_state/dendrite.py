@@ -83,6 +83,14 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
                 forward_call (:obj:`bittensor.TextLastHiddenStateBittensorCall`, `required`):
                     filled bittensor forward call object.
         """
+        forward_call.response_code = response_proto.return_code
+        forward_call.response_message = response_proto.message
+
+        if (response_proto.return_code != bittensor.proto.ReturnCode.Success) or \
+            (response_proto.return_code != bittensor.proto.ReturnCode.Success):
+            forward_call.hidden_states = None
+            return forward_call
+
         # Deserialize hidden states.
         hidden_states_serializer = bittensor.serializer( serializer_type = forward_call.hidden_states_serializer_type )
         hidden_states = hidden_states_serializer.deserialize( response_proto.serialized_hidden_states )

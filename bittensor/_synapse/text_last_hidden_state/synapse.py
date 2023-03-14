@@ -30,12 +30,14 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
             self, 
             config: 'bittensor.Config' = None, 
             metagraph: 'bittensor.metagraph.Metagraph' = None,
+            wallet: 'bittensor.wallet' = None
         ):
         if config == None: config = TextLastHiddenStateSynapse.config()
         TextLastHiddenStateSynapse.check_config( config )
         super().__init__( config, metagraph )
         self.config = copy.deepcopy( config )
         self.metagraph = metagraph
+        self.wallet = wallet
         self.priority_threadpool = bittensor.prioritythreadpool( config = config.synapse.text_last_hidden_state )
 
     def __str__(self):
@@ -103,45 +105,6 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
     
-    def _blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
-        """ __blacklist: Checks if the forward call is blacklisted.
-            Args:
-                forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    forward_call to check.
-            Returns:
-                bool: True if blacklisted, False otherwise.
-        """
-
-        # Call subclass blacklist and optionaly return if metagraph is None.
-        try:
-            instance_blacklist = self.blacklist( forward_call )
-        except:
-            instance_blacklist = False
-        if self.metagraph == None: return instance_blacklist
-
-        # Check for registration
-        def registration_check():
-            is_registered = forward_call.hotkey in self.metagraph.hotkeys
-            if not is_registered:
-                if self.config.synapse.text_last_hidden_state.blacklist.allow_non_registered:
-                    return False
-                raise Exception('Registration blacklist')
-
-        # Blacklist based on stake.
-        def stake_check() -> bool:
-            uid = self.metagraph.hotkeys.index( forward_call.hotkey )
-            if self.metagraph.S[uid].item() < self.config.synapse.text_last_hidden_state.blacklist.stake:
-                raise Exception('Stake blacklist')
-            return False
-
-        # Optionally blacklist based on checks.
-        try:
-            registration_check()
-            stake_check()            
-            return instance_blacklist
-        except Exception as e:
-            return True
-
     def forward( self, forward_call: 'bittensor.TextLastHiddenStateBittensorCall' ) -> bittensor.TextLastHiddenStateBittensorCall:
         """ fills in the hidden_states of the forward call.
             Args:
@@ -202,25 +165,35 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
                 response (bittensor.ForwardTextLastHiddenStateResponse):
                     response.serialized_hidden_states (string): serialized hidden states.
         """
-        # Optionally apply mask.
-        if forward_call.mask != None:
-            # Apply mask.
-            hidden_states = forward_call.hidden_states.reshape( -1, bittensor.__network_dim__ )
-
-            # Filter hidden states.
-            hidden_states = hidden_states[ forward_call.mask.reshape(-1) ]
-
-        # Else return the raw hidden states.
-        else:
-            hidden_states = forward_call.hidden_states
-
         # Serialize hidden states.
         hidden_state_serializer = bittensor.serializer( serializer_type = forward_call.hidden_states_serializer_type )
-        serialized_hidden_states = hidden_state_serializer.serialize( hidden_states )
 
+        # Check if response is sucessful
+        if (forward_call.request_code != bittensor.proto.ReturnCode.Success) or \
+            (forward_call.response_code != bittensor.proto.ReturnCode.Success):
+            serialized_hidden_states = None
+
+        else:
+            # Optionally apply mask.
+            if forward_call.mask != None:
+                # Apply mask.
+                hidden_states = forward_call.hidden_states.reshape( -1, bittensor.__network_dim__ )
+
+                # Filter hidden states.
+                hidden_states = hidden_states[ forward_call.mask.reshape(-1) ]
+
+            # Else return the raw hidden states.
+            else:
+                hidden_states = forward_call.hidden_states
+            serialized_hidden_states = hidden_state_serializer.serialize( hidden_states )
+            
         # Return the forward response proto.
         return bittensor.ForwardTextLastHiddenStateResponse(
-            serialized_hidden_states = serialized_hidden_states
+            version = bittensor.__version_as_int__, 
+            serialized_hidden_states = serialized_hidden_states,
+            hotkey = self.wallet.hotkey.ss58_address, 
+            return_code = forward_call.request_code,
+            message = forward_call.request_message
         )
 
     
