@@ -70,6 +70,21 @@ class Dendrite(torch.nn.Module):
         """
         raise NotImplementedError('Must implement pre_process_forward_call_to_request_proto() in subclass.')
     
+    def pre_process_backward_call_to_request_proto( 
+            self, 
+            backward_call: 'bittensor.BittensorCall' 
+        ) -> 'bittensor.BackwardRequest':
+        """ Preprocesses the forward call to a request proto.
+            --------------------------------------------
+            Args:
+                backward_call (:obj:`bittensor.BittensorCall`, `required`):
+                    backward_call to preprocess.
+            Returns:
+                request_proto (:obj:`bittensor.BackwardRequest`, `required`):
+                    bittensor backward request proto object.
+        """
+        raise NotImplementedError('Must implement pre_process_backward_call_to_request_proto() in subclass.')
+    
     def post_process_response_proto_to_forward_call( 
             self, 
             forward_call: bittensor.BittensorCall,
@@ -93,6 +108,11 @@ class Dendrite(torch.nn.Module):
         """ Forward call to remote endpoint."""
         loop = asyncio.get_event_loop()
         return loop.run_until_complete( self.async_forward( forward_call = forward_call ) )
+    
+    def _backward( self, backward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
+        """ Forward call to remote endpoint."""
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( self.async_backward( backward_call = backward_call ) )
 
     async def async_forward( self, forward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
         """ The function async_forward is a coroutine function that makes an RPC call 
@@ -189,7 +209,55 @@ class Dendrite(torch.nn.Module):
             )
             forward_call.end_time = time.time()
             return forward_call
-    
+        
+    async def async_backward( self, backward_call: 'bittensor.BittensorCall' ):
+        """ The function async_backward is a coroutine function that makes an RPC call
+            to a remote endpoint to perform a backward pass.
+
+            The function also logs the request and response messages using bittensor.logging.rpc_log.
+            Args:
+                backward_call (:obj:bittensor.BittensorBackwardCall, required): 
+                    The BittensorBackwardCall object containing the request to be made to the remote endpoint.
+        """
+        backward_call.hotkey = self.wallet.hotkey.ss58_address
+        backward_call.version = bittensor.__version_as_int__
+        try:
+            backward_call.request_proto = self.pre_process_backward_call_to_request_proto( backward_call = backward_call )
+            backward_call.request_proto.hotkey = self.wallet.hotkey.ss58_address
+            backward_call.request_proto.version = bittensor.__version_as_int__
+        except Exception as e:
+            backward_call.request_code = bittensor.proto.ReturnCode.RequestSerializationException
+            backward_call.request_message = str(e)
+        finally:
+            # Log accepted request
+            bittensor.logging.rpc_log ( 
+                axon = False, 
+                forward = False, 
+                is_response = False, 
+                code = backward_call.request_code, 
+                call_time = time.time() - backward_call.start_time, 
+                pubkey = self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs = backward_call.get_inputs_shape() if backward_call.request_code == bittensor.proto.ReturnCode.Success else None,
+                outputs = None,
+                message = backward_call.request_message,
+                synapse = self.__str__()
+            )
+            # Optionally return.
+            if backward_call.request_code != bittensor.proto.ReturnCode.Success:
+                backward_call.end_time = time.time()
+                return
+        
+        # Make the asyncio call, do not wait for response.
+        asyncio_future = self.get_stub( self.receptor.channel).Backward(
+            request = backward_call.request_proto,
+            metadata = (
+                ('rpc-auth-header','Bittensor'),
+                ('bittensor-signature', self.receptor.sign() ),
+                ('bittensor-version',str(bittensor.__version_as_int__)),
+            ))
+        await asyncio.wait_for( asyncio_future, timeout = 1 )
+
 
     
 

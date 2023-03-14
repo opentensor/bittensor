@@ -179,13 +179,16 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 # ---- Synapse Protos -----
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
+from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateRequest
+
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
 
 # ---- Calls -----
 from bittensor._synapse.call import BittensorCall
 from bittensor._synapse.text_seq2seq.call import TextSeq2SeqBittensorCall 
-from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateBittensorCall
+from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
+from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateBackwardCall
 
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
