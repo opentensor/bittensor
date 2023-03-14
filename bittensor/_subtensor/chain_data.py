@@ -109,8 +109,8 @@ class NeuronInfo:
             dividends = json['dividends'] / U16_MAX,
             last_update = json['last_update'],
             validator_permit = json['validator_permit'],
-            weights = json['weights'],
-            bonds = json['bonds'],
+            weights = [ (uid, w) for uid, w in enumerate(json['weights']) ],
+            bonds = [ (uid, b) for uid, b in enumerate(json['bonds']) ],
             prometheus_info = PrometheusInfo.from_json(json['prometheus_info']),
             axon_info = AxonInfo.from_json(json['axon_info']),
         )
