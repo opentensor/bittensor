@@ -290,7 +290,7 @@ class neuron:
         bittensor.prometheus(
             config = self.config, 
             wallet = self.wallet,
-            netuid = self.config.netuid
+            netuid = self.config.netuid,
             port = self.config.prometheus.port if self.config.axon.port == bittensor.defaults.axon.port else self.config.axon.port - 1000
         )
         self.axon.serve( subtensor = self.subtensor )
