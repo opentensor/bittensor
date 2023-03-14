@@ -73,6 +73,29 @@ def prometheus_extrinsic(
         'ip_type': net.ip_version(external_ip),
     }
 
+    with bittensor.__console__.status(":satellite: Checking Prometheus..."):
+        neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
+        neuron_up_to_date = not neuron.is_null and call_params == {
+            'version': neuron.prometheus_info.version,
+            'ip': net.ip_to_int(neuron.prometheus_info.ip),
+            'port': neuron.prometheus_info.port,
+            'ip_type': neuron.prometheus_info.ip_type,
+        }
+
+    if neuron_up_to_date:
+        bittensor.__console__.print(
+            f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
+            f"[green not bold]- Status: [/green not bold] |"
+            f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(neuron.prometheus_info.ip)}[/white not bold] |"
+            f"[green not bold] ip_type: [/green not bold][white not bold]{neuron.prometheus_info.ip_type}[/white not bold] |"
+            f"[green not bold] port: [/green not bold][white not bold]{neuron.prometheus_info.port}[/white not bold] | "
+            f"[green not bold] version: [/green not bold][white not bold]{neuron.prometheus_info.version}[/white not bold] |"
+        )
+
+
+        bittensor.__console__.print(":white_heavy_check_mark: [white]Prometheus already served.[/white]".format( external_ip ))
+        return True
+
     with bittensor.__console__.status(":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
         with subtensor.substrate as substrate:
             call = substrate.compose_call(

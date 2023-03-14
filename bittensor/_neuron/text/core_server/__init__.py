@@ -177,6 +177,7 @@ class neuron:
         bittensor.prometheus ( 
             config = config,
             wallet = self.wallet,
+            netuid = self.config.netuid,
             port = config.prometheus.port if config.axon.port == bittensor.defaults.axon.port else config.axon.port - 1000
         )
 

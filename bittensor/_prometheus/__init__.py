@@ -48,10 +48,10 @@ class prometheus:
     def __new__( 
         cls,
         wallet: 'bittensor.wallet',
+        netuid: int,
         config: 'bittensor.config' = None,
         port: int = None,
         level: Union[str, "prometheus.level"] = None,
-        netuid: int = None,
         network: str = None,
         chain_endpoint: str = None,
         subtensor: 'bittensor.subtensor' = None,
@@ -61,14 +61,14 @@ class prometheus:
             Args:
                 wallet (:obj: `bittensor.wallet`, `required`):
                     bittensor wallet object.
+                netuid (:obj: `int`, `required`):
+                    network uid to serve on.
                 config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.prometheus.config()):
                     A config namespace object created by calling bittensor.prometheus.config()
                 port (:obj:`int`, `optional`, defaults to bittensor.defaults.prometheus.port ):
                     The port to run the prometheus DB on, this uniquely identifies the prometheus DB.
                 level (:obj:`prometheus.level`, `optional`, defaults to bittensor.defaults.prometheus.level ):
                     Prometheus logging level. If OFF, the prometheus DB is not initialized.
-                netuid (:obj: `int`, `optional`):
-                    network uid to serve on.
                 subtensor (:obj:`bittensor.Subtensor`, `optional`): 
                     Chain connection through which to serve.
                 network (default='local', type=str)
