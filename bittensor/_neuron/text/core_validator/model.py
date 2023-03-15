@@ -146,7 +146,6 @@ class nucleus( torch.nn.Module ):
     def get_losses(self, inputs, call_responses):
         return torch.rand(len(call_responses))
 
-    def get_synergy(self, inputs, call_responses):
 
     async def async_forward(self, text_input, dendrites):
         # Make calls.
@@ -191,4 +190,4 @@ class nucleus( torch.nn.Module ):
         scores = self.scaling_law_loss_to_params(losses)
 
         return scores
-    
+        
