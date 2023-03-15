@@ -37,6 +37,7 @@ from rich import print
 from rich.console import Console
 from rich.traceback import install
 from typing import List, Tuple, Callable, Dict, Any, Union, Set
+import bittensor.utils.networking as net
 from types import SimpleNamespace
 
 from bittensor._neuron.text.neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
@@ -80,11 +81,11 @@ class neuron:
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
+        self.optimizer = torch.optim.SGD(self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum)
         self.dataset = bittensor.dataset(config=self.config, 
                                           batch_size=self.subtensor.validator_batch_size(self.config.netuid),
                                           block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len + self.subtensor.validator_prune_len(netuid=self.config.netuid)
                         )if dataset is None else dataset
-        self.optimizer = torch.optim.SGD(self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum)
         
         self.loss = None
         self.loss_agg_mutex = Lock()
@@ -184,6 +185,12 @@ class neuron:
         
         if getattr(self, 'dendrite', None) is not None:
             self.dendrite.__del__()
+    
+    def __exit__ ( self, exc_type, exc_value, exc_traceback ):
+        r""" Close down neuron.
+        """
+        print(exc_type, exc_value, exc_traceback)
+        self.__del__()
 
     def __enter__(self):
         r""" Sanity checks and begin validator.
@@ -196,11 +203,14 @@ class neuron:
         # === UID ===
         # Get our uid from the chain. 
         # At this point we should have a uid because we are already registered.
-        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid=self.config.netuid )    
+        # TODO
+        self.uid = 1# self.wallet.get_uid( subtensor = self.subtensor, netuid=self.config.netuid )    
 
-    def create_dendrites(self):
-        self.dendrites = [bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs]
-        random.shuffle(self.dendrites)
+
+    def init_dendrites(self):
+        self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs}
+        self.dendrites_orders = list(self.dendrites.keys())
+        random.shuffle(self.dendrites_orders)
 
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
@@ -222,18 +232,20 @@ class neuron:
 
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
+                    self.dendrites[uid] = bittensor.text_last_hidden_state( endpoint = self.metagraph.endpoint_objs, wallet = self.wallet )
                     changed_hotkeys += [uid]
 
     def run(self):
         self.epoch = 0
         self.global_step = 0 
-        while True:
-            self.run_epoch()
-            self.epoch += 1
+        with self:
+            while True:
+                self.run_epoch()
+                self.epoch += 1
 
     def run_epoch(self):
+        self.init_dendrites()
         self.metagraph_sync()
-        self.create_dendrites()
         
         epoch_status, epoch_params = self.init_epoch()
         
@@ -245,11 +257,38 @@ class neuron:
                         f'= {epoch_params.start_block} + {epoch_params.blocks_per_epoch}) or '
                         f'({time.time() - epoch_status.start_time:.2f} < {epoch_params.blocks_per_epoch * bittensor.__blocktime__})')
 
-
-            self.run_step(epoch_status, epoch_params)
+            self.step(epoch_status, epoch_params)
             self.global_step += 1
+
+        self.metagraph_sync()  # Reset metagraph.
+
+        # === Calculate neuron weights ===
+        sample_uids, sample_weights = self.calculate_weights()
         
-    def run_step(self, epoch_status, epoch_params):
+        self.subtensor.set_weights(
+            uids=sample_uids.detach().to('cpu'),
+            weights=sample_weights.detach().to('cpu'),
+            netuid = self.config.netuid,
+            wallet=self.wallet,
+            version_key=1,
+            wait_for_finalization=self.config.neuron.wait_for_finalization,
+        )
+
+        self.vlogger.epoch_log(
+            metagraph = self.metagraph, 
+            netuid = self.config.netuid, 
+            subtensor = self.subtensor, 
+            neuron_stats = self.neuron_stats, 
+            epoch_status = epoch_status,  
+            debug = self.config.debug or self.config.trace, 
+            sample_uids = sample_uids,
+            sample_weights = sample_weights,
+        )
+        
+        # === Iterate epochs ===
+        self.epoch += 1
+        
+    def step(self, epoch_status, epoch_params):
         start_time = time.time()
 
         # === Forward ===
@@ -269,13 +308,13 @@ class neuron:
 
         dendrite_flag = epoch_status.step * epoch_params.topk % len(self.dendrites)
         if dendrite_flag + epoch_params.topk > len(self.dendrites):
-            random.shuffle(self.dendrites)
+            random.shuffle(self.dendrites_orders)
         
         stats, step_status = self.nucleus( 
             stats = stats,
             step_status = step_status,
             text_input = next(self.dataset), 
-            dendrites = self.dendrites[ dendrite_flag: dendrite_flag + epoch_params.topk],
+            dendrites = [self.dendrites[uid] for uid in dendrite_orders[ dendrite_flag: dendrite_flag + epoch_params.topk]],
             validation_len = epoch_params.validation_len
         )
 
@@ -290,56 +329,21 @@ class neuron:
         step_status.current_block = self.subtensor.block,
         step_status.step_time = time.time() - start_time
         
-        self.log_stats(stats, step_status)
-        self.step_log(epoch_status, epoch_params, step_status, stats)
-
-    def step_log(self, epoch_status, epoch_params, step_status, stats): 
-        # === ALL logging for validation step (including console message, console tables, prometheus, wandb) ===
-        if epoch_status.step % 25 == 1:
-            # console message - validator identifier status (every 25 validation steps)
-            self.vlogger.print_console_validator_identifier(self.uid, self.wallet, self.dendrite.receptor_pool.external_ip)
-            # console message - validator update status (every 25 validation steps)
-            self.vlogger.print_console_metagraph_status(self.uid, self.metagraph, step_status.current_block, epoch_params.start_block, self.subtensor.network, self.config.netuid)
-
-        # console message - query summary (every validation step)
-        self.vlogger.print_console_query_summary(
-            current_block = step_status.current_block, 
-            start_block = epoch_params.start_block,
-            blocks_per_epoch = epoch_params.blocks_per_epoch, 
-            epoch_steps = epoch_params.epoch_steps, 
-            epoch = epoch_status.step, 
-            responsive_uids = step_status.responsive_uids, 
-            queried_uids = step_status.queried_uids, 
-            step_time = step_status.step_time, 
-            epoch_responsive_uids = epoch_status.responsive_uids, 
-            epoch_queried_uids = epoch_status.queried_uids
+        # self.log_stats(stats, step_status)
+        self.vlogger.step_log( 
+            uid = self.uid, 
+            wallet = self.wallet, 
+            metagraph = self.metagraph, 
+            netuid = self.config.netuid, 
+            subtensor = self.subtensor, 
+            stats = stats,
+            neuron_stats = self.neuron_stats, 
+            step_status = step_status,  
+            epoch_status = epoch_status,  
+            epoch_params = epoch_params,  
+            debug = self.config.debug or self.config.trace, 
+            synapse_key = self.synapse_keys
         )
-
-        if self.config.logging.debug or self.config.logging.trace:
-            # console table - stats table (every validation step)
-            # Prints exponential moving average statistics of valid neurons from latest validator forward 
-            self.vlogger.print_stats_table({uid: self.neuron_stats[uid]
-                            for uid, stat in stats.items() if len(set(stat.keys()) & set(self.synapse_keys))},
-                        self.weight_key,
-                        f'[white] Stats update [/white] | ' + str(self),  # title
-                        f'#{step_status.current_block}: '
-                        f'[bold]{step_status.current_block - epoch_params.start_block}[/bold]/{epoch_params.blocks_per_epoch} (blocks/epoch) | '
-                        f'Epoch {self.epoch} | '
-                        f'[white] Step {epoch_status.step} ({self.global_step} global) \[{step_status.step_time:.3g}s] [/white]')  # caption
-
-            # console table - weight table (every validation step)
-            sample_uids, sample_weights = self.calculate_weights()
-            self.vlogger.print_weights_table(
-                min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
-                max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.max_weight_limit,
-                neuron_stats = self.neuron_stats,
-                title = str(self),
-                metagraph_n = self.metagraph.n, 
-                sample_uids = sample_uids, 
-                sample_weights = sample_weights,
-                include_uids=list(stats.keys()), 
-                num_rows=len(stats) + 25
-            )  
 
     def init_epoch(self):
         epoch_params = SimpleNamespace(
@@ -370,31 +374,6 @@ class neuron:
             self.dataset.set_data_size(epoch_params.batch_size, epoch_params.sequence_length + epoch_params.validation_len + epoch_params.prune_len)
 
         return epoch_status, epoch_params
-
-    def log_stats(self, stats, step_status):
-
-        # === Shapley value combination ===
-        # Combine base values with synergy approximation to get final Shapley values.
-        for s in stats.values():
-            if 'losses_nxt' in s:
-                del s['losses_nxt']  # remove batch losses - not needed for stats anymore
-
-            for key in s:
-                if hasattr(s[key], 'item'):
-                    s[key] = s[key].item()
-
-        # === Response table ===
-        # Prints the query response table: top prediction probabilities and texts for batch tasks
-        # batch_predictions = format_predictions(uids, query_responses, return_ops, inputs, validation_len, index_s)
-        # self.vlogger.print_response_table(batch_predictions, stats, sort_col='loss_nxt')
-
-        # === Synergy table ===
-        # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        self.vlogger.print_synergy_table(stats, step_status.syn_loss_diff, 'loss_nxt')
-
-        # === Neuron responses (table) ===
-        # Prints the evaluation of the neuron responses to the validator request
-        self.vlogger.print_synapse_table( 'Stats table', stats, 'loss_nxt', step_status.shapley_time)
 
     def scaling_law_loss_to_params(self, loss):
         r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
