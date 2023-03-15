@@ -23,6 +23,8 @@ import torch
 import argparse
 import bittensor
 
+from loguru import logger
+
 class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
     """ TextLastHiddenStateSynapse: A class for servicing text_last_hidden_state requests."""
 
@@ -241,17 +243,15 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
         else:
             mask = None
 
-        return bittensor.TextLastHiddenStateForwardCall(
+        forward_call =  bittensor.TextLastHiddenStateForwardCall(
             text_inputs = text_inputs,
             mask = mask,
             mask_serializer_type = request_proto.mask_serializer_type,
             text_inputs_serializer_type = request_proto.text_inputs_serializer_type,
             hidden_states_serializer_type = request_proto.hidden_states_serializer_type,
-            hotkey = request_proto.hotkey,
-            timeout = request_proto.timeout,
-            start_time = time.time(),
-            version = request_proto.version,
         )
+        return forward_call
+
     
     def post_process_forward_call_to_response_proto( 
             self, 
@@ -378,7 +378,6 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
             hidden_states_grads_serializer_type = request_proto.hidden_states_grads_serializer_type,
         )
     
-
     def Forward( 
             self, 
             request: 'bittensor.ForwardRequest', 
@@ -400,13 +399,18 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
         try:
             # Build forward call.
             forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request )
+            forward_call.hotkey = request.hotkey
+            forward_call.timeout = request.timeout
+            forward_call.start_time = time.time()
+            forward_call.version = request.version
+
             # Check blacklist.
             if self._blacklist( forward_call ): raise Exception('Blacklisted')
             # Get priority.
             priority = self._priority( forward_call )
             # Queue the forward call.
             future = self.priority_threadpool.submit(
-                self.forward,
+                self._forward,
                 forward_call = forward_call,
                 priority = priority,
             )
@@ -462,3 +466,95 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
             response.hotkey = self.wallet.hotkey.ss58_address
             response.version = bittensor.__version_as_int__
             return response
+        
+    def Backward( 
+            self, 
+            request: 'bittensor.BackwardRequest', 
+            context: grpc.ServicerContext 
+        ) -> 'bittensor.ForwardResponse':
+        """ ForwardTextLastHiddenState
+            ----------------------------
+            Args:
+                request (bittensor.BackwardRequest): 
+                    request.version (int): version of the caller.
+                    request.hotkey (string): hotkey of the neuron.
+                context (grpc.ServicerContext):
+                    grpc tcp context.
+            Returns:
+                response (bittensor.BackwardResponse): 
+                    response from the backward call.
+
+        """
+        try:
+            # Build backward call.
+            backward_call = self.pre_process_request_proto_to_backward_call( request_proto = request )
+            backward_call.hotkey = request.hotkey
+            backward_call.start_time = time.time()
+            backward_call.version = request.version
+
+            # Check blacklist.
+            if self._blacklist( backward_call ): raise Exception('Blacklisted')
+            # Get priority.
+            priority = self._priority( backward_call )
+            # Queue the backward call.
+            future = self.priority_threadpool.submit(
+                self._backward,
+                backward_call = backward_call,
+                priority = priority,
+            )
+        except Exception as e:
+            backward_call.request_code = bittensor.proto.ReturnCode.UnknownException
+            backward_call.request_message = str(e)
+        finally:
+            # Log request.
+            bittensor.logging.rpc_log ( 
+                axon = True, 
+                forward = False, 
+                is_response = False, 
+                code = backward_call.request_code, 
+                call_time = time.time() - backward_call.start_time, 
+                pubkey = backward_call.hotkey, 
+                uid = None, 
+                inputs = backward_call.get_inputs_shape() if backward_call.request_code == bittensor.proto.ReturnCode.Success else None,
+                outputs = None,
+                message = backward_call.request_message,
+                synapse = self.__str__()
+            )
+            if backward_call.request_code != bittensor.proto.ReturnCode.Success:
+                response_proto = self.post_process_backward_call_to_response_proto( backward_call )
+                response_proto.hotkey = self.wallet.hotkey.ss58_address
+                response_proto.version = bittensor.__version_as_int__
+                response_proto.return_code = backward_call.request_code
+                response_proto.message = backward_call.request_message
+                return response_proto
+
+        # Do backward.
+        try:
+            # Get the result.
+            future.result( timeout = bittensor.__blocktime__ )
+
+        except Exception as e:
+            backward_call.response_code = bittensor.proto.ReturnCode.UnknownException
+            backward_call.response_message = str(e)
+        finally:
+            # Log response
+            bittensor.logging.rpc_log ( 
+                axon = True, 
+                forward = False, 
+                is_response = True, 
+                code = backward_call.response_code, 
+                call_time = time.time() - backward_call.start_time, 
+                pubkey = backward_call.hotkey, 
+                uid = None, 
+                inputs = list( backward_call.get_inputs_shape() ) if backward_call.response_code == bittensor.proto.ReturnCode.Success else None,
+                outputs = list( backward_call.get_outputs_shape() ) if backward_call.response_code == bittensor.proto.ReturnCode.Success else None,
+                message = backward_call.response_message,
+                synapse = self.__str__()
+            )
+            response_proto = self.post_process_backward_call_to_response_proto( backward_call )
+            response_proto.hotkey = self.wallet.hotkey.ss58_address
+            response_proto.version = bittensor.__version_as_int__
+            response_proto.return_code = backward_call.request_code
+            response_proto.message = backward_call.request_message
+            return response_proto
+
