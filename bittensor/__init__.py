@@ -134,6 +134,9 @@ from bittensor._logging import logging as logging
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
+# ---- Neurons ----
+import bittensor._neuron as neurons
+
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
 from bittensor._cli.commands import utils as cli_utils
