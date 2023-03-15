@@ -27,7 +27,7 @@ from munch import Munch
 from prometheus_client import Info
 from pandas.io.json import json_normalize
 
-from collections import MutableMapping
+from collections.abc import MutableMapping
 
 def _merge(d, v):
     """
