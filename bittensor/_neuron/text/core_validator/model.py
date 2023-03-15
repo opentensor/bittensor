@@ -136,16 +136,25 @@ class nucleus( torch.nn.Module ):
         self.encoder.apply( init_xavier )
         torch.nn.init.xavier_uniform_( self.gates.weight )
 
-    def scaling_law_loss_to_params(self, loss):
-        r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
-        """
-        num_params = torch.exp(torch.log(torch.tensor(8.8e13)) -
-                            torch.log(torch.clamp(loss, 1.69)) / 0.076)  # loss lower bound 1.69 is entropy of natural text
-        return num_params
+    def get_loss(self, stat, text_input, call_response):
+        # inputs_nxt = text_input[..., -self.config.nucleus.validation_len:]  # input validation with next token target phrase [batch_size, val_len]
+        # _losses_val, _losses = phrase_cross_entropy(inputs_nxt, call_response, reduce=False)
+        # _losses_val[_losses_val.isnan()] = 20  # assign large loss
+        # _losses[_losses.isnan()] = 20  # assign large loss
+        # _loss_val = _losses_val.mean()
+        # _loss = _losses.mean()
+        # _stat.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss})
+        stat.update({'loss_val_nxt': torch.rand(1)[0], 'losses_nxt': torch.rand(1)[0], 'loss_nxt': torch.rand(1)[0]})
+        
+        return stat 
     
-    def get_losses(self, inputs, call_responses):
-        return torch.rand(len(call_responses))
+    def build_stats(self, text_input, call_responses, dendrites):
+        stats = {}
+        for response, dendrite in zip(call_responses, dendrites):
+            stats[dendrite.endpoint.hotkey] = {'uid': dendrite.endpoint.uid, 'response_time': response.end_time - response.start_time}
+            self.get_loss(stats[dendrite.endpoint.hotkey], text_input, response)
 
+        return stats 
 
     async def async_forward(self, text_input, dendrites):
         # Make calls.
@@ -167,6 +176,7 @@ class nucleus( torch.nn.Module ):
             self,
             text_input: torch.FloatTensor,
             dendrites: 'bittensor.Dendrite',
+            validation_len: int,
         ):
         try:
             loop = asyncio.get_event_loop()
@@ -175,19 +185,16 @@ class nucleus( torch.nn.Module ):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         
-        val_len = self.config.neuron.validation_len  # Number of tokens to holdout for phrase validation beyond sequence context
         prune_len = self.config.neuron.prune_len  # Number of tokens to prune from each validation input sequence
-        text_input = prune_tokens(text_input.to(self.device), prune_len=prune_len, margin=val_len+3)  # prune input sequence without last validation tokens [batch_size, sequence_len]
+        text_input = prune_tokens(text_input.to(self.device), prune_len=prune_len, margin=validation_len+3)  # prune input sequence without last validation tokens [batch_size, sequence_len]
 
         call_responses = loop.run_until_complete ( 
             self.async_forward(
-                text_input = text_input[..., :-val_len],
+                text_input = text_input[..., :-validation_len],
                 dendrites = dendrites
             ) 
         )
 
-        losses = self.get_losses(text_input=text_input, call_responses)
-        scores = self.scaling_law_loss_to_params(losses)
-
-        return scores
-        
+        stats = self.build_stats(text_input, call_responses, dendrites)
+        return stats
+    
