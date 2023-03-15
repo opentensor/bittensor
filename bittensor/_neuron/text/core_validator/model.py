@@ -61,8 +61,6 @@ class nucleus( torch.nn.Module ):
         self.config = config
         self.vlogger = vlogger
 
-        self.config.nucleus.scaling_law_power = subtensor.scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.scaling_law_power == -1 else self.config.nucleus.scaling_law_power
-        self.config.nucleus.synergy_scaling_law_power = subtensor.synergy_scaling_law_power(netuid=self.config.netuid) if self.config.nucleus.synergy_scaling_law_power == -1 else self.config.nucleus.synergy_scaling_law_power
         self.max_n = subtensor.max_n(netuid=self.config.netuid)
 
         self.device = device
@@ -107,8 +105,6 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
         parser.add_argument('--nucleus.no_dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
-        parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
-        parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.logits_divergence', type=float, help=' the divergence value for logit anomaly detection (default value: -1, pulling from subtensor directly)', default=-1)
 
     @classmethod
@@ -144,15 +140,24 @@ class nucleus( torch.nn.Module ):
         # _loss_val = _losses_val.mean()
         # _loss = _losses.mean()
         # _stat.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss})
-        stat.update({'loss_val_nxt': torch.rand(1)[0], 'losses_nxt': torch.rand(1)[0], 'loss_nxt': torch.rand(1)[0]})
+        stat.update({
+            'loss_val_nxt': torch.rand(1)[0]*2 + 1.6, 
+            'losses_nxt': torch.rand(1)[0]*2 + 1.6, 
+            'loss_nxt': torch.rand(1)[0]*2 + 1.6
+        })
         
         return stat 
     
     def build_stats(self, text_input, call_responses, dendrites):
         stats = {}
         for response, dendrite in zip(call_responses, dendrites):
-            stats[dendrite.endpoint.hotkey] = {'uid': dendrite.endpoint.uid, 'response_time': response.end_time - response.start_time}
-            self.get_loss(stats[dendrite.endpoint.hotkey], text_input, response)
+            stats[dendrite.endpoint.hotkey] = {
+                'uid': dendrite.endpoint.uid, 
+                'response_time': response.end_time - response.start_time, 
+                'return_code': response.response_code 
+            }
+            if True or response.response_code == bittensor.proto.ReturnCode.Success:
+                self.get_loss(stats[dendrite.endpoint.hotkey], text_input, response)
 
         return stats 
 
