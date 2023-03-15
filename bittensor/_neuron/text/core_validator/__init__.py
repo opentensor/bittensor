@@ -40,7 +40,7 @@ from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
 from bittensor._neuron.text.neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
 from bittensor._neuron.text.log_utilities import ValidatorLogger
-from model import nucleus 
+from bittensor._neuron.text.core_validator.model import nucleus 
 from bittensor.utils.tokenizer_utils import phrase_cross_entropy, topk_tokens_to_vocab_size, prune_tokens
 
 from torch.nn.functional import kl_div
@@ -233,18 +233,22 @@ class neuron:
         flag = 0
         
         while True:
-            stats = self.nucleus(
+            stats = {}
+            runtime_stats = {}
+            
+            stats, runtime_stats = self.nucleus(
+                stats = stats,
+                runtime_stats = runtime_stats,
                 text_input = next(self.dataset),
                 dendrites = self.dendrites[flag:flag + self.config.neuron.topk],
                 validation_len = self.config.neuron.validation_len
             )
 
-            synergy_start_time = time.time()
-            syn_loss_diff = self.shapley_synergy(stats, '_nxt')
-            self.log_stats(stats, syn_loss_diff)
+            stats, runtimte_stats, syn_loss_diff = self.shapley_synergy(stats, runtime_stats, '_nxt')
+            self.log_stats(stats, runtime_stats, syn_loss_diff)
 
-            logger.info(f'Shapley synergy values (power={self.config.neuron.scaling_law_power:.1f}) '
-                        f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
+            # logger.info(f'Shapley synergy values (power={self.config.neuron.scaling_law_power:.1f}) '
+            #             f'<dim>[{time.time() - synergy_start_time:.3g}s]</dim>')
             if flag + self.config.neuron.topk > self.metagraph.n:
                 flag = 0
                 random.shuffle(self.dendrites)
@@ -252,8 +256,9 @@ class neuron:
                 flag += self.config.neuron.topk
 
             count += 1
+            self.neuron_stats_update(stats)
 
-    def log_stats(self, stats, syn_loss_diff):
+    def log_stats(self, stats, runtime_stats, syn_loss_diff):
 
         # === Shapley value combination ===
         # Combine base values with synergy approximation to get final Shapley values.
@@ -276,8 +281,7 @@ class neuron:
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        # self.vlogger.print_synapse_table( str(synapse), stats, 'loss_nxt', shapley_start_time)
-
+        self.vlogger.print_synapse_table( 'Stats table', stats, 'loss_nxt', runtime_stats['shapley_start_time'])
 
     def scaling_law_loss_to_params(self, loss):
         r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
@@ -286,8 +290,7 @@ class neuron:
                             torch.log(torch.clamp(loss, 1.69)) / 0.076)  # loss lower bound 1.69 is entropy of natural text
         return num_params
     
-
-    def shapley_synergy(self, stats: Dict, ext: str, target: torch.Tensor = None):
+    def shapley_synergy(self, stats: Dict, runtime_stats: Dict, ext: str, target: torch.Tensor = None):
         r"""
         Calculates Shapley synergy for coalition size 2, measured performance above expected performance.
         Measured in effective number of model parameters, just like base Shapley values.
@@ -318,6 +321,7 @@ class neuron:
         # Measured in effective number of model parameters, just like base Shapley values.
         syn_loss_diff = {}  # expected_loss - measured_loss (where > 0)
         responsives = [uid for uid, stat in stats.items() if 'loss' + ext in stat]
+        runtime_stats['shapley_start_time'] = time.time()
         for _first, first in stats.items():
                 
             if 'loss' + ext not in first:
@@ -370,5 +374,131 @@ class neuron:
                     first['synergy' + ext] += synergy_share  # share synergy amongst coalition members
                     second['synergy' + ext] += synergy_share
 
-        return syn_loss_diff
+        return stats, runtime_stats, syn_loss_diff
 
+    def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
+        r""" Updates self.neuron_stats with new individual dictionaries per uid.
+        """
+        responsive_uids = []
+        for _uid, _stats in neuron_stats.items():
+            stats = self.neuron_stats.setdefault(_uid, {})
+
+            # === EMA normal update ===
+            # If synapse responsive push available values into EMA for normal update.
+            # Normal EMA values provide a view on neuron performance if fully responsive.
+            for key in _stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                if math.isnan(_stats[key]):
+                    continue
+                if key in stats:
+                    stats[key] = (1 - self.alpha) * stats[key] + self.alpha * _stats[key]  # update EMA
+                else:
+                    stats.setdefault(key, _stats[key])
+
+            # === Extra stats computation ===
+            # Compute values on EMA stats, such as the scaling law on EMA loss.
+            # Required for values that need to be computed on longer-term stats.
+            extra_stats = {}
+            if 'loss_nxt' in _stats and 'loss_nxt' in stats:  # elif neuron not responsive then omit
+                # estimate the effective number of model parameters from EMA loss
+                _num_params = self.scaling_law_loss_to_params(torch.tensor(stats['loss_nxt']))
+
+                # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
+                _pow_num_params = torch.pow(_num_params, self.config.nucleus.scaling_law_power)
+
+                extra_stats.update({'est_params_nxt': _num_params.item(), 'base_params_nxt': _pow_num_params.item()})
+
+                if 'synergy_nxt' in stats:
+                    extra_stats['shapley_values_nxt'] = extra_stats['base_params_nxt'] + stats['synergy_nxt']
+
+                if 'logits_excess_nxt' in stats:
+                    # penalize by logits divergence excess
+                    extra_stats['shapley_values_nxt'] /= 1 + self.config.nucleus.logits_divergence * stats['logits_excess_nxt']
+
+            # === EMA zeroing update ===
+            # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
+            if 'updates!' in stats:
+                stats['updates!'] += 1  # increment number of EMA zeroing updates
+            else:
+                stats.setdefault('updates!', 1)  # number of EMA zeroing updates init to zero
+
+            for key in self.synapse_keys:
+                zkey = key + '!'  # zeroing key
+                stats.setdefault(zkey, 0.)  # initialize zkey val to zero to gradually increase with observations
+                if key in _stats and not math.isnan(_stats[key]):
+                    responsive_uids += [_uid]
+                    stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * _stats[key]
+                elif key in extra_stats and not math.isnan(extra_stats[key]):
+                    responsive_uids += [_uid]
+                    stats[zkey] = (1 - self.alpha) * stats[zkey] + self.alpha * extra_stats[key]
+                else:
+                    stats[zkey] = (1 - self.alpha) * stats[zkey]  # + self.alpha * 0
+
+            # === EMA normal update ===
+            # If synapse responsive push available values into EMA for normal update.
+            # Normal EMA values provide a view on neuron performance if fully responsive.
+            for key in self.synapse_keys:
+                if key in _stats or key in extra_stats:
+                    updates = 'updates_' + key
+                    if updates in stats:
+                        stats[updates] += 1  # increment number of normal EMA updates made
+                    else:
+                        stats.setdefault(updates, 1)  # add updates fields for new uid entries
+
+            for key in extra_stats:  # detailed neuron evaluation fields, e.g. loss, shapley_values, synergy
+                if math.isnan(extra_stats[key]):
+                    continue
+                if key in stats:
+                    stats[key] = (1 - self.alpha) * stats[key] + self.alpha * extra_stats[key]  # update EMA
+                else:
+                    stats.setdefault(key, extra_stats[key])
+
+        return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
+    
+    def calculate_weights(self):
+        r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
+        used to obtain the mapped stat value (typically a Shapley value) that the final set-weights are calculated from.
+        """
+
+        weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
+
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else  self.subtensor.max_weight_limit
+
+
+        # === Populate neuron weights ===
+        neuron_weights = torch.zeros_like(self.metagraph.total_stake)  # allow unevaluated UIDs for min_allowed_weights
+        for uid in self.neuron_stats:
+            if weight_key in self.neuron_stats[uid]:
+                neuron_weights[uid] = torch.tensor([self.neuron_stats[uid][weight_key]])
+
+        # === Filter to non-zero weights ===
+        sample_uids = torch.argwhere(neuron_weights > 0).squeeze(dim=1)  # find uids with non-zero weight
+        sample_weights = neuron_weights[sample_uids]  # filter to non-zero weights
+
+        # === If no uids responds, return ===
+        if len(sample_uids) == 0:
+            return sample_uids, sample_weights
+
+        # === Exclude lowest quantile from weight setting ===
+        max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
+        
+        if self.config.subtensor.network == 'finney':  
+            quantile = self.subtensor.validator_exclude_quantile(netuid=self.config.netuid) if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
+        else:
+            quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
+        if 0 < max_exclude:
+            exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
+            lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
+            sample_uids = sample_uids[lowest_quantile <= sample_weights]  # exclude uids with weights below quantile
+            sample_weights = sample_weights[lowest_quantile <= sample_weights]  # exclude weights below quantile
+
+            logger.info(f'Exclude {exclude_quantile} quantile ({lowest_quantile}) | '
+                        f'{len(sample_weights)} Shapley values | min:{sample_weights.min()} max:{sample_weights.max()}')
+
+        # === Normalize and apply max_weight_limit ===
+        sample_weights = bittensor.utils.weight_utils.normalize_max_weight(x=sample_weights,
+                                                                             limit=max_weight_limit)
+        logger.info(f'{len(sample_weights)} normalize_max_weight | '
+                    f'max:{sample_weights.max()}')
+
+        return sample_uids, sample_weights

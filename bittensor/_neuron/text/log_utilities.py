@@ -451,6 +451,54 @@ class ValidatorLogger:
         f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
         f'\[{max_weight_limit:.4g} allowed]')
 
+    def format_predictions(
+        uids: torch.Tensor, 
+        query_responses: List[List[torch.FloatTensor]],
+        return_ops: List[torch.LongTensor], 
+        inputs: torch.FloatTensor,
+        validation_len: int, 
+        index_s: int = 0, 
+        number_of_predictions: int = 3
+    ) -> List:
+        r""" Format batch task topk predictions for rich table print of query responses.
+        """
+        batch_predictions = []
+        std_tokenizer = bittensor.tokenizer()
+
+        # === Batch iteration ===
+        for batch_item in range(inputs.shape[0]):
+            # === Task formatting ===
+            context = inputs[batch_item][:-validation_len]
+            answer = inputs[batch_item][-validation_len:]
+
+            context = repr(std_tokenizer.decode(context))[1:-1][-30:]  # strip '' and truncate
+            answer = repr(std_tokenizer.decode(answer))[1:-1][:15]  # strip '' and truncate
+
+            task = f"[reverse]{context}[/reverse][bold]{answer}[/bold]"
+
+            # === Prediction formatting ===
+            predictions = {}
+            for index, uid in enumerate(uids.tolist()):
+                if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
+                    topk_tensor = query_responses[index][index_s]  # [batch_size, (topk + 1), max_len] (prob_k) + floor_prob
+                    topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+                    topk_probs = topk_tensor[batch_item, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
+
+                    # === Topk iteration ===
+                    topk_predictions = ''
+                    for i in range(number_of_predictions):
+                        phrase = topk_tokens[i]
+                        phrase = phrase[phrase >= 0]  # strip negative ignore_index = -100
+                        phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # decode, escape and truncate
+                        prob = f'{topk_probs[i]:.3f}'.lstrip('0').replace('1.000', '1.00')
+                        topk_predictions += f"[green]{prob}[/green]: {phrase_str} "
+
+                    predictions[uid] = topk_predictions[:-1]  # strip trailing space
+
+            batch_predictions += [(task, predictions)]
+
+        return batch_predictions
+
 class ValidatorPrometheus:
     r"""
     Prometheis logging object for validator.
