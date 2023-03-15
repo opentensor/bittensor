@@ -64,7 +64,7 @@ module = bittensor.text_last_hidden_state( wallet = wallet, endpoint = local_end
 response = module.forward( 
     text_inputs = torch.ones( ( 3, 4 ), dtype = torch.long ), 
     mask = torch.rand( ( 3, 4 ) ) > 0.5, 
-    timeout = 1 
+    timeout = 1000
 )
 response = module.backward( 
     text_inputs = torch.ones( ( 3, 4 ), dtype = torch.long ), 
