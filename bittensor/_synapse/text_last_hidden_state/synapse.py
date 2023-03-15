@@ -159,10 +159,6 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
         """ priority: Returns the priority of the synapse for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement priority() in subclass.')
     
-    def blacklist( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall'  ) -> bool:
-        """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
-        raise NotImplementedError('Must implement blacklist() in subclass.')
-   
     def _priority( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
         """ _priority: Returns the priority of the forward call.
             Args:
@@ -181,6 +177,10 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
                 return float( self.metagraph.S[uid].item() )
             else:
                 return 0.0 
+            
+    def blacklist( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall'  ) -> bool:
+        """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
+        raise NotImplementedError('Must implement blacklist() in subclass.')
  
     def _blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
         """ __blacklist: Checks if the forward call is blacklisted.
@@ -194,7 +194,7 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
         try:
             instance_blacklist = self.blacklist( forward_call )
         except:
-            instance_blacklist = True
+            instance_blacklist = False
         if self.metagraph == None: return instance_blacklist
 
         # Check for registration
