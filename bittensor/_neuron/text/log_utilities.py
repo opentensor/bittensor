@@ -499,6 +499,100 @@ class ValidatorLogger:
 
         return batch_predictions
 
+    def step_log(
+            self, 
+            uid, 
+            wallet,
+            metagraph,
+            subtensor,
+            netuid,
+            neuron_stats,
+            epoch_status, 
+            epoch_params, 
+            step_status, 
+            stats,
+            debug,
+            synapse_keys,
+        ): 
+
+        # === Synergy table ===
+        # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
+        self.vlogger.print_synergy_table(stats, step_status.syn_loss_diff, 'loss_nxt')
+
+        # === Neuron responses (table) ===
+        # Prints the evaluation of the neuron responses to the validator request
+        self.vlogger.print_synapse_table( 'Stats table', stats, 'loss_nxt', step_status.shapley_time)
+
+        # === ALL logging for validation step (including console message, console tables, prometheus, wandb) ===
+        if epoch_status.step % 25 == 1:
+            # console message - validator identifier status (every 25 validation steps)
+            self.vlogger.print_console_validator_identifier(uid, wallet, net.get_external_ip())
+            # console message - validator update status (every 25 validation steps)
+            self.vlogger.print_console_metagraph_status(uid, metagraph, step_status.current_block, epoch_params.start_block, subtensor.network, netuid)
+
+        # console message - query summary (every validation step)
+        self.vlogger.print_console_query_summary(
+            current_block = step_status.current_block, 
+            start_block = epoch_params.start_block,
+            blocks_per_epoch = epoch_params.blocks_per_epoch, 
+            epoch_steps = epoch_params.epoch_steps, 
+            epoch = epoch_status.step, 
+            responsive_uids = step_status.responsive_uids, 
+            queried_uids = step_status.queried_uids, 
+            step_time = step_status.step_time, 
+            epoch_responsive_uids = epoch_status.responsive_uids, 
+            epoch_queried_uids = epoch_status.queried_uids
+        )
+
+        if debug:
+            # console table - stats table (every validation step)
+            # Prints exponential moving average statistics of valid neurons from latest validator forward 
+            self.vlogger.print_stats_table({uid: neuron_stats[uid]
+                            for uid, stat in stats.items() if len(set(stat.keys()) & set(synapse_keys))},
+                        self.weight_key,
+                        f'[white] Stats update [/white] | ' + str(self),  # title
+                        f'#{step_status.current_block}: '
+                        f'[bold]{step_status.current_block - epoch_params.start_block}[/bold]/{epoch_params.blocks_per_epoch} (blocks/epoch) | '
+                        f'Epoch {self.epoch} | '
+                        f'[white] Step {epoch_status.step} ({self.global_step} global) \[{step_status.step_time:.3g}s] [/white]')  # caption
+
+            # console table - weight table (every validation step)
+            sample_uids, sample_weights = self.calculate_weights()
+            self.vlogger.print_weights_table(
+                min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
+                max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.max_weight_limit,
+                neuron_stats = self.neuron_stats,
+                title = str(self),
+                metagraph_n = self.metagraph.n, 
+                sample_uids = sample_uids, 
+                sample_weights = sample_weights,
+                include_uids=list(stats.keys()), 
+                num_rows=len(stats) + 25
+            )
+
+    def epoch_log(self, debug, sample_uids, sample_weights, epoch_status, subtensor, metagraph, netuid, neuron_stats):
+
+        # === ALL end of epoch logging (including console message, console table, prometheus, wandb)===
+        if debug:
+                # console table - weight table (every end of epoch)
+            self.vlogger.print_weights_table(
+                min_allowed_weights = subtensor.min_allowed_weights(netuid=netuid),
+                max_weight_limit = subtensor.max_weight_limit(netuid=netuid),
+                neuron_stats = neuron_stats,
+                title = str(self),
+                metagraph_n = metagraph.n, 
+                sample_uids = sample_uids, 
+                sample_weights = sample_weights,
+            )  
+
+        # console message - subtensor weight (every end of epoch)
+        self.vlogger.print_console_subtensor_weight(
+            sample_weights = sample_weights, 
+            epoch_responsive_uids = epoch_status.responsive_uids, 
+            epoch_queried_uids = epoch_status.queried_uids, 
+            max_weight_limit = subtensor.max_weight_limit(netuid=netuid), 
+            epoch_start_time = epoch_status.start_time
+        )
 class ValidatorPrometheus:
     r"""
     Prometheis logging object for validator.

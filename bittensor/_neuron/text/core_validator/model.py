@@ -207,4 +207,3 @@ class nucleus( torch.nn.Module ):
 
         stats, step_status = self.build_stats(stats, step_status, text_input, call_responses, dendrites)
         return stats, step_status
-    
