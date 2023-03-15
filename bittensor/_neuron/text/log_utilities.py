@@ -177,7 +177,7 @@ class ValidatorLogger:
                 sort_col (:type:`str`, `required`):
                     Column name used for sorting. Options from self.neuron_stats_columns[:, 1]. 
         """
-        sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
+        sort = sorted([(s['uid'], s[sort_col]) for hotkey, s in stats.items() if sort_col in s],
                     reverse='loss' not in sort_col, key=lambda _row: _row[1])
         uid_col = self.neuron_stats_columns[0]  # [Column_name, key_name, format_string, rich_style]
         columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
