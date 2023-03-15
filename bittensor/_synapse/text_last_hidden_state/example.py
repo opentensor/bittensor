@@ -20,13 +20,7 @@ local_endpoint = bittensor.endpoint(
 )    
 
 # Create a synapse that returns zeros.
-class Synapse(bittensor.TextLastHiddenStateSynapse):
-
-    def priority(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> float:
-        return 0.0
-    
-    def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bool:
-        return False
+class Synapse( bittensor.TextLastHiddenStateSynapse ):
     
     def forward( 
             self, 

@@ -19,11 +19,31 @@
 # To run these tests.
 # python3 -m pytest -s bittensor/_synapse/text_last_hidden_state/tests.py 
 
+import torch
 import bittensor
 
-def test_create_create_empty_calls():
-    bittensor.TextLastHiddenStateBackwardCall()
-    bittensor.TextLastHiddenStateForwardCall()
+def test_create_create_calls():
+    bittensor.TextLastHiddenStateForwardCall(
+        text_inputs = torch.LongTensor(1, 1),
+    )
+    bittensor.TextLastHiddenStateBackwardCall(
+        text_inputs = torch.LongTensor(1, 1),
+        hidden_states = torch.FloatTensor(1, 1, bittensor.__network_dim__),
+        hidden_states_grads = torch.FloatTensor(1, 1, bittensor.__network_dim__),
+    )
+
+def test_pre_process_forward_call_to_request_proto_passes():
+    wallet = bittensor.wallet.mock()
+    endpoint = bittensor.endpoint.dummy()
+    module = bittensor.text_last_hidden_state( wallet = wallet, endpoint = endpoint )
+    request = module.pre_process_forward_call_to_request_proto(
+        forward_call = bittensor.TextLastHiddenStateForwardCall(
+            text_inputs = torch.LongTensor(1, 1),
+            mask = torch.zeros( 1, 1, dtype=torch.bool )
+        )
+    )
+
 
 if __name__ == "__main__":
-    test_create_create_empty_calls()
+    test_create_create_calls()
+    test_pre_process_forward_call_to_request_proto_passes()
