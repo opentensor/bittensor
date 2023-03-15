@@ -133,29 +133,34 @@ class nucleus( torch.nn.Module ):
         torch.nn.init.xavier_uniform_( self.gates.weight )
 
     def get_loss(self, stat, text_input, call_response):
-        inputs_nxt = text_input[..., -self.config.nucleus.validation_len:]  # input validation with next token target phrase [batch_size, val_len]
-        _losses_val, _losses = phrase_cross_entropy(inputs_nxt, call_response, reduce=False)
-        _losses_val[_losses_val.isnan()] = 20  # assign large loss
-        _losses[_losses.isnan()] = 20  # assign large loss
-        _loss_val = _losses_val.mean()
-        _loss = _losses.mean()
-        stat.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss})
+        # inputs_nxt = text_input[..., -self.config.neuron.validation_len:]  # input validation with next token target phrase [batch_size, val_len]
+        # _losses_val, _losses = phrase_cross_entropy(inputs_nxt, call_response, reduce=False)
+        # _losses_val[_losses_val.isnan()] = 20  # assign large loss
+        # _losses[_losses.isnan()] = 20  # assign large loss
+        # _loss_val = _losses_val.mean()
+        # _loss = _losses.mean()
+        # stat.update({'loss_val_nxt': _loss_val, 'losses_nxt': _losses, 'loss_nxt': _loss})
+        stat.update({
+            'loss_val_nxt': torch.rand(1)[0], 
+            'losses_nxt': torch.rand(1)[0], 
+            'loss_nxt': torch.rand(1)[0]
+        })
         
         return stat 
     
-    def build_stats(self, stats, runtime_stats, text_input, call_responses, dendrites):
-        runtime_stats['base_loss_start_time'] = time.time()
+    def build_stats(self, stats, step_status, text_input, call_responses, dendrites):
+        start_time = time.time()
         for response, dendrite in zip(call_responses, dendrites):
             code = response.response_code if isinstance(response.response_code, int) else response.response_code.value[0]  
-            stats[dendrite.endpoint.hotkey] = {
-                'uid': dendrite.endpoint.uid, 
+            stats[dendrite.endpoint.uid] = {
                 'response_time': response.end_time - response.start_time, 
                 'return_code': code  
             }
-            if code == bittensor.proto.ReturnCode.Success: # TODO
-                self.get_loss(stats[dendrite.endpoint.hotkey], text_input, response)
+            if True or code == bittensor.proto.ReturnCode.Success:
+                self.get_loss(stats[dendrite.endpoint.uid], text_input, response)
 
-        return stats, runtime_stats 
+        step_status.base_loss_start_time = time.time() - start_time
+        return stats, step_status 
 
     async def async_forward(self, text_input, dendrites):
         # Make calls.
@@ -176,7 +181,7 @@ class nucleus( torch.nn.Module ):
     def forward(
             self,
             stats,
-            runtime_stats,
+            step_status,
             text_input: torch.FloatTensor,
             dendrites: 'bittensor.Dendrite',
             validation_len: int,
@@ -187,8 +192,8 @@ class nucleus( torch.nn.Module ):
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        
-        runtime_stats['forward_start_time'] = time.time()
+
+        start_time = time.time() 
         prune_len = self.config.neuron.prune_len  # Number of tokens to prune from each validation input sequence
         text_input = prune_tokens(text_input.to(self.device), prune_len=prune_len, margin=validation_len+3)  # prune input sequence without last validation tokens [batch_size, sequence_len]
 
@@ -198,7 +203,8 @@ class nucleus( torch.nn.Module ):
                 dendrites = dendrites
             ) 
         )
+        step_status.forward_start_time = time.time() - start_time
 
-        stats, runtime_stats = self.build_stats(stats, runtime_stats, text_input, call_responses, dendrites)
-        return stats, runtime_stats
+        stats, step_status = self.build_stats(stats, step_status, text_input, call_responses, dendrites)
+        return stats, step_status
     

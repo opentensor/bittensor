@@ -177,7 +177,7 @@ class ValidatorLogger:
                 sort_col (:type:`str`, `required`):
                     Column name used for sorting. Options from self.neuron_stats_columns[:, 1]. 
         """
-        sort = sorted([(s['uid'], s[sort_col]) for hotkey, s in stats.items() if sort_col in s],
+        sort = sorted([(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
                     reverse='loss' not in sort_col, key=lambda _row: _row[1])
         uid_col = self.neuron_stats_columns[0]  # [Column_name, key_name, format_string, rich_style]
         columns = [uid_col] + [[f'{s[0]}', '', '{:.2f}', ''] for s in sort]
@@ -265,7 +265,7 @@ class ValidatorLogger:
         name: str, 
         stats: Dict, 
         sort_col: str, 
-        start_time: time.time
+        time: time.time
     ):
         r""" 
         Prints the evaluation of the neuron responses to the validator request
@@ -285,7 +285,7 @@ class ValidatorLogger:
                     f'[white] \[{name}] responses [/white] | Validator forward',  # title
                     f'[bold]{len([s for s in stats.values() if len(s) and sort_col in s])}[/bold]/'
                     f'{len(stats)} (respond/topk) | '
-                    f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
+                    f'[bold]Synapse[/bold] | [white]\[{time:.3g}s][/white]'  # caption
                     )
 
     def print_weights_table(
