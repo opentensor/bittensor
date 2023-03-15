@@ -16,10 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 import bittensor
 from bittensor import Balance
-import scalecodec
+import json
 import torch
 
 
@@ -27,6 +27,17 @@ import torch
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
+
+def json_from_vec_u8( vec_u8: List[int] ) -> Optional[Dict]:
+    r""" Returns a json dictionary from a bytes object.
+    """
+    if len(vec_u8) == 0:
+        return None
+
+    as_bytes = bytes(vec_u8)
+    as_json_str = as_bytes.decode('utf-8')
+    as_json = json.loads(as_json_str)
+    return as_json
 
 # Dataclasses for chain data.
 @dataclass
@@ -59,6 +70,26 @@ class NeuronInfo:
     is_null: bool = False
 
     @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> 'NeuronInfo':
+        r""" Returns a NeuronInfo object from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return NeuronInfo._null_neuron() # return null neuron instead of None
+        
+        return NeuronInfo.from_json(json)
+    
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['NeuronInfo']:
+        r""" Returns a list of NeuronInfo objects from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return []
+
+        return [NeuronInfo.from_json(neuron) for neuron in json]
+
+    @classmethod
     def from_json(cls, json: Dict) -> 'NeuronInfo':
         r""" Returns a NeuronInfo object from a json dictionary.
         """
@@ -80,8 +111,8 @@ class NeuronInfo:
             dividends = json['dividends'] / U16_MAX,
             last_update = json['last_update'],
             validator_permit = json['validator_permit'],
-            weights = json['weights'],
-            bonds = json['bonds'],
+            weights = [ (uid, w) for uid, w in enumerate(json['weights']) ],
+            bonds = [ (uid, b) for uid, b in enumerate(json['bonds']) ],
             prometheus_info = PrometheusInfo.from_json(json['prometheus_info']),
             axon_info = AxonInfo.from_json(json['axon_info']),
         )
@@ -199,6 +230,26 @@ class DelegateInfo:
     take: float # Take of the delegate as a percentage
 
     @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional['DelegateInfo']:
+        r""" Returns a DelegateInfo object from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return None
+        
+        return DelegateInfo.from_json(json)
+    
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['DelegateInfo']:
+        r""" Returns a list of DelegateInfo objects from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return []
+        
+        return [DelegateInfo.from_json(delegate) for delegate in json]
+
+    @classmethod
     def from_json(cls, json: Dict) -> 'DelegateInfo':
         r""" Returns a DelegateInfo object from a json dictionary.
         """
@@ -246,6 +297,26 @@ class SubnetInfo:
     modality: int
     connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional['SubnetInfo']:
+        r""" Returns a SubnetInfo object from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return None
+        
+        return SubnetInfo.from_json(json)
+    
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['SubnetInfo']:
+        r""" Returns a list of SubnetInfo objects from a vec_u8.
+        """
+        json = json_from_vec_u8(vec_u8)
+        if json is None:
+            return []
+        
+        return [SubnetInfo.from_json(subnet) for subnet in json]
 
     @classmethod
     def from_json(cls, json: Dict) -> 'SubnetInfo':
