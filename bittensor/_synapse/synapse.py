@@ -46,6 +46,8 @@ class Synapse(ABC):
         if config is None:
             config = Synapse.config()
         Synapse.check_config(config)
+
+        self.priority_threadpool = bittensor.prioritythreadpool(config=self.synapse_config)
         self.config = copy.deepcopy(config)
         self.is_attached = False
         self.axon = None
@@ -76,6 +78,7 @@ class Synapse(ABC):
         """
         # Call subclass priority, if not implemented use the
         # metagraph priority based on stake.
+        assert self.is_attached
         try:
             priority = self._priority(forward_call)
             if priority is not None:
@@ -84,8 +87,8 @@ class Synapse(ABC):
         except NotImplementedError:
             warn("_priority is not implemented in the subclass!")
             if self.axon.metagraph is not None:
-                uid = self.metagraph.hotkeys.index(forward_call.hotkey)
-                return self.metagraph.S[uid].item()
+                uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
+                return self.axon.metagraph.S[uid].item()
             else:
                 return 0.0
 
@@ -97,26 +100,27 @@ class Synapse(ABC):
         Returns:
             bool: True if blacklisted, False otherwise.
         """
+        assert self.is_attached
         # Call subclass blacklist and optionaly return if metagraph is None.
         try:
             sub_blacklist = self._blacklist(forward_call)
         except:
             sub_blacklist = True
-        if self.metagraph is None:
+        if self.axon.metagraph is None:
             return sub_blacklist
 
         # Check for registration
         def registration_check():
-            is_registered = forward_call.hotkey in self.metagraph.hotkeys
+            is_registered = forward_call.hotkey in self.axon.metagraph.hotkeys
             if not is_registered:
-                if self.config.synapse.blacklist.allow_non_registered:
+                if self.synapse_config.blacklist.allow_non_registered:
                     return False
                 raise Exception("Registration blacklist")
 
         # Blacklist based on stake.
         def stake_check() -> bool:
-            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
-            if self.metagraph.S[uid].item() < self.config.synapse.blacklist.stake:
+            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
+            if self.axon.metagraph.S[uid].item() < self.config.synapse.blacklist.stake:
                 raise Exception("Stake blacklist")
             return False
 
@@ -264,22 +268,24 @@ class Synapse(ABC):
             response (bittensor.ForwardResponse):
                 response.serialized_hidden_states (string): serialized hidden states.
         """
-
-        # Build forward call.
-        forward_call = self.pre_process_request_proto_to_forward_call(request_proto=request)
-        forward_call.hotkey = request.hotkey
-        forward_call.start_time = time.time()
-        forward_call.timeout = request.timeout
-        forward_call.version = request.version
+        if not self.is_attached:
+            raise Exception("Synapse cannot be called unless it is attached. Call attach() first.")
 
         try:
+            # Build forward call.
+            forward_call = self.pre_process_request_proto_to_forward_call(request_proto=request)
+            forward_call.hotkey = request.hotkey
+            forward_call.start_time = time.time()
+            forward_call.timeout = request.timeout
+            forward_call.version = request.version
+
             # Check blacklist.
-            if self._blacklist(forward_call):
+            if self.blacklist(forward_call):
                 raise Exception("Blacklisted")
             # Get priority.
             priority = self._priority(forward_call)
             # Queue the forward call.
-            future = self.axon.priority_threadpool.submit(
+            future = self.priority_threadpool.submit(
                 self.forward,
                 forward_call=forward_call,
                 priority=priority,
@@ -306,7 +312,11 @@ class Synapse(ABC):
                 synapse=self.__str__(),
             )
             if forward_call.request_code != bittensor.proto.ReturnCode.Success:
-                return self.post_process_forward_call_to_response_proto(forward_call)
+
+                response = self.post_process_forward_call_to_response_proto(forward_call)
+                response.hotkey = self.axon.wallet.hotkey.ss58_address
+                response.version = bittensor.__version_as_int__
+                return response
 
         # Do forward.
         try:
@@ -335,9 +345,15 @@ class Synapse(ABC):
                 message=forward_call.response_message,
                 synapse=self.__str__(),
             )
-            return self.post_process_forward_call_to_response_proto(forward_call)
 
-    def Backward(self, request: "bittensor.BackwardRequest", context: grpc.ServicerContext):
+            response = self.post_process_forward_call_to_response_proto(forward_call)
+            response.hotkey = self.axon.wallet.hotkey.ss58_address
+            response.version = bittensor.__version_as_int__
+            return response
+
+    def Backward(
+        self, request: "bittensor.BackwardRequest", context: grpc.ServicerContext
+    ) -> "bittensor.ForwardResponse":
         """ForwardTextLastHiddenState
         ----------------------------
         Args:
@@ -346,22 +362,27 @@ class Synapse(ABC):
                 request.hotkey (string): hotkey of the neuron.
             context (grpc.ServicerContext):
                 grpc tcp context.
-        """
-        print("backward")
-        # Build backward call.
-        backward_call = self.pre_process_request_proto_to_backward_call(request_proto=request)
-        backward_call.hotkey = request.hotkey
-        backward_call.start_time = time.time()
-        backward_call.version = request.version
+        Returns:
+            response (bittensor.BackwardResponse):
+                response from the backward call.
 
+        """
+        if not self.is_attached:
+            raise Exception("Synapse cannot be called unless it is attached. Call attach() first.")
         try:
+            # Build backward call.
+            backward_call = self.pre_process_request_proto_to_backward_call(request_proto=request)
+            backward_call.hotkey = request.hotkey
+            backward_call.start_time = time.time()
+            backward_call.version = request.version
+
             # Check blacklist.
             if self.__blacklist(backward_call):
                 raise Exception("Blacklisted")
             # Get priority.
             priority = self._priority(backward_call)
             # Queue the backward call.
-            self.axon.priority_threadpool.submit(
+            future = self.priority_threadpool.submit(
                 self.backward,
                 backward_call=backward_call,
                 priority=priority,
@@ -386,3 +407,44 @@ class Synapse(ABC):
                 message=backward_call.request_message,
                 synapse=self.__str__(),
             )
+            if backward_call.request_code != bittensor.proto.ReturnCode.Success:
+                response_proto = self.post_process_backward_call_to_response_proto(backward_call)
+                response_proto.hotkey = self.axon.wallet.hotkey.ss58_address
+                response_proto.version = bittensor.__version_as_int__
+                response_proto.return_code = backward_call.request_code
+                response_proto.message = backward_call.request_message
+                return response_proto
+
+        # Do backward.
+        try:
+            # Get the result.
+            future.result(timeout=bittensor.__blocktime__)
+
+        except Exception as e:
+            backward_call.response_code = bittensor.proto.ReturnCode.UnknownException
+            backward_call.response_message = str(e)
+        finally:
+            # Log response
+            bittensor.logging.rpc_log(
+                axon=True,
+                forward=False,
+                is_response=True,
+                code=backward_call.response_code,
+                call_time=time.time() - backward_call.start_time,
+                pubkey=backward_call.hotkey,
+                uid=None,
+                inputs=list(backward_call.get_inputs_shape())
+                if backward_call.response_code == bittensor.proto.ReturnCode.Success
+                else None,
+                outputs=list(backward_call.get_outputs_shape())
+                if backward_call.response_code == bittensor.proto.ReturnCode.Success
+                else None,
+                message=backward_call.response_message,
+                synapse=self.__str__(),
+            )
+            response_proto = self.post_process_backward_call_to_response_proto(backward_call)
+            response_proto.hotkey = self.axon.wallet.hotkey.ss58_address
+            response_proto.version = bittensor.__version_as_int__
+            response_proto.return_code = backward_call.request_code
+            response_proto.message = backward_call.request_message
+            return response_proto

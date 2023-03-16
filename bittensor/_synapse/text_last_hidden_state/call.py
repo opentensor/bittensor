@@ -61,7 +61,7 @@ bittensor.TextLastHiddenStateForwardCall(
     def __init__( 
             self, 
             text_inputs: torch.LongTensor, 
-            mask: torch.BoolTensor,
+            mask: torch.BoolTensor = None,
             timeout: float = bittensor.__blocktime__,
             mask_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
             text_inputs_serializer_type: 'bittensor.serializer_type' = bittensor.proto.Serializer.MSGPACK,
@@ -104,6 +104,7 @@ bittensor.TextLastHiddenStateForwardCall(
         if self.hidden_states is not None:
             return self.hidden_states.shape
         else: return None
+
 
 class TextLastHiddenStateBackwardCall( bittensor.BittensorCall ):
     """ Backward call state for the text_last_hidden_state synapse."""
