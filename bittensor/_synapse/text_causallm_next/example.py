@@ -1,4 +1,3 @@
-import call
 import torch
 
 import bittensor
@@ -39,10 +38,12 @@ class Synapse(bittensor.TextCausalLMNextSynapse):
         return forward_call
 
 
+subtensor = bittensor.subtensor( )
+metagraph = None # Allow offline testing with unregistered keys.
 # Create a synapse and attach it to an axon.
-axon = bittensor.axon(wallet=wallet, port=9090, ip="127.0.0.1")
+axon = bittensor.axon(wallet=wallet, port=9090, ip="127.0.0.1", metagraph=metagraph)
 
-synapse = Synapse(wallet=wallet)
+synapse = Synapse()
 axon.attach(synapse=synapse)
 axon.start()
 

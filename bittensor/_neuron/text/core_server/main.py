@@ -104,18 +104,16 @@ def main( ):
         model.load( config.neuron.full_path )
 
     # --- Build axon server and start it.
-    axon = bittensor.axon( config = config, wallet = wallet )
+    axon = bittensor.axon( 
+        wallet = wallet,
+        metagraph = metagraph,
+        config = config,
+    )
     axon.start()
 
     # --- Build our TextSeq2Seq synapse.
     if not config.neuron.no_seq2seq:
-        class TS2SSynapse( bittensor.TextSeq2SeqSynapse ):
-            def priority(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
-                return 0.0
-            
-            def blacklist(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> torch.FloatTensor:
-                return False
-            
+        class TS2SSynapse( bittensor.TextSeq2SeqSynapse ):            
             def forward(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> 'bittensor.TextSeq2SeqBittensorCall':
                 with call_mutex:
                     tokens = model.token_remap( forward_call.text_prompt.to( model.device ) )
@@ -141,26 +139,20 @@ def main( ):
                     return forward_call
                 
         # Attach the synapse to the axon.
-        synapse_s2s = TS2SSynapse( config = config, metagraph = metagraph )
+        synapse_s2s = TS2SSynapse( config = config )
         axon.attach( synapse = synapse_s2s )
 
         
     # --- Build our TextLastHiddenState synapse.
     if not config.neuron.no_lasthidden:
         class TLHSSynapse( bittensor.TextLastHiddenStateSynapse ):
-            def priority(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> float:
-                return 0.0
-            
-            def blacklist(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> torch.FloatTensor:
-                return False
-            
             def forward(self, forward_call: 'bittensor.TextLastHiddenStateForwardCall' ) -> bittensor.TextLastHiddenStateForwardCall:
                 with call_mutex:
                     _, _, hidden = model.encode_forward( forward_call.text_inputs.to( model.device ) )
                     forward_call.hidden_states = hidden
                     return forward_call
         # Attach the synapse to the axon.
-        synapse_tlhs = TLHSSynapse( config = config, metagraph = metagraph )
+        synapse_tlhs = TLHSSynapse( config = config )
         axon.attach( synapse = synapse_tlhs )
 
     # --- Run Forever.

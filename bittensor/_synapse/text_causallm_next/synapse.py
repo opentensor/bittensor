@@ -32,16 +32,13 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
     def __init__(
         self,
         config: "bittensor.Config" = None,
-        metagraph: "bittensor.metagraph.Metagraph" = None,
-        wallet: "bittensor.wallet" = None,
     ):
         if config is None:
             config = self.config()
         TextCausalLMNextSynapse.check_config(config)
+        self.synapse_config = config.synapse.text_causallm_next
         super().__init__(config)
         self.config = copy.deepcopy(config)
-        self.metagraph = metagraph
-        self.wallet = wallet
         print(config)
 
     def _attach(self, axon: "bittensor.axon"):
@@ -51,13 +48,13 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
     @staticmethod
     def add_defaults(defaults):
         """Add default values to defaults object"""
-        defaults.text_causal_lm_next = bittensor.Config()
-        defaults.text_causal_lm_next.blacklist.stake = (
+        defaults.synapse.text_causallm_next = bittensor.Config()
+        defaults.synapse.text_causallm_next.blacklist.stake = (
             os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_STAKE")
             if os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_STAKE") is not None
             else 10
         )
-        defaults.text_causal_lm_next.blacklist.allow_non_registered = (
+        defaults.synapse.text_causallm_next.blacklist.allow_non_registered = (
             os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_ALLOW_NON_REGISTERED")
             if os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_ALLOW_NON_REGISTERED") is not None
             else True
@@ -68,16 +65,16 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
         """Accept specific arguments from parser"""
         prefix_str = "" if prefix is None else prefix + "."
 
-        bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "text_causal_lm_next")
+        bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "synapse.text_causallm_next")
         try:
             parser.add_argument(
-                "--" + prefix_str + "synapse.text_causal_lm_next.blacklist.stake",
+                "--" + prefix_str + "synapse.text_causallm_next.blacklist.stake",
                 type=float,
                 help="The amount of stake (tao) required to make a call.",
                 default=10,
             )
             parser.add_argument(
-                "--" + prefix_str + "synapse.text_causal_lm_next.blacklist.allow_non_registered",
+                "--" + prefix_str + "synapse.text_causallm_next.blacklist.allow_non_registered",
                 action="store_true",
                 help="""If true, allow non-registered peers""",
                 default=True,
@@ -166,7 +163,7 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
         return bittensor.ForwardTextCausalLMNextResponse(
             version=bittensor.__version_as_int__,
             serialized_hidden_states=serialized_hidden_states,
-            hotkey=self.wallet.hotkey.ss58_address,
+            hotkey=self.axon.wallet.hotkey.ss58_address,
             return_code=forward_call.request_code,
             message=forward_call.request_message,
         )

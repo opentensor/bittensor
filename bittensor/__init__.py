@@ -134,6 +134,9 @@ from bittensor._logging import logging as logging
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
+# ---- Neurons ----
+import bittensor._neuron as neurons
+
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
 from bittensor._cli.commands import utils as cli_utils
@@ -180,6 +183,11 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateRequest
+from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateResponse
+
+from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextResponse
+from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMNextRequest
 
 from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextResponse
