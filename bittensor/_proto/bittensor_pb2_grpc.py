@@ -99,6 +99,100 @@ class TextLastHiddenState(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
 
+class TextCausalLMNextStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/TextCausalLMNext/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMNextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMNextResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/TextCausalLMNext/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextCausalLMNextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextCausalLMNextResponse.FromString,
+                )
+
+
+class TextCausalLMNextServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_TextCausalLMNextServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMNextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMNextResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextCausalLMNextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextCausalLMNextResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'TextCausalLMNext', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class TextCausalLMNext(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextCausalLMNext/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMNextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextCausalLMNextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextCausalLMNext/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextCausalLMNextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextCausalLMNextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
 class TextSeq2SeqStub(object):
     """Missing associated documentation comment in .proto file."""
 
