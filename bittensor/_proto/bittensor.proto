@@ -6,6 +6,11 @@ service TextLastHiddenState {
 	rpc Backward (BackwardTextLastHiddenStateRequest) returns (BackwardTextLastHiddenStateResponse) {}
 }
 
+service TextCausalLMNext {
+	rpc Forward (ForwardTextCausalLMNextRequest) returns (ForwardTextCausalLMNextResponse) {}
+	rpc Backward (BackwardTextCausalLMNextRequest) returns (BackwardTextCausalLMNextResponse) {}
+}
+
 service TextSeq2Seq  {
 	rpc Forward (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
 }
@@ -132,6 +137,56 @@ message BackwardTextLastHiddenStateResponse {
 	string hotkey = 2;	
 	string message = 3;
 	ReturnCode return_code = 4; 
+}
+
+/////////////////////////
+// TextCausalLMNext //
+/////////////////////////
+message ForwardTextCausalLMNextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+
+	Serializer mask_serializer_type = 3;
+	Serializer text_inputs_serializer_type = 4;
+	Serializer hidden_states_serializer_type = 5;
+
+	Tensor serialized_text_inputs = 6;
+	Tensor serialized_mask = 7;
+
+	// QueryTimeout
+	float timeout = 8;
+}
+
+message ForwardTextCausalLMNextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+
+	Tensor serialized_hidden_states = 3;
+
+	string message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardTextCausalLMNextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+
+	Serializer mask_serializer_type = 3;
+	Serializer hidden_states_serializer_type = 4;
+	Serializer hidden_states_grads_serializer_type = 5;
+	Serializer text_inputs_serializer_type = 6;
+
+	Tensor serialized_text_inputs = 7;
+	Tensor serialized_hidden_states = 8;
+	Tensor serialized_hidden_states_grads = 9;
+	Tensor serialized_mask = 10;
+}
+
+message BackwardTextCausalLMNextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string message = 3;
+	ReturnCode return_code = 4;
 }
 
 /////////////////////////
