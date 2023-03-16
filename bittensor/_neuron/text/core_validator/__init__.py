@@ -96,7 +96,9 @@ class neuron:
         self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
         self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
         self.synapse_keys = ['shapley_values_nxt']
-
+        # load last saved validator values from the file system
+        if not config.neuron.restart:
+            self.load()
         
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -206,6 +208,44 @@ class neuron:
         # TODO
         self.uid = 1# self.wallet.get_uid( subtensor = self.subtensor, netuid=self.config.netuid )    
 
+    def save(self, path=None):
+        r""" Save validated hotkeys and neuron_stats to filesystem. """
+        try:
+            if path is None:
+                path = self.config.neuron.full_path
+
+            state_dict = {
+                'neuron_stats': self.neuron_stats,
+                'neuron_hotkeys': self.neuron_hotkeys
+            }
+
+            if self.config.neuron.track_hotkey_changes:
+                state_dict['neuron_changes'] = self.neuron_changes
+
+            torch.save(state_dict, f'{path}/model.torch')
+            bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
+
+        except Exception as e:
+            logger.warning(f'Failed to save model with error: {e}')
+
+    def load(self, path=None):
+        r""" Load validated hotkeys and neuron_stats from filesystem. """
+        try:
+            if path is None:
+                path = self.config.neuron.full_path
+            state_dict = torch.load(f'{path}/model.torch')
+
+            self.neuron_stats = state_dict['neuron_stats']
+            self.neuron_hotkeys = state_dict['neuron_hotkeys']
+
+            if 'neuron_changes' in state_dict and self.config.neuron.track_hotkey_changes:
+                self.neuron_changes = state_dict['neuron_changes']
+
+            bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
+
+        except Exception as e:
+            logger.warning(f'Failed to load model with error: {e}')
+
 
     def init_dendrites(self):
         self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs}
@@ -234,6 +274,10 @@ class neuron:
                     del self.neuron_stats[uid]
                     self.dendrites[uid] = bittensor.text_last_hidden_state( endpoint = self.metagraph.endpoint_objs, wallet = self.wallet )
                     changed_hotkeys += [uid]
+        
+        if len(changed_hotkeys):
+            logger.info(f"Hotkeys changed: {changed_hotkeys}")
+            self.save()  # save neuron_stats, neuron_hotkeys, and neuron_changes to filesystem
 
     def run(self):
         self.epoch = 0
@@ -263,8 +307,7 @@ class neuron:
         self.metagraph_sync()  # Reset metagraph.
 
         # === Calculate neuron weights ===
-        sample_uids, sample_weights = self.calculate_weights()
-        
+        sample_uids, sample_weights = self.calculate_weights(epoch_params)
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
             weights=sample_weights.detach().to('cpu'),
@@ -274,6 +317,9 @@ class neuron:
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
+        if epoch_status.step % 25 == 1:
+            self.save() 
+        
         self.vlogger.epoch_log(
             metagraph = self.metagraph, 
             netuid = self.config.netuid, 
@@ -321,7 +367,7 @@ class neuron:
         stats, step_status = self.shapley_synergy(stats, step_status, '_nxt')
         # === Stats update ===
         # Updates moving averages and history.
-        step_status.responsive_uids, step_status.queried_uids = self.neuron_stats_update(stats)
+        step_status.responsive_uids, step_status.queried_uids = self.neuron_stats_update(stats, epoch_params)
         epoch_status.responsive_uids |= set(step_status.responsive_uids)
         epoch_status.queried_uids |= set(step_status.queried_uids)
         epoch_status.step += 1
@@ -361,6 +407,7 @@ class neuron:
             start_block = self.subtensor.block,
             topk = self.config.neuron.topk,
             validation_len = self.config.neuron.validation_len,
+            exclude_quantile = self.config.neuron.exclude_quantile 
         )
 
         epoch_status = SimpleNamespace(
@@ -382,7 +429,7 @@ class neuron:
                             torch.log(torch.clamp(loss, 1.69)) / 0.076)  # loss lower bound 1.69 is entropy of natural text
         return num_params
     
-    def shapley_synergy(self, stats: Dict, step_status: Dict, ext: str):
+    def shapley_synergy(self, stats: Dict, step_status: Dict, ext: str, epoch_params):
         r"""
         Calculates Shapley synergy for coalition size 2, measured performance above expected performance.
         Measured in effective number of model parameters, just like base Shapley values.
@@ -458,8 +505,8 @@ class neuron:
                     expected_params = self.scaling_law_loss_to_params(expected_loss)
 
                     # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
-                    pow_measured_params = torch.pow(measured_params, self.config.neuron.scaling_law_power)
-                    pow_expected_params = torch.pow(expected_params, self.config.neuron.scaling_law_power)
+                    pow_measured_params = torch.pow(measured_params, epoch_params.scaling_law_power)
+                    pow_expected_params = torch.pow(expected_params, epoch_params.scaling_law_power)
 
                     synergy_share = torch.clamp(pow_measured_params - pow_expected_params, 0) / 2
                     synergy_share /= len(responsives)  # average over responsives
@@ -470,7 +517,7 @@ class neuron:
         step_status.syn_loss_diff = syn_loss_diff
         return stats, step_status
 
-    def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]]):
+    def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]], epoch_params):
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
         """
         responsive_uids = []
@@ -498,7 +545,7 @@ class neuron:
                 _num_params = self.scaling_law_loss_to_params(torch.tensor(stats['loss_nxt']))
 
                 # powered down number of params, e.g. dynamic range 3 → 6 nats for scaling_law_power=0.5
-                _pow_num_params = torch.pow(_num_params, self.config.nucleus.scaling_law_power)
+                _pow_num_params = torch.pow(_num_params, epoch_params.scaling_law_power)
 
                 extra_stats.update({'est_params_nxt': _num_params.item(), 'base_params_nxt': _pow_num_params.item()})
 
@@ -507,7 +554,7 @@ class neuron:
 
                 if 'logits_excess_nxt' in stats:
                     # penalize by logits divergence excess
-                    extra_stats['shapley_values_nxt'] /= 1 + self.config.nucleus.logits_divergence * stats['logits_excess_nxt']
+                    extra_stats['shapley_values_nxt'] /= 1 + epoch_params.logits_divergence * stats['logits_excess_nxt']
 
             # === EMA zeroing update ===
             # Push zero into EMA for synapse_keys to exponentially decay weighting keys if neuron non-responsive
@@ -549,15 +596,15 @@ class neuron:
 
         return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
     
-    def calculate_weights(self):
+    def calculate_weights(self, epoch_params):
         r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
         used to obtain the mapped stat value (typically a Shapley value) that the final set-weights are calculated from.
         """
 
         weight_key = self.weight_key + '!'  # use zeroing key to penalize non-responsive neurons
 
-        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights
-        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else  self.subtensor.max_weight_limit
+        min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) 
+        max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)
 
 
         # === Populate neuron weights ===
@@ -577,10 +624,7 @@ class neuron:
         # === Exclude lowest quantile from weight setting ===
         max_exclude = (len(sample_weights) - min_allowed_weights) / len(sample_weights)  # max excludable weight quantile
         
-        if self.config.subtensor.network == 'finney':  
-            quantile = self.subtensor.validator_exclude_quantile(netuid=self.config.netuid) if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
-        else:
-            quantile = self.subtensor.validator_exclude_quantile if self.config.neuron.exclude_quantile == -1 else self.config.neuron.exclude_quantile 
+        quantile = self.subtensor.validator_exclude_quantile(netuid=self.config.netuid) if epoch_params.exclude_quantile == -1 else epoch_params.exclude_quantile 
         if 0 < max_exclude:
             exclude_quantile = min([quantile , max_exclude])  # reduce quantile to meet min_allowed_weights
             lowest_quantile = sample_weights.quantile(exclude_quantile)  # find lowest quantile threshold
