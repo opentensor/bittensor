@@ -23,30 +23,16 @@ Example:
 """
 import argparse
 import time
-import datetime
 import bittensor
 import torch
-import os
-import wandb
-import math
-import random
-import sys
-import pandas
-import traceback
 from rich import print
 from rich.console import Console
 from rich.traceback import install
-from typing import List, Tuple, Callable, Dict, Any, Union, Set
 
-from bittensor.utils.tokenizer_utils import phrase_cross_entropy, topk_tokens_to_vocab_size, prune_tokens
-from bittensor._neuron.text.neuron_utilities import ThreadQueue, PositionalEncoding, calc_loss_fct
-from bittensor._neuron.text.log_utilities import ValidatorLogger
-from torch.nn.functional import kl_div
-from torch.nn.utils import clip_grad_norm_
+from bittensor.utils.tokenizer_utils import phrase_cross_entropy, prune_tokens
+from bittensor._neuron.text.neuron_utilities import PositionalEncoding
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
-from threading import Lock
-from prometheus_client import Counter, Gauge, Histogram, Summary, Info
 import asyncio
 
 logger = logger.opt( colors=True )
