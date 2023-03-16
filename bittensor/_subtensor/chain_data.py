@@ -23,6 +23,7 @@ import json
 import torch
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
+from scalecodec.utils.ss58 import ss58_encode
 from enum import Enum
 
 class ChainDataType(Enum):
@@ -183,13 +184,16 @@ class NeuronInfo:
     bonds: List[List[int]]
     prometheus_info: 'PrometheusInfo'
     axon_info: 'AxonInfo'
+    pruning_score: int
     is_null: bool = False
 
     @classmethod
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> 'NeuronInfo':
         r""" Fixes the values of the NeuronInfo object.
         """
-        stake_dict =  { coldkey: bittensor.Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
+        neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], bittensor.__ss58_format__)
+        neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], bittensor.__ss58_format__)
+        stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): bittensor.Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
         neuron_info_decoded['stake_dict'] = stake_dict
         neuron_info_decoded['stake'] = sum(stake_dict.values())
         neuron_info_decoded['total_stake'] = neuron_info_decoded['stake']
@@ -340,11 +344,11 @@ class DelegateInfo:
         """
         
         return cls(
-            hotkey_ss58 = decoded['delegate_ss58'],
-            owner_ss58 = decoded['owner_ss58'],
+            hotkey_ss58 = ss58_encode(decoded['delegate_ss58'], bittensor.__ss58_format__),
+            owner_ss58 = ss58_encode(decoded['owner_ss58'], bittensor.__ss58_format__),
             take = bittensor.utils.U16_NORMALIZED_FLOAT(decoded['take']),
             nominators = [
-                (nom[0], Balance.from_rao(nom[1]))
+                (ss58_encode(nom[0], bittensor.__ss58_format), Balance.from_rao(nom[1]))
                 for nom in decoded['nominators']
             ],
             total_stake = Balance.from_rao(sum([nom[1] for nom in decoded['nominators']]))
