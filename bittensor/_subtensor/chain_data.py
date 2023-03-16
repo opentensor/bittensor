@@ -21,7 +21,14 @@ import bittensor
 from bittensor import Balance
 import json
 import torch
+from scalecodec.base import RuntimeConfiguration, ScaleBytes
+from scalecodec.type_registry import load_type_registry_preset
+from enum import Enum
 
+class ChainDataType(Enum):
+    NeuronInfo = 1
+    SubnetInfo = 2
+    DelegateInfo = 3
 
 # Constants
 RAOPERTAO = 1e9
@@ -38,6 +45,115 @@ def json_from_vec_u8( vec_u8: List[int] ) -> Optional[Dict]:
     as_json_str = as_bytes.decode('utf-8')
     as_json = json.loads(as_json_str)
     return as_json
+
+def from_scale_encoding( vec_u8: List[int], type_name: ChainDataType, is_vec: bool = False, is_option: bool = False ) -> Optional[Dict]:
+    as_bytes = bytes(vec_u8)
+    as_scale_bytes = ScaleBytes(as_bytes)
+    rpc_runtime_config = RuntimeConfiguration()
+    rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+
+    custom_types = {
+        "types": {
+            "SubnetInfo": {
+                "type": "struct",
+                "type_mapping": [
+                    ["netuid", "u16"],
+                    ["rho", "u16"],
+                    ["kappa", "u16"],
+                    ["difficulty", "u64"],
+                    ["immunity_period", "u16"],
+                    ["validator_batch_size", "u16"],
+                    ["validator_sequence_length", "u16"],
+                    ["validator_epochs_per_reset", "u16"],
+                    ["validator_epoch_length", "u16"],
+                    ["max_allowed_validators", "u16"],
+                    ["min_allowed_weights", "u16"],
+                    ["max_weights_limit", "u16"],
+                    ["scaling_law_power", "u16"],
+                    ["synergy_scaling_law_power", "u16"],
+                    ["subnetwork_n", "u16"],
+                    ["max_allowed_uids", "u16"],
+                    ["blocks_since_last_step", "u64"],
+                    ["tempo", "u16"],
+                    ["network_modality", "u16"],
+                    ["network_connect", "Vec<[u16; 2]>"],
+                    ["emission_values", "u64"]
+                ]
+            },
+            "DelegateInfo": {
+                "type": "struct",
+                "type_mapping": [
+                    ["delegate_ss58", "AccountId"],
+                    ["take", "u16"],
+                    ["nominators", "Vec<(AccountId, u64)>"],
+                    ["owner_ss58", "AccountId"]
+                ],
+            },
+            "NeuronInfo": {
+                "type": "struct",
+                "type_mapping": [
+                    ["hotkey", "AccountId"],
+                    ["coldkey", "AccountId"],
+                    ["uid", "u16"],
+                    ["netuid", "u16"],
+                    ["active", "bool"],
+                    ["axon_info", "AxonInfo"],
+                    ["prometheus_info", "PrometheusInfo"],
+                    ["stake", "Vec<(AccountId, u64)>"],
+                    ["rank", "u16"],
+                    ["emission", "u64"],
+                    ["incentive", "u16"],
+                    ["consensus", "u16"],
+                    ["trust", "u16"],
+                    ["validator_trust", "u16"],
+                    ["dividends", "u16"],
+                    ["last_update", "u64"],
+                    ["validator_permit", "bool"],
+                    ["weights", "Vec<u16>"],
+                    ["bonds", "Vec<u16>"],
+                    ["pruning_score", "u16"]
+                ],
+            },
+            "AxonInfo": {
+                "type": "struct",
+                "type_mapping": [
+                    ["block", "u64"],
+                    ["version", "u32"],
+                    ["ip", "u128"],
+                    ["port", "u16"],
+                    ["ip_type", "u8"],
+                    ["protocol", "u8"],
+                    ["placeholder1", "u8"],
+                    ["placeholder2", "u8"],
+                ],
+            },
+            "PrometheusInfo": {
+                "type": "struct",
+                "type_mapping": [
+                    ["block", "u64"],
+                    ["version", "u32"],
+                    ["ip", "u128"],
+                    ["port", "u16"],
+                    ["ip_type", "u8"],
+                ],
+            },
+        }   
+    }
+
+    rpc_runtime_config.update_type_registry(custom_types)
+
+    type_string = type_name.name
+    if is_option:
+        type_string = f'Option<{type_string}>'
+    if is_vec:
+        type_string = f'Vec<{type_string}>'
+
+    obj = rpc_runtime_config.create_scale_object(
+        type_string,
+        data=as_scale_bytes
+    )
+
+    return obj.decode()
 
 # Dataclasses for chain data.
 @dataclass
@@ -73,6 +189,11 @@ class NeuronInfo:
     def from_vec_u8(cls, vec_u8: List[int]) -> 'NeuronInfo':
         r""" Returns a NeuronInfo object from a vec_u8.
         """
+        if len(vec_u8) == 0:
+            return NeuronInfo._null_neuron()
+        
+        return from_scale_encoding(vec_u8, ChainDataType.NeuronInfo)
+
         json = json_from_vec_u8(vec_u8)
         if json is None:
             return NeuronInfo._null_neuron() # return null neuron instead of None
@@ -83,6 +204,9 @@ class NeuronInfo:
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List['NeuronInfo']:
         r""" Returns a list of NeuronInfo objects from a vec_u8.
         """
+        
+        return from_scale_encoding(vec_u8, ChainDataType.NeuronInfo, is_vec=True)
+
         json = json_from_vec_u8(vec_u8)
         if json is None:
             return []
@@ -233,6 +357,11 @@ class DelegateInfo:
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional['DelegateInfo']:
         r""" Returns a DelegateInfo object from a vec_u8.
         """
+        if len(vec_u8) == 0:
+            return None
+        
+        return from_scale_encoding(vec_u8, ChainDataType.DelegateInfo)
+    
         json = json_from_vec_u8(vec_u8)
         if json is None:
             return None
@@ -243,6 +372,8 @@ class DelegateInfo:
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List['DelegateInfo']:
         r""" Returns a list of DelegateInfo objects from a vec_u8.
         """
+        return from_scale_encoding(vec_u8, ChainDataType.DelegateInfo, is_vec=True)
+
         json = json_from_vec_u8(vec_u8)
         if json is None:
             return []
@@ -302,6 +433,11 @@ class SubnetInfo:
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional['SubnetInfo']:
         r""" Returns a SubnetInfo object from a vec_u8.
         """
+        if len(vec_u8) == 0:
+            return None
+
+        return from_scale_encoding(vec_u8, ChainDataType.SubnetInfo)
+
         json = json_from_vec_u8(vec_u8)
         if json is None:
             return None
@@ -312,6 +448,8 @@ class SubnetInfo:
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List['SubnetInfo']:
         r""" Returns a list of SubnetInfo objects from a vec_u8.
         """
+        return from_scale_encoding(vec_u8, ChainDataType.SubnetInfo, is_vec=True, is_option=True)
+    
         json = json_from_vec_u8(vec_u8)
         if json is None:
             return []
