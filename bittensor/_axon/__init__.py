@@ -42,8 +42,9 @@ class axon:
 
     def __init__(
             self,
+            wallet: 'bittensor.Wallet',
+            metagraph: 'bittensor.Metagraph',
             config: Optional['bittensor.config'] = None,
-            wallet: Optional['bittensor.Wallet'] = None,
             port: Optional[int] = None,
             ip: Optional[str] = None,
             external_ip: Optional[str] = None,
@@ -74,6 +75,9 @@ class axon:
                     function to blacklist requests.
         """   
 
+        self.metagraph = metagraph
+        self.wallet = wallet
+
         # Build and check config.
         if config == None: 
             config = axon.config()
@@ -88,10 +92,6 @@ class axon:
         self.config = config
 
         # Build axon objects.
-        if wallet == None: wallet = bittensor.wallet( config = self.config )
-        self.wallet = wallet
-
-        # Build axon objects.
         self.ip = self.config.axon.ip
         self.port = self.config.axon.port
         self.external_ip = self.config.axon.external_ip
@@ -102,6 +102,9 @@ class axon:
 
         # Synapse storage.
         self.synapses: List[ bittensor.Synapse ] = []
+
+        # Build priority thread pool
+        self.priority_threadool = bittensor.prioritythreadpool( config = self.config.axon )
 
         # Build interceptor.
         self.receiver_hotkey = self.wallet.hotkey.ss58_address
@@ -141,6 +144,7 @@ class axon:
         """ Accept specific arguments from parser
         """
         prefix_str = '' if prefix == None else prefix + '.'
+        bittensor.prioritythreadpool.add_args( parser, prefix = prefix_str + 'axon' )
         try:
             parser.add_argument('--' + prefix_str + 'axon.port', type=int, 
                     help='''The local port this axon endpoint is bound to. i.e. 8091''', default = bittensor.defaults.axon.port)
@@ -158,8 +162,6 @@ class axon:
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
-
-        bittensor.wallet.add_args( parser, prefix = prefix )
 
     @classmethod   
     def add_defaults(cls, defaults):
@@ -179,7 +181,6 @@ class axon:
         """
         assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
         assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
-        bittensor.wallet.check_config( config )
 
     def attach( self, synapse: 'bittensor.Synapse' ) -> 'bittensor.axon':
         r""" Attaches a synapse to this axon.
