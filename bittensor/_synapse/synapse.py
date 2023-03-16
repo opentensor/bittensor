@@ -41,6 +41,15 @@ class Synapse:
         self.config = copy.deepcopy(config)
         self.metagraph = metagraph
 
+    def _attach(self):
+        raise NotImplementedError()
+    
+    def attach(self, axon):
+        """ Attach Synapse to the axon."""
+        self._attach(axon)
+        self.axon = axon
+        self.is_attached = True
+
     @classmethod
     def config(cls) -> 'bittensor.Config':
         """ Returns the config for this synapse."""
@@ -87,10 +96,7 @@ class Synapse:
         raise NotImplementedError('Must implement priority() in subclass.')
 
     def _priority( self, forward_call: bittensor.BittensorCall ) -> float:
-        return self.priority()
-    
-    def __priority( self, forward_call: bittensor.BittensorCall ) -> bool:
-        """ __priority: Returns the priority of the forward call.
+        """ _priority: Returns the priority of the forward call.
             Args:
                 forward_call (:obj:`bittensor.BittensorCall`, `required`):
                     forward_call to check.
@@ -100,11 +106,11 @@ class Synapse:
         # Call subclass priority, if not implemented use the 
         # metagraph priority based on stake.
         try:
-            return float( self._priority( forward_call ) )
+            return self.priority( forward_call )
         except:
             if self.metagraph != None:
                 uid = self.metagraph.hotkeys.index( forward_call.hotkey )
-                return float( self.metagraph.S[uid].item() )
+                return self.metagraph.S[uid].item() 
             else:
                 return 0.0 
 
@@ -228,7 +234,7 @@ class Synapse:
             # Check blacklist.
             if self._blacklist( forward_call ): raise Exception('Blacklisted')
             # Get priority.
-            priority = self.__priority( forward_call )
+            priority = self._priority( forward_call )
             # Queue the forward call.
             future = self.priority_threadpool.submit(
                 self.forward,
@@ -308,7 +314,7 @@ class Synapse:
             # Check blacklist.
             if self.__blacklist( backward_call ): raise Exception('Blacklisted')
             # Get priority.
-            priority = self.__priority( backward_call )
+            priority = self._priority( backward_call )
             # Queue the backward call.
             self.priority_threadpool.submit(
                 self.backward,
