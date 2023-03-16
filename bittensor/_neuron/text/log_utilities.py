@@ -26,6 +26,7 @@ from typing import List, Tuple, Callable, Dict, Any, Union, Set
 import datetime
 from prometheus_client import Counter, Gauge, Histogram, Summary, Info
 import bittensor
+import bittensor.utils.networking as net
 
 class ValidatorLogger:
     r"""

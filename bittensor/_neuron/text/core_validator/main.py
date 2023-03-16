@@ -51,6 +51,7 @@ from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 from threading import Lock
 from prometheus_client import Counter, Gauge, Histogram, Summary, Info
+import bittensor.utils.networking as net
 
 logger = logger.opt( colors=True )
 console = Console()
@@ -177,7 +178,7 @@ class neuron:
         return bittensor.config( parser )
     
     def __str__(self) -> str:
-        return (f'[bold]UID {self.uid}[/bold] \[{self.dendrite.receptor_pool.external_ip}] '
+        return (f'[bold]UID {self.uid}[/bold] \[{net.get_external_ip}] '
                 f'({self.wallet.name}:[bold]{self.wallet.coldkeypub.ss58_address[:7]}[/bold]/'
                 f'{self.config.wallet.hotkey}:[bold]{self.wallet.hotkey.ss58_address[:7]}[/bold])')
 
@@ -272,6 +273,7 @@ class neuron:
 
                 if uid in self.neuron_stats:
                     del self.neuron_stats[uid]
+                    del self.dendrites[uid]
                     self.dendrites[uid] = bittensor.text_last_hidden_state( endpoint = self.metagraph.endpoint_objs, wallet = self.wallet )
                     changed_hotkeys += [uid]
         
