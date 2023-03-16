@@ -97,7 +97,7 @@ class neuron:
         self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
         self.synapse_keys = ['shapley_values_nxt']
         # load last saved validator values from the file system
-        if not config.neuron.restart:
+        if not self.config.neuron.restart:
             self.load()
         
     @classmethod
@@ -250,7 +250,7 @@ class neuron:
     def init_dendrites(self):
         self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs}
         self.dendrites_order = list(self.dendrites.keys())
-        random.shuffle(self.dendrites_orders)
+        random.shuffle(self.dendrites_order)
 
     def metagraph_sync(self):
         r""" Syncing metagraph together with other metagraph-size related objects
