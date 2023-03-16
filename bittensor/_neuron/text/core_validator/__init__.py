@@ -209,7 +209,7 @@ class neuron:
 
     def init_dendrites(self):
         self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs}
-        self.dendrites_orders = list(self.dendrites.keys())
+        self.dendrites_order = list(self.dendrites.keys())
         random.shuffle(self.dendrites_orders)
 
     def metagraph_sync(self):
@@ -308,13 +308,13 @@ class neuron:
 
         dendrite_flag = epoch_status.step * epoch_params.topk % len(self.dendrites)
         if dendrite_flag + epoch_params.topk > len(self.dendrites):
-            random.shuffle(self.dendrites_orders)
+            random.shuffle(self.dendrites_order)
         
         stats, step_status = self.nucleus( 
             stats = stats,
             step_status = step_status,
             text_input = next(self.dataset), 
-            dendrites = [self.dendrites[uid] for uid in dendrite_orders[ dendrite_flag: dendrite_flag + epoch_params.topk]],
+            dendrites = [self.dendrites[uid] for uid in self.dendrited_order[ dendrite_flag: dendrite_flag + epoch_params.topk]],
             validation_len = epoch_params.validation_len
         )
 
