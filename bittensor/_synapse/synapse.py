@@ -279,7 +279,7 @@ class Synapse(ABC):
             # Get priority.
             priority = self._priority(forward_call)
             # Queue the forward call.
-            future = self.priority_threadpool.submit(
+            future = self.axon.priority_threadpool.submit(
                 self.forward,
                 forward_call=forward_call,
                 priority=priority,
@@ -361,7 +361,7 @@ class Synapse(ABC):
             # Get priority.
             priority = self._priority(backward_call)
             # Queue the backward call.
-            self.priority_threadpool.submit(
+            self.axon.priority_threadpool.submit(
                 self.backward,
                 backward_call=backward_call,
                 priority=priority,
