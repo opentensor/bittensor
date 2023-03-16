@@ -127,9 +127,7 @@ class Synapse(ABC):
             bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
                 forward call processed from the request proto.
         """
-        raise NotImplementedError(
-            "Must implement pre_process_request_proto_to_forward_call() in subclass."
-        )
+        ...
 
     @abstractmethod
     def pre_process_request_proto_to_backward_call(
@@ -144,9 +142,7 @@ class Synapse(ABC):
             bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
                 backward call processed from the request proto.
         """
-        raise NotImplementedError(
-            "Must implement pre_process_request_proto_to_backward_call() in subclass."
-        )
+        ...
 
     @abstractmethod
     def post_process_forward_call_to_response_proto(
@@ -161,10 +157,7 @@ class Synapse(ABC):
             response (bittensor.ForwardResponse):
                 response proto processed from the forward call.
         """
-        raise NotImplementedError(
-            "Must implement post_process_forward_call_to_response_proto() in subclass."
-        )
-
+        ...
 
     ## Base class methods, not to be modified
 
