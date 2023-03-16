@@ -54,10 +54,7 @@ class neuron:
         wallet: 'bittensor.Wallet' = None,
         subtensor: 'bittensor.Subtensor' = None,
         metagraph: 'bittensor.Metagraph' = None,
-        dendrite: 'bittensor.Dendrite' = None,
         dataset: 'bittensor.dataset' = None,
-        axon: 'bittensor.axon' = None,
-        netuid: int = None
     ):
         # === Set up Config ===
         self.config = neuron.config() if config == None else config
@@ -101,7 +98,6 @@ class neuron:
         bittensor.subtensor.check_config( config )
         bittensor.metagraph.check_config( config )
         bittensor.dataset.check_config( config )
-        # bittensor.dendrite.check_config( config )
         bittensor.wandb.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.prometheus.check_config( config )
@@ -157,7 +153,6 @@ class neuron:
         parser.add_argument('--netuid', type=int , help='Subnet netuid', default=1)
 
         bittensor.wallet.add_args( parser )
-        # bittensor.dendrite.add_args( parser )
         bittensor.subtensor.add_args( parser )
         bittensor.metagraph.add_args( parser )
         bittensor.logging.add_args( parser )
@@ -176,8 +171,9 @@ class neuron:
         if getattr(self, 'dataset', None) is not None:
             self.dataset.close()
         
-        if getattr(self, 'dendrite', None) is not None:
-            self.dendrite.__del__()
+        if getattr(self, 'dendrites', None) is not None:
+            for dendrite in self.dendrites:
+                dendrite.__del__()
     
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
