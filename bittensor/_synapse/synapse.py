@@ -1,137 +1,109 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
+import copy
 import os
 import time
+from abc import ABC, abstractmethod
+from typing import Union
+from warnings import warn
+
 import grpc
-import copy
+
 import bittensor
-import argparse
 
-class Synapse:
 
-    def __init__( 
-            self, 
-            config: 'bittensor.Config' =  None, 
-            metagraph: 'bittensor.metagraph.Metagraph' = None
-        ):
-        """ Initializes a new Synapse.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.config()):
-                    bittensor config object.
-                metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, defaults to bittensor.metagraph.Metagraph()):
-                    bittensor metagraph object.
+class Synapse(ABC):
+
+    name: str = "synapse"
+
+    def __init__(self, config: "bittensor.Config" = None):
+        """Initializes a new Synapse.
+        Args:
+            config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.config()):
+                bittensor config object.
+            metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, defaults to bittensor.metagraph.Metagraph()):
+                bittensor metagraph object.
         """
-        if config == None: config = Synapse.config()
-        Synapse.check_config( config )
+
+        if self.name == "synapse":
+            raise ValueError
+        if config is None:
+            config = Synapse.config()
+        Synapse.check_config(config)
         self.config = copy.deepcopy(config)
-        self.metagraph = metagraph
-
-    def _attach(self):
-        raise NotImplementedError()
-    
-    def attach(self, axon):
-        """ Attach Synapse to the axon."""
-        self._attach(axon)
-        self.axon = axon
-        self.is_attached = True
-
-    @classmethod
-    def config(cls) -> 'bittensor.Config':
-        """ Returns the config for this synapse."""
-        parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        return bittensor.config( parser )
-
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
-        """ Accept specific arguments from parser
-        """
-        prefix_str = '' if prefix == None else prefix + '.'
-        try:
-            parser.add_argument('--' + prefix_str + 'synapse.blacklist.stake', type=float, help='The amount of stake (tao) required to make a call.', default=10)
-            parser.add_argument('--' + prefix_str + 'synapse.blacklist.allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=True)
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
-
-    @classmethod   
-    def help(cls):
-        """ Print help to stdout """
-        parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        print (cls.__new__.__doc__)
-        parser.print_help()
-
-    @classmethod   
-    def add_defaults(cls, defaults):
-        """ Add default values to defaults object"""
-        defaults.synapse = bittensor.Config()
-        defaults.synapse.blacklist.stake = os.getenv('BT_SYNAPSE_BLACKLIST_STAKE') if os.getenv('BT_SYNAPSE_BLACKLIST_STAKE') != None else 10
-        defaults.synapse.blacklist.allow_non_registered = os.getenv('BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED') if os.getenv('BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED') != None else True
-
-    @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        pass
+        self.is_attached = False
+        self.axon = None
 
     def __str__(self):
-        return "synapse"
+        return self.name
 
-    # Instance priority called by subclass priority which is called by super priority.
-    def priority( self, forward_call: bittensor.BittensorCall ) -> float:
-        raise NotImplementedError('Must implement priority() in subclass.')
+    ## Methods to be defined in the terminal child.
+    @abstractmethod
+    def _priority(self, forward_call: bittensor.BittensorCall) -> Union[float, None]:
+        raise NotImplementedError("Must implement _priority() in subclass.")
 
-    def _priority( self, forward_call: bittensor.BittensorCall ) -> float:
-        """ _priority: Returns the priority of the forward call.
-            Args:
-                forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    forward_call to check.
-            Returns:
-                float: priority of the forward call.
+    @abstractmethod
+    def _blacklist(self, forward_call: bittensor.BittensorCall) -> bool:
+        raise NotImplementedError("Must implement subclass_blacklist() in subclass.")
+
+    @abstractmethod
+    def forward(self, forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall:
+        raise NotImplementedError("Must implement forward() in subclass.")
+
+    def priority(self, forward_call: bittensor.BittensorCall) -> float:
+        """_priority: Returns the priority of the forward call.
+        Args:
+            forward_call (:obj:`bittensor.BittensorCall`, `required`):
+                forward_call to check.
+        Returns:
+            float: priority of the forward call.
         """
-        # Call subclass priority, if not implemented use the 
+        # Call subclass priority, if not implemented use the
         # metagraph priority based on stake.
         try:
-            return self.priority( forward_call )
-        except:
-            if self.metagraph != None:
-                uid = self.metagraph.hotkeys.index( forward_call.hotkey )
-                return self.metagraph.S[uid].item() 
-            else:
-                return 0.0 
+            priority = self._priority(forward_call)
+            if priority is not None:
+                return priority
 
-    # Instance blacklist called by subclass blacklist which is called by super blacklist.
-    def blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
-        raise NotImplementedError('Must implement subclass_blacklist() in subclass.')
-    
-    def _blacklist( self, forward_call: bittensor.BittensorCall ) -> bool:
-        """ __blacklist: Checks if the forward call is blacklisted.
-            Args:
-                forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    forward_call to check.
-            Returns:
-                bool: True if blacklisted, False otherwise.
+        except NotImplementedError:
+            warn("_priority is not implemented in the subclass!")
+            if self.axon.metagraph is not None:
+                uid = self.metagraph.hotkeys.index(forward_call.hotkey)
+                return self.metagraph.S[uid].item()
+            else:
+                return 0.0
+
+    def blacklist(self, forward_call: bittensor.BittensorCall) -> bool:
+        """__blacklist: Checks if the forward call is blacklisted.
+        Args:
+            forward_call (:obj:`bittensor.BittensorCall`, `required`):
+                forward_call to check.
+        Returns:
+            bool: True if blacklisted, False otherwise.
         """
         # Call subclass blacklist and optionaly return if metagraph is None.
         try:
-            sub_blacklist = self.blacklist( forward_call )
+            sub_blacklist = self._blacklist(forward_call)
         except:
             sub_blacklist = True
-        if self.metagraph == None: return sub_blacklist
+        if self.metagraph is None:
+            return sub_blacklist
 
         # Check for registration
         def registration_check():
@@ -139,92 +111,162 @@ class Synapse:
             if not is_registered:
                 if self.config.synapse.blacklist.allow_non_registered:
                     return False
-                raise Exception('Registration blacklist')
+                raise Exception("Registration blacklist")
 
         # Blacklist based on stake.
         def stake_check() -> bool:
-            uid = self.metagraph.hotkeys.index( forward_call.hotkey )
+            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
             if self.metagraph.S[uid].item() < self.config.synapse.blacklist.stake:
-                raise Exception('Stake blacklist')
+                raise Exception("Stake blacklist")
             return False
 
         # Optionally blacklist based on checks.
         try:
             registration_check()
-            stake_check()            
+            stake_check()
             return sub_blacklist
         except Exception as e:
             return True
 
-    def forward(self, forward_call: bittensor.BittensorCall ) -> bittensor.BittensorCall:
-        raise NotImplementedError('Must implement forward() in subclass.')
-    
-    def pre_process_request_proto_to_forward_call( 
-            self, 
-            request_proto: 'bittensor.ForwardRequest' 
-        ) -> 'bittensor.BittensorCall':
-        """ pre_process_request_proto_to_forward_call
-            ------------------------------------------
-            Args:
-                request_proto (bittensor.ForwardRequest):
-                    request_proto to process in to a forward call.
-            Returns:
-                bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
-                    forward call processed from the request proto.
-            """
-        raise NotImplementedError('Must implement pre_process_request_proto_to_forward_call() in subclass.')
-    
-    def pre_process_request_proto_to_backward_call( 
-            self, 
-            request_proto: 'bittensor.BackwardRequest' 
-        ) -> 'bittensor.BittensorCall':
-        """ pre_process_request_proto_to_backward_call
-            ------------------------------------------
-            Args:
-                request_proto (bittensor.BackwardRequest):
-                    request_proto to process in to a backward call.
-            Returns:
-                bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
-                    backward call processed from the request proto.
-            """
-        raise NotImplementedError('Must implement pre_process_request_proto_to_backward_call() in subclass.')
-    
-    def post_process_forward_call_to_response_proto( 
-            self, 
-            forward_call: 'bittensor.BittensorCall' 
-        ) -> 'bittensor.ForwardResponse':
-        """ post_process_forward_call_to_response_proto
-            --------------------------------------------
-            Args:
-                forward_call (bittensor.BittensorCall):
-                    forward_call to process in to a response proto.
-            Returns:    
-                response (bittensor.ForwardResponse):
-                    response proto processed from the forward call.
+    ## Methods to be defined in the request-specific synapse.
+    @abstractmethod
+    def _attach(self, axon: "bittensor.axon"):
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def add_defaults(defaults):
+        """Add default values to defaults object"""
+        defaults.synapse = bittensor.Config()
+        defaults.synapse.blacklist.stake = (
+            os.getenv("BT_SYNAPSE_BLACKLIST_STAKE")
+            if os.getenv("BT_SYNAPSE_BLACKLIST_STAKE") is not None
+            else 10
+        )
+        defaults.synapse.blacklist.allow_non_registered = (
+            os.getenv("BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED")
+            if os.getenv("BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED") is not None
+            else True
+        )
+
+    @staticmethod
+    @abstractmethod
+    def add_args(parser: argparse.ArgumentParser, prefix: str = None):
+        """Accept specific arguments from parser"""
+        prefix_str = "" if prefix is None else prefix + "."
+
+        try:
+            parser.add_argument(
+                "--" + prefix_str + "synapse.blacklist.stake",
+                type=float,
+                help="The amount of stake (tao) required to make a call.",
+                default=10,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "synapse.blacklist.allow_non_registered",
+                action="store_true",
+                help="""If true, allow non-registered peers""",
+                default=True,
+            )
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
+
+    @abstractmethod
+    def pre_process_request_proto_to_forward_call(
+        self, request_proto: "bittensor.ForwardRequest"
+    ) -> "bittensor.BittensorCall":
+        """pre_process_request_proto_to_forward_call
+        ------------------------------------------
+        Args:
+            request_proto (bittensor.ForwardRequest):
+                request_proto to process in to a forward call.
+        Returns:
+            bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
+                forward call processed from the request proto.
         """
-        raise NotImplementedError('Must implement post_process_forward_call_to_response_proto() in subclass.')
-        
-    def Forward( 
-            self, 
-            request: 'bittensor.ForwardRequest', 
-            context: grpc.ServicerContext 
-        ) -> 'bittensor.ForwardResponse':
-        """ ForwardTextLastHiddenState
-            ----------------------------
-            Args:
-                request (bittensor.ForwardRequest): 
-                    request.version (int): version of the caller.
-                    request.hotkey (string): hotkey of the neuron.
-                    request.timeout (float): timeout for the request.
-                context (grpc.ServicerContext):
-                    grpc tcp context.
-            Returns:
-                response (bittensor.ForwardResponse): 
-                    response.serialized_hidden_states (string): serialized hidden states.
+        raise NotImplementedError(
+            "Must implement pre_process_request_proto_to_forward_call() in subclass."
+        )
+
+    @abstractmethod
+    def pre_process_request_proto_to_backward_call(
+        self, request_proto: "bittensor.BackwardRequest"
+    ) -> "bittensor.BittensorCall":
+        """pre_process_request_proto_to_backward_call
+        ------------------------------------------
+        Args:
+            request_proto (bittensor.BackwardRequest):
+                request_proto to process in to a backward call.
+        Returns:
+            bittensor.BittensorCall (:obj:`bittensor.BittensorCall`, `required`):
+                backward call processed from the request proto.
+        """
+        raise NotImplementedError(
+            "Must implement pre_process_request_proto_to_backward_call() in subclass."
+        )
+
+    @abstractmethod
+    def post_process_forward_call_to_response_proto(
+        self, forward_call: "bittensor.BittensorCall"
+    ) -> "bittensor.ForwardResponse":
+        """post_process_forward_call_to_response_proto
+        --------------------------------------------
+        Args:
+            forward_call (bittensor.BittensorCall):
+                forward_call to process in to a response proto.
+        Returns:
+            response (bittensor.ForwardResponse):
+                response proto processed from the forward call.
+        """
+        raise NotImplementedError(
+            "Must implement post_process_forward_call_to_response_proto() in subclass."
+        )
+
+    def attach(self, axon):
+        """Attach Synapse to the axon."""
+        assert not self.is_attached
+
+        self._attach(axon)
+        self.axon = axon
+        self.is_attached = True
+
+    def config(self) -> "bittensor.Config":
+        """Returns the config for this synapse."""
+        parser = argparse.ArgumentParser()
+        self.add_args(parser)
+        return bittensor.config(parser)
+
+    def help(self):
+        """Print help to stdout"""
+        parser = argparse.ArgumentParser()
+        self.add_args(parser)
+        print(self.__new__.__doc__)
+        parser.print_help()
+
+    @staticmethod
+    def check_config(config: "bittensor.Config"):
+        pass
+
+    def Forward(
+        self, request: "bittensor.ForwardRequest", context: grpc.ServicerContext
+    ) -> "bittensor.ForwardResponse":
+        """ForwardTextLastHiddenState
+        ----------------------------
+        Args:
+            request (bittensor.ForwardRequest):
+                request.version (int): version of the caller.
+                request.hotkey (string): hotkey of the neuron.
+                request.timeout (float): timeout for the request.
+            context (grpc.ServicerContext):
+                grpc tcp context.
+        Returns:
+            response (bittensor.ForwardResponse):
+                response.serialized_hidden_states (string): serialized hidden states.
         """
 
         # Build forward call.
-        forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request )
+        forward_call = self.pre_process_request_proto_to_forward_call(request_proto=request)
         forward_call.hotkey = request.hotkey
         forward_call.start_time = time.time()
         forward_call.timeout = request.timeout
@@ -232,14 +274,15 @@ class Synapse:
 
         try:
             # Check blacklist.
-            if self._blacklist( forward_call ): raise Exception('Blacklisted')
+            if self._blacklist(forward_call):
+                raise Exception("Blacklisted")
             # Get priority.
-            priority = self._priority( forward_call )
+            priority = self._priority(forward_call)
             # Queue the forward call.
             future = self.priority_threadpool.submit(
                 self.forward,
-                forward_call = forward_call,
-                priority = priority,
+                forward_call=forward_call,
+                priority=priority,
             )
         except Exception as e:
             forward_call.request_code = bittensor.proto.ReturnCode.UnknownException
@@ -247,96 +290,99 @@ class Synapse:
 
         finally:
             # Log request.
-            bittensor.logging.rpc_log ( 
-                axon = True, 
-                forward = True, 
-                is_response = False, 
-                code = forward_call.request_code, 
-                call_time = time.time() - forward_call.start_time, 
-                pubkey = forward_call.hotkey, 
-                uid = None, 
-                inputs = forward_call.get_inputs_shape() if forward_call.request_code == bittensor.proto.ReturnCode.Success else None,
-                outputs = None,
-                message = forward_call.request_message,
-                synapse = self.__str__()
+            bittensor.logging.rpc_log(
+                axon=True,
+                forward=True,
+                is_response=False,
+                code=forward_call.request_code,
+                call_time=time.time() - forward_call.start_time,
+                pubkey=forward_call.hotkey,
+                uid=None,
+                inputs=forward_call.get_inputs_shape()
+                if forward_call.request_code == bittensor.proto.ReturnCode.Success
+                else None,
+                outputs=None,
+                message=forward_call.request_message,
+                synapse=self.__str__(),
             )
             if forward_call.request_code != bittensor.proto.ReturnCode.Success:
-                return self.post_process_forward_call_to_response_proto( forward_call )
+                return self.post_process_forward_call_to_response_proto(forward_call)
 
         # Do forward.
         try:
             # Get the result.
-            future.result( timeout = forward_call.timeout )
+            future.result(timeout=forward_call.timeout)
 
         except Exception as e:
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
             forward_call.response_message = str(e)
         finally:
             # Log response
-            bittensor.logging.rpc_log ( 
-                axon = True, 
-                forward = True, 
-                is_response = True, 
-                code = forward_call.response_code, 
-                call_time = time.time() - forward_call.start_time, 
-                pubkey = forward_call.hotkey, 
-                uid = None, 
-                inputs = list( forward_call.get_inputs_shape() ) if forward_call.response_code == bittensor.proto.ReturnCode.Success else None,
-                outputs = list( forward_call.get_outputs_shape() ) if forward_call.response_code == bittensor.proto.ReturnCode.Success else None,
-                message = forward_call.response_message,
-                synapse = self.__str__()
+            bittensor.logging.rpc_log(
+                axon=True,
+                forward=True,
+                is_response=True,
+                code=forward_call.response_code,
+                call_time=time.time() - forward_call.start_time,
+                pubkey=forward_call.hotkey,
+                uid=None,
+                inputs=list(forward_call.get_inputs_shape())
+                if forward_call.response_code == bittensor.proto.ReturnCode.Success
+                else None,
+                outputs=list(forward_call.get_outputs_shape())
+                if forward_call.response_code == bittensor.proto.ReturnCode.Success
+                else None,
+                message=forward_call.response_message,
+                synapse=self.__str__(),
             )
-            return self.post_process_forward_call_to_response_proto( forward_call )
-        
+            return self.post_process_forward_call_to_response_proto(forward_call)
 
-    def Backward( 
-            self, 
-            request: 'bittensor.BackwardRequest', 
-            context: grpc.ServicerContext 
-        ):
-        """ ForwardTextLastHiddenState
-            ----------------------------
-            Args:
-                request (bittensor.BackwardRequest): 
-                    request.version (int): version of the caller.
-                    request.hotkey (string): hotkey of the neuron.
-                context (grpc.ServicerContext):
-                    grpc tcp context.
+    def Backward(self, request: "bittensor.BackwardRequest", context: grpc.ServicerContext):
+        """ForwardTextLastHiddenState
+        ----------------------------
+        Args:
+            request (bittensor.BackwardRequest):
+                request.version (int): version of the caller.
+                request.hotkey (string): hotkey of the neuron.
+            context (grpc.ServicerContext):
+                grpc tcp context.
         """
-        print ('backward')
+        print("backward")
         # Build backward call.
-        backward_call = self.pre_process_request_proto_to_backward_call( request_proto = request )
+        backward_call = self.pre_process_request_proto_to_backward_call(request_proto=request)
         backward_call.hotkey = request.hotkey
         backward_call.start_time = time.time()
         backward_call.version = request.version
 
         try:
             # Check blacklist.
-            if self.__blacklist( backward_call ): raise Exception('Blacklisted')
+            if self.__blacklist(backward_call):
+                raise Exception("Blacklisted")
             # Get priority.
-            priority = self._priority( backward_call )
+            priority = self._priority(backward_call)
             # Queue the backward call.
             self.priority_threadpool.submit(
                 self.backward,
-                backward_call = backward_call,
-                priority = priority,
+                backward_call=backward_call,
+                priority=priority,
             )
         except Exception as e:
             backward_call.request_code = bittensor.proto.ReturnCode.UnknownException
             backward_call.request_message = str(e)
         finally:
             # Log request.
-            bittensor.logging.rpc_log ( 
-                axon = True, 
-                forward = False, 
-                is_response = False, 
-                code = backward_call.request_code, 
-                call_time = time.time() - backward_call.start_time, 
-                pubkey = backward_call.hotkey, 
-                uid = None, 
-                inputs = backward_call.get_inputs_shape() if backward_call.request_code == bittensor.proto.ReturnCode.Success else None,
-                outputs = None,
-                message = backward_call.request_message,
-                synapse = self.__str__()
+            bittensor.logging.rpc_log(
+                axon=True,
+                forward=False,
+                is_response=False,
+                code=backward_call.request_code,
+                call_time=time.time() - backward_call.start_time,
+                pubkey=backward_call.hotkey,
+                uid=None,
+                inputs=backward_call.get_inputs_shape()
+                if backward_call.request_code == bittensor.proto.ReturnCode.Success
+                else None,
+                outputs=None,
+                message=backward_call.request_message,
+                synapse=self.__str__(),
             )
-
