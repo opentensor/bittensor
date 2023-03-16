@@ -189,7 +189,7 @@ class NeuronInfo:
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> 'NeuronInfo':
         r""" Fixes the values of the NeuronInfo object.
         """
-        stake_dict =  { coldkey: bittensor.Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded.stake }
+        stake_dict =  { coldkey: bittensor.Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
         neuron_info_decoded['stake_dict'] = stake_dict
         neuron_info_decoded['stake'] = sum(stake_dict.values())
         neuron_info_decoded['total_stake'] = neuron_info_decoded['stake']
