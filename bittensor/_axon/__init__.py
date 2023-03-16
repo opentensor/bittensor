@@ -26,7 +26,7 @@ import bittensor
 
 from concurrent import futures
 from substrateinterface import Keypair
-from typing import Dict, List, Callable, Optional, Tuple, Union
+from typing import Dict, Callable, Optional, Tuple, Union
 
 class axon:
     """ Encapsulates a bittensor grpc server that services forward and backward requests from other neurons.
@@ -101,7 +101,8 @@ class axon:
         self.started = False  
 
         # Synapse storage.
-        self.synapses: List[ bittensor.Synapse ] = []
+        # NOTE: @joey, do we want to store these text names somehwere? Or create keys as we go?
+        self.synapses: Dict[ str, bittensor.Synapse ] = {}
 
         # Build interceptor.
         self.receiver_hotkey = self.wallet.hotkey.ss58_address
@@ -185,8 +186,11 @@ class axon:
         r""" Attaches a synapse to this axon.
         """
         synapse._attach( axon = self )
-        # Should be a dict and check existance.
-        self.synapses.append( synapse )
+        if self.synapses.get( synapse.name ) is None:
+            self.synapses[ synapse.name ] = synapse
+        else:   
+            # TODO: @joey What to do if there is already a Synapse found for this name?            
+            raise RuntimeError("Synapse {} already attached to axon.".format( synapse.name ))
         return self
 
     def __str__(self) -> str:
