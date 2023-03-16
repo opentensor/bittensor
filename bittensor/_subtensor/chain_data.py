@@ -112,7 +112,7 @@ def from_scale_encoding( vec_u8: List[int], type_name: ChainDataType, is_vec: bo
                     ["validator_permit", "bool"],
                     ["weights", "Vec<(Compact<u16>, Compact<u16>)>"],
                     ["bonds", "Vec<(Compact<u16>, Compact<u16>)>"],
-                    ["pruning_score", "Compact<u16>"]
+                    ["pruning_score", "u16"]
                 ],
             },
             "AxonInfo": {
