@@ -68,71 +68,9 @@ class Synapse(ABC):
     def forward(self, forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall:
         raise NotImplementedError("Must implement forward() in subclass.")
 
-    def priority(self, forward_call: bittensor.BittensorCall) -> float:
-        """_priority: Returns the priority of the forward call.
-        Args:
-            forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                forward_call to check.
-        Returns:
-            float: priority of the forward call.
-        """
-        # Call subclass priority, if not implemented use the
-        # metagraph priority based on stake.
-        assert self.is_attached
-        try:
-            priority = self._priority(forward_call)
-            if priority is not None:
-                return priority
-
-        except NotImplementedError:
-            warn("_priority is not implemented in the subclass!")
-            if self.axon.metagraph is not None:
-                uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
-                return self.axon.metagraph.S[uid].item()
-            else:
-                return 0.0
-
-    def blacklist(self, forward_call: bittensor.BittensorCall) -> bool:
-        """__blacklist: Checks if the forward call is blacklisted.
-        Args:
-            forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                forward_call to check.
-        Returns:
-            bool: True if blacklisted, False otherwise.
-        """
-        assert self.is_attached
-        # Call subclass blacklist and optionaly return if metagraph is None.
-        try:
-            sub_blacklist = self._blacklist(forward_call)
-        except:
-            sub_blacklist = True
-        if self.axon.metagraph is None:
-            return sub_blacklist
-
-        # Check for registration
-        def registration_check():
-            is_registered = forward_call.hotkey in self.axon.metagraph.hotkeys
-            if not is_registered:
-                if self.synapse_config.blacklist.allow_non_registered:
-                    return False
-                raise Exception("Registration blacklist")
-
-        # Blacklist based on stake.
-        def stake_check() -> bool:
-            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
-            if self.axon.metagraph.S[uid].item() < self.config.synapse.blacklist.stake:
-                raise Exception("Stake blacklist")
-            return False
-
-        # Optionally blacklist based on checks.
-        try:
-            registration_check()
-            stake_check()
-            return sub_blacklist
-        except Exception as e:
-            return True
 
     ## Methods to be defined in the request-specific synapse.
+    # TODO: Refactor config so that it can exist in this base class alone
     @abstractmethod
     def _attach(self, axon: "bittensor.axon"):
         ...
@@ -226,6 +164,73 @@ class Synapse(ABC):
         raise NotImplementedError(
             "Must implement post_process_forward_call_to_response_proto() in subclass."
         )
+
+
+    ## Base class methods, not to be modified
+
+    def priority(self, forward_call: bittensor.BittensorCall) -> float:
+        """_priority: Returns the priority of the forward call.
+        Args:
+            forward_call (:obj:`bittensor.BittensorCall`, `required`):
+                forward_call to check.
+        Returns:
+            float: priority of the forward call.
+        """
+        # Call subclass priority, if not implemented use the
+        # metagraph priority based on stake.
+        assert self.is_attached
+        try:
+            priority = self._priority(forward_call)
+            if priority is not None:
+                return priority
+
+        except NotImplementedError:
+            warn("_priority is not implemented in the subclass!")
+            if self.axon.metagraph is not None:
+                uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
+                return self.axon.metagraph.S[uid].item()
+            else:
+                return 0.0
+
+    def blacklist(self, forward_call: bittensor.BittensorCall) -> bool:
+        """__blacklist: Checks if the forward call is blacklisted.
+        Args:
+            forward_call (:obj:`bittensor.BittensorCall`, `required`):
+                forward_call to check.
+        Returns:
+            bool: True if blacklisted, False otherwise.
+        """
+        assert self.is_attached
+        # Call subclass blacklist and optionaly return if metagraph is None.
+        try:
+            sub_blacklist = self._blacklist(forward_call)
+        except:
+            sub_blacklist = True
+        if self.axon.metagraph is None:
+            return sub_blacklist
+
+        # Check for registration
+        def registration_check():
+            is_registered = forward_call.hotkey in self.axon.metagraph.hotkeys
+            if not is_registered:
+                if self.synapse_config.blacklist.allow_non_registered:
+                    return False
+                raise Exception("Registration blacklist")
+
+        # Blacklist based on stake.
+        def stake_check() -> bool:
+            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
+            if self.axon.metagraph.S[uid].item() < self.config.synapse.blacklist.stake:
+                raise Exception("Stake blacklist")
+            return False
+
+        # Optionally blacklist based on checks.
+        try:
+            registration_check()
+            stake_check()
+            return sub_blacklist
+        except Exception as e:
+            return True
 
     def attach(self, axon):
         """Attach Synapse to the axon."""
