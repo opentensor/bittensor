@@ -26,9 +26,7 @@ class Synapse:
 
     def __init__( 
             self, 
-            wallet: 'bittensor.wallet.Wallet',
             config: 'bittensor.Config' =  None, 
-            metagraph: 'bittensor.metagraph.Metagraph' = None,
         ):
         """ Initializes a new Synapse.
             Args:
@@ -42,8 +40,6 @@ class Synapse:
         if config == None: config = Synapse.config()
         Synapse.check_config( config )
         self.config = copy.deepcopy(config)
-        self.wallet = wallet
-        self.metagraph = metagraph
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
@@ -85,6 +81,10 @@ class Synapse:
 
     def __str__(self):
         return "synapse"
+    
+    def _attach( self, axon: 'bittensor.axon' ):
+        """ _attach: Attaches the synapse to the axon."""
+        raise NotImplementedError('Must implement _attach() in subclass.')
 
     # Instance priority called by subclass priority which is called by super priority.
     def priority( self, forward_call: bittensor.BittensorCall ) -> float:
@@ -238,6 +238,8 @@ class Synapse:
                 response (bittensor.ForwardResponse): 
                     response.serialized_hidden_states (string): serialized hidden states.
         """
+        if not self.is_attached:
+            raise Exception('Synapse cannot be called unless it is attached. Call attach() first.')
         try:
             # Build forward call.
             forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request )
@@ -328,6 +330,8 @@ class Synapse:
                     response from the backward call.
 
         """
+        if not self.is_attached:
+            raise Exception('Synapse cannot be called unless it is attached. Call attach() first.')
         try:
             # Build backward call.
             backward_call = self.pre_process_request_proto_to_backward_call( request_proto = request )

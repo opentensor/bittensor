@@ -105,8 +105,9 @@ def main( ):
 
     # --- Build axon server and start it.
     axon = bittensor.axon( 
-        config = config,
         wallet = wallet,
+        metagraph = metagraph,
+        config = config,
     )
     axon.start()
 

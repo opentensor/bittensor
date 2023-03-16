@@ -19,9 +19,24 @@ local_endpoint = bittensor.endpoint(
     modality = 0
 )    
 
+subtensor = bittensor.subtensor( )
+metagraph = bittensor.metagraph ().sync( netuid = 3, subtensor = subtensor )
+
+# Create axon.
+metagraph = bittensor.metagraph()
+axon = bittensor.axon( 
+    wallet = wallet, 
+    metagraph = metagraph,
+    port = 9090, 
+    ip = '127.0.0.1' 
+)
+
 # Create a synapse that returns zeros.
 class Synapse( bittensor.TextLastHiddenStateSynapse ):
-    
+
+    def blacklist( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall'  ) -> bool:
+        return False
+
     def forward( 
             self, 
             text_inputs: torch.LongTensor,
@@ -48,8 +63,7 @@ class Synapse( bittensor.TextLastHiddenStateSynapse ):
         pass
     
 # Create a synapse and attach it to an axon.
-synapse = Synapse( wallet = wallet )
-axon = bittensor.axon( wallet = wallet, port = 9090, ip = '127.0.0.1' )
+synapse = Synapse()
 axon.attach( synapse = synapse )
 axon.start()
 

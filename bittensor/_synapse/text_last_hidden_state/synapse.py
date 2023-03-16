@@ -33,17 +33,39 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
 
     def __init__(
             self, 
-            wallet: 'bittensor.wallet',
-            metagraph: 'bittensor.metagraph.Metagraph' = None,
             config: 'bittensor.Config' = None, 
         ):
         if config == None: config = TextLastHiddenStateSynapse.config()
         TextLastHiddenStateSynapse.check_config( config )
         self.config = copy.deepcopy( config )
+        self.is_attached = False # Not attached.
+        self.axon = None # gets attached through the axon.
 
-        self.metagraph = metagraph
-        self.wallet = wallet
-        self.priority_threadpool = bittensor.prioritythreadpool( config = config.text_last_hidden_state )
+    def _attach( self, axon: 'bittensor.axon' ):
+        """ _attach: Attaches the synapse to the axon."""
+        if self.is_attached: 
+            raise RuntimeError('TextLastHiddenStateSynapse is already attached to an axon.')
+        self.axon = axon
+        self.is_attached = True
+        bittensor.grpc.add_TextLastHiddenStateServicer_to_server( self, axon.server )
+
+    @property
+    def metagraph(self) -> 'bittensor.Metagraph':
+        if not self.is_attached:
+            raise RuntimeError('TextLastHiddenStateSynapse is not attached to an axon.')
+        return self.axon.metagraph
+    
+    @property
+    def wallet(self) -> 'bittensor.Wallet':
+        if not self.is_attached:
+            raise RuntimeError('TextLastHiddenStateSynapse is not attached to an axon.')
+        return self.axon.wallet
+    
+    @property 
+    def priority_threadpool(self) -> 'bittensor.prioritythreadpool':
+        if not self.is_attached:
+            raise RuntimeError('TextLastHiddenStateSynapse is not attached to an axon.')
+        return self.axon.priority_threadool
 
     def __str__(self):
         return 'TextLastHiddenState'
@@ -86,10 +108,6 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         pass
-     
-    def _attach( self, axon: 'bittensor.axon' ):
-        """ _attach: Attaches the synapse to the axon."""
-        bittensor.grpc.add_TextLastHiddenStateServicer_to_server( self, axon.server )
 
     def forward( 
             self, 
@@ -172,10 +190,10 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
         try:
             return float( self.priority( forward_call ) )
         except:
-            if self.metagraph != None:
+            try:
                 uid = self.metagraph.hotkeys.index( forward_call.hotkey )
                 return float( self.metagraph.S[uid].item() )
-            else:
+            except:
                 return 0.0 
             
     def blacklist( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall'  ) -> bool:
@@ -190,35 +208,25 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
             Returns:
                 bool: True if blacklisted, False otherwise.
         """
-        # Call subclass blacklist and optionaly return if metagraph is None.
+        # Call subclass implements blacklist we override here.
         try:
-            instance_blacklist = self.blacklist( forward_call )
+            return self.blacklist( forward_call )
         except:
-            instance_blacklist = False
-        if self.metagraph == None: return instance_blacklist
+            pass
 
-        # Check for registration
-        def registration_check():
-            is_registered = forward_call.hotkey in self.metagraph.hotkeys
-            if not is_registered:
-                if self.config.text_last_hidden_state.blacklist.allow_non_registered:
-                    return False
-                raise Exception('Registration blacklist')
-
-        # Blacklist based on stake.
-        def stake_check() -> bool:
+        # Otherwise, check registration first.
+        is_registered = forward_call.hotkey in self.metagraph.hotkeys
+        if not is_registered and not self.config.text_last_hidden_state.blacklist.allow_non_registered:
+            return True # Blacklisted based on registration.
+        
+        # If registered, check stake.
+        if is_registered:
             uid = self.metagraph.hotkeys.index( forward_call.hotkey )
             if self.metagraph.S[uid].item() < self.config.text_last_hidden_state.blacklist.stake:
-                raise Exception('Stake blacklist')
-            return False
-
-        # Optionally blacklist based on checks.
-        try:
-            registration_check()
-            stake_check()            
-            return instance_blacklist
-        except Exception as e:
-            return True
+                return True
+            
+        # Checks passed, not blacklisted.
+        return False
     
     def pre_process_request_proto_to_forward_call( 
             self, 
@@ -396,6 +404,8 @@ class TextLastHiddenStateSynapse( bittensor.grpc.TextLastHiddenStateServicer ):
                 response (bittensor.ForwardResponse): 
                     response.serialized_hidden_states (string): serialized hidden states.
         """
+        if not self.is_attached:
+            raise Exception('Synapse cannot be called unless it is attached. Call attach() first.')
         try:
             # Build forward call.
             forward_call = self.pre_process_request_proto_to_forward_call( request_proto = request )
