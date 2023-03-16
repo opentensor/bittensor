@@ -15,11 +15,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import copy
 import torch
 import bittensor
-import argparse
 
 class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHiddenStateServicer ):
     """ TextLastHiddenStateSynapse: A class for servicing text_last_hidden_state requests."""
@@ -37,55 +35,22 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
         TextLastHiddenStateSynapse.check_config( config )
         super().__init__( config, metagraph )
         self.config = copy.deepcopy( config )
+        self.synapse_config = config.text_last_hidden_state
         self.metagraph = metagraph
         self.wallet = wallet
-        self.priority_threadpool = bittensor.prioritythreadpool( config = config.synapse.text_last_hidden_state )
+        self.priority_threadpool = bittensor.prioritythreadpool( config = self.synapse_config )
 
     def __str__(self):
         return 'TextLastHiddenState'
 
-    @classmethod
-    def config(cls) -> 'bittensor.Config':
-        """ Returns the config for this synapse."""
-        parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        return bittensor.config( parser )
-
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
-        """ Accept specific arguments from parser
-        """
-        prefix_str = '' if prefix == None else prefix + '.'
-        super().add_args( parser = parser, prefix = prefix )
-        bittensor.prioritythreadpool.add_args( parser, prefix = prefix_str + 'synapse.text_last_hidden_state' )
-        try:
-            parser.add_argument('--' + prefix_str + 'synapse.text_last_hidden_state.blacklist.stake', type=float, help='The amount of stake (tao) required to make a call.', default=10)
-            parser.add_argument('--' + prefix_str + 'synapse.text_last_hidden_state.blacklist.allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=True)
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
-
-    @classmethod   
-    def help(cls):
-        """ Print help to stdout """
-        parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        print (cls.__new__.__doc__)
-        parser.print_help()
-
-    @classmethod   
-    def add_defaults(cls, defaults):
-        """ Add default values to defaults object"""
-        defaults.synapse = bittensor.Config()
-        defaults.synapse.text_last_hidden_state.blacklist.stake = os.getenv('BT_SYNAPSE_TEXT_LAST_HIDDEN_STATE_BLACKLIST_STAKE') if os.getenv('BT_SYNAPSE_TEXT_LAST_HIDDEN_STATE_BLACKLIST_STAKE') != None else 10
-        defaults.synapse.text_last_hidden_state.blacklist.allow_non_registered = os.getenv('BT_SYNAPSE_TEXT_LAST_HIDDEN_STATE_BLACKLIST_ALLOW_NON_REGISTERED') if os.getenv('BT_SYNAPSE_TEXT_LAST_HIDDEN_STATE_BLACKLIST_ALLOW_NON_REGISTERED') != None else True
-
-    @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        pass
-     
     def _attach( self, axon: 'bittensor.axon' ):
         """ _attach: Attaches the synapse to the axon."""
+        if self.is_attached:
+            raise RuntimeError('TextLastHiddenStateSynapse is already attached to the axon.')
+        self.wallet = axon.wallet # Should we ensure the axon wallet is set already?
+        self.metagraph = axon.metagraph
+        self.axon = axon
+        self.is_attached = True
         bittensor.grpc.add_TextLastHiddenStateServicer_to_server( self, axon.server )
 
     def priority( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
@@ -100,9 +65,10 @@ class TextLastHiddenStateSynapse( bittensor.Synapse, bittensor.grpc.TextLastHidd
             Returns:
                 float: priority of the forward call.
         """
-        return self.priority( forward_call)
+        return self.priority( forward_call )
 
     def blacklist( self, forward_call: 'bittensor.TextSeq2SeqBittensorCall'  ) -> bool:
+        # NOTE: @Joey SHOULD THIS BE IMPLEMNTED HERE?
         """ blacklist: Returns True if the synapse should not be called for the given hotkey and text_inputs."""
         raise NotImplementedError('Must implement blacklist() in subclass.')
     
