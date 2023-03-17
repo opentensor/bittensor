@@ -86,7 +86,13 @@ class nucleus( torch.nn.Module ):
         
         return stat 
     
-    def build_stats(self, stats: Dict[str, Any], step_status: Dict[str, Any], text_input: torch.tensor, call_responses: List['bittensor.BittensorCall'], dendrites: 'bittensor.Dendrite'):
+    def build_stats(self, 
+            stats: Dict[str, Any], 
+            step_status: Dict[str, Any], 
+            text_input: torch.tensor, 
+            call_responses: List['bittensor.BittensorCall'], 
+            dendrites: 'bittensor.Dendrite'
+        ) -> Tuple[Dict, Dict]:
         r""" Adding stats for a reasponse.
         """
         start_time = time.time()
@@ -102,7 +108,7 @@ class nucleus( torch.nn.Module ):
         step_status.base_loss_start_time = time.time() - start_time
         return stats, step_status 
 
-    async def async_forward(self, text_input: torch.tensor, dendrites: List['bittensor.Dendrite']):
+    async def async_forward(self, text_input: torch.tensor, dendrites: List['bittensor.Dendrite']) -> List:
         r""" Making async dendrite calls.
         """
         calls = []
@@ -121,12 +127,12 @@ class nucleus( torch.nn.Module ):
 
     def forward(
             self,
-            stats,
-            step_status,
+            stats: Dict[str, Any],
+            step_status: Dict[str, Any],
             text_input: torch.FloatTensor,
             dendrites: 'bittensor.Dendrite',
             validation_len: int,
-        ):
+        ) -> Tuple[Dict, Dict]:
         try:
             loop = asyncio.get_event_loop()
         
