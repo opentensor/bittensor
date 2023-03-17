@@ -384,7 +384,7 @@ class Subtensor:
         return self.query_subtensor( "Rho", block, [netuid] ).value
 
     """ Returns network Kappa hyper parameter """
-    def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+    def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_subtensor( "Kappa", block, [netuid] ).value )
 
