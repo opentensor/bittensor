@@ -24,9 +24,13 @@ from rich.prompt import Prompt
 from rich.prompt import Confirm
 from rich.console import Text
 from dataclasses import dataclass
+from scalecodec import ss58_decode
 import requests
 
 console = bittensor.__console__
+
+delegate_index_length: int = 9 # Must be ODD. Number of characters in the delegate index.
+
 @dataclass
 class DelegateProfile:
     """ A delegate profile from GitHub.
@@ -130,7 +134,42 @@ def get_delegate_profile_readme_from_github() -> List[str]:
     except Exception as e:
         bittensor.__console__.print(f'Failed to pull delegate profiles from GitHub: {e}')
         return []
+    
+def validate_delegate_index( index: str ) -> bool:
+    """ Validates a delegate index.
+    """
+    if len(index) != delegate_index_length:
+        return False
+    if index[:2] != '0x' or any([index_char not in '0123456789abcdef' for index_char in index[2:]]):
+        return False
+    
+    return True
+    
+def get_delegate_index(delegate_ss58: str) -> str:
+    """ Generates a unique id for a delegate from their ss58 address.
+    """
+    # Remove ss58 prefix.
+    pubkey: str = ss58_decode(address = delegate_ss58)
+    # Get the first and last characters of the pubkey.
+    num_bytes: int = (delegate_index_length - 3) // 2
+    # Sum the bytes in the pubkey.
+    pubkey_sum: int = sum([int(pubkey[i:i+2], 16) for i in range(0, len(pubkey), 2)])
+    first_chars = pubkey[:num_bytes]
+    last_chars = pubkey[-num_bytes:]
+    # 0x + first + last + sum (in hex)[:3]
+    unique_id = f'0x{first_chars}{last_chars}{hex(pubkey_sum)[2:5]}' 
+    return unique_id
 
+def get_delegate_from_index(index: str, delegates: List['bittensor.DelegateInfo']) -> 'bittensor.DelegateInfo':
+    """ Gets a delegate from the list using the generated index.
+    """
+    if not validate_delegate_index(index):
+        raise ValueError(f'Invalid delegate index: {index}')
+    
+    for delegate in delegates:
+        if get_delegate_index(delegate.ss58) == index:
+            return delegate
+    return None
 
 def get_delegate_profiles_from_github() -> List[DelegateProfile]:
     """ Reads delegate profiles from GitHub.
@@ -147,7 +186,9 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
     """
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
     table = Table(show_footer=True, width=width, pad_edge=False, box=None)
+    table.title = "Finney - DELEGATES"
     table.add_column("[overline white]SS58",  str(len(delegates)), footer_style = "overline white", style='bold yellow')
+    table.add_column("[overline white]INDEX", style='bold rgb(255,153,255)', justify='center')
     #table.add_column("[overline white]OWNER", style='yellow')
     table.add_column("[overline white]DISPLAY NAME", justify='center', style='white', no_wrap=True)
     table.add_column("[overline white]NOMS", justify='center', style='green', no_wrap=True)
@@ -176,6 +217,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
         
         table.add_row(
             f'{delegate.hotkey_ss58:8.8}...',
+            str(get_delegate_index(delegate.hotkey_ss58)),
             #f'{delegate.owner_ss58:8.8}...',
             str(delegate_profile.displayname),
             str(len(delegate.nominators)),
@@ -198,6 +240,18 @@ class DelegateStakeCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        if config.get('delegate_index') and not config.get('delegate_ss58key'):
+            # Convert to ss58key.
+            delegates = subtensor.get_delegates()
+            try:
+                delegate_info = get_delegate_from_index( config.get('delegate_index'), delegates )
+            except ValueError as e:
+                console.print(":cross_mark:[red]Invalid delegate index[/red] [bold white]{}[/bold white]".format(config.get('delegate_index')))
+                sys.exit(1)
+            
+            config.delegate_ss58key = delegate_info.ss58key
+        
         subtensor.delegate( 
             wallet = wallet, 
             delegate_ss58 = config.get('delegate_ss58key'), 
@@ -225,6 +279,13 @@ class DelegateStakeCommand:
             type = str,  
             required = False,
             help='''The ss58 address of the choosen delegate''', 
+        )
+        delegate_stake_parser.add_argument(
+            '--index', 
+            dest = "delegate_index",
+            type = str,  
+            required = False,
+            help='''A generated index for the delegate''', 
         )
         delegate_stake_parser.add_argument(
             '--all', 
@@ -256,7 +317,7 @@ class DelegateStakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if not config.get('delegate_ss58key'):
+        if not config.get('delegate_ss58key') and not config.get('delegate_index'):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor( config = config )
@@ -267,8 +328,11 @@ class DelegateStakeCommand:
                 sys.exit(1)
             
             show_delegates( delegates )
-            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
-            config.delegate_ss58key = str(delegate_ss58key)
+            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key or index")
+            if validate_delegate_index( delegate_ss58key ):
+                config.delegate_index = delegate_ss58key
+            else:
+                config.delegate_ss58key = str(delegate_ss58key)
             
         # Get amount.
         if not config.get('amount') and not config.get('stake_all'):
@@ -290,6 +354,18 @@ class DelegateUnstakeCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        if config.get('delegate_index') and not config.get('delegate_ss58key'):
+            # Convert to ss58key.
+            delegates = subtensor.get_delegates()
+            try:
+                delegate_info = get_delegate_from_index( config.get('delegate_index'), delegates )
+            except ValueError as e:
+                console.print(":cross_mark:[red]Invalid delegate index[/red] [bold white]{}[/bold white]".format(config.get('delegate_index')))
+                sys.exit(1)
+            
+            config.delegate_ss58key = delegate_info.ss58key
+
         subtensor.undelegate( 
             wallet = wallet, 
             delegate_ss58 = config.get('delegate_ss58key'), 
@@ -317,6 +393,13 @@ class DelegateUnstakeCommand:
             type = str,  
             required = False,
             help='''The ss58 address of the choosen delegate''', 
+        )
+        undelegate_stake_parser.add_argument(
+            '--index', 
+            dest = "delegate_index",
+            type = str,  
+            required = False,
+            help='''A generated index for the delegate''', 
         )
         undelegate_stake_parser.add_argument(
             '--all', 
@@ -348,7 +431,7 @@ class DelegateUnstakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if not config.get('delegate_ss58key'):
+        if not config.get('delegate_ss58key') and not config.get('delegate_index'):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor( config = config )
@@ -359,9 +442,12 @@ class DelegateUnstakeCommand:
                 sys.exit(1)
             
             show_delegates( delegates )
-            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
-            config.delegate_ss58key = str(delegate_ss58key)
-            
+            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key or index")
+            if validate_delegate_index( delegate_ss58key ):
+                config.delegate_index = delegate_ss58key
+            else:
+                config.delegate_ss58key = str(delegate_ss58key)
+
         # Get amount.
         if not config.get('amount') and not config.get('unstake_all'):
             if not Confirm.ask("Unstake all Tao to account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
@@ -373,6 +459,7 @@ class DelegateUnstakeCommand:
                     sys.exit()
             else:
                 config.unstake_all = True
+
 
 class ListDelegatesCommand:
 
@@ -405,7 +492,6 @@ class ListDelegatesCommand:
     def check_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
 
 
 class NominateCommand:
@@ -465,14 +551,4 @@ class NominateCommand:
         if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-
-
-
-
-
-      
-
-
-
-
       
