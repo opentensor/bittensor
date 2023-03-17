@@ -49,6 +49,9 @@ class Dendrite(torch.nn.Module):
         """ Returns the name of the dendrite."""
         return "Dendrite"
 
+    def __del__(self):
+        del self.receptor
+
     def get_stub( self ) -> object:
         """ Returns the channel stub for the dendrite. """
         raise NotImplementedError('Dendrite.get_forward_stub() not implemented.')
