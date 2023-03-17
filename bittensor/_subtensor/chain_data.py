@@ -50,7 +50,7 @@ custom_rpc_type_registry = {
                 ["blocks_since_last_step", "Compact<u64>"],
                 ["tempo", "Compact<u16>"],
                 ["network_modality", "Compact<u16>"],
-                ["network_connect", "Vec<[Compact<u16>; 2]>"],
+                ["network_connect", "Vec<[u16; 2]>"],
                 ["emission_values", "Compact<u64>"],
                 ["burn", "Compact<u64>"],
             ]
@@ -456,7 +456,7 @@ class SubnetInfo:
                 str(int(netuid)): int(req) for netuid, req in decoded['network_connect']
             },
             emission_value= decoded['emission_values'],
-            burn = Balance.from_rao(decoded['burn'])
+            burn = Balance(0)#Balance.from_rao(decoded['burn'])
         )
     
     def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
