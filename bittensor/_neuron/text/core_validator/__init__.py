@@ -539,7 +539,7 @@ class neuron:
                     max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.max_weight_limit,
                     neuron_stats = self.neuron_stats,
                     title = str(self),
-                    metagraph_n = self.metagraph.n, 
+                    metagraph_n = self.metagraph.n.item(),
                     sample_uids = sample_uids, 
                     sample_weights = sample_weights,
                     include_uids=list(stats.keys()), 
@@ -585,7 +585,7 @@ class neuron:
                 max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
                 neuron_stats = self.neuron_stats,
                 title = str(self),
-                metagraph_n = self.metagraph.n, 
+                metagraph_n = self.metagraph.n.item(),
                 sample_uids = sample_uids, 
                 sample_weights = sample_weights,
             )  
