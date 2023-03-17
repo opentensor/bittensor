@@ -61,7 +61,10 @@ custom_rpc_type_registry = {
                 ["delegate_ss58", "AccountId"],
                 ["take", "Compact<u16>"],
                 ["nominators", "Vec<(AccountId, Compact<u64>)>"],
-                ["owner_ss58", "AccountId"]
+                ["owner_ss58", "AccountId"],
+                ["registrations", "Vec<Compact<u16>>"],
+                ["validator_permits", "Vec<Compact<u16>>"],
+                ["return_per_1000", "Compact<u64>"],
             ],
         },
         "NeuronInfo": {
@@ -327,6 +330,9 @@ class DelegateInfo:
     nominators: List[Tuple[str, Balance]] # List of nominators of the delegate and their stake
     owner_ss58: str # Coldkey of owner
     take: float # Take of the delegate as a percentage
+    validator_permits: List[int] # List of subnets that the delegate is allowed to validate on
+    registrations: List[int] # List of subnets that the delegate is registered on
+    return_per_1000: bittensor.Balance # Return per 1000 tao of the delegate over a day
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> 'DelegateInfo':
@@ -341,7 +347,10 @@ class DelegateInfo:
                 (ss58_encode(nom[0], bittensor.__ss58_format__), Balance.from_rao(nom[1]))
                 for nom in decoded['nominators']
             ],
-            total_stake = Balance.from_rao(sum([nom[1] for nom in decoded['nominators']]))
+            total_stake = Balance.from_rao(sum([nom[1] for nom in decoded['nominators']])),
+            validator_permits = decoded['validator_permits'],
+            registrations = decoded['registrations'],
+            return_per_1000 = bittensor.Balance.from_rao(decoded['return_per_1000']),
         )
 
     @classmethod

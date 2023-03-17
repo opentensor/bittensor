@@ -101,6 +101,9 @@ __mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
 
 __mock_chain_db__ = './tmp/mock_chain_db'
 
+# Delegate Profiles
+__delegate_profiles_url__: str = 'https://raw.githubusercontent.com/opentensor/delegate_profiles/master/DELEGATES.md'
+
 
 # --- Prometheus ---
 __prometheus_version__ = "0.1.0"
