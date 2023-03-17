@@ -456,12 +456,12 @@ class Subtensor:
     """ Returns network ScalingLawPower hyper parameter """
     def scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_subtensor('ScalingLawPower', block, [netuid] ).value)
+        return self.query_subtensor('ScalingLawPower', block, [netuid] ).value / 100.
 
     """ Returns network SynergyScalingLawPower hyper parameter """
     def synergy_scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_subtensor('SynergyScalingLawPower', block, [netuid] ).value )
+        return self.query_subtensor('SynergyScalingLawPower', block, [netuid] ).value / 100.
 
     """ Returns network SubnetworkN hyper parameter """
     def subnetwork_n (self, netuid: int, block: Optional[int] = None ) -> int:
