@@ -167,7 +167,7 @@ def get_delegate_from_index(index: str, delegates: List['bittensor.DelegateInfo'
         raise ValueError(f'Invalid delegate index: {index}')
     
     for delegate in delegates:
-        if get_delegate_index(delegate.ss58) == index:
+        if get_delegate_index(delegate.hotkey_ss58) == index:
             return delegate
     return None
 
@@ -250,7 +250,7 @@ class DelegateStakeCommand:
                 console.print(":cross_mark:[red]Invalid delegate index[/red] [bold white]{}[/bold white]".format(config.get('delegate_index')))
                 sys.exit(1)
             
-            config.delegate_ss58key = delegate_info.ss58key
+            config.delegate_ss58key = delegate_info.hotkey_ss58
         
         subtensor.delegate( 
             wallet = wallet, 
