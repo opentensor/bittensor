@@ -138,7 +138,7 @@ def get_delegate_profile_readme_from_github() -> List[str]:
 def validate_delegate_index( index: str ) -> bool:
     """ Validates a delegate index.
     """
-    if len(index) != delegate_index_length:
+    if len(index) != delegate_index_length + 2: # 0x + index
         return False
     if index[:2] != '0x' or any([index_char not in '0123456789abcdef' for index_char in index[2:]]):
         return False
