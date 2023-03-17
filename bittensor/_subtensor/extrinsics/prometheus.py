@@ -95,6 +95,9 @@ def prometheus_extrinsic(
 
         bittensor.__console__.print(":white_heavy_check_mark: [white]Prometheus already served.[/white]".format( external_ip ))
         return True
+    
+    # Add netuid, not in prometheus_info
+    call_params['netuid'] = netuid
 
     with bittensor.__console__.status(":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
         with subtensor.substrate as substrate:

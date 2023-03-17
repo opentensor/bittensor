@@ -338,7 +338,7 @@ class DelegateInfo:
             owner_ss58 = ss58_encode(decoded['owner_ss58'], bittensor.__ss58_format__),
             take = bittensor.utils.U16_NORMALIZED_FLOAT(decoded['take']),
             nominators = [
-                (ss58_encode(nom[0], bittensor.__ss58_format), Balance.from_rao(nom[1]))
+                (ss58_encode(nom[0], bittensor.__ss58_format__), Balance.from_rao(nom[1]))
                 for nom in decoded['nominators']
             ],
             total_stake = Balance.from_rao(sum([nom[1] for nom in decoded['nominators']]))
