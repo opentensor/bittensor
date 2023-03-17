@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
+# Copyright © 2023 OpenTensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -18,28 +18,175 @@
 import sys
 import argparse
 import bittensor
-from typing import List, Optional, Dict
+from typing import List, Optional
 from rich.table import Table
 from rich.prompt import Prompt
 from rich.prompt import Confirm
+from rich.console import Text
+from dataclasses import dataclass
+import requests
+
 console = bittensor.__console__
+@dataclass
+class DelegateProfile:
+    """ A delegate profile from GitHub.
+    See: https://github.com/opentensor/delegate_profiles/blob/master/delegate_profiles.md
+    """
+    delegate_ss58: str
+    displayname: str
+    discord: str
+    website: str
+    twitter: str
+    telegram: str
+    description: str # 140 characters max
+
+    @staticmethod
+    def empty():
+        return DelegateProfile(
+            delegate_ss58='',
+            displayname = '',
+            discord = '',
+            website = '',
+            twitter = '',
+            telegram = '',
+            description = ''
+        )
+    
+    @staticmethod
+    def parse_line(line: str) -> 'DelegateProfile':
+        """ Parses a line from a delegate profile markdown file.
+        """
+        # Split the line into columns.
+        columns = line.split('|')
+        if len(columns) < 9:
+            return DelegateProfile.empty()
+        
+        # Parse the columns.
+        delegate_ss58 = columns[1].strip()
+        # Skip column 2, it's the owner ss58.
+        displayname = columns[3].strip()
+        discord = columns[4].strip()
+        website = columns[5].strip()
+        twitter = columns[6].strip()
+        telegram = columns[7].strip()
+        description = columns[8].strip()
+        
+        return DelegateProfile(
+            delegate_ss58=delegate_ss58,
+            displayname=displayname,
+            discord=discord,
+            website=website,
+            twitter=twitter,
+            telegram=telegram,
+            description=description
+        )
+    
+    @staticmethod
+    def parse_lines(lines: List[str]) -> List['DelegateProfile']:
+        """ Parses a list of lines from a delegate profile markdown file.
+        """
+        # Skip lines until we find the start of the table.
+        while len(lines) > 0 and not '| Delegate' in lines[0].strip():
+            lines.pop(0)
+
+        # Skip the table header and separator.
+        if len(lines) > 2:
+            lines.pop(0) 
+            lines.pop(0)
+        else:
+            return []
+        
+        # Parse the table.
+        delegate_profiles: List[DelegateProfile] = []
+        while len(lines) > 0 and '|' in lines[0].strip():
+            delegate_profile = DelegateProfile.parse_line(lines.pop(0))
+            delegate_profiles.append(delegate_profile)
+
+        return delegate_profiles
+
+
+def get_delegate_profile_readme_from_github() -> List[str]:
+    """ Pulls the latest delegate profiles from GitHub.
+    """
+    try:
+        with open('DELEGATES.md', 'r') as f:
+            lines = f.readlines()
+        
+        return lines
+    except Exception as e:
+        bittensor.__console__.print(f'Failed to read local delegate profiles: {e}')
+        return []
+
+    # TODO(camfairchild): Use live github repo instead of local file.
+    url: str = bittensor.__delegate_profiles_url__
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.text.splitlines()
+        else:
+            # Some error occured.
+            bittensor.__console__.print(f'Failed to pull delegate profiles from GitHub: {response.status_code}')
+            return []
+    except Exception as e:
+        bittensor.__console__.print(f'Failed to pull delegate profiles from GitHub: {e}')
+        return []
+
+
+def get_delegate_profiles_from_github() -> List[DelegateProfile]:
+    """ Reads delegate profiles from GitHub.
+    """
+    lines: List[str] = get_delegate_profile_readme_from_github()
+    
+    delegate_profiles = DelegateProfile.parse_lines(lines)
+    
+    return delegate_profiles
 
 # Uses rich console to pretty print a table of delegates.
 def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[int] = None):
-    delegates.sort(key=lambda delegate: delegate.total_stake, reverse=False)
+    """ Pretty prints a table of delegates sorted by total stake.
+    """
+    delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
     table = Table(show_footer=True, width=width, pad_edge=False, box=None)
-    table.add_column("[overline white]DELEGATE",  str(len(delegates)), footer_style = "overline white", style='bold white')
-    table.add_column("[overline white]TAKE", style='white')
-    table.add_column("[overline white]OWNER", style='yellow')
-    table.add_column("[overline white]NOMINATORS", justify='right', style='green', no_wrap=True)
+    table.add_column("[overline white]SS58",  str(len(delegates)), footer_style = "overline white", style='bold yellow')
+    #table.add_column("[overline white]OWNER", style='yellow')
+    table.add_column("[overline white]DISPLAY NAME", justify='center', style='white', no_wrap=True)
+    table.add_column("[overline white]NOMS", justify='center', style='green', no_wrap=True)
+    table.add_column("[overline white]OWNER STAKE(\u03C4)", justify='right', no_wrap=True)
     table.add_column("[overline white]TOTAL STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
+    table.add_column("[overline white]SUBNETS", justify='right', style='white', no_wrap=True)
+    table.add_column("[overline white]VPERMIT", justify='right', no_wrap=True)
+    #table.add_column("[overline white]TAKE", style='white', no_wrap=True)
+    table.add_column("[overline white]24h/k\u03C4", style='green', justify='center')
+    table.add_column("[overline white]WEBSITE", style='rgb(50,163,219)')
+    #table.add_column("[overline white]DESCRIPTION", style='white')
+
+    delegate_profiles = get_delegate_profiles_from_github()
+    delegate_profiles_map = { profile.delegate_ss58: profile for profile in delegate_profiles }
+
     for delegate in delegates:
+        owner_stake = next(
+            map(lambda x: x[1], # get stake
+                filter(lambda x: x[0] == delegate.owner_ss58, delegate.nominators) # filter for owner
+            ),
+            bittensor.Balance.from_rao(0) # default to 0 if no owner stake.
+        )
+        delegate_profile: Optional[DelegateProfile] = delegate_profiles_map.get(delegate.hotkey_ss58, None)
+        if delegate_profile is None:
+            delegate_profile = DelegateProfile.empty()
+        
         table.add_row(
-            str(delegate.hotkey_ss58),
-            str(delegate.take),
-            str(delegate.owner_ss58),
+            f'{delegate.hotkey_ss58:8.8}...',
+            #f'{delegate.owner_ss58:8.8}...',
+            str(delegate_profile.displayname),
             str(len(delegate.nominators)),
-            str(delegate.total_stake),
+            f'{owner_stake!s:13.13}',
+            f'{delegate.total_stake!s:13.13}',
+            str(delegate.registrations),
+            str(['*' if subnet in delegate.validator_permits else '' for subnet in delegate.registrations]),
+            #f'{delegate.take * 100:.1f}%',
+            f'{delegate.return_per_1000!s:6.6}',
+            Text(delegate_profile.website, style=f'link {delegate_profile.website}') if delegate_profile.website else '',
+            #f'{delegate_profile.description:140.140}',
         )
     bittensor.__console__.print(table)
 
