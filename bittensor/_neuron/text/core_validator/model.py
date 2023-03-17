@@ -43,9 +43,10 @@ install(show_locals=True)
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
     """
-    def __init__( self, config: 'bittensor.Config'):
+    def __init__( self, config: 'bittensor.Config', device: torch.device):
         super(nucleus, self).__init__()
         self.config = config
+        self.device = device
 
     @classmethod
     def add_args( cls, parser ):
