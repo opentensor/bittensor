@@ -61,7 +61,10 @@ custom_rpc_type_registry = {
                 ["delegate_ss58", "AccountId"],
                 ["take", "Compact<u16>"],
                 ["nominators", "Vec<(AccountId, Compact<u64>)>"],
-                ["owner_ss58", "AccountId"]
+                ["owner_ss58", "AccountId"],
+                ["registrations", "Vec<Compact<u16>>"],
+                ["validator_permits", "Vec<Compact<u16>>"],
+                ["return_per_1000", "Compact<u64>"],
             ],
         },
         "NeuronInfo": {
@@ -345,6 +348,8 @@ class DelegateInfo:
                 for nom in decoded['nominators']
             ],
             total_stake = Balance.from_rao(sum([nom[1] for nom in decoded['nominators']])),
+            validator_permits = decoded['validator_permits'],
+            registrations = decoded['registrations'],
             return_per_1000 = bittensor.Balance.from_rao(decoded['return_per_1000']),
         )
 
