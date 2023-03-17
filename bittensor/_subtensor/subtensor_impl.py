@@ -436,7 +436,7 @@ class Subtensor:
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_exclude_quantile (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorEpochLen", block, [netuid] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorExcludeQuantile", block, [netuid] ).value )
 
     """ Returns network MaxAllowedValidators hyper parameter """
     def max_allowed_validators(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
