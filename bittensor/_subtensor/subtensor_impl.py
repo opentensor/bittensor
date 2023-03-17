@@ -147,7 +147,7 @@ class Subtensor:
         netuid: int,
         uids: Union[torch.LongTensor, list],
         weights: Union[torch.FloatTensor, list],
-        version_key: int = 0,
+        version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion:bool = False,
         wait_for_finalization:bool = False,
         prompt:bool = False

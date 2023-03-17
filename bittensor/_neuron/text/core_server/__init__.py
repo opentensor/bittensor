@@ -402,7 +402,6 @@ class neuron:
                             weights = chain_weights,
                             wait_for_inclusion = False,
                             wallet = self.wallet,
-                            version_key =1
                         )
                         if did_set:
                             logger.success('Successfully set weights on the chain')
