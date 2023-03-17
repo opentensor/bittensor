@@ -193,7 +193,7 @@ class neuron:
         bittensor.wandb.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.prometheus.check_config( config )
-        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
+        full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
         config.using_wandb = config.wandb.api_key != 'default'
         if not os.path.exists(config.neuron.full_path):
