@@ -29,7 +29,7 @@ from rich import print
 from rich.console import Console
 from rich.traceback import install
 
-from bittensor.utils.tokenizer_utils import phrase_cross_entropy, prune_tokens
+from bittensor.utils.tokenizer_utils import prune_tokens
 from bittensor._neuron.text.neuron_utilities import PositionalEncoding
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
@@ -42,45 +42,9 @@ install(show_locals=True)
 class nucleus( torch.nn.Module ):
     """ Nucleus class which holds the validator model.
     """
-    def __init__( self, config, device, subtensor, vlogger ):
+    def __init__( self, config: 'bittensor.Config'):
         super(nucleus, self).__init__()
         self.config = config
-        self.vlogger = vlogger
-
-        self.max_n = subtensor.max_n(netuid=self.config.netuid)
-
-        self.device = device
-        self.permute_uids = []  # iterable of next UIDs to query, reset to permuted UIDs when empty
-
-        tokenizer = bittensor.tokenizer()
-        self.pad_token = tokenizer(tokenizer.pad_token)['input_ids'][0]
-
-        # Token embeddings project int64 tokens onto representations.
-        self.token_embedding = torch.nn.Embedding( bittensor.__vocab_size__,  bittensor.__network_dim__ )
-        
-        # Routing encoder, projects token embeddings onto context for routing inputs.
-        self.routing_encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout, batch_first=True)
-        self.routing_encoder = TransformerEncoder( self.routing_encoder_layers, 1 )
-
-        # Encoder projects response representations onto hidden units.
-        self.encoder_layers = TransformerEncoderLayer( bittensor.__network_dim__, config.nucleus.nhead, config.nucleus.nhid, config.nucleus.dropout, batch_first=True)
-        self.encoder = TransformerEncoder( self.encoder_layers, config.nucleus.nlayers )
-
-        # Decoder which projects hidden unit representations on to the token dimension.
-        self.decoder = torch.nn.Linear( bittensor.__network_dim__, bittensor.__vocab_size__ , bias=False)
-
-        # Positional Encoding
-        self.local_pos_encoder = PositionalEncoding( bittensor.__network_dim__, self.config.nucleus.dropout )
-
-        # Crosss entropy loss for NTP.    
-        self.loss_fct = torch.nn.CrossEntropyLoss()
-    
-        # SGMOE Gates: Instantiating the gates per expert.
-        self.gates = torch.nn.Linear( bittensor.__network_dim__, self.max_n, bias=True ).to( self.device )
-
-        self.sigmoid = torch.nn.Sigmoid()
-
-        self.reset_weights()
 
     @classmethod
     def add_args( cls, parser ):
@@ -103,22 +67,7 @@ class nucleus( torch.nn.Module ):
     def check_config( cls, config: 'bittensor.Config' ):
         pass
 
-    def reset_weights ( self ):
-        r""" Resets the validator weights.
-        """
-        # === Resets all the weights using xavier initialization. ===
-        torch.nn.init.xavier_uniform_ ( self.token_embedding.weight )
-        torch.nn.init.xavier_uniform_ ( self.decoder.weight )
-        torch.nn.init.xavier_uniform_( self.gates.weight )
-        def init_xavier( component ):
-            try:
-                torch.nn.init.xavier_uniform_( component.weight )
-            except: pass
-        self.routing_encoder.apply( init_xavier )
-        self.encoder.apply( init_xavier )
-        torch.nn.init.xavier_uniform_( self.gates.weight )
-
-    def get_loss(self, stat, text_input, call_response):
+    def get_loss(self, stat: Dict[str, Any], text_input: , call_response):
         # inputs_nxt = text_input[..., -self.config.neuron.validation_len:]  # input validation with next token target phrase [batch_size, val_len]
         # _losses_val, _losses = phrase_cross_entropy(inputs_nxt, call_response, reduce=False)
         # _losses_val[_losses_val.isnan()] = 20  # assign large loss
