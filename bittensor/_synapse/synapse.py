@@ -1,4 +1,4 @@
-# The MIT License (MIT)
+ # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
@@ -20,6 +20,7 @@ import copy
 import os
 import time
 from abc import ABC, abstractmethod
+from types import SimpleNamespace
 from typing import Union
 from warnings import warn
 
@@ -30,7 +31,8 @@ import bittensor
 
 class Synapse(ABC):
 
-    name: str = "synapse"
+    synapse_name: str = "base"
+    default_blacklist_stake: float = -1.0
 
     def __init__(self, config: "bittensor.Config" = None):
         """Initializes a new Synapse.
@@ -41,19 +43,21 @@ class Synapse(ABC):
                 bittensor metagraph object.
         """
 
-        if self.name == "synapse":
+        if self.synapse_name == "base":
+            raise ValueError
+        if self.default_blacklist_stake < 0:
             raise ValueError
         if config is None:
             config = Synapse.config()
         Synapse.check_config(config)
+        print(config)
 
-        self.priority_threadpool = bittensor.prioritythreadpool(config=self.synapse_config)
         self.config = copy.deepcopy(config)
         self.is_attached = False
         self.axon = None
 
     def __str__(self):
-        return self.name
+        return self.synapse_name
 
     ## Methods to be defined in the terminal child.
     @abstractmethod
@@ -68,51 +72,11 @@ class Synapse(ABC):
     def forward(self, forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall:
         raise NotImplementedError("Must implement forward() in subclass.")
 
-
     ## Methods to be defined in the request-specific synapse.
     # TODO: Refactor config so that it can exist in this base class alone
     @abstractmethod
     def _attach(self, axon: "bittensor.axon"):
         ...
-
-    @staticmethod
-    @abstractmethod
-    def add_defaults(defaults):
-        """Add default values to defaults object"""
-        defaults.synapse = bittensor.Config()
-        defaults.synapse.blacklist.stake = (
-            os.getenv("BT_SYNAPSE_BLACKLIST_STAKE")
-            if os.getenv("BT_SYNAPSE_BLACKLIST_STAKE") is not None
-            else 10
-        )
-        defaults.synapse.blacklist.allow_non_registered = (
-            os.getenv("BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED")
-            if os.getenv("BT_SYNAPSE_BLACKLIST_ALLOW_NON_REGISTERED") is not None
-            else True
-        )
-
-    @staticmethod
-    @abstractmethod
-    def add_args(parser: argparse.ArgumentParser, prefix: str = None):
-        """Accept specific arguments from parser"""
-        prefix_str = "" if prefix is None else prefix + "."
-
-        try:
-            parser.add_argument(
-                "--" + prefix_str + "synapse.blacklist.stake",
-                type=float,
-                help="The amount of stake (tao) required to make a call.",
-                default=10,
-            )
-            parser.add_argument(
-                "--" + prefix_str + "synapse.blacklist.allow_non_registered",
-                action="store_true",
-                help="""If true, allow non-registered peers""",
-                default=True,
-            )
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
 
     @abstractmethod
     def pre_process_request_proto_to_forward_call(
@@ -160,6 +124,51 @@ class Synapse(ABC):
         ...
 
     ## Base class methods, not to be modified
+    def add_defaults(self, defaults: SimpleNamespace):
+        """Add default values to defaults object"""
+        env_default_stake_name = f"BT_{self.synapse_name}_blacklist_stake".upper()
+        default_allow_non_registered_name = (
+            f"BT_{self.synapse_name}_blacklist_allow_non_registered".upper()
+        )
+
+        defaults.synapse[self.synapse_name] = bittensor.Config()
+
+        defaults.synapse[self.synapse_name].blacklist.stake = (
+            os.getenv(env_default_stake_name)
+            if os.getenv(env_default_stake_name) is not None
+            else self.default_blacklist_stake
+        )
+        defaults.synapse[self.synapse_name].blacklist.allow_non_registered = (
+            os.getenv(default_allow_non_registered_name)
+            if os.getenv(default_allow_non_registered_name) is not None
+            else True
+        )
+
+    def add_args(self, parser: argparse.ArgumentParser, prefix: str = None):
+        """Accept specific arguments from parser"""
+        prefix_str = "" if prefix is None else prefix + "."
+
+        arg_stake_name = "".join(["--", prefix_str, f"synapse.{self.synapse_name}.blacklist.stake"])
+        arg_allow_non_registered_name = "".join(
+            ["--", prefix_str, f"synapse.{self.synapse_name}.blacklist.allow_non_registered"]
+        )
+
+        try:
+            parser.add_argument(
+                arg_stake_name,
+                type=float,
+                help="The amount of stake (tao) required to make a call.",
+                default=self.default_blacklist_stake,
+            )
+            parser.add_argument(
+                arg_allow_non_registered_name,
+                action="store_true",
+                help="""If true, allow non-registered peers""",
+                default=True,
+            )
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
 
     def priority(self, forward_call: bittensor.BittensorCall) -> float:
         """_priority: Returns the priority of the forward call.
@@ -283,7 +292,7 @@ class Synapse(ABC):
             # Get priority.
             priority = self._priority(forward_call)
             # Queue the forward call.
-            future = self.priority_threadpool.submit(
+            future = self.axon.priority_threadpool.submit(
                 self.forward,
                 forward_call=forward_call,
                 priority=priority,
@@ -380,7 +389,7 @@ class Synapse(ABC):
             # Get priority.
             priority = self._priority(backward_call)
             # Queue the backward call.
-            future = self.priority_threadpool.submit(
+            future = self.axon.priority_threadpool.submit(
                 self.backward,
                 backward_call=backward_call,
                 priority=priority,
