@@ -326,16 +326,16 @@ class neuron:
         )
 
         # === End of epoch status logging. ===        
-        self.vlogger.epoch_log(
-            # metagraph = self.metagraph, # TODO 
-            netuid = self.config.netuid, 
-            subtensor = self.subtensor, 
-            neuron_stats = self.neuron_stats, 
-            epoch_status = epoch_status,  
-            debug = self.config.logging.debug or self.config.logging.trace, 
-            sample_uids = sample_uids,
-            sample_weights = sample_weights,
-        )
+        # self.vlogger.epoch_log(
+        #     # metagraph = self.metagraph, # TODO 
+        #     netuid = self.config.netuid, 
+        #     subtensor = self.subtensor, 
+        #     neuron_stats = self.neuron_stats, 
+        #     epoch_status = epoch_status,  
+        #     debug = self.config.logging.debug or self.config.logging.trace, 
+        #     sample_uids = sample_uids,
+        #     sample_weights = sample_weights,
+        # )
         
         # === Save status. ===
         if epoch_status.step % 25 == 1:
@@ -394,20 +394,20 @@ class neuron:
         step_status.step_time = time.time() - start_time
         
         # === End of step logging. ===
-        self.vlogger.step_log( 
-            uid = self.uid, 
-            wallet = self.wallet, 
-            metagraph = self.metagraph, 
-            netuid = self.config.netuid, 
-            subtensor = self.subtensor, 
-            stats = stats,
-            neuron_stats = self.neuron_stats, 
-            step_status = step_status,  
-            epoch_status = epoch_status,  
-            epoch_params = epoch_params,  
-            debug = self.config.logging.debug or self.config.logging.trace, 
-            synapse_keys = self.synapse_keys
-        )
+        # self.vlogger.step_log( 
+        #     uid = self.uid, 
+        #     wallet = self.wallet, 
+        #     metagraph = self.metagraph, 
+        #     netuid = self.config.netuid, 
+        #     subtensor = self.subtensor, 
+        #     stats = stats,
+        #     neuron_stats = self.neuron_stats, 
+        #     step_status = step_status,  
+        #     epoch_status = epoch_status,  
+        #     epoch_params = epoch_params,  
+        #     debug = self.config.logging.debug or self.config.logging.trace, 
+        #     synapse_keys = self.synapse_keys
+        # )
 
     def init_epoch(self) -> Tuple[Dict, Dict]:
         r""" Init epoch params and reset status. 
