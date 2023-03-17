@@ -193,7 +193,7 @@ class neuron:
         bittensor.wandb.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.prometheus.check_config( config )
-        full_path = os.path.expanduser('{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.neuron.name ))
+        full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
         config.using_wandb = config.wandb.api_key != 'default'
         if not os.path.exists(config.neuron.full_path):
@@ -448,10 +448,9 @@ class neuron:
         while (self.subtensor.block < start_block + blocks_per_epoch or
                time.time() - epoch_start_time < blocks_per_epoch * bittensor.__blocktime__):
 
-            logger.info(f'Run epoch {self.epoch} (step {epoch_steps}) while '
-                        f'({self.subtensor.block} < {start_block + blocks_per_epoch} '
-                        f'= {start_block} + {blocks_per_epoch}) or '
-                        f'({time.time() - epoch_start_time:.2f} < {blocks_per_epoch * bittensor.__blocktime__})')
+            logger.info(f'Run epoch <yellow>{self.epoch}</yellow> | step <yellow>{epoch_steps}</yellow>'
+                        f'| start block: <blue>{start_block}</blue> end block: <blue>{start_block + blocks_per_epoch}</blue> current block: <blue>{self.subtensor.block}</blue>'
+                        f'| time limit: <green>{blocks_per_epoch * bittensor.__blocktime__}</green> time eclipsed: <green>{time.time() - epoch_start_time:.2f}</green>')
 
             start_time = time.time()
 
