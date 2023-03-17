@@ -73,7 +73,6 @@ class cli:
         RunCommand.add_args( cmd_parsers )
         HelpCommand.add_args( cmd_parsers ) 
         ListCommand.add_args( cmd_parsers )
-        QueryCommand.add_args( cmd_parsers )
         StakeCommand.add_args( cmd_parsers )
         UpdateCommand.add_args( cmd_parsers )
         InspectCommand.add_args( cmd_parsers ) 
@@ -85,7 +84,6 @@ class cli:
         NominateCommand.add_args( cmd_parsers )
         NewHotkeyCommand.add_args( cmd_parsers )
         MetagraphCommand.add_args( cmd_parsers )
-        SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
         MyDelegatesCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
@@ -143,14 +141,10 @@ class cli:
             MetagraphCommand.check_config( config )
         elif config.command == "weights":
             WeightsCommand.check_config( config )
-        elif config.command == "set_weights":
-            SetWeightsCommand.check_config( config )
         elif config.command == "list":
             ListCommand.check_config( config )
         elif config.command == "inspect":
             InspectCommand.check_config( config )
-        elif config.command == "query":
-            QueryCommand.check_config( config )
         elif config.command == "help":
             HelpCommand.check_config( config )
         elif config.command == "update":
