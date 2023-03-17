@@ -225,7 +225,7 @@ class DelegateUnstakeCommand:
                     console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
                     sys.exit()
             else:
-                config.stake_all = True
+                config.unstake_all = True
 
 class ListDelegatesCommand:
 
