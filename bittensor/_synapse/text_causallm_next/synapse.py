@@ -15,9 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
 import copy
-import os
 
 import torch
 
@@ -27,7 +25,8 @@ import bittensor
 class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNextServicer):
     """TextCausalLMNextSynapse: A class for servicing text_causallm_next requests."""
 
-    name: str = "text_causallm_next"
+    synapse_name: str = "text_causallm_next"
+    default_blacklist_stake: float = 10
 
     def __init__(
         self,
@@ -36,52 +35,12 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
         if config is None:
             config = self.config()
         TextCausalLMNextSynapse.check_config(config)
-        self.synapse_config = config.synapse.text_causallm_next
         super().__init__(config)
         self.config = copy.deepcopy(config)
-        print(config)
 
     def _attach(self, axon: "bittensor.axon"):
         """_attach: Attaches the synapse to the axon."""
         bittensor.grpc.add_TextCausalLMNextServicer_to_server(self, axon.server)
-
-    @staticmethod
-    def add_defaults(defaults):
-        """Add default values to defaults object"""
-        defaults.synapse.text_causallm_next = bittensor.Config()
-        defaults.synapse.text_causallm_next.blacklist.stake = (
-            os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_STAKE")
-            if os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_STAKE") is not None
-            else 10
-        )
-        defaults.synapse.text_causallm_next.blacklist.allow_non_registered = (
-            os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_ALLOW_NON_REGISTERED")
-            if os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_ALLOW_NON_REGISTERED") is not None
-            else True
-        )
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser, prefix: str = None):
-        """Accept specific arguments from parser"""
-        prefix_str = "" if prefix is None else prefix + "."
-
-        bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "synapse.text_causallm_next")
-        try:
-            parser.add_argument(
-                "--" + prefix_str + "synapse.text_causallm_next.blacklist.stake",
-                type=float,
-                help="The amount of stake (tao) required to make a call.",
-                default=10,
-            )
-            parser.add_argument(
-                "--" + prefix_str + "synapse.text_causallm_next.blacklist.allow_non_registered",
-                action="store_true",
-                help="""If true, allow non-registered peers""",
-                default=True,
-            )
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
 
     def pre_process_request_proto_to_forward_call(
         self, request_proto: bittensor.ForwardTextCausalLMNextRequest
