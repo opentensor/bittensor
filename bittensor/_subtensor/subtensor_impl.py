@@ -414,9 +414,9 @@ class Subtensor:
         return self.query_subtensor("ValidatorPruneLen", block, [netuid] ).value
 
     """ Returns network ValidatorLogitsDivergence hyper parameter """
-    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> int:
+    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_subtensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
+        return U16_NORMALIZED_FLOAT(self.query_subtensor("ValidatorLogitsDivergence", block, [netuid]).value)
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
