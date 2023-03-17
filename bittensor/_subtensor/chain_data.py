@@ -26,6 +26,95 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 from enum import Enum
 
+
+custom_rpc_type_registry = {
+    "types": {
+        "SubnetInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+                ["rho", "Compact<u16>"],
+                ["kappa", "Compact<u16>"],
+                ["difficulty", "Compact<u64>"],
+                ["immunity_period", "Compact<u16>"],
+                ["validator_batch_size", "Compact<u16>"],
+                ["validator_sequence_length", "Compact<u16>"],
+                ["validator_epochs_per_reset", "Compact<u16>"],
+                ["validator_epoch_length", "Compact<u16>"],
+                ["max_allowed_validators", "Compact<u16>"],
+                ["min_allowed_weights", "Compact<u16>"],
+                ["max_weights_limit", "Compact<u16>"],
+                ["scaling_law_power", "Compact<u16>"],
+                ["synergy_scaling_law_power", "Compact<u16>"],
+                ["subnetwork_n", "Compact<u16>"],
+                ["max_allowed_uids", "Compact<u16>"],
+                ["blocks_since_last_step", "Compact<u64>"],
+                ["tempo", "Compact<u16>"],
+                ["network_modality", "Compact<u16>"],
+                ["network_connect", "Vec<[Compact<u16>; 2]>"],
+                ["emission_values", "Compact<u64>"]
+            ]
+        },
+        "DelegateInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["delegate_ss58", "AccountId"],
+                ["take", "Compact<u16>"],
+                ["nominators", "Vec<(AccountId, Compact<u64>)>"],
+                ["owner_ss58", "AccountId"]
+            ],
+        },
+        "NeuronInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["hotkey", "AccountId"],
+                ["coldkey", "AccountId"],
+                ["uid", "Compact<u16>"],
+                ["netuid", "Compact<u16>"],
+                ["active", "bool"],
+                ["axon_info", "AxonInfo"],
+                ["prometheus_info", "PrometheusInfo"],
+                ["stake", "Vec<(AccountId, Compact<u64>)>"],
+                ["rank", "Compact<u16>"],
+                ["emission", "Compact<u64>"],
+                ["incentive", "Compact<u16>"],
+                ["consensus", "Compact<u16>"],
+                ["trust", "Compact<u16>"],
+                ["validator_trust", "Compact<u16>"],
+                ["dividends", "Compact<u16>"],
+                ["last_update", "Compact<u64>"],
+                ["validator_permit", "bool"],
+                ["weights", "Vec<(Compact<u16>, Compact<u16>)>"],
+                ["bonds", "Vec<(Compact<u16>, Compact<u16>)>"],
+                ["pruning_score", "Compact<u16>"]
+            ],
+        },
+        "AxonInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["block", "u64"],
+                ["version", "u32"],
+                ["ip", "u128"],
+                ["port", "u16"],
+                ["ip_type", "u8"],
+                ["protocol", "u8"],
+                ["placeholder1", "u8"],
+                ["placeholder2", "u8"],
+            ],
+        },
+        "PrometheusInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["block", "u64"],
+                ["version", "u32"],
+                ["ip", "u128"],
+                ["port", "u16"],
+                ["ip_type", "u8"],
+            ],
+        },
+    }   
+}
+
 class ChainDataType(Enum):
     NeuronInfo = 1
     SubnetInfo = 2
@@ -36,112 +125,12 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-def json_from_vec_u8( vec_u8: List[int] ) -> Optional[Dict]:
-    r""" Returns a json dictionary from a bytes object.
-    """
-    if len(vec_u8) == 0:
-        return None
-
-    as_bytes = bytes(vec_u8)
-    as_json_str = as_bytes.decode('utf-8')
-    as_json = json.loads(as_json_str)
-    return as_json
-
 def from_scale_encoding( vec_u8: List[int], type_name: ChainDataType, is_vec: bool = False, is_option: bool = False ) -> Optional[Dict]:
     as_bytes = bytes(vec_u8)
     as_scale_bytes = ScaleBytes(as_bytes)
     rpc_runtime_config = RuntimeConfiguration()
     rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
-
-    custom_types = {
-        "types": {
-            "SubnetInfo": {
-                "type": "struct",
-                "type_mapping": [
-                    ["netuid", "Compact<u16>"],
-                    ["rho", "Compact<u16>"],
-                    ["kappa", "Compact<u16>"],
-                    ["difficulty", "Compact<u64>"],
-                    ["immunity_period", "Compact<u16>"],
-                    ["validator_batch_size", "Compact<u16>"],
-                    ["validator_sequence_length", "Compact<u16>"],
-                    ["validator_epochs_per_reset", "Compact<u16>"],
-                    ["validator_epoch_length", "Compact<u16>"],
-                    ["max_allowed_validators", "Compact<u16>"],
-                    ["min_allowed_weights", "Compact<u16>"],
-                    ["max_weights_limit", "Compact<u16>"],
-                    ["scaling_law_power", "Compact<u16>"],
-                    ["synergy_scaling_law_power", "Compact<u16>"],
-                    ["subnetwork_n", "Compact<u16>"],
-                    ["max_allowed_uids", "Compact<u16>"],
-                    ["blocks_since_last_step", "Compact<u64>"],
-                    ["tempo", "Compact<u16>"],
-                    ["network_modality", "Compact<u16>"],
-                    ["network_connect", "Vec<[Compact<u16>; 2]>"],
-                    ["emission_values", "Compact<u64>"]
-                ]
-            },
-            "DelegateInfo": {
-                "type": "struct",
-                "type_mapping": [
-                    ["delegate_ss58", "AccountId"],
-                    ["take", "Compact<u16>"],
-                    ["nominators", "Vec<(AccountId, Compact<u64>)>"],
-                    ["owner_ss58", "AccountId"]
-                ],
-            },
-            "NeuronInfo": {
-                "type": "struct",
-                "type_mapping": [
-                    ["hotkey", "AccountId"],
-                    ["coldkey", "AccountId"],
-                    ["uid", "Compact<u16>"],
-                    ["netuid", "Compact<u16>"],
-                    ["active", "bool"],
-                    ["axon_info", "AxonInfo"],
-                    ["prometheus_info", "PrometheusInfo"],
-                    ["stake", "Vec<(AccountId, Compact<u64>)>"],
-                    ["rank", "Compact<u16>"],
-                    ["emission", "Compact<u64>"],
-                    ["incentive", "Compact<u16>"],
-                    ["consensus", "Compact<u16>"],
-                    ["trust", "Compact<u16>"],
-                    ["validator_trust", "Compact<u16>"],
-                    ["dividends", "Compact<u16>"],
-                    ["last_update", "Compact<u64>"],
-                    ["validator_permit", "bool"],
-                    ["weights", "Vec<(Compact<u16>, Compact<u16>)>"],
-                    ["bonds", "Vec<(Compact<u16>, Compact<u16>)>"],
-                    ["pruning_score", "Compact<u16>"]
-                ],
-            },
-            "AxonInfo": {
-                "type": "struct",
-                "type_mapping": [
-                    ["block", "u64"],
-                    ["version", "u32"],
-                    ["ip", "u128"],
-                    ["port", "u16"],
-                    ["ip_type", "u8"],
-                    ["protocol", "u8"],
-                    ["placeholder1", "u8"],
-                    ["placeholder2", "u8"],
-                ],
-            },
-            "PrometheusInfo": {
-                "type": "struct",
-                "type_mapping": [
-                    ["block", "u64"],
-                    ["version", "u32"],
-                    ["ip", "u128"],
-                    ["port", "u16"],
-                    ["ip_type", "u8"],
-                ],
-            },
-        }   
-    }
-
-    rpc_runtime_config.update_type_registry(custom_types)
+    rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
     type_string = type_name.name
     if is_option:
