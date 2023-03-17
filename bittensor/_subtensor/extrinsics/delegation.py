@@ -306,20 +306,22 @@ def undelegate_extrinsic(
     # Convert to bittensor.Balance
     if amount == None:
         # Stake it all.
-        staking_balance = bittensor.Balance.from_tao( my_prev_coldkey_balance.tao )
+        unstaking_balance = bittensor.Balance.from_tao( my_prev_delegated_stake.tao )
+
     elif not isinstance(amount, bittensor.Balance ):
-        staking_balance = bittensor.Balance.from_tao( amount )
+        unstaking_balance = bittensor.Balance.from_tao( amount )
+
     else:
-        staking_balance = amount
+        unstaking_balance = amount
 
     # Check enough stake to unstake.
-    if staking_balance > my_prev_delegated_stake:
-        bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  stake:{}\n  amount: {}\n coldkey: {}[/bold white]".format(my_prev_delegated_stake, staking_balance, wallet.name))
+    if unstaking_balance > my_prev_delegated_stake:
+        bittensor.__console__.print(":cross_mark: [red]Not enough delegated stake[/red]:[bold white]\n  stake:{}\n  amount: {}\n coldkey: {}[/bold white]".format(my_prev_delegated_stake, unstaking_balance, wallet.name))
         return False
             
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_take, delegate_owner) ):
+        if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format( unstaking_balance, delegate_ss58, delegate_take, delegate_owner) ):
             return False
 
     try:
@@ -328,7 +330,7 @@ def undelegate_extrinsic(
                 subtensor = subtensor,
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
-                amount = staking_balance,
+                amount = unstaking_balance,
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
             )
