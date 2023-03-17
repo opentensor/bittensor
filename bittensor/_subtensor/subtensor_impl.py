@@ -384,7 +384,7 @@ class Subtensor:
         return self.query_subtensor( "Rho", block, [netuid] ).value
 
     """ Returns network Kappa hyper parameter """
-    def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+    def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_subtensor( "Kappa", block, [netuid] ).value )
 
@@ -414,9 +414,9 @@ class Subtensor:
         return self.query_subtensor("ValidatorPruneLen", block, [netuid] ).value
 
     """ Returns network ValidatorLogitsDivergence hyper parameter """
-    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> int:
+    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_subtensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
+        return U16_NORMALIZED_FLOAT(self.query_subtensor("ValidatorLogitsDivergence", block, [netuid]).value)
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
@@ -436,7 +436,7 @@ class Subtensor:
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_exclude_quantile (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorEpochLen", block, [netuid] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorExcludeQuantile", block, [netuid] ).value )
 
     """ Returns network MaxAllowedValidators hyper parameter """
     def max_allowed_validators(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
