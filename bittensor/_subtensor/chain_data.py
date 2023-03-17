@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from typing import List, Tuple, Dict, Optional, Any
 import bittensor
 from bittensor import Balance
-import json
 import torch
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
@@ -52,7 +51,8 @@ custom_rpc_type_registry = {
                 ["tempo", "Compact<u16>"],
                 ["network_modality", "Compact<u16>"],
                 ["network_connect", "Vec<[Compact<u16>; 2]>"],
-                ["emission_values", "Compact<u64>"]
+                ["emission_values", "Compact<u64>"],
+                ["burn", "Compact<u64>"],
             ]
         },
         "DelegateInfo": {
@@ -399,6 +399,7 @@ class SubnetInfo:
     modality: int
     connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
+    burn: Balance
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional['SubnetInfo']:
@@ -455,6 +456,7 @@ class SubnetInfo:
                 str(int(netuid)): int(req) for netuid, req in decoded['network_connect']
             },
             emission_value= decoded['emission_values'],
+            burn = Balance.from_rao(decoded['burn'])
         )
     
     def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
