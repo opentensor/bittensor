@@ -68,7 +68,7 @@ class neuron:
         self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.device = torch.device ( device = self.config.neuron.device )    
-        self.nucleus = nucleus ( config = self.config ).to( self.device )
+        self.nucleus = nucleus ( config = self.config, device = self.device).to( self.device )
         self.dataset = bittensor.dataset(config=self.config, 
                                           batch_size=self.subtensor.validator_batch_size(self.config.netuid),
                                           block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len + self.subtensor.validator_prune_len(netuid=self.config.netuid)
@@ -237,7 +237,22 @@ class neuron:
     def init_dendrites(self):
         r""" Get dendrite per uid.
         """
-        self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs}
+        def endpoint_obj(i):
+            return bittensor.endpoint(
+                version = bittensor.__version_as_int__,
+                uid = i,
+                ip = '127.0.0.1',
+                ip_type = 4,
+                port = 5600 + i,
+                hotkey = self.wallet.hotkey.ss58_address,
+                coldkey = self.wallet.coldkeypub.ss58_address,
+                modality = 0
+            )    
+        
+        endpoints = [ endpoint_obj(i) for i in range(10)]
+        
+        self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in endpoints} # TODO
+        # self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs}
         self.dendrites_order = list(self.dendrites.keys())
         random.shuffle(self.dendrites_order)
 
@@ -274,6 +289,7 @@ class neuron:
         """
         self.epoch = 0
         self.global_step = 0 
+        # self.metagraph_sync() # TODO
         with self:
             while True:
                 self.run_epoch()
@@ -282,7 +298,6 @@ class neuron:
         r""" Run validation steps and do weight setting and logging at the end of epoch.  
         """
         self.init_dendrites()
-        self.metagraph_sync()
         
         epoch_status, epoch_params = self.init_epoch()
         
@@ -297,7 +312,7 @@ class neuron:
             self.step(epoch_status, epoch_params)
             self.global_step += 1
 
-        self.metagraph_sync()  # Reset metagraph.
+        # self.metagraph_sync()  # Reset metagraph. # TODO
 
         # === Set neuron weights to chain ===
         sample_uids, sample_weights = self.calculate_weights(epoch_params)
@@ -311,17 +326,16 @@ class neuron:
         )
 
         # === End of epoch status logging. ===        
-        self.vlogger.epoch_log(
-            metagraph = self.metagraph, 
-            netuid = self.config.netuid, 
-            subtensor = self.subtensor, 
-            neuron_stats = self.neuron_stats, 
-            epoch_status = epoch_status,  
-            debug = self.config.debug or self.config.trace, 
-            sample_uids = sample_uids,
-            sample_weights = sample_weights,
-        )
-        
+        # self.vlogger.epoch_log(
+        #     # metagraph = self.metagraph, # TODO 
+        #     netuid = self.config.netuid, 
+        #     subtensor = self.subtensor, 
+        #     neuron_stats = self.neuron_stats, 
+        #     epoch_status = epoch_status,  
+        #     debug = self.config.logging.debug or self.config.logging.trace, 
+        #     sample_uids = sample_uids,
+        #     sample_weights = sample_weights,
+        # )
         
         # === Save status. ===
         if epoch_status.step % 25 == 1:
@@ -362,12 +376,12 @@ class neuron:
             stats = stats,
             step_status = step_status,
             text_input = next(self.dataset), 
-            dendrites = [self.dendrites[uid] for uid in self.dendrited_order[ dendrite_flag: dendrite_flag + epoch_params.topk]],
+            dendrites = [self.dendrites[uid] for uid in self.dendrites_order[ dendrite_flag: dendrite_flag + epoch_params.topk]],
             validation_len = epoch_params.validation_len
         )
 
         # === Get scoring. ===
-        stats, step_status = self.shapley_synergy(stats, step_status, '_nxt')
+        stats, step_status = self.shapley_synergy(stats, step_status, epoch_params, '_nxt')
         
         # === Stats update ===
         # Updates moving averages and history.
@@ -380,20 +394,20 @@ class neuron:
         step_status.step_time = time.time() - start_time
         
         # === End of step logging. ===
-        self.vlogger.step_log( 
-            uid = self.uid, 
-            wallet = self.wallet, 
-            metagraph = self.metagraph, 
-            netuid = self.config.netuid, 
-            subtensor = self.subtensor, 
-            stats = stats,
-            neuron_stats = self.neuron_stats, 
-            step_status = step_status,  
-            epoch_status = epoch_status,  
-            epoch_params = epoch_params,  
-            debug = self.config.debug or self.config.trace, 
-            synapse_key = self.synapse_keys
-        )
+        # self.vlogger.step_log( 
+        #     uid = self.uid, 
+        #     wallet = self.wallet, 
+        #     metagraph = self.metagraph, 
+        #     netuid = self.config.netuid, 
+        #     subtensor = self.subtensor, 
+        #     stats = stats,
+        #     neuron_stats = self.neuron_stats, 
+        #     step_status = step_status,  
+        #     epoch_status = epoch_status,  
+        #     epoch_params = epoch_params,  
+        #     debug = self.config.logging.debug or self.config.logging.trace, 
+        #     synapse_keys = self.synapse_keys
+        # )
 
     def init_epoch(self) -> Tuple[Dict, Dict]:
         r""" Init epoch params and reset status. 
@@ -438,7 +452,7 @@ class neuron:
                             torch.log(torch.clamp(loss, 1.69)) / 0.076)  # loss lower bound 1.69 is entropy of natural text
         return num_params
     
-    def shapley_synergy(self, stats: Dict[str, Any], step_status: Dict[str, Any], ext: str, epoch_params: Dict[str, Any]) -> Tuple[Dict, Dict]:
+    def shapley_synergy(self, stats: Dict[str, Any], step_status: Dict[str, Any], epoch_params: Dict[str, Any], ext: str) -> Tuple[Dict, Dict]:
         r"""
         Calculates Shapley synergy for coalition size 2, measured performance above expected performance.
         Measured in effective number of model parameters, just like base Shapley values.

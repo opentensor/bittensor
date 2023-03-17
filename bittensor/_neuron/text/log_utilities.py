@@ -518,21 +518,21 @@ class ValidatorLogger:
 
         # === Synergy table ===
         # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        self.vlogger.print_synergy_table(stats, step_status.syn_loss_diff, 'loss_nxt')
+        self.print_synergy_table(stats, step_status.syn_loss_diff, 'loss_nxt')
 
         # === Neuron responses (table) ===
         # Prints the evaluation of the neuron responses to the validator request
-        self.vlogger.print_synapse_table( 'Stats table', stats, 'loss_nxt', step_status.shapley_time)
+        self.print_synapse_table( 'Stats table', stats, 'loss_nxt', step_status.shapley_time)
 
         # === ALL logging for validation step (including console message, console tables, prometheus, wandb) ===
         if epoch_status.step % 25 == 1:
             # console message - validator identifier status (every 25 validation steps)
-            self.vlogger.print_console_validator_identifier(uid, wallet, net.get_external_ip())
+            self.print_console_validator_identifier(uid, wallet, net.get_external_ip())
             # console message - validator update status (every 25 validation steps)
-            self.vlogger.print_console_metagraph_status(uid, metagraph, step_status.current_block, epoch_params.start_block, subtensor.network, netuid)
+            self.print_console_metagraph_status(uid, metagraph, step_status.current_block, epoch_params.start_block, subtensor.network, netuid)
 
         # console message - query summary (every validation step)
-        self.vlogger.print_console_query_summary(
+        self.print_console_query_summary(
             current_block = step_status.current_block, 
             start_block = epoch_params.start_block,
             blocks_per_epoch = epoch_params.blocks_per_epoch, 
@@ -548,7 +548,7 @@ class ValidatorLogger:
         if debug:
             # console table - stats table (every validation step)
             # Prints exponential moving average statistics of valid neurons from latest validator forward 
-            self.vlogger.print_stats_table({uid: neuron_stats[uid]
+            self.print_stats_table({uid: neuron_stats[uid]
                             for uid, stat in stats.items() if len(set(stat.keys()) & set(synapse_keys))},
                         self.weight_key,
                         f'[white] Stats update [/white] | ' + str(self),  # title
@@ -559,7 +559,7 @@ class ValidatorLogger:
 
             # console table - weight table (every validation step)
             sample_uids, sample_weights = self.calculate_weights()
-            self.vlogger.print_weights_table(
+            self.print_weights_table(
                 min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
                 max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.max_weight_limit,
                 neuron_stats = self.neuron_stats,
@@ -576,7 +576,7 @@ class ValidatorLogger:
         # === ALL end of epoch logging (including console message, console table, prometheus, wandb)===
         if debug:
                 # console table - weight table (every end of epoch)
-            self.vlogger.print_weights_table(
+            self.print_weights_table(
                 min_allowed_weights = subtensor.min_allowed_weights(netuid=netuid),
                 max_weight_limit = subtensor.max_weight_limit(netuid=netuid),
                 neuron_stats = neuron_stats,
@@ -587,7 +587,7 @@ class ValidatorLogger:
             )  
 
         # console message - subtensor weight (every end of epoch)
-        self.vlogger.print_console_subtensor_weight(
+        self.print_console_subtensor_weight(
             sample_weights = sample_weights, 
             epoch_responsive_uids = epoch_status.responsive_uids, 
             epoch_queried_uids = epoch_status.queried_uids, 
