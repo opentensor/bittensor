@@ -69,7 +69,6 @@ class neuron:
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config ).to( self.device )
-        self.optimizer = torch.optim.SGD(self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum)
         self.dataset = bittensor.dataset(config=self.config, 
                                           batch_size=self.subtensor.validator_batch_size(self.config.netuid),
                                           block_size=self.subtensor.validator_sequence_length(self.config.netuid) + self.config.neuron.validation_len + self.subtensor.validator_prune_len(netuid=self.config.netuid)

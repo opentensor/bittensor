@@ -34,6 +34,7 @@ from bittensor._neuron.text.neuron_utilities import PositionalEncoding
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from loguru import logger
 import asyncio
+from typing import Dict, Any, Tuple, List
 
 logger = logger.opt( colors=True )
 console = Console()
@@ -67,7 +68,9 @@ class nucleus( torch.nn.Module ):
     def check_config( cls, config: 'bittensor.Config' ):
         pass
 
-    def get_loss(self, stat: Dict[str, Any], text_input: , call_response):
+    def get_loss(self, stat: Dict[str, Any], text_input: torch.tensor, call_response: 'bittensor.BittensorCall') -> Dict[str, Any]:
+        r""" Get the loss of the response and update the stat.
+        """
         # inputs_nxt = text_input[..., -self.config.neuron.validation_len:]  # input validation with next token target phrase [batch_size, val_len]
         # _losses_val, _losses = phrase_cross_entropy(inputs_nxt, call_response, reduce=False)
         # _losses_val[_losses_val.isnan()] = 20  # assign large loss
@@ -83,7 +86,9 @@ class nucleus( torch.nn.Module ):
         
         return stat 
     
-    def build_stats(self, stats, step_status, text_input, call_responses, dendrites):
+    def build_stats(self, stats: Dict[str, Any], step_status: Dict[str, Any], text_input: torch.tensor, call_responses: List['bittensor.BittensorCall'], dendrites: 'bittensor.Dendrite'):
+        r""" Adding stats for a reasponse.
+        """
         start_time = time.time()
         for response, dendrite in zip(call_responses, dendrites):
             code = response.response_code if isinstance(response.response_code, int) else response.response_code.value[0]  
@@ -97,8 +102,9 @@ class nucleus( torch.nn.Module ):
         step_status.base_loss_start_time = time.time() - start_time
         return stats, step_status 
 
-    async def async_forward(self, text_input, dendrites):
-        # Make calls.
+    async def async_forward(self, text_input: torch.tensor, dendrites: List['bittensor.Dendrite']):
+        r""" Making async dendrite calls.
+        """
         calls = []
         for dendrite in dendrites:
             calls.append( 
