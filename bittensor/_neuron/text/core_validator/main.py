@@ -32,7 +32,7 @@ import sys
 from rich import print
 from rich.console import Console
 from rich.traceback import install
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, List
 import bittensor.utils.networking as net
 from types import SimpleNamespace
 
@@ -68,7 +68,7 @@ class neuron:
         self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
         self.device = torch.device ( device = self.config.neuron.device )    
-        self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
+        self.nucleus = nucleus ( config = self.config ).to( self.device )
         self.optimizer = torch.optim.SGD(self.nucleus.parameters(), lr=self.config.neuron.learning_rate, momentum=self.config.neuron.momentum)
         self.dataset = bittensor.dataset(config=self.config, 
                                           batch_size=self.subtensor.validator_batch_size(self.config.netuid),
@@ -84,7 +84,8 @@ class neuron:
         self.alpha = 0.1  # EMA coefficient in [0, 1], higher alpha discounts older observations faster
         self.weight_key = 'shapley_values_nxt'  # stat key + ! to calculate neuron weights with
         self.synapse_keys = ['shapley_values_nxt']
-        # load last saved validator values from the file system
+        
+        # === Load last saved validator values from the file system
         if not self.config.neuron.restart:
             self.load()
         
@@ -173,7 +174,7 @@ class neuron:
         
         if getattr(self, 'dendrites', None) is not None:
             for dendrite in self.dendrites:
-            dendrite.__del__()
+                dendrite.__del__()
     
     def __exit__ ( self, exc_type, exc_value, exc_traceback ):
         r""" Close down neuron.
@@ -195,7 +196,7 @@ class neuron:
         # TODO
         self.uid = 1# self.wallet.get_uid( subtensor = self.subtensor, netuid=self.config.netuid )    
 
-    def save(self, path=None):
+    def save(self, path: str = None):
         r""" Save validated hotkeys and neuron_stats to filesystem. """
         try:
             if path is None:
@@ -215,7 +216,7 @@ class neuron:
         except Exception as e:
             logger.warning(f'Failed to save model with error: {e}')
 
-    def load(self, path=None):
+    def load(self, path: str = None):
         r""" Load validated hotkeys and neuron_stats from filesystem. """
         try:
             if path is None:
@@ -235,6 +236,8 @@ class neuron:
 
 
     def init_dendrites(self):
+        r""" Get dendrite per uid.
+        """
         self.dendrites = {ep.uid: bittensor.text_last_hidden_state( endpoint = ep, wallet = self.wallet ) for ep in self.metagraph.endpoint_objs}
         self.dendrites_order = list(self.dendrites.keys())
         random.shuffle(self.dendrites_order)
@@ -268,14 +271,17 @@ class neuron:
             self.save()  # save neuron_stats, neuron_hotkeys, and neuron_changes to filesystem
 
     def run(self):
+        r""" Keep running running the epochs. 
+        """
         self.epoch = 0
         self.global_step = 0 
         with self:
             while True:
                 self.run_epoch()
-                self.epoch += 1
 
     def run_epoch(self):
+        r""" Run validation steps and do weight setting and logging at the end of epoch.  
+        """
         self.init_dendrites()
         self.metagraph_sync()
         
@@ -294,7 +300,7 @@ class neuron:
 
         self.metagraph_sync()  # Reset metagraph.
 
-        # === Calculate neuron weights ===
+        # === Set neuron weights to chain ===
         sample_uids, sample_weights = self.calculate_weights(epoch_params)
         self.subtensor.set_weights(
             uids=sample_uids.detach().to('cpu'),
@@ -305,9 +311,7 @@ class neuron:
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
-        if epoch_status.step % 25 == 1:
-            self.save() 
-        
+        # === End of epoch status logging. ===        
         self.vlogger.epoch_log(
             metagraph = self.metagraph, 
             netuid = self.config.netuid, 
@@ -319,15 +323,22 @@ class neuron:
             sample_weights = sample_weights,
         )
         
-        # === Iterate epochs ===
+        
+        # === Save status. ===
+        if epoch_status.step % 25 == 1:
+            self.save() 
+        
+        # === Iterate epochs. ===
         self.epoch += 1
         
-    def step(self, epoch_status, epoch_params):
+    def step(self, epoch_status: Dict[str, Any] , epoch_params: Dict[str, Any] ):
+        r""" Run a nucleus forward step, with step log at the end.
+        """
         start_time = time.time()
 
-        # === Forward ===
-        # Forwards inputs through the network and returns the loss
-        # and endpoint scores using shapely approximation of salience.
+
+        
+        # === Init step statuss. === 
         stats = {}
         step_status = SimpleNamespace(
             responsive_uids = set(),
@@ -343,6 +354,10 @@ class neuron:
         dendrite_flag = epoch_status.step * epoch_params.topk % len(self.dendrites)
         if dendrite_flag + epoch_params.topk > len(self.dendrites):
             random.shuffle(self.dendrites_order)
+
+        # === Forward ===
+        # Forwards inputs through the network and returns the loss
+        # and endpoint scores using shapely approximation of salience.
         
         stats, step_status = self.nucleus( 
             stats = stats,
@@ -352,7 +367,9 @@ class neuron:
             validation_len = epoch_params.validation_len
         )
 
+        # === Get scoring. ===
         stats, step_status = self.shapley_synergy(stats, step_status, '_nxt')
+        
         # === Stats update ===
         # Updates moving averages and history.
         step_status.responsive_uids, step_status.queried_uids = self.neuron_stats_update(stats, epoch_params)
@@ -363,7 +380,7 @@ class neuron:
         step_status.current_block = self.subtensor.block,
         step_status.step_time = time.time() - start_time
         
-        # self.log_stats(stats, step_status)
+        # === End of step logging. ===
         self.vlogger.step_log( 
             uid = self.uid, 
             wallet = self.wallet, 
@@ -379,7 +396,11 @@ class neuron:
             synapse_key = self.synapse_keys
         )
 
-    def init_epoch(self):
+    def init_epoch(self) -> Tuple[Dict, Dict]:
+        r""" Init epoch params and reset status. 
+        - Update epoch params according to subtensor.
+        - Reset epoch status.
+        """
         epoch_params = SimpleNamespace(
             batch_size = self.subtensor.validator_batch_size(netuid=self.config.netuid),
             sequence_length = self.subtensor.validator_sequence_length(netuid=self.config.netuid),
@@ -404,20 +425,21 @@ class neuron:
             responsive_uids = set(),
             queried_uids = set(),
         )
+
         # === Update dataset size ===
         if (epoch_params.batch_size != self.dataset.batch_size) or (epoch_params.sequence_length + epoch_params.validation_len + epoch_params.prune_len != self.dataset.block_size):
             self.dataset.set_data_size(epoch_params.batch_size, epoch_params.sequence_length + epoch_params.validation_len + epoch_params.prune_len)
 
         return epoch_status, epoch_params
 
-    def scaling_law_loss_to_params(self, loss):
+    def scaling_law_loss_to_params(self, loss: torch.tensor) -> torch.tensor:
         r""" (OpenAI scaling laws) Kaplan, Jared, et al. "Scaling laws for neural language models." arXiv:2001.08361 (2020)
         """
         num_params = torch.exp(torch.log(torch.tensor(8.8e13)) -
                             torch.log(torch.clamp(loss, 1.69)) / 0.076)  # loss lower bound 1.69 is entropy of natural text
         return num_params
     
-    def shapley_synergy(self, stats: Dict, step_status: Dict, ext: str, epoch_params):
+    def shapley_synergy(self, stats: Dict[str, Any], step_status: Dict[str, Any], ext: str, epoch_params: Dict[str, Any]) -> Tuple[Dict, Dict]:
         r"""
         Calculates Shapley synergy for coalition size 2, measured performance above expected performance.
         Measured in effective number of model parameters, just like base Shapley values.
@@ -504,8 +526,8 @@ class neuron:
         step_status.shapley_time = time.time() - start_time
         step_status.syn_loss_diff = syn_loss_diff
         return stats, step_status
-
-    def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]], epoch_params):
+    
+    def neuron_stats_update(self, neuron_stats: Dict[int, Dict[str, Any]], epoch_params: Dict[str, Any]) -> Tuple[List, List]:
         r""" Updates self.neuron_stats with new individual dictionaries per uid.
         """
         responsive_uids = []
@@ -584,7 +606,7 @@ class neuron:
 
         return responsive_uids, list(neuron_stats.keys())  # responsive_uids, queried_uids
     
-    def calculate_weights(self, epoch_params):
+    def calculate_weights(self, epoch_params: Dict[str, Any]) -> Tuple[torch.tensor, torch.tensor]:
         r""" Calculates neuron set-weights from weight_key mapped values. Defines weight_key as the neuron stats key
         used to obtain the mapped stat value (typically a Shapley value) that the final set-weights are calculated from.
         """
