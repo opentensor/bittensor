@@ -212,7 +212,7 @@ def delegate_extrinsic(
             
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_take, delegate_owner) ):
+        if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_owner) ):
             return False
 
     try:
@@ -321,7 +321,7 @@ def undelegate_extrinsic(
             
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  from: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_take, delegate_owner) ):
+        if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  from: {}\n  owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_owner) ):
             return False
 
     try:
