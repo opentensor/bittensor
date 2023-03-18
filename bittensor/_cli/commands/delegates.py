@@ -147,6 +147,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
     """
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
     table = Table(show_footer=True, width=width, pad_edge=False, box=None)
+    table.add_column("[overline white]INDEX",  str(len(delegates)), footer_style = "overline white", style='bold white')
     table.add_column("[overline white]SS58",  str(len(delegates)), footer_style = "overline white", style='bold yellow')
     #table.add_column("[overline white]OWNER", style='yellow')
     table.add_column("[overline white]DISPLAY NAME", justify='center', style='white', no_wrap=True)
@@ -163,7 +164,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
     delegate_profiles = get_delegate_profiles_from_github()
     delegate_profiles_map = { profile.delegate_ss58: profile for profile in delegate_profiles }
 
-    for delegate in delegates:
+    for i, delegate in enumerate( delegates):
         owner_stake = next(
             map(lambda x: x[1], # get stake
                 filter(lambda x: x[0] == delegate.owner_ss58, delegate.nominators) # filter for owner
@@ -175,6 +176,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
             delegate_profile = DelegateProfile.empty()
         
         table.add_row(
+            str(i),
             f'{delegate.hotkey_ss58:8.8}...',
             #f'{delegate.owner_ss58:8.8}...',
             str(delegate_profile.displayname),
@@ -249,13 +251,6 @@ class DelegateStakeCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
-        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-
         if not config.get('delegate_ss58key'):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
@@ -266,9 +261,15 @@ class DelegateStakeCommand:
                 console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
             
+            delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
             show_delegates( delegates )
-            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
-            config.delegate_ss58key = str(delegate_ss58key)
+            delegate_index = Prompt.ask("Enter delegate index:")
+            config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
+            console.print("Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key))
+
+        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
             
         # Get amount.
         if not config.get('amount') and not config.get('stake_all'):
@@ -341,8 +342,8 @@ class DelegateUnstakeCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+        # if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+        #     config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
@@ -358,10 +359,12 @@ class DelegateUnstakeCommand:
                 console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
             
+            delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
             show_delegates( delegates )
-            delegate_ss58key = Prompt.ask("Enter the delegate's ss58key")
-            config.delegate_ss58key = str(delegate_ss58key)
-            
+            delegate_index = Prompt.ask("Enter the delegate's ss58key")
+            config.delegate_ss58key = str(delegates[delegate_index].hotkey_ss58)
+            console.print("Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key))
+
         # Get amount.
         if not config.get('amount') and not config.get('unstake_all'):
             if not Confirm.ask("Unstake all Tao to account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
