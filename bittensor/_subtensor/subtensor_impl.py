@@ -27,7 +27,7 @@ from bittensor.utils.balance import Balance
 from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
-from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
+from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite
 from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
@@ -820,6 +820,70 @@ class Subtensor:
             return []
         
         return NeuronInfo.list_from_vec_u8( result )
+    
+    def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]: 
+        r""" Returns a list of neuron lite from the chain. 
+        Args:
+            uid ( int ):
+                The uid of the neuron to query for.
+            netuid ( int ):
+                The uid of the network to query for.
+            block ( int ):
+                The neuron at a particular block
+        Returns:
+            neuron (Optional[NeuronInfoLite]):
+                neuron metadata associated with uid or None if it does not exist.
+        """
+        if uid == None: return NeuronInfoLite._null_neuron()
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid, uid]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="neuronInfo_getNeuronLite", # custom rpc method
+                    params=params
+                )
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result in (None, []):
+            return NeuronInfoLite._null_neuron()
+        
+        return NeuronInfoLite.from_vec_u8( result ) 
+
+    def neurons_lite(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfoLite]: 
+        r""" Returns a list of neuron lite from the chain. 
+        Args:
+            netuid ( int ):
+                The netuid of the subnet to pull neurons from.
+            block ( Optional[int] ):
+                block to sync from.
+        Returns:
+            neuron (List[NeuronInfoLite]):
+                List of neuron lite metadata objects.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="neuronInfo_getNeuronsLite", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result in (None, []):
+            return []
+        
+        return NeuronInfoLite.list_from_vec_u8( result )
 
     def metagraph( self, netuid: int, block: Optional[int] = None ) -> 'bittensor.Metagraph':
         r""" Returns the metagraph for the subnet.
