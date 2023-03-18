@@ -84,6 +84,8 @@ class CLI:
             DelegateStakeCommand.run( self )
         elif self.config.command == 'undelegate':
             DelegateUnstakeCommand.run( self )
+        elif self.config.command == 'my_delegates':
+            MyDelegatesCommand.run( self )
         elif self.config.command == 'list_delegates':
             ListDelegatesCommand.run( self )
         elif self.config.command == 'list_subnets':

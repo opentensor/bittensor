@@ -409,7 +409,7 @@ class Metagraph( torch.nn.Module ):
         return wandb_info
             
     def __str__(self):
-        return "Metagraph({}, {}, {})".format(self.n.item(), self.block.item(), self.network)
+        return "Metagraph(netuid:{}, n:{}, block:{}, network:{})".format(self.netuid, self.n.item(), self.block.item(), self.network)
         
     def __repr__(self):
         return self.__str__()

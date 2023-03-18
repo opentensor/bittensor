@@ -89,6 +89,7 @@ class cli:
         SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
         NewHotkeyCommand.add_args( cmd_parsers )
+        MyDelegatesCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
         RegenColdkeyCommand.add_args( cmd_parsers )
@@ -157,6 +158,8 @@ class cli:
             DelegateStakeCommand.check_config( config )
         elif config.command == "undelegate":
             DelegateUnstakeCommand.check_config( config )
+        elif config.command == "my_delegates":
+            MyDelegatesCommand.check_config( config )
         elif config.command == "burned_register":
             BurnedRegisterCommand.check_config( config )
         else:

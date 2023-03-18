@@ -362,6 +362,99 @@ class NominateCommand:
 
       
 
+class MyDelegatesCommand:
+
+    @staticmethod
+    def run( cli ):
+        '''Delegates stake to a chain delegate.'''
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        delegates = subtensor.get_delegates()
+
+        my_delegates = {} # hotkey, amount
+        for delegate in delegates:
+            result = subtensor.query_map_subtensor( name = "Stake", params = [ delegate.hotkey_ss58 ] )
+            for el in result:
+                if el[0].value == wallet.coldkeypub.ss58_address and int( el[1].value ) > 0:
+                    my_delegates[ delegate.hotkey_ss58 ] = bittensor.Balance.from_rao( int( el[1].value ) )
+
+        delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
+        registered_delegate_info = json.load( open("delegates.json") )
+        table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
+        table.add_column("[overline white]INDEX",  str(len(delegates)), footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]OWNER", style='rgb(50,163,219)', no_wrap=True, justify='left')
+        table.add_column("[overline white]SS58",  str(len(delegates)), footer_style = "overline white", style='bold yellow')
+        table.add_column("[overline green]My Delegation",  str(len(delegates)), footer_style = "overline green", style='bold green')
+        table.add_column("[overline white]NOMS", justify='center', style='green', no_wrap=True)
+        table.add_column("[overline white]OWNER STAKE(\u03C4)", justify='right', no_wrap=True)
+        table.add_column("[overline white]TOTAL STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]SUBNETS", justify='right', style='white', no_wrap=True)
+        table.add_column("[overline white]VPERMIT", justify='right', no_wrap=True)
+        table.add_column("[overline white]24h/k\u03C4", style='green', justify='center')
+        table.add_column("[overline white]Desc", style='rgb(50,163,219)')
+
+        for i, delegate in enumerate( delegates ):
+            owner_stake = next(
+                map(lambda x: x[1], # get stake
+                    filter(lambda x: x[0] == delegate.owner_ss58, delegate.nominators) # filter for owner
+                ),
+                bittensor.Balance.from_rao(0) # default to 0 if no owner stake.
+            )
+            if delegate.hotkey_ss58 in registered_delegate_info:
+                delegate_name = registered_delegate_info[delegate.hotkey_ss58]['name']
+                delegate_url = registered_delegate_info[delegate.hotkey_ss58]['url']
+                delegate_description =  registered_delegate_info[delegate.hotkey_ss58]['description']
+            else:
+                delegate_name = ''
+                delegate_url = ''
+                delegate_description = ''
+
+            if delegate.hotkey_ss58 in my_delegates:
+                table.add_row(
+                    str(i),
+                    Text(delegate_name, style=f'link {delegate_url}'),
+                    f'{delegate.hotkey_ss58:8.8}...',
+                    f'{my_delegates[delegate.hotkey_ss58]!s:13.13}',
+                    str(len(delegate.nominators)),
+                    f'{owner_stake!s:13.13}',
+                    f'{delegate.total_stake!s:13.13}',
+                    str(delegate.registrations),
+                    str(['*' if subnet in delegate.validator_permits else '' for subnet in delegate.registrations]),
+                    #f'{delegate.take * 100:.1f}%',
+                    f'{delegate.return_per_1000!s:6.6}',
+                    str(delegate_description)
+                    #f'{delegate_profile.description:140.140}',
+                )
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def add_args( parser: argparse.ArgumentParser ):
+        delegate_stake_parser = parser.add_parser(
+            'my_delegates', 
+            help='''Show all delegates where I am delegating a positive amount of stake'''
+        )
+        delegate_stake_parser.add_argument( 
+            '--no_version_checking', 
+            action='store_true', 
+            help='''Set false to stop cli version checking''', 
+            default = False 
+        )
+        delegate_stake_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( delegate_stake_parser )
+        bittensor.subtensor.add_args( delegate_stake_parser )
+
+    @staticmethod   
+    def check_config( config: 'bittensor.Config' ):
+        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
 
 
 
