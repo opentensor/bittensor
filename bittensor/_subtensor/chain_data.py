@@ -65,6 +65,7 @@ custom_rpc_type_registry = {
                 ["registrations", "Vec<Compact<u16>>"],
                 ["validator_permits", "Vec<Compact<u16>>"],
                 ["return_per_1000", "Compact<u64>"],
+                ["total_daily_return", "Compact<u64>"],
             ],
         },
         "NeuronInfo": {
@@ -333,6 +334,7 @@ class DelegateInfo:
     validator_permits: List[int] # List of subnets that the delegate is allowed to validate on
     registrations: List[int] # List of subnets that the delegate is registered on
     return_per_1000: bittensor.Balance # Return per 1000 tao of the delegate over a day
+    total_daily_return: bittensor.Balance # Total daily return of the delegate
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> 'DelegateInfo':
@@ -351,6 +353,7 @@ class DelegateInfo:
             validator_permits = decoded['validator_permits'],
             registrations = decoded['registrations'],
             return_per_1000 = bittensor.Balance.from_rao(decoded['return_per_1000']),
+            total_daily_return = bittensor.Balance.from_rao(decoded['total_daily_return']),
         )
 
     @classmethod
