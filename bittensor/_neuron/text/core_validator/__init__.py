@@ -575,7 +575,6 @@ class neuron:
             weights=sample_weights.detach().to('cpu'),
             netuid = self.config.netuid,
             wallet=self.wallet,
-            version_key=1,
             wait_for_finalization=self.config.neuron.wait_for_finalization,
         )
 
