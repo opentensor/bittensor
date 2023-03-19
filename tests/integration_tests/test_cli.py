@@ -1872,7 +1872,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
       
     def test_burned_register( self ):
         config = self.config
-        config.command = "burned_register"
+        config.command = "recycled_register"
         config.no_prompt = True
 
         mock_wallet = generate_wallet()
