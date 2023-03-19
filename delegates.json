@@ -1,23 +1,52 @@
 {
-    "5G78DSv3vXc97xAoqAiuexe9Rnk2yadsS3kJfQ6LGWT82d99": 
-        {
-            "name": "Opentensor",
-            "url": "https://bittensor.com",
-            "description": "Building the neural internet."
-        }, 
-        
-    "5DkNiuCHLqFSAP3fpcTsMdm45T1LQaFLMo8BVokKYKDU6ep3": 
-        {
-            "name": "TaoStats",
-            "url": "https://taostats.com",
-            "description": "Indexing the entire Tao network."
-
-        },
-    
-    "5DhY6Mnk49zZAhNDSmHf4671zF7wV3Zr5Ta8zJgxyqmPGfWB": 
-        {
-            "name": "TaoChan",
-            "url": "https://taochan.org",
-            "description": "Dank memes and more."
-        }
+    "5G78DSv3vXc97xAoqAiuexe9Rnk2yadsS3kJfQ6LGWT82d99": {
+        "name": "Opentensor Foundation",
+        "url": "https://opentensor.ai/",
+        "description": "The Opentensor Foundation is the governing entity for the Bittensor project."
+    },
+    "5DkNiuCHLqFSAP3fpcTsMdm45T1LQaFLMo8BVokKYKDU6ep3": {
+        "name": "TaoStats",
+        "url": "https://taostats.com",
+        "description": "Indexing the entire Tao network."
+    },
+    "5Gpt8XWFTXmKrRF1qaxcBQLvnPLpKi6Pt2XC4vVQR7gqNKtU": {
+        "name": "StakeBoost Validator",
+        "url": "",
+        "description": "With the StakeBoost Validator holders can easily boost their annual percentage rate and maximize their earnings."
+    },
+    "5HeKSHGdsRCwVgyrHchijnZJnq4wiv6GqoDLNah8R5WMfnLB": {
+        "name": "Taostation",
+        "url": "",
+        "description": "The go to validator for the smaller TAO holders once delegated staking goes live."
+    },
+    "5GcBK8PDrVifV1xAf4Qkkk6KsbsmhDdX9atvk8vyKU8xdU63": {
+        "name": "Tensor.Exchange",
+        "url": "https://tensor.exchange",
+        "description": "Bittensor's first community OTC exchange"
+    },
+    "5EhvL1FVkQPpMjZX4MAADcW42i3xPSF1KiCpuaxTYVr28sux": {
+        "name": "TAO-Validator.com",
+        "url": "https://tao-validator.com/",
+        "description": "TAO-Validator.com is a highly secure validator on the Bittensor Network."
+    },
+    "5Hddm3iBFD2GLT5ik7LZnT3XJUnRnN8PoeCFgGQgawUVKNm8": {
+        "name": "\u03c4aos\u03c4a\u03c4s",
+        "url": "https://taostats.io",
+        "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
+    },
+    "5HNQURvmjjYhTSksi8Wfsw676b4owGwfLR2BFAQzG7H3HhYf": {
+        "name": "Neural In\u03c4erne\u03c4",
+        "url": "https://neuralinternet.ai/",
+        "description": "An AI research and development decentralized autonomous organization (DAO)."
+    },
+    "5GzoXHNJ4UzZYiQN2wpBcwMigiHiakiz5ZLMwhpunpwDNzFg": {
+        "name": "\u03c4exas \u03c4aos\u03c4",
+        "url": "",
+        "description": "We believe in the power and the necessity of decentralized AI. Out of the hands of a few and into the hands of many."
+    },
+    "5FLKnbMjHY8LarHZvk2q2RY9drWFbpxjAcR5x8tjr3GqtU6F": {
+        "name": "TaoBridge.xyz",
+        "url": "https://taobridge.xyz/",
+        "description": "A community run bridge between the bittensor polkadot chain and ethereum."
+    }
 }
