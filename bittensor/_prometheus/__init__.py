@@ -86,6 +86,10 @@ class prometheus:
         
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
+
+        if isinstance(config.prometheus.level, str):
+            config.prometheus.level = config.prometheus.level.upper() # Convert str to upper case.
+        
         cls.check_config( config )
 
         return cls.serve(
@@ -97,25 +101,30 @@ class prometheus:
             level = config.prometheus.level,
         )
         
-    def serve(cls, wallet, subtensor, netuid, port, level):
-        serve_success = subtensor.serve_prometheus(
-            wallet = wallet,
-            port = port,
-            netuid = netuid,
-        )
-        if serve_success and (level != prometheus.level.OFF.name):
-            try:
-                start_http_server( port )
-            except OSError:
-                # The singleton process is likely already running.
-                logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( port ) )
-            prometheus.started = True
-            prometheus.port = port
-            logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( port ))
+    def serve(cls, wallet, subtensor, netuid, port, level) -> bool:
+        if level == prometheus.level.OFF.name: # If prometheus is off, return true.
+            logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
             return True
         else:
-            logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
-            raise RuntimeError('Failed to serve neuron.')
+            # Serve prometheus. Not OFF
+            serve_success = subtensor.serve_prometheus(
+                wallet = wallet,
+                port = port,
+                netuid = netuid,
+            )
+            if serve_success:
+                try:
+                    start_http_server( port )
+                except OSError:
+                    # The singleton process is likely already running.
+                    logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( port ) )
+                prometheus.started = True
+                prometheus.port = port
+                logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( port ))
+                return True
+            else:
+                logger.error('Prometheus:'.ljust(20) + '<red>OFF</red>')
+                raise RuntimeError('Failed to serve neuron.')
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
