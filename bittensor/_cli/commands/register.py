@@ -101,7 +101,7 @@ class BurnedRegisterCommand:
 
     @staticmethod
     def run( cli ):
-        r""" Register neuron by recycling some TAO. """
+        r""" Register neuron by burning some TAO. """
         wallet = bittensor.wallet( config = cli.config )
         subtensor = bittensor.subtensor( config = cli.config )
 
@@ -116,11 +116,11 @@ class BurnedRegisterCommand:
 
         # Check balance is sufficient
         if balance < current_burn:
-            bittensor.__console__.print(f"[red]Insufficient balance {balance} to register neuron. Current recycle is {current_burn} TAO[/red]")
+            bittensor.__console__.print(f"[red]Insufficient balance {balance} to register neuron. Current burn is {current_burn} TAO[/red]")
             sys.exit(1)
 
         if not cli.config.no_prompt:
-            if Confirm.ask(f"Your balance is: [bold green]{balance}[/bold green]\nThe cost to register by recycle is [bold red]{current_burn}[/bold red]\nDo you want to continue?", default = False) == False:
+            if Confirm.ask(f"Your balance is: [bold green]{balance}[/bold green]\nThe cost to register by burn is [bold red]{current_burn}[/bold red]\nDo you want to continue?", default = False) == False:
                 sys.exit(1)
         
         subtensor.burned_register(
@@ -133,7 +133,7 @@ class BurnedRegisterCommand:
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         burned_register_parser = parser.add_parser(
-            'recycled_register', 
+            'burned_register', 
             help='''Register a wallet to a network.'''
         )
         burned_register_parser.add_argument( 

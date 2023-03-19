@@ -209,7 +209,7 @@ class Subtensor:
         wait_for_finalization: bool = True,
         prompt: bool = False
     ) -> bool:
-        """ Registers the wallet to chain by recycling TAO."""
+        """ Registers the wallet to chain by burning TAO."""
         return burned_register_extrinsic( 
             subtensor = self, 
             wallet = wallet, 
