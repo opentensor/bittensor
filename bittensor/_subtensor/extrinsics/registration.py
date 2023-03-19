@@ -189,7 +189,7 @@ def burned_register_extrinsic (
     wait_for_finalization: bool = True,
     prompt: bool = False
 ) -> bool:
-    r""" Registers the wallet to chain by recycling TAO.
+    r""" Registers the wallet to chain by burning TAO.
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -231,10 +231,10 @@ def burned_register_extrinsic (
         
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask( f"Recycle {burn_amount} to register on subnet:{netuid}?" ):
+        if not Confirm.ask( f"Burn {burn_amount} to register on subnet:{netuid}?" ):
             return False
 
-    with bittensor.__console__.status(":satellite: Recycling TAO for Registration..."):
+    with bittensor.__console__.status(":satellite: Burning TAO for Registration..."):
        with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call( 
