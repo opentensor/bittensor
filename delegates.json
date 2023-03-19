@@ -53,5 +53,10 @@
         "name": "Vune",
         "url": "https://fairchild.dev",
         "description": "Vune is a dev at Opentensor and a BSc CS student at UofT."
+    },
+    "5H6BgKkAr2Anmm9Xw5BVDE4VaQmFEVMkJUHeT7Gki4J7yF4x": {
+        "name": "TaoPolishNode",
+        "url": "https://taonode.io",
+        "description": "This node is a collective effort of the polish community. We are engaged in evangelizing the project, educating and sharing the knowledge."
     }
 }
