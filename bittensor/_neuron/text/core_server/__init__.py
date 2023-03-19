@@ -426,6 +426,7 @@ class neuron:
         """
         ## Uid that sent the request
         incoming_uid = self.metagraph.hotkeys.index(hotkey)
+        batch_size, sequence_len  =  inputs_x[0].size()
         if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
             if self.metagraph.S[incoming_uid] < self.config.neuron.lasthidden_stake \
                 or (batch_size > self.config.neuron.max_batch_size) \
@@ -433,21 +434,18 @@ class neuron:
                 return False
             
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
-            batch_size, sequence_len  =  inputs_x[0].size()
             if (self.metagraph.S[incoming_uid] < self.config.neuron.causallm_stake) \
                 or (batch_size > self.config.neuron.max_batch_size) \
                 or (sequence_len > self.config.neuron.max_sequence_len):
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT:
-            batch_size, sequence_len  =  inputs_x[0].size()
             if (self.metagraph.S[incoming_uid] < self.config.neuron.causallmnext_stake) \
                 or (batch_size > self.config.neuron.max_batch_size) \
                 or (sequence_len > self.config.neuron.max_sequence_len):
                 return False
 
         elif synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_SEQ_2_SEQ:
-            batch_size, sequence_len  =  inputs_x[0].size()
             if (self.metagraph.S[incoming_uid] < self.config.neuron.seq2seq_stake) \
                 or (batch_size > self.config.neuron.max_batch_size) \
                 or (sequence_len > self.config.neuron.max_sequence_len) \
