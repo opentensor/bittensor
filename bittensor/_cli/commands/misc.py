@@ -110,11 +110,9 @@ class ListSubnetsCommand:
                 str(subnet.validator_batch_size),
                 str(subnet.validator_sequence_length),
                 str(subnet.tempo),
+                str(subnet.modality),
                 str([ (int(cr[0]), cr[1]) for cr in subnet.connection_requirements.items()] if len(subnet.connection_requirements) > 0 else None ),
-
-                str([ f'{cr[0]}: {cr[1] * 100:.1f}%' for cr in subnet.connection_requirements.items()] if len(subnet.connection_requirements) > 0 else None ),
-                f'{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%',
-                f'{subnet.burn!s:8.8}',
+                str(subnet.emission_value),
             ))
 
         table = Table(show_footer=True, width=cli.config.get('width', None), pad_edge=False, box=None)

@@ -406,8 +406,7 @@ class SubnetInfo:
     blocks_since_epoch: int
     tempo: int
     modality: int
-    # netuid -> topk percentile prunning score requirement (u16:MAX normalized.)
-    connection_requirements: Dict[str, float]
+    connection_requirements: Dict[str, int] # netuid -> connection requirements
     emission_value: float
     burn: Balance
 
@@ -463,7 +462,7 @@ class SubnetInfo:
             tempo = decoded['tempo'],
             modality = decoded['network_modality'],
             connection_requirements = {
-                str(int(netuid)): bittensor.utils.U16_NORMALIZED_FLOAT(int(req)) for netuid, req in decoded['network_connect']
+                str(int(netuid)): int(req) for netuid, req in decoded['network_connect']
             },
             emission_value= decoded['emission_values'],
             burn = Balance(0)#Balance.from_rao(decoded['burn'])
