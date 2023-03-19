@@ -1870,9 +1870,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertTrue( registered )
       
-    def test_burned_register( self ):
+    def test_recycle_register( self ):
         config = self.config
-        config.command = "burned_register"
+        config.command = "recycle_register"
         config.no_prompt = True
 
         mock_wallet = generate_wallet()
