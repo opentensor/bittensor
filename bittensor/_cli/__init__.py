@@ -160,7 +160,7 @@ class cli:
             DelegateUnstakeCommand.check_config( config )
         elif config.command == "my_delegates":
             MyDelegatesCommand.check_config( config )
-        elif config.command == "burned_register":
+        elif config.command == "recycled_register":
             BurnedRegisterCommand.check_config( config )
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
