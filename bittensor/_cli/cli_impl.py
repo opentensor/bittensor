@@ -84,10 +84,12 @@ class CLI:
             DelegateStakeCommand.run( self )
         elif self.config.command == 'undelegate':
             DelegateUnstakeCommand.run( self )
+        elif self.config.command == 'my_delegates':
+            MyDelegatesCommand.run( self )
         elif self.config.command == 'list_delegates':
             ListDelegatesCommand.run( self )
         elif self.config.command == 'list_subnets':
             ListSubnetsCommand.run( self )
-        elif self.config.command == 'burned_register':
-            BurnedRegisterCommand.run( self )
+        elif self.config.command == 'recycle_register':
+            RecycleRegisterCommand.run( self )
         

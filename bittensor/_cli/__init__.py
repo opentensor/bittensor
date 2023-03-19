@@ -89,6 +89,7 @@ class cli:
         SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
         NewHotkeyCommand.add_args( cmd_parsers )
+        MyDelegatesCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
         RegenColdkeyCommand.add_args( cmd_parsers )
@@ -96,7 +97,7 @@ class cli:
         DelegateUnstakeCommand.add_args( cmd_parsers )
         ListDelegatesCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
-        BurnedRegisterCommand.add_args( cmd_parsers )
+        RecycleRegisterCommand.add_args( cmd_parsers )
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
@@ -157,8 +158,10 @@ class cli:
             DelegateStakeCommand.check_config( config )
         elif config.command == "undelegate":
             DelegateUnstakeCommand.check_config( config )
-        elif config.command == "burned_register":
-            BurnedRegisterCommand.check_config( config )
+        elif config.command == "my_delegates":
+            MyDelegatesCommand.check_config( config )
+        elif config.command == "recycle_register":
+            RecycleRegisterCommand.check_config( config )
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()

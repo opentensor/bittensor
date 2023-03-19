@@ -65,6 +65,7 @@ custom_rpc_type_registry = {
                 ["registrations", "Vec<Compact<u16>>"],
                 ["validator_permits", "Vec<Compact<u16>>"],
                 ["return_per_1000", "Compact<u64>"],
+                ["total_daily_return", "Compact<u64>"],
             ],
         },
         "NeuronInfo": {
@@ -146,6 +147,7 @@ class ChainDataType(Enum):
     SubnetInfo = 2
     DelegateInfo = 3
     NeuronInfoLite = 4
+    DelegatedInfo = 5
 
 # Constants
 RAOPERTAO = 1e9
@@ -160,6 +162,9 @@ def from_scale_encoding( vec_u8: List[int], type_name: ChainDataType, is_vec: bo
     rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
     type_string = type_name.name
+    if type_name == ChainDataType.DelegatedInfo:
+        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
+        type_string = f'({ChainDataType.DelegateInfo.name}, Compact<u64>)'
     if is_option:
         type_string = f'Option<{type_string}>'
     if is_vec:
@@ -489,6 +494,7 @@ class DelegateInfo:
     validator_permits: List[int] # List of subnets that the delegate is allowed to validate on
     registrations: List[int] # List of subnets that the delegate is registered on
     return_per_1000: bittensor.Balance # Return per 1000 tao of the delegate over a day
+    total_daily_return: bittensor.Balance # Total daily return of the delegate
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> 'DelegateInfo':
@@ -507,6 +513,7 @@ class DelegateInfo:
             validator_permits = decoded['validator_permits'],
             registrations = decoded['registrations'],
             return_per_1000 = bittensor.Balance.from_rao(decoded['return_per_1000']),
+            total_daily_return = bittensor.Balance.from_rao(decoded['total_daily_return']),
         )
 
     @classmethod
@@ -537,6 +544,20 @@ class DelegateInfo:
         decoded = [DelegateInfo.fix_decoded_values(d) for d in decoded]
 
         return decoded
+    
+    @classmethod
+    def delegated_list_from_vec_u8(cls, vec_u8: List[int]) -> List[Tuple['DelegateInfo', Balance]]:
+        r""" Returns a list of Tuples of DelegateInfo objects, and Balance, from a vec_u8.
+        This is the list of delegates that the user has delegated to, and the amount of stake delegated.
+        """
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
+
+        if decoded is None:
+            return []
+        
+        decoded = [(DelegateInfo.fix_decoded_values(d), Balance.from_rao(s)) for d, s in decoded]
+
+        return decoded
 
 @dataclass
 class SubnetInfo:
@@ -562,7 +583,8 @@ class SubnetInfo:
     blocks_since_epoch: int
     tempo: int
     modality: int
-    connection_requirements: Dict[str, int] # netuid -> connection requirements
+    # netuid -> topk percentile prunning score requirement (u16:MAX normalized.)
+    connection_requirements: Dict[str, float]
     emission_value: float
     burn: Balance
 
@@ -618,7 +640,7 @@ class SubnetInfo:
             tempo = decoded['tempo'],
             modality = decoded['network_modality'],
             connection_requirements = {
-                str(int(netuid)): int(req) for netuid, req in decoded['network_connect']
+                str(int(netuid)): bittensor.utils.U16_NORMALIZED_FLOAT(int(req)) for netuid, req in decoded['network_connect']
             },
             emission_value= decoded['emission_values'],
             burn = Balance(0)#Balance.from_rao(decoded['burn'])
