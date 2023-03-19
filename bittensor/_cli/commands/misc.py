@@ -108,7 +108,7 @@ class ListSubnetsCommand:
                 str(bittensor.utils.registration.millify(subnet.max_n)),
                 str(bittensor.utils.registration.millify(subnet.difficulty)),
                 str(subnet.tempo),
-                str([int(cr) for cr in subnet.connection_requirements.keys()]),
+                str([ f'{cr[0]}: {cr[1] * 100:.1f}%' for cr in subnet.connection_requirements.items()] if len(subnet.connection_requirements) > 0 else None ),
                 f'{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%',
                 f'{subnet.burn!s:8.8}',
             ))

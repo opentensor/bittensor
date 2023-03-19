@@ -249,7 +249,7 @@ class DelegateUnstakeCommand:
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
             show_delegates( delegates )
             delegate_index = Prompt.ask("Enter delegate index")
-            config.delegate_ss58key = str(delegates[delegate_index].hotkey_ss58)
+            config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
             console.print("Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key))
 
         # Get amount.
