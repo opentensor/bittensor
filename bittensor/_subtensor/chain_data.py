@@ -123,6 +123,7 @@ class ChainDataType(Enum):
     NeuronInfo = 1
     SubnetInfo = 2
     DelegateInfo = 3
+    DelegatedInfo = 5
 
 # Constants
 RAOPERTAO = 1e9
@@ -137,6 +138,9 @@ def from_scale_encoding( vec_u8: List[int], type_name: ChainDataType, is_vec: bo
     rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
     type_string = type_name.name
+    if type_name == ChainDataType.DelegatedInfo:
+        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
+        type_string = f'({ChainDataType.DelegateInfo.name}, Compact<u64>)'
     if is_option:
         type_string = f'Option<{type_string}>'
     if is_vec:
@@ -382,6 +386,20 @@ class DelegateInfo:
             return []
         
         decoded = [DelegateInfo.fix_decoded_values(d) for d in decoded]
+
+        return decoded
+    
+    @classmethod
+    def delegated_list_from_vec_u8(cls, vec_u8: List[int]) -> List[Tuple['DelegateInfo', Balance]]:
+        r""" Returns a list of Tuples of DelegateInfo objects, and Balance, from a vec_u8.
+        This is the list of delegates that the user has delegated to, and the amount of stake delegated.
+        """
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
+
+        if decoded is None:
+            return []
+        
+        decoded = [(DelegateInfo.fix_decoded_values(d), Balance.from_rao(s)) for d, s in decoded]
 
         return decoded
 

@@ -714,6 +714,31 @@ class Subtensor:
             return []
 
         return DelegateInfo.list_from_vec_u8( result )
+    
+    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[DelegateInfo, Balance]]:
+        """ Returns the list of delegates that a given coldkey is staked to.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_coldkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [encoded_coldkey]
+                if block_hash:
+                    params = [block_hash] + params
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegated", # custom rpc method
+                    params=params
+                )
+
+        coldkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( coldkey_ss58 )
+        encoded_coldkey: List[int] = [ int( byte ) for byte in coldkey_bytes ]
+        json_body = make_substrate_call_with_retry(encoded_coldkey)
+        result = json_body['result']
+
+        if result in (None, []):
+            return []
+
+        return DelegateInfo.delegated_list_from_vec_u8( result )
 
 
     ########################################
