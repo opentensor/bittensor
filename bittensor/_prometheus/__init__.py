@@ -86,6 +86,10 @@ class prometheus:
         
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
+
+        if isinstance(config.prometheus.level, str):
+            config.prometheus.level = config.prometheus.level.upper() # Convert str to upper case.
+        
         cls.check_config( config )
 
         return cls.serve(
