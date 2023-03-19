@@ -48,5 +48,10 @@
         "name": "TaoBridge.xyz",
         "url": "https://taobridge.xyz/",
         "description": "A community run bridge between the bittensor polkadot chain and ethereum."
+    },
+    "5ECvRLMj9jkbdM4sLuH5WvjUe87TcAdjRfUj5onN4iKqYYGm": {
+        "name": "Vune",
+        "url": "https://fairchild.dev",
+        "description": "Vune is a dev at Opentensor and a BSc CS student at UofT."
     }
 }
