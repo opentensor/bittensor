@@ -142,7 +142,7 @@ class neuron:
         self.prometheus_info = Info('neuron_info', "Info sumamries for the running server-miner.", registry=registry)
         self.config.to_prometheus()
 
-        if self.config.netuid == None and self.config.subtensor.network == 'finney':
+        if self.config.netuid == None and self.config.subtensor.network != 'nakamoto':
             subtensor = bittensor.subtensor(config = config) if subtensor == None else subtensor
             self.config.netuid = subtensor.get_subnets()[0]
 
@@ -182,7 +182,7 @@ class neuron:
         )
 
         # Verify subnet exists
-        if self.config.subtensor.network == 'finney' and not self.subtensor.subnet_exists( netuid = self.config.netuid ):
+        if self.config.subtensor.network != 'nakamoto' and not self.subtensor.subnet_exists( netuid = self.config.netuid ):
             bittensor.__console__.print(f"[red]Subnet {self.config.netuid} does not exist[/red]")
             sys.exit(1)
 
@@ -652,25 +652,25 @@ class neuron:
             return True
 
     def get_neuron(self):
-        if self.subtensor.network == 'finney':
-            nn = self.subtensor.get_neuron_for_pubkey_and_subnet(self.wallet.hotkey.ss58_address, netuid = self.config.netuid)
-        elif self.subtensor.network == 'nakamoto':
+        if self.subtensor.network == 'nakamoto':
             nn = self.subtensor.neuron_for_pubkey(self.wallet.hotkey.ss58_address)
+        else:
+            nn = self.subtensor.get_neuron_for_pubkey_and_subnet(self.wallet.hotkey.ss58_address, netuid = self.config.netuid)
         return nn
 
     def get_neuron_num(self):
-        if self.subtensor.network == 'finney':
-            n = self.subtensor.subnetwork_n( netuid = self.config.netuid)
-        elif self.subtensor.network == 'nakamoto':
+        if self.subtensor.network == 'nakamoto':
             n = self.subtensor.n()
+        else:
+            n = self.subtensor.subnetwork_n( netuid = self.config.netuid)
         return n
     
     def get_blocks_per_set_weights(self):
         blocks_per_set_weights = self.config.neuron.blocks_per_set_weights
         if blocks_per_set_weights == -1:
-            if self.subtensor.network == 'finney':
-                blocks_per_set_weights = self.subtensor.validator_epoch_length(self.config.netuid)
-            elif self.subtensor.network == 'nakamoto':
+            if self.subtensor.network == 'nakamoto':
                 blocks_per_set_weights = self.subtensor.validator_epoch_length
+            else:
+                blocks_per_set_weights = self.subtensor.validator_epoch_length(self.config.netuid)
         
         return blocks_per_set_weights
