@@ -111,7 +111,7 @@ class ListSubnetsCommand:
                 str(subnet.validator_sequence_length),
                 str(subnet.tempo),
                 str(subnet.modality),
-                str([cr[1] for cr in subnet.connection_requirements]),
+                str([ (int(cr[0]), cr[1]) for cr in subnet.connection_requirements.items()] if len(subnet.connection_requirements) > 0 else None ),
                 str(subnet.emission_value),
             ))
 
