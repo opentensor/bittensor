@@ -293,8 +293,7 @@ class ListDelegatesCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+        pass
 
 
 
@@ -345,9 +344,6 @@ class NominateCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -374,11 +370,11 @@ class MyDelegatesCommand:
 
         my_delegates = {} # hotkey, amount
         for delegate in delegates:
-            for coldkey_addr, staked in delegate.nominators:
+            for coldkey_addr, staked in delegate[0].nominators:
                 if coldkey_addr == wallet.coldkeypub.ss58_address and staked.tao > 0:
-                    my_delegates[ delegate.hotkey_ss58 ] = staked
+                    my_delegates[ delegate[0].hotkey_ss58 ] = staked
 
-        delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
+        delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
         
         try:
             registered_delegate_info = json.load( open("delegates.json") )
@@ -401,32 +397,32 @@ class MyDelegatesCommand:
         for i, delegate in enumerate( delegates ):
             owner_stake = next(
                 map(lambda x: x[1], # get stake
-                    filter(lambda x: x[0] == delegate.owner_ss58, delegate.nominators) # filter for owner
+                    filter(lambda x: x[0] == delegate[0].owner_ss58, delegate[0].nominators) # filter for owner
                 ),
                 bittensor.Balance.from_rao(0) # default to 0 if no owner stake.
             )
-            if delegate.hotkey_ss58 in registered_delegate_info:
-                delegate_name = registered_delegate_info[delegate.hotkey_ss58]['name']
-                delegate_url = registered_delegate_info[delegate.hotkey_ss58]['url']
-                delegate_description =  registered_delegate_info[delegate.hotkey_ss58]['description']
+            if delegate[0].hotkey_ss58 in registered_delegate_info:
+                delegate_name = registered_delegate_info[delegate[0].hotkey_ss58]['name']
+                delegate_url = registered_delegate_info[delegate[0].hotkey_ss58]['url']
+                delegate_description =  registered_delegate_info[delegate[0].hotkey_ss58]['description']
             else:
                 delegate_name = ''
                 delegate_url = ''
                 delegate_description = ''
 
-            if delegate.hotkey_ss58 in my_delegates:
+            if delegate[0].hotkey_ss58 in my_delegates:
                 table.add_row(
                     str(i),
                     Text(delegate_name, style=f'link {delegate_url}'),
-                    f'{delegate.hotkey_ss58:8.8}...',
-                    f'{my_delegates[delegate.hotkey_ss58]!s:13.13}',
-                    str(len(delegate.nominators)),
+                    f'{delegate[0].hotkey_ss58:8.8}...',
+                    f'{my_delegates[delegate[0].hotkey_ss58]!s:13.13}',
+                    str(len(delegate[0].nominators)),
                     f'{owner_stake!s:13.13}',
-                    f'{delegate.total_stake!s:13.13}',
-                    str(delegate.registrations),
-                    str(['*' if subnet in delegate.validator_permits else '' for subnet in delegate.registrations]),
+                    f'{delegate[0].total_stake!s:13.13}',
+                    str(delegate[0].registrations),
+                    str(['*' if subnet in delegate[0].validator_permits else '' for subnet in delegate[0].registrations]),
                     #f'{delegate.take * 100:.1f}%',
-                    f'{delegate.return_per_1000!s:6.6}',
+                    f'{delegate[0].return_per_1000!s:6.6}',
                     str(delegate_description)
                     #f'{delegate_profile.description:140.140}',
                 )
