@@ -85,7 +85,7 @@ class OverviewCommand:
         
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
-                all_neurons = subtensor.neurons( netuid = netuid )
+                all_neurons: List[bittensor.NeuronInfoLite] = subtensor.neurons_lite( netuid = netuid )
                 # Map the hotkeys to uids
                 hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
                 for hot_wallet in all_hotkeys:
