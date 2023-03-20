@@ -53,5 +53,10 @@
         "name": "τaosτaτs",
         "url": "https://taostats.io",
         "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
-    }
+    },
+    "5GBxDYkDp8eJZHGT89wcZJKcMc4ytSqnqqVSpeuGeqtGfqxK": {
+        "name": "Tao Stake",
+        "url": "www.taostake.io",
+        "description": "We have been mining since the start of bittensor and want to maintain a long term solid validator to help people get some value from thier investment and keep TAO within the ecosystem."
+    },
 }
