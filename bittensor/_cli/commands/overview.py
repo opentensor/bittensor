@@ -77,6 +77,8 @@ class OverviewCommand:
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
+        if cli.config.netuid != []:
+            netuids = [netuid for netuid in netuids if netuid in cli.config.netuid]
         for netuid in netuids:
             neurons[str(netuid)] = []
         netuids_copy = netuids.copy()
@@ -316,6 +318,14 @@ class OverviewCommand:
             default=False,
             help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
         )
+        overview_parser.add_argument(
+            '--netuid', 
+            dest='netuid', 
+            type=int,
+            nargs='*',
+            help='''Set the netuid(s) to filter by.''',
+            default=[],
+        )
         overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )  
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
@@ -329,8 +339,6 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-
-
-
-
+        if config.netuid != []:
+            config.netuid = [int(netuid) for netuid in config.netuid]
       
