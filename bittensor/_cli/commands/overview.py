@@ -109,9 +109,11 @@ class OverviewCommand:
         grid.add_row(Align(title, vertical="middle", align="center"))
 
         # Generate rows per netuid
+        hotkeys_seen = set()
+        total_stake = 0.0
         for netuid in netuids:
+            last_subnet = netuid == netuids[-1]
             TABLE_DATA = []  
-            total_stake = 0.0
             total_rank = 0.0
             total_trust = 0.0
             total_consensus = 0.0
@@ -152,7 +154,7 @@ class OverviewCommand:
                     bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
                     nn.hotkey
                 ]
-                total_stake += stake
+               
                 total_rank += rank
                 total_trust += trust
                 total_consensus += consensus
@@ -160,6 +162,10 @@ class OverviewCommand:
                 total_dividends += dividends
                 total_emission += emission
                 total_validator_trust += validator_trust
+
+                if not nn.hotkey in hotkeys_seen:
+                    hotkeys_seen.add(nn.hotkey)
+                    total_stake += stake
                 TABLE_DATA.append(row)
                 
             total_neurons = len(neurons)
@@ -172,7 +178,11 @@ class OverviewCommand:
             table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='white')
             table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
             table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
-            table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+            if last_subnet:
+                table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+            else:
+                # No footer for non-last subnet.
+                table.add_column("[overline white]STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
