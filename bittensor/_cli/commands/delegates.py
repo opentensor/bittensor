@@ -365,7 +365,6 @@ class NominateCommand:
         if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-
       
 
 class MyDelegatesCommand:
@@ -441,6 +440,7 @@ class MyDelegatesCommand:
                         str(delegate_description)
                         #f'{delegate_profile.description:140.140}',
                     )
+
         bittensor.__console__.print(table)
 
     @staticmethod
