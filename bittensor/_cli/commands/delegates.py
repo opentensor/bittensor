@@ -370,17 +370,21 @@ class MyDelegatesCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
-        delegates = subtensor.get_delegates()
+        delegates = subtensor.get_delegated( coldkey_ss58=wallet.coldkeypub.ss58_address )
 
         my_delegates = {} # hotkey, amount
         for delegate in delegates:
-            result = subtensor.query_map_subtensor( name = "Stake", params = [ delegate.hotkey_ss58 ] )
-            for el in result:
-                if el[0].value == wallet.coldkeypub.ss58_address and int( el[1].value ) > 0:
-                    my_delegates[ delegate.hotkey_ss58 ] = bittensor.Balance.from_rao( int( el[1].value ) )
+            for coldkey_addr, staked in delegate.nominators:
+                if coldkey_addr == wallet.coldkeypub.ss58_address and staked.tao > 0:
+                    my_delegates[ delegate.hotkey_ss58 ] = staked
 
         delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-        registered_delegate_info = json.load( open("delegates.json") )
+        
+        try:
+            registered_delegate_info = json.load( open("delegates.json") )
+        except:
+            registered_delegate_info = {}
+
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column("[overline white]INDEX",  str(len(delegates)), footer_style = "overline white", style='bold white')
         table.add_column("[overline white]OWNER", style='rgb(50,163,219)', no_wrap=True, justify='left')

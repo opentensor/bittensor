@@ -1,53 +1,18 @@
 {
-    "5G78DSv3vXc97xAoqAiuexe9Rnk2yadsS3kJfQ6LGWT82d99": {
+    "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3": {
         "name": "Opentensor Foundation",
         "url": "https://opentensor.ai/",
         "description": "Founded, maintain and advance Bittensor"
     },
-    "5DkNiuCHLqFSAP3fpcTsMdm45T1LQaFLMo8BVokKYKDU6ep3": {
-        "name": "TaoStats",
-        "url": "https://taostats.com",
-        "description": "Indexing the entire Tao network."
-    },
-    "5Gpt8XWFTXmKrRF1qaxcBQLvnPLpKi6Pt2XC4vVQR7gqNKtU": {
-        "name": "StakeBoost Validator",
-        "url": "",
-        "description": "With the StakeBoost Validator holders can easily boost their annual percentage rate and maximize their earnings."
-    },
-    "5HeKSHGdsRCwVgyrHchijnZJnq4wiv6GqoDLNah8R5WMfnLB": {
-        "name": "Taostation",
-        "url": "",
-        "description": "The go to validator for the smaller TAO holders once delegated staking goes live."
-    },
-    "5GcBK8PDrVifV1xAf4Qkkk6KsbsmhDdX9atvk8vyKU8xdU63": {
-        "name": "Tensor.Exchange",
-        "url": "https://tensor.exchange",
-        "description": "Bittensor's first community OTC exchange"
-    },
-    "5EhvL1FVkQPpMjZX4MAADcW42i3xPSF1KiCpuaxTYVr28sux": {
-        "name": "TAO-Validator.com",
-        "url": "https://tao-validator.com/",
-        "description": "TAO-Validator.com is a highly secure validator on the Bittensor Network."
-    },
-    "5Hddm3iBFD2GLT5ik7LZnT3XJUnRnN8PoeCFgGQgawUVKNm8": {
-        "name": "\u03c4aos\u03c4a\u03c4s",
-        "url": "https://taostats.io",
-        "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
-    },
     "5HNQURvmjjYhTSksi8Wfsw676b4owGwfLR2BFAQzG7H3HhYf": {
-        "name": "Neural In\u03c4erne\u03c4",
+        "name": "Neural Internet",
         "url": "https://neuralinternet.ai/",
         "description": "An AI research and development decentralized autonomous organization (DAO)."
     },
-    "5GzoXHNJ4UzZYiQN2wpBcwMigiHiakiz5ZLMwhpunpwDNzFg": {
-        "name": "\u03c4exas \u03c4aos\u03c4",
-        "url": "",
-        "description": "We believe in the power and the necessity of decentralized AI. Out of the hands of a few and into the hands of many."
-    },
-    "5FLKnbMjHY8LarHZvk2q2RY9drWFbpxjAcR5x8tjr3GqtU6F": {
-        "name": "TaoBridge.xyz",
-        "url": "https://taobridge.xyz/",
-        "description": "A community run bridge between the bittensor polkadot chain and ethereum."
+    "5HeKSHGdsRCwVgyrHchijnZJnq4wiv6GqoDLNah8R5WMfnLB": {
+        "name": "TaoStation",
+        "url": "https://taostation.com",
+        "description": "The go to validator for maximal TAO returns to stakers."
     },
     "5ECvRLMj9jkbdM4sLuH5WvjUe87TcAdjRfUj5onN4iKqYYGm": {
         "name": "Vune",
@@ -63,5 +28,30 @@
         "name": "RunPod",
         "url": "https://runpod.io",
         "description": "GPU Cloud built for AI. We plan to introduce perks for those who stake."
+    },
+    "5CPzGD8sxyv8fKKXNvKem4qJRhCXABRmpUgC1wb1V4YAXLc3": {
+        "name": "Tao Staking",
+        "url": "https://www.taostaking.com",
+        "description": "Empowering innovation on the Bittensor network by helping upcoming projects grow and thrive on Bittensor."
+    },
+    "5FFApaS75bv5pJHfAp2FVLBj9ZaXuFDjEypsaBNc1wCfe52v": {
+        "name": "RoundTable21",
+        "url": "https://roundtable21.com",
+        "description": "RoundTable21 is an International, multi-disciplinary team of consultants and advisors partnering alongside leading blockchain startups to offer guidance, expertise, investment and hands-on assistance in every aspect of development."
+    },
+    "5HEo565WAy4Dbq3Sv271SAi7syBSofyfhhwRNjFNSM2gP9M2": {
+        "name": "Foundry", 
+        "url": "https://foundrydigital.com", 
+        "description": "Foundry works to empower a decentralized infrastructure. We are protocol-agnostic and seek to support like-minded blockchain entrepreneurs who share our mission to advance the industry."
+    },
+    "5DCc5oHA6c1Lpt9R6T1xU8jJGTMvvwBqD1yGX67sL8dHUcga": {
+        "name": "WaveTensor",
+        "url": "https://twitter.com/wavetensor",
+        "description": "A new Wave is coming, join the AI revolution on top of Bittensor by staking with us."
+    },
+    "5Hddm3iBFD2GLT5ik7LZnT3XJUnRnN8PoeCFgGQgawUVKNm8": {
+        "name": "τaosτaτs",
+        "url": "https://taostats.io",
+        "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
     }
 }
