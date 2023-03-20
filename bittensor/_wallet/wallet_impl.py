@@ -856,7 +856,7 @@ class Wallet():
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic), ss58_format=bittensor.__ss58_format__ )
-            display_mnemonic_msg( keypair, "coldkey" )
+            display_mnemonic_msg( keypair, "hotkey" )
         elif seed is not None:
             keypair = Keypair.create_from_seed(seed, ss58_format=bittensor.__ss58_format__ )
         else:
