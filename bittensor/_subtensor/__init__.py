@@ -55,8 +55,7 @@ class subtensor:
                 network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
                             -- local (local running network)
-                            -- nakamoto (main network)
-                            -- nobunaga (staging network)
+                            -- finney (main network)
                             -- mock (mock network for testing.)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
@@ -156,8 +155,7 @@ class subtensor:
         try:
             parser.add_argument('--' + prefix_str + 'subtensor.network', default = bittensor.defaults.subtensor.network, type=str,
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- finney (staging network)
-                                        -- nakamoto (master network)
+                                        -- finney (main network)
                                         -- local (local running network)
                                         -- mock (creates a mock connection (for testing))
                                     If this option is set it overloads subtensor.chain_endpoint with 
