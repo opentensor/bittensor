@@ -110,6 +110,7 @@ class OverviewCommand:
 
         # Generate rows per netuid
         hotkeys_seen = set()
+        total_neurons = 0
         total_stake = 0.0
         for netuid in netuids:
             last_subnet = netuid == netuids[-1]
@@ -164,18 +165,23 @@ class OverviewCommand:
                 total_validator_trust += validator_trust
 
                 if not nn.hotkey in hotkeys_seen:
+                    # Don't double count hotkeys or stake.
                     hotkeys_seen.add(nn.hotkey)
                     total_stake += stake
+                    total_neurons += 1
                 TABLE_DATA.append(row)
-                
-            total_neurons = len(neurons)
 
             # Add subnet header
             grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
 
             table = Table(show_footer=False, width=cli.config.get('width', None), pad_edge=False, box=None)
-            table.add_column("[overline white]COLDKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
-            table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='white')
+            if last_subnet:
+                table.add_column("[overline white]COLDKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
+                table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='white')
+            else:
+                # No footer for non-last subnet.
+                table.add_column("[overline white]COLDKEY", style='bold white')
+                table.add_column("[overline white]HOTKEY", style='white')
             table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
             table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
             if last_subnet:
