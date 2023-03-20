@@ -82,11 +82,11 @@ class OverviewCommand:
         netuids_copy = netuids.copy()
         
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            for netuid in netuids_copy:
+            for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
                 all_neurons = subtensor.neurons( netuid = netuid )
                 # Map the hotkeys to uids
                 hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-                for hot_wallet in tqdm(all_hotkeys):
+                for hot_wallet in all_hotkeys:
                     uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
                     if uid is not None:
                         nn = all_neurons[uid]
@@ -123,7 +123,7 @@ class OverviewCommand:
             total_dividends = 0.0
             total_emission = 0   
 
-            for nn, hotwallet in tqdm(neurons[str(netuid)]):
+            for nn, hotwallet in neurons[str(netuid)]:
                 nn: bittensor.NeuronInfo
                 uid = nn.uid
                 active = nn.active
